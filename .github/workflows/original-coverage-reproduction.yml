@@ -42,6 +42,8 @@ jobs:
             --original-dir original-project \\
             --replicates "${{ inputs.replicates }}" \\
             --seed "${{ inputs.seed }}"
+      - name: Validate generated calibration artifacts
+        run: python scripts/validate_calibration_artifacts.py results/original-audit
       - name: Upload raw and summary results
         uses: actions/upload-artifact@v4
         with:
