@@ -36,6 +36,12 @@ jobs:
             --original-dir original-project \
             --replicates "${{ inputs.replicates }}" \
             --seed "${{ inputs.seed }}"
+      - name: Calculate multi-level coverage curve
+        run: |
+          python scripts/run_coverage_curve.py \\
+            --original-dir original-project \\
+            --replicates "${{ inputs.replicates }}" \\
+            --seed "${{ inputs.seed }}"
       - name: Upload raw and summary results
         uses: actions/upload-artifact@v4
         with:
