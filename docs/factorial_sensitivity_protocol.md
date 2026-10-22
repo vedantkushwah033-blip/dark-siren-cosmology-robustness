@@ -33,7 +33,9 @@ Select **Run workflow**, initially keep replicates at `500` and base seed at
 ## Outputs
 
 - `scenario_summary.csv`: one row per scenario, with coverage, interval
-  widths, bias, RMSE, pulls and realized catalogue completeness.
+  widths, bias, RMSE, pulls and realized catalogue completeness. For these fixed-size masks, the realized
+completeness should be exactly 0.70 in the 70% scenarios (350/500), so this
+column is also a useful integrity check.
 - `per_run_results.csv`: each simulated run for audit and plotting.
 - `scenario_summary.json`: settings, pinned source commit and metrics.
 
@@ -42,8 +44,10 @@ Select **Run workflow**, initially keep replicates at `500` and base seed at
 These are synthetic experiments, not observations and not a measurement of
 the real Hubble constant. The simulation's host population and catalogue are
 generated from the same underlying mock universe, and galaxy luminosity/mass
-proxies are stylized. The redshift-dependent selection mechanism has its own
-randomness and the host can be absent from the observed catalogue. No
+proxies are stylized. All selection mechanisms in this matrix retain exactly 350 of 500 galaxies
+at 70% target completeness; redshift-dependent selection randomizes *which*
+galaxies are retained, favoring lower redshifts. The host can still be absent
+from the observed catalogue. No
 missing-host likelihood term is enabled in this first matrix; it is an
 intentional diagnostic of the naive observed-catalogue inference. A follow-up
 should compare this with the original model's oracle missing-host term, while
