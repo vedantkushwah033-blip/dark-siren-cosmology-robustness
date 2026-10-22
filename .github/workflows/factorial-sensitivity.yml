@@ -122,6 +122,40 @@ jobs:
             --output results/oracle-missing-host/contrast_analysis.json \
             --bootstrap 5000 \
             --seed 20261024
+      - name: Run full-population oracle benchmark
+        run: |
+          python scripts/run_full_population_oracle.py \
+            --original-dir original-project \
+            --replicates "${{ inputs.replicates }}" \
+            --seed "${{ inputs.seed }}"
+      - name: Validate full-population oracle output
+        run: |
+          python - <<'PY'
+          import csv, json, math
+          from pathlib import Path
+          root = Path("results/full-population-oracle")
+          required = [root / "scenario_summary.csv", root / "scenario_summary.json", root / "per_run_results.csv"]
+          for path in required:
+              if not path.is_file() or path.stat().st_size == 0:
+                  raise SystemExit(f"Missing/empty artifact: {path}")
+          summary = json.loads((root / "scenario_summary.json").read_text())
+          n = int(summary["requested_replicates_per_scenario"])
+          if summary["scenario_count"] != 2 or len(summary["scenarios"]) != 2:
+              raise SystemExit("Expected two full-population oracle scenarios")
+          with (root / "scenario_summary.csv").open(newline="") as f:
+              rows = list(csv.DictReader(f))
+          if len(rows) != 2 or any(int(row["n"]) != n for row in rows):
+              raise SystemExit("Full-population oracle summary counts do not match requested replicates")
+          with (root / "per_run_results.csv").open(newline="") as f:
+              runs = list(csv.DictReader(f))
+          if len(runs) != 2 * n:
+              raise SystemExit(f"Expected {2*n} per-run rows, got {len(runs)}")
+          for row in runs:
+              for key in ("median", "mean", "lower_68", "upper_68", "lower_95", "upper_95"):
+                  if not math.isfinite(float(row[key])):
+                      raise SystemExit(f"Non-finite {key} in {row['scenario']}")
+          print(f"Validated two oracle scenarios and {len(runs)} finite per-run records.")
+          PY
       - name: Upload factorial results
         uses: actions/upload-artifact@v4
         with:
@@ -129,4 +163,5 @@ jobs:
           path: |
             results/factorial-sensitivity/
             results/oracle-missing-host/
+            results/full-population-oracle/
           if-no-files-found: error
