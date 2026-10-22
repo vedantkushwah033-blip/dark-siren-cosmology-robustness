@@ -5,7 +5,7 @@
 The manually triggered workflow imports the original project's `run_repeated`
 and `summarize_runs` functions from a pinned commit and reruns the
 complete-catalogue unknown-host scenario and the matching known-host control.
-It saves per-run CSV files for both scenarios and a summary JSON artifact.
+It saves per-run CSV files for both scenarios, a summary JSON artifact, and a coverage curve for nominal 50%, 68%, 80%, 90%, and 95% equal-tail intervals.
 
 Calibration report's source commit: `b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f`.
 
@@ -35,6 +35,8 @@ the comparison more controlled.
 Do not call this a reproduction until the workflow completes and the output
 artifact has been inspected. A matching coverage value alone does not prove
 that the model is scientifically realistic or correctly specified.
+
+The file `coverage_curve.csv` reports empirical coverage, Monte Carlo standard error, and mean interval width for each nominal level in both host scenarios. The coverage-curve script reruns the simulation with the same seed and pinned source code; it is a separate diagnostic pass, so its values should be consistent with the main runs but need not use the same in-memory simulated events.
 
 ## Interpretation
 
