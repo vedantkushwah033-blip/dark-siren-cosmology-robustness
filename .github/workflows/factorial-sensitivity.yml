@@ -90,7 +90,7 @@ jobs:
           python scripts/run_oracle_missing_host_control.py \
             --original-dir original-project \
             --replicates "${{ inputs.replicates }}" \
-            --seed 20261023
+            --seed "${{ inputs.seed }}"
       - name: Validate oracle-control output
         run: |
           python - <<'PY'
