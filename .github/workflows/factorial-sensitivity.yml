@@ -71,9 +71,39 @@ jobs:
             --output results/factorial-sensitivity/contrast_analysis.json \\
             --bootstrap 5000 \\
             --seed 20261023
+      - name: Run missing-host oracle control experiment
+        run: |
+          python scripts/run_oracle_missing_host_control.py \\
+            --original-dir original-project \\
+            --replicates "${{ inputs.replicates }}" \\
+            --seed 20261023
+      - name: Validate oracle-control output
+        run: |
+          python - <<'PY'
+          import csv, json
+          from pathlib import Path
+          root = Path("results/oracle-missing-host")
+          required = [root / "scenario_summary.csv", root / "scenario_summary.json", root / "per_run_results.csv"]
+          for path in required:
+              if not path.is_file() or path.stat().st_size == 0:
+                  raise SystemExit(f"Missing/empty artifact: {path}")
+          summary = json.loads((root / "scenario_summary.json").read_text())
+          n = int(summary["requested_replicates_per_scenario"])
+          if summary["scenario_count"] != 6 or len(summary["scenarios"]) != 6:
+              raise SystemExit("Expected six oracle-control scenarios")
+          with (root / "scenario_summary.csv").open(newline="") as f:
+              rows = list(csv.DictReader(f))
+          if len(rows) != 6 or any(int(r["n"]) != n for r in rows):
+              raise SystemExit("Oracle-control summary counts do not match requested replicates")
+          with (root / "per_run_results.csv").open(newline="") as f:
+              runs = list(csv.DictReader(f))
+          if len(runs) != 6 * n:
+              raise SystemExit(f"Expected {6*n} oracle-control rows, got {len(runs)}")
+          print(f"Validated six oracle-control scenarios and {len(runs)} per-run rows.")
+          PY
       - name: Upload factorial results
         uses: actions/upload-artifact@v4
         with:
           name: factorial-sensitivity
-          path: results/factorial-sensitivity/
+          path: results/factorial-sensitivity/\n            results/oracle-missing-host/
           if-no-files-found: error
