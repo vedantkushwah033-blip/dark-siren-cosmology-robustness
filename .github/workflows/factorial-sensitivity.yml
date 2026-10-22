@@ -150,11 +150,22 @@ jobs:
               runs = list(csv.DictReader(f))
           if len(runs) != 2 * n:
               raise SystemExit(f"Expected {2*n} per-run rows, got {len(runs)}")
+          by_scenario = {}
           for row in runs:
+              by_scenario.setdefault(row["scenario"], {})[int(row["run"])] = row
               for key in ("median", "mean", "lower_68", "upper_68", "lower_95", "upper_95"):
                   if not math.isfinite(float(row[key])):
                       raise SystemExit(f"Non-finite {key} in {row['scenario']}")
-          print(f"Validated two oracle scenarios and {len(runs)} finite per-run records.")
+          left = by_scenario["random70_full_population_oracle"]
+          right = by_scenario["redshift70_full_population_oracle"]
+          if set(left) != set(right):
+              raise SystemExit("Paired oracle scenarios have different run indices")
+          posterior_keys = ("median", "mean", "posterior_sd", "lower_68", "upper_68", "lower_95", "upper_95")
+          for index in left:
+              for key in posterior_keys:
+                  if float(left[index][key]) != float(right[index][key]):
+                      raise SystemExit(f"Oracle posterior differs across masks at run {index}, metric {key}")
+          print(f"Validated two paired oracle scenarios, identical full-population posteriors, and {len(runs)} finite per-run records.")
           PY
       - name: Upload factorial results
         uses: actions/upload-artifact@v4
