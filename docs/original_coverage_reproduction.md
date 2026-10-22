@@ -4,8 +4,8 @@
 
 The manually triggered workflow imports the original project's `run_repeated`
 and `summarize_runs` functions from a pinned commit and reruns the
-complete-catalogue, uniform-host-generation, uniform-inference-weighting
-scenario. It saves per-run rows and a summary JSON artifact.
+complete-catalogue unknown-host scenario and the matching known-host control.
+It saves per-run CSV files for both scenarios and a summary JSON artifact.
 
 Calibration report's source commit: `b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f`.
 
