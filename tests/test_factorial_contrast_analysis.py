@@ -49,3 +49,10 @@ def test_bootstrap_difference_is_b_minus_a_and_reproducible():
 
 def test_percentile_interpolates():
     assert analysis.percentile([0.0, 10.0], 0.25) == pytest.approx(2.5)
+
+
+def test_coverage_monte_carlo_standard_error():
+    assert analysis.coverage_mc_se(0.68, 500) == pytest.approx((0.68 * 0.32 / 500) ** 0.5)
+    assert analysis.coverage_mc_se(0.0, 500) == 0.0
+    with pytest.raises(ValueError):
+        analysis.coverage_mc_se(0.5, 0)
