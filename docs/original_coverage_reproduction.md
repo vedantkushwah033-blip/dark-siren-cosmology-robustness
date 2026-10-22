@@ -36,7 +36,7 @@ Do not call this a reproduction until the workflow completes and the output
 artifact has been inspected. A matching coverage value alone does not prove
 that the model is scientifically realistic or correctly specified.
 
-The file `coverage_curve.csv` reports empirical coverage, Monte Carlo standard error, and mean interval width for each nominal level in both host scenarios. The coverage-curve script reruns the simulation with the same seed and pinned source code; it is a separate diagnostic pass, so its values should be consistent with the main runs but need not use the same in-memory simulated events.
+The file `coverage_curve.csv` reports empirical coverage, Monte Carlo standard error, and mean interval width for each nominal level in both host scenarios. Before uploading, the workflow runs `scripts/validate_calibration_artifacts.py`, which checks that all expected files exist, row counts match the requested replicates, and coverage/width values are in valid ranges. The coverage-curve script reruns the simulation with the same seed and pinned source code; it is a separate diagnostic pass, so its values should be consistent with the main runs but need not use the same in-memory simulated events.
 
 ## Interpretation
 
