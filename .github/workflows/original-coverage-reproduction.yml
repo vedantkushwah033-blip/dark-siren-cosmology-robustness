@@ -39,8 +39,8 @@ jobs:
       - name: Calculate multi-level coverage curve
         run: |
           python scripts/run_coverage_curve.py \
-            --original-dir original-project \\
-            --replicates "${{ inputs.replicates }}" \\
+            --original-dir original-project \
+            --replicates "${{ inputs.replicates }}" \
             --seed "${{ inputs.seed }}"
       - name: Validate generated calibration artifacts
         run: python scripts/validate_calibration_artifacts.py results/original-audit
