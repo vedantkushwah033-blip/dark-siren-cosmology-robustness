@@ -23,7 +23,8 @@ def test_missed_intervals_reduce_coverage():
         [0.9, 2.1, 2.0],
         [1.2, 2.3, 2.5],
     )
-    assert result["empirical_coverage"] == pytest.approx(2 / 3)
+    # Only the first interval contains its corresponding true value.
+    assert result["empirical_coverage"] == pytest.approx(1 / 3)
     assert result["bias"] == pytest.approx(0.2)
 
 
