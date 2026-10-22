@@ -29,3 +29,45 @@ def test_low_redshift_approximation_scales_linearly():
 def test_invalid_cosmology_inputs_raise(kwargs):
     with pytest.raises(ValueError):
         luminosity_distance_flat_lcdm(**kwargs)
+
+
+def test_flat_lcdm_scales_inversely_with_h0():
+    z = np.array([0.03, 0.1, 0.4])
+    d70 = luminosity_distance_flat_lcdm(z, 70.0)
+    d80 = luminosity_distance_flat_lcdm(z, 80.0)
+    assert d80 == pytest.approx(d70 * (70.0 / 80.0), rel=1e-12)
+
+
+def test_flat_lcdm_approaches_low_redshift_limit():
+    z = 1e-5
+    exact = luminosity_distance_flat_lcdm(z, 70.0)
+    approximation = low_redshift_luminosity_distance(z, 70.0)
+    assert exact == pytest.approx(approximation, rel=1e-4)
+
+
+def test_flat_lcdm_agrees_with_independent_quadrature():
+    from scipy.integrate import quad
+
+    z = 0.7
+    h0 = 70.0
+    omega_m = 0.3
+    integral, _ = quad(
+        lambda zp: 1.0 / np.sqrt(omega_m * (1.0 + zp) ** 3 + 1.0 - omega_m),
+        0.0,
+        z,
+        epsabs=1e-12,
+        epsrel=1e-12,
+    )
+    reference = (1.0 + z) * (299_792.458 / h0) * integral
+    computed = luminosity_distance_flat_lcdm(
+        z, h0, omega_m=omega_m, integration_steps=20_000
+    )
+    assert computed == pytest.approx(reference, rel=2e-8)
+
+
+def test_flat_lcdm_preserves_array_shape_and_finite_values():
+    z = np.array([[0.0, 0.05], [0.1, 0.3]])
+    distances = luminosity_distance_flat_lcdm(z, 70.0)
+    assert distances.shape == z.shape
+    assert np.all(np.isfinite(distances))
+    assert np.all(distances >= 0)
