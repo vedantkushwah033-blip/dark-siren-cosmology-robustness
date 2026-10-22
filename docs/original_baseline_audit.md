@@ -18,6 +18,10 @@ The same report gives a known-host control with 68% coverage of 74.9%, 95% cover
 
 The report also records a separate 2,000-run result of 94.35% coverage at nominal 68%.
 
+## Metric-label issue found in the original report
+
+The pinned source's `src/metrics_v2.py` computes `median_bias` as `mean(median_estimate - true_h0)` and `rmse_median` as the root mean square error of the per-run posterior medians. Therefore, the report's label **“Median bias”** appears to mean the bias of the median estimator averaged across runs, not the statistical median of per-run errors. The analogous distinction applies to the `mean_bias` metric: it is the average bias of the posterior-mean estimator. The reproduction artifact will preserve the source function's actual keys; any published table should define these precisely and avoid relabelling the metric ambiguously.
+
 ## Interpretation supported by the report
 
 These values indicate that the current synthetic baseline has conservative credible intervals relative to the nominal levels, especially for the unknown-host mixture. The unknown-host intervals are wider on average than the known-host control. The reported median-pull standard deviation below one is also consistent with standardized residuals being less dispersed than a unit-scale reference under the report's definition.
