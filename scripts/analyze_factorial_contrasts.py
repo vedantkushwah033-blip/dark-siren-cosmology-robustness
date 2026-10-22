@@ -65,6 +65,22 @@ def coverage_mc_se(coverage: float, n: int) -> float:
     return math.sqrt(coverage * (1.0 - coverage) / n)
 
 
+def wilson_interval(successes: int, n: int, z: float = 1.959963984540054) -> list[float]:
+    """Wilson score interval for a binomial coverage proportion."""
+    if n <= 0:
+        raise ValueError("n must be positive")
+    if successes < 0 or successes > n:
+        raise ValueError("successes must be between 0 and n")
+    if z <= 0.0:
+        raise ValueError("z must be positive")
+    p = successes / n
+    z2 = z * z
+    denom = 1.0 + z2 / n
+    center = (p + z2 / (2.0 * n)) / denom
+    half = z * math.sqrt(p * (1.0 - p) / n + z2 / (4.0 * n * n)) / denom
+    return [max(0.0, center - half), min(1.0, center + half)]
+
+
 def percentile(xs: list[float], q: float) -> float:
     xs = sorted(xs)
     p = (len(xs) - 1) * q
@@ -128,7 +144,9 @@ def main() -> None:
         # noise in empirical credible-interval coverage (not real-H0 uncertainty).
         for metric in ("coverage_68", "coverage_95"):
             p = summary[metric]
+            successes = round(p * len(group))
             summary[f"{metric}_mc_se"] = coverage_mc_se(p, len(group))
+            summary[f"{metric}_wilson_95_interval"] = wilson_interval(successes, len(group))
         summary["rmse_median"] = math.sqrt(summary["squared_median_error"])
         result["scenario_metrics"].append(summary)
 
