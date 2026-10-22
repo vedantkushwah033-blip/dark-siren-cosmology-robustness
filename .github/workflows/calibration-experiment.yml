@@ -1,0 +1,43 @@
+name: single-host-calibration
+
+on:
+  workflow_dispatch:
+    inputs:
+      replicates:
+        description: "Number of repeated simulations"
+        required: true
+        default: "500"
+        type: string
+      seed:
+        description: "Random seed"
+        required: true
+        default: "20261022"
+        type: string
+      distance_sigma_mpc:
+        description: "Gaussian distance uncertainty in Mpc"
+        required: true
+        default: "10.0"
+        type: string
+
+jobs:
+  calibration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package and dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run calibration experiment
+        run: >-
+          python scripts/run_single_host_calibration.py
+          --replicates "${{ inputs.replicates }}"
+          --seed "${{ inputs.seed }}"
+          --distance-sigma-mpc "${{ inputs.distance_sigma_mpc }}"
+      - name: Upload calibration CSV
+        uses: actions/upload-artifact@v4
+        with:
+          name: single-host-calibration-results
+          path: results/tables/single_host_calibration.csv
+          if-no-files-found: error
