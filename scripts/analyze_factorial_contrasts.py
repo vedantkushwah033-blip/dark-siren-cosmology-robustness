@@ -112,9 +112,16 @@ def main() -> None:
         if len(group) < 2:
             raise SystemExit(f"Scenario {name} has fewer than two rows")
         summary = {"scenario": name, "n": len(group)}
+        metric_values = {}
         for metric in METRICS:
             vals = [value(row, metric) for row in group]
+            metric_values[metric] = vals
             summary[metric] = sum(vals) / len(vals)
+        # Binomial Monte Carlo standard errors quantify finite-replicate
+        # noise in empirical credible-interval coverage (not real-H0 uncertainty).
+        for metric in ("coverage_68", "coverage_95"):
+            p = summary[metric]
+            summary[f"{metric}_mc_se"] = math.sqrt(p * (1.0 - p) / len(group))
         summary["rmse_median"] = math.sqrt(summary["squared_median_error"])
         result["scenario_metrics"].append(summary)
 
