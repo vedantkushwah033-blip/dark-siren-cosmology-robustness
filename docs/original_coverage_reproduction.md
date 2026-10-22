@@ -7,7 +7,7 @@ and `summarize_runs` functions from a pinned commit and reruns the
 complete-catalogue, uniform-host-generation, uniform-inference-weighting
 scenario. It saves per-run rows and a summary JSON artifact.
 
-Pinned original commit: `a726eae6018c021b79dd2a7fb245a2dd63d6d1c4`.
+Calibration report's source commit: `b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f`.
 
 This is intended to test whether the reported high coverage can be reproduced
 from the source code, rather than to reimplement the original likelihood in
