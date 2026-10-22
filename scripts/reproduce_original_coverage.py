@@ -46,7 +46,7 @@ def main() -> None:
     summary["seed"] = args.seed
     summary["scenario"] = "complete catalogue; uniform host generation and inference weighting"
     summary["original_repository"] = "vedantkushwah033-blip/bayesian-dark-siren-cosmology"
-    summary["original_commit"] = "a726eae6018c021b79dd2a7fb245a2dd63d6d1c4"
+    summary["original_commit"] = "b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f"
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
