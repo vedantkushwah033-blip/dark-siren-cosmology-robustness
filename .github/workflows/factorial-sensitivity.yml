@@ -60,6 +60,13 @@ jobs:
               raise SystemExit(f"Expected {9*n} per-run rows, got {len(run_rows)}")
           print(f"Validated nine scenarios and {len(run_rows)} per-run rows.")
           PY
+      - name: Analyze prespecified scenario contrasts
+        run: |
+          python scripts/analyze_factorial_contrasts.py \\
+            --input results/factorial-sensitivity/per_run_results.csv \\
+            --output results/factorial-sensitivity/contrast_analysis.json \\
+            --bootstrap 5000 \\
+            --seed 20261023
       - name: Upload factorial results
         uses: actions/upload-artifact@v4
         with:
