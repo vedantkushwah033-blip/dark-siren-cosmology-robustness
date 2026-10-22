@@ -56,3 +56,16 @@ def test_coverage_monte_carlo_standard_error():
     assert analysis.coverage_mc_se(0.0, 500) == 0.0
     with pytest.raises(ValueError):
         analysis.coverage_mc_se(0.5, 0)
+
+
+def test_wilson_interval_is_bounded_and_handles_extremes():
+    low = analysis.wilson_interval(0, 500)
+    middle = analysis.wilson_interval(340, 500)
+    high = analysis.wilson_interval(500, 500)
+    assert low[0] == 0.0 and low[1] > 0.0
+    assert middle[0] < 0.68 < middle[1]
+    assert high[1] == 1.0 and high[0] < 1.0
+    with pytest.raises(ValueError):
+        analysis.wilson_interval(2, 0)
+    with pytest.raises(ValueError):
+        analysis.wilson_interval(501, 500)
