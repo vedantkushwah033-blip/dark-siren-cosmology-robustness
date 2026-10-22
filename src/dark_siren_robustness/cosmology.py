@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+from scipy.integrate import trapezoid
 from numpy.typing import ArrayLike, NDArray
 
 C_KM_S = 299_792.458
@@ -36,7 +37,7 @@ def luminosity_distance_flat_lcdm(
             continue
         grid = np.linspace(0.0, zi, integration_steps + 1)
         e_z = np.sqrt(omega_m * (1.0 + grid) ** 3 + (1.0 - omega_m))
-        integral = np.trapezoid(1.0 / e_z, grid)
+        integral = trapezoid(1.0 / e_z, grid)
         result[index] = (1.0 + zi) * (C_KM_S / h0_km_s_mpc) * integral
     return result.reshape(z.shape)
 
