@@ -16,8 +16,10 @@ It writes:
 
 This is a **simulation-only upper-information benchmark**, not a method available to a real analysis with an incomplete galaxy catalogue. Because the full galaxy population and true host weights are supplied to the oracle likelihood, it must not be presented as a practical missing-host correction or as evidence that a real survey can recover hidden galaxies. It is useful as a reference point for quantifying the information lost by catalogue incompleteness.
 
+The two mask scenarios are deliberately **paired**: replicate index (r) uses the same catalogue and GW distance draw in both scenarios, while only the mask mechanism differs. Since the oracle likelihood ignores the mask and uses the same full catalogue and weights, posterior summaries must match exactly within each pair. Realized completeness and whether the host falls in the observed subset may differ. The workflow checks this invariance as a regression guard.
+
 The benchmark is included in the manual `factorial-sensitivity` workflow. A passing unit-test workflow alone does not mean the full experiment has executed; check the manual workflow run and inspect its uploaded artifact before reporting any numerical result.
 
 ## Reproducibility
 
-The original simulator is pinned to `b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f`. The workflow passes the configured base seed and replicate count to this benchmark. Random and redshift-dependent scenarios use separate seed blocks, so comparisons are not paired at the individual-mock level.
+The original simulator is pinned to `b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f`. The workflow passes the configured base seed and replicate count to this benchmark. Both mask scenarios use the same seed block, making the oracle posterior a paired, deterministic invariance check.
