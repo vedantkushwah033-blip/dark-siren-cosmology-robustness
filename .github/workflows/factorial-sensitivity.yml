@@ -18,6 +18,9 @@ jobs:
   factorial:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      REPLICATES: ${{ inputs.replicates }}
+      BASE_SEED: ${{ inputs.seed }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -38,8 +41,8 @@ jobs:
         run: |
           python scripts/run_factorial_sensitivity.py \
             --original-dir original-project \
-            --replicates "${{ inputs.replicates }}" \
-            --seed "${{ inputs.seed }}"
+            --replicates "$REPLICATES" \
+            --seed "$BASE_SEED"
       - name: Validate factorial output
         run: |
           python - <<'PY'
@@ -89,8 +92,8 @@ jobs:
         run: |
           python scripts/run_oracle_missing_host_control.py \
             --original-dir original-project \
-            --replicates "${{ inputs.replicates }}" \
-            --seed "${{ inputs.seed }}"
+            --replicates "$REPLICATES" \
+            --seed "$BASE_SEED"
       - name: Validate oracle-control output
         run: |
           python - <<'PY'
@@ -126,8 +129,8 @@ jobs:
         run: |
           python scripts/run_full_population_oracle.py \
             --original-dir original-project \
-            --replicates "${{ inputs.replicates }}" \
-            --seed "${{ inputs.seed }}"
+            --replicates "$REPLICATES" \
+            --seed "$BASE_SEED"
       - name: Validate full-population oracle output
         run: |
           python - <<'PY'
