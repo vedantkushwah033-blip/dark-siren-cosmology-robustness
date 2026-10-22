@@ -1,0 +1,44 @@
+name: original-coverage-reproduction
+
+on:
+  workflow_dispatch:
+    inputs:
+      replicates:
+        description: "Number of original-model simulations (1000 recommended)"
+        required: true
+        default: "1000"
+        type: string
+      seed:
+        description: "Random seed"
+        required: true
+        default: "2026"
+        type: string
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Clone original project at audited commit
+        run: |
+          git clone https://github.com/vedantkushwah033-blip/bayesian-dark-siren-cosmology.git original-project
+          cd original-project
+          git checkout a726eae6018c021b79dd2a7fb245a2dd63d6d1c4
+      - name: Install original project dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r original-project/requirements.txt
+      - name: Reproduce complete-catalogue baseline
+        run: |
+          python scripts/reproduce_original_coverage.py \
+            --original-dir original-project \
+            --replicates "${{ inputs.replicates }}" \
+            --seed "${{ inputs.seed }}"
+      - name: Upload raw and summary results
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-coverage-reproduction
+          path: results/original-audit/
+          if-no-files-found: error
