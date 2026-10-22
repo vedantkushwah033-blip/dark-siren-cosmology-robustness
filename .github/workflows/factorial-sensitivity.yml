@@ -105,5 +105,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: factorial-sensitivity
-          path: results/factorial-sensitivity/\n            results/oracle-missing-host/
+          path: |\n            results/factorial-sensitivity/\n            results/oracle-missing-host/
           if-no-files-found: error
