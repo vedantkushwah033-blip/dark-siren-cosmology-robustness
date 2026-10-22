@@ -78,7 +78,14 @@ def wilson_interval(successes: int, n: int, z: float = 1.959963984540054) -> lis
     denom = 1.0 + z2 / n
     center = (p + z2 / (2.0 * n)) / denom
     half = z * math.sqrt(p * (1.0 - p) / n + z2 / (4.0 * n * n)) / denom
-    return [max(0.0, center - half), min(1.0, center + half)]
+    lower = max(0.0, center - half)
+    upper = min(1.0, center + half)
+    # Avoid tiny floating-point residuals at mathematically exact boundaries.
+    if successes == 0:
+        lower = 0.0
+    if successes == n:
+        upper = 1.0
+    return [lower, upper]
 
 
 def percentile(xs: list[float], q: float) -> float:
