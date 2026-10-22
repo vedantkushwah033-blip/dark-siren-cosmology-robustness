@@ -1,35 +1,30 @@
 # Dark-Siren Cosmology Robustness
 
-A reproducible Bayesian study of galaxy-catalogue incompleteness, host-population misspecification, and statistical calibration in dark-siren cosmology.
+A reproducible Bayesian simulation study of galaxy-catalogue incompleteness, host-population misspecification, and statistical calibration in dark-siren cosmology.
 
-**Status: early research scaffold. No scientific results have been established by this repository yet.**
+**Research status:** early-stage simulation and validation scaffold. The unit-test suite passes, but the main factorial experiment has not yet produced validated scientific results. Do not treat this repository as a real gravitational-wave measurement or a validated (H_0) result.
 
 ## Research question
 
-Under which controlled conditions do galaxy-catalogue incompleteness and host-population misspecification affect the bias, uncertainty, and calibration of Bayesian inference for the Hubble constant, and when can explicitly modelling missing hosts improve inference?
-
-## Why this project exists
-
-Gravitational-wave sources without uniquely identified electromagnetic counterparts are often called *dark sirens*. Statistical information about possible host galaxies can help constrain cosmological parameters. This project will use controlled simulations to examine how incomplete galaxy catalogues and incorrect host-population assumptions affect inference.
-
-The first stage is validation: the existing research implementation must be audited before results or scientific claims are carried into this extension.
+Under which controlled conditions do galaxy-catalogue incompleteness and incorrect host-population assumptions affect the bias, uncertainty, and calibration of Bayesian inference for the Hubble constant? When does explicitly modelling missing hosts help in the controlled simulations?
 
 ## Scientific guardrails
 
 - Synthetic results will not be described as measurements from real gravitational-wave observations.
-- Galaxy-catalogue inclusion and gravitational-wave detection selection are distinct effects and must be modelled separately.
+- Galaxy-catalogue incompleteness and gravitational-wave detection selection are distinct effects and must not be conflated.
 - Posterior coverage, simulation-based calibration, bias, and precision are different quantities.
-- Working hypotheses are not findings; both negative and inconclusive results will be reported.
+- Working hypotheses are not findings; negative and inconclusive results will be reported.
+- Oracle controls that use hidden simulated galaxies are simulation-only benchmarks, not directly available corrections for real surveys.
 - No claim of novelty or publication readiness will be made without appropriate literature review and independent scrutiny.
 
 ## Repository layout
 
-- `src/dark_siren_robustness/`: reusable Python utilities.
-- `tests/`: unit and sanity tests.
-- `docs/research_questions.md`: research questions and working hypotheses.
-- `docs/statistical_model.md`: model components that must be specified.
-- `docs/validation_plan.md`: validation and calibration plan.
-- `.github/workflows/tests.yml`: automated test workflow.
+- `src/dark_siren_robustness/`: reusable numerical and statistical utilities.
+- `tests/`: unit and numerical-validation tests.
+- `scripts/`: reproducible simulation, artifact validation, and contrast-analysis scripts.
+- `docs/`: model assumptions, design audits, experiment protocols, and interpretation limits.
+- `.github/workflows/tests.yml`: automated test suite.
+- `.github/workflows/factorial-sensitivity.yml`: manually triggered factorial experiment and control analyses.
 
 ## Setup
 
@@ -59,23 +54,37 @@ python -m pytest
 
 ## Current implementation
 
-The initial scaffold contains:
-- a low-redshift luminosity-distance approximation;
-- a numerical flat-ΛCDM luminosity-distance utility;
-- an illustrative distance-dependent catalogue-inclusion probability;
-- basic unit tests for these utilities.
+The repository contains:
+- a low-redshift luminosity-distance approximation, (d_L \approx cz/H_0);
+- a numerical flat-ΛCDM luminosity-distance utility with independent quadrature tests;
+- calibration and repeated-sampling coverage utilities;
+- a nine-scenario catalogue-completeness/host-weighting experiment;
+- missing-host and full-population oracle control experiments;
+- bootstrap contrast analysis and artifact-integrity checks.
 
-These utilities are not a complete dark-siren likelihood or inference pipeline. The toy completeness function is not calibrated to any real galaxy survey. The cosmology implementation requires independent numerical validation over the intended redshift range.
+These pieces are not a complete observational dark-siren inference pipeline. The toy completeness and host-population mechanisms are synthetic and are not calibrated to a real galaxy survey or gravitational-wave detection pipeline.
 
-## Planned milestones
+## Running the main experiment
 
-1. Audit the original dark-siren project and the reported nominal-68% interval coverage result.
-2. Validate simple likelihoods and known-answer cases.
-3. Specify and test simulation-based calibration and repeated-sampling coverage.
-4. Run controlled experiments varying catalogue incompleteness and host-weight misspecification.
-5. Evaluate any proposed correction against baselines using pre-specified metrics.
-6. Publish reproducible results and a manuscript only after the analysis supports the conclusions.
+Open the [factorial-sensitivity workflow](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/workflows/factorial-sensitivity.yml), select **Run workflow**, choose branch `main`, and initially use:
+
+- `replicates`: `500`
+- `seed`: `2026`
+
+The workflow runs nine primary scenarios, six missing-host control scenarios, and two full-population oracle scenarios. At 500 replicates per scenario, that is 8,500 per-run records across these experiments, before summary and contrast outputs. It may take several minutes.
+
+When it finishes, download the `factorial-sensitivity` artifact and preserve the raw per-run CSV files, summaries, configuration, and contrast analyses. Check that the run succeeded and inspect the outputs before writing conclusions. The 70% catalogue scenarios use fixed-size masks retaining exactly 350 of 500 galaxies; this conditions on the retained count rather than modelling uncertainty in the count of missing galaxies.
+
+See [the factorial experiment protocol](docs/factorial_sensitivity_protocol.md), [the design audit](docs/factorial_design_audit.md), and [the missing-host model audit](docs/missing_host_model_audit.md) for details and limitations.
+
+## Cosmological distance-model extension
+
+A flat-ΛCDM distance function and numerical tests have been added. The planned model-robustness experiment is still protocol-only: first run and validate the existing factorial experiment, then implement and run matched flat-ΛCDM and deliberate distance-model-mismatch scenarios. The initial protocol fixes Ωm = 0.3; it does not marginalize over matter-density uncertainty. See [the cosmological-model robustness protocol](docs/cosmological_model_robustness_protocol.md).
+
+## Interpretation limits
+
+The current simulations use a simplified low-redshift relation in the original inference experiment, a Gaussian distance likelihood, a finite (H_0) grid, and a generated galaxy population. Redshift-dependent missingness is a designed stress test, not a calibrated survey selection function. A passing test suite establishes only the software properties actually covered by tests; it does not establish scientific realism or the truth of any hypothesis.
 
 ## Citation
 
-There is no release or research result to cite yet. A citation file and formal release can be added when authorship, versioning, and the intended citation are settled.
+There is no formal release or validated research result to cite yet. A citation file and formal release can be added once the authorship, version, and intended citation are settled.
