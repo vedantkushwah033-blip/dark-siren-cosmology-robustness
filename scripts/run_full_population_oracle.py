@@ -42,8 +42,12 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=True)
     summaries, per_run = [], []
 
-    for i, (name, missingness) in enumerate(SCENARIOS):
-        scenario_seed = args.seed + i * 1_000_000
+    # Use the same mock universe and GW noise for both mask mechanisms at
+    # each replicate index. The oracle posterior uses the full population, so
+    # posterior summaries must be identical across masks; only mask diagnostics
+    # (realized completeness and whether the host is observed) may differ.
+    for name, missingness in SCENARIOS:
+        scenario_seed = args.seed
         rows = []
         for r in range(args.replicates):
             s = scenario_seed + r
