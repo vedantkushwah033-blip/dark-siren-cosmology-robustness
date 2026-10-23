@@ -92,3 +92,26 @@ Selected unknown-host contrasts (alternative prior minus baseline 50–90 prior)
 These intervals reflect Monte Carlo variability under paired resampling of the chosen simulator and random seeds. They do not include uncertainty from model misspecification, and the many truth/metric comparisons are exploratory rather than a pre-registered family of confirmatory tests.
 
 The effect is not a uniform improvement or deterioration: widening the prior changes the posterior error, interval coverage, and RMSE differently at different injected values. This is evidence that the reported conditional performance is prior-sensitive in this simplified setup, not evidence that a particular prior range is correct for real dark-siren analyses.
+
+
+## Direct check: posterior mass outside the baseline support
+
+The latest workflow [run 39999085426](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/39999085426) also measures posterior probability below H0=50 and above H0=90 under each prior. This distinguishes a genuine support-truncation effect from posterior mass concentrated only within a few grid points of the boundary.
+
+For unknown-host inference, the mean fraction of posterior mass outside the baseline 50–90 interval is:
+
+| True H0 | Under prior 40–100 | Under prior 30–120 |
+|---:|---:|---:|
+| 55 | 29.8% | 39.8% |
+| 60 | 25.6% | 36.4% |
+| 65 | 22.5% | 33.9% |
+| 70 | 24.3% | 38.0% |
+| 75 | 25.2% | 39.7% |
+| 80 | 28.1% | 45.0% |
+| 85 | 30.6% | 49.6% |
+
+The paired-bootstrap 95% intervals for the H0=70 outside-baseline mass difference are 23.1–25.6 percentage points for prior 40–100 and 35.5–40.4 percentage points for prior 30–120.
+
+This is a direct explanation for why the posterior summaries change when the prior is widened: the likelihood assigns substantial probability to H0 values that the baseline prior excludes. The code in the pinned inference function explicitly sets posterior density to zero outside `[prior_min, prior_max]`, as a truncated uniform-prior model should.
+
+**Interpretation updated:** the observed prior sensitivity is not, by itself, evidence of a coding defect. It is the expected consequence of changing support when appreciable likelihood mass lies outside the narrower support. The remaining scientific question is whether the chosen prior range is justified for the intended inference problem, and whether the simplified simulator and host-mixture likelihood are adequately specified. Do not select a prior merely because it yields better empirical coverage in this experiment.
