@@ -1,7 +1,4 @@
-"""Sweep fixed true H0 values to diagnose repeated-sampling coverage.
-
-This is a diagnostic of the pinned synthetic simulator, not a real-data result.
-"""
+"""Compare fixed-H0 repeated-sampling coverage under two prior ranges."""
 from __future__ import annotations
 
 import argparse
@@ -47,10 +44,12 @@ def main() -> None:
 
     rows: list[dict] = []
     for prior_min, prior_max in PRIOR_RANGES:
-      grid = np.linspace(prior_min, prior_max, int(round((prior_max - prior_min) / 0.025)) + 1)
+        grid = np.linspace(
+            prior_min, prior_max, int(round((prior_max - prior_min) / 0.025)) + 1
+        )
         for h0_true in args.h0_values:
-        for scenario in ("known_host", "unknown_host"):
-            interval_data = {level: [] for level in LEVELS}
+            for scenario in ("known_host", "unknown_host"):
+                interval_data = {level: [] for level in LEVELS}
                 medians, means, lower_95, upper_95 = [], [], [], []
                 for r in range(args.replicates):
                     seed = args.seed + int(round(h0_true * 1000)) * 100000 + r * 10
@@ -68,8 +67,13 @@ def main() -> None:
                         redshifts = cat["redshift"]
                         weights = np.ones(len(redshifts))
                     posterior = posterior_h0(
-                        grid, redshifts, gw["observed_distance_mpc"], gw["sigma_mpc"],
-                        weights=weights, prior_min=prior_min, prior_max=prior_max,
+                        grid,
+                        redshifts,
+                        gw["observed_distance_mpc"],
+                        gw["sigma_mpc"],
+                        weights=weights,
+                        prior_min=prior_min,
+                        prior_max=prior_max,
                     )
                     summary = posterior_summary(grid, posterior)
                     medians.append(float(summary["median"]))
@@ -79,7 +83,7 @@ def main() -> None:
                     for level in LEVELS:
                         low, high = interval(grid, posterior, level)
                         interval_data[level].append((low, high))
-    
+
                 row = {
                     "prior_min": prior_min,
                     "prior_max": prior_max,
@@ -88,14 +92,24 @@ def main() -> None:
                     "replicates": args.replicates,
                     "mean_median_error": float(np.mean(np.asarray(medians) - h0_true)),
                     "mean_posterior_mean_error": float(np.mean(np.asarray(means) - h0_true)),
-                    "mean_width_68": float(np.mean([hi - lo for lo, hi in interval_data[0.68]])),
-                    "mean_width_95": float(np.mean([hi - lo for lo, hi in interval_data[0.95]])),
-                    "fraction_95_interval_touches_lower_prior_bound": float(np.mean(np.asarray(lower_95) <= prior_min + 0.05)),
-                    "fraction_95_interval_touches_upper_prior_bound": float(np.mean(np.asarray(upper_95) >= prior_max - 0.05)),
+                    "mean_width_68": float(
+                        np.mean([hi - lo for lo, hi in interval_data[0.68]])
+                    ),
+                    "mean_width_95": float(
+                        np.mean([hi - lo for lo, hi in interval_data[0.95]])
+                    ),
+                    "fraction_95_interval_touches_lower_prior_bound": float(
+                        np.mean(np.asarray(lower_95) <= prior_min + 0.05)
+                    ),
+                    "fraction_95_interval_touches_upper_prior_bound": float(
+                        np.mean(np.asarray(upper_95) >= prior_max - 0.05)
+                    ),
                 }
                 for level in LEVELS:
                     pairs = interval_data[level]
-                    coverage = float(np.mean([low <= h0_true <= high for low, high in pairs]))
+                    coverage = float(
+                        np.mean([low <= h0_true <= high for low, high in pairs])
+                    )
                     tag = int(round(level * 100))
                     row[f"coverage_{tag}"] = coverage
                     row[f"coverage_{tag}_mc_se"] = float(
@@ -109,7 +123,7 @@ def main() -> None:
         writer = csv.DictWriter(f, fieldnames=list(rows[0]))
         writer.writeheader()
         writer.writerows(rows)
-    print(f"Wrote {len(rows)} H0/scenario rows to {output}")
+    print(f"Wrote {len(rows)} H0/prior/scenario rows to {output}")
 
 
 if __name__ == "__main__":
