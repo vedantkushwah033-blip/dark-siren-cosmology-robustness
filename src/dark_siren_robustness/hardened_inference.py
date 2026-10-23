@@ -5,6 +5,7 @@ baseline remains reproducible. It preserves the same low-redshift distance relat
 and weighted Gaussian-mixture likelihood while rejecting malformed inputs explicitly.
 """
 import numpy as np
+from scipy.integrate import trapezoid
 from scipy.stats import norm
 
 C_KM_S = 299792.458
@@ -85,7 +86,7 @@ def posterior_h0(
         )
 
     posterior = np.where((grid >= prior_lo) & (grid <= prior_hi), likelihood, 0.0)
-    area = float(np.trapezoid(posterior, grid))
+    area = float(trapezoid(posterior, grid))
     if not np.isfinite(area) or area <= 0:
         raise ValueError("Posterior normalization failed.")
     return posterior / area
