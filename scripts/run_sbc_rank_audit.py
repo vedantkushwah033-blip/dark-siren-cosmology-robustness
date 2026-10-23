@@ -1,8 +1,8 @@
 """Simulation-based calibration ranks for the matched single-host toy model.
 
-For each prior, draw H0 from that same prior, generate one distance from the
-specified Gaussian likelihood, infer H0 under the same prior, and evaluate the
-posterior CDF at the injected H0. Under a correct prior-predictive Bayesian
+For each prior, draw H0 from that same prior, generate one distance from a Gaussian
+likelihood with a fixed, H0-independent measurement uncertainty, infer H0 under
+the same likelihood and prior, and evaluate the posterior CDF at the injected H0. Under a correct prior-predictive Bayesian
 calculation, these CDF values should be approximately Uniform(0, 1), up to
 Monte Carlo and finite-grid error. This is not an astrophysical realism test.
 """
@@ -20,6 +20,8 @@ from dark_siren_robustness.hardened_inference import C_KM_S, posterior_h0
 
 PRIORS = {"narrow_50_90": (50.0, 90.0), "broad_30_120": (30.0, 120.0)}
 Z_FIXED = 0.03
+# Fixed uncertainty is essential: the likelihood treats gw_sigma as observed/fixed.
+SIGMA_FIXED_MPC = 0.10 * C_KM_S * Z_FIXED / 70.0
 
 
 def posterior_cdf_at(grid, posterior, truth):
@@ -43,7 +45,7 @@ def run_sbc(replicates=1000, seed=20261025, grid_size=5001):
         for replicate in range(replicates):
             h0_true = float(rng.uniform(prior_min, prior_max))
             true_distance = C_KM_S * Z_FIXED / h0_true
-            sigma = 0.10 * true_distance
+            sigma = SIGMA_FIXED_MPC
             observed_distance = float(rng.normal(true_distance, sigma))
             while observed_distance <= 0:
                 observed_distance = float(rng.normal(true_distance, sigma))
