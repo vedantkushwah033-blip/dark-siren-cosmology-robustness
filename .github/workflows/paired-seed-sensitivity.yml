@@ -92,9 +92,9 @@ jobs:
           reps = int(meta["replicates_per_scenario"])
           if len(per_run) != reps * int(meta["scenario_count"]):
               raise SystemExit("Unexpected per-run row count")
-          if len(contrasts) != reps * int(meta["contrast_count"]) * 7:
+          if len(contrasts) != reps * int(meta["contrast_count"]) * int(meta["metric_count"]):
               raise SystemExit("Unexpected paired contrast row count")
-          if len(summaries) != int(meta["contrast_count"]) * 7:
+          if len(summaries) != int(meta["contrast_count"]) * int(meta["metric_count"]):
               raise SystemExit("Unexpected contrast summary row count")
           print(f"Validated outputs: {len(per_run)} scenario rows; {len(contrasts)} contrast rows; {len(summaries)} summaries")
           PY
