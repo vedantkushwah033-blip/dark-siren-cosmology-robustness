@@ -27,7 +27,7 @@ def luminosity_distance_flat_lcdm(
         raise ValueError("h0_km_s_mpc must be finite and positive")
     if not np.isfinite(omega_m) or not 0 < omega_m < 1:
         raise ValueError("omega_m must lie strictly between 0 and 1")
-    if not isinstance(integration_steps, int) or integration_steps < 10:
+    if isinstance(integration_steps, bool) or not isinstance(integration_steps, int) or integration_steps < 10:
         raise ValueError("integration_steps must be an integer >= 10")
 
     flat_z = z.ravel()
