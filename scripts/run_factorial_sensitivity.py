@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 from pathlib import Path
 import sys
 
@@ -29,7 +30,13 @@ def median_bias(posterior_medians: list[float], true_h0: float) -> float:
     """Return the median replicate-level posterior-median error."""
     if not posterior_medians:
         raise ValueError("posterior_medians must not be empty")
-    errors = sorted(float(value) - float(true_h0) for value in posterior_medians)
+    true_value = float(true_h0)
+    values = [float(value) for value in posterior_medians]
+    if not math.isfinite(true_value):
+        raise ValueError("true_h0 must be finite")
+    if not all(math.isfinite(value) for value in values):
+        raise ValueError("posterior_medians must contain only finite values")
+    errors = sorted(value - true_value for value in values)
     n_errors = len(errors)
     if n_errors % 2:
         return errors[n_errors // 2]
