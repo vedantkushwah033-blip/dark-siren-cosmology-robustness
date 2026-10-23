@@ -58,6 +58,20 @@ def main() -> None:
     expected = {(s, level) for s in ("unknown_host", "known_host") for level in expected_levels}
     if observed != expected:
         raise SystemExit("Coverage curve does not contain every scenario × level combination")
+
+    # The summary JSON and coverage curve are two views of the same runs.
+    # Reject artifacts that are individually well-formed but disagree.
+    curve_by_key = {(row["scenario"], float(row["nominal_level"])): row for row in rows}
+    for scenario in ("unknown_host", "known_host"):
+        for level, summary_key in ((0.68, "coverage_68"), (0.95, "coverage_95")):
+            curve_value = float(curve_by_key[(scenario, level)]["coverage"])
+            summary_value = float(summary[scenario][summary_key])
+            if not math.isclose(curve_value, summary_value, rel_tol=0.0, abs_tol=1e-12):
+                raise SystemExit(
+                    f"{scenario}.{summary_key} disagrees with coverage curve at level {level}: "
+                    f"{summary_value} vs {curve_value}"
+                )
+
     for scenario, by_level in widths_by_scenario.items():
         ordered = [by_level[level] for level in sorted(expected_levels)]
         if any(right < left for left, right in zip(ordered, ordered[1:])):
