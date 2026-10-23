@@ -63,11 +63,33 @@ def main() -> None:
         if any(right < left for left, right in zip(ordered, ordered[1:])):
             raise SystemExit(f"{scenario}: mean interval width decreases as nominal level increases")
 
+    required_run_fields = {
+        "median", "mean", "posterior_sd", "lower_68", "upper_68",
+        "lower_95", "upper_95", "pull_median", "pull_mean",
+    }
     for path in (unknown_path, known_path):
         with path.open(newline="", encoding="utf-8") as f:
-            count = sum(1 for _ in csv.DictReader(f))
-        if count != n:
-            raise SystemExit(f"{path}: expected {n} rows, found {count}")
+            reader = csv.DictReader(f)
+            if not required_run_fields.issubset(set(reader.fieldnames or [])):
+                missing = sorted(required_run_fields - set(reader.fieldnames or []))
+                raise SystemExit(f"{path}: missing required per-run columns: {missing}")
+            run_rows = list(reader)
+        if len(run_rows) != n:
+            raise SystemExit(f"{path}: expected {n} rows, found {len(run_rows)}")
+        for index, row in enumerate(run_rows, start=1):
+            try:
+                values = {key: float(row[key]) for key in required_run_fields}
+            except (TypeError, ValueError) as exc:
+                raise SystemExit(f"{path}: non-numeric per-run value at row {index}: {exc}")
+            if not all(math.isfinite(value) for value in values.values()):
+                raise SystemExit(f"{path}: non-finite per-run value at row {index}")
+            if values["posterior_sd"] < 0:
+                raise SystemExit(f"{path}: negative posterior_sd at row {index}")
+            if not (
+                values["lower_95"] <= values["lower_68"] <= values["median"]
+                <= values["upper_68"] <= values["upper_95"]
+            ):
+                raise SystemExit(f"{path}: credible interval ordering invalid at row {index}")
 
     print(f"Validated calibration artifacts in {root} (n={n} per scenario).")
 
