@@ -132,6 +132,39 @@ def main() -> None:
     for row in rows:
         grouped.setdefault(row["scenario"], []).append(row)
 
+    expected_scenarios = {
+        scenario
+        for scenario_a, scenario_b, _ in SCENARIO_CONTRASTS
+        for scenario in (scenario_a, scenario_b)
+    }
+    actual_scenarios = set(grouped)
+    if actual_scenarios != expected_scenarios:
+        missing = sorted(expected_scenarios - actual_scenarios)
+        unexpected = sorted(actual_scenarios - expected_scenarios)
+        raise SystemExit(
+            f"Scenario set mismatch; missing={missing}, unexpected={unexpected}"
+        )
+    replicate_counts = {name: len(group) for name, group in grouped.items()}
+    if len(set(replicate_counts.values())) != 1:
+        raise SystemExit(f"Inconsistent replicate counts across scenarios: {replicate_counts}")
+    for name, group in grouped.items():
+        for index, row in enumerate(group):
+            try:
+                lo68, hi68 = float(row["lower_68"]), float(row["upper_68"])
+                lo95, hi95 = float(row["lower_95"]), float(row["upper_95"])
+            except (KeyError, TypeError, ValueError) as exc:
+                raise SystemExit(
+                    f"Invalid credible-interval fields for scenario {name}, row {index}"
+                ) from exc
+            if not all(math.isfinite(x) for x in (lo68, hi68, lo95, hi95)):
+                raise SystemExit(
+                    f"Non-finite credible interval for scenario {name}, row {index}"
+                )
+            if lo68 > hi68 or lo95 > hi95:
+                raise SystemExit(
+                    f"Reversed credible interval for scenario {name}, row {index}"
+                )
+
     rng = random.Random(args.seed)
     result = {
         "input": args.input,
