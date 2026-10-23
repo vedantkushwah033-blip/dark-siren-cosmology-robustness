@@ -1,0 +1,108 @@
+name: Paired-seed sensitivity
+
+on:
+  workflow_dispatch:
+    inputs:
+      replicates:
+        description: "Replicates per scenario (use 20 for smoke test; 500 for full run)"
+        required: true
+        default: "20"
+        type: string
+      seed:
+        description: "Base random seed"
+        required: true
+        default: "2026"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  paired-seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out robustness repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install project and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Run paired-summary unit tests
+        run: python -m pytest -q tests/test_paired_seed_sensitivity.py
+
+      - name: Check replicate input
+        env:
+          REPLICATES: ${{ inputs.replicates }}
+          BASE_SEED: ${{ inputs.seed }}
+        run: |
+          python - <<'PY'
+          import os
+          reps = int(os.environ["REPLICATES"])
+          seed = int(os.environ["BASE_SEED"])
+          if reps < 2 or reps > 5000:
+              raise SystemExit("replicates must be between 2 and 5000")
+          print(f"replicates={reps}; seed={seed}")
+          PY
+
+      - name: Fetch pinned original simulator
+        run: |
+          git clone https://github.com/vedantkushwah033-blip/bayesian-dark-siren-cosmology.git original-project
+          git -C original-project checkout b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f
+          python -m pip install -r original-project/requirements.txt
+
+      - name: Run paired-seed experiment
+        env:
+          REPLICATES: ${{ inputs.replicates }}
+          BASE_SEED: ${{ inputs.seed }}
+        run: |
+          python scripts/run_paired_seed_sensitivity.py \
+            --original-dir original-project \
+            --replicates "$REPLICATES" \
+            --seed "$BASE_SEED" \
+            --output-dir results/paired-seed
+
+      - name: Validate output files
+        run: |
+          python - <<'PY'
+          import csv, json
+          from pathlib import Path
+          out = Path("results/paired-seed")
+          expected = {
+              "paired_per_run_results.csv",
+              "paired_contrasts.csv",
+              "paired_contrast_summary.csv",
+              "paired_metadata.json",
+          }
+          missing = expected - {p.name for p in out.iterdir()}
+          if missing:
+              raise SystemExit(f"Missing outputs: {sorted(missing)}")
+          meta = json.loads((out / "paired_metadata.json").read_text())
+          per_run = list(csv.DictReader((out / "paired_per_run_results.csv").open()))
+          contrasts = list(csv.DictReader((out / "paired_contrasts.csv").open()))
+          summaries = list(csv.DictReader((out / "paired_contrast_summary.csv").open()))
+          reps = int(meta["replicates_per_scenario"])
+          if len(per_run) != reps * int(meta["scenario_count"]):
+              raise SystemExit("Unexpected per-run row count")
+          if len(contrasts) != reps * int(meta["contrast_count"]) * 7:
+              raise SystemExit("Unexpected paired contrast row count")
+          if len(summaries) != int(meta["contrast_count"]) * 7:
+              raise SystemExit("Unexpected contrast summary row count")
+          print(f"Validated outputs: {len(per_run)} scenario rows; {len(contrasts)} contrast rows; {len(summaries)} summaries")
+          PY
+
+      - name: Upload paired-seed outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: paired-seed-sensitivity
+          path: results/paired-seed/
+          if-no-files-found: error
+          retention-days: 30
