@@ -113,7 +113,7 @@ def main() -> None:
         lines.extend([
             f"- Bootstrap repetitions: {contrasts.get('bootstrap_replicates', 'not recorded')}",
             f"- Contrasts in file: {len(contrast_rows)}",
-            f"- Expected contrasts for the current design: 56; status: {\"OK\" if len(contrast_rows) == 56 else \"CHECK\"}",
+            f"- Expected contrasts for the current design: 56; status: {contrast_status}",
             "- Each reported contrast is scenario B minus scenario A.",
             "- The intervals quantify Monte Carlo variability conditional on this synthetic design, not uncertainty in the real-world value of H0.",
             "- The contrast set is exploratory; do not treat unadjusted intervals as confirmatory tests.",
