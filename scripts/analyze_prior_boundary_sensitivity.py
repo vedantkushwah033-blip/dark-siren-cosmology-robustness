@@ -8,7 +8,7 @@ BASELINE="baseline_50_90"
 COMPARISONS=("wide_40_100","very_wide_30_120")
 METRICS=("median_error","covers_68","covers_95","width_68","width_95",
          "mass_within_1_of_lower_prior","mass_within_1_of_upper_prior",
-         "mass_within_2_of_lower_prior","mass_within_2_of_upper_prior")
+         "mass_within_2_of_lower_prior","mass_within_2_of_upper_prior",\n         "mass_below_50","mass_above_90","mass_outside_baseline_50_90")
 
 def ci_mean_difference(delta, rng, n_boot):
     n=len(delta)
