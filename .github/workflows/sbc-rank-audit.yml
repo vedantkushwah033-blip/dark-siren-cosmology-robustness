@@ -1,0 +1,63 @@
+name: SBC rank audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/run_sbc_rank_audit.py"
+      - "tests/test_sbc_rank_audit.py"
+      - ".github/workflows/sbc-rank-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sbc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run prior-predictive SBC audit
+        run: |
+          python scripts/run_sbc_rank_audit.py \
+            --replicates 1000 \
+            --seed 20261025 \
+            --grid-size 4001 \
+            --output-dir results/sbc-rank-audit
+      - name: Validate output
+        run: |
+          python - <<'PY'
+          import csv, math
+          from pathlib import Path
+          root = Path("results/sbc-rank-audit")
+          with (root / "summary.csv").open(newline="") as f:
+              summary = list(csv.DictReader(f))
+          with (root / "per_run.csv").open(newline="") as f:
+              runs = list(csv.DictReader(f))
+          if len(summary) != 2 or len(runs) != 2000:
+              raise SystemExit(f"Unexpected output sizes: {len(summary)} summaries, {len(runs)} runs")
+          if {r["prior"] for r in summary} != {"narrow_50_90", "broad_30_120"}:
+              raise SystemExit("Unexpected prior conditions")
+          for row in summary:
+              for key in ("mean_rank", "rank_variance", "ks_statistic", "ks_pvalue", "decile_chi_square_pvalue"):
+                  if not math.isfinite(float(row[key])):
+                      raise SystemExit(f"Non-finite {key}")
+              if not 0 <= float(row["ks_pvalue"]) <= 1:
+                  raise SystemExit("Invalid KS p-value")
+          print("PASS: 2 prior supports × 1,000 prior-predictive replicates = 2,000 fits.")
+          PY
+      - name: Upload SBC results
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbc-rank-audit-results
+          path: results/sbc-rank-audit/
+          if-no-files-found: error
+          retention-days: 90
