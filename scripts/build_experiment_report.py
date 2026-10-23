@@ -74,7 +74,7 @@ def main() -> None:
         "",
         "## Main factorial results",
         "",
-        "| Scenario | n | 68% coverage | 68% MC SE | 95% coverage | 95% MC SE | Median error | Median RMSE | Mean 68% width | Mean 95% width |",
+        "| Scenario | n | 68% coverage | 68% MC SE | 95% coverage | 95% MC SE | Median bias | Median RMSE | Mean 68% width | Mean 95% width |",
         "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in scenario_rows:
