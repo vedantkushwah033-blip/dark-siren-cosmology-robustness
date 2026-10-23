@@ -46,3 +46,17 @@ The corrected commit passed the test matrix on Python 3.10, 3.11, and 3.12:
 - [Test suite](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40003986147)
 
 The successful CI run supports the tested numerical properties only. It does not establish scientific realism, empirical coverage calibration, or validity for real gravitational-wave observations.
+
+
+## Grid-convergence checks added
+
+Two additional tests were added to `tests/test_independent_likelihood_validation.py`:
+
+- Posterior summaries (mean, median, and central 68%/95% bounds) are compared between 2,401- and 9,601-point grids for a fixed three-host example.
+- The single-host likelihood-mode estimate is checked across successively finer grids to verify that discretization error decreases.
+
+The updated tests passed on Python 3.10, 3.11, and 3.12 in both CI workflows:
+- [Cross-version tests, commit 7becd46](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40004430222)
+- [Test suite, commit 7becd46](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40004430179)
+
+This validates convergence for the specified examples and tolerances only. It is not a substitute for a coverage study or validation of the astrophysical model.
