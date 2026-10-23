@@ -36,6 +36,12 @@ def main() -> None:
     parser.add_argument("--original-dir", default="original-project")
     parser.add_argument("--replicates", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=20261023)
+    parser.add_argument(
+        "--noise-model",
+        choices=("legacy_fractional_true_distance", "fixed_fiducial"),
+        default="legacy_fractional_true_distance",
+        help="Legacy noise scales sigma with true H0; fixed_fiducial uses sigma based on z and H0=70, independent of the drawn H0.",
+    )
     parser.add_argument("--output-dir", default="results/prior-predictive-calibration")
     args = parser.parse_args()
     if args.replicates < 2:
@@ -45,6 +51,7 @@ def main() -> None:
     sys.path.insert(0, str(original))
     from src.simulations_v2 import simulate_galaxy_catalogue, choose_host, simulate_gw_event
     from src.bayesian_inference import posterior_h0
+    from src.cosmology import hubble_distance
 
     h0_min, h0_max = 50.0, 90.0
     grid = np.linspace(h0_min, h0_max, 1601)
@@ -63,10 +70,19 @@ def main() -> None:
         sim_seed = args.seed + 1_000_000 + r
         cat = simulate_galaxy_catalogue(n_galaxies=500, H0_true=h0_true, seed=sim_seed)
         host = choose_host(cat, weighting="uniform", seed=sim_seed + 100000)
-        gw = simulate_gw_event(
-            cat["true_distance_mpc"][host],
-            seed=sim_seed + 200000,
-        )
+        if args.noise_model == "legacy_fractional_true_distance":
+            gw = simulate_gw_event(
+                cat["true_distance_mpc"][host],
+                seed=sim_seed + 200000,
+            )
+        else:
+            # Correctly specified conditional design: sigma depends on the
+            # catalogue redshift and a fixed fiducial H0, not on the drawn
+            # true H0. The inference likelihood uses this same fixed sigma.
+            sigma_mpc = float(0.15 * hubble_distance(cat["redshift"][host], 70.0))
+            gw_rng = np.random.default_rng(sim_seed + 200000)
+            observed = float(gw_rng.normal(cat["true_distance_mpc"][host], sigma_mpc))
+            gw = {"observed_distance_mpc": observed, "sigma_mpc": sigma_mpc}
         candidates = {
             "unknown_host": (cat["redshift"], np.ones(len(cat["redshift"]))),
             "known_host": (np.array([cat["redshift"][host]]), np.array([1.0])),
@@ -143,6 +159,7 @@ def main() -> None:
     metadata = {
         "replicates": args.replicates,
         "seed": args.seed,
+        "noise_model": args.noise_model,
         "H0_prior": f"Uniform({h0_min}, {h0_max})",
         "H0_grid_points": len(grid),
         "true_H0_draw_method": "independent uniform draws from the same bounds as the posterior prior",
