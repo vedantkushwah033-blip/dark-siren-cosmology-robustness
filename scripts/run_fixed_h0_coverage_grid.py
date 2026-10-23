@@ -48,60 +48,60 @@ def main() -> None:
     rows: list[dict] = []
     for prior_min, prior_max in PRIOR_RANGES:
       grid = np.linspace(prior_min, prior_max, int(round((prior_max - prior_min) / 0.025)) + 1)
-      for h0_true in args.h0_values:
+        for h0_true in args.h0_values:
         for scenario in ("known_host", "unknown_host"):
             interval_data = {level: [] for level in LEVELS}
-            medians, means, lower_95, upper_95 = [], [], [], []
-            for r in range(args.replicates):
-                seed = args.seed + int(round(h0_true * 1000)) * 100000 + r * 10
-                cat = simulate_galaxy_catalogue(
-                    n_galaxies=500, H0_true=h0_true, seed=seed
-                )
-                host = choose_host(cat, weighting="uniform", seed=seed + 1)
-                gw = simulate_gw_event(
-                    cat["true_distance_mpc"][host], seed=seed + 2
-                )
-                if scenario == "known_host":
-                    redshifts = np.array([cat["redshift"][host]])
-                    weights = np.array([1.0])
-                else:
-                    redshifts = cat["redshift"]
-                    weights = np.ones(len(redshifts))
-                posterior = posterior_h0(
-                    grid, redshifts, gw["observed_distance_mpc"], gw["sigma_mpc"],
-                    weights=weights, prior_min=prior_min, prior_max=prior_max,
-                )
-                summary = posterior_summary(grid, posterior)
-                medians.append(float(summary["median"]))
-                means.append(float(summary["mean"]))
-                lower_95.append(float(summary["lower_95"]))
-                upper_95.append(float(summary["upper_95"]))
+                medians, means, lower_95, upper_95 = [], [], [], []
+                for r in range(args.replicates):
+                    seed = args.seed + int(round(h0_true * 1000)) * 100000 + r * 10
+                    cat = simulate_galaxy_catalogue(
+                        n_galaxies=500, H0_true=h0_true, seed=seed
+                    )
+                    host = choose_host(cat, weighting="uniform", seed=seed + 1)
+                    gw = simulate_gw_event(
+                        cat["true_distance_mpc"][host], seed=seed + 2
+                    )
+                    if scenario == "known_host":
+                        redshifts = np.array([cat["redshift"][host]])
+                        weights = np.array([1.0])
+                    else:
+                        redshifts = cat["redshift"]
+                        weights = np.ones(len(redshifts))
+                    posterior = posterior_h0(
+                        grid, redshifts, gw["observed_distance_mpc"], gw["sigma_mpc"],
+                        weights=weights, prior_min=prior_min, prior_max=prior_max,
+                    )
+                    summary = posterior_summary(grid, posterior)
+                    medians.append(float(summary["median"]))
+                    means.append(float(summary["mean"]))
+                    lower_95.append(float(summary["lower_95"]))
+                    upper_95.append(float(summary["upper_95"]))
+                    for level in LEVELS:
+                        low, high = interval(grid, posterior, level)
+                        interval_data[level].append((low, high))
+    
+                row = {
+                    "prior_min": prior_min,
+                    "prior_max": prior_max,
+                    "scenario": scenario,
+                    "H0_true": h0_true,
+                    "replicates": args.replicates,
+                    "mean_median_error": float(np.mean(np.asarray(medians) - h0_true)),
+                    "mean_posterior_mean_error": float(np.mean(np.asarray(means) - h0_true)),
+                    "mean_width_68": float(np.mean([hi - lo for lo, hi in interval_data[0.68]])),
+                    "mean_width_95": float(np.mean([hi - lo for lo, hi in interval_data[0.95]])),
+                    "fraction_95_interval_touches_lower_prior_bound": float(np.mean(np.asarray(lower_95) <= prior_min + 0.05)),
+                    "fraction_95_interval_touches_upper_prior_bound": float(np.mean(np.asarray(upper_95) >= prior_max - 0.05)),
+                }
                 for level in LEVELS:
-                    low, high = interval(grid, posterior, level)
-                    interval_data[level].append((low, high))
-
-            row = {
-                "prior_min": prior_min,
-                "prior_max": prior_max,
-                "scenario": scenario,
-                "H0_true": h0_true,
-                "replicates": args.replicates,
-                "mean_median_error": float(np.mean(np.asarray(medians) - h0_true)),
-                "mean_posterior_mean_error": float(np.mean(np.asarray(means) - h0_true)),
-                "mean_width_68": float(np.mean([hi - lo for lo, hi in interval_data[0.68]])),
-                "mean_width_95": float(np.mean([hi - lo for lo, hi in interval_data[0.95]])),
-                "fraction_95_interval_touches_lower_prior_bound": float(np.mean(np.asarray(lower_95) <= prior_min + 0.05)),
-                "fraction_95_interval_touches_upper_prior_bound": float(np.mean(np.asarray(upper_95) >= prior_max - 0.05)),
-            }
-            for level in LEVELS:
-                pairs = interval_data[level]
-                coverage = float(np.mean([low <= h0_true <= high for low, high in pairs]))
-                tag = int(round(level * 100))
-                row[f"coverage_{tag}"] = coverage
-                row[f"coverage_{tag}_mc_se"] = float(
-                    np.sqrt(coverage * (1.0 - coverage) / args.replicates)
-                )
-            rows.append(row)
+                    pairs = interval_data[level]
+                    coverage = float(np.mean([low <= h0_true <= high for low, high in pairs]))
+                    tag = int(round(level * 100))
+                    row[f"coverage_{tag}"] = coverage
+                    row[f"coverage_{tag}_mc_se"] = float(
+                        np.sqrt(coverage * (1.0 - coverage) / args.replicates)
+                    )
+                rows.append(row)
 
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
