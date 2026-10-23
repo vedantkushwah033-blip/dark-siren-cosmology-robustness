@@ -41,11 +41,18 @@ jobs:
           p=Path("results/prior-boundary-sensitivity")
           with (p/"summary.csv").open(newline="") as f: s=list(csv.DictReader(f))
           with (p/"per_run.csv").open(newline="") as f: r=list(csv.DictReader(f))
+          with (p/"paired_contrasts.csv").open(newline="") as f: c=list(csv.DictReader(f))
           assert len(s)==42, len(s)
           assert len(r)==12600, len(r)
+          assert len(c)==28, len(c)
           assert all(int(x["replicates"])==300 for x in s)
           assert {x["prior"] for x in s}=={"baseline_50_90","wide_40_100","very_wide_30_120"}
-          print(f"Validated {len(s)} summaries and {len(r)} fits.")
+          for row in c:
+              for metric in ("median_error","covers_68","covers_95","width_68","width_95","mass_outside_baseline_50_90"):
+                  lo=float(row[f"delta_{metric}_ci95_low"])
+                  hi=float(row[f"delta_{metric}_ci95_high"])
+                  assert lo <= hi, (metric,lo,hi)
+          print(f"Validated {len(s)} summaries, {len(r)} fits, and {len(c)} paired contrasts.")
           PY
       - name: Upload results
         uses: actions/upload-artifact@v4
