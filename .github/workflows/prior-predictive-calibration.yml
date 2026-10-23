@@ -36,68 +36,66 @@ jobs:
           git -C original-project checkout b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f
           python -m pip install -r original-project/requirements.txt
 
-      - name: Run 1,000-replicate prior-predictive diagnostic
+      - name: Run legacy-noise prior-predictive diagnostic
         run: |
           python scripts/run_prior_predictive_calibration.py \
             --original-dir original-project \
             --replicates 1000 \
             --seed 20261023 \
-            --output-dir results/prior-predictive-calibration
+            --noise-model legacy_fractional_true_distance \
+            --output-dir results/legacy-noise
+
+      - name: Run fixed-fiducial-noise prior-predictive diagnostic
+        run: |
+          python scripts/run_prior_predictive_calibration.py \
+            --original-dir original-project \
+            --replicates 1000 \
+            --seed 20261023 \
+            --noise-model fixed_fiducial \
+            --output-dir results/fixed-fiducial-noise
 
       - name: Validate prior-predictive outputs
         run: |
           python - <<'PY'
           import csv, json, math
           from pathlib import Path
-          root = Path("results/prior-predictive-calibration")
-          required = {
-              "prior_predictive_per_run.csv",
-              "prior_predictive_coverage.csv",
-              "prior_predictive_metadata.json",
-          }
-          missing = required - {p.name for p in root.iterdir()}
-          if missing:
-              raise SystemExit(f"Missing outputs: {sorted(missing)}")
-          meta = json.loads((root / "prior_predictive_metadata.json").read_text())
-          n = int(meta["replicates"])
-          if n != 1000:
-              raise SystemExit(f"Expected 1000 replicates, got {n}")
-          with (root / "prior_predictive_per_run.csv").open(newline="") as f:
-              rows = list(csv.DictReader(f))
-          with (root / "prior_predictive_coverage.csv").open(newline="") as f:
-              coverage = list(csv.DictReader(f))
-          if len(rows) != 2*n:
-              raise SystemExit(f"Expected {2*n} per-run rows, got {len(rows)}")
-          if len(coverage) != 10:
-              raise SystemExit(f"Expected 10 coverage rows, got {len(coverage)}")
-          expected = {0.50, 0.68, 0.80, 0.90, 0.95}
-          seen = set()
-          for row in coverage:
-              key = (row["scenario"], float(row["nominal_level"]))
-              seen.add(key)
-              cov = float(row["coverage"])
-              se = float(row["coverage_mc_se"])
-              width = float(row["mean_interval_width"])
-              if not all(math.isfinite(x) for x in (cov, se, width)):
-                  raise SystemExit(f"Non-finite coverage summary: {row}")
-              if not 0 <= cov <= 1 or width <= 0:
-                  raise SystemExit(f"Invalid coverage summary: {row}")
-          if seen != {(s,l) for s in ("unknown_host","known_host") for l in expected}:
-              raise SystemExit("Coverage table is missing scenario/level combinations")
-          for scenario, stats in meta["rank_summary"].items():
-              if int(stats["n"]) != n or not math.isfinite(float(stats["mean_rank"])):
-                  raise SystemExit(f"Invalid posterior-rank summary for {scenario}: {stats}")
-          print("Validated prior-predictive outputs.")
-          print(json.dumps(meta["rank_summary"], indent=2))
-          print("Coverage by scenario and nominal level:")
-          for row in coverage:
-              print(row)
+          for root in (Path("results/legacy-noise"), Path("results/fixed-fiducial-noise")):
+              required = {"prior_predictive_per_run.csv", "prior_predictive_coverage.csv", "prior_predictive_metadata.json"}
+              missing = required - {p.name for p in root.iterdir()}
+              if missing:
+                  raise SystemExit(f"{root}: missing outputs {sorted(missing)}")
+              meta = json.loads((root / "prior_predictive_metadata.json").read_text())
+              n = int(meta["replicates"])
+              if n != 1000:
+                  raise SystemExit(f"{root}: expected 1000 replicates, got {n}")
+              with (root / "prior_predictive_per_run.csv").open(newline="") as f:
+                  rows = list(csv.DictReader(f))
+              with (root / "prior_predictive_coverage.csv").open(newline="") as f:
+                  coverage = list(csv.DictReader(f))
+              if len(rows) != 2*n or len(coverage) != 10:
+                  raise SystemExit(f"{root}: unexpected row counts: per-run={len(rows)}, coverage={len(coverage)}")
+              expected = {0.50, 0.68, 0.80, 0.90, 0.95}
+              seen = set()
+              for row in coverage:
+                  seen.add((row["scenario"], float(row["nominal_level"])))
+                  vals = [float(row[k]) for k in ("coverage", "coverage_mc_se", "mean_interval_width")]
+                  if not all(math.isfinite(x) for x in vals) or not 0 <= vals[0] <= 1 or vals[2] <= 0:
+                      raise SystemExit(f"{root}: invalid coverage summary {row}")
+              if seen != {(s,l) for s in ("unknown_host", "known_host") for l in expected}:
+                  raise SystemExit(f"{root}: missing scenario/level combinations")
+              for scenario, stats in meta["rank_summary"].items():
+                  if int(stats["n"]) != n or not math.isfinite(float(stats["mean_rank"])):
+                      raise SystemExit(f"{root}: invalid posterior-rank summary {scenario}: {stats}")
+              print(f"Validated {root} ({meta['noise_model']})")
+              print(json.dumps(meta["rank_summary"], indent=2))
+              for row in coverage:
+                  print(row)
           PY
 
       - name: Upload prior-predictive artifacts
         uses: actions/upload-artifact@v4
         with:
           name: prior-predictive-calibration-1000
-          path: results/prior-predictive-calibration/
+          path: results/
           if-no-files-found: error
           retention-days: 30
