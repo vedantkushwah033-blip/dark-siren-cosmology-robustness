@@ -1,0 +1,82 @@
+name: Fixed-H0 coverage diagnostic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/fixed-h0-coverage-diagnostic.yml"
+      - "scripts/run_fixed_h0_coverage_grid.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fixed-h0-coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out robustness repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install simulation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy scipy pandas matplotlib
+
+      - name: Fetch pinned original simulator
+        run: |
+          git clone https://github.com/vedantkushwah033-blip/bayesian-dark-siren-cosmology.git original-project
+          git -C original-project checkout b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f
+          python -m pip install -r original-project/requirements.txt
+
+      - name: Run fixed-H0 coverage sweep
+        run: |
+          python scripts/run_fixed_h0_coverage_grid.py \
+            --original-dir original-project \
+            --replicates 100 \
+            --seed 73021 \
+            --output results/fixed-h0-coverage-grid.csv
+
+      - name: Validate sweep output
+        run: |
+          python - <<'PY'
+          import csv, math
+          from pathlib import Path
+          path = Path("results/fixed-h0-coverage-grid.csv")
+          with path.open(newline="") as f:
+              rows = list(csv.DictReader(f))
+          if len(rows) != 14:
+              raise SystemExit(f"Expected 14 rows (7 H0 values x 2 scenarios), got {len(rows)}")
+          expected_h0 = {55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0}
+          observed = {(r["scenario"], float(r["H0_true"])) for r in rows}
+          expected = {(s, h) for s in ("known_host", "unknown_host") for h in expected_h0}
+          if observed != expected:
+              raise SystemExit("Missing or unexpected H0/scenario combinations")
+          for row in rows:
+              for key, value in row.items():
+                  if key in {"scenario"}:
+                      continue
+                  if not math.isfinite(float(value)):
+                      raise SystemExit(f"Non-finite {key} in row {row}")
+              for level in (50, 68, 80, 90, 95):
+                  cov = float(row[f"coverage_{level}"])
+                  se = float(row[f"coverage_{level}_mc_se"])
+                  if not 0 <= cov <= 1 or not 0 <= se <= 0.5:
+                      raise SystemExit(f"Invalid coverage or MC SE in row {row}")
+          print(f"Validated {len(rows)} fixed-H0 coverage rows.")
+          PY
+
+      - name: Upload diagnostic output
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixed-h0-coverage-diagnostic
+          path: results/fixed-h0-coverage-grid.csv
+          if-no-files-found: error
+          retention-days: 30
