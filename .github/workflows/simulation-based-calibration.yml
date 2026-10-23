@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/simulation-based-calibration.yml"
       - "scripts/run_sbc_diagnostic.py"
+      - "tests/test_sbc_diagnostic.py"
   workflow_dispatch:
 
 permissions:
@@ -28,7 +29,10 @@ jobs:
       - name: Install simulation dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install numpy scipy pandas matplotlib
+          python -m pip install numpy scipy pandas matplotlib pytest
+
+      - name: Run SBC unit tests
+        run: python -m pytest -q tests/test_sbc_diagnostic.py
 
       - name: Fetch pinned original simulator
         run: |
