@@ -103,6 +103,12 @@ def test_validator_rejects_inconsistent_coverage_curve(tmp_path, kwargs, message
     assert message in result.stderr
 
 
+def test_validator_rejects_summary_curve_coverage_disagreement(tmp_path):
+    write_artifacts(tmp_path, bad_summary_coverage=True)
+    result = run_validator(tmp_path)
+    assert result.returncode != 0
+    assert "disagrees with coverage curve" in result.stderr
+
 
 @pytest.mark.parametrize(
     ("bad_run_value", "message"),
@@ -112,13 +118,6 @@ def test_validator_rejects_inconsistent_coverage_curve(tmp_path, kwargs, message
         ("interval_order", "credible interval ordering invalid"),
     ],
 )
-def test_validator_rejects_summary_curve_coverage_disagreement(tmp_path):
-    write_artifacts(tmp_path, bad_summary_coverage=True)
-    result = run_validator(tmp_path)
-    assert result.returncode != 0
-    assert "disagrees with coverage curve" in result.stderr
-
-
 def test_validator_rejects_invalid_per_run_records(tmp_path, bad_run_value, message):
     write_artifacts(tmp_path, bad_run_value=bad_run_value)
     result = run_validator(tmp_path)
