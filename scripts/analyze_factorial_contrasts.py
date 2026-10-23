@@ -48,7 +48,10 @@ def value(row: dict, metric: str) -> float:
     if metric == "mean_error":
         return mean - TRUE_H0
     if metric == "pull_median":
-        return float(row.get("pull_median") or (median - TRUE_H0) / max(float(row["posterior_sd"]), 1e-12))
+        pull_raw = row.get("pull_median")
+        if pull_raw is not None and str(pull_raw).strip() != "":
+            return float(pull_raw)
+        return (median - TRUE_H0) / max(float(row["posterior_sd"]), 1e-12)
     raise ValueError(f"Unknown metric: {metric}")
 
 
