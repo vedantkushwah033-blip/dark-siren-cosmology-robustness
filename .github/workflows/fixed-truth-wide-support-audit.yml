@@ -73,6 +73,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: fixed-truth-wide-support-audit
-          path: results/fixed-truth-coverage-audit/
+          path: results/fixed-truth-wide-support-audit/
           if-no-files-found: error
           retention-days: 90
