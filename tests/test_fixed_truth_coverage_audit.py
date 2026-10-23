@@ -44,3 +44,22 @@ def test_interval_level_has_expected_width_order():
     lo68, hi68 = module.central_interval(grid, cdf, 0.68)
     lo95, hi95 = module.central_interval(grid, cdf, 0.95)
     assert hi95 - lo95 > hi68 - lo68
+
+
+def test_gaussian_benchmark_matches_analytic_central_intervals():
+    """Numerical CDF quantiles should reproduce a known Gaussian posterior."""
+    mean, sigma = 70.0, 4.0
+    grid = np.linspace(30.0, 120.0, 18001)
+    posterior = np.exp(-0.5 * ((grid - mean) / sigma) ** 2)
+    cdf = module.normalized_cdf(grid, posterior)
+
+    median = float(np.interp(0.5, cdf, grid))
+    lo68, hi68 = module.central_interval(grid, cdf, 0.68)
+    lo95, hi95 = module.central_interval(grid, cdf, 0.95)
+
+    assert median == pytest.approx(mean, abs=0.02)
+    # Central 68% and 95% Gaussian intervals are approximately ±0.994σ and ±1.960σ.
+    assert lo68 == pytest.approx(mean - 0.9944579 * sigma, abs=0.04)
+    assert hi68 == pytest.approx(mean + 0.9944579 * sigma, abs=0.04)
+    assert lo95 == pytest.approx(mean - 1.959964 * sigma, abs=0.04)
+    assert hi95 == pytest.approx(mean + 1.959964 * sigma, abs=0.04)
