@@ -1,0 +1,103 @@
+name: Paired-seed smoke test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/paired-seed-smoke.yml"
+      - "scripts/run_paired_seed_sensitivity.py"
+      - "tests/test_paired_seed_sensitivity.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out robustness repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install robustness project and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Run paired-analysis unit tests
+        run: python -m pytest -q tests/test_paired_seed_sensitivity.py
+
+      - name: Fetch pinned original simulator
+        run: |
+          git clone https://github.com/vedantkushwah033-blip/bayesian-dark-siren-cosmology.git original-project
+          git -C original-project checkout b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f
+          python -m pip install -r original-project/requirements.txt
+
+      - name: Execute 20-replicate paired smoke experiment
+        run: |
+          python scripts/run_paired_seed_sensitivity.py \
+            --original-dir original-project \
+            --replicates 20 \
+            --seed 2026 \
+            --output-dir results/paired-seed-smoke
+
+      - name: Validate smoke outputs
+        run: |
+          python - <<'PY'
+          import csv, json, math
+          from pathlib import Path
+          root = Path("results/paired-seed-smoke")
+          expected = {
+              "paired_per_run_results.csv",
+              "paired_contrasts.csv",
+              "paired_contrast_summary.csv",
+              "paired_metadata.json",
+          }
+          present = {p.name for p in root.iterdir()}
+          if expected - present:
+              raise SystemExit(f"Missing outputs: {sorted(expected - present)}")
+          meta = json.loads((root / "paired_metadata.json").read_text())
+          reps = int(meta["replicates_per_scenario"])
+          scenarios = int(meta["scenario_count"])
+          contrasts = int(meta["contrast_count"])
+          metrics = int(meta["metric_count"])
+          if reps != 20:
+              raise SystemExit(f"Expected 20 smoke replicates, got {reps}")
+          with (root / "paired_per_run_results.csv").open(newline="") as f:
+              per_run = list(csv.DictReader(f))
+          with (root / "paired_contrasts.csv").open(newline="") as f:
+              contrast_rows = list(csv.DictReader(f))
+          with (root / "paired_contrast_summary.csv").open(newline="") as f:
+              summaries = list(csv.DictReader(f))
+          if len(per_run) != reps * scenarios:
+              raise SystemExit(f"Expected {reps*scenarios} per-run rows, got {len(per_run)}")
+          if len(contrast_rows) != reps * contrasts * metrics:
+              raise SystemExit(f"Expected {reps*contrasts*metrics} contrast rows, got {len(contrast_rows)}")
+          if len(summaries) != contrasts * metrics:
+              raise SystemExit(f"Expected {contrasts*metrics} summary rows, got {len(summaries)}")
+          for row in contrast_rows:
+              for key in ("value_a", "value_b", "difference_b_minus_a"):
+                  if not math.isfinite(float(row[key])):
+                      raise SystemExit(f"Non-finite {key} in paired contrasts")
+          for row in summaries:
+              if not math.isfinite(float(row["mean_difference"])):
+                  raise SystemExit("Non-finite paired mean difference")
+              if row["metric"] not in {"covered_68", "covered_95"} and not math.isfinite(float(row["paired_difference_se"])):
+                  raise SystemExit("Non-finite paired SE for continuous metric")
+          print(f"Validated {len(per_run)} scenario rows, {len(contrast_rows)} contrast rows, {len(summaries)} summaries.")
+          PY
+
+      - name: Upload smoke-test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: paired-seed-smoke
+          path: results/paired-seed-smoke/
+          if-no-files-found: error
+          retention-days: 30
