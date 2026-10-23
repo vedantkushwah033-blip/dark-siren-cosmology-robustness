@@ -23,7 +23,7 @@ jobs:
       - name: Install numerical dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install numpy scipy pytest
+          python -m pip install numpy scipy pandas matplotlib pytest
       - name: Clone pinned original simulator
         run: |
           git clone https://github.com/vedantkushwah033-blip/bayesian-dark-siren-cosmology.git original-project
@@ -53,7 +53,7 @@ jobs:
               raise SystemExit("Metadata scenario/contrast counts are incorrect")
           if meta["requested_replicates_per_scenario"] != 300:
               raise SystemExit("Requested replicate count mismatch")
-          if len(summaries) != 9 or len(runs) != 2700 or len(contrasts) != 49 * 300 // 30:
+          if len(summaries) != 9 or len(runs) != 2700 or len(contrasts) != 49:
               raise SystemExit(f"Unexpected row counts: summary={len(summaries)}, runs={len(runs)}, contrasts={len(contrasts)}")
           counts = {}
           for row in runs:
@@ -68,10 +68,15 @@ jobs:
           if any(int(row["n_pairs"]) != 300 for row in contrasts):
               raise SystemExit("Paired contrast does not contain 300 pairs")
           print("VALIDATED: 9 scenarios × 300 replicates = 2,700 per-run records.")
-          print("VALIDATED: 49 prespecified contrasts × 7 metrics = 49 contrast rows with 300 paired universes each.")
+          print("VALIDATED: 49 prespecified contrast-metric rows, each based on 300 paired universes.")
           for row in summaries:
               print(json.dumps({k: row[k] for k in ("scenario", "median_bias", "mean_bias", "rmse_median", "rmse_mean", "coverage_68", "coverage_95", "mean_width_68", "mean_width_95", "host_observed_fraction")}))
           PY
+      - name: Generate diagnostic figures
+        run: |
+          python scripts/plot_paired_factorial_results.py \
+            --input-dir results/paired-factorial-main \
+            --output-dir results/paired-factorial-main/figures
       - name: Upload full experiment results
         uses: actions/upload-artifact@v4
         with:
