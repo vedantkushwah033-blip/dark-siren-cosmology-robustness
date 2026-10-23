@@ -13,7 +13,7 @@ def test_paired_comparison_detects_controlled_difference(tmp_path):
  out=tmp_path/"paired.csv"
  subprocess.run([sys.executable,str(root/"scripts/analyze_matched_host_paired_differences.py"),
   "--input",str(src),"--output",str(out),"--bootstrap","1000"],check=True,capture_output=True,text=True)
- got=list(csv.DictReader(out))
+ with out.open(newline="") as stream:\n  got=list(csv.DictReader(stream))
  assert len(got)==7
  rmse=next(r for r in got if r["metric"]=="rmse_median")
  assert float(rmse["delta_unknown_minus_known"])<0
