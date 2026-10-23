@@ -115,3 +115,10 @@ The paired-bootstrap 95% intervals for the H0=70 outside-baseline mass differenc
 This is a direct explanation for why the posterior summaries change when the prior is widened: the likelihood assigns substantial probability to H0 values that the baseline prior excludes. The code in the pinned inference function explicitly sets posterior density to zero outside `[prior_min, prior_max]`, as a truncated uniform-prior model should.
 
 **Interpretation updated:** the observed prior sensitivity is not, by itself, evidence of a coding defect. It is the expected consequence of changing support when appreciable likelihood mass lies outside the narrower support. The remaining scientific question is whether the chosen prior range is justified for the intended inference problem, and whether the simplified simulator and host-mixture likelihood are adequately specified. Do not select a prior merely because it yields better empirical coverage in this experiment.
+
+
+## Reproducibility status (23 October 2026)
+
+The prior-boundary sensitivity workflow was rerun after an intermediate commit introduced a literal escaped newline in the paired-contrast metric list. That earlier run failed at Python parsing before the paired bootstrap executed; it was a script syntax issue, not a failed simulation or a scientific result. The syntax was corrected and the workflow was rerun successfully: [run 39999896201](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/39999896201).
+
+The successful run validated **12,600 posterior fits, 42 summary rows, and 28 paired contrast rows** before uploading the artifact. The cross-version unit tests also passed on Python 3.10, 3.11, and 3.12. Treat the previous failed run as superseded by this successful run; do not interpret it as a failed scientific replication.
