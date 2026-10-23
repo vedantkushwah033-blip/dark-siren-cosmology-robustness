@@ -106,3 +106,20 @@ def test_contrast_input_validation_rejects_nonpositive_posterior_sd(tmp_path, mo
     monkeypatch.setattr("sys.argv", ["analyze_factorial_contrasts.py", "--input", str(input_path), "--output", str(output_path), "--bootstrap", "100"])
     with pytest.raises(SystemExit, match="Non-positive posterior_sd"):
         analysis.main()
+
+def test_contrast_input_validation_rejects_non_nested_intervals(tmp_path, monkeypatch):
+    import csv
+    import pytest
+
+    names = sorted({s for a, b, _ in analysis.SCENARIO_CONTRASTS for s in (a, b)})
+    input_path = tmp_path / "per_run_results.csv"
+    fields = ["scenario", "median", "mean", "lower_68", "upper_68", "lower_95", "upper_95", "posterior_sd", "pull_median"]
+    with input_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for index, name in enumerate(names):
+            writer.writerow({"scenario": name, "median": 70, "mean": 70, "lower_68": 68, "upper_68": 72, "lower_95": 66 if index else 69, "upper_95": 74, "posterior_sd": 1, "pull_median": 0})
+    output_path = tmp_path / "contrast.json"
+    monkeypatch.setattr("sys.argv", ["analyze_factorial_contrasts.py", "--input", str(input_path), "--output", str(output_path), "--bootstrap", "100"])
+    with pytest.raises(SystemExit, match="not nested inside 95% interval"):
+        analysis.main()
