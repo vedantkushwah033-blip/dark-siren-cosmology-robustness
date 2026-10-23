@@ -43,3 +43,19 @@ The rank distributions show no conspicuous departure from uniformity in this 1,0
 ## Next step
 
 Compare the legacy fractional-distance-noise design with a deliberately specified fixed-noise design, documenting exactly what information the reported uncertainty carries. Then re-run fixed-H0 coverage and the planned incompleteness/weighting contrasts under each explicitly defined model. Keep the original pinned simulator immutable and treat alternatives as separate model variants.
+
+
+## Credible-interval coverage from the updated SBC run
+
+The updated diagnostic (run [39995162970](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/39995162970), 1,000 prior draws per scenario) also computed central credible-interval coverage. The artifact was downloaded and the CSV values independently checked.
+
+| Scenario | 50% coverage | 68% coverage | 90% coverage | 95% coverage | Monte Carlo SE for 68% coverage |
+|---|---:|---:|---:|---:|---:|
+| Known host | 50.6% | 66.4% | 90.0% | 94.7% | 1.49 percentage points |
+| Unknown host | 50.8% | 68.6% | 90.9% | 95.3% | 1.47 percentage points |
+
+The values are broadly consistent with their nominal levels at this sample size. In particular, 68% coverage in the known-host case is 66.4%, about 1.1 Monte Carlo standard errors below 68%; this is not compelling evidence of miscalibration by itself. The unknown-host estimate is 68.6%.
+
+These interval-coverage values complement the rank diagnostics; they do not replace them. The calibration claim remains limited to the stated prior-predictive synthetic design: H0 is drawn from Uniform(50, 90), the noise scale is drawn independently from Uniform(15, 35) Mpc, hosts are generated and inferred under the same uniform-catalogue weighting, and there is no event-selection model.
+
+The latest workflow revision also adds unit tests for the interval endpoint calculation. The dedicated cross-version test workflow completed successfully; the most recent SBC workflow and full test-suite runs were still in progress at the time this note was updated. Do not infer success for those later runs from the earlier successful run.
