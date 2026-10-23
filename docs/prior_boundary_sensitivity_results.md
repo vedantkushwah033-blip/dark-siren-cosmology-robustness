@@ -72,3 +72,23 @@ Error change is the change in mean posterior-median error; RMSE change is calcul
 ## Reproducibility
 
 The workflow artifact contains `per_run.csv` and `summary.csv`. The experiment is automated at [`.github/workflows/prior-boundary-sensitivity.yml`](../.github/workflows/prior-boundary-sensitivity.yml), with the driver in [`scripts/run_prior_boundary_sensitivity.py`](../scripts/run_prior_boundary_sensitivity.py).
+
+
+## Paired-bootstrap uncertainty for prior contrasts
+
+The automated paired-contrast workflow completed successfully in [run 39998157948](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/39998157948). It resampled the 300 paired replicates 5,000 times for each truth/scenario/prior comparison and wrote `paired_contrasts.csv` to the workflow artifact.
+
+Selected unknown-host contrasts (alternative prior minus baseline 50–90 prior):
+
+| True H0 | Alternative prior | Change in mean median-error (95% bootstrap CI) | Change in RMSE (95% bootstrap CI) | Change in 68% coverage (95% bootstrap CI) |
+|---:|---|---:|---:|---:|
+| 55 | 40–100 | −0.881 [−1.258, −0.474] | +1.907 [+1.497, +2.300] | +13.7 pp [+8.3, +19.0] |
+| 55 | 30–120 | −0.075 [−0.975, +0.893] | +5.901 [+4.668, +7.120] | +16.0 pp [+10.0, +22.0] |
+| 65 | 30–120 | +4.102 [+2.995, +5.245] | +9.660 [+8.551, +10.739] | −28.7 pp [−34.0, −23.3] |
+| 70 | 30–120 | +7.003 [+5.871, +8.151] | +11.624 [+10.584, +12.633] | −28.3 pp [−33.7, −23.3] |
+| 85 | 40–100 | +4.660 [+4.329, +4.990] | −2.527 [−2.931, −2.146] | +9.0 pp [+6.0, +12.3] |
+| 85 | 30–120 | +12.568 [+11.492, +13.649] | +2.597 [+2.089, +3.100] | +10.3 pp [+7.0, +14.0] |
+
+These intervals reflect Monte Carlo variability under paired resampling of the chosen simulator and random seeds. They do not include uncertainty from model misspecification, and the many truth/metric comparisons are exploratory rather than a pre-registered family of confirmatory tests.
+
+The effect is not a uniform improvement or deterioration: widening the prior changes the posterior error, interval coverage, and RMSE differently at different injected values. This is evidence that the reported conditional performance is prior-sensitive in this simplified setup, not evidence that a particular prior range is correct for real dark-siren analyses.
