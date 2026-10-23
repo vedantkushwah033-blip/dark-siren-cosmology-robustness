@@ -46,11 +46,21 @@ def write_artifacts(root: Path, *, n: int = 10, bad_mcse: bool = False,
                     "coverage": coverage, "coverage_mc_se": mcse,
                     "mean_interval_width": width,
                 })
+    run_fields = [
+        "replicate", "median", "mean", "posterior_sd", "lower_68", "upper_68",
+        "lower_95", "upper_95", "pull_median", "pull_mean",
+    ]
     for name in ("per_run_unknown_host.csv", "per_run_known_host.csv"):
         with (root / name).open("w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(["replicate"])
-            writer.writerows([[i] for i in range(n)])
+            writer = csv.DictWriter(f, fieldnames=run_fields)
+            writer.writeheader()
+            for i in range(n):
+                writer.writerow({
+                    "replicate": i, "median": 70.0, "mean": 70.0,
+                    "posterior_sd": 5.0, "lower_68": 65.0, "upper_68": 75.0,
+                    "lower_95": 60.0, "upper_95": 80.0,
+                    "pull_median": 0.0, "pull_mean": 0.0,
+                })
 
 
 def run_validator(root: Path) -> subprocess.CompletedProcess:
