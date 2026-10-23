@@ -1,0 +1,78 @@
+name: Fixed-truth wide-support audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/run_fixed_truth_coverage_audit.py"
+      - ".github/workflows/fixed-truth-wide-support-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fixed-truth-wide-support:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install numerical dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy scipy
+      - name: Clone pinned simulator
+        run: |
+          git clone https://github.com/vedantkushwah033-blip/bayesian-dark-siren-cosmology.git original-project
+          git -C original-project checkout b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f
+          python -m pip install -r original-project/requirements.txt
+      - name: Run fixed-truth coverage audit
+        run: |
+          python scripts/run_fixed_truth_coverage_audit.py \
+            --original-dir original-project \
+            --replicates 100 \
+            --seed 20261024 \
+            --grid-min 30 \
+            --grid-max 120 \
+            --output-dir results/fixed-truth-wide-support-audit
+      - name: Validate output grid and numerical values
+        run: |
+          python - <<'PY'
+          import csv, math
+          from pathlib import Path
+          root = Path("results/fixed-truth-wide-support-audit")
+          with (root / "summary.csv").open(newline="") as f:
+              summary = list(csv.DictReader(f))
+          with (root / "per_run.csv").open(newline="") as f:
+              runs = list(csv.DictReader(f))
+          if len(summary) != 14:
+              raise SystemExit(f"Expected 14 summary rows, got {len(summary)}")
+          if len(runs) != 1400:
+              raise SystemExit(f"Expected 1,400 per-run rows, got {len(runs)}")
+          expected_h0 = {55, 60, 65, 70, 75, 80, 85}
+          if {float(r["true_H0"]) for r in summary} != expected_h0:
+              raise SystemExit("Fixed-truth H0 grid mismatch")
+          if {r["scenario"] for r in summary} != {"known_host", "unknown_host_complete_catalogue"}:
+              raise SystemExit("Scenario set mismatch")
+          for row in summary:
+              if int(row["replicates"]) != 100:
+                  raise SystemExit("Replicate count mismatch")
+              for key in ("coverage_68", "coverage_95", "rmse_median", "mean_width_68", "mean_width_95"):
+                  value = float(row[key])
+                  if not math.isfinite(value):
+                      raise SystemExit(f"Non-finite {key}")
+              for key in ("coverage_68", "coverage_95"):
+                  if not 0 <= float(row[key]) <= 1:
+                      raise SystemExit(f"Invalid coverage {key}")
+          print("PASS: 7 fixed H0 values × 2 scenarios × 100 replicates = 1,400 posterior fits.")
+          PY
+      - name: Upload coverage audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixed-truth-wide-support-audit
+          path: results/fixed-truth-coverage-audit/
+          if-no-files-found: error
+          retention-days: 90
