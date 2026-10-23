@@ -95,3 +95,40 @@ def test_posterior_is_zero_outside_prior_even_with_wide_grid():
     outside = (grid < 50.0) | (grid > 90.0)
     assert np.all(posterior[outside] == 0.0)
     assert np.any(posterior[~outside] > 0.0)
+
+
+
+def test_posterior_summary_converges_under_grid_refinement():
+    """Posterior summaries should stabilize as the H0 grid is refined."""
+    from dark_siren_robustness.hardened_inference import posterior_summary
+
+    z = [0.018, 0.026, 0.033]
+    weights = [2.0, 3.0, 5.0]
+    kwargs = dict(gw_distance=118.0, gw_sigma=12.0, weights=weights,
+                  prior_min=50.0, prior_max=90.0)
+    grids = [np.linspace(40.0, 100.0, n) for n in (601, 2401, 9601)]
+    summaries = [
+        posterior_summary(grid, posterior_h0(grid, z, **kwargs))
+        for grid in grids
+    ]
+
+    # Compare the two finest grids; all values are in km/s/Mpc.
+    for key in ("mean", "median", "lower_68", "upper_68", "lower_95", "upper_95"):
+        assert abs(summaries[2][key] - summaries[1][key]) < 0.03, (
+            key, summaries[1][key], summaries[2][key]
+        )
+
+
+def test_single_host_mode_converges_as_grid_is_refined():
+    """Grid refinement should reduce discretization error in the likelihood mode."""
+    z = 0.021
+    distance = C_KM_S * z / 71.3
+    kwargs = dict(gw_distance=distance, gw_sigma=4.0, prior_min=50.0, prior_max=90.0)
+    errors = []
+    for n in (401, 1601, 6401):
+        grid = np.linspace(50.0, 90.0, n)
+        posterior = posterior_h0(grid, [z], **kwargs)
+        errors.append(abs(float(grid[np.argmax(posterior)]) - 71.3))
+    assert errors[2] <= errors[1] + 1e-12
+    assert errors[1] <= errors[0] + 1e-12
+    assert errors[2] < 0.01
