@@ -53,7 +53,7 @@ jobs:
           path = Path("results/fixed-h0-coverage-grid.csv")
           with path.open(newline="") as f:
               rows = list(csv.DictReader(f))
-# The sweep has 2 prior ranges, 7 true H0 values, and 2 host scenarios.
+          # The sweep has 2 prior ranges, 7 true H0 values, and 2 host scenarios.
           if len(rows) != 28:
               raise SystemExit(f"Expected 28 rows (2 priors x 7 H0 values x 2 scenarios), got {len(rows)}")
           expected_h0 = {55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0}
