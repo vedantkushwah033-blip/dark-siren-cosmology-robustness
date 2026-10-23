@@ -27,6 +27,14 @@ def posterior_cdf(grid: np.ndarray, posterior: np.ndarray) -> np.ndarray:
     return cdf / cdf[-1]
 
 
+def central_interval(grid: np.ndarray, cdf: np.ndarray, level: float) -> tuple[float, float]:
+    """Return equal-tailed posterior interval endpoints from a normalized CDF."""
+    if not 0.0 < level < 1.0:
+        raise ValueError("level must be between zero and one")
+    tail = (1.0 - level) / 2.0
+    return float(np.interp(tail, cdf, grid)), float(np.interp(1.0 - tail, cdf, grid))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--original-dir", default="original-project")
@@ -83,13 +91,17 @@ def main() -> None:
             )
             cdf = posterior_cdf(grid, posterior)
             rank = float(np.interp(h0_true, grid, cdf))
-            ranks[scenario].append({
+            row = {
                 "replicate": r,
                 "H0_true": h0_true,
                 "observed_distance_mpc": observed_distance,
                 "sigma_mpc": sigma_mpc,
                 "posterior_cdf_at_truth": rank,
-            })
+            }
+            for level in (0.50, 0.68, 0.90, 0.95):
+                lo, hi = central_interval(grid, cdf, level)
+                row[f"covers_{int(level * 100)}"] = int(lo <= h0_true <= hi)
+            ranks[scenario].append(row)
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -113,6 +125,14 @@ def main() -> None:
             "rank_histogram_counts": ";".join(str(int(x)) for x in counts),
             "minimum_rank": float(values.min()),
             "maximum_rank": float(values.max()),
+            "coverage_50": float(np.mean([row["covers_50"] for row in rows])),
+            "coverage_68": float(np.mean([row["covers_68"] for row in rows])),
+            "coverage_90": float(np.mean([row["covers_90"] for row in rows])),
+            "coverage_95": float(np.mean([row["covers_95"] for row in rows])),
+            "coverage_68_mc_se": float(np.sqrt(
+                np.mean([row["covers_68"] for row in rows]) *
+                (1.0 - np.mean([row["covers_68"] for row in rows])) / len(rows)
+            )),
         })
     with (output_dir / "sbc_summary.csv").open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(summary_rows[0]))
