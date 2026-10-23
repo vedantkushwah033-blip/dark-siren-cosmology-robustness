@@ -81,3 +81,14 @@ The pinned source at revision `b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f` was ins
 - `src/bayesian_inference.py` evaluates a Gaussian distance likelihood with mean (cz/H_0), normalizes candidate-galaxy weights, applies a flat bounded prior through the grid mask, and normalizes the posterior using trapezoidal integration.
 
 The distance-redshift relation is matched between simulation and inference in this pinned revision; it is not the first mismatch to blame. The substantial support sensitivity remains unexplained and warrants a minimal single-host likelihood benchmark plus checks of posterior-grid and summary calculations. A targeted test has been added to check recovery near a known injected (H_0) for a narrow-noise single-host likelihood. This is a unit test, not a full simulation-based calibration test.
+
+
+## Integration benchmark outcome (23 October 2026)
+
+The corrected wide-support workflow completed successfully. Its **Benchmark pinned posterior implementation** step passed, followed by the 1,400-fit audit, numerical-output validation, and artifact upload. The repository's test-suite workflow also passed.
+
+The integration benchmark uses the pinned original `posterior_h0` function with a single host, an injected value (H_0=72) km s⁻¹ Mpc⁻¹, a 1% distance uncertainty, and support 30–120 km s⁻¹ Mpc⁻¹. It checks finite/nonnegative output, unit integral, and median recovery within 0.5 km s⁻¹ Mpc⁻¹. Passing this benchmark provides evidence that the basic single-host numerical calculation behaves as expected in that controlled case; it does not establish calibration of the unknown-host catalogue model.
+
+The latest wide-support artifact was inspected directly. Its CSV contains 14 summary rows and 1,400 per-run records. At (H_0=70), known-host 68% coverage was 67% (Monte Carlo SE about 4.7 percentage points), while unknown-host complete-catalogue coverage was 56% (SE about 5.0 points). Across the wide-support grid, the unknown-host mean signed posterior-median error remained positive in every truth cell. This is a diagnostic pattern requiring further model-level investigation, not proof of a single cause.
+
+**Next methodological priority:** validate the unknown-host likelihood with a deliberately matched synthetic catalogue model, including the exact host-generation and catalogue-weighting process, and add rank-based simulation-based calibration. Do not claim the overall method is calibrated based solely on the single-host benchmark.
