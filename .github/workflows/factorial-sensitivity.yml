@@ -88,6 +88,11 @@ jobs:
             --output results/factorial-sensitivity/contrast_analysis.json \
             --bootstrap 5000 \
             --seed 20261023
+      - name: Build synthetic experiment report
+        run: |
+          python scripts/build_experiment_report.py \
+            --results-root results \
+            --output results/factorial-sensitivity/experiment_report.md
       - name: Run missing-host oracle control experiment
         run: |
           python scripts/run_oracle_missing_host_control.py \
