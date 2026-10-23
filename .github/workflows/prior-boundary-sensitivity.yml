@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/prior-boundary-sensitivity.yml"
       - "scripts/run_prior_boundary_sensitivity.py"
+      - "scripts/analyze_prior_boundary_sensitivity.py"
   workflow_dispatch:
 
 permissions:
@@ -30,6 +31,8 @@ jobs:
           python scripts/run_prior_boundary_sensitivity.py \
             --original-dir original-project --replicates 300 --seed 20261024 \
             --output-dir results/prior-boundary-sensitivity
+      - name: Run paired prior contrasts
+        run: python scripts/analyze_prior_boundary_sensitivity.py --input results/prior-boundary-sensitivity/per_run.csv --output results/prior-boundary-sensitivity/paired_contrasts.csv --bootstrap 5000 --seed 20261025
       - name: Validate outputs
         run: |
           python - <<'PY'
