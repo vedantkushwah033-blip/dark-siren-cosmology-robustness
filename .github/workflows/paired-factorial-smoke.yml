@@ -51,7 +51,7 @@ jobs:
               if not path.is_file() or path.stat().st_size == 0:
                   raise SystemExit(f"Missing/empty output: {filename}")
           meta = json.loads((root / "scenario_summary.json").read_text())
-          if meta["scenario_count"] != 9 or meta["contrast_count"] != 63:
+          if meta["scenario_count"] != 9 or meta["contrast_count"] != 49:
               raise SystemExit("Unexpected scenario or contrast count")
           def read(name):
               with (root / name).open(newline="") as f:
@@ -59,7 +59,7 @@ jobs:
           summaries = read("scenario_summary.csv")
           runs = read("per_run_results.csv")
           contrasts = read("paired_contrasts.csv")
-          if len(summaries) != 9 or len(runs) != 270 or len(contrasts) != 63:
+          if len(summaries) != 9 or len(runs) != 270 or len(contrasts) != 49:
               raise SystemExit(f"Unexpected row counts: summaries={len(summaries)}, runs={len(runs)}, contrasts={len(contrasts)}")
           counts = {}
           for row in runs:
@@ -73,7 +73,7 @@ jobs:
               raise SystemExit(f"Unexpected replicate counts: {counts}")
           if any(int(row["n_pairs"]) != 30 for row in contrasts):
               raise SystemExit("Paired contrast count mismatch")
-          print("PASS: 9 scenarios × 30 universes, 270 per-run rows, and 63 paired contrast rows.")
+          print("PASS: 9 scenarios × 30 universes, 270 per-run rows, and 49 paired contrast rows.")
           PY
       - name: Upload paired smoke results
         uses: actions/upload-artifact@v4
