@@ -86,7 +86,7 @@ def main() -> None:
                 se68=fmt(row.get("coverage_68_mc_se")),
                 c95=fmt(row.get("coverage_95")),
                 se95=fmt(row.get("coverage_95_mc_se")),
-                bias=fmt(row.get("median_error", row.get("bias_median"))),
+                bias=fmt(row.get("median_bias", row.get("median_error", row.get("bias_median")))),
                 rmse=fmt(row.get("rmse_median")),
                 w68=fmt(row.get("mean_width_68", row.get("width_68"))),
                 w95=fmt(row.get("mean_width_95", row.get("width_95"))),
