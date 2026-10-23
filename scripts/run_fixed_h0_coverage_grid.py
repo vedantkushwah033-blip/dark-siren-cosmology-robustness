@@ -13,6 +13,7 @@ import numpy as np
 
 LEVELS = (0.50, 0.68, 0.80, 0.90, 0.95)
 DEFAULT_H0_VALUES = (55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0)
+PRIOR_RANGES = ((50.0, 90.0), (30.0, 120.0))
 
 
 def interval(grid: np.ndarray, posterior: np.ndarray, level: float) -> tuple[float, float]:
@@ -36,17 +37,18 @@ def main() -> None:
     args = parser.parse_args()
     if args.replicates < 2:
         parser.error("--replicates must be at least 2")
-    if any(not 50.0 <= h <= 90.0 for h in args.h0_values):
-        parser.error("Every H0 value must be inside the inference prior [50, 90]")
+    if any(not 30.0 <= h <= 120.0 for h in args.h0_values):
+        parser.error("Every H0 value must be inside both comparison priors [30, 120]")
 
     original = Path(args.original_dir).resolve()
     sys.path.insert(0, str(original))
     from src.simulations_v2 import simulate_galaxy_catalogue, choose_host, simulate_gw_event
     from src.bayesian_inference import posterior_h0, posterior_summary
 
-    grid = np.linspace(50.0, 90.0, 1601)
     rows: list[dict] = []
-    for h0_true in args.h0_values:
+    for prior_min, prior_max in PRIOR_RANGES:
+      grid = np.linspace(prior_min, prior_max, int(round((prior_max - prior_min) / 0.025)) + 1)
+      for h0_true in args.h0_values:
         for scenario in ("known_host", "unknown_host"):
             interval_data = {level: [] for level in LEVELS}
             medians, means, lower_95, upper_95 = [], [], [], []
@@ -67,7 +69,7 @@ def main() -> None:
                     weights = np.ones(len(redshifts))
                 posterior = posterior_h0(
                     grid, redshifts, gw["observed_distance_mpc"], gw["sigma_mpc"],
-                    weights=weights,
+                    weights=weights, prior_min=prior_min, prior_max=prior_max,
                 )
                 summary = posterior_summary(grid, posterior)
                 medians.append(float(summary["median"]))
@@ -79,6 +81,8 @@ def main() -> None:
                     interval_data[level].append((low, high))
 
             row = {
+                "prior_min": prior_min,
+                "prior_max": prior_max,
                 "scenario": scenario,
                 "H0_true": h0_true,
                 "replicates": args.replicates,
@@ -86,8 +90,8 @@ def main() -> None:
                 "mean_posterior_mean_error": float(np.mean(np.asarray(means) - h0_true)),
                 "mean_width_68": float(np.mean([hi - lo for lo, hi in interval_data[0.68]])),
                 "mean_width_95": float(np.mean([hi - lo for lo, hi in interval_data[0.95]])),
-                "fraction_95_interval_touches_lower_grid": float(np.mean(np.asarray(lower_95) <= 50.05)),
-                "fraction_95_interval_touches_upper_grid": float(np.mean(np.asarray(upper_95) >= 89.95)),
+                "fraction_95_interval_touches_lower_prior_bound": float(np.mean(np.asarray(lower_95) <= prior_min + 0.05)),
+                "fraction_95_interval_touches_upper_prior_bound": float(np.mean(np.asarray(upper_95) >= prior_max - 0.05)),
             }
             for level in LEVELS:
                 pairs = interval_data[level]
