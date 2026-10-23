@@ -164,6 +164,10 @@ def main() -> None:
                 raise SystemExit(
                     f"Reversed credible interval for scenario {name}, row {index}"
                 )
+            if lo95 > lo68 or hi68 > hi95:
+                raise SystemExit(
+                    f"68% interval is not nested inside 95% interval for scenario {name}, row {index}"
+                )
             try:
                 median = float(row["median"])
                 mean = float(row["mean"])
