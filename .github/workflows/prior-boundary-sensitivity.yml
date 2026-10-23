@@ -1,0 +1,53 @@
+name: Prior-boundary sensitivity audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/prior-boundary-sensitivity.yml"
+      - "scripts/run_prior_boundary_sensitivity.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sensitivity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Fetch pinned original simulator
+        run: |
+          git clone https://github.com/vedantkushwah033-blip/bayesian-dark-siren-cosmology.git original-project
+          git -C original-project checkout b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f
+          python -m pip install -r original-project/requirements.txt
+      - name: Run prior-boundary sensitivity audit
+        run: |
+          python scripts/run_prior_boundary_sensitivity.py \
+            --original-dir original-project --replicates 300 --seed 20261024 \
+            --output-dir results/prior-boundary-sensitivity
+      - name: Validate outputs
+        run: |
+          python - <<'PY'
+          import csv
+          from pathlib import Path
+          p=Path("results/prior-boundary-sensitivity")
+          with (p/"summary.csv").open(newline="") as f: s=list(csv.DictReader(f))
+          with (p/"per_run.csv").open(newline="") as f: r=list(csv.DictReader(f))
+          assert len(s)==42, len(s)
+          assert len(r)==12600, len(r)
+          assert all(int(x["replicates"])==300 for x in s)
+          assert {x["prior"] for x in s}=={"baseline_50_90","wide_40_100","very_wide_30_120"}
+          print(f"Validated {len(s)} summaries and {len(r)} fits.")
+          PY
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: prior-boundary-sensitivity
+          path: results/prior-boundary-sensitivity/
+          if-no-files-found: error
+          retention-days: 30
