@@ -33,3 +33,41 @@ def test_value_calculates_pull_when_field_is_empty():
         "pull_median": "",
     }
     assert analysis.value(row, "pull_median") == 1.0
+
+def test_contrast_input_validation_rejects_mismatched_replicate_counts(tmp_path, monkeypatch):
+    import csv
+    import json
+    import pytest
+
+    names = sorted({s for a, b, _ in analysis.SCENARIO_CONTRASTS for s in (a, b)})
+    input_path = tmp_path / "per_run_results.csv"
+    fields = ["scenario", "median", "mean", "lower_68", "upper_68", "lower_95", "upper_95", "posterior_sd", "pull_median"]
+    with input_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for index, name in enumerate(names):
+            count = 2 if index == 0 else 3
+            for _ in range(count):
+                writer.writerow({"scenario": name, "median": 70, "mean": 70, "lower_68": 68, "upper_68": 72, "lower_95": 66, "upper_95": 74, "posterior_sd": 1, "pull_median": 0})
+    output_path = tmp_path / "contrast.json"
+    monkeypatch.setattr("sys.argv", ["analyze_factorial_contrasts.py", "--input", str(input_path), "--output", str(output_path), "--bootstrap", "100"])
+    with pytest.raises(SystemExit, match="Inconsistent replicate counts"):
+        analysis.main()
+
+
+def test_contrast_input_validation_rejects_reversed_interval(tmp_path, monkeypatch):
+    import csv
+    import pytest
+
+    names = sorted({s for a, b, _ in analysis.SCENARIO_CONTRASTS for s in (a, b)})
+    input_path = tmp_path / "per_run_results.csv"
+    fields = ["scenario", "median", "mean", "lower_68", "upper_68", "lower_95", "upper_95", "posterior_sd", "pull_median"]
+    with input_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for name in names:
+            writer.writerow({"scenario": name, "median": 70, "mean": 70, "lower_68": 73, "upper_68": 72, "lower_95": 66, "upper_95": 74, "posterior_sd": 1, "pull_median": 0})
+    output_path = tmp_path / "contrast.json"
+    monkeypatch.setattr("sys.argv", ["analyze_factorial_contrasts.py", "--input", str(input_path), "--output", str(output_path), "--bootstrap", "100"])
+    with pytest.raises(SystemExit, match="Reversed credible interval"):
+        analysis.main()
