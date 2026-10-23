@@ -35,3 +35,14 @@ These tests use analytically interpretable or independently calculated cases rat
 ## Interpretation guardrail
 
 Do not use these unit tests as evidence that empirical credible-interval coverage should equal its nominal level. Coverage is a repeated-sampling property that must be estimated in a dedicated simulation study under clearly stated data-generating assumptions. Do not present synthetic results as measurements from real gravitational-wave events.
+
+
+## CI result and correction log
+
+The first CI execution exposed two test-call keyword mismatches: the public reference function uses `gw_distance`, not `observed_distance_mpc`. The tests were corrected to match the documented function signature; the implementation itself was not changed for this issue.
+
+The corrected commit passed the test matrix on Python 3.10, 3.11, and 3.12:
+- [Cross-version tests](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40003986278)
+- [Test suite](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40003986147)
+
+The successful CI run supports the tested numerical properties only. It does not establish scientific realism, empirical coverage calibration, or validity for real gravitational-wave observations.
