@@ -57,6 +57,17 @@ def main() -> None:
             seed=args.seed + i * 1_000_000,
         )
         metrics = summarize_runs(rows, true_h0=70.0)
+        # The pinned legacy summarizer labels the mean replicate error as
+        # median_bias. Recompute the median of replicate-level posterior-median
+        # errors explicitly so the scenario summary matches the metric name.
+        median_errors = sorted(float(row["median"]) - 70.0 for row in rows)
+        n_errors = len(median_errors)
+        if n_errors % 2:
+            metrics["median_bias"] = float(median_errors[n_errors // 2])
+        else:
+            metrics["median_bias"] = float(
+                (median_errors[n_errors // 2 - 1] + median_errors[n_errors // 2]) / 2.0
+            )
         summaries.append({
             "scenario": name,
             "target_completeness": completeness,
