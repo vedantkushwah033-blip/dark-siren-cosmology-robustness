@@ -8,6 +8,7 @@ on:
       - "scripts/run_matched_fixed_h0_coverage.py"
       - "tests/test_matched_fixed_h0_coverage.py"
       - "scripts/analyze_matched_host_paired_differences.py"
+      - "scripts/test_host_mixture_identities.py"
       - "tests/test_matched_host_paired_differences.py"
   workflow_dispatch:
 
@@ -32,6 +33,8 @@ jobs:
           git clone https://github.com/vedantkushwah033-blip/bayesian-dark-siren-cosmology.git original-project
           git -C original-project checkout b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f
           python -m pip install -r original-project/requirements.txt
+      - name: Test deterministic host-mixture identities
+        run: python scripts/test_host_mixture_identities.py --original-dir original-project
       - name: Run matched fixed-H0 coverage
         run: |
           python scripts/run_matched_fixed_h0_coverage.py \
