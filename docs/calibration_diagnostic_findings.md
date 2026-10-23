@@ -72,3 +72,19 @@ These ranks are broadly consistent with Uniform(0, 1) for this matched synthetic
 - The next experiment should vary catalogue incompleteness and host weighting using a clearly specified, matched observation model, and report both prior-predictive SBC and fixed-H0 coverage across a grid of true H0 values. Keep the original simulator pinned and unchanged for reproducibility; treat corrected noise designs as explicit sensitivity variants.
 
 No claim is made that these results generalize beyond the specified synthetic model.
+
+## D. Reproducibility update: validated fixed-H0 run
+
+The first Fixed-H0 workflow attempt failed in its validation step, not in the simulation. The simulation produced the expected 28 rows (2 prior ranges × 7 true-H0 values × 2 host scenarios), but the validator incorrectly expected 14. A subsequent workflow-file edit introduced a YAML indentation error in a shell block; that syntax issue was corrected separately.
+
+The corrected workflow completed successfully on commit `05ffc70cc2712e82ac2e9fa1a2dfe5d1f440adcd`. It ran 500 replicates per prior/H0/scenario combination and validated all 28 summary rows plus 70 paired-prior contrast rows.
+
+- Successful run: [Fixed-H0 coverage diagnostic](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/39951571798)
+- Artifact: `fixed-h0-coverage-diagnostic`
+- Coverage-grid CSV: `fixed-h0-coverage-grid.csv`
+- Paired contrasts CSV: `paired-prior-coverage-differences.csv`
+
+The verified 68% coverage values at true H0 = 70 are 76.6% (known host) and 94.8% (unknown host) for prior [50, 90], and 68.6% (known host) and 68.4% (unknown host) for prior [30, 120]. The paired unknown-host contrast (wide minus narrow prior) is -26.4 percentage points, SE 1.973 percentage points.
+
+This run validates the computation and artifact structure. The interpretation remains a synthetic-model sensitivity result; it is not evidence about real LVK observations.
+
