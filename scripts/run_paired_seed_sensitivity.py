@@ -165,6 +165,7 @@ def main() -> None:
         "true_h0": 70.0,
         "scenario_count": len(SCENARIOS),
         "contrast_count": len(CONTRASTS),
+        "metric_count": len(METRICS),
         "pairing_note": (
             "Scenarios share the same seed and replicate index. The pinned simulator derives "
             "catalogue, host, GW and mask seeds from these values. Host/GW draws are shared only "
