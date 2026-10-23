@@ -40,7 +40,8 @@ def test_report_builds_from_validated_synthetic_fixture(tmp_path, monkeypatch):
     (factorial_dir / "scenario_summary.json").write_text(json.dumps(metadata), encoding="utf-8")
 
     summary_fields = [
-        "scenario", "n", "coverage_68", "coverage_68_mc_se",
+        "scenario", "target_completeness", "missingness", "host_generation",
+        "inference_weighting", "n", "coverage_68", "coverage_68_mc_se",
         "coverage_95", "coverage_95_mc_se", "median_bias",
         "rmse_median", "mean_width_68", "mean_width_95",
     ]
@@ -49,7 +50,9 @@ def test_report_builds_from_validated_synthetic_fixture(tmp_path, monkeypatch):
         writer.writeheader()
         for name in scenario_names:
             writer.writerow({
-                "scenario": name, "n": 2, "coverage_68": 0.5,
+                "scenario": name, "target_completeness": 1.0, "missingness": "none",
+                "host_generation": "uniform", "inference_weighting": "uniform",
+                "n": 2, "coverage_68": 0.5,
                 "coverage_68_mc_se": 0.35, "coverage_95": 1.0,
                 "coverage_95_mc_se": 0.0, "median_bias": 1.25,
                 "rmse_median": 2.5, "mean_width_68": 4.0, "mean_width_95": 8.0,
@@ -82,6 +85,8 @@ def test_report_builds_from_validated_synthetic_fixture(tmp_path, monkeypatch):
     assert "Main per-run records: **18**" in text
     assert "1.250" in text
     assert "test contrast" in text
+    assert "Host generation" in text
+    assert "Expected contrasts for the current design: 56" in text
     assert "synthetic simulation experiment" in text
 
 
