@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+from scipy.integrate import trapezoid
 
 from dark_siren_robustness.hardened_inference import posterior_h0, posterior_summary
 
@@ -27,7 +28,7 @@ def evaluate_case(name, grid, prior_min, prior_max):
         prior_max=prior_max,
     )
     summary = posterior_summary(grid, posterior)
-    area = float(np.trapezoid(posterior, grid))
+    area = float(trapezoid(posterior, grid))
     boundary_band = max(2, int(np.ceil(0.02 * grid.size)))
     return {
         "case": name,
