@@ -70,3 +70,14 @@ Coverage is the empirical fraction of central posterior intervals containing the
 ## Reproducibility
 
 Both workflows completed successfully and validated 14 summary rows and 1,400 per-run rows. The wide-support workflow also passed the repository test suite. The CSV artifacts are available from the linked GitHub Actions runs.
+
+
+## Source-code inspection update (23 October 2026)
+
+The pinned source at revision `b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f` was inspected directly:
+
+- `src/cosmology.py` generates distances with the low-redshift relation (d_L = cz/H_0).
+- `src/simulations_v2.py` generates observed distance as a Gaussian draw around that same distance, with `sigma = 0.15 * true_distance`.
+- `src/bayesian_inference.py` evaluates a Gaussian distance likelihood with mean (cz/H_0), normalizes candidate-galaxy weights, applies a flat bounded prior through the grid mask, and normalizes the posterior using trapezoidal integration.
+
+The distance-redshift relation is matched between simulation and inference in this pinned revision; it is not the first mismatch to blame. The substantial support sensitivity remains unexplained and warrants a minimal single-host likelihood benchmark plus checks of posterior-grid and summary calculations. A targeted test has been added to check recovery near a known injected (H_0) for a narrow-noise single-host likelihood. This is a unit test, not a full simulation-based calibration test.
