@@ -25,3 +25,37 @@ def test_mean_se_single_value_has_nan_standard_error():
     mean, se = mean_se([4.0])
     assert mean == pytest.approx(4.0)
     assert math.isnan(se)
+
+
+
+def test_paired_differences_uses_b_minus_a():
+    from scripts.run_paired_seed_sensitivity import paired_differences
+
+    a = [{"run": 0, "median": 70.0}, {"run": 1, "median": 71.0}]
+    b = [{"run": 0, "median": 72.0}, {"run": 1, "median": 70.5}]
+    assert paired_differences(a, b, "median") == pytest.approx([2.0, -0.5])
+
+
+def test_paired_differences_rejects_different_row_counts():
+    from scripts.run_paired_seed_sensitivity import paired_differences
+
+    with pytest.raises(ValueError, match="different row counts"):
+        paired_differences([{"run": 0, "median": 1.0}], [], "median")
+
+
+def test_paired_differences_rejects_misaligned_run_ids():
+    from scripts.run_paired_seed_sensitivity import paired_differences
+
+    a = [{"run": 0, "median": 70.0}, {"run": 1, "median": 71.0}]
+    b = [{"run": 1, "median": 72.0}, {"run": 0, "median": 70.5}]
+    with pytest.raises(ValueError, match="Pair alignment mismatch"):
+        paired_differences(a, b, "median")
+
+
+def test_paired_differences_rejects_non_finite_metrics():
+    from scripts.run_paired_seed_sensitivity import paired_differences
+
+    a = [{"run": 0, "median": 70.0}]
+    b = [{"run": 0, "median": float("nan")}]
+    with pytest.raises(ValueError, match="Non-finite"):
+        paired_differences(a, b, "median")
