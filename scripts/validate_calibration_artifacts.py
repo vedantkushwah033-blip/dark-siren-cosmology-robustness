@@ -35,20 +35,33 @@ def main() -> None:
     if len(rows) != 10:
         raise SystemExit(f"Expected 10 coverage-curve rows, got {len(rows)}")
     observed = set()
+    widths_by_scenario = {"unknown_host": {}, "known_host": {}}
     for row in rows:
         scenario = row["scenario"]
         level = float(row["nominal_level"])
+        replicates = int(row["replicates"])
         coverage = float(row["coverage"])
         width = float(row["mean_interval_width"])
         mcse = float(row["coverage_mc_se"])
         if scenario not in {"unknown_host", "known_host"} or level not in expected_levels:
             raise SystemExit(f"Unexpected scenario/level: {row}")
+        if replicates != n:
+            raise SystemExit(f"{scenario} at level {level}: expected {n} replicates, got {replicates}")
+        if not all(math.isfinite(x) for x in (coverage, width, mcse)):
+            raise SystemExit(f"Non-finite coverage curve value: {row}")
         if not (0.0 <= coverage <= 1.0 and width > 0.0 and 0.0 <= mcse <= 0.5):
             raise SystemExit(f"Invalid coverage curve values: {row}")
+        if not math.isclose(mcse, math.sqrt(coverage * (1.0 - coverage) / n), rel_tol=1e-8, abs_tol=1e-12):
+            raise SystemExit(f"Coverage MC standard error inconsistent with coverage and n: {row}")
+        widths_by_scenario[scenario][level] = width
         observed.add((scenario, level))
     expected = {(s, level) for s in ("unknown_host", "known_host") for level in expected_levels}
     if observed != expected:
         raise SystemExit("Coverage curve does not contain every scenario × level combination")
+    for scenario, by_level in widths_by_scenario.items():
+        ordered = [by_level[level] for level in sorted(expected_levels)]
+        if any(right < left for left, right in zip(ordered, ordered[1:])):
+            raise SystemExit(f"{scenario}: mean interval width decreases as nominal level increases")
 
     for path in (unknown_path, known_path):
         with path.open(newline="", encoding="utf-8") as f:
