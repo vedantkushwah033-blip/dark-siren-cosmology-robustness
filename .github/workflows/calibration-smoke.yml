@@ -1,0 +1,58 @@
+name: Calibration smoke test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/calibration-smoke.yml"
+      - "scripts/reproduce_original_coverage.py"
+      - "scripts/run_coverage_curve.py"
+      - "scripts/validate_calibration_artifacts.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  calibration-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out robustness repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install validation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy scipy pandas matplotlib pytest
+
+      - name: Fetch pinned original simulator
+        run: |
+          git clone https://github.com/vedantkushwah033-blip/bayesian-dark-siren-cosmology.git original-project
+          git -C original-project checkout b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f
+          python -m pip install -r original-project/requirements.txt
+
+      - name: Reproduce 50-run baseline controls
+        run: |
+          python scripts/reproduce_original_coverage.py --original-dir original-project --replicates 50 --seed 2026 --output-dir results/calibration-smoke
+
+      - name: Calculate multi-level coverage curve
+        run: |
+          python scripts/run_coverage_curve.py --original-dir original-project --replicates 50 --seed 2026 --output results/calibration-smoke/coverage_curve.csv
+
+      - name: Validate calibration outputs
+        run: python scripts/validate_calibration_artifacts.py results/calibration-smoke
+
+      - name: Upload calibration smoke artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: calibration-smoke
+          path: results/calibration-smoke/
+          if-no-files-found: error
+          retention-days: 30
