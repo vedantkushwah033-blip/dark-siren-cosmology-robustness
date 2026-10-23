@@ -22,9 +22,9 @@ def write_artifacts(
     for scenario in ("unknown_host", "known_host"):
         summary[scenario] = {
             "n": n,
-            "coverage_68": 0.7,
+            "coverage_68": 0.68,
             "coverage_95": 0.95,
-            "coverage_68_mc_se": math.sqrt(0.7 * 0.3 / n),
+            "coverage_68_mc_se": math.sqrt(0.68 * 0.32 / n),
             "coverage_95_mc_se": math.sqrt(0.95 * 0.05 / n),
         }
     (root / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
