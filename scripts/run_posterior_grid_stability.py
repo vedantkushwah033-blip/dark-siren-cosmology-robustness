@@ -29,7 +29,12 @@ def evaluate_case(name, grid, prior_min, prior_max):
     )
     summary = posterior_summary(grid, posterior)
     area = float(trapezoid(posterior, grid))
-    boundary_band = max(2, int(np.ceil(0.02 * grid.size)))
+    # Measure posterior mass near the prior boundaries, not the numerical grid
+    # boundaries. For a wider grid with an unchanged prior, grid-edge mass is
+    # mechanically zero and would conceal possible prior-boundary concentration.
+    band_width = 0.02 * (prior_max - prior_min)
+    lower_mask = (grid >= prior_min) & (grid <= prior_min + band_width)
+    upper_mask = (grid <= prior_max) & (grid >= prior_max - band_width)
     return {
         "case": name,
         "grid_min": float(grid[0]),
@@ -39,8 +44,8 @@ def evaluate_case(name, grid, prior_min, prior_max):
         "prior_min": float(prior_min),
         "prior_max": float(prior_max),
         "posterior_area": area,
-        "lower_boundary_band_mass": float(trapezoid(posterior[:boundary_band], grid[:boundary_band])),
-        "upper_boundary_band_mass": float(trapezoid(posterior[-boundary_band:], grid[-boundary_band:])),
+        "lower_prior_boundary_band_mass": float(trapezoid(posterior[lower_mask], grid[lower_mask])),
+        "upper_prior_boundary_band_mass": float(trapezoid(posterior[upper_mask], grid[upper_mask])),
         **summary,
     }
 
