@@ -109,6 +109,7 @@ def main() -> None:
         ])
     else:
         contrast_rows = contrasts.get("contrasts", [])
+        contrast_status = "OK" if len(contrast_rows) == 56 else "CHECK"
         lines.extend([
             f"- Bootstrap repetitions: {contrasts.get('bootstrap_replicates', 'not recorded')}",
             f"- Contrasts in file: {len(contrast_rows)}",
