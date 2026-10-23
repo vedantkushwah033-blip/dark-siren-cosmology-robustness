@@ -38,6 +38,30 @@ def mean_se(values: list[float]) -> tuple[float, float]:
     return mean, math.sqrt(variance / len(values))
 
 
+def paired_differences(a_rows: list[dict], b_rows: list[dict], metric: str) -> list[float]:
+    """Return B - A contrasts only when replicate identities are explicitly aligned."""
+    if len(a_rows) != len(b_rows):
+        raise ValueError(
+            f"Cannot pair scenarios with different row counts: {len(a_rows)} != {len(b_rows)}"
+        )
+    differences: list[float] = []
+    for index, (a, b) in enumerate(zip(a_rows, b_rows)):
+        if a.get("run") != b.get("run"):
+            raise ValueError(
+                f"Pair alignment mismatch at row {index}: "
+                f"{a.get('run')!r} != {b.get('run')!r}"
+            )
+        try:
+            value_a = float(a[metric])
+            value_b = float(b[metric])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(f"Invalid or missing metric {metric!r} at pair {index}") from exc
+        if not math.isfinite(value_a) or not math.isfinite(value_b):
+            raise ValueError(f"Non-finite {metric!r} value at pair {index}")
+        differences.append(value_b - value_a)
+    return differences
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--original-dir", default="original-project")
@@ -93,7 +117,7 @@ def main() -> None:
     for contrast_name, scenario_b, scenario_a in CONTRASTS:
         a_rows, b_rows = by_scenario[scenario_a], by_scenario[scenario_b]
         for metric in METRICS:
-            differences = [float(b[metric]) - float(a[metric]) for a, b in zip(a_rows, b_rows)]
+            differences = paired_differences(a_rows, b_rows, metric)
             avg, se = mean_se(differences)
             contrast_summary.append({
                 "contrast": contrast_name,
