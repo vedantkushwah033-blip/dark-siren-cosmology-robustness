@@ -20,3 +20,11 @@ def test_median_bias_rejects_empty_input():
     import pytest
     with pytest.raises(ValueError, match="must not be empty"):
         factorial.median_bias([], 70)
+
+def test_median_bias_rejects_nonfinite_values():
+    import math
+    import pytest
+    with pytest.raises(ValueError, match="only finite values"):
+        factorial.median_bias([70, math.nan], 70)
+    with pytest.raises(ValueError, match="true_h0 must be finite"):
+        factorial.median_bias([70], math.inf)
