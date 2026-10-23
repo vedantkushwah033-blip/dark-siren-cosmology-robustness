@@ -59,3 +59,21 @@ def test_paired_differences_rejects_non_finite_metrics():
     b = [{"run": 0, "median": float("nan")}]
     with pytest.raises(ValueError, match="Non-finite"):
         paired_differences(a, b, "median")
+
+
+def test_paired_differences_supports_coverage_indicators():
+    from scripts.run_paired_seed_sensitivity import paired_differences
+
+    complete = [
+        {"run": 0, "covered_68": 1},
+        {"run": 1, "covered_68": 1},
+        {"run": 2, "covered_68": 0},
+    ]
+    incomplete = [
+        {"run": 0, "covered_68": 0},
+        {"run": 1, "covered_68": 1},
+        {"run": 2, "covered_68": 1},
+    ]
+    assert paired_differences(complete, incomplete, "covered_68") == pytest.approx(
+        [-1.0, 0.0, 1.0]
+    )
