@@ -49,10 +49,21 @@ def main():
             post=np.asarray(posterior_h0(grid,zs,observed,sigma,weights=weights,prior_min=lo,prior_max=hi),float)
             cdf=cdf_from_density(grid,post)
             med=float(np.interp(.5,cdf,grid))
+            # Quantify posterior probability concentrated near each prior edge.
+            norm=float(np.trapezoid(post,grid))
+            if not np.isfinite(norm) or norm<=0:
+              raise ValueError(f"invalid posterior integral for {prior_name}/{scenario}/H0={h0}/rep={rep}")
+            post_norm=post/norm
+            edge_mass={}
+            for band in (1.0,2.0):
+              lower_mask=(grid>=lo)&(grid<=min(lo+band,hi))
+              upper_mask=(grid<=hi)&(grid>=max(hi-band,lo))
+              edge_mass[f"mass_within_{int(band)}_of_lower_prior"]=float(np.trapezoid(post_norm[lower_mask],grid[lower_mask]))
+              edge_mass[f"mass_within_{int(band)}_of_upper_prior"]=float(np.trapezoid(post_norm[upper_mask],grid[upper_mask]))
             row={"prior":prior_name,"prior_min":lo,"prior_max":hi,"scenario":scenario,
                  "true_H0":h0,"replicate":rep,"seed":seed,"host_redshift":zhost,
                  "observed_distance_mpc":observed,"sigma_mpc":sigma,
-                 "posterior_median":med,"median_error":med-h0}
+                 "posterior_median":med,"median_error":med-h0,**edge_mass}
             for lev in (68,95):
               left,right=interval(grid,cdf,lev/100)
               row[f"covers_{lev}"]=int(left<=h0<=right)
@@ -72,6 +83,10 @@ def main():
           item[f"coverage_{lev}"]=cov
           item[f"coverage_{lev}_mc_se"]=float(np.sqrt(cov*(1-cov)/len(rows)))
           item[f"mean_width_{lev}"]=float(np.mean([r[f"width_{lev}"] for r in rows]))
+        for band in (1,2):
+          for edge in ("lower","upper"):
+            key=f"mass_within_{band}_of_{edge}_prior"
+            item[f"mean_{key}"]=float(np.mean([r[key] for r in rows]))
         summaries.append(item)
     out=Path(a.output_dir);out.mkdir(parents=True,exist_ok=True)
     for name,rows in (("per_run.csv",raw),("summary.csv",summaries)):
