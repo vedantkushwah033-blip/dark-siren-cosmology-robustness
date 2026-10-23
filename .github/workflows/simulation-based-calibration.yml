@@ -1,0 +1,78 @@
+name: Bayesian simulation-based calibration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/simulation-based-calibration.yml"
+      - "scripts/run_sbc_diagnostic.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sbc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out robustness repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install simulation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy scipy pandas matplotlib
+
+      - name: Fetch pinned original simulator
+        run: |
+          git clone https://github.com/vedantkushwah033-blip/bayesian-dark-siren-cosmology.git original-project
+          git -C original-project checkout b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f
+          python -m pip install -r original-project/requirements.txt
+
+      - name: Run 1,000-replicate SBC diagnostic
+        run: |
+          python scripts/run_sbc_diagnostic.py \
+            --original-dir original-project \
+            --replicates 1000 \
+            --seed 99173 \
+            --output-dir results/sbc
+
+      - name: Validate SBC outputs
+        run: |
+          python - <<'PY'
+          import csv, math
+          from pathlib import Path
+          root = Path("results/sbc")
+          expected = {"known_host_sbc_ranks.csv", "unknown_host_sbc_ranks.csv", "sbc_summary.csv"}
+          missing = expected - {p.name for p in root.iterdir()}
+          if missing:
+              raise SystemExit(f"Missing SBC outputs: {sorted(missing)}")
+          with (root / "sbc_summary.csv").open(newline="") as f:
+              summaries = list(csv.DictReader(f))
+          if len(summaries) != 2:
+              raise SystemExit(f"Expected two SBC summaries, got {len(summaries)}")
+          for scenario in ("known_host", "unknown_host"):
+              with (root / f"{scenario}_sbc_ranks.csv").open(newline="") as f:
+                  rows = list(csv.DictReader(f))
+              if len(rows) != 1000:
+                  raise SystemExit(f"{scenario}: expected 1000 ranks, got {len(rows)}")
+              ranks = [float(row["posterior_cdf_at_truth"]) for row in rows]
+              if not all(math.isfinite(x) and 0 <= x <= 1 for x in ranks):
+                  raise SystemExit(f"{scenario}: invalid posterior CDF ranks")
+          print("Validated 2,000 SBC ranks and two summary rows.")
+          PY
+
+      - name: Upload SBC artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulation-based-calibration
+          path: results/sbc/*.csv
+          if-no-files-found: error
+          retention-days: 30
