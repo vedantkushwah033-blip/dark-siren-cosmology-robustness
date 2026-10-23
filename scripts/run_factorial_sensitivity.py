@@ -24,6 +24,16 @@ SCENARIOS = (
 )
 
 
+
+def median_bias(posterior_medians: list[float], true_h0: float) -> float:
+    """Return the median replicate-level posterior-median error."""
+    if not posterior_medians:
+        raise ValueError("posterior_medians must not be empty")
+    errors = sorted(float(value) - float(true_h0) for value in posterior_medians)
+    n_errors = len(errors)
+    if n_errors % 2:
+        return errors[n_errors // 2]
+    return (errors[n_errors // 2 - 1] + errors[n_errors // 2]) / 2.0
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--original-dir", default="original-project")
@@ -60,14 +70,7 @@ def main() -> None:
         # The pinned legacy summarizer labels the mean replicate error as
         # median_bias. Recompute the median of replicate-level posterior-median
         # errors explicitly so the scenario summary matches the metric name.
-        median_errors = sorted(float(row["median"]) - 70.0 for row in rows)
-        n_errors = len(median_errors)
-        if n_errors % 2:
-            metrics["median_bias"] = float(median_errors[n_errors // 2])
-        else:
-            metrics["median_bias"] = float(
-                (median_errors[n_errors // 2 - 1] + median_errors[n_errors // 2]) / 2.0
-            )
+        metrics["median_bias"] = median_bias([float(row["median"]) for row in rows], 70.0)
         summaries.append({
             "scenario": name,
             "target_completeness": completeness,
