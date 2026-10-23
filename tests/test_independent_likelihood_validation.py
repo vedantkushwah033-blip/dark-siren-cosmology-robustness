@@ -55,7 +55,7 @@ def test_host_permutation_does_not_change_posterior():
     grid = np.linspace(50.0, 90.0, 1001)
     z = np.array([0.011, 0.019, 0.027, 0.041])
     w = np.array([1.0, 4.0, 2.0, 3.0])
-    kwargs = dict(observed_distance_mpc=145.0, gw_sigma=18.0)
+    kwargs = dict(gw_distance=145.0, gw_sigma=18.0)
     first = posterior_h0(grid, z, weights=w, **kwargs)
     order = np.array([2, 0, 3, 1])
     second = posterior_h0(grid, z[order], weights=w[order], **kwargs)
@@ -65,7 +65,7 @@ def test_host_permutation_does_not_change_posterior():
 def test_common_weight_rescaling_does_not_change_posterior():
     grid = np.linspace(50.0, 90.0, 1001)
     z = [0.013, 0.024, 0.038]
-    kwargs = dict(observed_distance_mpc=130.0, gw_sigma=20.0)
+    kwargs = dict(gw_distance=130.0, gw_sigma=20.0)
     first = posterior_h0(grid, z, weights=[1.0, 2.0, 7.0], **kwargs)
     second = posterior_h0(grid, z, weights=[11.0, 22.0, 77.0], **kwargs)
     assert np.allclose(first, second, rtol=1e-12, atol=1e-14)
