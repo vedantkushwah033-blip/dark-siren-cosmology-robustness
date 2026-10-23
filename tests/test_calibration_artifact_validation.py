@@ -15,7 +15,7 @@ LEVELS = (0.50, 0.68, 0.80, 0.90, 0.95)
 def write_artifacts(
     root: Path, *, n: int = 10, bad_mcse: bool = False,
     decreasing_width: bool = False, wrong_replicates: bool = False,
-    bad_run_value: str | None = None,
+    bad_run_value: str | None = None, bad_summary_coverage: bool = False,
 ) -> None:
     root.mkdir(parents=True, exist_ok=True)
     summary = {"requested_replicates": n}
@@ -27,6 +27,8 @@ def write_artifacts(
             "coverage_68_mc_se": math.sqrt(0.68 * 0.32 / n),
             "coverage_95_mc_se": math.sqrt(0.95 * 0.05 / n),
         }
+    if bad_summary_coverage:
+        summary["unknown_host"]["coverage_68"] = 0.70
     (root / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
 
     with (root / "coverage_curve.csv").open("w", newline="", encoding="utf-8") as f:
@@ -110,6 +112,13 @@ def test_validator_rejects_inconsistent_coverage_curve(tmp_path, kwargs, message
         ("interval_order", "credible interval ordering invalid"),
     ],
 )
+def test_validator_rejects_summary_curve_coverage_disagreement(tmp_path):
+    write_artifacts(tmp_path, bad_summary_coverage=True)
+    result = run_validator(tmp_path)
+    assert result.returncode != 0
+    assert "disagrees with coverage curve" in result.stderr
+
+
 def test_validator_rejects_invalid_per_run_records(tmp_path, bad_run_value, message):
     write_artifacts(tmp_path, bad_run_value=bad_run_value)
     result = run_validator(tmp_path)
