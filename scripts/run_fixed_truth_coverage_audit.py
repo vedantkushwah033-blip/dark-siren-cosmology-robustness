@@ -14,7 +14,7 @@ import sys
 import numpy as np
 
 H0_VALUES = (55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0)
-GRID_MIN, GRID_MAX, GRID_SIZE = 50.0, 90.0, 1601
+DEFAULT_GRID_MIN, DEFAULT_GRID_MAX, GRID_SIZE = 30.0, 120.0, 1801
 
 
 def normalized_cdf(grid: np.ndarray, posterior: np.ndarray) -> np.ndarray:
@@ -40,6 +40,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--original-dir", default="original-project")
     parser.add_argument("--replicates", type=int, default=100)
+    parser.add_argument("--grid-min", type=float, default=50.0)
+    parser.add_argument("--grid-max", type=float, default=90.0)
     parser.add_argument("--seed", type=int, default=20261024)
     parser.add_argument("--output-dir", default="results/fixed-truth-coverage-audit")
     args = parser.parse_args()
@@ -53,7 +55,12 @@ def main() -> None:
     from src.simulations_v2 import simulate_galaxy_catalogue, choose_host, simulate_gw_event
     from src.bayesian_inference import posterior_h0
 
-    grid = np.linspace(GRID_MIN, GRID_MAX, GRID_SIZE)
+    if not args.grid_min < min(H0_VALUES) or not args.grid_max > max(H0_VALUES):
+        parser.error("grid bounds must strictly contain all fixed H0 values")
+    if args.grid_min >= args.grid_max:
+        parser.error("--grid-min must be less than --grid-max")
+    grid_min, grid_max = args.grid_min, args.grid_max
+    grid = np.linspace(grid_min, grid_max, GRID_SIZE)
     rows: list[dict] = []
     for h_index, h0_true in enumerate(H0_VALUES):
         for replicate in range(args.replicates):
@@ -71,7 +78,7 @@ def main() -> None:
             for scenario, (redshifts, weights) in scenarios.items():
                 posterior = np.asarray(posterior_h0(
                     grid, redshifts, gw["observed_distance_mpc"], gw["sigma_mpc"],
-                    weights=weights, prior_min=GRID_MIN, prior_max=GRID_MAX,
+                    weights=weights, prior_min=grid_min, prior_max=grid_max,
                 ), dtype=float)
                 cdf = normalized_cdf(grid, posterior)
                 lo68, hi68 = central_interval(grid, cdf, 0.68)
