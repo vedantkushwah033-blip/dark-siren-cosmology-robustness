@@ -39,8 +39,8 @@ def evaluate_case(name, grid, prior_min, prior_max):
         "prior_min": float(prior_min),
         "prior_max": float(prior_max),
         "posterior_area": area,
-        "lower_boundary_band_mass": float(np.trapezoid(posterior[:boundary_band], grid[:boundary_band])),
-        "upper_boundary_band_mass": float(np.trapezoid(posterior[-boundary_band:], grid[-boundary_band:])),
+        "lower_boundary_band_mass": float(trapezoid(posterior[:boundary_band], grid[:boundary_band])),
+        "upper_boundary_band_mass": float(trapezoid(posterior[-boundary_band:], grid[-boundary_band:])),
         **summary,
     }
 
