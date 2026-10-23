@@ -164,6 +164,33 @@ def main() -> None:
                 raise SystemExit(
                     f"Reversed credible interval for scenario {name}, row {index}"
                 )
+            try:
+                median = float(row["median"])
+                mean = float(row["mean"])
+                posterior_sd = float(row["posterior_sd"])
+            except (KeyError, TypeError, ValueError) as exc:
+                raise SystemExit(
+                    f"Invalid posterior summary fields for scenario {name}, row {index}"
+                ) from exc
+            if not all(math.isfinite(x) for x in (median, mean, posterior_sd)):
+                raise SystemExit(
+                    f"Non-finite posterior summary for scenario {name}, row {index}"
+                )
+            if posterior_sd <= 0.0:
+                raise SystemExit(
+                    f"Non-positive posterior_sd for scenario {name}, row {index}"
+                )
+            if "pull_median" in row and str(row["pull_median"]).strip() != "":
+                try:
+                    supplied_pull = float(row["pull_median"])
+                except (TypeError, ValueError) as exc:
+                    raise SystemExit(
+                        f"Invalid pull_median for scenario {name}, row {index}"
+                    ) from exc
+                if not math.isfinite(supplied_pull):
+                    raise SystemExit(
+                        f"Non-finite pull_median for scenario {name}, row {index}"
+                    )
 
     rng = random.Random(args.seed)
     result = {
