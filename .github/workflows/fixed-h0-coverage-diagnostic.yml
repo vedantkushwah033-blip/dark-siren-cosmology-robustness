@@ -42,7 +42,8 @@ jobs:
             --original-dir original-project \
             --replicates 500 \
             --seed 73021 \
-            --output results/fixed-h0-coverage-grid.csv
+            --output results/fixed-h0-coverage-grid.csv \
+            --paired-output results/paired-prior-coverage-differences.csv
 
       - name: Validate sweep output
         run: |
@@ -70,13 +71,24 @@ jobs:
                   se = float(row[f"coverage_{level}_mc_se"])
                   if not 0 <= cov <= 1 or not 0 <= se <= 0.5:
                       raise SystemExit(f"Invalid coverage or MC SE in row {row}")
-          print(f"Validated {len(rows)} fixed-H0 coverage rows.")
+          paired_path = Path("results/paired-prior-coverage-differences.csv")
+          with paired_path.open(newline="") as f:
+              paired = list(csv.DictReader(f))
+          if len(paired) != 70:
+              raise SystemExit(f"Expected 70 paired rows (7 H0 x 2 scenarios x 5 levels), got {len(paired)}")
+          for row in paired:
+              n = int(row["replicates"])
+              diff = float(row["mean_paired_difference_b_minus_a"])
+              se = float(row["paired_difference_se"])
+              if n != 500 or not math.isfinite(diff) or not math.isfinite(se) or se < 0:
+                  raise SystemExit(f"Invalid paired prior contrast: {row}")
+          print(f"Validated {len(rows)} fixed-H0 coverage rows and {len(paired)} paired prior contrasts.")
           PY
 
       - name: Upload diagnostic output
         uses: actions/upload-artifact@v4
         with:
           name: fixed-h0-coverage-diagnostic
-          path: results/fixed-h0-coverage-grid.csv
+          path: results/*.csv
           if-no-files-found: error
           retention-days: 30
