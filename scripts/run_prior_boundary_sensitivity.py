@@ -60,6 +60,11 @@ def main():
               upper_mask=(grid<=hi)&(grid>=max(hi-band,lo))
               edge_mass[f"mass_within_{int(band)}_of_lower_prior"]=float(np.trapezoid(post_norm[lower_mask],grid[lower_mask]))
               edge_mass[f"mass_within_{int(band)}_of_upper_prior"]=float(np.trapezoid(post_norm[upper_mask],grid[upper_mask]))
+            below_baseline=float(np.trapezoid(post_norm[grid<50.0],grid[grid<50.0]))
+            above_baseline=float(np.trapezoid(post_norm[grid>90.0],grid[grid>90.0]))
+            edge_mass["mass_below_50"]=below_baseline
+            edge_mass["mass_above_90"]=above_baseline
+            edge_mass["mass_outside_baseline_50_90"]=below_baseline+above_baseline
             row={"prior":prior_name,"prior_min":lo,"prior_max":hi,"scenario":scenario,
                  "true_H0":h0,"replicate":rep,"seed":seed,"host_redshift":zhost,
                  "observed_distance_mpc":observed,"sigma_mpc":sigma,
@@ -87,6 +92,8 @@ def main():
           for edge in ("lower","upper"):
             key=f"mass_within_{band}_of_{edge}_prior"
             item[f"mean_{key}"]=float(np.mean([r[key] for r in rows]))
+        for key in ("mass_below_50","mass_above_90","mass_outside_baseline_50_90"):
+          item[f"mean_{key}"]=float(np.mean([r[key] for r in rows]))
         summaries.append(item)
     out=Path(a.output_dir);out.mkdir(parents=True,exist_ok=True)
     for name,rows in (("per_run.csv",raw),("summary.csv",summaries)):
