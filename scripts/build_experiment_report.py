@@ -74,13 +74,17 @@ def main() -> None:
         "",
         "## Main factorial results",
         "",
-        "| Scenario | n | 68% coverage | 68% MC SE | 95% coverage | 95% MC SE | Median bias | Median RMSE | Mean 68% width | Mean 95% width |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Scenario | Completeness | Missingness | Host generation | Inference weighting | n | 68% coverage | 68% MC SE | 95% coverage | 95% MC SE | Median bias | Median RMSE | Mean 68% width | Mean 95% width |",
+        "|---|---:|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in scenario_rows:
         lines.append(
-            "| {scenario} | {n} | {c68} | {se68} | {c95} | {se95} | {bias} | {rmse} | {w68} | {w95} |".format(
+            "| {scenario} | {completeness} | {missingness} | {host_generation} | {inference_weighting} | {n} | {c68} | {se68} | {c95} | {se95} | {bias} | {rmse} | {w68} | {w95} |".format(
                 scenario=row["scenario"],
+                completeness=fmt(row.get("target_completeness", "not recorded")),
+                missingness=row.get("missingness", "not recorded"),
+                host_generation=row.get("host_generation", "not recorded"),
+                inference_weighting=row.get("inference_weighting", "not recorded"),
                 n=row.get("n", row.get("requested_replicates", n)),
                 c68=fmt(row.get("coverage_68")),
                 se68=fmt(row.get("coverage_68_mc_se")),
@@ -108,6 +112,7 @@ def main() -> None:
         lines.extend([
             f"- Bootstrap repetitions: {contrasts.get('bootstrap_replicates', 'not recorded')}",
             f"- Contrasts in file: {len(contrast_rows)}",
+            f"- Expected contrasts for the current design: 56; status: {\"OK\" if len(contrast_rows) == 56 else \"CHECK\"}",
             "- Each reported contrast is scenario B minus scenario A.",
             "- The intervals quantify Monte Carlo variability conditional on this synthetic design, not uncertainty in the real-world value of H0.",
             "- The contrast set is exploratory; do not treat unadjusted intervals as confirmatory tests.",
