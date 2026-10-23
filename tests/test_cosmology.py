@@ -71,3 +71,9 @@ def test_flat_lcdm_preserves_array_shape_and_finite_values():
     assert distances.shape == z.shape
     assert np.all(np.isfinite(distances))
     assert np.all(distances >= 0)
+
+
+@pytest.mark.parametrize("steps", [True, False])
+def test_boolean_integration_steps_are_rejected(steps):
+    with pytest.raises(ValueError, match="integration_steps must be an integer"):
+        luminosity_distance_flat_lcdm(0.1, 70.0, integration_steps=steps)
