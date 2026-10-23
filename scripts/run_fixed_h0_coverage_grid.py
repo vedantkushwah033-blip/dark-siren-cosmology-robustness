@@ -30,6 +30,7 @@ def main() -> None:
     parser.add_argument("--replicates", type=int, default=100)
     parser.add_argument("--seed", type=int, default=73021)
     parser.add_argument("--output", default="results/fixed-h0-coverage-grid.csv")
+    parser.add_argument("--paired-output", default="results/paired-prior-coverage-differences.csv")
     parser.add_argument("--h0-values", type=float, nargs="+", default=list(DEFAULT_H0_VALUES))
     args = parser.parse_args()
     if args.replicates < 2:
@@ -43,6 +44,7 @@ def main() -> None:
     from src.bayesian_inference import posterior_h0, posterior_summary
 
     rows: list[dict] = []
+    paired_flags: dict[tuple[float, str, int, float], dict[tuple[float, float], int]] = {}
     for prior_min, prior_max in PRIOR_RANGES:
         grid = np.linspace(
             prior_min, prior_max, int(round((prior_max - prior_min) / 0.025)) + 1
@@ -83,6 +85,10 @@ def main() -> None:
                     for level in LEVELS:
                         low, high = interval(grid, posterior, level)
                         interval_data[level].append((low, high))
+                        key = (h0_true, scenario, r, level)
+                        paired_flags.setdefault(key, {})[(prior_min, prior_max)] = int(
+                            low <= h0_true <= high
+                        )
 
                 row = {
                     "prior_min": prior_min,
@@ -124,6 +130,41 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(rows)
     print(f"Wrote {len(rows)} H0/prior/scenario rows to {output}")
+
+    paired_rows: list[dict] = []
+    prior_a, prior_b = PRIOR_RANGES
+    grouped: dict[tuple[float, str, float], list[tuple[int, int]]] = {}
+    for (h0_true, scenario, replicate, level), flags in paired_flags.items():
+        if prior_a not in flags or prior_b not in flags:
+            raise RuntimeError(f"Missing paired prior flag for {(h0_true, scenario, replicate, level)}")
+        grouped.setdefault((h0_true, scenario, level), []).append(
+            (flags[prior_a], flags[prior_b])
+        )
+    for (h0_true, scenario, level), pairs in sorted(grouped.items()):
+        a = np.asarray([pair[0] for pair in pairs], dtype=float)
+        b = np.asarray([pair[1] for pair in pairs], dtype=float)
+        differences = b - a
+        paired_rows.append({
+            "H0_true": h0_true,
+            "scenario": scenario,
+            "nominal_level": level,
+            "replicates": len(pairs),
+            "prior_a_min": prior_a[0],
+            "prior_a_max": prior_a[1],
+            "prior_b_min": prior_b[0],
+            "prior_b_max": prior_b[1],
+            "coverage_a": float(a.mean()),
+            "coverage_b": float(b.mean()),
+            "mean_paired_difference_b_minus_a": float(differences.mean()),
+            "paired_difference_se": float(differences.std(ddof=1) / np.sqrt(len(differences))),
+        })
+    paired_output = Path(args.paired_output)
+    paired_output.parent.mkdir(parents=True, exist_ok=True)
+    with paired_output.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=list(paired_rows[0]))
+        writer.writeheader()
+        writer.writerows(paired_rows)
+    print(f"Wrote {len(paired_rows)} paired prior comparisons to {paired_output}")
 
 
 if __name__ == "__main__":
