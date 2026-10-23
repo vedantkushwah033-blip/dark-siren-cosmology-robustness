@@ -1,0 +1,84 @@
+name: Paired factorial smoke test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/run_paired_factorial_sensitivity.py"
+      - "tests/test_paired_factorial_sensitivity.py"
+      - ".github/workflows/paired-factorial-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paired-factorial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test and numerical dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy scipy pytest
+      - name: Test paired experiment design
+        run: python -m pytest -q tests/test_paired_factorial_sensitivity.py
+      - name: Clone pinned simulator
+        run: |
+          git clone https://github.com/vedantkushwah033-blip/bayesian-dark-siren-cosmology.git original-project
+          git -C original-project checkout b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f
+          python -m pip install -r original-project/requirements.txt
+      - name: Run 30-replicate paired smoke experiment
+        run: |
+          python scripts/run_paired_factorial_sensitivity.py \
+            --original-dir original-project \
+            --replicates 30 \
+            --seed 20261023 \
+            --output-dir results/paired-factorial-sensitivity
+      - name: Validate paired output structure
+        run: |
+          python - <<'PY'
+          import csv, json, math
+          from pathlib import Path
+          root = Path("results/paired-factorial-sensitivity")
+          required = ["scenario_summary.csv", "scenario_summary.json", "per_run_results.csv", "paired_contrasts.csv"]
+          for filename in required:
+              path = root / filename
+              if not path.is_file() or path.stat().st_size == 0:
+                  raise SystemExit(f"Missing/empty output: {filename}")
+          meta = json.loads((root / "scenario_summary.json").read_text())
+          if meta["scenario_count"] != 9 or meta["contrast_count"] != 63:
+              raise SystemExit("Unexpected scenario or contrast count")
+          def read(name):
+              with (root / name).open(newline="") as f:
+                  return list(csv.DictReader(f))
+          summaries = read("scenario_summary.csv")
+          runs = read("per_run_results.csv")
+          contrasts = read("paired_contrasts.csv")
+          if len(summaries) != 9 or len(runs) != 270 or len(contrasts) != 63:
+              raise SystemExit(f"Unexpected row counts: summaries={len(summaries)}, runs={len(runs)}, contrasts={len(contrasts)}")
+          counts = {}
+          for row in runs:
+              counts[row["scenario"]] = counts.get(row["scenario"], 0) + 1
+              for key in ("median", "mean", "posterior_sd", "lower_68", "upper_68", "lower_95", "upper_95"):
+                  if not math.isfinite(float(row[key])):
+                      raise SystemExit(f"Non-finite {key} for {row['scenario']}")
+              if float(row["lower_68"]) > float(row["upper_68"]) or float(row["lower_95"]) > float(row["upper_95"]):
+                  raise SystemExit(f"Reversed interval for {row['scenario']}")
+          if len(counts) != 9 or any(n != 30 for n in counts.values()):
+              raise SystemExit(f"Unexpected replicate counts: {counts}")
+          if any(int(row["n_pairs"]) != 30 for row in contrasts):
+              raise SystemExit("Paired contrast count mismatch")
+          print("PASS: 9 scenarios × 30 universes, 270 per-run rows, and 63 paired contrast rows.")
+          PY
+      - name: Upload paired smoke results
+        uses: actions/upload-artifact@v4
+        with:
+          name: paired-factorial-smoke-results
+          path: results/paired-factorial-sensitivity/
+          if-no-files-found: error
+          retention-days: 30
