@@ -23,7 +23,7 @@ CONTRASTS = (
     ("redshift70_vs_random70_uniform", "redshift70_uniform", "random70_uniform"),
     ("uniform_vs_matched_luminosity_inference", "complete_luminosity_host_uniform_inference", "complete_luminosity_matched"),
 )
-METRICS = ("median", "mean", "posterior_sd", "width_68", "width_95", "pull_median", "pull_mean")
+METRICS = ("median", "mean", "posterior_sd", "width_68", "width_95", "pull_median", "pull_mean", "covered_68", "covered_95")
 
 
 def mean_se(values: list[float]) -> tuple[float, float]:
@@ -99,6 +99,11 @@ def main() -> None:
         )
         if len(rows) != args.replicates:
             raise RuntimeError(f"{name}: expected {args.replicates} rows, got {len(rows)}")
+        # Coverage is a per-universe indicator; paired contrasts then estimate
+        # the difference in empirical coverage for the same simulated universes.
+        for row in rows:
+            row["covered_68"] = int(row["lower_68"] <= 70.0 <= row["upper_68"])
+            row["covered_95"] = int(row["lower_95"] <= 70.0 <= row["upper_95"])
         by_scenario[name] = rows
         for row in rows:
             run_rows.append({
