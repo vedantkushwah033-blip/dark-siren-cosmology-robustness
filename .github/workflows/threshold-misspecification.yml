@@ -1,0 +1,42 @@
+name: Threshold misspecification audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/run_threshold_misspecification.py"
+      - "tests/test_threshold_misspecification.py"
+      - ".github/workflows/threshold-misspecification.yml"
+      - "src/dark_siren_robustness/**"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run threshold mismatch experiment
+        run: python scripts/run_threshold_misspecification.py --replicates 300 --seed 20261027 --grid-size 4001 --output-dir results/threshold-misspecification
+      - name: Run focused tests
+        run: python -m pytest tests/test_threshold_misspecification.py -q
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: threshold-misspecification-python-${{ matrix.python-version }}
+          path: |
+            results/threshold-misspecification/per_run.csv
+            results/threshold-misspecification/summary.csv
+          if-no-files-found: error
+          retention-days: 90
