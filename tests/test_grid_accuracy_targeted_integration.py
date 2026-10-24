@@ -24,13 +24,14 @@ def test_targeted_refinement_resolves_flagged_pair_but_does_not_hide_cell_failur
                     "H0_true": 70, "z2": 0.04, "noise_fraction": 0.03,
                     "replicate": rep, "inference_weighting": "correct",
                     "grid_size": grid, "observed_distance_mpc": 500 + rep,
+                    "posterior_area_on_prior_support": 1.0,
                     "posterior_median": 70, "lower_68": 65, "upper_68": 75,
                     "lower_95": 60, "upper_95": 80 + delta,
                 })
     targeted = tmp_path / "targeted.csv"
     target_fields = list(module.IDENTITY) + [
-        "grid_size", "observed_distance_mpc", "posterior_median",
-        "lower_68", "upper_68", "lower_95", "upper_95",
+        "grid_size", "observed_distance_mpc", "posterior_area_on_prior_support",
+        "posterior_median", "lower_68", "upper_68", "lower_95", "upper_95",
     ]
     with targeted.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=target_fields)
@@ -41,6 +42,7 @@ def test_targeted_refinement_resolves_flagged_pair_but_does_not_hide_cell_failur
                     "H0_true": 70, "z2": 0.04, "noise_fraction": 0.03,
                     "replicate": rep, "inference_weighting": "correct",
                     "grid_size": grid, "observed_distance_mpc": 500 + rep,
+                    "posterior_area_on_prior_support": 1.0,
                     "posterior_median": 70, "lower_68": 65, "upper_68": 75,
                     "lower_95": 60, "upper_95": 80 + delta,
                 })
