@@ -1,0 +1,58 @@
+name: Toy selection prior sensitivity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/dark_siren_robustness/selection.py"
+      - "src/dark_siren_robustness/hardened_inference.py"
+      - "scripts/run_selection_prior_sensitivity.py"
+      - "tests/test_selection_prior_sensitivity.py"
+      - ".github/workflows/selection-prior-sensitivity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prior-sensitivity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run prior sensitivity audit
+        run: python scripts/run_selection_prior_sensitivity.py --replicates-per-truth 600 --seed 20261029 --grid-size 4001 --output-dir results/selection-prior-sensitivity
+      - name: Validate outputs
+        run: |
+          python - <<'PY'
+          import csv, math
+          from pathlib import Path
+          root = Path("results/selection-prior-sensitivity")
+          with (root / "per_run.csv").open(newline="") as f:
+              rows = list(csv.DictReader(f))
+          with (root / "summary.csv").open(newline="") as f:
+              summaries = list(csv.DictReader(f))
+          if len(rows) != 5400 or len(summaries) != 27:
+              raise SystemExit(f"Unexpected dimensions: {len(rows)} rows, {len(summaries)} summaries")
+          for row in rows:
+              if not (0 < float(row["observed_distance_mpc"]) < 180):
+                  raise SystemExit("Detected observation outside selection interval")
+              for key in ("uncorrected_median", "corrected_median", "paired_abs_error_change"):
+                  if not math.isfinite(float(row[key])):
+                      raise SystemExit(f"Non-finite value in {key}")
+          print("PASS: 5,400 per-run rows and 27 summaries validated.")
+          PY
+      - name: Upload prior sensitivity outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: selection-prior-sensitivity-results
+          path: results/selection-prior-sensitivity/
+          if-no-files-found: error
+          retention-days: 90
