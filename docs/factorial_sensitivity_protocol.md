@@ -39,6 +39,23 @@ column is also a useful integrity check.
 - `per_run_results.csv`: each simulated run for audit and plotting.
 - `scenario_summary.json`: settings, pinned source commit and metrics.
 
+## Random-seed and contrast interpretation
+
+Each scenario receives a deterministic seed block, and each per-run record now
+stores the scenario seed alongside the scenario's design labels. The audit
+checks the per-run seed against the scenario summary and the prespecified
+seed schedule. These are scenario-level seed provenance records; they should
+not be described as independent seed values for each row.
+
+The contrast analysis uses independent bootstrap resampling within scenario A
+and scenario B. This is intentional: scenarios are generated with distinct
+seed blocks and the current design does not establish replicate-level pairing.
+Each reported contrast is scenario B minus scenario A. Bootstrap intervals
+describe Monte Carlo variability conditional on this synthetic design; they
+are not uncertainty intervals for the real Universe's Hubble constant.
+The analysis validates finite inputs and rejects empty samples, nonpositive
+bootstrap counts, and invalid percentile requests.
+
 ## Interpretation cautions
 
 These are synthetic experiments, not observations and not a measurement of
