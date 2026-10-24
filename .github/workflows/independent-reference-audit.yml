@@ -1,0 +1,48 @@
+name: Independent posterior reference audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/run_independent_reference_audit.py"
+      - "tests/test_independent_reference_audit.py"
+      - ".github/workflows/independent-reference-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quadrature-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run independent numerical comparison
+        run: python scripts/run_independent_reference_audit.py --output-dir results/independent-reference-audit
+      - name: Validate output
+        run: |
+          python - <<'PY'
+          import csv
+          from pathlib import Path
+          p = Path("results/independent-reference-audit/grid_vs_quadrature.csv")
+          with p.open(newline="") as f:
+              rows = list(csv.DictReader(f))
+          if len(rows) != 42:
+              raise SystemExit(f"Expected 42 rows; got {len(rows)}")
+          print("PASS: 42 posterior summaries compared with adaptive quadrature.")
+          PY
+      - name: Upload numerical comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: independent-reference-audit-results
+          path: results/independent-reference-audit/
+          if-no-files-found: error
+          retention-days: 90
