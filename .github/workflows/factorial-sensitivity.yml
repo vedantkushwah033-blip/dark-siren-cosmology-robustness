@@ -32,7 +32,7 @@ jobs:
       - name: Test factorial contrast analysis
         run: |
           python -m pip install pytest
-          pytest -q tests/test_factorial_contrast_analysis.py tests/test_oracle_missing_host_analysis.py tests/test_oracle_summary_metrics.py
+          pytest -q tests/test_factorial_contrast_analysis.py tests/test_oracle_missing_host_analysis.py tests/test_oracle_summary_metrics.py tests/test_known_host_oracle.py
       - name: Clone original project at audited commit
         run: |
           git clone https://github.com/vedantkushwah033-blip/bayesian-dark-siren-cosmology.git original-project
@@ -180,6 +180,46 @@ jobs:
                       raise SystemExit(f"Oracle posterior differs across masks at run {index}, metric {key}")
           print(f"Validated two paired oracle scenarios, identical full-population posteriors, and {len(runs)} finite per-run records.")
           PY
+      - name: Run known-host oracle calibration control
+        run: |
+          python scripts/run_known_host_oracle.py \
+            --original-dir original-project \
+            --replicates "$REPLICATES" \
+            --seed "$BASE_SEED"
+      - name: Validate known-host oracle output
+        run: |
+          python - <<'PY'
+          import csv, json, math
+          from pathlib import Path
+          root = Path("results/known-host-oracle")
+          required = [root / "scenario_summary.csv", root / "scenario_summary.json", root / "per_run_results.csv"]
+          for path in required:
+              if not path.is_file() or path.stat().st_size == 0:
+                  raise SystemExit(f"Missing/empty artifact: {path}")
+          metadata = json.loads((root / "scenario_summary.json").read_text())
+          n = int(metadata["requested_replicates_per_scenario"])
+          if metadata.get("original_commit") != "b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f":
+              raise SystemExit("Known-host oracle source commit is not pinned as expected")
+          if metadata.get("true_h0") != 70.0 or metadata.get("scenario_count") != 1:
+              raise SystemExit("Known-host oracle metadata does not match the protocol")
+          with (root / "scenario_summary.csv").open(newline="") as f:
+              summaries = list(csv.DictReader(f))
+          with (root / "per_run_results.csv").open(newline="") as f:
+              rows = list(csv.DictReader(f))
+          if len(summaries) != 1 or int(summaries[0]["n"]) != n or len(rows) != n:
+              raise SystemExit("Known-host oracle replicate counts are inconsistent")
+          if len({int(row["run"]) for row in rows}) != n:
+              raise SystemExit("Known-host oracle run indices are not unique")
+          for row in rows:
+              for key in ("median", "mean", "posterior_sd", "lower_68", "upper_68", "lower_95", "upper_95"):
+                  if not math.isfinite(float(row[key])):
+                      raise SystemExit(f"Non-finite {key} in known-host oracle output")
+              if float(row["lower_68"]) > float(row["upper_68"]) or float(row["lower_95"]) > float(row["upper_95"]):
+                  raise SystemExit("Known-host oracle has reversed interval bounds")
+              if float(row["lower_95"]) > float(row["lower_68"]) or float(row["upper_68"]) > float(row["upper_95"]):
+                  raise SystemExit("Known-host oracle 68% interval is not nested in 95% interval")
+          print(f"Validated {n} known-host oracle calibration records.")
+          PY
       - name: Upload factorial results
         uses: actions/upload-artifact@v4
         with:
@@ -188,4 +228,5 @@ jobs:
             results/factorial-sensitivity/
             results/oracle-missing-host/
             results/full-population-oracle/
+            results/known-host-oracle/
           if-no-files-found: error
