@@ -193,3 +193,8 @@ python scripts/run_targeted_grid_convergence.py --output results/targeted-grid-c
 ```
 
 This fixed synthetic observation is evaluated on 1,001 through 64,001 grid points, with posterior summaries written to a CSV. A focused regression test checks credible-interval ordering and the decrease in successive upper-endpoint changes. The test is a case-specific numerical diagnostic, not a universal convergence guarantee; the full design must still be evaluated against a tolerance specified before examining results. The script's output should be retained as an artifact before making numerical-accuracy claims.
+
+
+### Prospective grid-accuracy criteria
+
+The independent numerical acceptance protocol is documented in [`docs/prospective_grid_accuracy_protocol.md`](docs/prospective_grid_accuracy_protocol.md). It defines cell-level percentile limits, a per-case guardrail, targeted refinement requirements, and normalization checks. These criteria were written after the previous audit, so they must be applied to a new run and must not be described as preregistered for the earlier results.
