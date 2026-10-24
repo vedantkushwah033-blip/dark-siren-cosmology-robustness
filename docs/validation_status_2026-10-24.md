@@ -6,12 +6,21 @@ This note records the verified state of the synthetic dark-siren robustness repo
 
 ## Verified CI state
 
-The latest test-suite workflow completed successfully for Python 3.10, 3.11, and 3.12:
+The latest fully completed factorial-audit workflow observed during the 2026-10-24 continuation passed on commit `9541cd7a` for Python 3.10, 3.11, and 3.12:
 
-- Test-suite run: https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40095089193
-- Numerical-diagnostics run: https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40095089180
+- Factorial audit: https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40095985757
+- Its uploaded artifacts are listed by that run and expire 2027-01-22.
 
-These runs correspond to commit `8634e8aa`. They verify the committed regression suite and numerical-diagnostics tests. They do not establish astrophysical validity.
+The two subsequent commits strengthen the artifact validator and add regression tests for invalid host indices and observations outside the declared detection interval:
+
+- `eaa4bcf4`: validator checks observation host index and strict distance bounds.
+- `88f8282e`: adds regression tests for both checks.
+
+At the latest status check, CI for both commits was still in progress; do not treat those newest changes as verified until the corresponding runs finish successfully:
+- https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40096177016
+- https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40096182977
+
+Earlier successful CI runs, including the suite at commit `8634e8aa`, remain evidence only for the code versions tested by those runs. Software test success does not establish astrophysical validity.
 
 ## Grid-refinement findings
 
