@@ -1,0 +1,91 @@
+name: Full prior-threshold factorial experiment
+
+on:
+  workflow_dispatch:
+    inputs:
+      replicates:
+        description: "Replicates per true H0 (300 is the protocol default)"
+        required: true
+        default: "300"
+        type: choice
+        options:
+          - "100"
+          - "200"
+          - "300"
+      grid_size:
+        description: "Posterior H0 grid points (4001 is the protocol default)"
+        required: true
+        default: "4001"
+        type: choice
+        options:
+          - "1001"
+          - "2001"
+          - "4001"
+      seed:
+        description: "Random seed"
+        required: true
+        default: "20261028"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  full-factorial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run focused regression tests
+        run: python -m pytest tests/test_prior_threshold_factorial.py -q
+      - name: Run selected factorial experiment
+        run: |
+          python scripts/run_prior_threshold_factorial.py \
+            --replicates "${{ inputs.replicates }}" \
+            --seed "${{ inputs.seed }}" \
+            --grid-size "${{ inputs.grid_size }}" \
+            --output-dir results/prior-threshold-factorial-full
+      - name: Validate generated CSV artifacts
+        run: |
+          python - <<'PY'
+          import csv, math
+          from pathlib import Path
+          root = Path("results/prior-threshold-factorial-full")
+          expected = {
+              "per_run.csv": 3 * int("${{ inputs.replicates }}") * 3 * 4 * 2,
+              "summary.csv": 3 * 3 * 4 * 2,
+              "paired_contrasts.csv": 3 * ((3 * 4) - 1) * 2 * 6,
+          }
+          for filename, count in expected.items():
+              path = root / filename
+              if not path.exists() or path.stat().st_size == 0:
+                  raise SystemExit(f"Missing or empty artifact: {path}")
+              with path.open(newline="", encoding="utf-8") as f:
+                  reader = csv.DictReader(f)
+                  rows = list(reader)
+              if len(rows) != count:
+                  raise SystemExit(f"{filename}: expected {count} rows, found {len(rows)}")
+              for i, row in enumerate(rows, start=2):
+                  for key, value in row.items():
+                      try:
+                          number = float(value)
+                      except (TypeError, ValueError):
+                          continue
+                      if not math.isfinite(number):
+                          raise SystemExit(f"{filename}:{i}: non-finite value in {key}")
+              print(f"PASS {filename}: {len(rows)} rows; all numeric cells finite")
+          PY
+      - name: Upload full experiment outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-prior-threshold-factorial-r${{ inputs.replicates }}-g${{ inputs.grid_size }}-seed${{ inputs.seed }}
+          path: results/prior-threshold-factorial-full/*.csv
+          if-no-files-found: error
+          retention-days: 90
