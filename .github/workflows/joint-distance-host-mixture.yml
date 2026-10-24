@@ -1,0 +1,66 @@
+name: Joint distance-model and host-mixture experiment
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/run_joint_distance_model_host_mixture.py"
+      - "tests/test_joint_distance_model_host_mixture.py"
+      - "src/dark_siren_robustness/cosmology.py"
+      - "src/dark_siren_robustness/cosmological_inference.py"
+      - ".github/workflows/joint-distance-host-mixture.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/run_joint_distance_model_host_mixture.py"
+      - "tests/test_joint_distance_model_host_mixture.py"
+      - "src/dark_siren_robustness/cosmology.py"
+      - "src/dark_siren_robustness/cosmological_inference.py"
+      - ".github/workflows/joint-distance-host-mixture.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  joint-experiment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run focused tests
+        run: python -m pytest -q tests/test_joint_distance_model_host_mixture.py tests/test_cosmological_inference.py
+      - name: Run paired factorial experiment
+        run: python scripts/run_joint_distance_model_host_mixture.py --replicates 300 --seed 20261025 --grid-size 4001 --bootstrap-draws 5000 --output-dir results/joint-distance-host-mixture
+      - name: Validate outputs
+        run: |
+          python - <<'PY'
+          import csv, json, math
+          from pathlib import Path
+          root=Path("results/joint-distance-host-mixture")
+          manifest=json.loads((root/"experiment_manifest.json").read_text())
+          with (root/"per_run.csv").open(newline="") as f: raw=list(csv.DictReader(f))
+          with (root/"summary.csv").open(newline="") as f: summaries=list(csv.DictReader(f))
+          with (root/"paired_contrasts.csv").open(newline="") as f: contrasts=list(csv.DictReader(f))
+          assert len(raw)==32400, len(raw)
+          assert manifest["observation_count"]==8100
+          assert manifest["cell_count"]==27
+          assert len(summaries)==108
+          assert len(contrasts)==135
+          assert all(math.isfinite(float(r["posterior_median"])) for r in raw)
+          assert all(40<=float(r["posterior_median"])<=100 for r in raw)
+          assert all(float(r["lower_95"])<=float(r["lower_68"])<=float(r["median"])<=float(r["upper_68"])<=float(r["upper_95"]) for r in raw)
+          print("PASS: row counts, finite posterior summaries, interval ordering and prior support")
+          PY
+      - name: Upload raw data and summaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: joint-distance-host-mixture-results
+          path: results/joint-distance-host-mixture/
+          if-no-files-found: error
+          retention-days: 90
