@@ -40,6 +40,7 @@ def _fixture(root: Path) -> None:
         for run in (0, 1):
             raw.append({
                 "scenario": scenario,
+                "scenario_seed": seed,
                 "run": run,
                 "missingness": missingness,
                 "host_generation": host,
@@ -184,4 +185,14 @@ def test_audit_rejects_wrong_scenario_seed(tmp_path):
     rows[1]["seed"] = "2027"
     _write_csv(path, rows)
     with pytest.raises(ValueError, match="seed mismatch"):
+        audit(tmp_path)
+
+def test_audit_rejects_raw_scenario_seed_mismatch(tmp_path):
+    _fixture(tmp_path)
+    path = tmp_path / "per_run_results.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    rows[0]["scenario_seed"] = str(int(rows[0]["scenario_seed"]) + 1)
+    _write_csv(path, rows)
+    with pytest.raises(ValueError, match="raw scenario_seed mismatch"):
         audit(tmp_path)
