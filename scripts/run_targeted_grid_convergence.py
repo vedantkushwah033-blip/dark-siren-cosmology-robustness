@@ -43,6 +43,8 @@ def calculate_convergence():
             prior_max=PRIOR_MAX,
         )
         summary = posterior_summary(grid, density)
+        prior_support = (grid >= PRIOR_MIN) & (grid <= PRIOR_MAX)
+        independently_integrated_area = float(trapezoid(density[prior_support], grid[prior_support]))
         row = {
             "grid_size": size,
             "H0_true": H0_TRUE,
@@ -51,6 +53,7 @@ def calculate_convergence():
             "noise_fraction": NOISE_FRACTION,
             "observed_distance_mpc": OBSERVED_DISTANCE_MPC,
             "inference_weighting": "reversed_0.3_0.7",
+            "posterior_area_on_prior_support": independently_integrated_area,
             "posterior_median": summary["median"],
             "lower_68": summary["lower_68"],
             "upper_68": summary["upper_68"],
