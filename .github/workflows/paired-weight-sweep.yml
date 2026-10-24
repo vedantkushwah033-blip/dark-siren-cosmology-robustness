@@ -1,0 +1,59 @@
+name: Paired host-weight sensitivity sweep
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/run_paired_weight_sweep.py"
+      - "tests/test_paired_weight_sweep.py"
+      - ".github/workflows/paired-weight-sweep.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paired-weight-sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run paired weight sweep
+        run: |
+          python scripts/run_paired_weight_sweep.py \
+            --replicates 1000 \
+            --seed 20261028 \
+            --output-dir results/paired-weight-sweep
+      - name: Validate output
+        run: |
+          python - <<'PY'
+          import csv, math
+          from pathlib import Path
+          root = Path("results/paired-weight-sweep")
+          with (root / "summary.csv").open(newline="") as f:
+              summaries = list(csv.DictReader(f))
+          with (root / "per_run.csv").open(newline="") as f:
+              rows = list(csv.DictReader(f))
+          if len(summaries) != 9 or len(rows) != 9000:
+              raise SystemExit(f"Unexpected output: {len(summaries)} cells, {len(rows)} paired observations")
+          for row in summaries:
+              for key in ("correct_rmse", "reversed_rmse", "mean_paired_abs_error_diff_reversed_minus_correct",
+                          "correct_coverage_68", "reversed_coverage_68"):
+                  if not math.isfinite(float(row[key])):
+                      raise SystemExit(f"Non-finite metric {key}")
+          print("PASS: 9 design cells × 1,000 paired observations = 9,000 observations and 18,000 posterior fits.")
+          PY
+      - name: Upload paired sweep results
+        uses: actions/upload-artifact@v4
+        with:
+          name: paired-weight-sweep-results
+          path: results/paired-weight-sweep/
+          if-no-files-found: error
+          retention-days: 90
