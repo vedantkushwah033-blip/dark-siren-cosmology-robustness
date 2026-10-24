@@ -96,6 +96,7 @@ def main() -> None:
                 # Keep the design labels authoritative even if the legacy
                 # simulator starts emitting fields with the same names.
                 "scenario": name,
+                "scenario_seed": args.seed + i * 1_000_000,
                 "missingness": missingness,
                 "host_generation": host_generation,
                 "inference_weighting": inference_weighting,
