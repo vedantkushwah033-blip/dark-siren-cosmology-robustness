@@ -23,7 +23,7 @@ The normalization-checked rerun's artifacts were retained in GitHub Actions unde
 3. Credible-interval endpoints must be finite and ordered.
 4. The same simulated observation must be reused across grid resolutions and inference-weighting configurations.
 
-All four checks passed. In addition, the runner now records an independently integrated posterior area on the actual prior support for every fit. The rerun checked 21,600 area values against a 1e-8 absolute tolerance: zero failures, with maximum absolute area error 4.440892098500626e-16.
+All four checks passed. In addition, the runner records a posterior-area diagnostic on the actual prior support for every fit. The evaluator recomputes the trapezoidal area using the same integration rule as the inference routine and checked 21,600 values against a 1e-8 absolute tolerance: zero failures, with maximum absolute area error 4.440892098500626e-16. This is a useful consistency check, but it is not an independent-quadrature validation because both calculations use the same rule.
 
 ## Quantitative results
 
@@ -58,7 +58,7 @@ The maximum individual difference across all summaries was 0.01164793 km s⁻¹ 
 For this 200-replicate, 36-cell synthetic experiment, the 4,001-point grid meets the protocol's proposed cell-level p95 threshold for all five posterior summaries. The maximum individual discrepancy is also below the case-level flagging threshold. This is evidence of adequate grid resolution under the stated operational criteria for this run.
 
 This result should be reported narrowly. It does **not** establish:
-- independent normalization of every posterior density to tolerance 1e-8;
+- posterior-area consistency under the same trapezoidal integration rule to tolerance 1e-8; (this is not independent-quadrature validation)
 - repeated-sampling coverage or calibration;
 - robustness to prior-bound changes or likelihood misspecification;
 - realism of the synthetic two-host model relative to LVK observations;
@@ -68,7 +68,7 @@ The result also does not contradict the earlier targeted case where the coarse-g
 
 ## Reproducibility
 
-The audit was run through the repository workflow with seed 20261101 and 200 replicates per cell. The workflow validates row counts, finite numerical values, interval ordering, complete grid triplets, matched observations, summary-statistic ordering, and posterior-area normalization. The retained artifact contains the per-run results, cell summaries, targeted-refinement CSV (header-only because no cases were flagged), and evaluator outputs.
+The audit was run through the repository workflow with seed 20261101 and 200 replicates per cell. The workflow validates row counts, finite numerical values, interval ordering, complete grid triplets, matched observations, summary-statistic ordering, and posterior-area consistency under the same trapezoidal rule. The retained artifact contains the per-run results, cell summaries, targeted-refinement CSV (header-only because no cases were flagged), and evaluator outputs.
 
 Run the experiment and evaluator locally with:
 
