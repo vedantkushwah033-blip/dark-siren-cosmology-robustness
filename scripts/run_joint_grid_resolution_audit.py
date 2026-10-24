@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 from dark_siren_robustness.cosmology import luminosity_distance_flat_lcdm
 from dark_siren_robustness.cosmological_inference import distance_grid_for_model, posterior_h0_from_distance_grid
-from run_joint_distance_model_host_mixture import TRUTHS, HOSTS, WEIGHTS, PRIOR, SEED, stable_seed, summary
+try:\n    from scripts.run_joint_distance_model_host_mixture import TRUTHS, HOSTS, WEIGHTS, PRIOR, SEED, stable_seed, summary\nexcept ModuleNotFoundError:\n    from run_joint_distance_model_host_mixture import TRUTHS, HOSTS, WEIGHTS, PRIOR, SEED, stable_seed, summary
 
 ARMS=("lcdm_two_host","lowz_two_host","lcdm_collapsed","lowz_collapsed")
 GRIDS=(2001,4001,8001)
