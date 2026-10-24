@@ -71,7 +71,8 @@ def test_audit_rejects_wrong_completeness(tmp_path):
     path = tmp_path / "per_run_results.csv"
     with path.open(newline="", encoding="utf-8") as handle:
         rows = list(csv.DictReader(handle))
-    rows[3]["realized_completeness"] = "0.71"
+    target_row = next(row for row in rows if row["scenario"] == "random70_uniform_matched")
+    target_row["realized_completeness"] = "0.71"
     _write_csv(path, rows)
     with pytest.raises(ValueError, match="exact 70% completeness"):
         audit(tmp_path)
