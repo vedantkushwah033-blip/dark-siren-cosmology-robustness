@@ -37,10 +37,10 @@ def test_wilson_interval_rejects_invalid_counts():
 
 def test_summary_recomputes_coverage_bias_width_and_edge_fraction():
     rows = [
-        row(70.0, 66.0, 74.0, 60.0, 80.0),
-        row(72.0, 68.0, 76.0, 62.0, 82.0),
         row(68.0, 64.0, 72.0, 58.0, 78.0),
-        row(74.0, 70.0, 78.0, 64.0, 84.0),
+        row(70.0, 66.0, 74.0, 60.0, 80.0),
+        row(70.0, 66.0, 74.0, 60.0, 80.0),
+        row(76.0, 72.0, 80.0, 68.0, 86.0),
     ]
     result = MODULE.summarize_cell(rows, true_h0=70.0, fractional_error=0.1)
     assert result["n"] == 4
