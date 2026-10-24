@@ -1,6 +1,9 @@
 name: factorial-sensitivity
 
 on:
+  push:
+    paths:
+      - ".github/factorial-run-once.trigger"
   workflow_dispatch:
     inputs:
       replicates:
