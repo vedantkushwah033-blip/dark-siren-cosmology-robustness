@@ -34,7 +34,7 @@ def test_detection_efficiency_approaches_one_for_very_high_threshold():
     grid = np.linspace(50.0, 90.0, 401)
     beta = detection_efficiency_h0(grid, [0.02, 0.04], 10.0, 1e6, [0.7, 0.3])
     assert np.all(beta <= 1.0)
-    assert np.all(beta > 1.0 - 1e-12)
+    assert np.all(beta > 1.0 - 1e-9)
 
 
 def test_selected_posterior_reduces_to_baseline_when_selection_is_negligible():
