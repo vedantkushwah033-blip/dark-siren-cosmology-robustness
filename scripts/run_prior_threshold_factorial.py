@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse, csv, json, os, platform
 from pathlib import Path
 import numpy as np
+import scipy
 from dark_siren_robustness.hardened_inference import C_KM_S, posterior_h0, posterior_summary
 from dark_siren_robustness.selection import posterior_h0_selected
 
@@ -162,6 +163,7 @@ def build_manifest(seed,replicates,grid_size,rows,summaries,contrasts):
         "bootstrap_seed": 20261029,
         "python_version": platform.python_version(),
         "numpy_version": np.__version__,
+        "scipy_version": scipy.__version__,
         "package_version": package_version,
         "git_commit": os.environ.get("GITHUB_SHA") or os.environ.get("GIT_COMMIT"),
         "reproducibility_note": "Record the repository commit and environment; stochastic results depend on seed and numerical-library versions.",
