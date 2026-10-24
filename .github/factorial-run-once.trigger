@@ -1,4 +1,3 @@
-One-time trigger for the updated factorial sensitivity workflow.
-Includes corrected oracle metric semantics and known-true-host calibration control.
-Python helper tests are dependency-light; NumPy is imported at simulation runtime.
+One-time trigger for the finalized factorial sensitivity workflow.
+Includes standardized oracle metrics, known-host calibration, and paired oracle contrast analysis.
 Default run: 500 replicates per scenario, base seed 2026.
