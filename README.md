@@ -223,3 +223,7 @@ The 200-replicate audit with seed 20261101 completed for 36 design cells and pas
 ### Full prior-threshold factorial: audited results (2026-10-24)
 
 The full 300-replicate, 4,001-point prior-support × assumed-detection-threshold run completed successfully and its raw artifact was inspected. See [the artifact audit and quantitative results](docs/full_prior_threshold_factorial_results_2026-10-24.md) and [the successful Actions run](https://github.com/vedantkushwaha033-blip/dark-siren-cosmology-robustness/actions/runs/40098731627). The artifact contains 21,600 per-run rows, 72 summary rows, 396 paired contrasts, and a runtime manifest. Initial results show strong prior-boundary dependence and no uniform advantage for the selection-corrected method; the document reports reference-cell paired effects and caveats. These remain synthetic-model diagnostics, not observational H0 measurements or evidence that the toy model is astrophysically realistic.
+
+### Cross-experiment scientific synthesis
+
+The [cross-experiment synthesis of selection normalization and prior-boundary effects](docs/cross_experiment_selection_and_prior_synthesis_2026-10-24.md) reconciles the prior-predictive SBC controls with fixed-truth coverage and prior-support experiments, distinguishes supported toy-model conclusions from untested claims, and prioritizes the next validation experiments. This is a synthesis of existing results, not a new simulation or observational result.
