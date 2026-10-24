@@ -84,7 +84,7 @@ A targeted finer-grid check reconstructed this observation and recalculated the 
 
 The sequence approaches a stable value near 60.710. The finer-grid changes shrink monotonically in this targeted check, supporting numerical discretization/quantile interpolation as the explanation for this particular discrepancy; this does not prove monotonic convergence in general. No defect in the likelihood or posterior normalization was demonstrated. The practical conclusion is that 1,001 points are not uniformly adequate for the upper 95% endpoint, and even 4,001 points leave a visible difference for this case.
 
-The audit script now prints the identity and three-grid endpoint values of the largest upper-95% discrepancy. A targeted regression test preserves this observation and checks refinement through 16,001 points.
+The audit script now prints the identity and three-grid endpoint values of the largest upper-95% discrepancy. A targeted regression test preserves this observation and checks refinement through 64,001 points. The targeted diagnostic also records posterior area on the prior support; this area is recomputed with the same trapezoidal rule used by the inference function, so it is a consistency check rather than independent-quadrature validation.
 
 
 ## Follow-up: artifact-level checks of prior support and targeted convergence
