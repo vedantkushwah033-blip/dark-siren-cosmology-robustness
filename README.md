@@ -107,3 +107,8 @@ A paired sensitivity experiment reuses the same detected synthetic observations 
 ### Prior-support sensitivity results
 
 The completed paired prior-support audit found substantial sensitivity near the hard prior boundaries. See [prior-support sensitivity results](docs/prior_support_sensitivity_results.md) for coverage with Wilson intervals, bias, RMSE, and limitations. These are synthetic-model results and do not establish an optimal prior.
+
+
+### Posterior interval-width sensitivity
+
+The companion audit quantifies changes in 68% and 95% posterior interval widths across prior supports, paired on identical observations. See the [interval-width sensitivity protocol](docs/prior_interval_width_sensitivity_protocol.md). Results are provisional until the corresponding CI artifacts are inspected.
