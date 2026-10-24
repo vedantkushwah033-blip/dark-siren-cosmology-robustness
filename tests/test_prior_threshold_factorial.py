@@ -118,7 +118,7 @@ def test_selected_posterior_is_normalized_inside_prior_support_for_multiple_thre
             detection_distance_min=module.TRUE_MIN)
         assert np.all(np.isfinite(posterior))
         assert np.all(posterior >= 0)
-        assert np.trapezoid(posterior[support],grid[support]) == pytest.approx(1.0,abs=1e-10)
+        assert trapezoid(posterior[support],grid[support]) == pytest.approx(1.0,abs=1e-10)
 
 
 
