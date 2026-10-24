@@ -60,14 +60,7 @@ def _fixture(root: Path) -> None:
         "scenario_count": 9,
         "requested_replicates_per_scenario": 2,
         "scenarios": [
-            {
-                "scenario": row["scenario"],
-                "target_completeness": row["target_completeness"],
-                "missingness": row["missingness"],
-                "host_generation": row["host_generation"],
-                "inference_weighting": row["inference_weighting"],
-                "requested_replicates": 2,
-            }
+            {**row, "requested_replicates": 2}
             for row in summary
         ],
     }), encoding="utf-8")
@@ -153,4 +146,23 @@ def test_audit_rejects_json_csv_design_mismatch(tmp_path):
     manifest["scenarios"][0]["target_completeness"] = 0.7
     path.write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(ValueError, match="JSON manifest design mismatch"):
+        audit(tmp_path)
+
+def test_audit_rejects_json_csv_metric_mismatch(tmp_path):
+    _fixture(tmp_path)
+    path = tmp_path / "scenario_summary.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    manifest["scenarios"][0]["coverage_68"] = 0.5
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(ValueError, match="JSON/CSV mismatch for summary metric coverage_68"):
+        audit(tmp_path)
+
+
+def test_audit_rejects_manifest_replicate_count_mismatch(tmp_path):
+    _fixture(tmp_path)
+    path = tmp_path / "scenario_summary.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    manifest["scenarios"][0]["requested_replicates"] = 3
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(ValueError, match="JSON manifest replicate count mismatch"):
         audit(tmp_path)
