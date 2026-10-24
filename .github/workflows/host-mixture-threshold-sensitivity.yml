@@ -1,0 +1,72 @@
+name: Host-mixture and detection-threshold sensitivity factorial
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/run_host_mixture_threshold_sensitivity.py"
+      - "tests/test_host_mixture_threshold_sensitivity.py"
+      - ".github/workflows/host-mixture-threshold-sensitivity.yml"
+      - "src/dark_siren_robustness/hardened_inference.py"
+      - "src/dark_siren_robustness/selection.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sensitivity-factorial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run focused tests
+        run: python -m pytest tests/test_host_mixture_threshold_sensitivity.py -q
+      - name: Run prespecified factorial
+        run: python scripts/run_host_mixture_threshold_sensitivity.py --replicates 300 --seed 20261031 --grid-size 4001 --bootstrap-draws 5000 --output-dir results/host-mixture-threshold-sensitivity
+      - name: Validate artifact dimensions and raw values
+        run: |
+          python - <<'PY'
+          import csv, json, math
+          from pathlib import Path
+          root=Path("results/host-mixture-threshold-sensitivity")
+          with (root/"per_run.csv").open(newline="") as f: rows=list(csv.DictReader(f))
+          with (root/"summary.csv").open(newline="") as f: sums=list(csv.DictReader(f))
+          m=json.loads((root/"experiment_manifest.json").read_text())
+          if len(rows)!=32400 or m["raw_rows"]!=32400 or m["cell_count"]!=108:
+              raise SystemExit(f"bad raw dimensions: {len(rows)}")
+          if len({(r["true_H0"],r["host_z1"],r["host_z2"],r["weight1"],r["weight2"],r["detection_max_mpc"]) for r in rows})!=108:
+              raise SystemExit("Expected 108 unique design cells")
+          cell_counts={}
+          for r in rows:
+              key=(r["true_H0"],r["host_z1"],r["host_z2"],r["weight1"],r["weight2"],r["detection_max_mpc"])
+              cell_counts[key]=cell_counts.get(key,0)+1
+              d=float(r["observed_distance_mpc"])
+              if not math.isfinite(d) or not 0<d<float(r["detection_max_mpc"]): raise SystemExit("distance outside detection interval")
+              for method in m["methods"]:
+                  for k in ("median","lower_68","upper_68","lower_95","upper_95","error","absolute_error"):
+                      if not math.isfinite(float(r[f"{method}_{k}"])): raise SystemExit("non-finite posterior result")
+          if set(cell_counts.values())!={300}: raise SystemExit("Each cell must contain 300 observations")
+          for r in sums:
+              for k,v in r.items():
+                  if k in ("method",): continue
+                  if v!="":
+                      try: x=float(v)
+                      except ValueError: continue
+                      if not math.isfinite(x): raise SystemExit(f"non-finite summary field {k}")
+          print(f"PASS: {len(rows)} raw rows, {len(sums)} summaries, 108 cells")
+          PY
+      - name: Upload factorial outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-mixture-threshold-sensitivity-results
+          path: results/host-mixture-threshold-sensitivity/
+          if-no-files-found: error
+          retention-days: 90
