@@ -16,6 +16,10 @@ The simulation crosses three true values ((H_0=60,70,80)), three redshift pairs 
 
 The truth generator uses flat (Lambda)CDM with (Omega_m=0.3), selects one host according to the configured weights for each observation, and adds Gaussian distance noise with (sigma=max(20,mathrm{Mpc},0.05\times) the weighted mean distance). Inference uses a uniform (H_0) prior on [40, 100] and a 4,001-point grid on [25, 125]. The baseline deliberately omits detection truncation and selection correction to isolate the distance-model and host-representation effects.
 
+## Reproducible audit implementation
+
+The independent recalculation is now also available as [`scripts/audit_joint_distance_model_host_mixture.py`](../scripts/audit_joint_distance_model_host_mixture.py). It checks expected artifact dimensions, finite numeric fields, prior support, interval ordering, all per-cell summary statistics, paired contrast means, and deterministic bootstrap endpoints. The joint-experiment workflow invokes this audit before uploading its artifact. This makes the arithmetic check repeatable by others rather than relying only on a prose statement that an audit was performed.
+
 ## Output and independent integrity audit
 
 - Raw inference rows: **32,400** (8,100 observations × four arms).
