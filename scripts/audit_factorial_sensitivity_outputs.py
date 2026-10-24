@@ -90,6 +90,8 @@ def audit(root: Path) -> dict:
                 raise ValueError(f"{label}: per-run target mismatch")
             if target == 0.7 and not math.isclose(realized, 0.7, abs_tol=1e-12):
                 raise ValueError(f"{label}: expected exact 70% completeness, got {realized}")
+            if target == 1.0 and not math.isclose(realized, 1.0, abs_tol=1e-12):
+                raise ValueError(f"{label}: expected complete catalogue (100%), got {realized}")
             vals = {key: finite(row, key, label) for key in POSTERIOR_FIELDS}
             if not (vals["lower_95"] <= vals["lower_68"] <= vals["median"]
                     <= vals["upper_68"] <= vals["upper_95"]):
