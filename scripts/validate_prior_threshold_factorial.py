@@ -57,6 +57,69 @@ def assert_close(actual, expected, label, atol=1e-9):
         raise ValueError(f"{label}: expected {expected:.12g}, got {actual:.12g}")
 
 
+
+def independently_recompute_paired_bootstrap(raw_rows, reps, bootstrap_draws, seed):
+    """Recompute paired contrasts without calling the experiment's contrast function."""
+    lookup = {
+        (float(row["true_H0"]), int(row["replicate"]), float(row["prior_min"]),
+         float(row["prior_max"]), float(row["assumed_detection_max_mpc"]), row["method"]): row
+        for row in raw_rows
+    }
+    rng = np.random.default_rng(seed)
+    metrics = ("median", "absolute_error", "width_68", "width_95", "coverage_68", "coverage_95")
+    output = []
+    for truth in factorial.TRUTHS:
+        for pmin, pmax in factorial.PRIORS:
+            for threshold in factorial.ASSUMED_MAXIMA:
+                if (pmin, pmax) == (50.0, 90.0) and threshold == 120.0:
+                    continue
+                for method in factorial.METHODS:
+                    baseline = [lookup[(truth, rep, 50.0, 90.0, 120.0, method)] for rep in range(reps)]
+                    comparison = [lookup[(truth, rep, pmin, pmax, threshold, method)] for rep in range(reps)]
+
+                    def metric_value(row, metric):
+                        median = float(row["posterior_median"])
+                        if metric == "median":
+                            return median
+                        if metric == "absolute_error":
+                            return abs(median - truth)
+                        if metric == "width_68":
+                            return float(row["upper_68"]) - float(row["lower_68"])
+                        if metric == "width_95":
+                            return float(row["upper_95"]) - float(row["lower_95"])
+                        if metric == "coverage_68":
+                            return float(float(row["lower_68"]) <= truth <= float(row["upper_68"]))
+                        return float(float(row["lower_95"]) <= truth <= float(row["upper_95"]))
+
+                    for metric in metrics:
+                        delta = np.asarray([
+                            metric_value(changed, metric) - metric_value(base, metric)
+                            for base, changed in zip(baseline, comparison)
+                        ], dtype=float)
+                        bootstrap_means = np.empty(bootstrap_draws, dtype=float)
+                        batch_size = 256
+                        for start in range(0, bootstrap_draws, batch_size):
+                            stop = min(start + batch_size, bootstrap_draws)
+                            indices = rng.integers(0, len(delta), size=(stop - start, len(delta)))
+                            bootstrap_means[start:stop] = delta[indices].mean(axis=1)
+                        output.append({
+                            "true_H0": float(truth),
+                            "method": method,
+                            "metric": metric,
+                            "baseline_prior": "[50,90]",
+                            "comparison_prior": f"[{pmin:g},{pmax:g}]",
+                            "baseline_threshold_mpc": 120.0,
+                            "comparison_threshold_mpc": float(threshold),
+                            "n_pairs": reps,
+                            "mean_difference_vs_baseline": float(delta.mean()),
+                            "bootstrap_95_low": float(np.quantile(bootstrap_means, 0.025)),
+                            "bootstrap_95_high": float(np.quantile(bootstrap_means, 0.975)),
+                            "bootstrap_draws": bootstrap_draws,
+                            "bootstrap_seed": seed,
+                        })
+    return output
+
+
 def validate(per_run_path: Path, summary_path: Path, contrasts_path: Path):
     raw = read_csv(per_run_path)
     summaries = read_csv(summary_path)
@@ -234,8 +297,8 @@ def validate(per_run_path: Path, summary_path: Path, contrasts_path: Path):
             else:
                 converted[field] = float(value)
         bootstrap_input.append(converted)
-    reproduced = factorial.paired_contrasts(
-        bootstrap_input, bootstrap_draws=bootstrap_draws, seed=bootstrap_seed
+    reproduced = independently_recompute_paired_bootstrap(
+        bootstrap_input, reps=reps, bootstrap_draws=bootstrap_draws, seed=bootstrap_seed
     )
     if len(reproduced) != len(contrasts):
         raise ValueError("Recomputed bootstrap contrast table has a different row count")
