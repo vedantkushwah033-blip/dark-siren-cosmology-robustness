@@ -1,6 +1,6 @@
 # Protocol: separate catalogue incompleteness from event-detection selection
 
-**Status:** design protocol only; no selection-normalized result is claimed.  
+**Status:** protocol plus an initial analytic implementation and unit tests; no selection-normalized simulation result is claimed.  
 **Purpose:** define a minimal, testable selection model before implementing it.  
 **Scope:** controlled synthetic experiments, not a realistic gravitational-wave detection pipeline.
 
@@ -93,7 +93,9 @@ Do not require frequentist fixed-truth coverage to equal nominal Bayesian credib
 
 ## Implementation sequence
 
-1. Add a separate selection module; do not silently alter the legacy simulator.
+1. **Completed:** add a separate selection module; do not silently alter the legacy simulator. The initial implementation is `src/dark_siren_robustness/selection.py`.
+2. **Completed:** unit-test the detection probability and $\\beta(H_0)$ against the analytic formula. See `tests/test_selection_normalization.py` and [the successful focused workflow](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40068498540).
+3. Add a one-host selected-data benchmark before a multi-host model.
 2. Unit-test the detection probability and $\beta(H_0)$ against the analytic formula.
 3. Add a one-host selected-data benchmark before a multi-host model.
 4. Compare the selection-corrected likelihood to an independently coded reference calculation.
