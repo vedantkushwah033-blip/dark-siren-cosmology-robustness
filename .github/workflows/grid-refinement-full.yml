@@ -117,6 +117,18 @@ jobs:
           python scripts/evaluate_grid_accuracy.py \
             --per-run results/grid-refinement-audit-full/per_run.csv \
             --output-dir results/grid-refinement-audit-full/accuracy-assessment
+      - name: Refine flagged cases on higher-resolution grids
+        run: |
+          python scripts/run_targeted_grid_refinement.py \
+            --flagged-cases results/grid-refinement-audit-full/accuracy-assessment/case_accuracy_assessment.csv \
+            --per-run results/grid-refinement-audit-full/per_run.csv \
+            --output results/grid-refinement-audit-full/targeted_refinement.csv
+      - name: Finalize assessment with targeted results
+        run: |
+          python scripts/evaluate_grid_accuracy.py \
+            --per-run results/grid-refinement-audit-full/per_run.csv \
+            --targeted-refinement results/grid-refinement-audit-full/targeted_refinement.csv \
+            --output-dir results/grid-refinement-audit-full/accuracy-assessment
       - name: Upload convergence artifacts
         uses: actions/upload-artifact@v4
         with:
