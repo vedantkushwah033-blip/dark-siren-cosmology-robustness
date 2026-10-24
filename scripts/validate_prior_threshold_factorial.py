@@ -327,7 +327,7 @@ def validate(per_run_path: Path, summary_path: Path, contrasts_path: Path):
         "bootstrap_seed": bootstrap_seed,
         "limitations": [
             "Checks numerical consistency of exported artifacts; does not validate scientific model realism.",
-            "Bootstrap reproducibility uses the repository's paired-bootstrap implementation and the seed recorded in the artifact; it is not an independent statistical implementation.",
+            "Paired-bootstrap intervals are recomputed in a separate validator implementation using the recorded seed; the resampling design and NumPy RNG family are shared, so this is an independent code path rather than an independent statistical method.",
         ],
     }
 
