@@ -32,7 +32,7 @@ jobs:
       - name: Test factorial contrast analysis
         run: |
           python -m pip install pytest
-          pytest -q tests/test_factorial_contrast_analysis.py tests/test_oracle_missing_host_analysis.py tests/test_oracle_summary_metrics.py tests/test_known_host_oracle.py
+          pytest -q tests/test_factorial_contrast_analysis.py tests/test_oracle_missing_host_analysis.py tests/test_oracle_summary_metrics.py tests/test_known_host_oracle.py tests/test_known_host_oracle_contrasts.py
       - name: Clone original project at audited commit
         run: |
           git clone https://github.com/vedantkushwah033-blip/bayesian-dark-siren-cosmology.git original-project
@@ -173,11 +173,12 @@ jobs:
           right = by_scenario["redshift70_full_population_oracle"]
           if set(left) != set(right):
               raise SystemExit("Paired oracle scenarios have different run indices")
-          posterior_keys = ("median", "mean", "posterior_sd", "lower_68", "upper_68", "lower_95", "upper_95")
+          paired_keys = ("seed", "host_redshift", "observed_distance_mpc", "distance_sigma_mpc",
+                         "median", "mean", "posterior_sd", "lower_68", "upper_68", "lower_95", "upper_95")
           for index in left:
-              for key in posterior_keys:
+              for key in paired_keys:
                   if float(left[index][key]) != float(right[index][key]):
-                      raise SystemExit(f"Oracle posterior differs across masks at run {index}, metric {key}")
+                      raise SystemExit(f"Oracle event/posterior differs across masks at run {index}, field {key}")
           print(f"Validated two paired oracle scenarios, identical full-population posteriors, and {len(runs)} finite per-run records.")
           PY
       - name: Run known-host oracle calibration control
@@ -220,6 +221,14 @@ jobs:
                   raise SystemExit("Known-host oracle 68% interval is not nested in 95% interval")
           print(f"Validated {n} known-host oracle calibration records.")
           PY
+      - name: Analyze paired known-host calibration contrasts
+        run: |
+          python scripts/analyze_known_host_oracle_contrasts.py \
+            --full-population-input results/full-population-oracle/per_run_results.csv \
+            --known-host-input results/known-host-oracle/per_run_results.csv \
+            --output results/known-host-oracle/paired_contrasts.json \
+            --bootstrap 50000 \
+            --seed 20261025
       - name: Upload factorial results
         uses: actions/upload-artifact@v4
         with:
