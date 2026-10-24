@@ -44,17 +44,21 @@ def run(replicates=300,seed=20261028,grid_size=4001):
         obs=[draw_detected(truth,rng) for _ in range(replicates)]
         for rep,(host,distance) in enumerate(obs):
             for pmin,pmax in PRIORS:
+                # The uncorrected likelihood is independent of the assumed
+                # selection threshold. Compute it once per observation/prior,
+                # then reuse its posterior summary across threshold cells.
+                uncorrected=posterior_h0(grid,HOST_REDSHIFTS,distance,SIGMA,
+                    weights=HOST_WEIGHTS,prior_min=pmin,prior_max=pmax)
+                uncorrected_summary=posterior_summary(grid,uncorrected)
                 for assumed_max in ASSUMED_MAXIMA:
-                    uncorrected=posterior_h0(grid,HOST_REDSHIFTS,distance,SIGMA,
-                        weights=HOST_WEIGHTS,prior_min=pmin,prior_max=pmax)
                     for method in METHODS:
                         if method=="uncorrected":
-                            post=uncorrected
+                            sm=uncorrected_summary
                         else:
                             post=posterior_h0_selected(grid,HOST_REDSHIFTS,distance,SIGMA,
                                 assumed_max,weights=HOST_WEIGHTS,prior_min=pmin,prior_max=pmax,
                                 detection_distance_min=TRUE_MIN)
-                        sm=posterior_summary(grid,post)
+                            sm=posterior_summary(grid,post)
                         rows.append({"true_H0":truth,"replicate":rep,"host_index":host,
                             "observed_distance_mpc":distance,"true_detection_max_mpc":TRUE_MAX,
                             "assumed_detection_max_mpc":assumed_max,"prior_min":pmin,"prior_max":pmax,
