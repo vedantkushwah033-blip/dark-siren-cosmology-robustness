@@ -23,7 +23,7 @@ The GitHub Actions workflow tests Python 3.10, 3.11, and 3.12 and uploads the CS
 
 ## Important implementation note
 
-The scorecard computes coverage/bias/RMSE and interval-width summaries using the same seed and data-generating code. However, the current script executes the data-generating audit twice to obtain the summary and width inputs. Because both runs use the same seed, they should be deterministic and paired; future optimization can reduce this to a single simulation pass without changing results. The scorecard does not replace independent validation of the likelihood, selection function, or prior choice.
+The scorecard computes coverage/bias/RMSE and interval-width summaries from one simulation pass, ensuring that the scorecard rows are joined from the same synthetic observations and avoiding unnecessary duplicate computation. The scorecard does not replace independent validation of the likelihood, selection function, or prior choice.
 
 ## Interpretation
 
