@@ -123,3 +123,8 @@ The [joint prior-performance scorecard protocol](docs/joint_prior_scorecard_prot
 ### Joint prior-performance scorecard results
 
 The completed joint scorecard compares bias, RMSE, fixed-truth coverage with Wilson intervals, and posterior interval widths across the tested prior supports and both inference methods. See [validated scorecard results](docs/joint_prior_scorecard_results.md). The scorecard workflow passed on Python 3.10, 3.11, and 3.12; these results are synthetic-model diagnostics, not observational H0 measurements.
+
+
+### Coverage-transition map
+
+A denser paired fixed-truth experiment tests nine true values from 52 to 88 and compares the original [50,90] prior with [40,100], reusing each generated observation across prior supports. It reports bias, RMSE, 68%/95% coverage with Wilson intervals, and interval widths. See [coverage-transition protocol and results](docs/coverage_transition_map_protocol.md). This remains a synthetic diagnostic, not an observational H0 analysis.
