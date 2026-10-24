@@ -9,7 +9,6 @@ from pathlib import Path
 import numpy as np
 from dark_siren_robustness.hardened_inference import C_KM_S, posterior_h0, posterior_summary
 from dark_siren_robustness.selection import posterior_h0_selected
-from dark_siren_robustness.threshold_misspecification_helpers import wilson_interval
 
 HOST_REDSHIFTS=np.array([0.02,0.04])
 HOST_WEIGHTS=np.array([0.7,0.3])
