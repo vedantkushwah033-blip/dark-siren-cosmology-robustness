@@ -55,3 +55,20 @@ clearly labeling that term as a simulation-only validation control.
 
 Do not write conclusions until the workflow has run and both summary and
 per-run outputs have been checked.
+
+## Independent output audit
+
+The factorial workflow now runs `scripts/audit_factorial_sensitivity_outputs.py`
+after producing the CSV/JSON files and before computing contrasts. The audit
+checks the nine prespecified scenario labels, requested and realized
+replicate counts, exact 70% completeness for incomplete-catalogue scenarios,
+finite posterior summaries, credible-interval nesting, and consistency of
+reported interval widths with their endpoints. Its unit tests include
+deliberately corrupted outputs.
+
+This audit is a structural/data-integrity check. It does not rerun the original
+simulator independently, establish that its missingness mechanism is a
+realistic model of galaxy catalogues, or prove frequentist coverage. Those
+questions require separate simulation design and validation. A successful
+workflow should therefore be described as internally checked synthetic
+evidence, not as an observational result.
