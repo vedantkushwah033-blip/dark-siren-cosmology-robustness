@@ -52,3 +52,14 @@ def test_paired_oracle_contrast_rejects_duplicate_run_indices():
              row(0, "known_true_host_oracle", 72.0)]
     with pytest.raises(ValueError, match="run indices must be unique"):
         MODULE.paired_delta(full, known)
+
+def test_paired_bootstrap_is_deterministic_and_returns_constant_difference():
+    result = MODULE.paired_bootstrap_mean_difference([1.0, 1.0, 1.0], 200, seed=7)
+    assert result["difference_known_host_minus_full_population"] == 1.0
+    assert result["paired_bootstrap_95_interval"] == [1.0, 1.0]
+    assert result["n_pairs"] == 3
+
+
+def test_paired_bootstrap_rejects_nonfinite_differences():
+    with pytest.raises(ValueError, match="finite"):
+        MODULE.paired_bootstrap_mean_difference([1.0, float("nan")], 200, seed=7)
