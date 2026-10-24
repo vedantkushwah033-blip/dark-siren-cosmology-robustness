@@ -182,3 +182,14 @@ The grid-refinement tests additionally check the ordering of posterior credible-
 
 
 The completed 200-replicate grid-refinement run is documented in [the full convergence results and interpretation](docs/grid_refinement_full_results.md). Typical discrepancies were small, but one upper-95%-endpoint maximum was materially larger than the rest and requires case-level inspection before claiming uniform convergence.
+
+
+### Targeted upper-tail convergence diagnostic
+
+The worst upper-95% endpoint discrepancy from the archived grid audit can be reproduced independently with:
+
+```bash
+python scripts/run_targeted_grid_convergence.py --output results/targeted-grid-convergence.csv
+```
+
+This fixed synthetic observation is evaluated on 1,001 through 64,001 grid points, with posterior summaries written to a CSV. A focused regression test checks credible-interval ordering and the decrease in successive upper-endpoint changes. The test is a case-specific numerical diagnostic, not a universal convergence guarantee; the full design must still be evaluated against a tolerance specified before examining results. The script's output should be retained as an artifact before making numerical-accuracy claims.
