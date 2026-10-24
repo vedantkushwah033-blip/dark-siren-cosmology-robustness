@@ -245,3 +245,8 @@ The single-host fixed-truth control has completed successfully: [results and pai
 ### Matched host-structure control
 
 The [matched host-structure protocol](docs/matched_host_structure_control_protocol.md) specifies a paired experiment in which detected distances are generated from a two-host mixture and the same observations are analysed using the two-host model and a collapsed weighted-mean-redshift model, with and without the toy selection normalization. The implementation, focused tests, and [GitHub Actions workflow](.github/workflows/matched-host-structure-control.yml) produce per-run observations, coverage summaries, and paired bootstrap uncertainty. Results should be cited only after the workflow completes and its uploaded artifact is inspected. This is a synthetic model-compression diagnostic, not an observational H0 measurement.
+
+
+### Next prespecified sensitivity experiment
+
+The [host-mixture and detection-threshold sensitivity protocol](docs/host_mixture_threshold_sensitivity_protocol.md) prespecifies a 108-cell factorial varying fixed truth, host-redshift separation, intrinsic host weights, and the upper detection threshold. It defines paired model contrasts, bootstrap uncertainty, analytic detected-host-fraction checks, raw-to-summary validation, and numerical-grid checks. **This is protocol-only at present:** implementation and results are not yet available, and no findings are claimed from this proposed experiment.
