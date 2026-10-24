@@ -11,6 +11,7 @@ import csv
 import json
 from pathlib import Path
 import sys
+from statistics import median
 
 import numpy as np
 
@@ -81,6 +82,8 @@ def main() -> None:
                 "pull_mean": float((summary["mean"] - 70.0) / max(summary["posterior_sd"], 1e-12)),
             })
         metrics = summarize_runs(rows, true_h0=70.0)
+        # Consistent definition: median across runs of posterior-median errors.
+        metrics["median_bias"] = float(median(float(row["median"]) - 70.0 for row in rows))
         summaries.append({
             "scenario": name, "missingness": missingness,
             "target_completeness": 0.7, "host_generation": "luminosity",
