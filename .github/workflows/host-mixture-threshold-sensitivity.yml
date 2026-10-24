@@ -63,6 +63,8 @@ jobs:
                       if not math.isfinite(x): raise SystemExit(f"non-finite summary field {k}")
           print(f"PASS: {len(rows)} raw rows, {len(sums)} summaries, 108 cells")
           PY
+      - name: Independently audit summaries, bootstrap intervals, and grid resolution
+        run: python scripts/audit_host_mixture_threshold_sensitivity.py results/host-mixture-threshold-sensitivity
       - name: Upload factorial outputs
         uses: actions/upload-artifact@v4
         with:
