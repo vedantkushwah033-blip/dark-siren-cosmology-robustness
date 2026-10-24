@@ -46,7 +46,9 @@ jobs:
         run: |
           python - <<'PY'
           import csv, json, math
+          from collections import defaultdict
           from pathlib import Path
+          import numpy as np
           root = Path("results/cosmological-model-robustness")
           manifest = json.loads((root / "experiment_manifest.json").read_text())
           with (root / "per_run.csv").open(newline="") as f:
@@ -58,8 +60,30 @@ jobs:
           assert {r["inference_model"] for r in raw} == {"matched_flat_lcdm", "mismatched_low_z"}
           assert all(math.isfinite(float(r["posterior_median_H0"])) for r in raw)
           assert all(40 <= float(r["posterior_median_H0"]) <= 100 for r in raw)
-          assert all(math.isfinite(float(r["mae_H0"])) for r in summary)
-          print("Artifact schema, row counts, model labels, finite values, and prior support: PASS")
+          paired = defaultdict(dict)
+          groups = defaultdict(list)
+          for row in raw:
+              key = (float(row["true_H0"]), float(row["redshift"]), int(row["replicate"]))
+              paired[key][row["inference_model"]] = float(row["observed_distance_mpc"])
+              groups[(float(row["true_H0"]), float(row["redshift"]), row["inference_model"])].append(row)
+          assert all(set(v) == {"matched_flat_lcdm", "mismatched_low_z"} for v in paired.values())
+          assert all(abs(v["matched_flat_lcdm"] - v["mismatched_low_z"]) < 1e-12 for v in paired.values())
+          for s in summary:
+              key = (float(s["true_H0"]), float(s["redshift"]), s["inference_model"])
+              rows = groups[key]
+              e = np.array([float(r["error_H0"]) for r in rows])
+              expected = {
+                  "bias_H0": float(np.mean(e)),
+                  "mae_H0": float(np.mean(np.abs(e))),
+                  "rmse_H0": float(np.sqrt(np.mean(e**2))),
+                  "coverage_68": float(np.mean([int(r["covered_68"]) for r in rows])),
+                  "coverage_95": float(np.mean([int(r["covered_95"]) for r in rows])),
+                  "mean_width_68": float(np.mean([float(r["width_68"]) for r in rows])),
+                  "mean_width_95": float(np.mean([float(r["width_95"]) for r in rows])),
+              }
+              for metric, value in expected.items():
+                  assert math.isclose(float(s[metric]), value, rel_tol=1e-10, abs_tol=1e-10), (key, metric, s[metric], value)
+          print("Raw rows, paired observations, summaries, finite values, and prior support: PASS")
           PY
       - name: Upload reproducible results
         uses: actions/upload-artifact@v4
