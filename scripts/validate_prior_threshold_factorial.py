@@ -53,8 +53,13 @@ def as_float(row, key):
 
 
 def assert_close(actual, expected, label, atol=1e-9):
-    if not math.isclose(float(actual), float(expected), rel_tol=1e-10, abs_tol=atol):
-        raise ValueError(f"{label}: expected {expected:.12g}, got {actual:.12g}")
+    """Compare numeric CSV values and report readable errors for corrupted rows."""
+    actual_value = float(actual)
+    expected_value = float(expected)
+    if not math.isclose(actual_value, expected_value, rel_tol=1e-10, abs_tol=atol):
+        raise ValueError(
+            f"{label}: expected {expected_value:.12g}, got {actual_value:.12g}"
+        )
 
 
 def validate_observation_fields(row, key="observation"):
