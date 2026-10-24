@@ -2,7 +2,7 @@
 
 ## Status
 
-Protocol only. No experiment described here has been run, and no numerical result is implied. This extension should be implemented only after the existing factorial-sensitivity experiment has produced validated artifacts.
+Implementation and CI validation are in progress as of 2026-10-24. The initial paired synthetic experiment and focused tests have been added; report no result as final until the workflow succeeds and its artifact is inspected. See `scripts/run_cosmological_model_robustness.py`, `src/dark_siren_robustness/cosmological_inference.py`, and `tests/test_cosmological_inference.py`.
 
 ## Research question
 
