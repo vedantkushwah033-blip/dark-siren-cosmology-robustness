@@ -16,9 +16,16 @@ The two subsequent commits strengthen the artifact validator and add regression 
 - `eaa4bcf4`: validator checks observation host index and strict distance bounds.
 - `88f8282e`: adds regression tests for both checks.
 
-At the latest status check, CI for both commits was still in progress; do not treat those newest changes as verified until the corresponding runs finish successfully:
-- https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40096177016
-- https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40096182977
+Follow-up CI after those commits:
+- The focused `tests` workflow passed on `eaa4bcf4` (run 40096177001) and `88f8282e` (run 40096182919).
+- The broader `Test suite` runs and the latest numerical-diagnostics workflow were still running during a later check; inspect the live Actions page before treating the newest commits as verified:
+  - https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40096177016
+  - https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40096182977
+  - https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40096243517
+
+The factorial runner was then optimized to calculate each uncorrected posterior once per observation/prior, reusing that result across the four assumed-threshold cells. This is an algebraically exact reuse because the uncorrected likelihood does not use the assumed threshold; the existing threshold-invariance regression test checks that property. Each completed run now also writes `experiment_manifest.json` with seed, grid, design constants, artifact row counts, software versions, and the CI commit SHA when available. The dispatch workflow validates the manifest against its requested inputs and uploads it alongside the CSV tables.
+
+A workflow-file edit briefly introduced literal escaped newline characters in the artifact path, causing the workflow parser to fail before any job ran. That syntax was corrected in commit `4948be35`; the workflow must be rechecked on the corrected revision before use.
 
 Earlier successful CI runs, including the suite at commit `8634e8aa`, remain evidence only for the code versions tested by those runs. Software test success does not establish astrophysical validity.
 
