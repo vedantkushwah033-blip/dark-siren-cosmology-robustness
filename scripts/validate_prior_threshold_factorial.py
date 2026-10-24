@@ -175,8 +175,19 @@ def validate(per_run_path: Path, summary_path: Path, contrasts_path: Path):
         raise ValueError("Paired contrasts use inconsistent bootstrap settings")
     bootstrap_draws = next(iter(bootstrap_draw_counts))
     bootstrap_seed = next(iter(bootstrap_seeds))
+    bootstrap_input = []
+    for row in raw:
+        converted = {}
+        for field, value in row.items():
+            if field == "method":
+                converted[field] = value
+            elif field in {"replicate", "host_index"}:
+                converted[field] = int(value)
+            else:
+                converted[field] = float(value)
+        bootstrap_input.append(converted)
     reproduced = factorial.paired_contrasts(
-        raw, bootstrap_draws=bootstrap_draws, seed=bootstrap_seed
+        bootstrap_input, bootstrap_draws=bootstrap_draws, seed=bootstrap_seed
     )
     if len(reproduced) != len(contrasts):
         raise ValueError("Recomputed bootstrap contrast table has a different row count")
