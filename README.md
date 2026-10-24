@@ -102,3 +102,8 @@ The completed deterministic grid-refinement audit and its interpretation are doc
 ### Prior-support sensitivity
 
 A paired sensitivity experiment reuses the same detected synthetic observations across three prior intervals. See the [prior-support sensitivity protocol](docs/prior_support_sensitivity_protocol.md); numerical conclusions will be added only after the CI artifacts are inspected.
+
+
+### Prior-support sensitivity results
+
+The completed paired prior-support audit found substantial sensitivity near the hard prior boundaries. See [prior-support sensitivity results](docs/prior_support_sensitivity_results.md) for coverage with Wilson intervals, bias, RMSE, and limitations. These are synthetic-model results and do not establish an optimal prior.
