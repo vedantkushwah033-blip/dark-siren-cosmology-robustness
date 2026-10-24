@@ -136,7 +136,7 @@ def build_manifest(seed,replicates,grid_size,rows,summaries,contrasts):
     """Describe the simulation design and runtime needed to interpret its CSVs."""
     try:
         from importlib.metadata import version
-        package_version=version("dark-siren-robustness")
+        package_version=version("dark-siren-cosmology-robustness")
     except Exception:
         package_version=None
     return {
