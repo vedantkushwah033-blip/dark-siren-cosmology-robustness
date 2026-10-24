@@ -62,6 +62,8 @@ def _fixture(root: Path) -> None:
     (root / "scenario_summary.json").write_text(json.dumps({
         "scenario_count": 9,
         "requested_replicates_per_scenario": 2,
+        "true_h0": 70.0,
+        "n_galaxies": 500,
         "base_seed": 2026,
         "scenarios": [
             {**row, "requested_replicates": 2}
@@ -195,4 +197,20 @@ def test_audit_rejects_raw_scenario_seed_mismatch(tmp_path):
     rows[0]["scenario_seed"] = str(int(rows[0]["scenario_seed"]) + 1)
     _write_csv(path, rows)
     with pytest.raises(ValueError, match="raw scenario_seed mismatch"):
+        audit(tmp_path)
+
+@pytest.mark.parametrize(
+    "field,value,error",
+    [
+        ("true_h0", 72.0, "unexpected true_h0"),
+        ("n_galaxies", 499, "unexpected n_galaxies"),
+    ],
+)
+def test_audit_rejects_wrong_simulation_truth_or_catalogue_size(tmp_path, field, value, error):
+    _fixture(tmp_path)
+    path = tmp_path / "scenario_summary.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    manifest[field] = value
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(ValueError, match=error):
         audit(tmp_path)
