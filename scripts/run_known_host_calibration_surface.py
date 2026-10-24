@@ -48,6 +48,16 @@ def summarize_cell(rows: list[dict], true_h0: float, fractional_error: float) ->
         raise ValueError("credible interval bounds are reversed")
     if any(lo95_i > lo68_i or hi68_i > hi95_i for lo95_i, lo68_i, hi68_i, hi95_i in zip(lo95, lo68, hi68, hi95)):
         raise ValueError("68% intervals must be nested inside 95% intervals")
+    if any(
+        x < PRIOR_MIN or x > PRIOR_MAX
+        for values in (medians, means, lo68, hi68, lo95, hi95)
+        for x in values
+    ):
+        raise ValueError("posterior summaries and interval bounds must lie within prior support")
+    if any(x <= 0.0 for x in sd):
+        raise ValueError("posterior standard deviations must be positive")
+    if not math.isfinite(true_h0) or not math.isfinite(fractional_error) or fractional_error <= 0:
+        raise ValueError("truth must be finite and fractional distance error must be positive and finite")
     n = len(rows)
     c68n = sum(a <= true_h0 <= b for a, b in zip(lo68, hi68))
     c95n = sum(a <= true_h0 <= b for a, b in zip(lo95, hi95))
