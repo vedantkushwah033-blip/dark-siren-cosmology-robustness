@@ -21,7 +21,7 @@ def _fixture(root: Path) -> None:
         summary.append({
             "scenario": scenario, "target_completeness": target,
             "missingness": missingness, "host_generation": host,
-            "inference_weighting": weighting, "n": 2,
+            "inference_weighting": weighting, "n": 2,\n            "median_bias": 0.0, "mean_bias": 0.0, "rmse_median": 0.0,\n            "rmse_mean": 0.0, "mean_width_68": 2.0, "mean_width_95": 4.0,\n            "coverage_68": 1.0, "coverage_95": 1.0, "host_observed_fraction": 0.7,
         })
         for run in (0, 1):
             raw.append({
