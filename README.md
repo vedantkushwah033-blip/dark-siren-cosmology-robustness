@@ -228,10 +228,13 @@ The full 300-replicate, 4,001-point prior-support × assumed-detection-threshold
 
 The [cross-experiment synthesis of selection normalization and prior-boundary effects](docs/cross_experiment_selection_and_prior_synthesis_2026-10-24.md) reconciles the prior-predictive SBC controls with fixed-truth coverage and prior-support experiments, distinguishes supported toy-model conclusions from untested claims, and prioritizes the next validation experiments. This is a synthesis of existing results, not a new simulation or observational result.
 
-### Next prespecified control
-
-The [single-host fixed-truth selection control protocol](docs/single_host_fixed_truth_control_protocol.md) defines a diagnostic to separate two-host mixture effects from prior-boundary and selection effects. It is a protocol only; no results are claimed until the implementation and experiment run and pass validation.
 ### Single-host fixed-truth selection control
+
+The [protocol](docs/single_host_fixed_truth_control_protocol.md), [implementation](scripts/run_single_host_fixed_truth_control.py), [focused tests](tests/test_single_host_fixed_truth_control.py), and [artifact-backed results](docs/single_host_fixed_truth_control_results_2026-10-24.md) are available. The workflow completed successfully; its 2,700 paired observations show severe edge undercoverage even in a one-host toy model and truth-dependent effects of selection correction. See the linked report for scope limits and uncertainty. The result does not isolate a unique cause or establish realistic detector behavior.
+
+### Numerical grid convergence audit
+
+The [numerical-grid diagnostic audit](docs/numerical_grid_diagnostic_audit_2026-10-24.md) records the successful cross-version numerical-diagnostics workflow and its artifact inspection. It distinguishes computational-grid stability from changing the prior itself, and notes that tail quantiles can converge more slowly than posterior medians in a targeted edge case.
 
 The [single-host fixed-truth control](scripts/run_single_host_fixed_truth_control.py) and [focused tests](tests/test_single_host_fixed_truth_control.py) implement the previously prespecified protocol in [the protocol document](docs/single_host_fixed_truth_control_protocol.md). The manually dispatchable [GitHub Actions workflow](.github/workflows/single-host-fixed-truth-control.yml) runs 300 observations at each of nine fixed truths, compares paired corrected and uncorrected inference, and emits raw rows, coverage summaries with Wilson intervals, paired absolute-error bootstrap intervals, and a runtime manifest. Results are not claimed until that workflow completes and its artifact is checked.
 
