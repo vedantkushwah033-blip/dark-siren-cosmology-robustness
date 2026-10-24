@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.integrate import trapezoid
 import pytest
 from scipy.integrate import quad
 from scipy.optimize import brentq
@@ -53,7 +54,7 @@ def test_selected_posterior_is_normalized_and_differs_when_selection_matters():
     baseline = posterior_h0(grid, z, distance, sigma, weights=[0.5, 0.5])
     selected = posterior_h0_selected(grid, z, distance, sigma, threshold, weights=[0.5, 0.5])
     support = (grid >= 50.0) & (grid <= 90.0)
-    assert np.trapezoid(selected[support], grid[support]) == pytest.approx(1.0, abs=1e-10)
+    assert trapezoid(selected[support], grid[support]) == pytest.approx(1.0, abs=1e-10)
     assert np.max(np.abs(selected[support] - baseline[support])) > 1e-5
 
 
