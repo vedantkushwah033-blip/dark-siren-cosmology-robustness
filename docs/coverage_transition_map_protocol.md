@@ -33,3 +33,15 @@ CI runs the experiment on Python 3.10, 3.11, and 3.12 and uploads per-run and su
 ## Interpretation and limitations
 
 This is a synthetic low-redshift toy model. The denser grid helps locate where prior-boundary effects change but cannot establish behavior for arbitrary truth values, priors, catalogues, or real gravitational-wave analyses. Wilson intervals quantify Monte Carlo uncertainty in estimated coverage; they do not account for model misspecification. Compare coverage alongside bias, RMSE, and interval width. Do not choose a prior solely to maximize coverage in this finite experiment.
+
+
+## Paired method contrasts (added)
+
+The experiment also writes `paired_method_contrasts.csv`. For each truth/prior cell, it computes corrected-minus-uncorrected paired differences for posterior medians, absolute error, squared error, 68%/95% interval widths, and interval-coverage indicators. A percentile bootstrap resamples the paired observations within each cell and reports a 95% bootstrap interval for the mean difference (5,000 draws; seed 20261026).
+
+Interpretation of signs:
+- Negative differences in absolute or squared error favor the corrected method for that cell and metric.
+- Negative width differences mean the corrected intervals are narrower.
+- Positive coverage-indicator differences mean the corrected method covered the truth more often in the paired simulations.
+
+These bootstrap intervals quantify Monte Carlo uncertainty under this simulation design. They do not account for uncertainty about whether the toy model represents real gravitational-wave data.
