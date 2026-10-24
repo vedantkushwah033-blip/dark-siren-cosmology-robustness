@@ -118,8 +118,20 @@ def evaluate(per_run_path: Path, targeted_path: Path | None = None):
             "cases_flagged_for_refinement": int(np.count_nonzero(a > CASE_GUARDRAIL)),
         })
     failed_cells = [r for r in cell_rows if not r["p95_pass"]]
+    normalization_diffs = []
+    normalization_rows = 0
+    for item in paired.values():
+        for grid_row in item["grids"].values():
+            if "posterior_area_on_prior_support" in grid_row:
+                area = float(grid_row["posterior_area_on_prior_support"])
+                if not np.isfinite(area):
+                    raise ValueError("Non-finite independently integrated posterior area")
+                normalization_rows += 1
+                normalization_diffs.append(abs(area - 1.0))
+    normalization_failures = sum(diff > 1e-8 for diff in normalization_diffs)
+    max_normalization_error = max(normalization_diffs) if normalization_diffs else None
     flagged_cases = [r for r in case_rows if r["flag_for_targeted_refinement"]]
-    targeted_lookup = {}
+    targeted_lookup = {
     if targeted_path is not None:
         with targeted_path.open(newline="", encoding="utf-8") as handle:
             targeted_rows = list(csv.DictReader(handle))
@@ -158,15 +170,20 @@ def evaluate(per_run_path: Path, targeted_path: Path | None = None):
         "p95_tolerance": P95_TOLERANCE,
         "individual_case_guardrail": CASE_GUARDRAIL,
         "targeted_refinement_tolerance": REFINEMENT_TOLERANCE,
+        "normalization_checked_rows": normalization_rows,
+        "normalization_tolerance": 1e-8,
+        "normalization_failures": normalization_failures,
+        "max_abs_normalization_error": max_normalization_error,
         "cell_summary_tests": len(cell_rows),
         "failed_cell_summary_tests": len(failed_cells),
         "flagged_case_summary_pairs": len(flagged_cases),
         "targeted_refinement_input": str(targeted_path) if targeted_path else None,
         "targeted_refinement_resolved_pairs": sum(r["targeted_refinement_status"] == "resolved_within_tolerance" for r in flagged_cases),
         "targeted_refinement_unresolved_pairs": len(unresolved_flagged),
-        "status": "FAIL" if failed_cells or unresolved_flagged else "PASS_FOR_GRID_DIFFERENCES_ONLY",
+        "status": "FAIL" if failed_cells or unresolved_flagged or normalization_failures else "PASS_FOR_GRID_DIFFERENCES_ONLY",
         "limitations": [
-            "The grid audit does not store posterior density arrays, so this evaluator cannot independently verify normalization.",
+            "Posterior normalization is checked only when posterior_area_on_prior_support is included in per_run.csv; if absent, normalization is not assessed.",
+            "The area check independently integrates the sampled posterior density on the prior support, but it does not test between-grid interpolation error beyond the grid-refinement summaries.",
             "Targeted flagged cases are unresolved unless the 32001-to-64001 endpoint difference is within tolerance.",
             "The cell-level 95th-percentile criterion still applies at the original resolutions; targeted refinement does not erase a cell-level failure.",
             "Passing these numerical checks does not validate the scientific model or observational realism.",
@@ -207,6 +224,9 @@ def main():
         f"- Design cells: {assessment['design_cells']}",
         f"- Cell-summary tests: {assessment['cell_summary_tests']}",
         f"- Failed cell-summary tests: {assessment['failed_cell_summary_tests']}",
+        f"- Posterior normalization rows checked: {assessment['normalization_checked_rows']}",
+        f"- Posterior normalization failures (tolerance 1e-8): {assessment['normalization_failures']}",
+        f"- Maximum absolute posterior-area error: {assessment['max_abs_normalization_error']}",
         f"- Flagged case-summary pairs requiring targeted refinement: {assessment['flagged_case_summary_pairs']}",
         f"- Flagged pairs resolved by targeted refinement: {assessment['targeted_refinement_resolved_pairs']}",
         f"- Flagged pairs unresolved: {assessment['targeted_refinement_unresolved_pairs']}",
