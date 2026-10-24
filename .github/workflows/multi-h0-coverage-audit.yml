@@ -1,0 +1,60 @@
+name: Multi-H0 interval coverage audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/run_multi_h0_coverage_audit.py"
+      - "tests/test_multi_h0_coverage_audit.py"
+      - ".github/workflows/multi-h0-coverage-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  multi-h0-coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run multi-H0 coverage audit
+        run: |
+          python scripts/run_multi_h0_coverage_audit.py \
+            --replicates 300 \
+            --seed 20261029 \
+            --output-dir results/multi-h0-coverage-audit
+      - name: Validate output
+        run: |
+          python - <<'PY'
+          import csv, math
+          from pathlib import Path
+          root = Path("results/multi-h0-coverage-audit")
+          with (root / "summary.csv").open(newline="") as f:
+              summary = list(csv.DictReader(f))
+          with (root / "per_run.csv").open(newline="") as f:
+              rows = list(csv.DictReader(f))
+          if len(summary) != 84 or len(rows) != 25200:
+              raise SystemExit(f"Unexpected output: {len(summary)} summary rows, {len(rows)} posterior fits")
+          for row in summary:
+              for key in ("median_rmse", "coverage_68", "coverage_95", "coverage_68_mcse", "coverage_95_mcse"):
+                  if not math.isfinite(float(row[key])):
+                      raise SystemExit(f"Non-finite {key}")
+              if not 0 <= float(row["coverage_68"]) <= 1 or not 0 <= float(row["coverage_95"]) <= 1:
+                  raise SystemExit("Coverage outside [0,1]")
+          print("PASS: 7 injected H0 values × 3 host separations × 2 noise levels × 2 inference weightings × 300 replicates = 25,200 posterior fits.")
+          PY
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: multi-h0-coverage-audit-results
+          path: results/multi-h0-coverage-audit/
+          if-no-files-found: error
+          retention-days: 90
