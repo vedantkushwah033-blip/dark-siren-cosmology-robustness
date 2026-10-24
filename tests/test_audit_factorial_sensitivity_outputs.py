@@ -26,6 +26,7 @@ def _fixture(root: Path) -> None:
             "host_generation": host,
             "inference_weighting": weighting,
             "n": 2,
+            "requested_replicates": 2,
             "seed": seed,
             "median_bias": 0.0,
             "mean_bias": 0.0,
@@ -64,6 +65,7 @@ def _fixture(root: Path) -> None:
         "requested_replicates_per_scenario": 2,
         "true_h0": 70.0,
         "n_galaxies": 500,
+        "original_commit": "b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f",
         "base_seed": 2026,
         "scenarios": [
             {**row, "requested_replicates": 2}
@@ -213,4 +215,24 @@ def test_audit_rejects_wrong_simulation_truth_or_catalogue_size(tmp_path, field,
     manifest[field] = value
     path.write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(ValueError, match=error):
+        audit(tmp_path)
+
+def test_audit_rejects_unpinned_original_source_commit(tmp_path):
+    _fixture(tmp_path)
+    path = tmp_path / "scenario_summary.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    manifest["original_commit"] = "main"
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(ValueError, match="does not match the audited pinned source"):
+        audit(tmp_path)
+
+
+def test_audit_rejects_csv_requested_replicate_mismatch(tmp_path):
+    _fixture(tmp_path)
+    path = tmp_path / "scenario_summary.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    rows[0]["requested_replicates"] = "3"
+    _write_csv(path, rows)
+    with pytest.raises(ValueError, match="CSV summary replicate count mismatch"):
         audit(tmp_path)
