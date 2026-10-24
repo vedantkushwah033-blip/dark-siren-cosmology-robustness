@@ -94,6 +94,14 @@ The Wilson interval helper explicitly returns exact boundary values for zero suc
 There is no formal release or validated research result to cite yet. A citation file and formal release can be added once the authorship, version, and intended citation are settled.
 
 
+### Recent validation notes
+
+- [Validation status as of 2026-10-24](docs/validation_status_2026-10-24.md): distinguishes verified software checks from outstanding experiment and scientific-validation work.
+- [Project use and intended audience](docs/project_use_and_audience.md): explains appropriate use cases and explicitly states what the synthetic study cannot establish.
+- [Raw grid-refinement artifact reanalysis](docs/grid_refinement_artifact_reanalysis_2026-10-24.md): inspects the archived 21,600-fit artifact, quantifies paired discrepancies across grid sizes, and documents the extreme upper-95% tail case and targeted finer-grid follow-up.
+
+The raw-artifact reanalysis finds that typical posterior-median discrepancies are small, but tail credible endpoints can be more grid-sensitive. In the worst identified case, the upper 95% endpoint changes by 0.13045 between 1,001 and 4,001 grid points; a targeted 64,001-point follow-up approaches approximately 60.710 for that specific synthetic observation. This is not a universal error bound. Do not describe the grid as uniformly converged until prespecified accuracy criteria have been assessed across relevant cases.
+
 ### Posterior grid refinement
 
 The completed deterministic grid-refinement audit and its interpretation are documented in [grid-refinement results](docs/selection_grid_refinement_results.md). The workflow compared 1,001-, 4,001-, and 8,001-point posterior grids for three fixed toy observations; it should not be interpreted as a universal error guarantee.
