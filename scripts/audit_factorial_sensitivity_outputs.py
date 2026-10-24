@@ -117,6 +117,8 @@ def audit(root: Path) -> dict:
             if value not in {"true", "false"}:
                 raise ValueError(f"{name}: host_observed must be a boolean, got {value!r}")
             host_observed.append(value == "true")
+        if target == 1.0 and not all(host_observed):
+            raise ValueError(f"{name}: complete catalogue must have every simulated host observed")
         errors = [x - 70.0 for x in medians]
         mean_errors = [x - 70.0 for x in means]
         sorted_errors = sorted(errors)
@@ -125,7 +127,7 @@ def audit(root: Path) -> dict:
                        else (sorted_errors[mid - 1] + sorted_errors[mid]) / 2.0)
         expected_metrics = {
             "median_bias": median_bias,
-            "mean_bias": sum(errors) / n,
+            "mean_bias": sum(mean_errors) / n,
             "rmse_median": math.sqrt(sum(x*x for x in errors) / n),
             "rmse_mean": math.sqrt(sum(x*x for x in mean_errors) / n),
             "mean_width_68": sum(b-a for a, b in zip(lo68, hi68)) / n,
