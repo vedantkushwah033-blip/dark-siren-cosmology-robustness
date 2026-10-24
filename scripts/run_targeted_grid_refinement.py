@@ -81,7 +81,7 @@ def main():
     rows = run(Path(args.flagged_cases), Path(args.per_run))
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    fields = list(rows[0]) if rows else list(IDENTITY) + ["observed_distance_mpc", "grid_size", *SUMMARY_KEYS]
+    fields = list(rows[0]) if rows else list(IDENTITY) + ["observed_distance_mpc", "grid_size", "posterior_area_on_prior_support", *SUMMARY_KEYS]
     with output.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
