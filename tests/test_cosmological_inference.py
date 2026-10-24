@@ -21,6 +21,13 @@ def test_flat_lcdm_distance_grid_matches_cosmology_reference():
     )
 
 
+def test_forward_distance_model_accepts_single_truth_value():
+    distances = distance_grid_for_model([70.0], [0.1], "flat_lcdm")
+    assert distances.shape == (1, 1)
+    assert np.isfinite(distances[0, 0])
+    assert distances[0, 0] > 0
+
+
 def test_low_z_model_reproduces_linear_distance_relation():
     h0 = np.array([60.0, 70.0, 80.0])
     z = np.array([0.02, 0.04])
