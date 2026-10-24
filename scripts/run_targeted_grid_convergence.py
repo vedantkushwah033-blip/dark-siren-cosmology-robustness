@@ -10,7 +10,7 @@ import csv
 from pathlib import Path
 
 import numpy as np
-from scipy.integrate import trapezoid
+from scipy.integrate import simpson, trapezoid
 
 from dark_siren_robustness.hardened_inference import (
     C_KM_S,
@@ -45,7 +45,12 @@ def calculate_convergence():
         )
         summary = posterior_summary(grid, density)
         prior_support = (grid >= PRIOR_MIN) & (grid <= PRIOR_MAX)
-        posterior_area_on_prior_support = float(trapezoid(density[prior_support], grid[prior_support]))
+        posterior_area_on_prior_support = float(
+            trapezoid(density[prior_support], grid[prior_support])
+        )
+        posterior_area_simpson_on_prior_support = float(
+            simpson(density[prior_support], x=grid[prior_support])
+        )
         row = {
             "grid_size": size,
             "H0_true": H0_TRUE,
@@ -55,6 +60,10 @@ def calculate_convergence():
             "observed_distance_mpc": OBSERVED_DISTANCE_MPC,
             "inference_weighting": "reversed_0.3_0.7",
             "posterior_area_on_prior_support": posterior_area_on_prior_support,
+            "posterior_area_simpson_on_prior_support": posterior_area_simpson_on_prior_support,
+            "abs_area_rule_difference": abs(
+                posterior_area_on_prior_support - posterior_area_simpson_on_prior_support
+            ),
             "posterior_median": summary["median"],
             "lower_68": summary["lower_68"],
             "upper_68": summary["upper_68"],
