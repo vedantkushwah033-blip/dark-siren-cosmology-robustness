@@ -88,6 +88,10 @@ A separate paired experiment varies three prior intervals, four assumed detectio
 
 To launch the full factorial run, open the [full prior-threshold factorial workflow](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/workflows/full-prior-threshold-factorial.yml), choose **Run workflow**, and use the protocol settings. The workflow is manually dispatched; editing or committing code does not launch the full experiment. A successful run should generate 21,600 raw rows, 72 summary rows, and 396 paired-contrast rows, plus `experiment_manifest.json`. These are expected counts, not claims that a full run has already completed. Inspect the run conclusion and download the artifacts before reporting results.
 
+## Posterior-grid numerical sensitivity
+
+A reproducible grid-resolution audit now compares the same simulated observations at 2,001-, 4,001-, and 8,001-point (H_0) grids for all four distance/host-mixture arms. It reports posterior median and interval-endpoint differences relative to the 8,001-point reference grid. The workflow runs 30 replicates per design cell and archives the raw posterior summaries and comparison table. This tests numerical discretization sensitivity only; it does not add observational realism. See [the audit script](scripts/run_joint_grid_resolution_audit.py), [its tests](tests/test_joint_grid_resolution_audit.py), and [the automated workflow](.github/workflows/joint-grid-resolution-audit.yml). Results should be interpreted only after that workflow succeeds and its artifact is inspected.
+
 ## Interpretation limits
 
 The current simulations use a simplified low-redshift relation in the original inference experiment, a Gaussian distance likelihood, a finite (H_0) grid, and a generated galaxy population. Redshift-dependent missingness is a designed stress test, not a calibrated survey selection function. A passing test suite establishes only the software properties actually covered by tests; it does not establish scientific realism or the truth of any hypothesis.
