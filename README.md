@@ -280,6 +280,12 @@ The [joint distance-model × host-mixture protocol](docs/joint_distance_model_ho
 The initial paired implementation, smoke tests, and CI workflow are committed. The planned design has 27 cells and 8,100 shared synthetic observations analyzed by four inference arms (32,400 posterior rows). It includes paired contrasts for distance-model mismatch and host-mixture collapse, plus a difference-in-differences interaction contrast. This is still a validation-in-progress stage: do not treat results as findings until the workflow succeeds and raw artifacts are independently audited. See the [protocol](docs/joint_distance_model_host_mixture_protocol.md), [runner](scripts/run_joint_distance_model_host_mixture.py), [tests](tests/test_joint_distance_model_host_mixture.py), and [workflow](.github/workflows/joint-distance-host-mixture.yml).
 
 
+## Completed factorial sensitivity experiment
+
+The nine-scenario factorial study and both oracle controls completed successfully on 2026-10-24. The artifact contains 4,500 main factorial records, 3,000 missing-host control records, and 1,000 full-population oracle records. Independent post-download checks reproduced core summary statistics to floating-point precision and verified exact posterior equality across paired masks in the full-population oracle. The main result is substantial overcoverage (nominal 68% intervals covered 93.2–95.6%; nominal 95% intervals covered 99.2–100%), so these outputs should be interpreted as a calibration warning rather than evidence of calibrated precision. See the [audited results report](docs/factorial_sensitivity_results_2026-10-24.md) and [successful workflow](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40141336573).
+
+The oracle runner's `median_bias` definition has since been standardized to match the main factorial's median-of-errors definition, with regression tests added. The historical artifact remains unchanged; rerun the workflow before using corrected oracle median-bias values. This is a synthetic model study, not an observational H0 measurement.
+
 ## Latest validation milestone
 
 The full test suite passed on Python 3.10, 3.11, and 3.12. The joint distance-model × host-mixture experiment passed its independent output audit, and the posterior-grid resolution audit completed successfully. Read the [validation milestone report](docs/validation_milestone_2026-10-24.md) for run links, counts, numerical findings, and limitations. These results are synthetic diagnostics, not an observational H0 measurement.
