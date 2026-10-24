@@ -84,7 +84,7 @@ def main():
         with path.open(newline="",encoding="utf-8") as f:
             reader=csv.DictReader(f); read=list(reader)
             if reader.fieldnames!=fields or len(read)!=len(data): raise RuntimeError("Artifact validation failed.")
-    expected= len(TRUTHS)*len(PRIORS)*replicates
+    expected = len(TRUTHS) * len(PRIORS) * a.replicates
     if len(rows)!=expected or len(summaries)!=len(TRUTHS)*len(PRIORS)*len(METHODS):
         raise RuntimeError("Incomplete prior-support experiment.")
     print(f"PASS: {len(rows)} paired observation/prior rows and {len(summaries)} summaries.")
