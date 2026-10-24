@@ -14,6 +14,8 @@ def test_targeted_convergence_is_finite_and_complete():
     assert [row["grid_size"] for row in rows] == list(module.GRID_SIZES)
     fields = ("posterior_median", "lower_68", "upper_68", "lower_95", "upper_95")
     assert all(np.isfinite(float(row[key])) for row in rows for key in fields)
+    assert all(np.isfinite(float(row["posterior_area_on_prior_support"])) for row in rows)
+    assert all(abs(float(row["posterior_area_on_prior_support"]) - 1.0) <= 1e-8 for row in rows)
     assert all(row["lower_95"] <= row["lower_68"] <= row["posterior_median"]
                <= row["upper_68"] <= row["upper_95"] for row in rows)
 
