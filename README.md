@@ -99,6 +99,7 @@ There is no formal release or validated research result to cite yet. A citation 
 - [Validation status as of 2026-10-24](docs/validation_status_2026-10-24.md): distinguishes verified software checks from outstanding experiment and scientific-validation work.
 - [Project use and intended audience](docs/project_use_and_audience.md): explains appropriate use cases and explicitly states what the synthetic study cannot establish.
 - [Raw grid-refinement artifact reanalysis](docs/grid_refinement_artifact_reanalysis_2026-10-24.md): inspects the archived 21,600-fit artifact, quantifies paired discrepancies across grid sizes, and documents the extreme upper-95% tail case and targeted finer-grid follow-up.
+- [Factorial experiment interpretation plan](docs/factorial_experiment_interpretation_plan.md): predefines how bias, RMSE, interval coverage, widths, paired contrasts, and Monte Carlo uncertainty will be interpreted without overstating the synthetic results.
 
 The raw-artifact reanalysis finds that typical posterior-median discrepancies are small, but tail credible endpoints can be more grid-sensitive. In the worst identified case, the upper 95% endpoint changes by 0.13045 between 1,001 and 4,001 grid points; a targeted 64,001-point follow-up approaches approximately 60.710 for that specific synthetic observation. This is not a universal error bound. Do not describe the grid as uniformly converged until prespecified accuracy criteria have been assessed across relevant cases.
 
