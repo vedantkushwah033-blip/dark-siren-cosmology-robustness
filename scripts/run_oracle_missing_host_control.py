@@ -13,6 +13,13 @@ from pathlib import Path
 import sys
 from statistics import median
 
+def median_bias_from_rows(rows, true_h0=70.0):
+    """Median across runs of posterior-median errors, consistently defined."""
+    if not rows:
+        raise ValueError("rows must not be empty")
+    return float(median(float(row["median"]) - true_h0 for row in rows))
+
+
 SCENARIOS = (
     ("random70_observed_only", "random", False, "inference"),
     ("random70_missing_term_inference_weights", "random", True, "inference"),
@@ -60,7 +67,7 @@ def main() -> None:
         metrics = summarize_runs(rows, true_h0=70.0)
         # Match the main factorial's explicit definition: median across runs
         # of each run's posterior-median error, not the mean of those errors.
-        metrics["median_bias"] = float(median(float(row["median"]) - 70.0 for row in rows))
+        metrics["median_bias"] = median_bias_from_rows(rows, true_h0=70.0)
         summaries.append({
             "scenario": name,
             "missingness": missingness,
