@@ -39,6 +39,6 @@ jobs:
           name: coverage-transition-python-${{ matrix.python-version }}
           path: |
             results/coverage-transition/per_run.csv
-            results/coverage-transition/summary.csv
+            results/coverage-transition/summary.csv\n            results/coverage-transition/paired_method_contrasts.csv
           if-no-files-found: error
           retention-days: 90
