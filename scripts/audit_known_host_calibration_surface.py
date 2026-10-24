@@ -126,19 +126,29 @@ def main() -> None:
         raise ValueError("metadata row/cell counts do not match the design")
     if metadata.get("prior") != [50.0, 90.0]:
         raise ValueError("unexpected prior in metadata")
+    expected_truths = [50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0, 90.0]
+    expected_noise = [0.05, 0.10, 0.15, 0.20]
+    if metadata.get("true_h0_values") != expected_truths or metadata.get("fractional_distance_errors") != expected_noise:
+        raise ValueError("metadata design grid does not match the prespecified protocol")
 
     grouped: dict[tuple[float, float], list[dict[str, str]]] = defaultdict(list)
     seen = set()
     paired: dict[tuple[float, int], list[dict[str, str]]] = defaultdict(list)
+    base_seed = int(metadata["seed"])
     for row in raw:
         key = (float(row["true_h0"]), float(row["fractional_distance_error"]), int(row["run"]))
         if key in seen:
             raise ValueError(f"duplicate raw replicate key: {key}")
+        if not 0 <= key[2] < args.replicates:
+            raise ValueError(f"replicate index outside requested range: {key}")
+        if int(row["seed"]) != base_seed + key[2]:
+            raise ValueError(f"seed does not match replicate index for {key}")
         seen.add(key)
         grouped[key[:2]].append(row)
         paired[(key[0], key[2])].append(row)
-    if len(grouped) != 36:
-        raise ValueError(f"expected 36 unique cells, found {len(grouped)}")
+    expected_cells = {(truth, noise) for truth in expected_truths for noise in expected_noise}
+    if set(grouped) != expected_cells:
+        raise ValueError(f"raw cell grid mismatch; missing={sorted(expected_cells - set(grouped))}, extra={sorted(set(grouped) - expected_cells)}")
     for key, cell in grouped.items():
         if len(cell) != args.replicates:
             raise ValueError(f"cell {key} has {len(cell)} records, expected {args.replicates}")
