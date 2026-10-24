@@ -3,7 +3,10 @@ from __future__ import annotations
 import argparse, csv, json
 from pathlib import Path
 import numpy as np
-try:\n    from scripts.run_joint_distance_model_host_mixture import stable_seed, TRUTHS, HOSTS, WEIGHTS\nexcept ModuleNotFoundError:\n    from run_joint_distance_model_host_mixture import stable_seed, TRUTHS, HOSTS, WEIGHTS
+try:
+    from scripts.run_joint_distance_model_host_mixture import stable_seed, TRUTHS, HOSTS, WEIGHTS
+except ModuleNotFoundError:
+    from run_joint_distance_model_host_mixture import stable_seed, TRUTHS, HOSTS, WEIGHTS
 
 KEYS=("true_H0","host_z1","host_z2","weight1","weight2")
 ARMS=("lcdm_two_host","lowz_two_host","lcdm_collapsed","lowz_collapsed")
