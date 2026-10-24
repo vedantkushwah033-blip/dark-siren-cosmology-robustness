@@ -15,7 +15,8 @@ def test_nonzero_lower_threshold_audit_is_finite():
     assert {r["method"] for r in rows} == {"uncorrected", "selection_normalized"}
     assert all(float(r["detection_min_mpc"]) == 20.0 for r in rows)
     assert all(float(r["detection_max_mpc"]) == 180.0 for r in rows)
-    assert all(np.isfinite(float(v)) for r in rows for v in r.values())
+    numeric_keys = ("observed_distance_mpc", "grid_size", "detection_min_mpc", "detection_max_mpc", "beta_min_on_grid", "beta_max_on_grid", "mean", "median", "posterior_sd", "lower_68", "upper_68", "lower_95", "upper_95")
+    assert all(np.isfinite(float(r[key])) for r in rows for key in numeric_keys)
 
 def test_observation_below_lower_detection_threshold_rejected():
     from dark_siren_robustness.selection import posterior_h0_selected
