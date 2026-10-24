@@ -85,6 +85,10 @@ A flat-ΛCDM distance function and numerical tests have been added. The planned 
 
 The current simulations use a simplified low-redshift relation in the original inference experiment, a Gaussian distance likelihood, a finite (H_0) grid, and a generated galaxy population. Redshift-dependent missingness is a designed stress test, not a calibrated survey selection function. A passing test suite establishes only the software properties actually covered by tests; it does not establish scientific realism or the truth of any hypothesis.
 
+The fixed-truth coverage map uses a bounded uniform prior (H_0\in[50,90]). When the true value is near either edge, posterior credible intervals are constrained by the prior support; pointwise frequentist coverage can therefore be poor even when the selection-conditioned likelihood is implemented correctly. This is a property of the bounded inferential setup that must be reported, not hidden by changing the data-generating process. The prior-predictive SBC audit and fixed-truth coverage map answer different questions and must not be treated as interchangeable validation tests. Coverage fractions are Monte Carlo estimates; consult their Wilson intervals before interpreting small differences between methods.
+
+The Wilson interval helper explicitly returns exact boundary values for zero successes and all successes. Independent adaptive quadrature checks are being added to compare posterior normalization from grid integration against a separate numerical integration route. Their status must be verified from the corresponding GitHub Actions run before claiming that check passed.
+
 ## Citation
 
 There is no formal release or validated research result to cite yet. A citation file and formal release can be added once the authorship, version, and intended citation are settled.
