@@ -139,3 +139,5 @@ def test_experiment_manifest_records_design_and_artifact_counts():
     assert manifest["true_detection_interval_mpc"]==[module.TRUE_MIN,module.TRUE_MAX]
     assert manifest["assumed_detection_upper_thresholds_mpc"]==list(module.ASSUMED_MAXIMA)
     assert manifest["numpy_version"]==np.__version__
+    from importlib.metadata import version
+    assert manifest["package_version"] == version("dark-siren-cosmology-robustness")
