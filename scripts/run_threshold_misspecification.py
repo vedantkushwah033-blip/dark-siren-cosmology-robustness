@@ -121,6 +121,8 @@ def main():
     p.add_argument("--output-dir",default="results/threshold-misspecification")
     a=p.parse_args(); rows,summaries=run(a.replicates,a.seed,a.grid_size)
     out=Path(a.output_dir);write_csv(out/"per_run.csv",rows);write_csv(out/"summary.csv",summaries)
+    contrasts=paired_threshold_contrasts(rows)
+    write_csv(out/"paired_threshold_contrasts.csv",contrasts)
     expected=len(TRUTHS)*a.replicates*len(INFERRED_MAXIMA)
     if len(rows)!=expected: raise RuntimeError(f"Expected {expected} rows, got {len(rows)}")
     print(f"PASS: {len(rows)} per-run rows; {len(summaries)} summaries; {len(contrasts)} paired threshold contrasts")
