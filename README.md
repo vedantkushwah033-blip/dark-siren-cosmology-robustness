@@ -231,3 +231,6 @@ The [cross-experiment synthesis of selection normalization and prior-boundary ef
 ### Next prespecified control
 
 The [single-host fixed-truth selection control protocol](docs/single_host_fixed_truth_control_protocol.md) defines a diagnostic to separate two-host mixture effects from prior-boundary and selection effects. It is a protocol only; no results are claimed until the implementation and experiment run and pass validation.
+### Single-host fixed-truth selection control
+
+The [single-host fixed-truth control](scripts/run_single_host_fixed_truth_control.py) and [focused tests](tests/test_single_host_fixed_truth_control.py) implement the previously prespecified protocol in [the protocol document](docs/single_host_fixed_truth_control_protocol.md). The manually dispatchable [GitHub Actions workflow](.github/workflows/single-host-fixed-truth-control.yml) runs 300 observations at each of nine fixed truths, compares paired corrected and uncorrected inference, and emits raw rows, coverage summaries with Wilson intervals, paired absolute-error bootstrap intervals, and a runtime manifest. Results are not claimed until that workflow completes and its artifact is checked.
