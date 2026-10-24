@@ -135,3 +135,25 @@ def test_validator_rejects_a_corrupted_summary_metric(valid_factorial_artifacts,
             corrupted,
             valid_factorial_artifacts["contrasts"],
         )
+
+
+def test_validator_rejects_summary_replicate_count_mismatch(valid_factorial_artifacts, tmp_path):
+    import csv
+
+    original = valid_factorial_artifacts["summary"]
+    corrupted = tmp_path / "wrong_n_summary.csv"
+    with original.open(newline="", encoding="utf-8") as source:
+        reader = csv.DictReader(source)
+        fields = reader.fieldnames
+        rows = list(reader)
+    rows[0]["n"] = str(int(rows[0]["n"]) + 1)
+    with corrupted.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+    with pytest.raises(ValueError, match="Summary replicate count mismatch"):
+        module.validate(
+            valid_factorial_artifacts["per_run"],
+            corrupted,
+            valid_factorial_artifacts["contrasts"],
+        )
