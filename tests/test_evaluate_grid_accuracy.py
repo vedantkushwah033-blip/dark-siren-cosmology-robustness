@@ -69,3 +69,20 @@ def test_accuracy_evaluator_rejects_missing_resolution(tmp_path):
         assert "Incomplete resolution triplet" in str(exc)
     else:
         raise AssertionError("Expected incomplete grid triplet to be rejected")
+
+
+
+def test_accuracy_evaluator_fails_if_independent_area_is_not_normalized(tmp_path):
+    source = tmp_path / "per_run.csv"
+    write_fixture(source, coarse_upper_shift=0.001)
+    rows = list(csv.DictReader(source.open(encoding="utf-8")))
+    for row in rows:
+        row["posterior_area_on_prior_support"] = "1.0001"
+    with source.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    assessment, cells, cases = module.evaluate(source)
+    assert assessment["normalization_checked_rows"] == 9
+    assert assessment["normalization_failures"] == 9
+    assert assessment["status"] == "FAIL"
