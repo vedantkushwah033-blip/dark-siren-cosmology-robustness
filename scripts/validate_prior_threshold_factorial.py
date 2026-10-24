@@ -201,6 +201,21 @@ def validate(per_run_path: Path, summary_path: Path, contrasts_path: Path):
             raise ValueError(f"Insufficient bootstrap draws for {key}")
     if len(seen_contrasts) != expected_contrasts:
         raise ValueError("Paired contrast configuration set is incomplete")
+    expected_contrast_keys = set()
+    metrics = ("median", "absolute_error", "width_68", "width_95", "coverage_68", "coverage_95")
+    for truth, method, (pmin, pmax), threshold, metric in product(
+        factorial.TRUTHS, factorial.METHODS, factorial.PRIORS,
+        factorial.ASSUMED_MAXIMA, metrics
+    ):
+        if (pmin, pmax) == (50.0, 90.0) and threshold == 120.0:
+            continue
+        expected_contrast_keys.add(
+            (float(truth), method, metric, f"[{pmin:g},{pmax:g}]", float(threshold))
+        )
+    if seen_contrasts != expected_contrast_keys:
+        missing = len(expected_contrast_keys - seen_contrasts)
+        unexpected = len(seen_contrasts - expected_contrast_keys)
+        raise ValueError(f"Paired contrast design mismatch: {missing} missing keys, {unexpected} unexpected keys")
 
     bootstrap_draw_counts = {int(row["bootstrap_draws"]) for row in contrasts}
     bootstrap_seeds = {int(row["bootstrap_seed"]) for row in contrasts}
