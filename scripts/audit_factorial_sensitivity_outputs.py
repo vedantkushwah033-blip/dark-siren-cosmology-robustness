@@ -101,6 +101,41 @@ def audit(root: Path) -> dict:
             checked += 1
         if len(indices) != n:
             raise ValueError(f"{name}: duplicate/missing run identifiers")
+        # Recompute core scientific summaries from raw replicate rows rather
+        # than merely checking their shape. median_bias is intentionally the
+        # median of replicate-level median errors in this experiment runner.
+        raw = grouped[name]
+        medians = [finite(row, "median", name) for row in raw]
+        means = [finite(row, "mean", name) for row in raw]
+        lo68 = [finite(row, "lower_68", name) for row in raw]
+        hi68 = [finite(row, "upper_68", name) for row in raw]
+        lo95 = [finite(row, "lower_95", name) for row in raw]
+        hi95 = [finite(row, "upper_95", name) for row in raw]
+        host_observed = [finite(row, "host_observed", name) for row in raw]
+        errors = [x - 70.0 for x in medians]
+        mean_errors = [x - 70.0 for x in means]
+        sorted_errors = sorted(errors)
+        mid = len(sorted_errors) // 2
+        median_bias = (sorted_errors[mid] if len(sorted_errors) % 2
+                       else (sorted_errors[mid - 1] + sorted_errors[mid]) / 2.0)
+        expected_metrics = {
+            "median_bias": median_bias,
+            "mean_bias": sum(errors) / n,
+            "rmse_median": math.sqrt(sum(x*x for x in errors) / n),
+            "rmse_mean": math.sqrt(sum(x*x for x in mean_errors) / n),
+            "mean_width_68": sum(b-a for a, b in zip(lo68, hi68)) / n,
+            "mean_width_95": sum(b-a for a, b in zip(lo95, hi95)) / n,
+            "coverage_68": sum(a <= 70.0 <= b for a, b in zip(lo68, hi68)) / n,
+            "coverage_95": sum(a <= 70.0 <= b for a, b in zip(lo95, hi95)) / n,
+            "host_observed_fraction": sum(host_observed) / n,
+        }
+        for metric, expected_value in expected_metrics.items():
+            stored = finite(srow, metric, f"{name} summary")
+            if not math.isclose(stored, expected_value, rel_tol=1e-9, abs_tol=1e-9):
+                raise ValueError(
+                    f"{name}: summary metric {metric} disagrees with raw rows "
+                    f"(stored={stored}, recomputed={expected_value})"
+                )
     return {"status": "PASS", "scenarios": len(EXPECTED), "replicates_per_scenario": n,
             "raw_rows_checked": checked, "summary_rows_checked": len(summary),
             "scientific_scope": "synthetic structural audit only"}
