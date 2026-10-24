@@ -59,6 +59,17 @@ def _fixture(root: Path) -> None:
     (root / "scenario_summary.json").write_text(json.dumps({
         "scenario_count": 9,
         "requested_replicates_per_scenario": 2,
+        "scenarios": [
+            {
+                "scenario": row["scenario"],
+                "target_completeness": row["target_completeness"],
+                "missingness": row["missingness"],
+                "host_generation": row["host_generation"],
+                "inference_weighting": row["inference_weighting"],
+                "requested_replicates": 2,
+            }
+            for row in summary
+        ],
     }), encoding="utf-8")
 
 
@@ -123,4 +134,23 @@ def test_audit_rejects_inconsistent_interval_width(tmp_path):
     rows[0]["width_68"] = "3.0"
     _write_csv(path, rows)
     with pytest.raises(ValueError, match="width_68 inconsistent"):
+        audit(tmp_path)
+
+def test_audit_rejects_json_manifest_design_mismatch(tmp_path):
+    _fixture(tmp_path)
+    path = tmp_path / "scenario_summary.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    manifest["scenarios"][0]["inference_weighting"] = "luminosity"
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(ValueError, match="JSON manifest design mismatch"):
+        audit(tmp_path)
+
+
+def test_audit_rejects_json_csv_design_mismatch(tmp_path):
+    _fixture(tmp_path)
+    path = tmp_path / "scenario_summary.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    manifest["scenarios"][0]["target_completeness"] = 0.7
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(ValueError, match="JSON manifest design mismatch"):
         audit(tmp_path)
