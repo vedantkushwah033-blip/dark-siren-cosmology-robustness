@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 from scipy.stats import chisquare, kstest
 
-from dark_siren_robustness.hardened_inference import C_KM_S
+from dark_siren_robustness.hardened_inference import C_KM_S, posterior_h0
 from dark_siren_robustness.selection import detection_efficiency_h0, posterior_h0_selected
 
 PRIOR_MIN, PRIOR_MAX = 50.0, 90.0
