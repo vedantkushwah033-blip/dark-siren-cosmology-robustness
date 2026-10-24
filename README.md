@@ -2,7 +2,7 @@
 
 A reproducible Bayesian simulation study of galaxy-catalogue incompleteness, host-population misspecification, and statistical calibration in dark-siren cosmology.
 
-**Research status:** early-stage simulation and validation scaffold. The unit-test suite passes, but the main factorial experiment has not yet produced validated scientific results. Do not treat this repository as a real gravitational-wave measurement or a validated (H_0) result.
+**Research status (updated 2026-10-24):** several synthetic experiments and numerical audits have completed, including selection-conditioned SBC controls, fixed-truth coverage maps, prior-support and threshold sensitivity, a 21,600-row prior-threshold factorial, quadrature checks, and posterior-grid accuracy checks. These are validated only within their stated toy-model assumptions; they do not establish astrophysical realism or a real H0 measurement. See the linked experiment reports below. The full repository test suite must be checked against the current commit rather than inferred from an older successful run.
 
 ## Research question
 
@@ -227,3 +227,7 @@ The full 300-replicate, 4,001-point prior-support × assumed-detection-threshold
 ### Cross-experiment scientific synthesis
 
 The [cross-experiment synthesis of selection normalization and prior-boundary effects](docs/cross_experiment_selection_and_prior_synthesis_2026-10-24.md) reconciles the prior-predictive SBC controls with fixed-truth coverage and prior-support experiments, distinguishes supported toy-model conclusions from untested claims, and prioritizes the next validation experiments. This is a synthesis of existing results, not a new simulation or observational result.
+
+### Next prespecified control
+
+The [single-host fixed-truth selection control protocol](docs/single_host_fixed_truth_control_protocol.md) defines a diagnostic to separate two-host mixture effects from prior-boundary and selection effects. It is a protocol only; no results are claimed until the implementation and experiment run and pass validation.
