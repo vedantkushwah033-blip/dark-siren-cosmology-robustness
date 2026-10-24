@@ -1,0 +1,29 @@
+name: Toy selection-normalization tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/dark_siren_robustness/selection.py"
+      - "tests/test_selection_normalization.py"
+      - ".github/workflows/selection-normalization.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  selection-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run selection-normalization tests
+        run: python -m pytest -q tests/test_selection_normalization.py
