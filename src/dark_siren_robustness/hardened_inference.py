@@ -85,11 +85,14 @@ def posterior_h0(
             mw[None, :] * norm.pdf(distance, loc=missing_distance_grid, scale=sigma), axis=1
         )
 
-    posterior = np.where((grid >= prior_lo) & (grid <= prior_hi), likelihood, 0.0)
-    # Preserve the legacy API's full-grid trapezoidal normalization. The
-    # summary routine separately restricts CDF/quantile calculations to the
-    # nonzero prior support so exterior zero bins cannot distort tail quantiles.
-    area = float(trapezoid(posterior, grid))
+    in_prior = (grid >= prior_lo) & (grid <= prior_hi)
+    if np.count_nonzero(in_prior) < 2:
+        raise ValueError("H0_grid must contain at least two points inside the prior interval.")
+    posterior = np.where(in_prior, likelihood, 0.0)
+    # Normalize over the actual prior support. Including exterior zero points
+    # in trapezoidal integration would create artificial half-bin mass where
+    # the density jumps at the discontinuous prior boundaries.
+    area = float(trapezoid(posterior[in_prior], grid[in_prior]))
     if not np.isfinite(area) or area <= 0:
         raise ValueError("Posterior normalization failed.")
     return posterior / area
