@@ -164,3 +164,8 @@ The factorial experiment's percentile bootstrap now resamples paired differences
 ### Additional regression tests for the factorial audit
 
 The focused tests now verify that all uncorrected posterior summaries (median and 68%/95% interval endpoints) remain invariant across assumed-threshold labels, and exercise paired-bootstrap determinism on a small complete matched fixture. These checks complement the end-to-end compact experiment test and guard against accidental changes to the paired design.
+
+
+### Full-resolution factorial workflow
+
+A manually dispatched workflow is available at `.github/workflows/full-prior-threshold-factorial.yml`. From GitHub's **Actions** tab, select **Full prior-threshold factorial experiment** and choose 300 replicates, a 4,001-point grid, and seed `20261028` for the protocol-default run. The workflow runs focused regression tests, executes the factorial script, checks expected CSV row counts and finite numeric values, and uploads all three CSV artifacts for 90 days. It is not automatically dispatched by this documentation commit; a user must explicitly start the workflow in GitHub Actions. The workflow's successful completion and its artifact contents must be verified before the full run is described as complete.
