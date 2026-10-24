@@ -269,3 +269,8 @@ In this simulator, low-redshift inference increasingly underestimates H0 as reds
 ### Next joint experiment: distance model × host-mixture structure
 
 The [joint distance-model × host-mixture protocol](docs/joint_distance_model_host_mixture_protocol.md) prespecifies a paired 27-cell, 8,100-observation synthetic experiment. It separates distance-relation mismatch from collapsing a two-host mixture to one effective redshift, and defines a difference-in-differences interaction contrast. **Protocol only:** implementation, execution, independent artifact audit, and results are not yet complete; no findings are claimed from this planned experiment.
+
+
+### Joint distance-model × host-mixture experiment
+
+The initial paired implementation, smoke tests, and CI workflow are committed. The planned design has 27 cells and 8,100 shared synthetic observations analyzed by four inference arms (32,400 posterior rows). It includes paired contrasts for distance-model mismatch and host-mixture collapse, plus a difference-in-differences interaction contrast. This is still a validation-in-progress stage: do not treat results as findings until the workflow succeeds and raw artifacts are independently audited. See the [protocol](docs/joint_distance_model_host_mixture_protocol.md), [runner](scripts/run_joint_distance_model_host_mixture.py), [tests](tests/test_joint_distance_model_host_mixture.py), and [workflow](.github/workflows/joint-distance-host-mixture.yml).
