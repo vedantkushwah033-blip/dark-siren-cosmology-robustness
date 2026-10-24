@@ -29,7 +29,7 @@ def unnormalized_selected_likelihood(h0: float, distance: float) -> float:
     return base / beta
 
 def run_audit(grid_size: int = 4001) -> list[dict]:
-    if grid_size < 1001 or (grid_size - 1) % 10 != 0:
+    if grid_size < 1001 or (grid_size - 1) % 20 != 0:
         raise ValueError("grid_size must be >=1001 and chosen so the prior endpoints lie on the grid.")
     grid = np.linspace(25.0, 125.0, grid_size)
     support = (grid >= PRIOR_MIN) & (grid <= PRIOR_MAX)
