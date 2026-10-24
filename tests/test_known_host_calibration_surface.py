@@ -103,3 +103,13 @@ def test_summary_rejects_nonfinite_truth():
             true_h0=float("nan"),
             fractional_error=0.1,
         )
+
+@pytest.mark.parametrize("true_h0", [49.9, 90.1])
+def test_summary_rejects_truth_outside_prior_support(true_h0):
+    with pytest.raises(ValueError, match="within prior support"):
+        MODULE.summarize_cell(
+            [row(70.0, 65.0, 75.0, 64.0, 76.0)],
+            true_h0=true_h0,
+            fractional_error=0.1,
+        )
+
