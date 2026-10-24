@@ -146,3 +146,8 @@ A new paired experiment generates detected observations under a 120 Mpc toy thre
 ### Prior-support × detection-threshold factorial audit
 
 The [factorial protocol](docs/prior_threshold_factorial_protocol.md) defines a paired experiment varying three prior intervals, four assumed detection thresholds, three true H0 values, and both corrected/uncorrected methods. It reports coverage Wilson intervals and paired bootstrap contrasts. The experiment is a synthetic toy-model sensitivity analysis, not a real detector model; results should be interpreted only after inspecting the generated artifacts and CI status.
+
+
+### Prior-support × detection-threshold factorial artifact review
+
+The compact CI artifacts have been downloaded and audited for row counts, expected configuration coverage, finite numeric values, and interpretation risks. The artifact review documents selected provisional results and limitations; the compact run is a smoke test, not the full 300-replicate analysis. See [artifact review and compact-run diagnostics](docs/prior_threshold_factorial_results.md). Do not present the compact CI results as final or observational H0 measurements.
