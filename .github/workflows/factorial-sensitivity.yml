@@ -22,8 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      REPLICATES: ${{ inputs.replicates }}
-      BASE_SEED: ${{ inputs.seed }}
+      REPLICATES: ${{ inputs.replicates || '500' }}
+      BASE_SEED: ${{ inputs.seed || '2026' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
