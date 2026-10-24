@@ -92,20 +92,37 @@ def wilson_interval(successes: int, n: int, z: float = 1.959963984540054) -> lis
 
 
 def percentile(xs: list[float], q: float) -> float:
-    xs = sorted(xs)
-    p = (len(xs) - 1) * q
+    """Linearly interpolated sample percentile with explicit input checks."""
+    if not xs:
+        raise ValueError("percentile requires at least one value")
+    if not math.isfinite(q) or not 0.0 <= q <= 1.0:
+        raise ValueError("q must be finite and between 0 and 1")
+    values = [float(value) for value in xs]
+    if not all(math.isfinite(value) for value in values):
+        raise ValueError("percentile values must all be finite")
+    values.sort()
+    p = (len(values) - 1) * q
     lo = int(math.floor(p))
     hi = int(math.ceil(p))
-    return xs[lo] + (xs[hi] - xs[lo]) * (p - lo)
+    return values[lo] + (values[hi] - values[lo]) * (p - lo)
 
 
 def bootstrap_mean_difference(a: list[float], b: list[float], rng: random.Random,
                               repetitions: int) -> dict:
-    observed = sum(b) / len(b) - sum(a) / len(a)
+    """Independent bootstrap for B-minus-A when scenario seeds are unpaired."""
+    if not a or not b:
+        raise ValueError("both scenarios must contain at least one replicate")
+    if repetitions < 1:
+        raise ValueError("repetitions must be positive")
+    a_values = [float(value) for value in a]
+    b_values = [float(value) for value in b]
+    if not all(math.isfinite(value) for value in a_values + b_values):
+        raise ValueError("scenario values must all be finite")
+    observed = sum(b_values) / len(b_values) - sum(a_values) / len(a_values)
     diffs = []
     for _ in range(repetitions):
-        aa = [a[rng.randrange(len(a))] for _ in a]
-        bb = [b[rng.randrange(len(b))] for _ in b]
+        aa = [a_values[rng.randrange(len(a_values))] for _ in a_values]
+        bb = [b_values[rng.randrange(len(b_values))] for _ in b_values]
         diffs.append(sum(bb) / len(bb) - sum(aa) / len(aa))
     return {
         "difference_B_minus_A": observed,
