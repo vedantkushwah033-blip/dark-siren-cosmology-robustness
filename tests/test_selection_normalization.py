@@ -65,7 +65,7 @@ def test_invalid_host_weights_are_rejected(weights):
 
 
 def test_selected_inference_rejects_undetected_observation():
-    with pytest.raises(ValueError, match="below the detection threshold"):
+    with pytest.raises(ValueError, match="detection interval"):
         posterior_h0_selected(np.linspace(25, 125, 1001), [0.02], 200.0, 10.0, 150.0)
 
 
