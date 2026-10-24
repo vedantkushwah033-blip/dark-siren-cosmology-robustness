@@ -11,8 +11,8 @@ SPEC.loader.exec_module(module)
 def write_fixture(path, coarse_upper_shift=0.02):
     fields = [
         "H0_true", "z2", "noise_fraction", "replicate", "inference_weighting",
-        "grid_size", "observed_distance_mpc", "posterior_median", "lower_68",
-        "upper_68", "lower_95", "upper_95",
+        "grid_size", "observed_distance_mpc", "posterior_area_on_prior_support",
+        "posterior_median", "lower_68", "upper_68", "lower_95", "upper_95",
     ]
     rows = []
     for rep in range(3):
@@ -21,6 +21,7 @@ def write_fixture(path, coarse_upper_shift=0.02):
                 "H0_true": 70.0, "z2": 0.04, "noise_fraction": 0.03,
                 "replicate": rep, "inference_weighting": "correct",
                 "grid_size": grid, "observed_distance_mpc": 100.0 + rep,
+                "posterior_area_on_prior_support": 1.0,
                 "posterior_median": 70.0 + delta / 10,
                 "lower_68": 65.0 - delta / 10, "upper_68": 75.0 + delta / 10,
                 "lower_95": 60.0 - delta / 10, "upper_95": 80.0 + delta,
@@ -86,3 +87,22 @@ def test_accuracy_evaluator_fails_if_independent_area_is_not_normalized(tmp_path
     assert assessment["normalization_checked_rows"] == 9
     assert assessment["normalization_failures"] == 9
     assert assessment["status"] == "FAIL"
+
+
+
+def test_accuracy_evaluator_rejects_missing_normalization_diagnostic(tmp_path):
+    source = tmp_path / "per_run.csv"
+    write_fixture(source, coarse_upper_shift=0.001)
+    rows = list(csv.DictReader(source.open(encoding="utf-8")))
+    for row in rows:
+        row.pop("posterior_area_on_prior_support")
+    with source.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    try:
+        module.evaluate(source)
+    except ValueError as exc:
+        assert "Missing posterior_area_on_prior_support" in str(exc)
+    else:
+        raise AssertionError("Expected missing normalization diagnostics to be rejected")
