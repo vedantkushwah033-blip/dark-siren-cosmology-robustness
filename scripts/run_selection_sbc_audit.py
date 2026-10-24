@@ -82,7 +82,8 @@ def run_audit(replicates=2000, seed=20261027, grid_size=4001):
     counts, _ = np.histogram(ranks, bins=np.linspace(0.0, 1.0, 11))
     chi = chisquare(counts, f_exp=np.full(10, replicates / 10.0))
     beta_grid = detection_efficiency_h0(
-        grid, HOST_REDSHIFTS, SIGMA_MPC, DETECTION_DISTANCE_MAX, HOST_WEIGHTS
+        grid, HOST_REDSHIFTS, SIGMA_MPC, DETECTION_DISTANCE_MAX, HOST_WEIGHTS,
+        detection_distance_min=0.0,
     )
     summary = {
         "replicates": replicates,
