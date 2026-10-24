@@ -31,9 +31,16 @@ REFINEMENT_TOLERANCE = 0.001
 
 def load_and_pair(path: Path):
     with path.open(newline="", encoding="utf-8") as handle:
-        rows = list(csv.DictReader(handle))
+        reader = csv.DictReader(handle)
+        fields = set(reader.fieldnames or [])
+        rows = list(reader)
     if not rows:
         raise ValueError(f"No rows found in {path}")
+    if "posterior_area_on_prior_support" not in fields:
+        raise ValueError(
+            "Missing posterior_area_on_prior_support: this audit requires an "
+            "independently integrated area for every grid fit; rerun the current audit script."
+        )
     paired = {}
     for line, row in enumerate(rows, 2):
         try:
@@ -45,6 +52,9 @@ def load_and_pair(path: Path):
             raise ValueError(f"Malformed row {line}: {exc}") from exc
         if size not in (1001, 2001, 4001):
             raise ValueError(f"Unexpected grid_size={size} at row {line}")
+        area = float(row["posterior_area_on_prior_support"])
+        if not np.isfinite(area):
+            raise ValueError(f"Non-finite posterior area at row {line}")
         interval_keys = ("lower_95", "lower_68", "posterior_median", "upper_68", "upper_95")
         interval = [float(row[name]) for name in interval_keys]
         if not np.all(np.isfinite(interval)):
