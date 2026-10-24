@@ -1,63 +1,50 @@
 # Independent posterior reference audit
 
-**Status:** Passed on 2026-10-24  
-**Workflow:** https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40067150477  
-**Artifact:** `independent-reference-audit-results` (42 row CSV)
+**Status:** Passed after fixing a prior-boundary integration defect.  
+**Workflow:** https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40067663955  
+**Artifact:** `independent-reference-audit-results` (42-row CSV)
 
-## Purpose and scope
+## Why the audit changed
 
-This audit checks numerical integration and quantile extraction in the simplified synthetic two-host dark-siren model. It compares the repository's grid-based posterior summaries with an independently calculated reference: adaptive quadrature of the weighted Gaussian-mixture likelihood over the uniform prior interval [50, 90] km s^-1 Mpc^-1, followed by root-finding for posterior quantiles.
+The initial comparison exposed a numerical bookkeeping problem in the posterior implementation. The prior density was set to zero outside the prior interval, but trapezoidal integration across the discontinuous transition from a nonzero boundary value to an exterior zero introduced artificial half-bin area. The posterior summary then integrated that representation across the entire computational grid. In some multimodal cases, this materially distorted tail quantiles.
 
-This is a numerical implementation check only. It is not observational validation, does not establish realistic selection modelling, and does not imply a real-data H0 measurement.
+The implementation now normalizes the posterior only over the prior-supported grid and summarizes only that support. Regression tests cover this boundary behavior. The earlier numerical table in this report was superseded; the values below are from the corrected implementation.
 
-## Design
+## Method and scope
 
-- Seven representative configurations spanning injected H0 values 52, 70, and 88; two-host redshift choices; two noise levels; and correct or reversed host weights.
-- Two deterministic host realizations per configuration, giving 14 observations.
-- Each observation summarized on 1,001-, 4,001-, and 16,001-point grids: 42 grid summaries.
-- Compared posterior median and central 68% and 95% interval endpoints.
-- Adaptive quadrature's reported absolute error estimate was at most 6.77e-12 for the normalization integral in these cases.
+The reference calculation integrates the weighted Gaussian-mixture likelihood adaptively over the uniform prior interval [50, 90] km s^-1 Mpc^-1 and uses root-finding to obtain posterior quantiles. This is independent of the grid-based CDF calculation, but intentionally uses the same likelihood and prior.
 
-## Absolute difference from adaptive-quadrature reference
-
-All errors below are in km s^-1 Mpc^-1. “Median” is the median absolute error across the 14 observations; “P95” is the empirical 95th percentile; “Maximum” is the largest observed absolute error.
+Seven representative configurations × two deterministic host realizations = 14 observations. Each observation was summarized on 1,001-, 4,001-, and 16,001-point computational grids, yielding 42 comparisons. All errors below are absolute differences from adaptive-quadrature quantiles, in km s^-1 Mpc^-1.
 
 | Grid points | Summary | Median absolute error | P95 absolute error | Maximum absolute error |
 |---:|---|---:|---:|---:|
-| 1,001 | Posterior median | 0.012031 | 0.044006 | 0.053647 |
-| 1,001 | Lower 68% endpoint | 0.014129 | 0.036180 | 0.043934 |
-| 1,001 | Upper 68% endpoint | 0.015383 | 0.040617 | 0.041980 |
-| 1,001 | Lower 95% endpoint | 0.009998 | 0.047010 | 0.048893 |
-| 1,001 | Upper 95% endpoint | 0.025375 | 0.048226 | 0.048648 |
-| 4,001 | Posterior median | 0.003033 | 0.011201 | 0.013814 |
-| 4,001 | Lower 68% endpoint | 0.003546 | 0.009071 | 0.011006 |
-| 4,001 | Upper 68% endpoint | 0.003860 | 0.010178 | 0.010508 |
-| 4,001 | Lower 95% endpoint | 0.002580 | 0.011660 | 0.012230 |
-| 4,001 | Upper 95% endpoint | 0.006338 | 0.012027 | 0.012159 |
-| 16,001 | Posterior median | 0.000760 | 0.002813 | 0.003475 |
-| 16,001 | Lower 68% endpoint | 0.000887 | 0.002270 | 0.002753 |
-| 16,001 | Upper 68% endpoint | 0.000966 | 0.002546 | 0.002628 |
-| 16,001 | Lower 95% endpoint | 0.000640 | 0.002910 | 0.003058 |
-| 16,001 | Upper 95% endpoint | 0.001586 | 0.003005 | 0.003040 |
+| 1,001 | Posterior median | 0.00009186 | 0.00087759 | 0.00108800 |
+| 1,001 | Lower 68% endpoint | 0.00016820 | 0.00085554 | 0.00120046 |
+| 1,001 | Upper 68% endpoint | 0.00019448 | 0.00095555 | 0.00124826 |
+| 1,001 | Lower 95% endpoint | 0.00037893 | 0.00157012 | 0.00198855 |
+| 1,001 | Upper 95% endpoint | 0.00020666 | 0.00191249 | 0.00196482 |
+| 4,001 | Posterior median | 0.00000737 | 0.00005510 | 0.00007536 |
+| 4,001 | Lower 68% endpoint | 0.00001288 | 0.00004843 | 0.00007053 |
+| 4,001 | Upper 68% endpoint | 0.00000834 | 0.00007588 | 0.00007968 |
+| 4,001 | Lower 95% endpoint | 0.00003692 | 0.00010070 | 0.00014941 |
+| 4,001 | Upper 95% endpoint | 0.00001619 | 0.00009775 | 0.00012269 |
+| 16,001 | Posterior median | 0.00000038 | 0.00000243 | 0.00000358 |
+| 16,001 | Lower 68% endpoint | 0.00000087 | 0.00000269 | 0.00000285 |
+| 16,001 | Upper 68% endpoint | 0.00000056 | 0.00000363 | 0.00000458 |
+| 16,001 | Lower 95% endpoint | 0.00000268 | 0.00000533 | 0.00000633 |
+| 16,001 | Upper 95% endpoint | 0.00000068 | 0.00000581 | 0.00000710 |
 
 ## Interpretation
 
-1. **Grid refinement reduces numerical error in these test cases.** The median absolute error in the posterior median fell from about 0.0120 at 1,001 points to 0.00303 at 4,001 points and 0.000760 at 16,001 points.
-2. **Tail endpoints deserve attention.** The 95% upper endpoint has larger typical error than the median, especially on the coarsest grid. This is expected to be an important diagnostic for mixture-shaped or boundary-adjacent posteriors.
-3. **The 4,001-point grid is numerically close in this tested set, not universally guaranteed.** Its maximum observed error among these 14 cases was about 0.0139 for the median and 0.0123 for the interval endpoints. This small deterministic set cannot rule out larger errors in other configurations.
-4. **The reference is independent in integration and quantile extraction, not in the scientific likelihood.** Both methods intentionally use the same weighted Gaussian-mixture likelihood and prior interval, so this audit does not test whether that model is physically adequate.
+- The corrected grid summaries agree closely with adaptive quadrature in these selected cases, and the discrepancy decreases with grid refinement.
+- The 95% endpoints show larger errors than the median, as expected for tail quantiles, but the largest error in this 14-observation set at 4,001 points is about 0.00015 km s^-1 Mpc^-1.
+- These results establish numerical agreement for the tested likelihood and cases only. They do not validate the physical model, realistic survey selection, catalogue completeness assumptions, or any real-data H0 inference.
 
 ## Reproducibility
 
-Run locally after installing the package:
-
 ```bash
 python scripts/run_independent_reference_audit.py --output-dir results/independent-reference-audit
-pytest -q tests/test_independent_reference_audit.py
+pytest -q tests/test_independent_reference_audit.py tests/test_hardened_inference.py
 ```
 
-The workflow validates that all 42 comparisons are written and uploads the CSV artifact. The main test suite for the commit containing this audit also passed on Python 3.10, 3.11, and 3.12.
-
-## Next recommended validation
-
-Add analytic limiting-case tests and a wider randomized numerical stress test, including posteriors near prior boundaries and strongly overlapping or separated host likelihood components. Only after numerical behavior is characterized should the project use these routines inside a more realistic distance–redshift and selection model.
+The GitHub Actions workflow validates all 42 comparisons and uploads the CSV artifact. The workflow now reruns when the hardened inference implementation changes.
