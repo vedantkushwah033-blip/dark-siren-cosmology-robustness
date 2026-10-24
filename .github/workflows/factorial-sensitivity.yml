@@ -81,6 +81,8 @@ jobs:
                   raise SystemExit(f"Invalid interval bounds in {row['scenario']}")
           print(f"Validated nine scenarios, exact 70% masks, and {len(run_rows)} finite per-run records.")
           PY
+      - name: Independently audit factorial outputs
+        run: python scripts/audit_factorial_sensitivity_outputs.py results/factorial-sensitivity
       - name: Analyze prespecified scenario contrasts
         run: |
           python scripts/analyze_factorial_contrasts.py \
