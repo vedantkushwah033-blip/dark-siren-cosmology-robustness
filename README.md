@@ -138,3 +138,6 @@ The coverage-transition experiment now reports corrected-minus-uncorrected paire
 ### Detection-threshold misspecification
 
 A new paired experiment generates detected observations under a 120 Mpc toy threshold and compares selection-corrected inference using the correct threshold against deliberately incorrect assumed thresholds (150, 180, and 210 Mpc). The [protocol](docs/threshold_misspecification_protocol.md) documents the design and paired bootstrap contrasts; CI uploads per-run, summary, and paired-contrast CSV artifacts. This remains a synthetic model, not a real detector-selection function.
+
+
+**Threshold misspecification results:** [recomputed performance summaries and paired-bootstrap contrasts](docs/threshold_misspecification_results.md). These are synthetic-model results, not real LVK measurements. The report is based on the successful per-run artifact; the workflow upload-path fix is being validated separately.
