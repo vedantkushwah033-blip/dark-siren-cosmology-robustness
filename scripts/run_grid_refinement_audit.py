@@ -10,6 +10,7 @@ import csv
 from pathlib import Path
 
 import numpy as np
+from scipy.integrate import trapezoid
 
 from dark_siren_robustness.hardened_inference import C_KM_S, posterior_h0, posterior_summary
 
@@ -48,10 +49,13 @@ def run_grid_audit(replicates=200, seed=20261030):
                             )
                             post = posterior_summary(grid, density)
                             summaries_by_grid[size] = post
+                            prior_support = (grid >= PRIOR_MIN) & (grid <= PRIOR_MAX)
+                            independently_integrated_area = float(trapezoid(density[prior_support], grid[prior_support]))
                             per_run.append({
                                 "H0_true": h0, "z2": z2, "noise_fraction": noise,
                                 "replicate": replicate, "inference_weighting": weighting,
                                 "grid_size": size, "observed_distance_mpc": d_obs,
+                                "posterior_area_on_prior_support": independently_integrated_area,
                                 "posterior_median": post["median"],
                                 "lower_68": post["lower_68"], "upper_68": post["upper_68"],
                                 "lower_95": post["lower_95"], "upper_95": post["upper_95"],
