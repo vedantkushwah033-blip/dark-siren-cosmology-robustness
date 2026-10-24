@@ -35,3 +35,10 @@ GitHub Actions runs the audit on Python 3.10, 3.11, and 3.12 and uploads the CSV
 ## Limitations
 
 This is a deliberately simplified Gaussian distance-threshold model, not a physical gravitational-wave detection pipeline. The test isolates sensitivity to a single assumed threshold; it does not cover SNR selection, detector duty cycles, waveform efficiency, multiple events, redshift uncertainty, or realistic galaxy-catalogue incompleteness. A threshold that performs best in this finite simulation must not be selected after seeing outcomes and then presented as the correct real-world threshold.
+
+
+## Paired contrast analysis
+
+The script also writes `paired_threshold_contrasts.csv`. For each true value and each deliberately wrong assumed threshold, it compares that threshold against the correctly specified 120 Mpc case using identical generated observations. It reports wrong-minus-correct differences for posterior median, absolute and squared error, 68%/95% interval width, and coverage indicators, with percentile-bootstrap 95% intervals (5,000 draws, seed 20261028). Negative differences in error metrics favor the wrong-threshold result for that metric; this is descriptive, not a reason to tune the assumed threshold after seeing the results.
+
+The artifact contains 105 contrast rows (5 truths × 3 incorrect thresholds × 7 metrics).
