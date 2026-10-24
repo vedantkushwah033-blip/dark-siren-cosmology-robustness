@@ -71,7 +71,7 @@ def load_and_pair(path: Path):
     return paired
 
 
-def evaluate(per_run_path: Path):
+def evaluate(per_run_path: Path, targeted_path: Path | None = None):
     paired = load_and_pair(per_run_path)
     metrics = {}
     case_rows = []
@@ -119,6 +119,36 @@ def evaluate(per_run_path: Path):
         })
     failed_cells = [r for r in cell_rows if not r["p95_pass"]]
     flagged_cases = [r for r in case_rows if r["flag_for_targeted_refinement"]]
+    targeted_lookup = {}
+    if targeted_path is not None:
+        with targeted_path.open(newline="", encoding="utf-8") as handle:
+            targeted_rows = list(csv.DictReader(handle))
+        grouped_targeted = {}
+        for row in targeted_rows:
+            case_key = tuple(row[k] for k in IDENTITY)
+            grouped_targeted.setdefault(case_key, {})[int(row["grid_size"])] = row
+        for case_key, grids in grouped_targeted.items():
+            if set(grids) != {8001, 16001, 32001, 64001}:
+                raise ValueError(f"Incomplete targeted refinement ladder for {case_key}")
+            for label, column in SUMMARY_COLUMNS.items():
+                values = [float(grids[size][column]) for size in (8001, 16001, 32001, 64001)]
+                if not np.all(np.isfinite(values)):
+                    raise ValueError(f"Non-finite targeted summary {label} for {case_key}")
+                targeted_lookup[(case_key, label)] = {
+                    "value_8001": values[0], "value_16001": values[1],
+                    "value_32001": values[2], "value_64001": values[3],
+                    "abs_diff_32001_vs_64001": abs(values[2] - values[3]),
+                    "refinement_pass": abs(values[2] - values[3]) <= REFINEMENT_TOLERANCE,
+                }
+        for case in flagged_cases:
+            case_key = tuple(str(case[k]) for k in IDENTITY)
+            target = targeted_lookup.get((case_key, case["summary"]))
+            if target is None:
+                case["targeted_refinement_status"] = "unresolved_missing_targeted_result"
+            else:
+                case.update(target)
+                case["targeted_refinement_status"] = "resolved_within_tolerance" if target["refinement_pass"] else "unresolved_tolerance_failed"
+    unresolved_flagged = [r for r in flagged_cases if r["targeted_refinement_status"] != "resolved_within_tolerance"]
     assessment = {
         "input_file": str(per_run_path),
         "matched_cases": len(paired),
@@ -131,10 +161,14 @@ def evaluate(per_run_path: Path):
         "cell_summary_tests": len(cell_rows),
         "failed_cell_summary_tests": len(failed_cells),
         "flagged_case_summary_pairs": len(flagged_cases),
-        "status": "FAIL" if failed_cells or flagged_cases else "PASS_FOR_GRID_DIFFERENCES_ONLY",
+        "targeted_refinement_input": str(targeted_path) if targeted_path else None,
+        "targeted_refinement_resolved_pairs": sum(r["targeted_refinement_status"] == "resolved_within_tolerance" for r in flagged_cases),
+        "targeted_refinement_unresolved_pairs": len(unresolved_flagged),
+        "status": "FAIL" if failed_cells or unresolved_flagged else "PASS_FOR_GRID_DIFFERENCES_ONLY",
         "limitations": [
             "The grid audit does not store posterior density arrays, so this evaluator cannot independently verify normalization.",
-            "Flagged cases remain unresolved until 32001- and 64001-point summaries are evaluated.",
+            "Targeted flagged cases are unresolved unless the 32001-to-64001 endpoint difference is within tolerance.",
+            "The cell-level 95th-percentile criterion still applies at the original resolutions; targeted refinement does not erase a cell-level failure.",
             "Passing these numerical checks does not validate the scientific model or observational realism.",
         ],
     }
@@ -155,10 +189,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--per-run", required=True, help="Path to per_run.csv")
     parser.add_argument("--output-dir", default="results/grid-accuracy-assessment")
+    parser.add_argument("--targeted-refinement", help="Optional targeted_refinement.csv from the high-resolution follow-up")
     args = parser.parse_args()
     source = Path(args.per_run)
     output = Path(args.output_dir)
-    assessment, cells, cases = evaluate(source)
+    assessment, cells, cases = evaluate(source, Path(args.targeted_refinement) if args.targeted_refinement else None)
     write_csv(output / "cell_accuracy_assessment.csv", cells)
     write_csv(output / "case_accuracy_assessment.csv", cases)
     output.mkdir(parents=True, exist_ok=True)
@@ -173,10 +208,12 @@ def main():
         f"- Cell-summary tests: {assessment['cell_summary_tests']}",
         f"- Failed cell-summary tests: {assessment['failed_cell_summary_tests']}",
         f"- Flagged case-summary pairs requiring targeted refinement: {assessment['flagged_case_summary_pairs']}",
+        f"- Flagged pairs resolved by targeted refinement: {assessment['targeted_refinement_resolved_pairs']}",
+        f"- Flagged pairs unresolved: {assessment['targeted_refinement_unresolved_pairs']}",
         f"- Prespecified 95th-percentile tolerance: {P95_TOLERANCE} km s^-1 Mpc^-1",
         f"- Individual-case guardrail: {CASE_GUARDRAIL} km s^-1 Mpc^-1",
         "",
-        "A flagged case is unresolved until its 32,001- and 64,001-point summaries are checked. A FAIL result is not repaired by dropping outliers.",
+        "Targeted refinement must compare 32,001- and 64,001-point summaries. A FAIL result is not repaired by dropping outliers or by ignoring a cell-level percentile failure.",
         "",
         "## Failed cell-summary checks",
         "",
