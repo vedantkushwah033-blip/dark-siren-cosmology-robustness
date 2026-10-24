@@ -74,7 +74,10 @@ def main() -> None:
             )
             summary = posterior_summary(grid, posterior)
             rows.append({
-                "run": r, "H0_true": 70.0, "scenario": name,
+                "run": r, "seed": s, "H0_true": 70.0, "scenario": name,
+                "host_redshift": float(cat["redshift"][host]),
+                "observed_distance_mpc": float(gw["observed_distance_mpc"]),
+                "distance_sigma_mpc": float(gw["sigma_mpc"]),
                 "missingness": missingness, "target_completeness": 0.7,
                 "realized_completeness": float(mask.mean()),
                 "host_observed": bool(mask[host]),
