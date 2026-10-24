@@ -1,0 +1,40 @@
+name: Toy fixed-truth coverage map
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/dark_siren_robustness/selection.py"
+      - "src/dark_siren_robustness/hardened_inference.py"
+      - "scripts/run_fixed_truth_coverage_map.py"
+      - "tests/test_fixed_truth_coverage_map.py"
+      - ".github/workflows/fixed-truth-coverage-map.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fixed-truth-coverage-map:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run fixed-truth coverage map
+        run: python scripts/run_fixed_truth_coverage_map.py --replicates-per-truth 500 --seed 20261030 --grid-size 4001 --output-dir results/fixed-truth-coverage-map
+      - name: Run focused tests
+        run: python -m pytest tests/test_fixed_truth_coverage_map.py -q
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixed-truth-coverage-map-results
+          path: results/fixed-truth-coverage-map/
+          if-no-files-found: error
+          retention-days: 90
