@@ -54,8 +54,41 @@ def audit(root: Path) -> dict:
         raise ValueError(f"expected {len(EXPECTED)*n} per-run rows, found {len(runs)}")
 
     summary_by_name = {row["scenario"]: row for row in summary}
-    if set(summary_by_name) != set(EXPECTED):
+    if len(summary_by_name) != len(summary) or set(summary_by_name) != set(EXPECTED):
         raise ValueError("summary scenario names do not match prespecified design")
+
+    # Check the JSON manifest independently against both the fixed design and
+    # the CSV summary. A valid raw CSV must not conceal stale or edited metadata.
+    manifest_scenarios = summary_json.get("scenarios")
+    if not isinstance(manifest_scenarios, list) or len(manifest_scenarios) != len(EXPECTED):
+        raise ValueError("JSON manifest must contain exactly nine scenario records")
+    manifest_by_name = {item.get("scenario"): item for item in manifest_scenarios}
+    if len(manifest_by_name) != len(manifest_scenarios) or set(manifest_by_name) != set(EXPECTED):
+        raise ValueError("JSON manifest scenario names do not match prespecified design")
+    for name, (target, missingness, host_generation, inference_weighting) in EXPECTED.items():
+        item = manifest_by_name[name]
+        for field, expected in (("target_completeness", target),
+                                ("missingness", missingness),
+                                ("host_generation", host_generation),
+                                ("inference_weighting", inference_weighting)):
+            if field not in item:
+                raise ValueError(f"{name}: JSON manifest missing {field}")
+            actual = item[field]
+            if field == "target_completeness":
+                if not math.isclose(float(actual), expected, abs_tol=1e-12):
+                    raise ValueError(f"{name}: JSON manifest design mismatch for {field}")
+            elif actual != expected:
+                raise ValueError(f"{name}: JSON manifest design mismatch for {field}")
+        if int(item.get("requested_replicates", -1)) != n:
+            raise ValueError(f"{name}: JSON manifest replicate count mismatch")
+        csv_item = summary_by_name[name]
+        for field in ("target_completeness", "missingness", "host_generation", "inference_weighting"):
+            if field in ("missingness", "host_generation", "inference_weighting"):
+                if str(item[field]) != csv_item[field]:
+                    raise ValueError(f"{name}: JSON/CSV mismatch for {field}")
+            elif not math.isclose(float(item[field]), float(csv_item[field]), abs_tol=1e-12):
+                raise ValueError(f"{name}: JSON/CSV mismatch for {field}")
+
     grouped: dict[str, list[dict[str, str]]] = {name: [] for name in EXPECTED}
     for row in runs:
         name = row.get("scenario", "")
