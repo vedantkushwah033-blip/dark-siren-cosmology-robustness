@@ -15,6 +15,13 @@ from statistics import median
 
 import numpy as np
 
+def median_bias_from_rows(rows, true_h0=70.0):
+    """Median across runs of posterior-median errors, consistently defined."""
+    if not rows:
+        raise ValueError("rows must not be empty")
+    return float(median(float(row["median"]) - true_h0 for row in rows))
+
+
 SCENARIOS = (("random70_full_population_oracle", "random"),
              ("redshift70_full_population_oracle", "redshift"))
 
@@ -83,7 +90,7 @@ def main() -> None:
             })
         metrics = summarize_runs(rows, true_h0=70.0)
         # Consistent definition: median across runs of posterior-median errors.
-        metrics["median_bias"] = float(median(float(row["median"]) - 70.0 for row in rows))
+        metrics["median_bias"] = median_bias_from_rows(rows, true_h0=70.0)
         summaries.append({
             "scenario": name, "missingness": missingness,
             "target_completeness": 0.7, "host_generation": "luminosity",
