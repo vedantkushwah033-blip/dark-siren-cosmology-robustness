@@ -104,7 +104,7 @@ def posterior_summary(H0_grid, posterior):
     density = _vector(posterior, "posterior", nonnegative=True, min_size=2)
     if density.size != grid.size:
         raise ValueError("posterior must have the same length as H0_grid.")
-    initial_area = float(np.trapezoid(density, grid))
+    initial_area = float(trapezoid(density, grid))
     if not np.isfinite(initial_area) or initial_area <= 0:
         raise ValueError("posterior must have a finite, positive integrated area.")
     # The density returned by posterior_h0 is zero outside the prior support.
@@ -117,12 +117,12 @@ def posterior_summary(H0_grid, posterior):
     lo, hi = int(support[0]), int(support[-1])
     grid = grid[lo:hi + 1]
     density = density[lo:hi + 1]
-    area = float(np.trapezoid(density, grid))
+    area = float(trapezoid(density, grid))
     if not np.isfinite(area) or area <= 0:
         raise ValueError("posterior must have a finite, positive integrated area.")
     density = density / area
-    mean = float(np.trapezoid(grid * density, grid))
-    variance = float(np.trapezoid((grid - mean) ** 2 * density, grid))
+    mean = float(trapezoid(grid * density, grid))
+    variance = float(trapezoid((grid - mean) ** 2 * density, grid))
     cdf = np.concatenate(([0.0], np.cumsum((density[1:] + density[:-1]) * np.diff(grid) / 2.0)))
     cdf /= cdf[-1]
     return {
