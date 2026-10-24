@@ -69,3 +69,25 @@ def test_wilson_interval_is_bounded_and_handles_extremes():
         analysis.wilson_interval(2, 0)
     with pytest.raises(ValueError):
         analysis.wilson_interval(501, 500)
+
+def test_percentile_rejects_empty_nonfinite_and_invalid_quantile():
+    with pytest.raises(ValueError, match="at least one"):
+        analysis.percentile([], 0.5)
+    with pytest.raises(ValueError, match="between 0 and 1"):
+        analysis.percentile([1.0, 2.0], 1.1)
+    with pytest.raises(ValueError, match="finite"):
+        analysis.percentile([1.0, float("nan")], 0.5)
+
+
+@pytest.mark.parametrize(
+    "a,b,repetitions",
+    [([], [1.0], 100), ([1.0], [], 100), ([1.0], [2.0], 0)],
+)
+def test_bootstrap_rejects_empty_groups_or_nonpositive_repetitions(a, b, repetitions):
+    with pytest.raises(ValueError):
+        analysis.bootstrap_mean_difference(a, b, random.Random(1), repetitions)
+
+
+def test_bootstrap_rejects_nonfinite_values():
+    with pytest.raises(ValueError, match="finite"):
+        analysis.bootstrap_mean_difference([1.0], [float("inf")], random.Random(1), 100)
