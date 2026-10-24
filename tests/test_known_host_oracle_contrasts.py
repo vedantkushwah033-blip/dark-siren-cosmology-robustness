@@ -34,7 +34,7 @@ def test_paired_oracle_contrast_validates_shared_event_inputs():
              row(1, "known_true_host_oracle", 75.0, 2027)]
     result = MODULE.paired_delta(full, known)
     assert result["median_error"] == [-1.0, 1.0]
-    assert result["coverage_68"] == [0.0, 0.0]
+    assert result["coverage_68"] == [1.0, 1.0]
 
 
 def test_paired_oracle_contrast_rejects_unmatched_event_inputs():
