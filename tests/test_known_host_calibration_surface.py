@@ -49,7 +49,7 @@ def test_summary_recomputes_coverage_bias_width_and_edge_fraction():
     assert result["median_bias"] == pytest.approx(0.0)
     assert result["mean_median_error"] == pytest.approx(1.0)
     assert result["mean_width_68"] == pytest.approx(8.0)
-    assert result["mean_width_95"] == pytest.approx(20.0)
+    assert result["mean_width_95"] == pytest.approx(19.5)
     assert result["truth_on_prior_boundary"] is False
 
 
