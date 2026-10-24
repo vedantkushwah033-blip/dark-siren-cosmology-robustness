@@ -54,7 +54,7 @@ def calculate_convergence():
             "noise_fraction": NOISE_FRACTION,
             "observed_distance_mpc": OBSERVED_DISTANCE_MPC,
             "inference_weighting": "reversed_0.3_0.7",
-            "posterior_area_on_prior_support": independently_integrated_area,
+            "posterior_area_on_prior_support": posterior_area_on_prior_support,
             "posterior_median": summary["median"],
             "lower_68": summary["lower_68"],
             "upper_68": summary["upper_68"],
