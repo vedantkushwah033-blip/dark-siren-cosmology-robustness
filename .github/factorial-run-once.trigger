@@ -1,3 +1,3 @@
-One-time trigger for the finalized factorial sensitivity workflow.
-Includes standardized oracle metrics, known-host calibration, and paired oracle contrast analysis.
+One-time trigger for paired oracle calibration run.
+Includes corrected paired-coverage test fixture and shared-event validation.
 Default run: 500 replicates per scenario, base seed 2026.
