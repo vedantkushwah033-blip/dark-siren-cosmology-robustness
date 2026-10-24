@@ -1,9 +1,13 @@
 import importlib.util
 from pathlib import Path
+import sys
 
 import numpy as np
 
-MODULE_PATH = Path(__file__).resolve().parents[1] / "scripts" / "run_randomized_numerical_stress.py"
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS = ROOT / "scripts"
+sys.path.insert(0, str(SCRIPTS))
+MODULE_PATH = SCRIPTS / "run_randomized_numerical_stress.py"
 SPEC = importlib.util.spec_from_file_location("randomized_numerical_stress", MODULE_PATH)
 module = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(module)
