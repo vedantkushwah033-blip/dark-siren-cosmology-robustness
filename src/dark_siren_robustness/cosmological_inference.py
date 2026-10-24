@@ -49,7 +49,11 @@ def posterior_h0_from_distance_grid(
     prior_min: float = 40.0,
     prior_max: float = 100.0,
 ) -> NDArray[np.float64]:
-    """Normalize a weighted Gaussian-mixture H0 posterior from precomputed distances."""
+    """Normalize a weighted Gaussian-mixture H0 posterior from precomputed distances.
+
+    The observed value is a Gaussian noisy distance estimator and may be
+    non-positive; predicted means and the noise scale remain physical/positive.
+    """
     grid = np.asarray(h0_grid, dtype=float)
     distances = np.asarray(predicted_distance_mpc, dtype=float)
     if grid.ndim != 1 or grid.size < 2 or np.any(~np.isfinite(grid)) or np.any(np.diff(grid) <= 0):
@@ -58,8 +62,8 @@ def posterior_h0_from_distance_grid(
         raise ValueError("predicted_distance_mpc must have shape (len(h0_grid), n_hosts)")
     if np.any(~np.isfinite(distances)) or np.any(distances < 0):
         raise ValueError("predicted distances must be finite and non-negative")
-    if not np.isfinite(observed_distance_mpc) or observed_distance_mpc <= 0:
-        raise ValueError("observed_distance_mpc must be finite and positive")
+    if not np.isfinite(observed_distance_mpc):
+        raise ValueError("observed_distance_mpc must be finite")
     if not np.isfinite(distance_sigma_mpc) or distance_sigma_mpc <= 0:
         raise ValueError("distance_sigma_mpc must be finite and positive")
     if not np.isfinite(prior_min) or not np.isfinite(prior_max) or prior_min >= prior_max:
