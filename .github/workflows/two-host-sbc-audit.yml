@@ -28,7 +28,7 @@ jobs:
       - name: Run two-host SBC at two grid resolutions
         run: |
           python scripts/run_two_host_sbc_audit.py \
-            --replicates 1000 \
+            --replicates 5000 \
             --seed 20261026 \
             --grid-sizes 1001 4001 \
             --output-dir results/two-host-sbc-audit
@@ -44,7 +44,7 @@ jobs:
               runs = list(csv.DictReader(f))
           with (root / "grid_resolution.csv").open(newline="") as f:
               diffs = list(csv.DictReader(f))
-          if len(summary) != 4 or len(runs) != 4000 or len(diffs) != 2:
+          if len(summary) != 4 or len(runs) != 20000 or len(diffs) != 2:
               raise SystemExit(f"Unexpected outputs: {len(summary)} summaries, {len(runs)} fits, {len(diffs)} grid comparisons")
           for row in summary:
               for key in ("mean_rank", "rank_variance", "ks_statistic", "ks_pvalue", "decile_chi_square_pvalue"):
@@ -55,7 +55,7 @@ jobs:
           for row in diffs:
               if not math.isfinite(float(row["max_abs_rank_difference"])):
                   raise SystemExit("Non-finite grid-resolution difference")
-          print("PASS: 2 host-weight scenarios × 1,000 draws × 2 grid resolutions = 4,000 posterior fits.")
+          print("PASS: 2 host-weight scenarios × 5,000 draws × 2 grid resolutions = 20,000 posterior fits.")
           PY
       - name: Upload two-host SBC results
         uses: actions/upload-artifact@v4
