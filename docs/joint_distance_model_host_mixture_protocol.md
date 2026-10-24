@@ -1,6 +1,6 @@
 # Joint distance-model × host-mixture robustness protocol
 
-**Status: protocol only; no implementation or results are claimed.** This is the next proposed experiment after the independently audited single-host distance-model diagnostic and the completed host-mixture/threshold factorial.
+**Status: initial implementation and CI workflow committed; results are not yet validated.** The script, smoke tests, and GitHub Actions workflow are in place. No numerical findings are claimed until the workflow succeeds and its raw artifact is independently audited. This is the next proposed experiment after the independently audited single-host distance-model diagnostic and the completed host-mixture/threshold factorial.
 
 ## Research question
 
