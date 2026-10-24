@@ -145,6 +145,16 @@ def audit(root: Path) -> dict:
             for field, expected in (("missingness", missingness), ("host_generation", host_generation), ("inference_weighting", inference_weighting)):
                 if row.get(field) != expected:
                     raise ValueError(f"{label}: raw scenario design mismatch for {field}")
+            try:
+                raw_scenario_seed = int(row["scenario_seed"])
+            except (KeyError, TypeError, ValueError) as exc:
+                raise ValueError(f"{label}: missing/non-integer scenario_seed") from exc
+            expected_scenario_seed = int(srow["seed"])
+            if raw_scenario_seed != expected_scenario_seed:
+                raise ValueError(
+                    f"{label}: raw scenario_seed mismatch; expected "
+                    f"{expected_scenario_seed}, got {raw_scenario_seed}"
+                )
             target_value = finite(row, "target_completeness", label)
             realized = finite(row, "realized_completeness", label)
             if not math.isclose(target_value, target, abs_tol=1e-12):
