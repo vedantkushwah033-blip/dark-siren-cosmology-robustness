@@ -83,11 +83,28 @@ jobs:
                       if not math.isfinite(number):
                           raise SystemExit(f"{filename}:{i}: non-finite value in {key}")
               print(f"PASS {filename}: {len(rows)} rows; all numeric cells finite")
+          import json
+          manifest_path = root / "experiment_manifest.json"
+          if not manifest_path.exists() or manifest_path.stat().st_size == 0:
+              raise SystemExit("Missing or empty experiment_manifest.json")
+          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+          expected_manifest = {
+              "seed": int("${{ inputs.seed }}"),
+              "replicates_per_true_H0": int("${{ inputs.replicates }}"),
+              "posterior_grid_points": int("${{ inputs.grid_size }}"),
+              "raw_rows": expected["per_run.csv"],
+              "summary_rows": expected["summary.csv"],
+              "paired_contrast_rows": expected["paired_contrasts.csv"],
+          }
+          for key, value in expected_manifest.items():
+              if manifest.get(key) != value:
+                  raise SystemExit(f"Manifest mismatch for {key}: {manifest.get(key)!r} != {value!r}")
+          print("PASS experiment_manifest.json: seed, design, row counts match workflow inputs")
           PY
       - name: Upload full experiment outputs
         uses: actions/upload-artifact@v4
         with:
           name: full-prior-threshold-factorial-r${{ inputs.replicates }}-g${{ inputs.grid_size }}-seed${{ inputs.seed }}
-          path: results/prior-threshold-factorial-full/*.csv
+          path: |\n            results/prior-threshold-factorial-full/*.csv\n            results/prior-threshold-factorial-full/experiment_manifest.json
           if-no-files-found: error
           retention-days: 90
