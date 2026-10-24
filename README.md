@@ -250,3 +250,8 @@ The [matched host-structure protocol](docs/matched_host_structure_control_protoc
 ### Next prespecified sensitivity experiment
 
 The [host-mixture and detection-threshold sensitivity protocol](docs/host_mixture_threshold_sensitivity_protocol.md) prespecifies a 108-cell factorial varying fixed truth, host-redshift separation, intrinsic host weights, and the upper detection threshold. It defines paired model contrasts, bootstrap uncertainty, analytic detected-host-fraction checks, raw-to-summary validation, and numerical-grid checks. **This is protocol-only at present:** implementation and results are not yet available, and no findings are claimed from this proposed experiment.
+
+
+### Host-mixture × detection-threshold sensitivity factorial (implementation added)
+
+The prespecified [protocol](docs/host_mixture_threshold_sensitivity_protocol.md) now has an implementation in [`scripts/run_host_mixture_threshold_sensitivity.py`](scripts/run_host_mixture_threshold_sensitivity.py), focused tests in [`tests/test_host_mixture_threshold_sensitivity.py`](tests/test_host_mixture_threshold_sensitivity.py), and a [GitHub Actions workflow](.github/workflows/host-mixture-threshold-sensitivity.yml). The design crosses four fixed truths, three host-redshift pairs, three intrinsic-weight pairs, and three upper detection thresholds (108 cells; 300 detected observations per cell). The workflow is currently queued; results must not be described as completed until it succeeds and its artifact has been audited.
