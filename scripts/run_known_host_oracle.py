@@ -12,7 +12,6 @@ from pathlib import Path
 import sys
 from statistics import median
 
-import numpy as np
 
 def median_bias_from_rows(rows, true_h0=70.0):
     """Median across runs of posterior-median errors."""
@@ -30,6 +29,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.replicates < 2:
         parser.error("--replicates must be at least 2")
+
+    import numpy as np
 
     original = Path(args.original_dir).resolve()
     if not (original / "src" / "experiments.py").is_file():
