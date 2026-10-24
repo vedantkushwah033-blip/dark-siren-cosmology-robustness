@@ -1,10 +1,10 @@
-# Independent grid-accuracy assessment: seed 20261101
+# Independent grid-accuracy assessment: seed 20261101 (normalization-checked rerun)
 
 ## Executive result
 
 The full 200-replicate grid-refinement audit completed successfully in GitHub Actions and the generated CSV artifacts were downloaded and independently inspected. The evaluator reports **PASS_FOR_GRID_DIFFERENCES_ONLY** for the proposed grid-difference criteria.
 
-- Workflow run: https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40091266581
+- Workflow run: https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40091568487
 - Seed: 20261101
 - Replicates per design cell: 200
 - Design cells: 36
@@ -14,7 +14,7 @@ The full 200-replicate grid-refinement audit completed successfully in GitHub Ac
 - Failed cell-level 95th-percentile checks: 0
 - Case-summary discrepancies above the 0.05 guardrail: 0
 
-The run's artifacts were retained in GitHub Actions under grid-refinement-r200-seed20261101. The values below were calculated from the downloaded case_accuracy_assessment.csv and cell_accuracy_assessment.csv, not inferred from the workflow badge alone.
+The normalization-checked rerun's artifacts were retained in GitHub Actions under grid-refinement-r200-seed20261101. The values below were calculated from the downloaded per_run.csv, case_accuracy_assessment.csv, and cell_accuracy_assessment.csv, not inferred from the workflow badge alone.
 
 ## Acceptance criteria applied
 
@@ -23,7 +23,7 @@ The run's artifacts were retained in GitHub Actions under grid-refinement-r200-s
 3. Credible-interval endpoints must be finite and ordered.
 4. The same simulated observation must be reused across grid resolutions and inference-weighting configurations.
 
-The first, second, third, and fourth checks passed in this run. The independent posterior-density normalization check is **not covered** by this CSV evaluator because the artifact contains posterior summaries, not the full density arrays.
+All four checks passed. In addition, the runner now records an independently integrated posterior area on the actual prior support for every fit. The rerun checked 21,600 area values against a 1e-8 absolute tolerance: zero failures, with maximum absolute area error 4.440892098500626e-16.
 
 ## Quantitative results
 
@@ -68,7 +68,7 @@ The result also does not contradict the earlier targeted case where the coarse-g
 
 ## Reproducibility
 
-The audit was run through the repository workflow with seed 20261101 and 200 replicates per cell. The workflow validates row counts, finite numerical values, interval ordering, complete grid triplets, matched observations, and summary-statistic ordering. The retained artifact contains the per-run results, cell summaries, and evaluator outputs.
+The audit was run through the repository workflow with seed 20261101 and 200 replicates per cell. The workflow validates row counts, finite numerical values, interval ordering, complete grid triplets, matched observations, summary-statistic ordering, and posterior-area normalization. The retained artifact contains the per-run results, cell summaries, targeted-refinement CSV (header-only because no cases were flagged), and evaluator outputs.
 
 Run the experiment and evaluator locally with:
 
@@ -77,4 +77,4 @@ Run the experiment and evaluator locally with:
 
 ## Final assessment
 
-**Status: PASS_FOR_GRID_DIFFERENCES_ONLY.** All 180 cell-summary p95 checks passed, and no case exceeded the individual refinement guardrail. The result supports using 4,001 grid points for the specified numerical sensitivity experiment under these criteria, while posterior normalization, coverage, prior sensitivity, model misspecification, and astrophysical validity remain separate questions.
+**Status: PASS_FOR_GRID_DIFFERENCES_ONLY.** All 180 cell-summary p95 checks passed, all 21,600 posterior-area checks passed, and no case exceeded the individual refinement guardrail. The result supports using 4,001 grid points for the specified numerical sensitivity experiment under these criteria. Coverage, prior sensitivity, model misspecification, and astrophysical validity remain separate questions.
