@@ -39,3 +39,8 @@ This is a simplified Gaussian distance-threshold model, not a realistic gravitat
 ## Full-run CI workflow
 
 The workflow `.github/workflows/full-prior-threshold-factorial.yml` can be started from the repository's Actions tab. For the protocol run, select 300 repetitions, grid size 4001, and seed 20261028. It runs focused tests and validates expected output row counts and numeric finiteness before uploading `per_run.csv`, `summary.csv`, and `paired_contrasts.csv` for 90 days. This workflow is manually dispatched and does not run merely because this protocol was updated. Treat the experiment as complete only after checking the actual run conclusion and inspecting its artifacts.
+
+
+## Independent artifact-integrity validation
+
+The full-run workflow now invokes `scripts/validate_prior_threshold_factorial.py` after generating the three CSVs. It independently reloads the raw table, checks unique configuration keys and complete replicate cells, verifies that each simulated host/observation is identical across inference configurations, recomputes the summary metrics and Wilson intervals from the raw rows, and recomputes each paired mean contrast against the fixed baseline. It also checks artifact row counts, finite numeric fields, credible-interval ordering, and contrast-table uniqueness. The validator reports `PASS_FACTORIAL_ARTIFACT_INTEGRITY` only if those checks succeed. This is an artifact-consistency check, not a validation of the toy model's astrophysical realism.
