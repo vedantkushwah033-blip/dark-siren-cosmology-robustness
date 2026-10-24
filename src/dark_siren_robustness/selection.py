@@ -10,7 +10,6 @@ from __future__ import annotations
 import numpy as np
 from scipy.integrate import trapezoid
 from scipy.special import ndtr
-from scipy.stats import norm
 
 from .hardened_inference import C_KM_S, posterior_h0
 
