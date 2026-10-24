@@ -1,7 +1,7 @@
 """Toy event-detection selection normalization for synthetic dark-siren experiments.
 
 This module implements a deliberately simplified selection rule: an event is
-"detected" when its noisy distance observation is below a fixed threshold.
+"detected" when its noisy distance observation lies inside a fixed interval.
 It is a statistical testbed for the beta(H0) normalization, not a model of a
 real gravitational-wave detector or LVK search pipeline.
 """
@@ -16,10 +16,11 @@ from .hardened_inference import C_KM_S, posterior_h0
 
 def detection_efficiency_h0(H0_grid, redshifts, gw_sigma, detection_distance_max,
                             weights=None, detection_distance_min=0.0):
-    """Return beta(H0) = P(detected | H0) for the toy noisy-distance threshold.
+    """Return beta(H0) = P(detected | H0) for the toy finite distance interval.
 
-    A datum is detected when d_obs < detection_distance_max and
-    d_obs | (H0, host j) ~ Normal(c*z_j/H0, gw_sigma**2).
+    A datum is detected when detection_distance_min < d_obs <
+    detection_distance_max and d_obs | (H0, host j) ~
+    Normal(c*z_j/H0, gw_sigma**2).
     """
     grid = np.asarray(H0_grid, dtype=float)
     z = np.asarray(redshifts, dtype=float)
@@ -64,7 +65,7 @@ def posterior_h0_selected(H0_grid, redshifts, observed_distance, gw_sigma,
 
     The selected likelihood is proportional to the unselected host-mixture
     likelihood divided by beta(H0). The observed distance must satisfy the
-    same threshold used to define detection.
+    same finite interval used to define detection.
     """
     distance = float(observed_distance)
     threshold = float(detection_distance_max)
