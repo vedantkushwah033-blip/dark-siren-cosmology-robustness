@@ -57,14 +57,6 @@ def run_grid_audit(replicates=200, seed=20261030):
                                 "lower_95": post["lower_95"], "upper_95": post["upper_95"],
                             })
                         coarse, medium, fine = (summaries_by_grid[x] for x in GRID_SIZES)
-                        for label, left, right in (
-                            ("median", coarse["median"], fine["median"]),
-                            ("lower_68", coarse["lower_68"], fine["lower_68"]),
-                            ("upper_68", coarse["upper_68"], fine["upper_68"]),
-                            ("lower_95", coarse["lower_95"], fine["lower_95"]),
-                            ("upper_95", coarse["upper_95"], fine["upper_95"]),
-                        ):
-                            pass
                         summaries.append({
                             "H0_true": h0, "z2": z2, "noise_fraction": noise,
                             "inference_weighting": weighting, "replicates": replicates,
@@ -99,6 +91,32 @@ def run_grid_audit(replicates=200, seed=20261030):
     return per_run, cells
 
 
+def largest_upper95_discrepancy(per_run):
+    """Return the observation with the largest 1,001-vs-4,001 upper-95% shift."""
+    grouped = {}
+    identity = ("H0_true", "z2", "noise_fraction", "replicate", "inference_weighting")
+    for row in per_run:
+        key = tuple(row[name] for name in identity)
+        grouped.setdefault(key, {})[int(row["grid_size"])] = row
+    candidates = []
+    for key, by_grid in grouped.items():
+        if not all(size in by_grid for size in GRID_SIZES):
+            raise ValueError(f"Incomplete grid resolutions for case {key}.")
+        coarse, medium, fine = (by_grid[size] for size in GRID_SIZES)
+        candidates.append({
+            **dict(zip(identity, key)),
+            "observed_distance_mpc": coarse["observed_distance_mpc"],
+            "upper95_1001": coarse["upper_95"],
+            "upper95_2001": medium["upper_95"],
+            "upper95_4001": fine["upper_95"],
+            "abs_diff_1001_vs_4001": abs(coarse["upper_95"] - fine["upper_95"]),
+            "abs_diff_2001_vs_4001": abs(medium["upper_95"] - fine["upper_95"]),
+        })
+    if not candidates:
+        raise ValueError("No complete cases found in per_run results.")
+    return max(candidates, key=lambda row: row["abs_diff_1001_vs_4001"])
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--replicates", type=int, default=200)
@@ -114,6 +132,7 @@ def main():
             writer.writeheader()
             writer.writerows(data)
     print(f"PASS: {len(runs)} posterior fits across {len(cells)} design cells and 3 grid resolutions.")
+    print({"largest_upper95_grid_discrepancy": largest_upper95_discrepancy(runs)})
     for metric in ("median_abs_median_diff_1001_vs_4001", "abs_lower68_diff_1001_vs_4001",
                    "abs_upper68_diff_1001_vs_4001", "abs_lower95_diff_1001_vs_4001",
                    "abs_upper95_diff_1001_vs_4001", "median_abs_median_diff_2001_vs_4001"):
