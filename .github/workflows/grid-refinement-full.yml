@@ -1,0 +1,71 @@
+name: Grid refinement numerical convergence audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      replicates:
+        description: "Matched observations per design cell"
+        required: true
+        default: "200"
+        type: choice
+        options: ["100", "200", "300"]
+      seed:
+        description: "Random seed"
+        required: true
+        default: "20261030"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  grid-refinement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run grid-refinement tests
+        run: python -m pytest tests/test_grid_refinement_audit.py -q
+      - name: Execute matched grid audit
+        run: |
+          python scripts/run_grid_refinement_audit.py \
+            --replicates "${{ inputs.replicates }}" \
+            --seed "${{ inputs.seed }}" \
+            --output-dir results/grid-refinement-audit-full
+      - name: Validate outputs
+        run: |
+          python - <<'PY'
+          import csv, math
+          from pathlib import Path
+          root = Path("results/grid-refinement-audit-full")
+          n = int("${{ inputs.replicates }}")
+          expected = {"per_run.csv": 3 * 3 * 2 * n * 2 * 3,
+                      "summary.csv": 3 * 3 * 2 * 2}
+          for name, count in expected.items():
+              p = root / name
+              with p.open(newline="", encoding="utf-8") as f:
+                  rows = list(csv.DictReader(f))
+              if len(rows) != count:
+                  raise SystemExit(f"{name}: expected {count} rows, got {len(rows)}")
+              for i, row in enumerate(rows, 2):
+                  for key, value in row.items():
+                      try: x = float(value)
+                      except (ValueError, TypeError): continue
+                      if not math.isfinite(x):
+                          raise SystemExit(f"{name}:{i}: non-finite {key}")
+              print(f"PASS {name}: {len(rows)} rows")
+          PY
+      - name: Upload convergence artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: grid-refinement-r${{ inputs.replicates }}-seed${{ inputs.seed }}
+          path: results/grid-refinement-audit-full/*.csv
+          if-no-files-found: error
+          retention-days: 90
