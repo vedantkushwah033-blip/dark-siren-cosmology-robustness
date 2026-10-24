@@ -57,6 +57,18 @@ def assert_close(actual, expected, label, atol=1e-9):
         raise ValueError(f"{label}: expected {expected:.12g}, got {actual:.12g}")
 
 
+def validate_observation_fields(row, key="observation"):
+    """Validate that raw observation metadata respects the simulation contract."""
+    host_index = int(row["host_index"])
+    distance = float(row["observed_distance_mpc"])
+    if host_index not in range(len(factorial.HOST_REDSHIFTS)):
+        raise ValueError(f"Invalid host_index for {key}: {host_index}")
+    if not (factorial.TRUE_MIN < distance < factorial.TRUE_MAX):
+        raise ValueError(
+            f"Observed distance outside true detection interval for {key}: {distance}"
+        )
+
+
 
 def independently_recompute_paired_bootstrap(raw_rows, reps, bootstrap_draws, seed):
     """Recompute paired contrasts without calling the experiment's contrast function."""
@@ -175,6 +187,7 @@ def validate(per_run_path: Path, summary_path: Path, contrasts_path: Path):
         if key in raw_lookup:
             raise ValueError(f"Duplicate raw configuration: {key}")
         raw_lookup[key] = row
+        validate_observation_fields(row, key)
         sim_key = (float(row["true_H0"]), int(row["replicate"]))
         observations[sim_key].add((int(row["host_index"]), float(row["observed_distance_mpc"])))
         if float(row["true_detection_max_mpc"]) != factorial.TRUE_MAX:
