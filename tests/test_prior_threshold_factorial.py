@@ -118,3 +118,23 @@ def test_selected_posterior_is_normalized_inside_prior_support_for_multiple_thre
         assert np.all(np.isfinite(posterior))
         assert np.all(posterior >= 0)
         assert np.trapezoid(posterior[support],grid[support]) == pytest.approx(1.0,abs=1e-10)
+
+
+
+def test_experiment_manifest_records_design_and_artifact_counts():
+    manifest=module.build_manifest(
+        seed=12345,replicates=100,grid_size=2001,
+        rows=[{"row":1},{"row":2}],summaries=[{"summary":1}],
+        contrasts=[{"contrast":1},{"contrast":2},{"contrast":3}],
+    )
+    assert manifest["experiment"]=="prior_support_x_assumed_detection_threshold_factorial"
+    assert manifest["scope"].startswith("synthetic simulation")
+    assert manifest["seed"]==12345
+    assert manifest["replicates_per_true_H0"]==100
+    assert manifest["posterior_grid_points"]==2001
+    assert manifest["raw_rows"]==2
+    assert manifest["summary_rows"]==1
+    assert manifest["paired_contrast_rows"]==3
+    assert manifest["true_detection_interval_mpc"]==[module.TRUE_MIN,module.TRUE_MAX]
+    assert manifest["assumed_detection_upper_thresholds_mpc"]==list(module.ASSUMED_MAXIMA)
+    assert manifest["numpy_version"]==np.__version__
