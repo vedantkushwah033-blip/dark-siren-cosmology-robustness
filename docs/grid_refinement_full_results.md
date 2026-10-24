@@ -52,3 +52,36 @@ Do not select the tolerance after inspecting which value makes this run pass. St
 ## Scope
 
 The simulation assumes a low-redshift two-host distance model, known redshifts and host weights, and a simplified noise model. Grid convergence establishes only that numerical discretization is controlled for this implementation and design. It does not establish astrophysical realism, correct selection modelling, calibrated coverage, or validity for real gravitational-wave observations.
+
+
+## Outlier resolution and targeted follow-up
+
+The archived per-run artifact was inspected and the exact case responsible for the largest upper-95% discrepancy was recovered:
+
+- True synthetic H0: 52 km s^-1 Mpc^-1
+- Second host redshift: 0.04 (first host redshift: 0.02)
+- Noise fraction: 0.03
+- Replicate index: 138 (zero-based in the simulation loop)
+- Inference weighting: reversed (0.3, 0.7)
+- Simulated observed distance: 119.47415214556634 Mpc
+- Upper 95% endpoint at 1,001 points: 60.848373
+- At 2,001 points: 60.742249
+- At 4,001 points: 60.717920
+
+The posterior median is already stable for this case (51.713915, 51.713591, and 51.713486 across the three grids), as are the 68% endpoints. The tail quantile is more sensitive: the 1,001-vs-4,001 difference is 0.130453, while the 2,001-vs-4,001 difference is 0.024330.
+
+A targeted finer-grid check reconstructed this observation and recalculated the upper 95% endpoint:
+
+| Grid points | Upper 95% endpoint |
+|---:|---:|
+| 1,001 | 60.848373 |
+| 2,001 | 60.742249 |
+| 4,001 | 60.717920 |
+| 8,001 | 60.711905 |
+| 16,001 | 60.710428 |
+| 32,001 | 60.710055 |
+| 64,001 | 60.709962 |
+
+The sequence approaches a stable value near 60.710. The finer-grid changes shrink monotonically in this targeted check, supporting numerical discretization/quantile interpolation as the explanation for this particular discrepancy; this does not prove monotonic convergence in general. No defect in the likelihood or posterior normalization was demonstrated. The practical conclusion is that 1,001 points are not uniformly adequate for the upper 95% endpoint, and even 4,001 points leave a visible difference for this case.
+
+The audit script now prints the identity and three-grid endpoint values of the largest upper-95% discrepancy. A targeted regression test preserves this observation and checks refinement through 16,001 points.
