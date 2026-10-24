@@ -111,7 +111,12 @@ def audit(root: Path) -> dict:
         hi68 = [finite(row, "upper_68", name) for row in raw]
         lo95 = [finite(row, "lower_95", name) for row in raw]
         hi95 = [finite(row, "upper_95", name) for row in raw]
-        host_observed = [finite(row, "host_observed", name) for row in raw]
+        host_observed = []
+        for row in raw:
+            value = row.get("host_observed", "").strip().lower()
+            if value not in {"true", "false"}:
+                raise ValueError(f"{name}: host_observed must be a boolean, got {value!r}")
+            host_observed.append(value == "true")
         errors = [x - 70.0 for x in medians]
         mean_errors = [x - 70.0 for x in means]
         sorted_errors = sorted(errors)
