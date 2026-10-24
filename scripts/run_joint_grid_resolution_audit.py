@@ -27,20 +27,25 @@ def run(replicates=30, seed=SEED, grids=GRIDS):
         true_d=luminosity_distance_flat_lcdm(z,truth,omega_m=.3,integration_steps=4000)
         sigma=max(20.,.05*float(np.dot(w,true_d)))
         zeff=float(np.dot(w,z))
+        models={
+         "lcdm_two_host":(z,"flat_lcdm",w),
+         "lowz_two_host":(z,"low_z",w),
+         "lcdm_collapsed":([zeff],"flat_lcdm",[1.]),
+         "lowz_collapsed":([zeff],"low_z",[1.])}
+        cached={}
+        for gs in grids:
+          hgrid=np.linspace(25,125,gs)
+          for arm,(zs,model,weights) in models.items():
+            pred=distance_grid_for_model(hgrid,zs,model,omega_m=.3,integration_steps=2000)
+            cached[(gs,arm)]=(hgrid,pred,weights)
         for rep in range(replicates):
           host=int(rng.choice(2,p=w))
           obs=float(true_d[host]+rng.normal(0,sigma))
           obskey=dict(true_H0=truth,host_z1=z[0],host_z2=z[1],weight1=w[0],weight2=w[1],replicate=rep,
                       observed_distance_mpc=obs,sigma_mpc=sigma)
           for gs in grids:
-            hgrid=np.linspace(25,125,gs)
-            models={
-             "lcdm_two_host":(z,"flat_lcdm",w),
-             "lowz_two_host":(z,"low_z",w),
-             "lcdm_collapsed":([zeff],"flat_lcdm",[1.]),
-             "lowz_collapsed":([zeff],"low_z",[1.])}
-            for arm,(zs,model,weights) in models.items():
-              pred=distance_grid_for_model(hgrid,zs,model,omega_m=.3,integration_steps=2000)
+            for arm in ARMS:
+              hgrid,pred,weights=cached[(gs,arm)]
               p=posterior_h0_from_distance_grid(hgrid,pred,obs,sigma,host_weights=weights,prior_min=PRIOR[0],prior_max=PRIOR[1])
               sm=summary(hgrid,p)
               rows.append(dict(**obskey,grid_size=gs,arm=arm,**sm))
