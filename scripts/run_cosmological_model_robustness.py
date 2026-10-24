@@ -47,11 +47,10 @@ def run(output_dir: Path, replicates: int = 200, seed: int = 20261024, grid_size
             )
             sigma = max(20.0, 0.05 * true_distance)
             for replicate in range(replicates):
+                # This is a Gaussian noisy distance estimator. Rare non-positive
+                # estimates are retained rather than reflected, avoiding an
+                # artificial fold and the associated measurement-model bias.
                 observed = float(rng.normal(true_distance, sigma))
-                if observed <= 0:
-                    # Keep the Gaussian observation model explicit while ensuring
-                    # the likelihood's positive-distance input contract.
-                    observed = float(abs(observed) + np.finfo(float).eps)
                 for model, distances in (("matched_flat_lcdm", lcdm_distances), ("mismatched_low_z", lowz_distances)):
                     posterior = posterior_h0_from_distance_grid(
                         h0_grid,
