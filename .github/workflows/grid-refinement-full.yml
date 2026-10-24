@@ -1,6 +1,13 @@
 name: Grid refinement numerical convergence audit
 
 on:
+  push:
+    paths:
+      - "scripts/run_grid_refinement_audit.py"
+      - "scripts/evaluate_grid_accuracy.py"
+      - "tests/test_grid_refinement_audit.py"
+      - "tests/test_evaluate_grid_accuracy.py"
+      - ".github/workflows/grid-refinement-full.yml"
   workflow_dispatch:
     inputs:
       replicates:
@@ -36,8 +43,8 @@ jobs:
       - name: Execute matched grid audit
         run: |
           python scripts/run_grid_refinement_audit.py \
-            --replicates "${{ inputs.replicates }}" \
-            --seed "${{ inputs.seed }}" \
+            --replicates "${{ inputs.replicates || '200' }}" \
+            --seed "${{ inputs.seed || '20261101' }}" \
             --output-dir results/grid-refinement-audit-full
       - name: Validate outputs
         run: |
@@ -45,7 +52,7 @@ jobs:
           import csv, math
           from pathlib import Path
           root = Path("results/grid-refinement-audit-full")
-          n = int("${{ inputs.replicates }}")
+          n = int("${{ inputs.replicates || '200' }}")
           expected = {"per_run.csv": 3 * 3 * 2 * n * 2 * 3,
                       "summary.csv": 3 * 3 * 2 * 2}
           data = {}
@@ -111,7 +118,7 @@ jobs:
       - name: Upload convergence artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: grid-refinement-r${{ inputs.replicates }}-seed${{ inputs.seed }}
+          name: grid-refinement-r${{ inputs.replicates || '200' }}-seed${{ inputs.seed || '20261101' }}
           path: results/grid-refinement-audit-full/**
           if-no-files-found: error
           retention-days: 90
