@@ -1,0 +1,66 @@
+name: Two-host SBC calibration audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/run_two_host_sbc_audit.py"
+      - "tests/test_two_host_sbc_audit.py"
+      - ".github/workflows/two-host-sbc-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  two-host-sbc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run two-host SBC at two grid resolutions
+        run: |
+          python scripts/run_two_host_sbc_audit.py \
+            --replicates 1000 \
+            --seed 20261026 \
+            --grid-sizes 1001 4001 \
+            --output-dir results/two-host-sbc-audit
+      - name: Validate output and report
+        run: |
+          python - <<'PY'
+          import csv, math
+          from pathlib import Path
+          root = Path("results/two-host-sbc-audit")
+          with (root / "summary.csv").open(newline="") as f:
+              summary = list(csv.DictReader(f))
+          with (root / "per_run.csv").open(newline="") as f:
+              runs = list(csv.DictReader(f))
+          with (root / "grid_resolution.csv").open(newline="") as f:
+              diffs = list(csv.DictReader(f))
+          if len(summary) != 4 or len(runs) != 4000 or len(diffs) != 2:
+              raise SystemExit(f"Unexpected outputs: {len(summary)} summaries, {len(runs)} fits, {len(diffs)} grid comparisons")
+          for row in summary:
+              for key in ("mean_rank", "rank_variance", "ks_statistic", "ks_pvalue", "decile_chi_square_pvalue"):
+                  if not math.isfinite(float(row[key])):
+                      raise SystemExit(f"Non-finite {key}")
+              if not 0 <= float(row["ks_pvalue"]) <= 1:
+                  raise SystemExit("Invalid KS p-value")
+          for row in diffs:
+              if not math.isfinite(float(row["max_abs_rank_difference"])):
+                  raise SystemExit("Non-finite grid-resolution difference")
+          print("PASS: 2 host-weight scenarios × 1,000 draws × 2 grid resolutions = 4,000 posterior fits.")
+          PY
+      - name: Upload two-host SBC results
+        uses: actions/upload-artifact@v4
+        with:
+          name: two-host-sbc-audit-results
+          path: results/two-host-sbc-audit/
+          if-no-files-found: error
+          retention-days: 90
