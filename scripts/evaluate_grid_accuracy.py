@@ -2,9 +2,9 @@
 
 This evaluator intentionally separates cell-level convergence failures from
 individual cases that require a finer-grid follow-up. It never silently treats
-an outlier as resolved. It does not assess posterior normalization because the
-existing grid-audit CSV does not store the density arrays needed for an
-independent integral check.
+an outlier as resolved. It checks independently integrated posterior areas
+recorded by the audit runner, but the CSV does not retain full density arrays
+for alternative integration schemes.
 """
 from __future__ import annotations
 
