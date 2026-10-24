@@ -132,36 +132,19 @@ def paired_contrasts(rows,bootstrap_draws=3000,seed=20261029):
     if len(out)!=expected: raise RuntimeError(f"Expected {expected} contrasts, got {len(out)}")
     return out
 
-def write_csv(path,rows):
-    if not rows: raise RuntimeError(f"Refusing empty artifact {path}")
-    path.parent.mkdir(parents=True,exist_ok=True); fields=list(dict.fromkeys(k for r in rows for k in r))
-    with path.open("w",newline="",encoding="utf-8") as f:
-        w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows)
-    with path.open(newline="",encoding="utf-8") as f:
-        reader=csv.DictReader(f); check=list(reader)
-        if reader.fieldnames!=fields or len(check)!=len(rows): raise RuntimeError(f"CSV round-trip failed: {path}")
-
-def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument("--replicates",type=int,default=300)
-    p.add_argument("--seed",type=int,default=20261028);p.add_argument("--grid-size",type=int,default=4001)
-    p.add_argument("--output-dir",default="results/prior-threshold-factorial")
-    a=p.parse_args();rows=run(a.replicates,a.seed,a.grid_size);summaries=summarize(rows);contrasts=paired_contrasts(rows)
-    out=Path(a.output_dir)
-    for name,data in (("per_run.csv",rows),("summary.csv",summaries),("paired_contrasts.csv",contrasts)):
-        write_csv(out/name,data)
-    # A machine-readable manifest preserves the design and runtime settings
-    # alongside the tables; CSV contents alone do not identify the seed/grid.
+def build_manifest(seed,replicates,grid_size,rows,summaries,contrasts):
+    """Describe the simulation design and runtime needed to interpret its CSVs."""
     try:
         from importlib.metadata import version
         package_version=version("dark-siren-robustness")
     except Exception:
         package_version=None
-    manifest={
+    return {
         "experiment": "prior_support_x_assumed_detection_threshold_factorial",
         "scope": "synthetic simulation; not an observational LVK measurement",
-        "seed": int(a.seed),
-        "replicates_per_true_H0": int(a.replicates),
-        "posterior_grid_points": int(a.grid_size),
+        "seed": int(seed),
+        "replicates_per_true_H0": int(replicates),
+        "posterior_grid_points": int(grid_size),
         "posterior_grid_min_H0": 25.0,
         "posterior_grid_max_H0": 125.0,
         "true_H0_values": list(TRUTHS),
@@ -183,6 +166,26 @@ def main():
         "git_commit": os.environ.get("GITHUB_SHA") or os.environ.get("GIT_COMMIT"),
         "reproducibility_note": "Record the repository commit and environment; stochastic results depend on seed and numerical-library versions.",
     }
+
+
+def write_csv(path,rows):
+    if not rows: raise RuntimeError(f"Refusing empty artifact {path}")
+    path.parent.mkdir(parents=True,exist_ok=True); fields=list(dict.fromkeys(k for r in rows for k in r))
+    with path.open("w",newline="",encoding="utf-8") as f:
+        w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows)
+    with path.open(newline="",encoding="utf-8") as f:
+        reader=csv.DictReader(f); check=list(reader)
+        if reader.fieldnames!=fields or len(check)!=len(rows): raise RuntimeError(f"CSV round-trip failed: {path}")
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument("--replicates",type=int,default=300)
+    p.add_argument("--seed",type=int,default=20261028);p.add_argument("--grid-size",type=int,default=4001)
+    p.add_argument("--output-dir",default="results/prior-threshold-factorial")
+    a=p.parse_args();rows=run(a.replicates,a.seed,a.grid_size);summaries=summarize(rows);contrasts=paired_contrasts(rows)
+    out=Path(a.output_dir)
+    for name,data in (("per_run.csv",rows),("summary.csv",summaries),("paired_contrasts.csv",contrasts)):
+        write_csv(out/name,data)
+    manifest=build_manifest(a.seed,a.replicates,a.grid_size,rows,summaries,contrasts)
     out.mkdir(parents=True,exist_ok=True)
     (out/"experiment_manifest.json").write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n",encoding="utf-8")
     print(f"PASS: {len(rows)} per-run rows; {len(summaries)} summaries; {len(contrasts)} paired contrasts")
