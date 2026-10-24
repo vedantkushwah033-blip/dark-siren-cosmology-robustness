@@ -2,6 +2,7 @@ import importlib.util
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "scripts" / "run_two_host_sbc_audit.py"
 SPEC = importlib.util.spec_from_file_location("two_host_sbc_audit", MODULE_PATH)
@@ -31,3 +32,17 @@ def test_two_host_sbc_and_grid_refinement_are_finite():
     assert all(0 <= row["posterior_cdf_rank"] <= 1 for row in rows)
     assert all(0 <= row["ks_pvalue"] <= 1 for row in summaries)
     assert all(row["max_abs_rank_difference"] >= 0 for row in diffs)
+
+
+def test_two_host_cdf_excludes_zero_density_outside_prior_support():
+    grid = np.linspace(0.0, 10.0, 101)
+    density = np.where((grid >= 3.0) & (grid <= 8.0), 1.0, 0.0)
+    # Uniform density on [3, 8] implies CDF(5) = 0.4.
+    assert module.posterior_cdf_at(grid, density, 5.0) == pytest.approx(0.4, abs=1e-12)
+
+
+def test_two_host_cdf_rejects_malformed_inputs():
+    with pytest.raises(ValueError, match="same-length"):
+        module.posterior_cdf_at([0.0, 1.0], [1.0], 0.5)
+    with pytest.raises(ValueError, match="strictly increasing"):
+        module.posterior_cdf_at([0.0, 0.0], [1.0, 1.0], 0.0)
