@@ -213,6 +213,10 @@ def validate(per_run_path: Path, summary_path: Path, contrasts_path: Path):
         cell = grouped.get(key)
         if cell is None or len(cell) != reps:
             raise ValueError(f"Summary lacks complete raw replicate group: {key}")
+        if int(row["n"]) != reps:
+            raise ValueError(
+                f"Summary replicate count mismatch for {key}: expected {reps}, got {row['n']}"
+            )
         truth = key[0]
         errors = np.array([float(x["posterior_median"]) - truth for x in cell])
         coverage68 = np.array([float(x["lower_68"]) <= truth <= float(x["upper_68"]) for x in cell])
