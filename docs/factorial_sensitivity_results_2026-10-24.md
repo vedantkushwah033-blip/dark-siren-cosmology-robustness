@@ -4,15 +4,16 @@
 
 The factorial-sensitivity GitHub Actions run completed successfully:
 
-- Workflow run: [40141336573](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40141336573)
-- Workflow commit: `97a63a5b8308ce09666fc48798e0bb67b59894df`
+- Workflow run: [40142824335](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40141336573)
+- Workflow commit: `8863e309a558b88cc54a8af27ec36ccdd9a38aa0`
 - Pinned simulator commit: `b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f`
-- Artifact: `factorial-sensitivity`, ID `12579151793`
-- Artifact SHA-256: `a14f99b12267128ad1838b19d8ca074bd93c6fa96a7038caccaca150262185b5`
-- Artifact size: 979,620 bytes; expiry shown by GitHub: 2027-01-22
+- Artifact: `factorial-sensitivity`, ID `12579731455`
+- Artifact SHA-256: `ea14c964859531758a8f6da4ed1ba2db2bb3cd498bf022880f1d3bf4547af56c`
+- Artifact size: 1,080,480 bytes; expiry shown by GitHub: 2027-01-22
 - Main experiment: 9 scenarios × 500 mock universes = 4,500 raw rows.
 - Missing-host controls: 6 × 500 = 3,000 rows.
 - Full-population oracle: 2 × 500 = 1,000 rows.
+- Known-true-host oracle: 1 × 500 = 500 rows, with paired calibration contrasts against the full-population oracle.
 
 The job passed the main matrix, structural validation, independent main-factorial audit, contrast analysis, report generation, missing-host control, and full-population oracle checks. The artifact was uploaded successfully.
 
@@ -59,6 +60,40 @@ The six missing-host scenarios compare observed-catalogue-only inference, a miss
 
 The added missing-host term did not uniformly improve bias, RMSE, or coverage. Most unadjusted contrast intervals include zero. The oracle version uses simulated hidden-population information that a real incomplete survey does not have; it is a validation control, not a deployable estimator.
 
+## Known-true-host oracle calibration and paired contrast
+
+The updated workflow adds a deliberately idealized control: inference is given the actual simulated host redshift for each event. The raw artifact contains 500 known-host runs. Its summary is:
+
+| Diagnostic | Known-host oracle |
+|---|---:|
+| Nominal 68% interval coverage | 0.750 (375/500) |
+| Wilson 95% interval for 68% coverage | [0.710, 0.786] |
+| Nominal 95% interval coverage | 0.986 (493/500) |
+| Wilson 95% interval for 95% coverage | [0.971, 0.993] |
+| Median of posterior-median errors | 2.562 km s⁻¹ Mpc⁻¹ |
+| Mean posterior-median error | 2.019 km s⁻¹ Mpc⁻¹ |
+| Median RMSE | 7.257 km s⁻¹ Mpc⁻¹ |
+| Mean 68% interval width | 17.025 km s⁻¹ Mpc⁻¹ |
+| Mean 95% interval width | 29.862 km s⁻¹ Mpc⁻¹ |
+
+The known-host intervals are narrower than the full-population oracle intervals, but they still over-cover relative to their nominal levels. This indicates that candidate-host mixture ambiguity is not the only source of overcoverage; the simplified likelihood, posterior construction, and estimator calibration also need investigation.
+
+### Paired known-host versus full-population comparison
+
+The two oracle runners use the same deterministic seed schedule, mock catalogues, host choices, observed distances, and distance uncertainties. The updated artifact stores those shared inputs, and the analysis script verifies exact event-level matching before resampling paired differences. Each contrast below is **known-host minus full-population oracle**; intervals use 50,000 paired bootstrap resamples.
+
+| Metric | Full-population value | Paired difference | Paired bootstrap 95% interval |
+|---|---:|---:|---:|
+| 68% coverage | 0.944 | -0.194 | [-0.234, -0.154] |
+| 95% coverage | 1.000 | -0.014 | [-0.026, -0.004] |
+| Mean 68% width | 22.405 | -5.380 | [-5.637, -5.126] |
+| Mean 95% width | 35.899 | -6.036 | [-6.399, -5.681] |
+| Mean median error | 2.144 | -0.125 | [-0.664, 0.404] |
+| Mean absolute median error | 5.342 | +0.804 | [+0.449, +1.162] |
+| Mean squared median error | 37.237 | +15.425 | [+10.630, +20.304] |
+
+The full-population mixture produces substantially wider intervals and higher coverage, but it does not reduce absolute or squared posterior-median error in this paired sample. The mean signed median-error difference is inconclusive. This is a simulation-only comparison: both oracle methods use hidden information and neither is directly implementable for a real dark siren with an unknown host.
+
 ## Full-population oracle benchmark
 
 Both oracle scenarios use all 500 galaxies and the true luminosity host weights, regardless of the simulated catalogue mask. The independently inspected raw artifact contains 1,000 rows. The posterior summaries for paired random and redshift-dependent masks were **exactly identical for every replicate** (zero difference in medians, means, posterior standard deviations, and interval endpoints), while host-observed diagnostics differed for 218 of 500 replicates.
@@ -80,9 +115,7 @@ The contrast bootstrap calculations in the artifact were generated by the commit
 
 ## Metric-definition consistency fix
 
-The main factorial defines `median_bias` as the median across runs of `posterior median - true H0`. The oracle scripts had been inheriting `summarize_runs`'s *mean* error under the same field name. This inconsistency has now been corrected in the oracle runner code and regression tests have been added. The historical artifact above remains an immutable record of the original run; its oracle summary `median_bias` fields should be interpreted as mean errors until the updated workflow is rerun.
-
-The updated oracle runners now expose a small helper with the consistent definition. New tests verify the difference between mean and median error and reject empty input. A known-true-host calibration oracle has also been added to the workflow to help distinguish candidate-mixture overcoverage from calibration behavior when the true host redshift is supplied. The updated runners and new control require a fresh CI run and fresh oracle artifacts before corrected oracle summary values or known-host calibration results can be claimed.
+The main factorial defines `median_bias` as the median across runs of `posterior median - true H0`. The oracle scripts had previously been inheriting `summarize_runs`'s *mean* error under the same field name. The latest workflow run uses the corrected definition consistently across the missing-host, full-population, and known-host oracle summaries. Regression tests distinguish the median of errors from the mean and reject empty inputs.
 
 ## Limitations and next scientific steps
 
@@ -94,10 +127,12 @@ The updated oracle runners now expose a small helper with the consistent definit
 
 ## Source links
 
-- [Completed workflow and logs](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40141336573)
+- [Completed workflow and logs](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40142824335)
 - [Factorial workflow definition](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/blob/main/.github/workflows/factorial-sensitivity.yml)
 - [Main factorial runner](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/blob/main/scripts/run_factorial_sensitivity.py)
 - [Main independent auditor](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/blob/main/scripts/audit_factorial_sensitivity_outputs.py)
 - [Contrast analysis](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/blob/main/scripts/analyze_factorial_contrasts.py)
 - [Missing-host control runner](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/blob/main/scripts/run_oracle_missing_host_control.py)
 - [Full-population oracle runner](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/blob/main/scripts/run_full_population_oracle.py)
+- [Known-host oracle runner](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/blob/main/scripts/run_known_host_oracle.py)
+- [Paired oracle calibration analysis](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/blob/main/scripts/analyze_known_host_oracle_contrasts.py)
