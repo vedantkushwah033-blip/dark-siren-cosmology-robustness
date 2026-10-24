@@ -37,6 +37,7 @@ jobs:
           name: threshold-misspecification-python-${{ matrix.python-version }}
           path: |
             results/threshold-misspecification/per_run.csv
-            results/threshold-misspecification/summary.csv\n            results/threshold-misspecification/paired_threshold_contrasts.csv
+            results/threshold-misspecification/summary.csv
+            results/threshold-misspecification/paired_threshold_contrasts.csv
           if-no-files-found: error
           retention-days: 90
