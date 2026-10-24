@@ -8,8 +8,8 @@ def test_joint_experiment_smoke_is_paired_and_finite():
     for r in rows:
         key=(r["true_H0"],r["host_z1"],r["host_z2"],r["weight1"],r["weight2"],r["replicate"])
         keys.setdefault(key,{})[r["inference_arm"]]=r
-        assert np.isfinite(r["posterior_median"])
-        assert 40 <= r["posterior_median"] <= 100
+        assert np.isfinite(r["median"])
+        assert 40 <= r["median"] <= 100
         assert r["lower_95"] <= r["lower_68"] <= r["median"] <= r["upper_68"] <= r["upper_95"]
     assert len(keys)==27*2
     for arms in keys.values():
