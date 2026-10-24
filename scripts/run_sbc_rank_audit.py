@@ -25,11 +25,26 @@ SIGMA_FIXED_MPC = 0.10 * C_KM_S * Z_FIXED / 70.0
 
 
 def posterior_cdf_at(grid, posterior, truth):
-    cdf = np.concatenate(([0.0], cumulative_trapezoid(posterior, grid)))
+    """Evaluate a posterior CDF while excluding zero-density points outside support."""
+    grid = np.asarray(grid, dtype=float)
+    posterior = np.asarray(posterior, dtype=float)
+    if grid.ndim != 1 or posterior.ndim != 1 or grid.size != posterior.size or grid.size < 2:
+        raise ValueError("grid and posterior must be same-length one-dimensional arrays.")
+    if not np.all(np.isfinite(grid)) or not np.all(np.diff(grid) > 0):
+        raise ValueError("grid must be finite and strictly increasing.")
+    if not np.all(np.isfinite(posterior)) or np.any(posterior < 0):
+        raise ValueError("posterior must be finite and non-negative.")
+    support = np.flatnonzero(posterior > 0)
+    if support.size < 2:
+        raise ValueError("posterior must have at least two positive support points.")
+    lo, hi = int(support[0]), int(support[-1])
+    support_grid = grid[lo:hi + 1]
+    support_density = posterior[lo:hi + 1]
+    cdf = np.concatenate(([0.0], cumulative_trapezoid(support_density, support_grid)))
     if not np.isfinite(cdf[-1]) or cdf[-1] <= 0:
         raise ValueError("Invalid posterior CDF normalization")
     cdf = cdf / cdf[-1]
-    return float(np.clip(np.interp(truth, grid, cdf), 0.0, 1.0))
+    return float(np.clip(np.interp(truth, support_grid, cdf), 0.0, 1.0))
 
 
 def run_sbc(replicates=1000, seed=20261025, grid_size=5001):
