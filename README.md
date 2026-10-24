@@ -118,3 +118,8 @@ Validated interval-width results are documented in [prior interval-width sensiti
 
 
 The [joint prior-performance scorecard protocol](docs/joint_prior_scorecard_protocol.md) combines coverage, bias, RMSE, and credible-interval width across prior supports. Its results remain specific to the synthetic model.
+
+
+### Joint prior-performance scorecard results
+
+The completed joint scorecard compares bias, RMSE, fixed-truth coverage with Wilson intervals, and posterior interval widths across the tested prior supports and both inference methods. See [validated scorecard results](docs/joint_prior_scorecard_results.md). The scorecard workflow passed on Python 3.10, 3.11, and 3.12; these results are synthetic-model diagnostics, not observational H0 measurements.
