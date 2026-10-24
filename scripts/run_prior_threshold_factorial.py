@@ -108,9 +108,15 @@ def paired_contrasts(rows,bootstrap_draws=3000,seed=20261029):
          b=[lookup[(truth,i,pmin,pmax,threshold,method)] for i in range(len(a))]
          for metric,fn in metrics.items():
           delta=np.array([fn(y)-fn(x) for x,y in zip(a,b)],float)
+          # Vectorize resampling in bounded batches: this is mathematically the
+          # same paired percentile bootstrap, but avoids one Python loop per draw.
+          # Batching caps temporary memory for the full 300-replicate experiment.
           boot=np.empty(bootstrap_draws)
-          for j in range(bootstrap_draws):
-           boot[j]=np.mean(delta[rng.integers(0,len(delta),len(delta))])
+          batch_size=256
+          for start in range(0,bootstrap_draws,batch_size):
+           stop=min(start+batch_size,bootstrap_draws)
+           indices=rng.integers(0,len(delta),size=(stop-start,len(delta)))
+           boot[start:stop]=np.mean(delta[indices],axis=1)
           out.append({"true_H0":truth,"method":method,"metric":metric,
             "baseline_prior":"[50,90]","comparison_prior":f"[{pmin:g},{pmax:g}]",
             "baseline_threshold_mpc":baseline_threshold,"comparison_threshold_mpc":threshold,
