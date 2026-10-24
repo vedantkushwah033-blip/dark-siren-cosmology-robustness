@@ -117,10 +117,10 @@ def main():
     for metric in ("median_abs_median_diff_1001_vs_4001", "abs_lower68_diff_1001_vs_4001",
                    "abs_upper68_diff_1001_vs_4001", "abs_lower95_diff_1001_vs_4001",
                    "abs_upper95_diff_1001_vs_4001", "median_abs_median_diff_2001_vs_4001"):
-        values = np.array([r[metric] for r in cells])
-        print({"metric": metric, "median_of_cell_medians": float(np.median([r[f"median_{metric}"] for r in cells])),
-               "max_cell_p95": float(max(r[f"p95_{metric}"] for r in cells)),
-               "max_observed_difference": float(max(r[f"max_{metric}"] for r in cells))})
+        print({"metric": metric,
+               "median_of_cell_medians": float(np.median([r["median_" + metric] for r in cells])),
+               "max_cell_p95": float(max(r["p95_" + metric] for r in cells)),
+               "max_observed_difference": float(max(r["max_" + metric] for r in cells))})
 
 
 if __name__ == "__main__":
