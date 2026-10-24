@@ -131,7 +131,7 @@ def evaluate(per_run_path: Path, targeted_path: Path | None = None):
     normalization_failures = sum(diff > 1e-8 for diff in normalization_diffs)
     max_normalization_error = max(normalization_diffs) if normalization_diffs else None
     flagged_cases = [r for r in case_rows if r["flag_for_targeted_refinement"]]
-    targeted_lookup = {
+    targeted_lookup = {}
     if targeted_path is not None:
         with targeted_path.open(newline="", encoding="utf-8") as handle:
             targeted_rows = list(csv.DictReader(handle))
