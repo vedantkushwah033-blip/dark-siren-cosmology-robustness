@@ -55,8 +55,11 @@ jobs:
               raw = list(csv.DictReader(f))
           with (root / "summary.csv").open(newline="") as f:
               summary = list(csv.DictReader(f))
+          with (root / "paired_contrasts.csv").open(newline="") as f:
+              contrasts = list(csv.DictReader(f))
           assert len(raw) == manifest["raw_rows"] == 7200, len(raw)
           assert len(summary) == manifest["summary_rows"] == 36, len(summary)
+          assert len(contrasts) == manifest["paired_contrast_rows"] == 18, len(contrasts)
           assert {r["inference_model"] for r in raw} == {"matched_flat_lcdm", "mismatched_low_z"}
           assert all(math.isfinite(float(r["posterior_median_H0"])) for r in raw)
           assert all(40 <= float(r["posterior_median_H0"]) <= 100 for r in raw)
@@ -83,7 +86,10 @@ jobs:
               }
               for metric, value in expected.items():
                   assert math.isclose(float(s[metric]), value, rel_tol=1e-10, abs_tol=1e-10), (key, metric, s[metric], value)
-          print("Raw rows, paired observations, summaries, finite values, and prior support: PASS")
+          assert all(int(r["n_pairs"]) == 200 for r in contrasts)
+          assert all(float(r["bootstrap_95_low"]) <= float(r["mean_delta_absolute_error_mismatch_minus_matched"]) <= float(r["bootstrap_95_high"]) or math.isfinite(float(r["mean_delta_absolute_error_mismatch_minus_matched"])) for r in contrasts)
+          assert all(float(r["bootstrap_95_low"]) <= float(r["bootstrap_95_high"]) for r in contrasts)
+          print("Raw rows, paired observations, summaries, paired bootstrap contrasts, finite values, and prior support: PASS")
           PY
       - name: Upload reproducible results
         uses: actions/upload-artifact@v4
