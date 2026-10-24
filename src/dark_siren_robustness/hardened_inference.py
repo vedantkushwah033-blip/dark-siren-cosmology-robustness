@@ -85,8 +85,14 @@ def posterior_h0(
             mw[None, :] * norm.pdf(distance, loc=missing_distance_grid, scale=sigma), axis=1
         )
 
-    posterior = np.where((grid >= prior_lo) & (grid <= prior_hi), likelihood, 0.0)
-    area = float(trapezoid(posterior, grid))
+    in_prior = (grid >= prior_lo) & (grid <= prior_hi)
+    if np.count_nonzero(in_prior) < 2:
+        raise ValueError("H0_grid must contain at least two points inside the prior interval.")
+    posterior = np.where(in_prior, likelihood, 0.0)
+    # Integrate only on the prior-supported grid. Integrating the zero-valued
+    # points just outside the prior would create artificial half-bin area at
+    # the discontinuous prior boundaries under the trapezoidal rule.
+    area = float(trapezoid(posterior[in_prior], grid[in_prior]))
     if not np.isfinite(area) or area <= 0:
         raise ValueError("Posterior normalization failed.")
     return posterior / area
@@ -98,6 +104,16 @@ def posterior_summary(H0_grid, posterior):
     density = _vector(posterior, "posterior", nonnegative=True, min_size=2)
     if density.size != grid.size:
         raise ValueError("posterior must have the same length as H0_grid.")
+    # The density returned by posterior_h0 is zero outside the prior support.
+    # Slice to its supported range before applying trapezoidal integration:
+    # including an outside zero next to a nonzero boundary value adds an
+    # artificial half-bin of posterior mass across a discontinuous prior edge.
+    support = np.flatnonzero(density > 0)
+    if support.size < 2:
+        raise ValueError("posterior must have at least two positive grid values.")
+    lo, hi = int(support[0]), int(support[-1])
+    grid = grid[lo:hi + 1]
+    density = density[lo:hi + 1]
     area = float(np.trapezoid(density, grid))
     if not np.isfinite(area) or area <= 0:
         raise ValueError("posterior must have a finite, positive integrated area.")
