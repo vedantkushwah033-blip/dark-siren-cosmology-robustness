@@ -1,8 +1,11 @@
 import numpy as np
 import pytest
+from scipy.integrate import quad
+from scipy.optimize import brentq
 from scipy.special import ndtr
+from scipy.stats import norm
 
-from dark_siren_robustness.hardened_inference import C_KM_S, posterior_h0
+from dark_siren_robustness.hardened_inference import C_KM_S, posterior_h0, posterior_summary
 from dark_siren_robustness.selection import detection_efficiency_h0, posterior_h0_selected
 
 
@@ -63,3 +66,35 @@ def test_invalid_host_weights_are_rejected(weights):
 def test_selected_inference_rejects_undetected_observation():
     with pytest.raises(ValueError, match="below the detection threshold"):
         posterior_h0_selected(np.linspace(25, 125, 1001), [0.02], 200.0, 10.0, 150.0)
+
+
+def test_selected_posterior_quantiles_match_independent_adaptive_quadrature():
+    grid = np.linspace(25.0, 125.0, 16001)
+    redshifts = np.array([0.02, 0.08])
+    weights = np.array([0.5, 0.5])
+    distance, sigma, threshold = 150.0, 18.0, 160.0
+    density = posterior_h0_selected(
+        grid, redshifts, distance, sigma, threshold, weights,
+        prior_min=50.0, prior_max=90.0,
+    )
+    got = posterior_summary(grid, density)
+
+    def unnormalized(h0):
+        means = C_KM_S * redshifts / h0
+        numerator = float(np.dot(weights, norm.pdf(distance, loc=means, scale=sigma)))
+        beta = float(np.dot(weights, ndtr((threshold - means) / sigma)))
+        return numerator / beta
+
+    normalizer, _ = quad(unnormalized, 50.0, 90.0, epsabs=1e-12, epsrel=1e-10)
+    def cdf(h0):
+        if h0 <= 50.0:
+            return 0.0
+        if h0 >= 90.0:
+            return 1.0
+        area, _ = quad(unnormalized, 50.0, h0, epsabs=1e-12, epsrel=1e-10)
+        return area / normalizer
+
+    for name, probability in (("lower_68", 0.16), ("median", 0.5), ("upper_68", 0.84),
+                              ("lower_95", 0.025), ("upper_95", 0.975)):
+        reference = brentq(lambda h0: cdf(h0) - probability, 50.0, 90.0)
+        assert got[name] == pytest.approx(reference, abs=0.003)
