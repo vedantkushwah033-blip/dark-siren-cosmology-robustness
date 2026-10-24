@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - "src/dark_siren_robustness/hardened_inference.py"
       - "scripts/run_independent_reference_audit.py"
       - "tests/test_independent_reference_audit.py"
       - ".github/workflows/independent-reference-audit.yml"
