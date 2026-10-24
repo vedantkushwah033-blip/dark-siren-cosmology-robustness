@@ -78,6 +78,18 @@ def test_audit_rejects_wrong_completeness(tmp_path):
         audit(tmp_path)
 
 
+def test_audit_rejects_incomplete_complete_catalogue(tmp_path):
+    _fixture(tmp_path)
+    path = tmp_path / "per_run_results.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    target_row = next(row for row in rows if row["scenario"] == "complete_uniform_matched")
+    target_row["realized_completeness"] = "0.99"
+    _write_csv(path, rows)
+    with pytest.raises(ValueError, match="complete catalogue \(100%\)"):
+        audit(tmp_path)
+
+
 def test_audit_rejects_nonfinite_posterior(tmp_path):
     _fixture(tmp_path)
     path = tmp_path / "per_run_results.csv"
