@@ -10,6 +10,7 @@ import csv
 from pathlib import Path
 
 import numpy as np
+from scipy.integrate import trapezoid
 
 from dark_siren_robustness.hardened_inference import (
     C_KM_S,
@@ -44,7 +45,7 @@ def calculate_convergence():
         )
         summary = posterior_summary(grid, density)
         prior_support = (grid >= PRIOR_MIN) & (grid <= PRIOR_MAX)
-        independently_integrated_area = float(trapezoid(density[prior_support], grid[prior_support]))
+        posterior_area_on_prior_support = float(trapezoid(density[prior_support], grid[prior_support]))
         row = {
             "grid_size": size,
             "H0_true": H0_TRUE,
