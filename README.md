@@ -128,3 +128,8 @@ The completed joint scorecard compares bias, RMSE, fixed-truth coverage with Wil
 ### Coverage-transition map
 
 A denser paired fixed-truth experiment tests nine true values from 52 to 88 and compares the original [50,90] prior with [40,100], reusing each generated observation across prior supports. It reports bias, RMSE, 68%/95% coverage with Wilson intervals, and interval widths. See [coverage-transition protocol](docs/coverage_transition_map_protocol.md) and [validated results](docs/coverage_transition_map_results.md). This remains a synthetic diagnostic, not an observational H0 analysis.
+
+
+### Paired method contrasts with bootstrap uncertainty
+
+The coverage-transition experiment now reports corrected-minus-uncorrected paired differences for posterior medians, absolute/squared errors, 68%/95% interval widths, and coverage indicators, with percentile-bootstrap 95% intervals. See the [paired contrast results](docs/paired_method_contrast_results.md). The workflow uploads `paired_method_contrasts.csv` with the per-run and summary artifacts. All findings are conditional on the synthetic model and should not be generalized directly to real LVK data.
