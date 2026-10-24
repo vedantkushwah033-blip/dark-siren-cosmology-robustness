@@ -112,4 +112,7 @@ def test_detection_efficiency_matches_finite_positive_distance_interval():
 
 def test_selected_inference_rejects_observation_below_lower_detection_bound():
     with pytest.raises(ValueError, match="detection interval"):
-        posterior_h0_selected(np.linspace(25, 125, 1001), [0.02], -1.0, 10.0, 150.0)
+        posterior_h0_selected(
+            np.linspace(25, 125, 1001), [0.02], 10.0, 10.0, 150.0,
+            detection_distance_min=20.0,
+        )
