@@ -22,19 +22,19 @@ This is a controlled synthetic diagnostic, not a real gravitational-wave analysi
 
 All incomplete-catalogue runs retained exactly 350 of 500 galaxies (70%). The table reports the project's defined `median_bias` (median across runs of each run's posterior-median error), RMSE of posterior medians, and empirical interval coverage.
 
-| Scenario | 68% coverage | 95% coverage | Median bias (km s⁻¹ Mpc⁻¹) | Median RMSE | Mean 68% width | Mean 95% width |
+| Scenario | 68% coverage | 95% coverage | Median of median errors | Mean median error | Median RMSE | Mean 68% width | Mean 95% width |
 |---|---:|---:|---:|---:|---:|---:|
-| Complete, uniform host / uniform inference | 0.956 | 1.000 | 3.811 | 6.095 | 22.405 | 35.888 |
-| Complete, luminosity host / luminosity inference | 0.952 | 1.000 | 3.907 | 6.328 | 22.243 | 35.690 |
-| Complete, luminosity host / uniform inference | 0.932 | 0.996 | 4.124 | 6.241 | 22.389 | 35.792 |
-| Random 70%, uniform / uniform | 0.932 | 0.996 | 3.480 | 6.308 | 22.181 | 35.641 |
-| Random 70%, luminosity / luminosity | 0.936 | 0.994 | 3.068 | 6.163 | 22.154 | 35.582 |
-| Random 70%, luminosity / uniform | 0.940 | 0.994 | 3.712 | 6.246 | 22.279 | 35.721 |
-| Redshift-dependent 70%, uniform / uniform | 0.940 | 0.996 | 2.295 | 5.899 | 22.525 | 35.770 |
-| Redshift-dependent 70%, luminosity / luminosity | 0.938 | 0.992 | 2.566 | 5.999 | 22.461 | 35.731 |
-| Redshift-dependent 70%, luminosity / uniform | 0.942 | 0.998 | 2.882 | 5.878 | 22.674 | 35.906 |
+| Complete, uniform host / uniform inference | 0.956 | 1.000 | 3.811 | 1.969 | 6.095 | 22.405 | 35.888 |
+| Complete, luminosity host / luminosity inference | 0.952 | 1.000 | 3.907 | 1.995 | 6.328 | 22.243 | 35.690 |
+| Complete, luminosity host / uniform inference | 0.932 | 0.996 | 4.124 | 2.144 | 6.241 | 22.389 | 35.792 |
+| Random 70%, uniform / uniform | 0.932 | 0.996 | 3.480 | 1.394 | 6.308 | 22.181 | 35.641 |
+| Random 70%, luminosity / luminosity | 0.936 | 0.994 | 3.068 | 1.646 | 6.163 | 22.154 | 35.582 |
+| Random 70%, luminosity / uniform | 0.940 | 0.994 | 3.712 | 1.741 | 6.246 | 22.279 | 35.721 |
+| Redshift-dependent 70%, uniform / uniform | 0.940 | 0.996 | 2.295 | 0.796 | 5.899 | 22.525 | 35.770 |
+| Redshift-dependent 70%, luminosity / luminosity | 0.938 | 0.992 | 2.566 | 0.902 | 5.999 | 22.461 | 35.731 |
+| Redshift-dependent 70%, luminosity / uniform | 0.942 | 0.998 | 2.882 | 1.152 | 5.878 | 22.674 | 35.906 |
 
-Widths are in km s⁻¹ Mpc⁻¹. RMSE is in the same units. The 68% coverage estimates have approximate Monte Carlo standard errors around 1.0–1.1 percentage points; with 500 repetitions, small differences are not precise.
+Widths, errors, and RMSE are in km s⁻¹ Mpc⁻¹. “Median of median errors” is the median across runs of (posterior median − true H0); “mean median error” is the arithmetic mean of that same per-run error. The separate `mean_bias` field in the simulator is the mean error of the posterior mean, not the mean error of the posterior median. The 68% coverage estimates have approximate Monte Carlo standard errors around 1.0–1.1 percentage points; Wilson 95% intervals for individual scenario coverage are roughly 90.6–97.1% for nominal 68% coverage and 98.0–100% for nominal 95% coverage. With 500 repetitions, small differences are not precise.
 
 ### Interpretation
 
