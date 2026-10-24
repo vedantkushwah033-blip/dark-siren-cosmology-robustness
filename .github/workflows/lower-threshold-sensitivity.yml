@@ -1,0 +1,40 @@
+name: Toy lower-threshold sensitivity audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/dark_siren_robustness/selection.py"
+      - "src/dark_siren_robustness/hardened_inference.py"
+      - "scripts/run_lower_threshold_sensitivity.py"
+      - "tests/test_lower_threshold_sensitivity.py"
+      - ".github/workflows/lower-threshold-sensitivity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  threshold-sensitivity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run lower-threshold sensitivity audit
+        run: python scripts/run_lower_threshold_sensitivity.py --grid-size 4001 --output-dir results/lower-threshold-sensitivity
+      - name: Run focused tests
+        run: python -m pytest tests/test_lower_threshold_sensitivity.py -q
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: lower-threshold-sensitivity-results
+          path: results/lower-threshold-sensitivity/
+          if-no-files-found: error
+          retention-days: 90
