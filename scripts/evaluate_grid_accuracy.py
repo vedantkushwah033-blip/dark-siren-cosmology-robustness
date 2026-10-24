@@ -137,6 +137,12 @@ def evaluate(per_run_path: Path, targeted_path: Path | None = None):
             targeted_rows = list(csv.DictReader(handle))
         grouped_targeted = {}
         for row in targeted_rows:
+            if "posterior_area_on_prior_support" in row:
+                area = float(row["posterior_area_on_prior_support"])
+                if not np.isfinite(area):
+                    raise ValueError("Non-finite targeted posterior area")
+                normalization_rows += 1
+                normalization_diffs.append(abs(area - 1.0))
             case_key = tuple(row[k] for k in IDENTITY)
             grouped_targeted.setdefault(case_key, {})[int(row["grid_size"])] = row
         for case_key, grids in grouped_targeted.items():
@@ -160,6 +166,8 @@ def evaluate(per_run_path: Path, targeted_path: Path | None = None):
             else:
                 case.update(target)
                 case["targeted_refinement_status"] = "resolved_within_tolerance" if target["refinement_pass"] else "unresolved_tolerance_failed"
+    normalization_failures = sum(diff > 1e-8 for diff in normalization_diffs)
+    max_normalization_error = max(normalization_diffs) if normalization_diffs else None
     unresolved_flagged = [r for r in flagged_cases if r["targeted_refinement_status"] != "resolved_within_tolerance"]
     assessment = {
         "input_file": str(per_run_path),
