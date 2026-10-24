@@ -99,7 +99,8 @@ def run(replicates=300, seed=20261031, grid_size=4001, bootstrap_draws=5000):
                     for correction in ("uncorrected", "corrected"):
                         collapsed, mixture = f"collapsed_{correction}", f"two_host_{correction}"
                         delta = np.array([r[f"{collapsed}_absolute_error"] - r[f"{mixture}_absolute_error"] for r in cell_rows])
-                        brng = np.random.default_rng(cell_seed(seed + 1, truth, redshifts, weights, threshold) % (2**63-1))
+                        bootstrap_seed = cell_seed(seed + 1, truth, redshifts, weights, threshold) % (2**63-1)
+                        brng = np.random.default_rng(bootstrap_seed)
                         boot = np.empty(bootstrap_draws)
                         for start in range(0, bootstrap_draws, 128):
                             stop = min(start+128, bootstrap_draws)
@@ -108,7 +109,7 @@ def run(replicates=300, seed=20261031, grid_size=4001, bootstrap_draws=5000):
                         summaries.append({**cell_id, "method": f"paired_collapsed_minus_two_host_absolute_error_{correction}",
                             "n": len(cell_rows), "mean_paired_change": float(delta.mean()),
                             "bootstrap_95_low": float(np.quantile(boot, .025)), "bootstrap_95_high": float(np.quantile(boot, .975)),
-                            "bootstrap_draws": bootstrap_draws, "bootstrap_seed": cell_seed(seed + 1, truth, redshifts, weights, threshold)})
+                            "bootstrap_draws": bootstrap_draws, "bootstrap_seed": bootstrap_seed})
                     expected = expected_detected_host_fractions(truth, z, w, threshold)
                     observed = np.bincount(host_ids, minlength=2) / len(host_ids)
                     summaries.append({**cell_id, "method": "detected_host_fraction_diagnostic", "n": len(cell_rows),
