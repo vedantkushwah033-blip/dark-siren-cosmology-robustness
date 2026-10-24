@@ -104,6 +104,9 @@ def posterior_summary(H0_grid, posterior):
     density = _vector(posterior, "posterior", nonnegative=True, min_size=2)
     if density.size != grid.size:
         raise ValueError("posterior must have the same length as H0_grid.")
+    initial_area = float(np.trapezoid(density, grid))
+    if not np.isfinite(initial_area) or initial_area <= 0:
+        raise ValueError("posterior must have a finite, positive integrated area.")
     # The density returned by posterior_h0 is zero outside the prior support.
     # Slice to its supported range before applying trapezoidal integration:
     # including an outside zero next to a nonzero boundary value adds an
