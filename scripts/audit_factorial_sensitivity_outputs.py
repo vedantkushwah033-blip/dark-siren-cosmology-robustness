@@ -48,6 +48,15 @@ def audit(root: Path) -> dict:
     n = int(summary_json["requested_replicates_per_scenario"])
     if n < 2:
         raise ValueError("replicate count must be at least 2")
+    try:
+        true_h0 = float(summary_json["true_h0"])
+        n_galaxies = int(summary_json["n_galaxies"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("JSON manifest must include true_h0 and n_galaxies") from exc
+    if not math.isfinite(true_h0) or not math.isclose(true_h0, 70.0, abs_tol=1e-12):
+        raise ValueError(f"unexpected true_h0; expected 70.0, got {true_h0}")
+    if n_galaxies != 500:
+        raise ValueError(f"unexpected n_galaxies; expected 500, got {n_galaxies}")
     if int(summary_json["scenario_count"]) != len(EXPECTED) or len(summary) != len(EXPECTED):
         raise ValueError("expected exactly nine factorial scenarios")
     if len(runs) != len(EXPECTED) * n:
