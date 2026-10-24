@@ -1,0 +1,40 @@
+name: Toy nonzero lower-threshold selection audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/dark_siren_robustness/selection.py"
+      - "src/dark_siren_robustness/hardened_inference.py"
+      - "scripts/run_nonzero_lower_threshold_audit.py"
+      - "tests/test_nonzero_lower_threshold_audit.py"
+      - ".github/workflows/nonzero-lower-threshold.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lower-threshold-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run nonzero lower-threshold audit
+        run: python scripts/run_nonzero_lower_threshold_audit.py --grid-size 4001 --output-dir results/nonzero-lower-threshold
+      - name: Run focused tests
+        run: python -m pytest tests/test_nonzero_lower_threshold_audit.py -q
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: nonzero-lower-threshold-results
+          path: results/nonzero-lower-threshold/
+          if-no-files-found: error
+          retention-days: 90
