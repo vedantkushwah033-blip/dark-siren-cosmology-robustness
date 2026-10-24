@@ -114,7 +114,8 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     for name, data in (("per_run.csv", rows), ("summary.csv", summaries)):
         with (out / name).open("w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=list(data[0]))
+            fieldnames = list(dict.fromkeys(key for row in data for key in row))
+            writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="raise")
             writer.writeheader()
             writer.writerows(data)
     print(f"PASS: {len(rows)} prior-matched paired rows; {len(summaries)} summaries.")
