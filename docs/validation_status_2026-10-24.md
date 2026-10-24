@@ -18,7 +18,7 @@ The README/protocol updates at `91fe3997` and `8c16ac1d` subsequently passed bot
 - https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40097372663
 - https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40097372541
 
-Later commits `05cbee3f`, `555b9a40`, and `87843974` add an end-to-end compact artifact-validation fixture, a check that summary replicate counts match raw data, and regression tests for both behaviours. Their CI runs were still in progress or queued at the last check; do not treat those newest tests as passed until the corresponding Actions runs finish successfully.
+Later commits `05cbee3f`, `555b9a40`, and `87843974` add an end-to-end compact artifact-validation fixture, a check that summary replicate counts match raw data, and regression tests for both behaviours. The focused `tests` workflow passed on `87843974` (run 40097558866), and the numerical-diagnostics workflow passed on `555b9a40` (run 40097553755). The broader `Test suite` on `87843974` and the latest workflows on `f000d541` were still in progress at the last check. Do not claim the latest full suite has passed until its Actions run concludes successfully.
 
 The two subsequent commits strengthen the artifact validator and add regression tests for invalid host indices and observations outside the declared detection interval:
 
