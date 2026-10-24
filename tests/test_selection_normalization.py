@@ -116,3 +116,30 @@ def test_selected_inference_rejects_observation_below_lower_detection_bound():
             np.linspace(25, 125, 1001), [0.02], 10.0, 10.0, 150.0,
             detection_distance_min=20.0,
         )
+
+
+@pytest.mark.parametrize(
+    "lower,upper",
+    [(0.0, 180.0), (20.0, 180.0), (40.0, 140.0)],
+)
+def test_selection_conditioned_distance_density_integrates_to_one(lower, upper):
+    """The conditional density p(d | detected, H0) must normalize on the cut."""
+    from scipy.integrate import quad
+
+    redshifts = np.array([0.02, 0.04])
+    weights = np.array([0.7, 0.3])
+    h0 = 70.0
+    sigma = 20.0
+    means = C_KM_S * redshifts / h0
+    beta = float(np.dot(
+        weights,
+        ndtr((upper - means) / sigma) - ndtr((lower - means) / sigma),
+    ))
+
+    def conditional_density(distance):
+        numerator = float(np.dot(weights, norm.pdf(distance, loc=means, scale=sigma)))
+        return numerator / beta
+
+    area, error = quad(conditional_density, lower, upper, epsabs=1e-11, epsrel=1e-11)
+    assert error < 1e-8
+    assert area == pytest.approx(1.0, abs=1e-10)
