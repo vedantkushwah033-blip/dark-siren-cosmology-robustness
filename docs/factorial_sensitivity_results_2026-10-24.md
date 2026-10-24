@@ -4,7 +4,7 @@
 
 The factorial-sensitivity GitHub Actions run completed successfully:
 
-- Workflow run: [40142824335](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40141336573)
+- Workflow run: [40142824335](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40142824335)
 - Workflow commit: `8863e309a558b88cc54a8af27ec36ccdd9a38aa0`
 - Pinned simulator commit: `b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f`
 - Artifact: `factorial-sensitivity`, ID `12579731455`
