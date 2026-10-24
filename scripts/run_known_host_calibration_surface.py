@@ -56,8 +56,14 @@ def summarize_cell(rows: list[dict], true_h0: float, fractional_error: float) ->
         raise ValueError("posterior summaries and interval bounds must lie within prior support")
     if any(x <= 0.0 for x in sd):
         raise ValueError("posterior standard deviations must be positive")
-    if not math.isfinite(true_h0) or not math.isfinite(fractional_error) or fractional_error <= 0:
-        raise ValueError("truth must be finite and fractional distance error must be positive and finite")
+    if (
+        not math.isfinite(true_h0)
+        or true_h0 < PRIOR_MIN
+        or true_h0 > PRIOR_MAX
+        or not math.isfinite(fractional_error)
+        or fractional_error <= 0
+    ):
+        raise ValueError("truth must be finite and within prior support; fractional distance error must be positive and finite")
     n = len(rows)
     c68n = sum(a <= true_h0 <= b for a, b in zip(lo68, hi68))
     c95n = sum(a <= true_h0 <= b for a, b in zip(lo95, hi95))
