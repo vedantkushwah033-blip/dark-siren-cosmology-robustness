@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "scripts/run_joint_distance_model_host_mixture.py"
+      - "scripts/run_joint_distance_model_host_mixture.py"\n      - "scripts/audit_joint_distance_model_host_mixture.py"
       - "tests/test_joint_distance_model_host_mixture.py"
       - "src/dark_siren_robustness/cosmology.py"
       - "src/dark_siren_robustness/cosmological_inference.py"
@@ -57,6 +57,8 @@ jobs:
           assert all(float(r["lower_95"])<=float(r["lower_68"])<=float(r["median"])<=float(r["upper_68"])<=float(r["upper_95"]) for r in raw)
           print("PASS: row counts, finite posterior summaries, interval ordering and prior support")
           PY
+      - name: Independently recompute summaries and paired bootstrap contrasts
+        run: python scripts/audit_joint_distance_model_host_mixture.py results/joint-distance-host-mixture --seed 20261025
       - name: Upload raw data and summaries
         uses: actions/upload-artifact@v4
         with:
