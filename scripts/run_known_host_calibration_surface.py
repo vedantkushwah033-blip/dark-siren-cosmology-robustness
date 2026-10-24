@@ -46,7 +46,7 @@ def summarize_cell(rows: list[dict], true_h0: float, fractional_error: float) ->
         raise ValueError("all posterior summaries must be finite")
     if any(a > b for a, b in zip(lo68, hi68)) or any(a > b for a, b in zip(lo95, hi95)):
         raise ValueError("credible interval bounds are reversed")
-    if any(a > c or b > d for a, b, c, d in zip(lo95, lo68, hi68, hi95)):
+    if any(lo95_i > lo68_i or hi68_i > hi95_i for lo95_i, lo68_i, hi68_i, hi95_i in zip(lo95, lo68, hi68, hi95)):
         raise ValueError("68% intervals must be nested inside 95% intervals")
     n = len(rows)
     c68n = sum(a <= true_h0 <= b for a, b in zip(lo68, hi68))
