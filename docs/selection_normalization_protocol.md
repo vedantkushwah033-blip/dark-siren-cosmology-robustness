@@ -1,6 +1,6 @@
 # Protocol: separate catalogue incompleteness from event-detection selection
 
-**Status:** protocol plus an initial analytic implementation and unit tests; no selection-normalized simulation result is claimed.  
+**Status:** the analytic implementation, numerical tests, prior-predictive SBC, paired fixed-truth comparison, grid-refinement audit, nonzero-lower-threshold audit, and lower-threshold sensitivity audit have been run and documented. A fixed-truth coverage map across the prior is in progress. All results remain synthetic toy-model diagnostics.  
 **Purpose:** define a minimal, testable selection model before implementing it.  
 **Scope:** controlled synthetic experiments, not a realistic gravitational-wave detection pipeline.
 
@@ -96,14 +96,14 @@ Do not require frequentist fixed-truth coverage to equal nominal Bayesian credib
 
 1. **Completed:** add a separate selection module; do not silently alter the legacy simulator. The initial implementation is `src/dark_siren_robustness/selection.py`.
 2. **Completed:** unit-test the detection probability and $\beta(H_0)$ against the analytic formula. See `tests/test_selection_normalization.py` and [the successful focused workflow](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40068498540).
-3. Compare the selection-corrected likelihood to an independently coded reference calculation.
-4. Add a one-host selected-data benchmark before a multi-host model.
-5. Run prior-predictive SBC with selection.
-6. Run the crossed catalogue-completeness experiment only after the selected-data baseline passes.
-7. Document the toy threshold and explicitly prohibit claims that it approximates real LVK selection without a separately justified detector model.
+3. **Completed:** compare selected-posterior quantiles against independent adaptive quadrature in `tests/test_selection_normalization.py`.
+4. **Partially completed:** the analytic tests cover a single-host efficiency and a multi-host selected posterior, but a dedicated repeated-sampling one-host selected-data benchmark remains a useful isolation test.
+5. **Completed:** run paired prior-predictive SBC and an uncorrected negative control; see [SBC results](selection_sbc_audit_results.md).
+6. **Partially completed:** run paired fixed-truth comparisons and prior sensitivity; see [paired results](selection_paired_comparison_results.md) and [prior sensitivity](selection_prior_sensitivity_results.md). A broader fixed-truth coverage map is being validated.
+7. **Completed for the toy threshold only:** test a nonzero lower cut and vary that cut; see [nonzero-threshold results](nonzero_lower_threshold_results.md) and [lower-threshold sensitivity](lower_threshold_sensitivity_results.md). This does not approximate a real LVK selection function.
 
 ## Out of scope for this protocol
 
 This toy threshold model does not include real GW strain data, detector duty cycle, antenna patterns, waveform/template-bank effects, network signal-to-noise ratio, observing-run sensitivity, redshift uncertainty, lensing, peculiar velocities, or the actual GW detection pipeline. It is a controlled test of selection-normalization logic, not a physical detector model.
 
-The analytic unit tests have passed, but no selected-data simulation result should be reported until the reference comparison and prior-predictive checks pass and the resulting artifacts have been inspected.
+The toy selected-data artifacts have been inspected and documented, and the relevant workflows have passed for the specific completed audits linked above. These results are not a complete physical dark-siren analysis. Continue checking the latest workflow status before claiming the repository-wide test suite passes, and do not generalize toy-model behavior to a real detector pipeline.
