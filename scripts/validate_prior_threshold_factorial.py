@@ -169,6 +169,28 @@ def validate(per_run_path: Path, summary_path: Path, contrasts_path: Path):
     if len(seen_contrasts) != expected_contrasts:
         raise ValueError("Paired contrast configuration set is incomplete")
 
+    bootstrap_draw_counts = {int(row["bootstrap_draws"]) for row in contrasts}
+    bootstrap_seeds = {int(row["bootstrap_seed"]) for row in contrasts}
+    if len(bootstrap_draw_counts) != 1 or len(bootstrap_seeds) != 1:
+        raise ValueError("Paired contrasts use inconsistent bootstrap settings")
+    bootstrap_draws = next(iter(bootstrap_draw_counts))
+    bootstrap_seed = next(iter(bootstrap_seeds))
+    reproduced = factorial.paired_contrasts(
+        raw, bootstrap_draws=bootstrap_draws, seed=bootstrap_seed
+    )
+    if len(reproduced) != len(contrasts):
+        raise ValueError("Recomputed bootstrap contrast table has a different row count")
+    exported_by_key = {
+        (float(row["true_H0"]), row["method"], row["metric"],
+         row["comparison_prior"], float(row["comparison_threshold_mpc"])): row
+        for row in contrasts
+    }
+    for expected_row in reproduced:
+        key = (float(expected_row["true_H0"]), expected_row["method"], expected_row["metric"],
+               expected_row["comparison_prior"], float(expected_row["comparison_threshold_mpc"]))
+        actual = exported_by_key[key]
+        for field in ("mean_difference_vs_baseline", "bootstrap_95_low", "bootstrap_95_high"):
+            assert_close(actual[field], expected_row[field], f"{key} reproducible {field}", atol=1e-10)
     return {
         "status": "PASS_FACTORIAL_ARTIFACT_INTEGRITY",
         "replicates_per_truth": reps,
@@ -178,9 +200,12 @@ def validate(per_run_path: Path, summary_path: Path, contrasts_path: Path):
         "unique_observations": len(observations),
         "summary_metrics_recomputed": 7 * len(summaries),
         "paired_mean_contrasts_recomputed": len(contrasts),
+        "paired_bootstrap_intervals_reproduced": len(reproduced),
+        "bootstrap_draws": bootstrap_draws,
+        "bootstrap_seed": bootstrap_seed,
         "limitations": [
             "Checks numerical consistency of exported artifacts; does not validate scientific model realism.",
-            "Bootstrap interval endpoints are checked for ordering, while the bootstrap itself is reproducible from the run seed recorded in each row.",
+            "Bootstrap reproducibility uses the repository's paired-bootstrap implementation and the seed recorded in the artifact; it is not an independent statistical implementation.",
         ],
     }
 
