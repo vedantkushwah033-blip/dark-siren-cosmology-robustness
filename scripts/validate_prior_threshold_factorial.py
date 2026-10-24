@@ -11,6 +11,7 @@ import csv
 import importlib.util
 import math
 from collections import defaultdict
+from itertools import product
 from pathlib import Path
 
 import numpy as np
@@ -79,6 +80,30 @@ def validate(per_run_path: Path, summary_path: Path, contrasts_path: Path):
     if len(contrasts) != expected_contrasts:
         raise ValueError(f"Contrast row count: expected {expected_contrasts}, got {len(contrasts)}")
 
+    expected_raw_keys = set(
+        (float(truth), rep, float(pmin), float(pmax), float(threshold), method)
+        for truth, rep, (pmin, pmax), threshold, method in product(
+            factorial.TRUTHS, range(reps), factorial.PRIORS,
+            factorial.ASSUMED_MAXIMA, factorial.METHODS
+        )
+    )
+    expected_summary_keys = set(
+        (float(truth), float(pmin), float(pmax), float(threshold), method)
+        for truth, (pmin, pmax), threshold, method in product(
+            factorial.TRUTHS, factorial.PRIORS,
+            factorial.ASSUMED_MAXIMA, factorial.METHODS
+        )
+    )
+    actual_raw_keys = {
+        (float(r["true_H0"]), int(r["replicate"]), float(r["prior_min"]),
+         float(r["prior_max"]), float(r["assumed_detection_max_mpc"]), r["method"])
+        for r in raw
+    }
+    if actual_raw_keys != expected_raw_keys:
+        missing = len(expected_raw_keys - actual_raw_keys)
+        unexpected = len(actual_raw_keys - expected_raw_keys)
+        raise ValueError(f"Raw factorial design mismatch: {missing} missing keys, {unexpected} unexpected keys")
+
     raw_lookup = {}
     observations = defaultdict(set)
     for row in raw:
@@ -134,6 +159,10 @@ def validate(per_run_path: Path, summary_path: Path, contrasts_path: Path):
 
     if len(summary_lookup) != expected_summaries:
         raise ValueError("Summary configuration set is incomplete")
+    if set(summary_lookup) != expected_summary_keys:
+        missing = len(expected_summary_keys - set(summary_lookup))
+        unexpected = len(set(summary_lookup) - expected_summary_keys)
+        raise ValueError(f"Summary factorial design mismatch: {missing} missing keys, {unexpected} unexpected keys")
 
     seen_contrasts = set()
     for row in contrasts:
@@ -143,6 +172,10 @@ def validate(per_run_path: Path, summary_path: Path, contrasts_path: Path):
             raise ValueError(f"Duplicate contrast row: {key}")
         seen_contrasts.add(key)
         truth, method, metric, prior_text, threshold = key
+        if row["baseline_prior"] != "[50,90]" or float(row["baseline_threshold_mpc"]) != 120.0:
+            raise ValueError(f"Unexpected baseline metadata for contrast {key}")
+        if truth not in factorial.TRUTHS or method not in factorial.METHODS:
+            raise ValueError(f"Unexpected truth/method in contrast {key}")
         try:
             pmin, pmax = (float(x) for x in prior_text.strip("[]").split(","))
         except Exception as exc:
