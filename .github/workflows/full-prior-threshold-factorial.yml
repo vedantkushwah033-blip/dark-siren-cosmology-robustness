@@ -105,6 +105,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: full-prior-threshold-factorial-r${{ inputs.replicates }}-g${{ inputs.grid_size }}-seed${{ inputs.seed }}
-          path: |\n            results/prior-threshold-factorial-full/*.csv\n            results/prior-threshold-factorial-full/experiment_manifest.json
+          path: |
+            results/prior-threshold-factorial-full/*.csv
+            results/prior-threshold-factorial-full/experiment_manifest.json
           if-no-files-found: error
           retention-days: 90
