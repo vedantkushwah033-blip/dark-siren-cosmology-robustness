@@ -12,7 +12,7 @@ def test_targeted_refinement_resolves_flagged_pair_but_does_not_hide_cell_failur
     per_run = tmp_path / "per_run.csv"
     fields = [
         "H0_true", "z2", "noise_fraction", "replicate", "inference_weighting",
-        "grid_size", "observed_distance_mpc", "posterior_median", "lower_68",
+        "grid_size", "observed_distance_mpc", "posterior_area_on_prior_support", "posterior_median", "lower_68",
         "upper_68", "lower_95", "upper_95",
     ]
     with per_run.open("w", newline="", encoding="utf-8") as f:
