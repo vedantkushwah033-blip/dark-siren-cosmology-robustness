@@ -39,6 +39,9 @@ def _fixture(root: Path) -> None:
             raw.append({
                 "scenario": scenario,
                 "run": run,
+                "missingness": missingness,
+                "host_generation": host,
+                "inference_weighting": weighting,
                 "target_completeness": target,
                 "realized_completeness": target,
                 "host_observed": "True" if target == 1.0 or run == 0 else "False",
