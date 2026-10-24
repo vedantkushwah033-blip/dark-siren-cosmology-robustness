@@ -92,3 +92,8 @@ The Wilson interval helper explicitly returns exact boundary values for zero suc
 ## Citation
 
 There is no formal release or validated research result to cite yet. A citation file and formal release can be added once the authorship, version, and intended citation are settled.
+
+
+### Posterior grid refinement
+
+The completed deterministic grid-refinement audit and its interpretation are documented in [grid-refinement results](docs/selection_grid_refinement_results.md). The workflow compared 1,001-, 4,001-, and 8,001-point posterior grids for three fixed toy observations; it should not be interpreted as a universal error guarantee.
