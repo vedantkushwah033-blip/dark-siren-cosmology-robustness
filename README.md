@@ -240,3 +240,8 @@ The [single-host fixed-truth control](scripts/run_single_host_fixed_truth_contro
 
 
 The single-host fixed-truth control has completed successfully: [results and paired uncertainty analysis](docs/single_host_fixed_truth_control_results_2026-10-24.md), [workflow run](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40099867069), and artifact digest recorded in the report. Results reinforce that selection correction is truth-dependent and that severe edge undercoverage persists in the one-host control; this does not establish a unique cause or realistic detector behavior.
+
+
+### Matched host-structure control
+
+The [matched host-structure protocol](docs/matched_host_structure_control_protocol.md) specifies a paired experiment in which detected distances are generated from a two-host mixture and the same observations are analysed using the two-host model and a collapsed weighted-mean-redshift model, with and without the toy selection normalization. The implementation, focused tests, and [GitHub Actions workflow](.github/workflows/matched-host-structure-control.yml) produce per-run observations, coverage summaries, and paired bootstrap uncertainty. Results should be cited only after the workflow completes and its uploaded artifact is inspected. This is a synthetic model-compression diagnostic, not an observational H0 measurement.
