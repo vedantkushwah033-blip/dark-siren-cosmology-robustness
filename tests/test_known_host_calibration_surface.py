@@ -54,9 +54,15 @@ def test_summary_recomputes_coverage_bias_width_and_edge_fraction():
 
 
 def test_summary_rejects_non_nested_intervals():
-    rows = [row(70.0, 65.0, 75.0, 66.0, 74.0)]
-    with pytest.raises(ValueError, match="nested"):
-        MODULE.summarize_cell(rows, true_h0=70.0, fractional_error=0.1)
+    # The 95% interval must extend at least as far as the 68% interval
+    # on both sides; test the lower-bound and upper-bound violations.
+    invalid_rows = [
+        row(70.0, 65.0, 75.0, 66.0, 76.0),  # lower 95% bound is too high
+        row(70.0, 65.0, 75.0, 64.0, 74.0),  # upper 95% bound is too low
+    ]
+    for rows in ([candidate] for candidate in invalid_rows):
+        with pytest.raises(ValueError, match="nested"):
+            MODULE.summarize_cell(rows, true_h0=70.0, fractional_error=0.1)
 
 
 def test_summary_flags_truth_on_prior_boundary():
