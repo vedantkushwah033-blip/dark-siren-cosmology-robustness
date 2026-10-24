@@ -84,6 +84,9 @@ def audit(root: Path) -> dict:
         for row in grouped[name]:
             label = f"{name} run={row.get('run', '?')}"
             indices.add(row.get("run"))
+            for field, expected in (("missingness", missingness), ("host_generation", host_generation), ("inference_weighting", inference_weighting)):
+                if row.get(field) != expected:
+                    raise ValueError(f"{label}: raw scenario design mismatch for {field}")
             target_value = finite(row, "target_completeness", label)
             realized = finite(row, "realized_completeness", label)
             if not math.isclose(target_value, target, abs_tol=1e-12):
@@ -101,8 +104,9 @@ def audit(root: Path) -> dict:
             if not math.isclose(vals["width_95"], vals["upper_95"] - vals["lower_95"], rel_tol=1e-9, abs_tol=1e-9):
                 raise ValueError(f"{label}: width_95 inconsistent with interval endpoints")
             checked += 1
-        if len(indices) != n:
-            raise ValueError(f"{name}: duplicate/missing run identifiers")
+        expected_indices = {str(index) for index in range(n)}
+        if len(indices) != n or indices != expected_indices:
+            raise ValueError(f"{name}: run identifiers must be unique integers 0..{n-1}")
         # Recompute core scientific summaries from raw replicate rows rather
         # than merely checking their shape. median_bias is intentionally the
         # median of replicate-level median errors in this experiment runner.
