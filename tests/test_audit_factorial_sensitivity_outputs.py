@@ -17,7 +17,8 @@ def _write_csv(path: Path, rows: list[dict]) -> None:
 def _fixture(root: Path) -> None:
     summary = []
     raw = []
-    for scenario, (target, missingness, host, weighting) in EXPECTED.items():
+    for scenario_index, (scenario, (target, missingness, host, weighting)) in enumerate(EXPECTED.items()):
+        seed = 2026 + scenario_index * 1_000_000
         summary.append({
             "scenario": scenario,
             "target_completeness": target,
@@ -25,6 +26,7 @@ def _fixture(root: Path) -> None:
             "host_generation": host,
             "inference_weighting": weighting,
             "n": 2,
+            "seed": seed,
             "median_bias": 0.0,
             "mean_bias": 0.0,
             "rmse_median": 0.0,
@@ -59,6 +61,7 @@ def _fixture(root: Path) -> None:
     (root / "scenario_summary.json").write_text(json.dumps({
         "scenario_count": 9,
         "requested_replicates_per_scenario": 2,
+        "base_seed": 2026,
         "scenarios": [
             {**row, "requested_replicates": 2}
             for row in summary
@@ -165,4 +168,14 @@ def test_audit_rejects_manifest_replicate_count_mismatch(tmp_path):
     manifest["scenarios"][0]["requested_replicates"] = 3
     path.write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(ValueError, match="JSON manifest replicate count mismatch"):
+        audit(tmp_path)
+
+def test_audit_rejects_wrong_scenario_seed(tmp_path):
+    _fixture(tmp_path)
+    path = tmp_path / "scenario_summary.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    rows[1]["seed"] = "2027"
+    _write_csv(path, rows)
+    with pytest.raises(ValueError, match="seed mismatch"):
         audit(tmp_path)
