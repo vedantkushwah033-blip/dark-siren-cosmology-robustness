@@ -52,6 +52,34 @@ Bias, RMSE, MAE and coverage are estimated over 600 simulated observations in ea
 
 H0 is in km s^-1 Mpc^-1; RMSE and interval widths use the same units.
 
+
+## Monte Carlo uncertainty on empirical coverage
+
+Each coverage estimate is based on n=600 independent replicates within a cell. The following are 95% Wilson intervals for the *simulation-estimated coverage probability*; they are not Bayesian credible intervals for H0.
+
+| True H0 | Prior | Method | 68% coverage (95% Wilson interval) | 95% coverage (95% Wilson interval) |
+|---:|:---:|:---|:---:|:---:|
+| 55 | [50, 90] | Uncorrected | 0.577 [0.537, 0.616] | 0.955 [0.935, 0.969] |
+| 55 | [50, 90] | Corrected | 0.642 [0.603, 0.679] | 0.970 [0.953, 0.981] |
+| 55 | [40, 100] | Uncorrected | 0.722 [0.684, 0.756] | 0.965 [0.947, 0.977] |
+| 55 | [40, 100] | Corrected | 0.773 [0.738, 0.805] | 0.977 [0.961, 0.986] |
+| 55 | [30, 120] | Uncorrected | 0.670 [0.631, 0.706] | 0.955 [0.935, 0.969] |
+| 55 | [30, 120] | Corrected | 0.723 [0.686, 0.758] | 0.965 [0.947, 0.977] |
+| 70 | [50, 90] | Uncorrected | 0.948 [0.928, 0.963] | 1.000 [0.994, 1.000] |
+| 70 | [50, 90] | Corrected | 0.965 [0.947, 0.977] | 1.000 [0.994, 1.000] |
+| 70 | [40, 100] | Uncorrected | 0.895 [0.868, 0.917] | 0.998 [0.991, 1.000] |
+| 70 | [40, 100] | Corrected | 0.915 [0.890, 0.935] | 1.000 [0.994, 1.000] |
+| 70 | [30, 120] | Uncorrected | 0.813 [0.780, 0.842] | 0.987 [0.974, 0.993] |
+| 70 | [30, 120] | Corrected | 0.793 [0.759, 0.824] | 0.988 [0.976, 0.994] |
+| 85 | [50, 90] | Uncorrected | 0.532 [0.492, 0.571] | 1.000 [0.994, 1.000] |
+| 85 | [50, 90] | Corrected | 0.413 [0.375, 0.453] | 1.000 [0.994, 1.000] |
+| 85 | [40, 100] | Uncorrected | 0.910 [0.884, 0.930] | 1.000 [0.994, 1.000] |
+| 85 | [40, 100] | Corrected | 0.772 [0.736, 0.803] | 1.000 [0.994, 1.000] |
+| 85 | [30, 120] | Uncorrected | 0.858 [0.828, 0.884] | 0.998 [0.991, 1.000] |
+| 85 | [30, 120] | Corrected | 0.828 [0.796, 0.856] | 0.993 [0.983, 0.997] |
+
+These intervals reinforce that several 68% coverage estimates are far from the nominal 0.68, beyond what is plausibly explained by Monte Carlo noise alone. However, the table does not by itself identify the cause; prior boundaries, the finite grid, the simplified likelihood, and the selection-conditioning setup must be assessed separately.
+
 ## Paired change in absolute error
 
 The metric below is mean(|error_corrected| - |error_uncorrected|). Its Monte Carlo standard error (MCSE) quantifies simulation uncertainty in that mean for the fixed design.
