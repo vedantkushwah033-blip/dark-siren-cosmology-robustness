@@ -174,3 +174,8 @@ A manually dispatched workflow is available at `.github/workflows/full-prior-thr
 ### Full numerical grid-convergence workflow
 
 The manually dispatched workflow `.github/workflows/grid-refinement-full.yml` runs the matched-observation grid audit on 1,001-, 2,001-, and 4,001-point posterior grids. From **Actions → Grid refinement numerical convergence audit**, choose 200 replicates and seed `20261030` for the protocol default. It runs the focused test, checks expected row counts and finite numeric values, and uploads per-run and cell-summary CSVs for 90 days. This workflow is independent of the prior-threshold factorial workflow; passing one does not establish convergence in the other analysis.
+
+
+### Grid-refinement regression hardening
+
+The grid-refinement tests additionally check the ordering of posterior credible-interval endpoints, finiteness of all five reported posterior summaries, reuse of the exact same simulated distance observation across grid resolutions and weighting choices, and consistency of median/95th-percentile/maximum discrepancy summaries. These are structural integrity checks; they do not assert that the grid error is scientifically negligible. Numerical adequacy must be judged from the actual full-run discrepancy distributions against a prespecified tolerance.
