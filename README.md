@@ -234,3 +234,6 @@ The [single-host fixed-truth selection control protocol](docs/single_host_fixed_
 ### Single-host fixed-truth selection control
 
 The [single-host fixed-truth control](scripts/run_single_host_fixed_truth_control.py) and [focused tests](tests/test_single_host_fixed_truth_control.py) implement the previously prespecified protocol in [the protocol document](docs/single_host_fixed_truth_control_protocol.md). The manually dispatchable [GitHub Actions workflow](.github/workflows/single-host-fixed-truth-control.yml) runs 300 observations at each of nine fixed truths, compares paired corrected and uncorrected inference, and emits raw rows, coverage summaries with Wilson intervals, paired absolute-error bootstrap intervals, and a runtime manifest. Results are not claimed until that workflow completes and its artifact is checked.
+
+
+The single-host fixed-truth control has completed successfully: [results and paired uncertainty analysis](docs/single_host_fixed_truth_control_results_2026-10-24.md), [workflow run](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40099867069), and artifact digest recorded in the report. Results reinforce that selection correction is truth-dependent and that severe edge undercoverage persists in the one-host control; this does not establish a unique cause or realistic detector behavior.
