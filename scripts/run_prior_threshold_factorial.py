@@ -187,7 +187,7 @@ def main():
         write_csv(out/name,data)
     manifest=build_manifest(a.seed,a.replicates,a.grid_size,rows,summaries,contrasts)
     out.mkdir(parents=True,exist_ok=True)
-    (out/"experiment_manifest.json").write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n",encoding="utf-8")
+    (out/"experiment_manifest.json").write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n",encoding="utf-8")
     print(f"PASS: {len(rows)} per-run rows; {len(summaries)} summaries; {len(contrasts)} paired contrasts")
     print(f"Manifest: {out/'experiment_manifest.json'}")
     for r in summaries: print(r)
