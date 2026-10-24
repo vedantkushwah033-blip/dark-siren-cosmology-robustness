@@ -111,6 +111,43 @@ def run(output_dir: Path, replicates: int = 200, seed: int = 20261024, grid_size
         writer.writeheader()
         writer.writerows(summaries)
 
+    # Paired contrasts preserve the same observation for both inference models.
+    paired_contrasts: list[dict] = []
+    bootstrap_rng = np.random.default_rng(seed + 12345)
+    for z in REDSHIFTS:
+        for truth in TRUTHS:
+            matched = {
+                int(r["replicate"]): r for r in raw
+                if r["redshift"] == z and r["true_H0"] == truth
+                and r["inference_model"] == "matched_flat_lcdm"
+            }
+            mismatched = {
+                int(r["replicate"]): r for r in raw
+                if r["redshift"] == z and r["true_H0"] == truth
+                and r["inference_model"] == "mismatched_low_z"
+            }
+            reps = sorted(matched)
+            differences = np.array([
+                float(mismatched[i]["absolute_error_H0"]) - float(matched[i]["absolute_error_H0"])
+                for i in reps
+            ])
+            draws = bootstrap_rng.integers(0, len(differences), size=(5000, len(differences)))
+            boot_means = differences[draws].mean(axis=1)
+            paired_contrasts.append({
+                "redshift": z,
+                "true_H0": truth,
+                "n_pairs": len(differences),
+                "mean_delta_absolute_error_mismatch_minus_matched": float(differences.mean()),
+                "bootstrap_95_low": float(np.quantile(boot_means, 0.025)),
+                "bootstrap_95_high": float(np.quantile(boot_means, 0.975)),
+                "bootstrap_draws": 5000,
+            })
+    paired_path = output_dir / "paired_contrasts.csv"
+    with paired_path.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=list(paired_contrasts[0]))
+        writer.writeheader()
+        writer.writerows(paired_contrasts)
+
     manifest = {
         "experiment": "paired flat-Lambda-CDM generation with matched and low-z inference",
         "scope": "synthetic Gaussian-distance diagnostic; not observational dark-siren inference",
@@ -125,6 +162,8 @@ def run(output_dir: Path, replicates: int = 200, seed: int = 20261024, grid_size
         "distance_sigma_rule": "max(20 Mpc, 0.05 times true flat-Lambda-CDM luminosity distance)",
         "raw_rows": len(raw),
         "summary_rows": len(summaries),
+        "paired_contrast_rows": len(paired_contrasts),
+        "bootstrap_draws_per_contrast": 5000,
         "python": platform.python_version(),
         "numpy": np.__version__,
         "scipy": scipy.__version__,
