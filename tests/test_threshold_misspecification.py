@@ -16,20 +16,21 @@ def test_threshold_misspecification_design_is_paired_and_complete():
             assert len(cell)==len(module.INFERRED_MAXIMA)
             assert len({r["observed_distance_mpc"] for r in cell})==1
             assert len({r["host_index"] for r in cell})==1
+            assert all(r["true_detection_max_mpc"]==module.TRUE_MAX for r in cell)
     assert {r["inferred_detection_max_mpc"] for r in summaries}==set(module.INFERRED_MAXIMA)
     for row in summaries:
         assert np.isfinite(row["bias"]) and np.isfinite(row["rmse"])
         assert row["rmse"]>=0 and 0<=row["coverage_68"]<=1 and 0<=row["coverage_95"]<=1
 
-def test_correct_threshold_matches_recomputed_posterior_median():
+def test_correct_threshold_row_matches_direct_posterior_computation():
     from dark_siren_robustness.hardened_inference import posterior_summary
     from dark_siren_robustness.selection import posterior_h0_selected
-    from dark_siren_robustness.hardened_inference import posterior_h0
-    grid=np.linspace(25,125,1001); truth=70.; host,distance=module.draw_detected(truth,np.random.default_rng(1))
-    posterior=posterior_h0_selected(grid,module.HOST_REDSHIFTS,distance,module.SIGMA,
-        module.TRUE_MAX,weights=module.HOST_WEIGHTS,prior_min=50,prior_max=90,detection_distance_min=0)
-    summary=posterior_summary(grid,posterior)
     rows,_=module.run(replicates=100,seed=123,grid_size=1001)
     row=next(r for r in rows if r["true_H0"]==52 and r["replicate"]==0 and r["inferred_detection_max_mpc"]==module.TRUE_MAX)
-    assert row["corrected_median"]>=50 and row["corrected_median"]<=90
-    assert 50<=summary["median"]<=90
+    grid=np.linspace(25,125,1001)
+    posterior=posterior_h0_selected(grid,module.HOST_REDSHIFTS,row["observed_distance_mpc"],module.SIGMA,
+        module.TRUE_MAX,weights=module.HOST_WEIGHTS,prior_min=50,prior_max=90,detection_distance_min=module.TRUE_MIN)
+    summary=posterior_summary(grid,posterior)
+    assert row["corrected_median"]==summary["median"]
+    assert row["corrected_lower_68"]==summary["lower_68"]
+    assert row["corrected_upper_68"]==summary["upper_68"]
