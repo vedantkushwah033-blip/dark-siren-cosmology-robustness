@@ -1,6 +1,6 @@
 # Host-mixture and detection-threshold sensitivity experiment protocol
 
-**Status: protocol drafted; implementation and results are not yet available.** This document prespecifies the next experiment to avoid choosing scenarios after seeing their outcomes. It is a synthetic statistical study, not a real gravitational-wave or galaxy-survey analysis.
+**Status: implemented and completed; independent raw-to-summary audit passed on 2026-10-24.** See [the results report](host_mixture_threshold_sensitivity_results_2026-10-24.md), [factorial workflow run](https://github.com/vedantkushwaha033-blip/dark-siren-cosmology-robustness/actions/runs/40101614384), and [full test-suite run](https://github.com/vedantkushwaha033-blip/dark-siren-cosmology-robustness/actions/runs/40101614170). The report describes a synthetic diagnostic only, not an observational H0 measurement. This document prespecifies the next experiment to avoid choosing scenarios after seeing their outcomes. It is a synthetic statistical study, not a real gravitational-wave or galaxy-survey analysis.
 
 ## Motivation
 
