@@ -39,7 +39,7 @@ def load_and_pair(path: Path):
     if "posterior_area_on_prior_support" not in fields:
         raise ValueError(
             "Missing posterior_area_on_prior_support: this audit requires an "
-            "independently integrated area for every grid fit; rerun the current audit script."
+            "recomputed posterior area for every grid fit; rerun the current audit script."
         )
     paired = {}
     for line, row in enumerate(rows, 2):
@@ -135,7 +135,7 @@ def evaluate(per_run_path: Path, targeted_path: Path | None = None):
             if "posterior_area_on_prior_support" in grid_row:
                 area = float(grid_row["posterior_area_on_prior_support"])
                 if not np.isfinite(area):
-                    raise ValueError("Non-finite independently integrated posterior area")
+                    raise ValueError("Non-finite recomputed posterior area")
                 normalization_rows += 1
                 normalization_diffs.append(abs(area - 1.0))
     normalization_failures = sum(diff > 1e-8 for diff in normalization_diffs)
@@ -212,7 +212,7 @@ def evaluate(per_run_path: Path, targeted_path: Path | None = None):
         "status": "FAIL" if failed_cells or unresolved_flagged or normalization_failures else "PASS_FOR_GRID_DIFFERENCES_ONLY",
         "limitations": [
             "Posterior normalization is checked only when posterior_area_on_prior_support is included in per_run.csv; if absent, normalization is not assessed.",
-            "The area check independently integrates the sampled posterior density on the prior support, but it does not test between-grid interpolation error beyond the grid-refinement summaries.",
+            "The area check recomputes the sampled posterior area on the prior support with the same trapezoidal rule as the inference routine; it checks output consistency, not independent-quadrature accuracy, and does not test between-grid interpolation error beyond the grid-refinement summaries.",
             "Targeted flagged cases are unresolved unless the 32001-to-64001 endpoint difference is within tolerance.",
             "The cell-level 95th-percentile criterion still applies at the original resolutions; targeted refinement does not erase a cell-level failure.",
             "Passing these numerical checks does not validate the scientific model or observational realism.",
