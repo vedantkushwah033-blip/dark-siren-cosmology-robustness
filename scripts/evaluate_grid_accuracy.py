@@ -45,17 +45,29 @@ def load_and_pair(path: Path):
             raise ValueError(f"Malformed row {line}: {exc}") from exc
         if size not in (1001, 2001, 4001):
             raise ValueError(f"Unexpected grid_size={size} at row {line}")
+        interval_keys = ("lower_95", "lower_68", "posterior_median", "upper_68", "upper_95")
+        interval = [float(row[name]) for name in interval_keys]
+        if not np.all(np.isfinite(interval)):
+            raise ValueError(f"Non-finite posterior summary at row {line}")
+        if interval != sorted(interval):
+            raise ValueError(f"Unordered credible-interval summaries at row {line}")
         if key not in paired:
             paired[key] = {"metadata": row, "grids": {}}
         if size in paired[key]["grids"]:
             raise ValueError(f"Duplicate grid size {size} for case {key}")
         paired[key]["grids"][size] = row
+    observations_by_simulation = {}
     for key, item in paired.items():
         if set(item["grids"]) != {1001, 2001, 4001}:
             raise ValueError(f"Incomplete resolution triplet for case {key}")
         obs = [float(item["grids"][s]["observed_distance_mpc"]) for s in (1001, 2001, 4001)]
         if not np.allclose(obs, obs[0], rtol=0.0, atol=1e-12):
             raise ValueError(f"Observation differs across grids for case {key}")
+        meta = item["metadata"]
+        sim_key = tuple(meta[k] for k in ("H0_true", "z2", "noise_fraction", "replicate"))
+        observations_by_simulation.setdefault(sim_key, set()).add(obs[0])
+    if any(len(values) != 1 for values in observations_by_simulation.values()):
+        raise ValueError("Simulated observations differ across inference-weighting conditions")
     return paired
 
 
