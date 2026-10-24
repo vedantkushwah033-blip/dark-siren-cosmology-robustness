@@ -49,6 +49,8 @@ def detection_efficiency_h0(H0_grid, redshifts, gw_sigma, detection_distance_max
     # Include both boundaries in beta so it matches the generator exactly.
     host_efficiency = ndtr((threshold - means) / sigma) - ndtr((lower_threshold - means) / sigma)
     beta = host_efficiency @ w
+    # Floating-point summation can exceed one by a few ulps in the no-selection limit.
+    beta = np.clip(beta, np.finfo(float).tiny, 1.0)
     if not np.all(np.isfinite(beta)) or np.any(beta <= 0) or np.any(beta > 1):
         raise ValueError("Computed detection efficiency is outside (0, 1].")
     return beta
