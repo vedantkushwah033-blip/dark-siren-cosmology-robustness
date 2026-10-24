@@ -68,6 +68,38 @@ def run_audit(replicates=300, seed=20261024, grid_size=4001):
                     "coverage_95_wilson_low":lo95,"coverage_95_wilson_high":hi95})
     return rows,summaries
 
+def paired_prior_differences(rows):
+    """Return same-observation posterior-median contrasts versus the baseline prior."""
+    baseline = (50.0, 90.0)
+    lookup = {(r["true_H0"], r["replicate"], r["prior_min"], r["prior_max"]): r for r in rows}
+    out = []
+    for row in rows:
+        prior = (row["prior_min"], row["prior_max"])
+        if prior == baseline:
+            continue
+        base = lookup[(row["true_H0"], row["replicate"], *baseline)]
+        for method in METHODS:
+            delta = row[f"{method}_median"] - base[f"{method}_median"]
+            out.append({
+                "true_H0": row["true_H0"],
+                "replicate": row["replicate"],
+                "method": method,
+                "baseline_prior_min": baseline[0],
+                "baseline_prior_max": baseline[1],
+                "comparison_prior_min": prior[0],
+                "comparison_prior_max": prior[1],
+                "baseline_median": base[f"{method}_median"],
+                "comparison_median": row[f"{method}_median"],
+                "median_difference_comparison_minus_baseline": delta,
+                "absolute_median_difference": abs(delta),
+            })
+    expected = len(TRUTHS) * (len(PRIORS) - 1) * 300 * len(METHODS)
+    # The default experiment has 300 replicates; main separately validates the
+    # exact count for user-specified replicate numbers.
+    if len(out) == 0:
+        raise RuntimeError("No paired prior contrasts were produced.")
+    return out
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--replicates",type=int,default=300)
@@ -76,17 +108,21 @@ def main():
     p.add_argument("--output-dir",default="results/prior-support-sensitivity")
     a=p.parse_args(); rows,summaries=run_audit(a.replicates,a.seed,a.grid_size)
     out=Path(a.output_dir);out.mkdir(parents=True,exist_ok=True)
-    for name,data in (("per_run.csv",rows),("summary.csv",summaries)):
+    contrasts = paired_prior_differences(rows)
+    expected = len(TRUTHS) * (len(PRIORS) - 1) * a.replicates * len(METHODS)
+    if len(contrasts) != expected:
+        raise RuntimeError(f"Incomplete paired contrast table: expected {expected}, got {len(contrasts)}")
+    for name,data in (("per_run.csv",rows),("summary.csv",summaries),("paired_prior_differences.csv",contrasts)):
         path=out/name
         fields=list(dict.fromkeys(k for r in data for k in r))
         with path.open("w",newline="",encoding="utf-8") as f:
             w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(data)
         with path.open(newline="",encoding="utf-8") as f:
             reader=csv.DictReader(f); read=list(reader)
-            if reader.fieldnames!=fields or len(read)!=len(data): raise RuntimeError("Artifact validation failed.")
-    expected = len(TRUTHS) * len(PRIORS) * a.replicates
-    if len(rows)!=expected or len(summaries)!=len(TRUTHS)*len(PRIORS)*len(METHODS):
+            if reader.fieldnames!=fields or len(read)!=len(data): raise RuntimeError(f"Artifact validation failed: {name}")
+    expected_rows = len(TRUTHS) * len(PRIORS) * a.replicates
+    if len(rows)!=expected_rows or len(summaries)!=len(TRUTHS)*len(PRIORS)*len(METHODS):
         raise RuntimeError("Incomplete prior-support experiment.")
-    print(f"PASS: {len(rows)} paired observation/prior rows and {len(summaries)} summaries.")
+    print(f"PASS: {len(rows)} observation/prior rows, {len(summaries)} summaries, and {len(contrasts)} paired median contrasts.")
     for r in summaries: print(r)
 if __name__=="__main__": main()
