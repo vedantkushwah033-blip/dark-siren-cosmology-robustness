@@ -35,7 +35,9 @@ def wilson_interval(successes, n, z=1.959963984540054):
     denom = 1.0 + z*z/n
     center = (p + z*z/(2*n)) / denom
     half = z*np.sqrt(p*(1-p)/n + z*z/(4*n*n)) / denom
-    return max(0.0, float(center-half)), min(1.0, float(center+half))
+    low = 0.0 if successes == 0 else max(0.0, float(center-half))
+    high = 1.0 if successes == n else min(1.0, float(center+half))
+    return low, high
 
 def summarize_cell(rows, method):
     truth = float(rows[0]["true_H0"])
