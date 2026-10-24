@@ -33,7 +33,7 @@ def _fixture(root: Path) -> None:
             "mean_width_95": 4.0,
             "coverage_68": 1.0,
             "coverage_95": 1.0,
-            "host_observed_fraction": 0.7,
+            "host_observed_fraction": 0.5,
         })
         for run in (0, 1):
             raw.append({
@@ -41,7 +41,7 @@ def _fixture(root: Path) -> None:
                 "run": run,
                 "target_completeness": target,
                 "realized_completeness": target,
-                "host_observed": 0.7,
+                "host_observed": "True" if run == 0 else "False",
                 "median": 70.0,
                 "mean": 70.0,
                 "lower_68": 69.0,
