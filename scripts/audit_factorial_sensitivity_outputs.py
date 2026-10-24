@@ -65,8 +65,23 @@ def audit(root: Path) -> dict:
     manifest_by_name = {item.get("scenario"): item for item in manifest_scenarios}
     if len(manifest_by_name) != len(manifest_scenarios) or set(manifest_by_name) != set(EXPECTED):
         raise ValueError("JSON manifest scenario names do not match prespecified design")
-    for name, (target, missingness, host_generation, inference_weighting) in EXPECTED.items():
+    try:
+        base_seed = int(summary_json["base_seed"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("JSON manifest must contain an integer base_seed") from exc
+    for scenario_index, (name, (target, missingness, host_generation, inference_weighting)) in enumerate(EXPECTED.items()):
         item = manifest_by_name[name]
+        expected_seed = base_seed + scenario_index * 1_000_000
+        try:
+            manifest_seed = int(item["seed"])
+            csv_seed = int(summary_by_name[name]["seed"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(f"{name}: missing/non-integer scenario seed") from exc
+        if manifest_seed != expected_seed or csv_seed != expected_seed:
+            raise ValueError(
+                f"{name}: seed mismatch; expected {expected_seed}, "
+                f"JSON={manifest_seed}, CSV={csv_seed}"
+            )
         for field, expected in (("target_completeness", target),
                                 ("missingness", missingness),
                                 ("host_generation", host_generation),
