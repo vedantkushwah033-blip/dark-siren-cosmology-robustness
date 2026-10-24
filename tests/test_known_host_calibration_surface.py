@@ -69,3 +69,37 @@ def test_summary_flags_truth_on_prior_boundary():
     rows = [row(50.0, 50.0, 51.0, 50.0, 52.0)]
     result = MODULE.summarize_cell(rows, true_h0=50.0, fractional_error=0.05)
     assert result["truth_on_prior_boundary"] is True
+
+
+@pytest.mark.parametrize(
+    "candidate",
+    [
+        row(49.9, 50.0, 51.0, 50.0, 52.0),
+        row(70.0, 65.0, 75.0, 49.9, 76.0),
+        row(70.0, 65.0, 75.0, 64.0, 90.1),
+        row(70.0, 65.0, 75.0, 64.0, 76.0, sd=0.0),
+        row(70.0, 65.0, 75.0, 64.0, 76.0, sd=-1.0),
+    ],
+)
+def test_summary_rejects_out_of_support_summaries_and_nonpositive_sd(candidate):
+    with pytest.raises(ValueError):
+        MODULE.summarize_cell([candidate], true_h0=70.0, fractional_error=0.1)
+
+
+@pytest.mark.parametrize("fractional_error", [0.0, -0.1, float("nan"), float("inf")])
+def test_summary_rejects_invalid_fractional_error(fractional_error):
+    with pytest.raises(ValueError, match="truth must be finite"):
+        MODULE.summarize_cell(
+            [row(70.0, 65.0, 75.0, 64.0, 76.0)],
+            true_h0=70.0,
+            fractional_error=fractional_error,
+        )
+
+
+def test_summary_rejects_nonfinite_truth():
+    with pytest.raises(ValueError, match="truth must be finite"):
+        MODULE.summarize_cell(
+            [row(70.0, 65.0, 75.0, 64.0, 76.0)],
+            true_h0=float("nan"),
+            fractional_error=0.1,
+        )
