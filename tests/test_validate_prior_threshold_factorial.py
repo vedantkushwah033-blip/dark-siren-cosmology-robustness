@@ -129,7 +129,7 @@ def test_validator_rejects_a_corrupted_summary_metric(valid_factorial_artifacts,
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
         writer.writerows(rows)
-    with pytest.raises(ValueError, match=r"bias|Unknown format code"):
+    with pytest.raises(ValueError, match="bias"):
         module.validate(
             valid_factorial_artifacts["per_run"],
             corrupted,
