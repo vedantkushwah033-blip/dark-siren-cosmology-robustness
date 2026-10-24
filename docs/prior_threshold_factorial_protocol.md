@@ -34,3 +34,8 @@ GitHub Actions runs focused tests and a compact experiment on Python 3.10, 3.11,
 ## Interpretation guardrails
 
 This is a simplified Gaussian distance-threshold model, not a realistic gravitational-wave detector selection pipeline. It omits SNR-dependent detection efficiency, detector duty cycles, waveform dependence, multiple-event population inference, redshift uncertainty, and calibrated galaxy-catalogue incompleteness. Truths 52 and 88 lie close to the baseline prior boundaries, so their coverage is strongly affected by prior truncation. The factorial design is intended to expose interactions, not to tune the prior or assumed threshold to whichever gives the most favorable results. Results must be interpreted with Monte Carlo uncertainty and must not be described as real LVK measurements.
+
+
+## Full-run CI workflow
+
+The workflow `.github/workflows/full-prior-threshold-factorial.yml` can be started from the repository's Actions tab. For the protocol run, select 300 repetitions, grid size 4001, and seed 20261028. It runs focused tests and validates expected output row counts and numeric finiteness before uploading `per_run.csv`, `summary.csv`, and `paired_contrasts.csv` for 90 days. This workflow is manually dispatched and does not run merely because this protocol was updated. Treat the experiment as complete only after checking the actual run conclusion and inspecting its artifacts.
