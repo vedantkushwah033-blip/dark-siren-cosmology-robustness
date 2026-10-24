@@ -72,7 +72,7 @@ def run(replicates=300, seed=SEED, grid_size=4001, bootstrap_draws=5000):
             rows.append(row)
     return rows
 
-def write_results(rows,out,bootstrap_draws=5000,seed=SEED):
+def write_results(rows,out,bootstrap_draws=5000,seed=SEED,grid_size=4001):
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
     with (out/"per_run.csv").open("w",newline="",encoding="utf-8") as f:
       w=csv.DictWriter(f,fieldnames=list(rows[0]));w.writeheader();w.writerows(rows)
@@ -118,5 +118,5 @@ def write_results(rows,out,bootstrap_draws=5000,seed=SEED):
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument("--replicates",type=int,default=300);p.add_argument("--seed",type=int,default=SEED)
     p.add_argument("--grid-size",type=int,default=4001);p.add_argument("--bootstrap-draws",type=int,default=5000);p.add_argument("--output-dir",default="results/joint-distance-host-mixture")
-    a=p.parse_args();rows=run(a.replicates,a.seed,a.grid_size,a.bootstrap_draws);write_results(rows,a.output_dir,a.bootstrap_draws,a.seed)
+    a=p.parse_args();rows=run(a.replicates,a.seed,a.grid_size,a.bootstrap_draws);write_results(rows,a.output_dir,a.bootstrap_draws,a.seed,a.grid_size)
 if __name__=="__main__": main()
