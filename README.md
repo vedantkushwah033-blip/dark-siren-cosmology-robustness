@@ -154,3 +154,8 @@ The compact CI artifacts have been downloaded and audited for row counts, expect
 
 
 A follow-up [paired-contrast interpretation audit](docs/prior_threshold_factorial_contrast_interpretation.md) explains the uncorrected-threshold invariance, selected paired differences, zero-width bootstrap intervals, multiplicity caveats, and limitations of the compact run.
+
+
+### Paired-bootstrap runtime improvement
+
+The factorial experiment's percentile bootstrap now resamples paired differences in bounded vectorized batches of 256 draws. This preserves the paired-resampling definition while avoiding a Python-level loop for every bootstrap draw and limiting temporary array memory. The random-number stream and exact numerical bootstrap endpoints can differ from earlier script revisions because vectorized sampling consumes random draws differently; comparisons must therefore be tied to the script commit and seed, not assumed bitwise identical across revisions. The change does not alter the experiment's synthetic-model scope or increase the effective sample size.
