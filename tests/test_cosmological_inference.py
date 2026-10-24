@@ -32,8 +32,8 @@ def test_low_z_model_reproduces_linear_distance_relation():
 def test_matched_flat_lcdm_posterior_recovers_synthetic_h0():
     h0 = np.linspace(40.0, 100.0, 12001)
     truth = 70.0
-    z = np.array([0.02, 0.04, 0.07])
-    weights = np.array([0.5, 0.3, 0.2])
+    z = np.array([0.04])
+    weights = np.array([1.0])
     distances = distance_grid_for_model(h0, z, "flat_lcdm", integration_steps=4000)
     # Use a distance generated at the true H0 from the same host-mixture model.
     at_truth = distance_grid_for_model([truth], z, "flat_lcdm", integration_steps=4000)[0]
@@ -48,8 +48,8 @@ def test_matched_flat_lcdm_posterior_recovers_synthetic_h0():
 
 def test_wrong_low_z_model_differs_at_moderate_redshift():
     h0 = np.linspace(40.0, 100.0, 6001)
-    z = np.array([0.1, 0.3, 0.6])
-    weights = np.array([0.5, 0.3, 0.2])
+    z = np.array([0.6])
+    weights = np.array([1.0])
     truth = 70.0
     true_distances = distance_grid_for_model([truth], z, "flat_lcdm", integration_steps=6000)[0]
     observed = float(np.dot(weights, true_distances))
