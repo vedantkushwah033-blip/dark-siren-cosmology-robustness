@@ -56,6 +56,19 @@ are not uncertainty intervals for the real Universe's Hubble constant.
 The analysis validates finite inputs and rejects empty samples, nonpositive
 bootstrap counts, and invalid percentile requests.
 
+## Known-true-host calibration oracle
+
+The workflow also includes `scripts/run_known_host_oracle.py`, which reruns
+the same mock-universe and distance-noise generator but supplies the actual
+host redshift to the likelihood. This deliberately unrealistic oracle is a
+calibration reference: it helps distinguish broad intervals caused by
+candidate-host mixture ambiguity from broad intervals already present when
+the true host is known. It writes one scenario summary plus one raw row per
+replicate to `results/known-host-oracle/`, and the workflow checks finite
+posterior summaries, interval nesting, unique run indices, and pinned source
+metadata. It is not an estimator available for real dark sirens, where the
+host identity is unknown.
+
 ## Interpretation cautions
 
 These are synthetic experiments, not observations and not a measurement of
