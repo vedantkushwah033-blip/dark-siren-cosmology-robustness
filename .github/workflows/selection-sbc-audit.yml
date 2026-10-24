@@ -1,0 +1,58 @@
+name: Toy selection-normalized SBC audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/dark_siren_robustness/selection.py"
+      - "scripts/run_selection_sbc_audit.py"
+      - "tests/test_selection_sbc_audit.py"
+      - ".github/workflows/selection-sbc-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  selected-sbc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run selection-conditioned SBC
+        run: python scripts/run_selection_sbc_audit.py --replicates 2000 --seed 20261027 --grid-size 4001 --output-dir results/selection-sbc-audit
+      - name: Validate output
+        run: |
+          python - <<'PY'
+          import csv, math
+          from pathlib import Path
+          root = Path("results/selection-sbc-audit")
+          with (root / "per_run.csv").open(newline="") as f:
+              rows = list(csv.DictReader(f))
+          with (root / "summary.csv").open(newline="") as f:
+              summary = list(csv.DictReader(f))
+          if len(rows) != 2000 or len(summary) != 1:
+              raise SystemExit(f"Unexpected output size: {len(rows)} runs, {len(summary)} summaries")
+          for row in rows:
+              d = float(row["observed_distance_mpc"])
+              if not (0 < d < 180):
+                  raise SystemExit("A generated observation failed the detection threshold")
+          for key in ("mean_rank", "rank_variance", "ks_statistic", "ks_pvalue", "decile_chi_square_pvalue"):
+              if not math.isfinite(float(summary[0][key])):
+                  raise SystemExit(f"Non-finite summary field: {key}")
+          print("PASS: 2,000 selection-conditioned SBC replicates validated.")
+          PY
+      - name: Upload selection SBC results
+        uses: actions/upload-artifact@v4
+        with:
+          name: selection-sbc-audit-results
+          path: results/selection-sbc-audit/
+          if-no-files-found: error
+          retention-days: 90
