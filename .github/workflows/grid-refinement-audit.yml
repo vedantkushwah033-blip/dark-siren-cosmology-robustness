@@ -1,0 +1,60 @@
+name: Posterior grid-refinement audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/run_grid_refinement_audit.py"
+      - "tests/test_grid_refinement_audit.py"
+      - ".github/workflows/grid-refinement-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  grid-refinement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run grid-refinement audit
+        run: |
+          python scripts/run_grid_refinement_audit.py \
+            --replicates 200 \
+            --seed 20261030 \
+            --output-dir results/grid-refinement-audit
+      - name: Validate outputs
+        run: |
+          python - <<'PY'
+          import csv, math
+          from pathlib import Path
+          root = Path("results/grid-refinement-audit")
+          with (root / "per_run.csv").open(newline="") as f:
+              runs = list(csv.DictReader(f))
+          with (root / "summary.csv").open(newline="") as f:
+              cells = list(csv.DictReader(f))
+          if len(runs) != 21600 or len(cells) != 36:
+              raise SystemExit(f"Unexpected outputs: {len(runs)} fits, {len(cells)} cells")
+          for row in cells:
+              for key in ("median_median_abs_median_diff_1001_vs_4001",
+                          "p95_median_abs_median_diff_1001_vs_4001",
+                          "max_median_abs_median_diff_1001_vs_4001"):
+                  if not math.isfinite(float(row[key])):
+                      raise SystemExit(f"Non-finite value in {key}")
+          print("PASS: 21,600 posterior fits, 36 design cells, three grid resolutions.")
+          PY
+      - name: Upload grid-refinement results
+        uses: actions/upload-artifact@v4
+        with:
+          name: grid-refinement-audit-results
+          path: results/grid-refinement-audit/
+          if-no-files-found: error
+          retention-days: 90
