@@ -52,8 +52,8 @@ jobs:
           assert manifest["cell_count"]==27
           assert len(summaries)==108
           assert len(contrasts)==135
-          assert all(math.isfinite(float(r["posterior_median"])) for r in raw)
-          assert all(40<=float(r["posterior_median"])<=100 for r in raw)
+          assert all(math.isfinite(float(r["median"])) for r in raw)
+          assert all(40<=float(r["median"])<=100 for r in raw)
           assert all(float(r["lower_95"])<=float(r["lower_68"])<=float(r["median"])<=float(r["upper_68"])<=float(r["upper_95"]) for r in raw)
           print("PASS: row counts, finite posterior summaries, interval ordering and prior support")
           PY
