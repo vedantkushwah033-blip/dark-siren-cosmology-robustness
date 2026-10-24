@@ -65,3 +65,15 @@ def test_independent_bootstrap_recomputation_matches_export_algorithm_on_fixture
         )
         assert left["bootstrap_95_low"] == pytest.approx(right["bootstrap_95_low"], abs=1e-12)
         assert left["bootstrap_95_high"] == pytest.approx(right["bootstrap_95_high"], abs=1e-12)
+
+
+def test_validator_rejects_observation_outside_declared_detection_interval():
+    row = {"host_index": 0, "observed_distance_mpc": 120.0}
+    with pytest.raises(ValueError, match="outside true detection interval"):
+        module.validate_observation_fields(row, "fixture")
+
+
+def test_validator_rejects_unknown_host_index():
+    row = {"host_index": 9, "observed_distance_mpc": 42.0}
+    with pytest.raises(ValueError, match="Invalid host_index"):
+        module.validate_observation_fields(row, "fixture")
