@@ -77,3 +77,23 @@ def test_flat_lcdm_preserves_array_shape_and_finite_values():
 def test_boolean_integration_steps_are_rejected(steps):
     with pytest.raises(ValueError, match="integration_steps must be an integer"):
         luminosity_distance_flat_lcdm(0.1, 70.0, integration_steps=steps)
+
+def test_flat_lcdm_matches_independent_quad_over_experiment_redshifts():
+    from scipy.integrate import quad
+
+    h0 = 70.0
+    omega_m = 0.3
+    redshifts = [0.02, 0.1, 0.4, 0.6]
+    for z in redshifts:
+        integral, _ = quad(
+            lambda zp: 1.0 / np.sqrt(omega_m * (1.0 + zp) ** 3 + 1.0 - omega_m),
+            0.0,
+            z,
+            epsabs=1e-12,
+            epsrel=1e-12,
+        )
+        reference = (1.0 + z) * (299_792.458 / h0) * integral
+        computed = luminosity_distance_flat_lcdm(
+            z, h0, omega_m=omega_m, integration_steps=20_000
+        )
+        assert computed == pytest.approx(reference, rel=2e-8)
