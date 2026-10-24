@@ -25,8 +25,8 @@ def distance_grid_for_model(
     """Return predicted distances with shape (len(H0 grid), len(hosts)), in Mpc."""
     h0 = np.asarray(h0_grid, dtype=float)
     z = np.asarray(redshifts, dtype=float)
-    if h0.ndim != 1 or h0.size < 2 or np.any(~np.isfinite(h0)) or np.any(h0 <= 0) or np.any(np.diff(h0) <= 0):
-        raise ValueError("h0_grid must be finite, positive, one-dimensional, and increasing")
+    if h0.ndim != 1 or h0.size < 1 or np.any(~np.isfinite(h0)) or np.any(h0 <= 0) or np.any(np.diff(h0) <= 0):
+        raise ValueError("h0_grid must be finite, positive, non-empty, one-dimensional, and increasing")
     if z.ndim != 1 or z.size == 0 or np.any(~np.isfinite(z)) or np.any(z < 0):
         raise ValueError("redshifts must be a non-empty finite non-negative vector")
     if model == "low_z":
