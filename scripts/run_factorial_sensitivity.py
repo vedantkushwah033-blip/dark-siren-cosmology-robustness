@@ -89,7 +89,15 @@ def main() -> None:
             **metrics,
         })
         for row in rows:
-            per_run.append({"scenario": name, **row})
+            # Preserve the full prespecified design in every raw record.
+            # The independent auditor must not infer settings from names.
+            per_run.append({
+                "scenario": name,
+                "missingness": missingness,
+                "host_generation": host_generation,
+                "inference_weighting": inference_weighting,
+                **row,
+            })
 
     with (out / "scenario_summary.csv").open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(summaries[0]))
