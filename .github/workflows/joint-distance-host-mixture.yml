@@ -3,7 +3,8 @@ on:
   push:
     branches: [main]
     paths:
-      - "scripts/run_joint_distance_model_host_mixture.py"\n      - "scripts/audit_joint_distance_model_host_mixture.py"
+      - "scripts/run_joint_distance_model_host_mixture.py"
+      - "scripts/audit_joint_distance_model_host_mixture.py"
       - "tests/test_joint_distance_model_host_mixture.py"
       - "src/dark_siren_robustness/cosmology.py"
       - "src/dark_siren_robustness/cosmological_inference.py"
