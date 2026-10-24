@@ -1,0 +1,49 @@
+name: Randomized numerical stress audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/run_randomized_numerical_stress.py"
+      - "scripts/run_independent_reference_audit.py"
+      - "tests/test_randomized_numerical_stress.py"
+      - ".github/workflows/randomized-numerical-stress.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  randomized-stress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run randomized numerical stress test
+        run: python scripts/run_randomized_numerical_stress.py --cases 120 --seed 20261024 --output-dir results/randomized-numerical-stress
+      - name: Validate output
+        run: |
+          python - <<'PY'
+          import csv
+          from pathlib import Path
+          p = Path("results/randomized-numerical-stress/randomized_grid_vs_quadrature.csv")
+          with p.open(newline="") as f:
+              rows = list(csv.DictReader(f))
+          if len(rows) != 240:
+              raise SystemExit(f"Expected 240 rows; got {len(rows)}")
+          print("PASS: 240 randomized grid summaries compared with reference.")
+          PY
+      - name: Upload randomized stress results
+        uses: actions/upload-artifact@v4
+        with:
+          name: randomized-numerical-stress-results
+          path: results/randomized-numerical-stress/
+          if-no-files-found: error
+          retention-days: 90
