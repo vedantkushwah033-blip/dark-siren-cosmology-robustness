@@ -2,11 +2,11 @@
 
 ## Status
 
-Implementation and CI validation are in progress as of 2026-10-24. The initial paired synthetic experiment and focused tests have been added; report no result as final until the workflow succeeds and its artifact is inspected. See `scripts/run_cosmological_model_robustness.py`, `src/dark_siren_robustness/cosmological_inference.py`, and `tests/test_cosmological_inference.py`.
+The first, deliberately narrow distance-model phase is implemented; CI is validating it. No numerical result is final until the workflow succeeds and its artifact is independently inspected. See `scripts/run_cosmological_model_robustness.py`, `src/dark_siren_robustness/cosmological_inference.py`, and `tests/test_cosmological_inference.py`. The catalogue-completeness and host-weighting factorial described as later phases below is not implemented by this initial script.
 
 ## Research question
 
-Do the estimated effects of synthetic galaxy-catalogue incompleteness and host-population weighting persist when the luminosity-distance relation is changed from the low-redshift approximation to a flat Lambda-CDM relation?
+Phase 1 asks: when synthetic distances are generated under flat Lambda-CDM, how do posterior estimates differ between matched flat-Lambda-CDM inference and deliberately mismatched low-redshift inference as redshift and true H0 vary? A later phase will combine distance-model choice with catalogue incompleteness and host-population weighting; that broader question is not answered by the initial experiment.
 
 This is a model-robustness experiment for a synthetic simulator, not an analysis of real LVK observations.
 
