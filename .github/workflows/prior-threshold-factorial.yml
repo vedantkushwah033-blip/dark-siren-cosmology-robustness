@@ -1,0 +1,43 @@
+name: Prior-threshold factorial audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/run_prior_threshold_factorial.py"
+      - "tests/test_prior_threshold_factorial.py"
+      - ".github/workflows/prior-threshold-factorial.yml"
+      - "src/dark_siren_robustness/**"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run focused factorial tests
+        run: python -m pytest tests/test_prior_threshold_factorial.py -q
+      - name: Run compact CI experiment
+        run: python scripts/run_prior_threshold_factorial.py --replicates 100 --seed 20261028 --grid-size 1001 --output-dir results/prior-threshold-factorial
+      - name: Upload factorial outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: prior-threshold-factorial-python-${{ matrix.python-version }}
+          path: |
+            results/prior-threshold-factorial/per_run.csv
+            results/prior-threshold-factorial/summary.csv
+            results/prior-threshold-factorial/paired_contrasts.csv
+          if-no-files-found: error
+          retention-days: 90
