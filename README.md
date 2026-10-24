@@ -179,3 +179,6 @@ The manually dispatched workflow `.github/workflows/grid-refinement-full.yml` ru
 ### Grid-refinement regression hardening
 
 The grid-refinement tests additionally check the ordering of posterior credible-interval endpoints, finiteness of all five reported posterior summaries, reuse of the exact same simulated distance observation across grid resolutions and weighting choices, and consistency of median/95th-percentile/maximum discrepancy summaries. These are structural integrity checks; they do not assert that the grid error is scientifically negligible. Numerical adequacy must be judged from the actual full-run discrepancy distributions against a prespecified tolerance.
+
+
+The completed 200-replicate grid-refinement run is documented in [the full convergence results and interpretation](docs/grid_refinement_full_results.md). Typical discrepancies were small, but one upper-95%-endpoint maximum was materially larger than the rest and requires case-level inspection before claiming uniform convergence.
