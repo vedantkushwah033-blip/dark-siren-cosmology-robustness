@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import numpy as np
+import pytest
 
 PATH=Path(__file__).resolve().parents[1]/"scripts"/"run_prior_threshold_factorial.py"
 SPEC=importlib.util.spec_from_file_location("prior_threshold_factorial",PATH)
@@ -78,3 +79,42 @@ def test_paired_bootstrap_is_deterministic_and_preserves_pairing():
     assert len(first)==len(module.TRUTHS)*((len(module.PRIORS)*len(module.ASSUMED_MAXIMA))-1)*len(module.METHODS)*6
     assert all(np.isfinite(r["mean_difference_vs_baseline"]) for r in first)
     assert all(r["bootstrap_95_low"]<=r["bootstrap_95_high"] for r in first)
+
+
+def test_detection_sampler_observations_obey_declared_selection_interval():
+    rng=np.random.default_rng(20261024)
+    observations=[module.draw_detected(70.0,rng) for _ in range(500)]
+    hosts=np.array([host for host,_ in observations])
+    distances=np.array([distance for _,distance in observations])
+    assert np.all((distances > module.TRUE_MIN) & (distances < module.TRUE_MAX))
+    assert set(np.unique(hosts)).issubset({0,1})
+    assert np.all(np.isfinite(distances))
+
+
+def test_selection_efficiency_increases_with_upper_detection_threshold():
+    from dark_siren_robustness.selection import detection_efficiency_h0
+    grid=np.linspace(30.0,120.0,901)
+    beta_120=detection_efficiency_h0(
+        grid,module.HOST_REDSHIFTS,module.SIGMA,120.0,
+        weights=module.HOST_WEIGHTS,detection_distance_min=module.TRUE_MIN)
+    beta_150=detection_efficiency_h0(
+        grid,module.HOST_REDSHIFTS,module.SIGMA,150.0,
+        weights=module.HOST_WEIGHTS,detection_distance_min=module.TRUE_MIN)
+    assert np.all(np.isfinite(beta_120)) and np.all(np.isfinite(beta_150))
+    assert np.all((beta_120 > 0) & (beta_120 <= 1))
+    assert np.all((beta_150 > 0) & (beta_150 <= 1))
+    assert np.all(beta_150 >= beta_120)
+    assert np.any(beta_150 > beta_120)
+
+
+def test_selected_posterior_is_normalized_inside_prior_support_for_multiple_thresholds():
+    grid=np.linspace(25.0,125.0,4001)
+    support=(grid >= 50.0) & (grid <= 90.0)
+    for threshold in (120.0,150.0,180.0,210.0):
+        posterior=module.posterior_h0_selected(
+            grid,module.HOST_REDSHIFTS,100.0,module.SIGMA,threshold,
+            weights=module.HOST_WEIGHTS,prior_min=50.0,prior_max=90.0,
+            detection_distance_min=module.TRUE_MIN)
+        assert np.all(np.isfinite(posterior))
+        assert np.all(posterior >= 0)
+        assert np.trapezoid(posterior[support],grid[support]) == pytest.approx(1.0,abs=1e-10)
