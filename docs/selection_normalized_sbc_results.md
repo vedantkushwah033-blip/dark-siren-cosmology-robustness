@@ -1,6 +1,6 @@
 # Toy selection-normalized posterior and SBC audit
 
-**Status:** initial selected-data SBC run completed; the independent adaptive-quadrature regression test was added afterward and its CI result must be checked separately.  
+**Status:** the 2,000-replicate selected-data SBC run passed, and the focused selection-normalization test suite (including adaptive quadrature comparison) passed with 11 tests.  
 **SBC workflow:** https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40068645358  
 **Scope:** toy noisy-distance threshold and fixed two-host mixture only; not a realistic GW detector selection model.
 
@@ -50,7 +50,7 @@ These diagnostics are evidence consistent with correct computation under the spe
 
 The analytic selection tests compare beta(H0) to the weighted sum of normal CDF values, verify that efficiency approaches one for a very high threshold, and check the no-selection limit of the posterior. An additional test compares selected-posterior quantiles against an independently written adaptive-quadrature calculation using scipy.integrate.quad and scipy.optimize.brentq.
 
-The focused selection-normalization unit tests passed before the adaptive-quadrature regression test was added: [workflow run 40068498540](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40068498540). The SBC workflow passed: [run 40068645358](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40068645358). The new adaptive-quadrature test and the full test suite must pass on the latest commit before treating the implementation checkpoint as fully validated.
+The initial analytic selection tests passed in [workflow run 40068498540](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40068498540). The selection-conditioned SBC workflow passed in [run 40068645358](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40068645358). After adding an independent adaptive-quadrature check for posterior quantiles, the focused suite passed all 11 tests in [run 40068706382](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40068706382). The repository-wide test suite is still running on the latest commits; the focused result does not replace that broader check.
 
 ## Limitations and next steps
 
