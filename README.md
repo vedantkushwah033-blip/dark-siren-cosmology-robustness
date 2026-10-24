@@ -133,3 +133,8 @@ A denser paired fixed-truth experiment tests nine true values from 52 to 88 and 
 ### Paired method contrasts with bootstrap uncertainty
 
 The coverage-transition experiment now reports corrected-minus-uncorrected paired differences for posterior medians, absolute/squared errors, 68%/95% interval widths, and coverage indicators, with percentile-bootstrap 95% intervals. See the [paired contrast results](docs/paired_method_contrast_results.md). The workflow uploads `paired_method_contrasts.csv` with the per-run and summary artifacts. All findings are conditional on the synthetic model and should not be generalized directly to real LVK data.
+
+
+### Detection-threshold misspecification
+
+A new paired experiment generates detected observations under a 120 Mpc toy threshold and compares selection-corrected inference using the correct threshold against deliberately incorrect assumed thresholds (150, 180, and 210 Mpc). The [protocol](docs/threshold_misspecification_protocol.md) documents the design; results will be added only after CI artifacts are inspected. This remains a synthetic model, not a real detector-selection function.
