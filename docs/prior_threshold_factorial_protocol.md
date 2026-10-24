@@ -38,7 +38,7 @@ This is a simplified Gaussian distance-threshold model, not a realistic gravitat
 
 ## Full-run CI workflow
 
-The workflow `.github/workflows/full-prior-threshold-factorial.yml` can be started from the repository's Actions tab. For the protocol run, select 300 repetitions, grid size 4001, and seed 20261028. It runs focused tests and validates expected output row counts and numeric finiteness before uploading `per_run.csv`, `summary.csv`, and `paired_contrasts.csv` for 90 days. This workflow is manually dispatched and does not run merely because this protocol was updated. Treat the experiment as complete only after checking the actual run conclusion and inspecting its artifacts.
+The workflow `.github/workflows/full-prior-threshold-factorial.yml` can be started from the repository's Actions tab. For the protocol run, select 300 repetitions, grid size 4001, and seed 20261028. It runs focused tests, validates the generated CSVs independently against the raw rows, checks expected output row counts and numeric finiteness, and verifies `experiment_manifest.json` against the selected inputs before uploading `per_run.csv`, `summary.csv`, `paired_contrasts.csv`, and `experiment_manifest.json` for 90 days. The manifest records the seed, simulation design, row counts, software versions, and commit SHA when available. This workflow is manually dispatched and does not run merely because this protocol was updated. Treat the experiment as complete only after checking the actual run conclusion and inspecting its artifacts.
 
 
 ## Independent artifact-integrity validation
