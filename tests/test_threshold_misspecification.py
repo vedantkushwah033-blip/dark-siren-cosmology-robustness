@@ -34,3 +34,18 @@ def test_correct_threshold_row_matches_direct_posterior_computation():
     assert row["corrected_median"]==summary["median"]
     assert row["corrected_lower_68"]==summary["lower_68"]
     assert row["corrected_upper_68"]==summary["upper_68"]
+
+
+def test_paired_threshold_contrasts_have_expected_cells_and_finite_intervals():
+    rows,_=module.run(replicates=100,seed=124,grid_size=1001)
+    contrasts=module.paired_threshold_contrasts(rows,seed=125,bootstrap_draws=1000)
+    assert len(contrasts)==len(module.TRUTHS)*(len(module.INFERRED_MAXIMA)-1)*7
+    assert {r["metric"] for r in contrasts}=={
+        "posterior_median","absolute_error","squared_error","width_68","width_95",
+        "coverage_68_indicator","coverage_95_indicator"
+    }
+    for row in contrasts:
+        assert row["n_pairs"]==100
+        assert row["bootstrap_95_low"]<=row["bootstrap_95_high"]
+        assert np.isfinite(row["mean_wrong_minus_correct"])
+        assert row["bootstrap_draws"]==1000
