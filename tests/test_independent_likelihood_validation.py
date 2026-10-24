@@ -26,7 +26,8 @@ def _direct_reference(grid, redshifts, distance, sigma, weights, prior_min, prio
             host_terms.append(weight * norm.pdf(distance, loc=predicted_distance, scale=sigma))
         likelihood[i] = sum(host_terms)
     likelihood[(grid < prior_min) | (grid > prior_max)] = 0.0
-    return likelihood / trapezoid(likelihood, grid)
+    in_prior = (grid >= prior_min) & (grid <= prior_max)
+    return likelihood / trapezoid(likelihood[in_prior], grid[in_prior])
 
 
 def test_posterior_matches_independent_direct_gaussian_mixture():
@@ -46,7 +47,8 @@ def test_posterior_matches_independent_direct_gaussian_mixture():
 
     assert np.all(np.isfinite(actual))
     assert np.all(actual >= 0.0)
-    assert trapezoid(actual, grid) == pytest.approx(1.0, abs=1e-10)
+    in_prior = (grid >= prior_min) & (grid <= prior_max)
+    assert trapezoid(actual[in_prior], grid[in_prior]) == pytest.approx(1.0, abs=1e-10)
     # Same mathematical model, independently evaluated in ordinary probability space.
     assert np.allclose(actual, expected, rtol=2e-10, atol=1e-14)
 
