@@ -87,7 +87,8 @@ jobs:
               for metric, value in expected.items():
                   assert math.isclose(float(s[metric]), value, rel_tol=1e-10, abs_tol=1e-10), (key, metric, s[metric], value)
           assert all(int(r["n_pairs"]) == 200 for r in contrasts)
-          assert all(float(r["bootstrap_95_low"]) <= float(r["mean_delta_absolute_error_mismatch_minus_matched"]) <= float(r["bootstrap_95_high"]) or math.isfinite(float(r["mean_delta_absolute_error_mismatch_minus_matched"])) for r in contrasts)
+          assert all(math.isfinite(float(r["mean_delta_absolute_error_mismatch_minus_matched"])) for r in contrasts)
+          assert all(math.isfinite(float(r["bootstrap_95_low"])) and math.isfinite(float(r["bootstrap_95_high"])) for r in contrasts)
           assert all(float(r["bootstrap_95_low"]) <= float(r["bootstrap_95_high"]) for r in contrasts)
           print("Raw rows, paired observations, summaries, paired bootstrap contrasts, finite values, and prior support: PASS")
           PY
