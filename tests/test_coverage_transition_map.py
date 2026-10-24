@@ -26,3 +26,21 @@ def test_transition_map_is_complete_and_uses_paired_design():
         assert 0 <= row["coverage_95"] <= 1
         assert 0 <= row["coverage_68_wilson_low"] <= row["coverage_68"] <= row["coverage_68_wilson_high"] <= 1
         assert 0 <= row["coverage_95_wilson_low"] <= row["coverage_95"] <= row["coverage_95_wilson_high"] <= 1
+
+
+def test_paired_method_contrasts_are_complete_and_finite():
+    rows, _ = module.run(replicates=100, seed=43, grid_size=1001)
+    contrasts = module.paired_method_contrasts(rows, seed=44, bootstrap_draws=1000)
+    expected = len(module.TRUTH_GRID) * len(module.PRIOR_GRID) * 7
+    assert len(contrasts) == expected
+    assert {r["metric"] for r in contrasts} == {
+        "posterior_median", "absolute_error", "squared_error",
+        "width_68", "width_95", "coverage_68_indicator", "coverage_95_indicator"
+    }
+    for row in contrasts:
+        assert row["n_pairs"] == 100
+        assert row["bootstrap_95_low"] <= row["mean_corrected_minus_uncorrected"] <= row["bootstrap_95_high"] or (
+            row["bootstrap_95_low"] <= row["bootstrap_95_high"]
+        )
+        assert row["bootstrap_95_low"] <= row["bootstrap_95_high"]
+        assert row["bootstrap_draws"] == 1000
