@@ -1,0 +1,40 @@
+name: Toy selection posterior grid refinement
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/dark_siren_robustness/selection.py"
+      - "src/dark_siren_robustness/hardened_inference.py"
+      - "scripts/run_selection_grid_refinement.py"
+      - "tests/test_selection_grid_refinement.py"
+      - ".github/workflows/selection-grid-refinement.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  grid-refinement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run grid-refinement audit
+        run: python scripts/run_selection_grid_refinement.py --output-dir results/selection-grid-refinement
+      - name: Run focused tests
+        run: python -m pytest tests/test_selection_grid_refinement.py -q
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: selection-grid-refinement-results
+          path: results/selection-grid-refinement/
+          if-no-files-found: error
+          retention-days: 90
