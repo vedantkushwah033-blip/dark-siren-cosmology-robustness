@@ -18,7 +18,9 @@ The README/protocol updates at `91fe3997` and `8c16ac1d` subsequently passed bot
 - https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40097372663
 - https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40097372541
 
-Later commits `05cbee3f`, `555b9a40`, and `87843974` add an end-to-end compact artifact-validation fixture, a check that summary replicate counts match raw data, and regression tests for both behaviours. The focused `tests` workflow passed on `87843974` (run 40097558866), and the numerical-diagnostics workflow passed on `555b9a40` (run 40097553755). The broader `Test suite` on `87843974` and the latest workflows on `f000d541` were still in progress at the last check. Do not claim the latest full suite has passed until its Actions run concludes successfully.
+Later commits `05cbee3f`, `555b9a40`, and `87843974` add an end-to-end compact artifact-validation fixture, a check that summary replicate counts match raw data, and regression tests for both behaviours. The focused `tests` workflow passed on `87843974` (run 40097558866), and the numerical-diagnostics workflow passed on `555b9a40` (run 40097553755).
+
+The broader suite then exposed a real error-reporting bug in the new validator: `assert_close` formatted a CSV string with a numeric format specifier before converting it, so the corrupted-summary test saw a `TypeError` instead of the expected metric-specific `ValueError`. This affected all three Python-version jobs, while the rest of the suite reported 236–237 passing tests. The validator was corrected in commit `85483de1` to convert both values before formatting, and the regression assertion was restored to require the `bias` context in commit `7a7a4c1d`. The CI runs for these newest fixes were queued or running at the last check; they must pass before the complete suite is considered green.
 
 The two subsequent commits strengthen the artifact validator and add regression tests for invalid host indices and observations outside the declared detection interval:
 
