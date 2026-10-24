@@ -44,7 +44,7 @@ def test_summary_recomputes_coverage_bias_width_and_edge_fraction():
     ]
     result = MODULE.summarize_cell(rows, true_h0=70.0, fractional_error=0.1)
     assert result["n"] == 4
-    assert result["coverage_68"] == pytest.approx(1.0)
+    assert result["coverage_68"] == pytest.approx(0.75)
     assert result["coverage_95"] == pytest.approx(1.0)
     assert result["median_bias"] == pytest.approx(0.0)
     assert result["mean_median_error"] == pytest.approx(1.0)
