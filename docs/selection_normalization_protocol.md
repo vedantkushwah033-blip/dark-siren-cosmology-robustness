@@ -94,11 +94,9 @@ Do not require frequentist fixed-truth coverage to equal nominal Bayesian credib
 ## Implementation sequence
 
 1. **Completed:** add a separate selection module; do not silently alter the legacy simulator. The initial implementation is `src/dark_siren_robustness/selection.py`.
-2. **Completed:** unit-test the detection probability and $\\beta(H_0)$ against the analytic formula. See `tests/test_selection_normalization.py` and [the successful focused workflow](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40068498540).
-3. Add a one-host selected-data benchmark before a multi-host model.
-2. Unit-test the detection probability and $\beta(H_0)$ against the analytic formula.
-3. Add a one-host selected-data benchmark before a multi-host model.
-4. Compare the selection-corrected likelihood to an independently coded reference calculation.
+2. **Completed:** unit-test the detection probability and $\beta(H_0)$ against the analytic formula. See `tests/test_selection_normalization.py` and [the successful focused workflow](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40068498540).
+3. Compare the selection-corrected likelihood to an independently coded reference calculation.
+4. Add a one-host selected-data benchmark before a multi-host model.
 5. Run prior-predictive SBC with selection.
 6. Run the crossed catalogue-completeness experiment only after the selected-data baseline passes.
 7. Document the toy threshold and explicitly prohibit claims that it approximates real LVK selection without a separately justified detector model.
@@ -107,4 +105,4 @@ Do not require frequentist fixed-truth coverage to equal nominal Bayesian credib
 
 This toy threshold model does not include real GW strain data, detector duty cycle, antenna patterns, waveform/template-bank effects, network signal-to-noise ratio, observing-run sensitivity, redshift uncertainty, lensing, peculiar velocities, or the actual GW detection pipeline. It is a controlled test of selection-normalization logic, not a physical detector model.
 
-No numerical result should be reported until an implementation exists, tests pass, the workflow completes, and the resulting artifacts have been inspected.
+The analytic unit tests have passed, but no selected-data simulation result should be reported until the reference comparison and prior-predictive checks pass and the resulting artifacts have been inspected.
