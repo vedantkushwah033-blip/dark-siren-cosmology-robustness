@@ -99,7 +99,10 @@ jobs:
           for key, value in expected_manifest.items():
               if manifest.get(key) != value:
                   raise SystemExit(f"Manifest mismatch for {key}: {manifest.get(key)!r} != {value!r}")
-          print("PASS experiment_manifest.json: seed, design, row counts match workflow inputs")
+          for key in ("python_version", "numpy_version", "scipy_version", "package_version", "git_commit"):
+              if not manifest.get(key):
+                  raise SystemExit(f"Manifest is missing reproducibility metadata: {key}")
+          print("PASS experiment_manifest.json: design, row counts, and runtime metadata match workflow inputs")
           PY
       - name: Upload full experiment outputs
         uses: actions/upload-artifact@v4
