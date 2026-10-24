@@ -52,6 +52,8 @@ jobs:
             --seed "${{ inputs.seed }}" \
             --grid-size "${{ inputs.grid_size }}" \
             --output-dir results/prior-threshold-factorial-full
+      - name: Independently validate factorial summaries and paired contrasts
+        run: python scripts/validate_prior_threshold_factorial.py --per-run results/prior-threshold-factorial-full/per_run.csv --summary results/prior-threshold-factorial-full/summary.csv --contrasts results/prior-threshold-factorial-full/paired_contrasts.csv
       - name: Validate generated CSV artifacts
         run: |
           python - <<'PY'
