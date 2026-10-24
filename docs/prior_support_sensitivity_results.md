@@ -70,3 +70,32 @@ The later code revision adds a paired posterior-median-difference CSV to the art
 python scripts/run_prior_support_sensitivity.py --replicates 300 --seed 20261024 --grid-size 4001 --output-dir results/prior-support-sensitivity
 python -m pytest tests/test_prior_support_sensitivity.py -q
 ```
+
+
+## Paired posterior-median contrasts
+
+The successful artifact set from workflow [40074060836](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40074060836) includes `paired_prior_differences.csv`. It compares each observation's posterior median under a wider prior with its median under [50,90]. Negative values mean the wider-prior median is lower; positive values mean it is higher. These are paired per-observation contrasts, not independent-sample differences.
+
+| True H0 | Method | Comparison prior | Mean signed difference | Mean absolute difference | 90th percentile absolute difference |
+|---:|---|---|---:|---:|---:|
+| 52 | Uncorrected | [40,100] | -3.106 | 4.133 | 11.781 |
+| 52 | Corrected | [40,100] | -4.022 | 4.791 | 14.320 |
+| 52 | Uncorrected | [30,110] | -2.425 | 5.964 | 20.741 |
+| 52 | Corrected | [30,110] | -3.955 | 6.203 | 22.768 |
+| 70 | Uncorrected | [40,100] | +0.553 | 3.640 | 6.917 |
+| 70 | Corrected | [40,100] | -0.432 | 4.275 | 7.765 |
+| 70 | Uncorrected | [30,110] | -1.291 | 10.358 | 26.267 |
+| 70 | Corrected | [30,110] | -3.144 | 11.224 | 33.404 |
+| 88 | Uncorrected | [40,100] | +0.975 | 5.567 | 9.553 |
+| 88 | Corrected | [40,100] | +0.135 | 6.247 | 13.398 |
+| 88 | Uncorrected | [30,110] | +2.477 | 10.523 | 22.430 |
+| 88 | Corrected | [30,110] | +1.476 | 11.038 | 25.720 |
+
+### How to read these contrasts
+
+- For truths near the lower prior edge ((H_0=52)), widening support tends on average to move the median downward, but the distribution of paired changes is broad and can include positive changes for individual observations.
+- At (H_0=70), the wider [30,110] prior yields much larger median movement than [40,100], with 90th-percentile absolute changes above 26 in both methods.
+- At (H_0=88), widening support tends on average to move medians upward, away from the upper edge of the original prior, but individual shifts remain heterogeneous.
+- The selection correction does not consistently reduce the magnitude of prior sensitivity.
+
+These results directly quantify prior sensitivity in posterior medians. They do not isolate the prior's causal effect on all metrics or establish a best prior; the posterior interval widths and full posterior shapes should also be considered.
