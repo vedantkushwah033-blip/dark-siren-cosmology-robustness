@@ -66,6 +66,43 @@ def run(replicates=300,seed=20261027,grid_size=4001):
                 "mean_width_95":float(np.mean([r["corrected_upper_95"]-r["corrected_lower_95"] for r in cell]))})
     return rows,summaries
 
+def paired_threshold_contrasts(rows, seed=20261028, bootstrap_draws=5000):
+    """Paired wrong-minus-correct threshold contrasts with percentile bootstrap CIs."""
+    if bootstrap_draws < 1000:
+        raise ValueError("Use at least 1000 bootstrap draws")
+    rng=np.random.default_rng(seed)
+    lookup={(r["true_H0"],r["replicate"],r["inferred_detection_max_mpc"]):r for r in rows}
+    metrics={
+        "posterior_median":lambda r:r["corrected_median"],
+        "absolute_error":lambda r:abs(r["corrected_median"]-r["true_H0"]),
+        "squared_error":lambda r:(r["corrected_median"]-r["true_H0"])**2,
+        "width_68":lambda r:r["corrected_upper_68"]-r["corrected_lower_68"],
+        "width_95":lambda r:r["corrected_upper_95"]-r["corrected_lower_95"],
+        "coverage_68_indicator":lambda r:float(r["corrected_lower_68"]<=r["true_H0"]<=r["corrected_upper_68"]),
+        "coverage_95_indicator":lambda r:float(r["corrected_lower_95"]<=r["true_H0"]<=r["corrected_upper_95"]),
+    }
+    out=[]
+    for truth in TRUTHS:
+        for wrong in INFERRED_MAXIMA:
+            if wrong==TRUE_MAX: continue
+            baseline=[lookup[(truth,rep,TRUE_MAX)] for rep in range(max(r["replicate"] for r in rows if r["true_H0"]==truth)+1)]
+            comparison=[lookup[(truth,rep,wrong)] for rep in range(len(baseline))]
+            for metric,fn in metrics.items():
+                deltas=np.asarray([fn(b)-fn(a) for a,b in zip(baseline,comparison)],dtype=float)
+                if not np.all(np.isfinite(deltas)): raise RuntimeError(f"Non-finite contrast: {metric}")
+                indices=rng.integers(0,len(deltas),size=(bootstrap_draws,len(deltas)))
+                means=deltas[indices].mean(axis=1)
+                out.append({"true_H0":truth,"correct_threshold_mpc":TRUE_MAX,
+                    "assumed_threshold_mpc":wrong,"metric":metric,"n_pairs":len(deltas),
+                    "mean_wrong_minus_correct":float(deltas.mean()),
+                    "median_paired_difference":float(np.median(deltas)),
+                    "bootstrap_95_low":float(np.quantile(means,.025)),
+                    "bootstrap_95_high":float(np.quantile(means,.975)),
+                    "bootstrap_draws":bootstrap_draws,"bootstrap_seed":seed})
+    expected=len(TRUTHS)*(len(INFERRED_MAXIMA)-1)*len(metrics)
+    if len(out)!=expected: raise RuntimeError(f"Expected {expected} contrast rows, got {len(out)}")
+    return out
+
 def write_csv(path,rows):
     if not rows: raise RuntimeError(f"Refusing empty artifact {path}")
     path.parent.mkdir(parents=True,exist_ok=True)
@@ -86,6 +123,6 @@ def main():
     out=Path(a.output_dir);write_csv(out/"per_run.csv",rows);write_csv(out/"summary.csv",summaries)
     expected=len(TRUTHS)*a.replicates*len(INFERRED_MAXIMA)
     if len(rows)!=expected: raise RuntimeError(f"Expected {expected} rows, got {len(rows)}")
-    print(f"PASS: {len(rows)} per-run rows; {len(summaries)} summaries")
+    print(f"PASS: {len(rows)} per-run rows; {len(summaries)} summaries; {len(contrasts)} paired threshold contrasts")
     for r in summaries: print(r)
 if __name__=="__main__": main()
