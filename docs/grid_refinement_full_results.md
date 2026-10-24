@@ -85,3 +85,54 @@ A targeted finer-grid check reconstructed this observation and recalculated the 
 The sequence approaches a stable value near 60.710. The finer-grid changes shrink monotonically in this targeted check, supporting numerical discretization/quantile interpolation as the explanation for this particular discrepancy; this does not prove monotonic convergence in general. No defect in the likelihood or posterior normalization was demonstrated. The practical conclusion is that 1,001 points are not uniformly adequate for the upper 95% endpoint, and even 4,001 points leave a visible difference for this case.
 
 The audit script now prints the identity and three-grid endpoint values of the largest upper-95% discrepancy. A targeted regression test preserves this observation and checks refinement through 16,001 points.
+
+
+## Follow-up: artifact-level checks of prior support and targeted convergence
+
+The subsequent automated numerical-diagnostics workflow completed successfully on Python 3.10, 3.11, and 3.12 (run 40089986883). Its posterior_grid_stability.csv and targeted_grid_convergence.csv artifacts were downloaded and inspected directly.
+
+### Normalization and numerical support
+
+For the baseline case, the reported posterior area is 1.0. With the same prior interval [50, 90], extending the numerical grid from [50, 90] to [30, 110] changes the posterior median by about 1.4e-14 and leaves the reported credible-interval endpoints equal to numerical precision. This is the expected control: extending the computational grid without changing the prior should not change the posterior.
+
+The diagnostic previously integrated over the zero-padded exterior grid as well as the prior support. It has now been corrected to integrate only over the prior support, matching the inference routine. Regression tests were added for this consistency check. The corrected diagnostic workflow for commit 123a99d6 passed on all three Python versions.
+
+### Prior sensitivity is not grid sensitivity
+
+A separate comparison widens the actual prior from [50, 90] to [30, 110], while retaining the wider numerical grid. The posterior changes substantially:
+
+| Summary | Prior [50, 90] | Prior [30, 110] | Absolute change |
+|---|---:|---:|---:|
+| Median | 70.415477 | 68.200082 | 2.215394 |
+| Lower 68% endpoint | 59.723136 | 40.935988 | 18.787148 |
+| Upper 68% endpoint | 82.573676 | 89.985520 | 7.411844 |
+| Lower 95% endpoint | 51.869120 | 31.720089 | 20.149031 |
+| Upper 95% endpoint | 88.756256 | 105.078786 | 16.322531 |
+
+These are outputs of the specified simplified synthetic model. They show that the inferred posterior is materially sensitive to the chosen prior interval in this diagnostic case. This must not be conflated with grid-discretization error: changing grid extent while holding the prior fixed is a numerical control; changing prior bounds changes the statistical model.
+
+The baseline case also has nonzero posterior mass near its prior boundaries (approximately 1.08% in the lower 2%-wide prior band and 1.60% in the upper band). These values are worth reporting as a diagnostic, but by themselves do not establish that the prior is inappropriate.
+
+### Targeted upper-tail convergence artifact
+
+The saved seven-resolution output confirms the upper 95% endpoint for the previously identified case:
+
+| Grid points | Upper 95% endpoint | Absolute change from previous grid |
+|---:|---:|---:|
+| 1,001 | 60.848373 | — |
+| 2,001 | 60.742249 | 0.106124 |
+| 4,001 | 60.717920 | 0.024330 |
+| 8,001 | 60.711905 | 0.006015 |
+| 16,001 | 60.710428 | 0.001477 |
+| 32,001 | 60.710055 | 0.000373 |
+| 64,001 | 60.709962 | 0.000093 |
+
+This confirms that the targeted upper-tail sequence stabilizes as the grid is refined. It is a single-case result and cannot substitute for a tolerance-based assessment across all 36 design cells.
+
+### Verification status
+
+- The tests workflow for commit 123a99d6 completed successfully on Python 3.10, 3.11, and 3.12, including the corrected posterior-grid diagnostic and artifact upload.
+- The full test suite for that same commit was still in progress at the time of the status check.
+- The later full-suite run for commit 4c9ae127 had Python 3.10 completed successfully, while Python 3.11 and 3.12 were still in progress at the last status check.
+
+Therefore the corrected diagnostic workflow is verified, but do not describe the latest full-suite run as completely finished until all matrix jobs have completed.
