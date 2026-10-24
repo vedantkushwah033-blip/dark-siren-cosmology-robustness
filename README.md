@@ -198,3 +198,8 @@ This fixed synthetic observation is evaluated on 1,001 through 64,001 grid point
 ### Prospective grid-accuracy criteria
 
 The independent numerical acceptance protocol is documented in [`docs/prospective_grid_accuracy_protocol.md`](docs/prospective_grid_accuracy_protocol.md). It defines cell-level percentile limits, a per-case guardrail, targeted refinement requirements, and normalization checks. These criteria were written after the previous audit, so they must be applied to a new run and must not be described as preregistered for the earlier results.
+
+
+### Independent full-design grid-accuracy result
+
+The 200-replicate audit with seed 20261101 completed for 36 design cells and passed all 180 cell-level 95th-percentile checks for the five posterior summaries; no individual discrepancy exceeded the 0.05 refinement guardrail. See the artifact-backed [independent grid-accuracy assessment](docs/independent_grid_accuracy_assessment_seed20261101.md) and [GitHub Actions run](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40091266581). This result is limited to grid-difference criteria and does not independently validate posterior-density normalization or scientific/astrophysical realism.
