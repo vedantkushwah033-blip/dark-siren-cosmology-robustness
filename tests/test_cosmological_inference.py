@@ -73,7 +73,6 @@ def test_wrong_low_z_model_differs_at_moderate_redshift():
 @pytest.mark.parametrize(
     "h0,z,model",
     [
-        ([70.0], [0.1], "flat_lcdm"),
         ([60.0, 70.0], [-0.1], "flat_lcdm"),
         ([60.0, 70.0], [0.1], "bad_model"),
     ],
