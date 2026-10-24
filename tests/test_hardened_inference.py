@@ -54,3 +54,34 @@ def test_summary_normalizes_valid_density_and_returns_ordered_intervals():
 def test_missing_host_component_requires_support():
     with pytest.raises(ValueError, match="missing_redshifts"):
         posterior_h0([50, 70, 90], [0.02], 100.0, 10.0, missing_weight=0.2)
+
+
+def test_posterior_normalization_uses_only_prior_supported_grid():
+    # The prior interval is strictly inside the computational grid. The
+    # trapezoidal rule must not count artificial half-bins that bridge the
+    # discontinuous prior boundary to zero-valued exterior grid points.
+    grid = np.linspace(25.0, 125.0, 1001)
+    posterior = posterior_h0(
+        grid, [0.043633490629581634, 0.06794687740863647, 0.07082449674972259],
+        271.77310405878274, 7.639409914451161,
+        weights=[0.28097647356639377, 0.3988538762771191, 0.32016965015648713],
+        prior_min=50.0, prior_max=90.0,
+    )
+    support = (grid >= 50.0) & (grid <= 90.0)
+    assert np.trapezoid(posterior[support], grid[support]) == pytest.approx(1.0, abs=1e-10)
+    # The full-grid trapezoid would incorrectly add boundary half-bins because
+    # the represented prior density jumps from nonzero to zero outside support.
+    assert np.trapezoid(posterior, grid) > 1.0
+
+
+def test_posterior_summary_ignores_zero_density_outside_prior_support():
+    grid = np.linspace(25.0, 125.0, 1001)
+    posterior = posterior_h0(
+        grid, [0.043633490629581634, 0.06794687740863647, 0.07082449674972259],
+        271.77310405878274, 7.639409914451161,
+        weights=[0.28097647356639377, 0.3988538762771191, 0.32016965015648713],
+        prior_min=50.0, prior_max=90.0,
+    )
+    summary = posterior_summary(grid, posterior)
+    assert 50.0 <= summary["lower_95"] < summary["lower_68"] < summary["median"]
+    assert summary["median"] < summary["upper_68"] < summary["upper_95"] <= 90.0
