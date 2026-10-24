@@ -11,6 +11,7 @@ import csv
 from pathlib import Path
 
 import numpy as np
+from scipy.integrate import trapezoid
 
 from dark_siren_robustness.hardened_inference import C_KM_S, posterior_h0, posterior_summary
 
@@ -54,10 +55,13 @@ def run(flagged_csv: Path, per_run_csv: Path):
             density = posterior_h0(grid, redshifts, d_obs, sigma, weights=weights,
                                    prior_min=PRIOR_MIN, prior_max=PRIOR_MAX)
             summary = posterior_summary(grid, density)
+            prior_support = (grid >= PRIOR_MIN) & (grid <= PRIOR_MAX)
+            independently_integrated_area = float(trapezoid(density[prior_support], grid[prior_support]))
             record = dict(zip(IDENTITY, key))
             record.update({
                 "observed_distance_mpc": d_obs,
                 "grid_size": size,
+                "posterior_area_on_prior_support": independently_integrated_area,
                 "posterior_median": summary["median"],
                 "lower_68": summary["lower_68"],
                 "upper_68": summary["upper_68"],
