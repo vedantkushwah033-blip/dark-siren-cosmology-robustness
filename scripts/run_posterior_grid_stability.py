@@ -28,7 +28,11 @@ def evaluate_case(name, grid, prior_min, prior_max):
         prior_max=prior_max,
     )
     summary = posterior_summary(grid, posterior)
-    area = float(trapezoid(posterior, grid))
+    # Integrate only on the prior support. Integrating the zero-padded density
+    # across exterior grid points introduces artificial trapezoids across the
+    # discontinuous prior boundary and can report a spurious area != 1.
+    in_prior = (grid >= prior_min) & (grid <= prior_max)
+    area = float(trapezoid(posterior[in_prior], grid[in_prior]))
     # Measure posterior mass near the prior boundaries, not the numerical grid
     # boundaries. For a wider grid with an unchanged prior, grid-edge mass is
     # mechanically zero and would conceal possible prior-boundary concentration.
