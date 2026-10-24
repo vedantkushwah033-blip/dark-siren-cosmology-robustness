@@ -57,6 +57,12 @@ def audit(root: Path) -> dict:
         raise ValueError(f"unexpected true_h0; expected 70.0, got {true_h0}")
     if n_galaxies != 500:
         raise ValueError(f"unexpected n_galaxies; expected 500, got {n_galaxies}")
+    expected_source_commit = "b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f"
+    if summary_json.get("original_commit") != expected_source_commit:
+        raise ValueError(
+            "original simulator commit does not match the audited pinned source "
+            f"({expected_source_commit})"
+        )
     if int(summary_json["scenario_count"]) != len(EXPECTED) or len(summary) != len(EXPECTED):
         raise ValueError("expected exactly nine factorial scenarios")
     if len(runs) != len(EXPECTED) * n:
@@ -106,6 +112,12 @@ def audit(root: Path) -> dict:
         if int(item.get("requested_replicates", -1)) != n:
             raise ValueError(f"{name}: JSON manifest replicate count mismatch")
         csv_item = summary_by_name[name]
+        try:
+            csv_requested_replicates = int(csv_item["requested_replicates"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(f"{name}: CSV summary missing requested_replicates") from exc
+        if csv_requested_replicates != n:
+            raise ValueError(f"{name}: CSV summary replicate count mismatch")
         for field in ("target_completeness", "missingness", "host_generation", "inference_weighting"):
             if field in ("missingness", "host_generation", "inference_weighting"):
                 if str(item[field]) != csv_item[field]:
