@@ -152,11 +152,22 @@ def evaluate(per_run_path: Path, targeted_path: Path | None = None):
                 values = [float(grids[size][column]) for size in (8001, 16001, 32001, 64001)]
                 if not np.all(np.isfinite(values)):
                     raise ValueError(f"Non-finite targeted summary {label} for {case_key}")
+                successive_differences = [abs(values[i + 1] - values[i]) for i in range(3)]
+                monotone_refinement = all(
+                    successive_differences[i + 1] <= successive_differences[i] + 1e-12
+                    for i in range(2)
+                )
                 targeted_lookup[(case_key, label)] = {
                     "value_8001": values[0], "value_16001": values[1],
                     "value_32001": values[2], "value_64001": values[3],
-                    "abs_diff_32001_vs_64001": abs(values[2] - values[3]),
-                    "refinement_pass": abs(values[2] - values[3]) <= REFINEMENT_TOLERANCE,
+                    "abs_diff_8001_vs_16001": successive_differences[0],
+                    "abs_diff_16001_vs_32001": successive_differences[1],
+                    "abs_diff_32001_vs_64001": successive_differences[2],
+                    "refinement_monotone": monotone_refinement,
+                    "refinement_pass": (
+                        abs(values[2] - values[3]) <= REFINEMENT_TOLERANCE
+                        and monotone_refinement
+                    ),
                 }
         for case in flagged_cases:
             case_key = tuple(str(case[k]) for k in IDENTITY)
