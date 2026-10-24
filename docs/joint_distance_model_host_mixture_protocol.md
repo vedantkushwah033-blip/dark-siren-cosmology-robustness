@@ -1,6 +1,6 @@
 # Joint distance-model × host-mixture robustness protocol
 
-**Status: initial implementation and CI workflow committed; results are not yet validated.** The script, smoke tests, and GitHub Actions workflow are in place. No numerical findings are claimed until the workflow succeeds and its raw artifact is independently audited. This is the next proposed experiment after the independently audited single-host distance-model diagnostic and the completed host-mixture/threshold factorial.
+**Status: primary experiment completed and independently audited; posterior-grid sensitivity audit is now implemented and awaiting CI results.** The primary results report documents the successful run and independent recalculation of summary statistics, paired contrasts, and bootstrap intervals. The grid-resolution check is a separate numerical validation step; no grid-stability claim is made until its workflow succeeds and the artifact is inspected. This is the next proposed experiment after the independently audited single-host distance-model diagnostic and the completed host-mixture/threshold factorial.
 
 ## Research question
 
