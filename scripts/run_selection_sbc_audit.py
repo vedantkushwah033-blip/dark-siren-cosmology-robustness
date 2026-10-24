@@ -68,7 +68,12 @@ def run_audit(replicates=2000, seed=20261027, grid_size=4001):
             DETECTION_DISTANCE_MAX, weights=HOST_WEIGHTS,
             prior_min=PRIOR_MIN, prior_max=PRIOR_MAX,
         )
+        uncorrected_posterior = posterior_h0(
+            grid, HOST_REDSHIFTS, observed_distance, SIGMA_MPC,
+            weights=HOST_WEIGHTS, prior_min=PRIOR_MIN, prior_max=PRIOR_MAX,
+        )
         rank = posterior_cdf_at(grid, posterior, h0_true)
+        uncorrected_rank = posterior_cdf_at(grid, uncorrected_posterior, h0_true)
         rows.append({
             "replicate": replicate,
             "true_H0": h0_true,
@@ -76,11 +81,16 @@ def run_audit(replicates=2000, seed=20261027, grid_size=4001):
             "host_redshift": float(HOST_REDSHIFTS[host_index]),
             "observed_distance_mpc": observed_distance,
             "posterior_cdf_rank": rank,
+            "uncorrected_posterior_cdf_rank": uncorrected_rank,
         })
     ranks = np.asarray([r["posterior_cdf_rank"] for r in rows])
+    uncorrected_ranks = np.asarray([r["uncorrected_posterior_cdf_rank"] for r in rows])
     ks = kstest(ranks, "uniform")
     counts, _ = np.histogram(ranks, bins=np.linspace(0.0, 1.0, 11))
     chi = chisquare(counts, f_exp=np.full(10, replicates / 10.0))
+    uncorrected_ks = kstest(uncorrected_ranks, "uniform")
+    uncorrected_counts, _ = np.histogram(uncorrected_ranks, bins=np.linspace(0.0, 1.0, 11))
+    uncorrected_chi = chisquare(uncorrected_counts, f_exp=np.full(10, replicates / 10.0))
     beta_grid = detection_efficiency_h0(
         grid, HOST_REDSHIFTS, SIGMA_MPC, DETECTION_DISTANCE_MAX, HOST_WEIGHTS,
         detection_distance_min=0.0,
@@ -99,9 +109,16 @@ def run_audit(replicates=2000, seed=20261027, grid_size=4001):
         "ks_pvalue": float(ks.pvalue),
         "decile_chi_square": float(chi.statistic),
         "decile_chi_square_pvalue": float(chi.pvalue),
+        "uncorrected_mean_rank": float(uncorrected_ranks.mean()),
+        "uncorrected_rank_variance": float(uncorrected_ranks.var(ddof=1)),
+        "uncorrected_ks_statistic": float(uncorrected_ks.statistic),
+        "uncorrected_ks_pvalue": float(uncorrected_ks.pvalue),
+        "uncorrected_decile_chi_square": float(uncorrected_chi.statistic),
+        "uncorrected_decile_chi_square_pvalue": float(uncorrected_chi.pvalue),
         "beta_min_on_prior_grid": float(beta_grid[(grid >= PRIOR_MIN) & (grid <= PRIOR_MAX)].min()),
         "beta_max_on_prior_grid": float(beta_grid[(grid >= PRIOR_MIN) & (grid <= PRIOR_MAX)].max()),
         **{f"decile_{i+1}_count": int(counts[i]) for i in range(10)},
+        **{f"uncorrected_decile_{i+1}_count": int(uncorrected_counts[i]) for i in range(10)},
     }
     return rows, summary
 
