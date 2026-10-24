@@ -76,6 +76,16 @@ def test_invalid_distance_grid_inputs_are_rejected(h0, z, model):
         distance_grid_for_model(h0, z, model)
 
 
+def test_gaussian_distance_estimator_can_be_non_positive():
+    h0 = np.linspace(40.0, 100.0, 1201)
+    distances = distance_grid_for_model(h0, [0.02], "flat_lcdm")
+    posterior = posterior_h0_from_distance_grid(
+        h0, distances, observed_distance_mpc=-2.0, distance_sigma_mpc=20.0
+    )
+    assert np.all(np.isfinite(posterior))
+    assert trapezoid(posterior, h0) == pytest.approx(1.0, abs=1e-8)
+
+
 def test_posterior_rejects_bad_weights_and_distance_shapes():
     with pytest.raises(ValueError, match="host_weights"):
         posterior_h0_from_distance_grid([50, 70, 90], np.ones((3, 2)), 100, 10, host_weights=[0, 0])
