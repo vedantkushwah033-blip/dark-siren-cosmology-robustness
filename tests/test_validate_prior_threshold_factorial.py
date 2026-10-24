@@ -77,3 +77,61 @@ def test_validator_rejects_unknown_host_index():
     row = {"host_index": 9, "observed_distance_mpc": 42.0}
     with pytest.raises(ValueError, match="Invalid host_index"):
         module.validate_observation_fields(row, "fixture")
+
+
+@pytest.fixture(scope="module")
+def valid_factorial_artifacts(tmp_path_factory):
+    """Generate a compact complete artifact set for end-to-end validator tests."""
+    import csv
+
+    experiment = module.factorial
+    rows = experiment.run(replicates=100, seed=20261024, grid_size=1001)
+    summaries = experiment.summarize(rows)
+    contrasts = experiment.paired_contrasts(rows, bootstrap_draws=100, seed=20261029)
+    root = tmp_path_factory.mktemp("factorial-artifacts")
+    paths = {
+        "per_run": root / "per_run.csv",
+        "summary": root / "summary.csv",
+        "contrasts": root / "paired_contrasts.csv",
+    }
+    for key, data in (("per_run", rows), ("summary", summaries), ("contrasts", contrasts)):
+        with paths[key].open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=list(data[0]))
+            writer.writeheader()
+            writer.writerows(data)
+    return paths
+
+
+def test_validator_accepts_complete_recomputed_factorial_artifacts(valid_factorial_artifacts):
+    result = module.validate(
+        valid_factorial_artifacts["per_run"],
+        valid_factorial_artifacts["summary"],
+        valid_factorial_artifacts["contrasts"],
+    )
+    assert result["status"] == "PASS_FACTORIAL_ARTIFACT_INTEGRITY"
+    assert result["raw_rows"] == 7200
+    assert result["summary_rows"] == 72
+    assert result["paired_contrast_rows"] == 396
+    assert result["unique_observations"] == 300
+
+
+def test_validator_rejects_a_corrupted_summary_metric(valid_factorial_artifacts, tmp_path):
+    import csv
+
+    original = valid_factorial_artifacts["summary"]
+    corrupted = tmp_path / "corrupted_summary.csv"
+    with original.open(newline="", encoding="utf-8") as source:
+        reader = csv.DictReader(source)
+        fields = reader.fieldnames
+        rows = list(reader)
+    rows[0]["bias"] = str(float(rows[0]["bias"]) + 1.0)
+    with corrupted.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+    with pytest.raises(ValueError, match="bias"):
+        module.validate(
+            valid_factorial_artifacts["per_run"],
+            corrupted,
+            valid_factorial_artifacts["contrasts"],
+        )
