@@ -4,7 +4,7 @@ Synthetic toy model only. Each detected observation is reused across all prior,
 threshold, and likelihood-method configurations for its true H0 value.
 """
 from __future__ import annotations
-import argparse, csv
+import argparse, csv, json, os, platform
 from pathlib import Path
 import numpy as np
 from dark_siren_robustness.hardened_inference import C_KM_S, posterior_h0, posterior_summary
@@ -149,6 +149,43 @@ def main():
     out=Path(a.output_dir)
     for name,data in (("per_run.csv",rows),("summary.csv",summaries),("paired_contrasts.csv",contrasts)):
         write_csv(out/name,data)
+    # A machine-readable manifest preserves the design and runtime settings
+    # alongside the tables; CSV contents alone do not identify the seed/grid.
+    try:
+        from importlib.metadata import version
+        package_version=version("dark-siren-robustness")
+    except Exception:
+        package_version=None
+    manifest={
+        "experiment": "prior_support_x_assumed_detection_threshold_factorial",
+        "scope": "synthetic simulation; not an observational LVK measurement",
+        "seed": int(a.seed),
+        "replicates_per_true_H0": int(a.replicates),
+        "posterior_grid_points": int(a.grid_size),
+        "posterior_grid_min_H0": 25.0,
+        "posterior_grid_max_H0": 125.0,
+        "true_H0_values": list(TRUTHS),
+        "prior_supports": [list(x) for x in PRIORS],
+        "true_detection_interval_mpc": [TRUE_MIN, TRUE_MAX],
+        "assumed_detection_upper_thresholds_mpc": list(ASSUMED_MAXIMA),
+        "host_redshifts": HOST_REDSHIFTS.tolist(),
+        "host_weights": HOST_WEIGHTS.tolist(),
+        "distance_noise_sigma_mpc": SIGMA,
+        "methods": list(METHODS),
+        "raw_rows": len(rows),
+        "summary_rows": len(summaries),
+        "paired_contrast_rows": len(contrasts),
+        "bootstrap_draws_per_contrast": 3000,
+        "bootstrap_seed": 20261029,
+        "python_version": platform.python_version(),
+        "numpy_version": np.__version__,
+        "package_version": package_version,
+        "git_commit": os.environ.get("GITHUB_SHA") or os.environ.get("GIT_COMMIT"),
+        "reproducibility_note": "Record the repository commit and environment; stochastic results depend on seed and numerical-library versions.",
+    }
+    out.mkdir(parents=True,exist_ok=True)
+    (out/"experiment_manifest.json").write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n",encoding="utf-8")
     print(f"PASS: {len(rows)} per-run rows; {len(summaries)} summaries; {len(contrasts)} paired contrasts")
+    print(f"Manifest: {out/'experiment_manifest.json'}")
     for r in summaries: print(r)
 if __name__=="__main__": main()
