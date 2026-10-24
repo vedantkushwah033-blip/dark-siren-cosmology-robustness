@@ -4,7 +4,7 @@
 
 The full 200-replicate grid-refinement audit completed successfully in GitHub Actions and the generated CSV artifacts were downloaded and independently inspected. The evaluator reports **PASS_FOR_GRID_DIFFERENCES_ONLY** for the proposed grid-difference criteria.
 
-- Workflow run: https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40091568487
+- Workflow run: https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40091613785
 - Seed: 20261101
 - Replicates per design cell: 200
 - Design cells: 36
