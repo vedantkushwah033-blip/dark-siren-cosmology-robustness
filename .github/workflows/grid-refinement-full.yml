@@ -7,6 +7,8 @@ on:
       - "scripts/evaluate_grid_accuracy.py"
       - "tests/test_grid_refinement_audit.py"
       - "tests/test_evaluate_grid_accuracy.py"
+      - "tests/test_targeted_grid_refinement.py"
+      - "tests/test_grid_accuracy_targeted_integration.py"
       - ".github/workflows/grid-refinement-full.yml"
   workflow_dispatch:
     inputs:
