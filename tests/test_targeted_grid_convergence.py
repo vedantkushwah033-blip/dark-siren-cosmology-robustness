@@ -19,6 +19,16 @@ def test_targeted_convergence_is_finite_and_complete():
     assert all(np.isfinite(float(row["posterior_area_simpson_on_prior_support"])) for row in rows)
     assert all(float(row["posterior_area_simpson_on_prior_support"]) > 0.0 for row in rows)
     assert all(np.isfinite(float(row["abs_area_rule_difference"])) for row in rows)
+    assert all(
+        np.isclose(
+            float(row["abs_area_rule_difference"]),
+            abs(float(row["posterior_area_on_prior_support"])
+                - float(row["posterior_area_simpson_on_prior_support"])),
+            rtol=1e-12,
+            atol=1e-15,
+        )
+        for row in rows
+    )
     # Simpson's rule is a cross-method diagnostic, not required to match the
     # trapezoid-normalized area to machine precision on every sampled grid.
     assert all(row["lower_95"] <= row["lower_68"] <= row["posterior_median"]
