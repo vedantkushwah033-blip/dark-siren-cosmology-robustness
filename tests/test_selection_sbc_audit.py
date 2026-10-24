@@ -29,6 +29,9 @@ def test_selection_sbc_small_run_is_finite_and_reproducible():
     ranks = np.array([row["posterior_cdf_rank"] for row in rows1])
     assert np.all(np.isfinite(ranks))
     assert np.all((ranks >= 0.0) & (ranks <= 1.0))
+    assert np.all(np.isfinite(uncorrected_ranks))
+    assert np.all((uncorrected_ranks >= 0.0) & (uncorrected_ranks <= 1.0))
+    assert "uncorrected_ks_pvalue" in summary1
     assert 0 < summary1["beta_min_on_prior_grid"] <= summary1["beta_max_on_prior_grid"] <= 1
 
 
