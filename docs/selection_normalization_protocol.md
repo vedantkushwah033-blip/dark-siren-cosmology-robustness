@@ -24,18 +24,19 @@ $$
 d_{\rm obs}\mid(H_0,j)\sim\mathcal{N}(\mu_j(H_0),\sigma^2).
 $$
 
-For this first selection experiment only, define detection by a transparent noisy-distance threshold:
+For this first selection experiment only, define detection by a transparent finite noisy-distance interval:
 
-$$
-D=1\quad\text{if}\quad d_{\rm obs}<d_{\rm th}.
-$$
+$
+D=1\quad\text{if}\quad 0<d_{\rm obs}<d_{\rm th}.
+$
 
 This is a deliberately simplified pedagogical selection rule. It is **not** a model of a real detector's matched-filter signal-to-noise ratio or search pipeline.
 
 For host $j$, the detection probability under this toy rule is
 
 $$
-P(D=1\mid H_0,j)=\Phi\!\left(\frac{d_{\rm th}-\mu_j(H_0)}{\sigma}\right),
+P(D=1\mid H_0,j)=\Phi\!\left(\frac{d_{\rm th}-\mu_j(H_0)}{\sigma}\right)
+-\Phi\!\left(\frac{-\mu_j(H_0)}{\sigma}\right),
 $$
 
 where $\Phi$ is the standard normal CDF. The population detection efficiency is
