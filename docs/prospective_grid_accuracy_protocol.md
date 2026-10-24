@@ -43,3 +43,8 @@ Retain:
 ## Limitations
 
 These criteria assess numerical stability under grid refinement only. They do not test repeated-sampling coverage, prior robustness, misspecification robustness, selection effects, or realism relative to LVK data. Those questions require separate experiments and must be reported separately.
+
+
+## Implemented checks
+
+The current audit runner also records `posterior_area_on_prior_support` for every grid fit by independently applying trapezoidal integration to the sampled posterior density restricted to the actual prior support. The evaluator checks every recorded area against one with absolute tolerance 1e-8 and fails the assessment if any row violates the criterion. High-resolution follow-up rows carry the same diagnostic. This implementation checks the sampled density integral; it does not remove discretization error between grid points, which remains the purpose of the refinement comparison.
