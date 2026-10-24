@@ -30,11 +30,26 @@ SIGMA_FIXED_MPC = 0.10 * C_KM_S * Z_REFERENCE / 70.0
 
 
 def posterior_cdf_at(grid, density, value):
-    cdf = np.concatenate(([0.0], cumulative_trapezoid(density, grid)))
+    """Evaluate posterior CDF on the nonzero support, excluding exterior zero bins."""
+    grid = np.asarray(grid, dtype=float)
+    density = np.asarray(density, dtype=float)
+    if grid.ndim != 1 or density.ndim != 1 or grid.size != density.size or grid.size < 2:
+        raise ValueError("grid and density must be same-length one-dimensional arrays.")
+    if not np.all(np.isfinite(grid)) or not np.all(np.diff(grid) > 0):
+        raise ValueError("grid must be finite and strictly increasing.")
+    if not np.all(np.isfinite(density)) or np.any(density < 0):
+        raise ValueError("density must be finite and non-negative.")
+    support = np.flatnonzero(density > 0)
+    if support.size < 2:
+        raise ValueError("density must have at least two positive support points.")
+    lo, hi = int(support[0]), int(support[-1])
+    support_grid = grid[lo:hi + 1]
+    support_density = density[lo:hi + 1]
+    cdf = np.concatenate(([0.0], cumulative_trapezoid(support_density, support_grid)))
     if not np.isfinite(cdf[-1]) or cdf[-1] <= 0:
         raise ValueError("Invalid posterior CDF normalization.")
     cdf /= cdf[-1]
-    return float(np.clip(np.interp(value, grid, cdf), 0.0, 1.0))
+    return float(np.clip(np.interp(value, support_grid, cdf), 0.0, 1.0))
 
 
 def generate_replicates(replicates, seed):
