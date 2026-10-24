@@ -88,6 +88,16 @@ def audit(root: Path) -> dict:
                     raise ValueError(f"{name}: JSON/CSV mismatch for {field}")
             elif not math.isclose(float(item[field]), float(csv_item[field]), abs_tol=1e-12):
                 raise ValueError(f"{name}: JSON/CSV mismatch for {field}")
+        # The JSON embeds the same summary objects as the CSV export. Check
+        # counts and all headline metrics so the two deliverables cannot drift.
+        for field in ("n", "median_bias", "mean_bias", "rmse_median", "rmse_mean",
+                      "mean_width_68", "mean_width_95", "coverage_68", "coverage_95",
+                      "host_observed_fraction"):
+            if field not in item or field not in csv_item:
+                raise ValueError(f"{name}: JSON/CSV summary missing {field}")
+            if not math.isclose(float(item[field]), float(csv_item[field]),
+                                rel_tol=1e-9, abs_tol=1e-9):
+                raise ValueError(f"{name}: JSON/CSV mismatch for summary metric {field}")
 
     grouped: dict[str, list[dict[str, str]]] = {name: [] for name in EXPECTED}
     for row in runs:
