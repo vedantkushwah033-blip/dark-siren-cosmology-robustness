@@ -48,19 +48,60 @@ jobs:
           n = int("${{ inputs.replicates }}")
           expected = {"per_run.csv": 3 * 3 * 2 * n * 2 * 3,
                       "summary.csv": 3 * 3 * 2 * 2}
+          data = {}
           for name, count in expected.items():
-              p = root / name
-              with p.open(newline="", encoding="utf-8") as f:
-                  rows = list(csv.DictReader(f))
+              path = root / name
+              with path.open(newline="", encoding="utf-8") as handle:
+                  rows = list(csv.DictReader(handle))
               if len(rows) != count:
                   raise SystemExit(f"{name}: expected {count} rows, got {len(rows)}")
-              for i, row in enumerate(rows, 2):
+              for line, row in enumerate(rows, 2):
                   for key, value in row.items():
-                      try: x = float(value)
-                      except (ValueError, TypeError): continue
-                      if not math.isfinite(x):
-                          raise SystemExit(f"{name}:{i}: non-finite {key}")
-              print(f"PASS {name}: {len(rows)} rows")
+                      try:
+                          number = float(value)
+                      except (ValueError, TypeError):
+                          continue
+                      if not math.isfinite(number):
+                          raise SystemExit(f"{name}:{line}: non-finite {key}")
+              data[name] = rows
+              print(f"PASS {name}: {len(rows)} rows, numeric values finite")
+
+          fields = ("lower_95", "lower_68", "posterior_median", "upper_68", "upper_95")
+          for line, row in enumerate(data["per_run.csv"], 2):
+              values = [float(row[key]) for key in fields]
+              if values != sorted(values):
+                  raise SystemExit(f"per_run.csv:{line}: credible interval endpoints are unordered")
+
+          grouped = {}
+          for row in data["per_run.csv"]:
+              key = (row["H0_true"], row["z2"], row["noise_fraction"],
+                     row["replicate"], row["inference_weighting"])
+              grouped.setdefault(key, {})[int(row["grid_size"])] = row
+          for key, grids in grouped.items():
+              if set(grids) != {1001, 2001, 4001}:
+                  raise SystemExit(f"Incomplete grid resolutions for {key}")
+
+          observations = {}
+          for row in data["per_run.csv"]:
+              key = (row["H0_true"], row["z2"], row["noise_fraction"], row["replicate"])
+              observations.setdefault(key, set()).add(row["observed_distance_mpc"])
+          if any(len(values) != 1 for values in observations.values()):
+              raise SystemExit("Simulated observations changed across weighting/grid conditions")
+
+          summary_metrics = (
+              "median_abs_median_diff_1001_vs_4001",
+              "abs_lower68_diff_1001_vs_4001", "abs_upper68_diff_1001_vs_4001",
+              "abs_lower95_diff_1001_vs_4001", "abs_upper95_diff_1001_vs_4001",
+              "median_abs_median_diff_2001_vs_4001",
+          )
+          for line, row in enumerate(data["summary.csv"], 2):
+              for metric in summary_metrics:
+                  median = float(row[f"median_{metric}"])
+                  p95 = float(row[f"p95_{metric}"])
+                  maximum = float(row[f"max_{metric}"])
+                  if not (0 <= median <= p95 <= maximum):
+                      raise SystemExit(f"summary.csv:{line}: inconsistent order for {metric}")
+          print("PASS: interval ordering, matched observations, complete grid triplets, and summary quantiles.")
           PY
       - name: Upload convergence artifacts
         uses: actions/upload-artifact@v4
