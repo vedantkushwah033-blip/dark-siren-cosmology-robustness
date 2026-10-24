@@ -46,45 +46,11 @@ jobs:
             --replicates "${{ inputs.replicates }}" \
             --seed "${{ inputs.seed }}" \
             --output-dir results/known-host-calibration-surface
-      - name: Independently check output shape and numerical validity
-        env:
-          REPLICATES: ${{ inputs.replicates }}
-        run: |
-          python - <<'PY'
-          import csv
-          import json
-          import math
-          import os
-          from pathlib import Path
-
-          out = Path("results/known-host-calibration-surface")
-          with (out / "per_run_results.csv").open(newline="", encoding="utf-8") as f:
-              rows = list(csv.DictReader(f))
-          with (out / "cell_summary.csv").open(newline="", encoding="utf-8") as f:
-              summaries = list(csv.DictReader(f))
-          metadata = json.loads((out / "cell_summary.json").read_text(encoding="utf-8"))
-          expected = 9 * 4 * int(os.environ["REPLICATES"])
-          assert len(rows) == expected, (len(rows), expected)
-          assert len(summaries) == 36, len(summaries)
-          assert metadata["raw_row_count"] == expected
-          assert metadata["cell_count"] == 36
-          assert metadata["prior"] == [50.0, 90.0]
-          numeric = (
-              "true_h0", "fractional_distance_error", "host_redshift",
-              "true_distance_mpc", "observed_distance_mpc", "distance_sigma_mpc",
-              "median", "mean", "posterior_sd", "lower_68", "upper_68",
-              "lower_95", "upper_95", "width_68", "width_95", "pull_median",
-          )
-          for i, row in enumerate(rows):
-              for key in numeric:
-                  value = float(row[key])
-                  assert math.isfinite(value), (i, key, value)
-              assert 50 <= float(row["median"]) <= 90
-              assert 50 <= float(row["lower_95"]) <= float(row["lower_68"])
-              assert float(row["lower_68"]) <= float(row["upper_68"]) <= float(row["upper_95"]) <= 90
-              assert float(row["posterior_sd"]) > 0
-          print(f"Validated {len(rows)} raw records and {len(summaries)} summary cells.")
-          PY
+      - name: Independently recompute summaries and audit pairing
+        run: >-
+          python scripts/audit_known_host_calibration_surface.py
+          results/known-host-calibration-surface
+          --replicates "${{ inputs.replicates }}"
       - name: Upload raw results, summaries, and metadata
         uses: actions/upload-artifact@v4
         with:
