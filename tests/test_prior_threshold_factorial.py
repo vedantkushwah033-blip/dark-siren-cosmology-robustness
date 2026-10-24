@@ -2,6 +2,7 @@ import importlib.util
 from pathlib import Path
 import numpy as np
 import pytest
+from scipy.integrate import trapezoid
 
 PATH=Path(__file__).resolve().parents[1]/"scripts"/"run_prior_threshold_factorial.py"
 SPEC=importlib.util.spec_from_file_location("prior_threshold_factorial",PATH)
