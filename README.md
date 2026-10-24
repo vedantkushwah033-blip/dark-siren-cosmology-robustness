@@ -115,3 +115,6 @@ The companion audit quantifies changes in 68% and 95% posterior interval widths 
 
 
 Validated interval-width results are documented in [prior interval-width sensitivity results](docs/prior_interval_width_sensitivity_results.md). The experiment and artifact checks passed on Python 3.10, 3.11, and 3.12; results remain specific to the synthetic model.
+
+
+The [joint prior-performance scorecard protocol](docs/joint_prior_scorecard_protocol.md) combines coverage, bias, RMSE, and credible-interval width across prior supports. Its results remain specific to the synthetic model.
