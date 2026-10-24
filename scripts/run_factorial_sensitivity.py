@@ -92,11 +92,13 @@ def main() -> None:
             # Preserve the full prespecified design in every raw record.
             # The independent auditor must not infer settings from names.
             per_run.append({
+                **row,
+                # Keep the design labels authoritative even if the legacy
+                # simulator starts emitting fields with the same names.
                 "scenario": name,
                 "missingness": missingness,
                 "host_generation": host_generation,
                 "inference_weighting": inference_weighting,
-                **row,
             })
 
     with (out / "scenario_summary.csv").open("w", newline="", encoding="utf-8") as f:
