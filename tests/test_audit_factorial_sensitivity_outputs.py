@@ -65,6 +65,17 @@ def test_audit_rejects_nonfinite_posterior(tmp_path):
         audit(tmp_path)
 
 
+def test_audit_rejects_summary_metric_not_reproduced_by_raw_rows(tmp_path):
+    _fixture(tmp_path)
+    path = tmp_path / "scenario_summary.csv"
+    rows = list(csv.DictReader(path.open(newline="", encoding="utf-8")))
+    # The fixture uses posterior median 70 for every replicate, so median_bias=0.
+    rows[0]["median_bias"] = "4.0"
+    _write_csv(path, rows)
+    with pytest.raises(ValueError, match="summary metric median_bias disagrees"):
+        audit(tmp_path)
+
+
 def test_audit_rejects_inconsistent_interval_width(tmp_path):
     _fixture(tmp_path)
     path = tmp_path / "per_run_results.csv"
