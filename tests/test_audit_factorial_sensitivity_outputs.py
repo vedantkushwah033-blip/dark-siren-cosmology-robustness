@@ -96,7 +96,7 @@ def test_audit_rejects_incomplete_complete_catalogue(tmp_path):
     target_row = next(row for row in rows if row["scenario"] == "complete_uniform_matched")
     target_row["realized_completeness"] = "0.99"
     _write_csv(path, rows)
-    with pytest.raises(ValueError, match="complete catalogue \(100%\)"):
+    with pytest.raises(ValueError, match=r"complete catalogue \(100%\)"):
         audit(tmp_path)
 
 
@@ -118,6 +118,12 @@ def test_audit_rejects_summary_metric_not_reproduced_by_raw_rows(tmp_path):
         rows = list(csv.DictReader(handle))
     rows[0]["median_bias"] = "4.0"
     _write_csv(path, rows)
+    # Keep the JSON mirror consistent so the audit reaches independent
+    # raw-row recomputation instead of failing earlier on file parity.
+    manifest_path = tmp_path / "scenario_summary.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["scenarios"][0]["median_bias"] = 4.0
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(ValueError, match="summary metric median_bias disagrees"):
         audit(tmp_path)
 
