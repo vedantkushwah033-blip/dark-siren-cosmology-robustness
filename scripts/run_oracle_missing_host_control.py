@@ -11,6 +11,7 @@ import csv
 import json
 from pathlib import Path
 import sys
+from statistics import median
 
 SCENARIOS = (
     ("random70_observed_only", "random", False, "inference"),
@@ -57,6 +58,9 @@ def main() -> None:
             seed=args.seed + i * 1_000_000,
         )
         metrics = summarize_runs(rows, true_h0=70.0)
+        # Match the main factorial's explicit definition: median across runs
+        # of each run's posterior-median error, not the mean of those errors.
+        metrics["median_bias"] = float(median(float(row["median"]) - 70.0 for row in rows))
         summaries.append({
             "scenario": name,
             "missingness": missingness,
