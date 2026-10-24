@@ -169,3 +169,8 @@ The focused tests now verify that all uncorrected posterior summaries (median an
 ### Full-resolution factorial workflow
 
 A manually dispatched workflow is available at `.github/workflows/full-prior-threshold-factorial.yml`. From GitHub's **Actions** tab, select **Full prior-threshold factorial experiment** and choose 300 replicates, a 4,001-point grid, and seed `20261028` for the protocol-default run. The workflow runs focused regression tests, executes the factorial script, checks expected CSV row counts and finite numeric values, and uploads all three CSV artifacts for 90 days. It is not automatically dispatched by this documentation commit; a user must explicitly start the workflow in GitHub Actions. The workflow's successful completion and its artifact contents must be verified before the full run is described as complete.
+
+
+### Full numerical grid-convergence workflow
+
+The manually dispatched workflow `.github/workflows/grid-refinement-full.yml` runs the matched-observation grid audit on 1,001-, 2,001-, and 4,001-point posterior grids. From **Actions → Grid refinement numerical convergence audit**, choose 200 replicates and seed `20261030` for the protocol default. It runs the focused test, checks expected row counts and finite numeric values, and uploads per-run and cell-summary CSVs for 90 days. This workflow is independent of the prior-threshold factorial workflow; passing one does not establish convergence in the other analysis.
