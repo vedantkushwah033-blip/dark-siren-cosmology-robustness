@@ -39,6 +39,13 @@ def read_csv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
+def validate_base_seed(value: object) -> int:
+    """Require a JSON integer seed; reject booleans and coercible non-integers."""
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError("base seed must be a non-negative integer")
+    return value
+
+
 def validate_metadata_cell_counts(metadata_cell: dict, expected: dict, key: tuple[float, float]) -> None:
     """Reject malformed JSON count/flag types before comparing their values."""
     for field in ("n", "coverage_68_successes", "coverage_95_successes"):
@@ -220,9 +227,7 @@ def main() -> None:
     grouped: dict[tuple[float, float], list[dict[str, str]]] = defaultdict(list)
     seen = set()
     paired: dict[tuple[float, int], list[dict[str, str]]] = defaultdict(list)
-    base_seed = int(metadata["seed"])
-    if base_seed < 0:
-        raise ValueError("base seed must be non-negative")
+    base_seed = validate_base_seed(metadata["seed"])
     for row in raw:
         key = (float(row["true_h0"]), float(row["fractional_distance_error"]), int(row["run"]))
         if key in seen:
