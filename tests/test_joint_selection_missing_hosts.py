@@ -115,3 +115,42 @@ def test_selected_posterior_matches_independent_direct_mixture_and_quadrature():
         prior_min=40.0, prior_max=100.0, detection_distance_min=lower,
     )
     np.testing.assert_allclose(actual, expected, rtol=2e-10, atol=1e-12)
+
+
+def test_prior_predictive_sbc_is_approximately_uniform_for_matched_selection_model():
+    """Prior-predictive PIT check for the exact toy selection likelihood.
+    
+    The generator redraws H0, host, and distance until the same distance-window
+    selection rule used by inference accepts the event. The inference posterior
+    divides the host-mixture likelihood by the matching beta(H0).
+    """
+    rng = np.random.default_rng(20261032)
+    grid = np.linspace(40.0, 100.0, 1201)
+    z = np.array([0.02, 0.04])
+    weights = np.array([0.7, 0.3])
+    sigma = 15.0
+    lower, upper = 50.0, 260.0
+    pits = []
+    for _ in range(300):
+        while True:
+            truth = rng.uniform(40.0, 100.0)
+            host = rng.choice(len(z), p=weights)
+            distance = rng.normal(299792.458 * z[host] / truth, sigma)
+            if lower < distance < upper:
+                break
+        posterior = posterior_h0_selected(
+            grid, z, distance, sigma, upper, weights=weights,
+            prior_min=40.0, prior_max=100.0, detection_distance_min=lower,
+        )
+        cdf = np.concatenate(([0.0], np.cumsum(
+            0.5 * (posterior[1:] + posterior[:-1]) * np.diff(grid)
+        )))
+        cdf /= cdf[-1]
+        pits.append(float(np.interp(truth, grid, cdf)))
+    pits = np.asarray(pits)
+    assert np.all((pits >= 0.0) & (pits <= 1.0))
+    # Broad deterministic tolerances guard gross generator/likelihood mismatch
+    # without pretending 300 draws can establish exact rank uniformity.
+    assert abs(float(np.mean(pits)) - 0.5) < 0.06
+    counts, _ = np.histogram(pits, bins=np.linspace(0.0, 1.0, 11))
+    assert np.max(np.abs(counts / len(pits) - 0.1)) < 0.07
