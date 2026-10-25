@@ -33,7 +33,7 @@ A separate stability diagnostic compares a 1,601-point baseline grid on [50, 90]
 | Wider grid, same prior | 6,401 points on [30, 110] | [50, 90] | 70.415477 | 10.239958 | [59.723136, 82.573676] | [51.869120, 88.756256] |
 | Wider grid and wider prior | 6,401 points on [30, 110] | [30, 110] | 68.200082 | 20.939685 | [40.935987, 89.985520] | [31.720089, 105.078786] |
 
-With prior support held fixed, the baseline-to-finer median difference is about (1.5\times10^{-6}), and widening only the numerical grid leaves the posterior summaries unchanged to floating-point precision. In contrast, widening the **prior support** changes the median by about 2.22 and doubles the posterior standard deviation from about 10.24 to 20.94.
+With prior support held fixed, the baseline-to-finer median difference is about 1.5e-6, and widening only the numerical grid leaves the posterior summaries unchanged to floating-point precision. In contrast, widening the **prior support** changes the median by about 2.22 and doubles the posterior standard deviation from about 10.24 to 20.94.
 
 **Interpretation:** The tested numerical integral is stable under grid refinement for this case, but inference is materially sensitive to prior support. Numerical convergence does not imply prior robustness. Prior-support sensitivity should be treated as a substantive modeling choice and reported separately from grid-convergence error.
 
