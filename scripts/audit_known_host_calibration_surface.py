@@ -70,7 +70,7 @@ def validate_metadata_seed_and_design(metadata: dict, replicates: int) -> int:
         raise ValueError("metadata replicate count does not match the requested design")
     if metadata.get("prior") != [50.0, 90.0] or metadata.get("posterior_grid_points") != 1601:
         raise ValueError("unexpected prior or posterior grid in metadata")
-    if metadata.get("original_repository") != "vedantkushwaha033-blip/bayesian-dark-siren-cosmology":
+    if metadata.get("original_repository") != "vedantkushwah033-blip/bayesian-dark-siren-cosmology":
         raise ValueError("unexpected source simulator repository")
     if metadata.get("original_commit") != "b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f":
         raise ValueError("source simulator commit does not match the pinned protocol")
