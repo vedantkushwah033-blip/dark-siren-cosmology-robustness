@@ -47,11 +47,24 @@ Under the narrow prior, the weighting contrasts are exactly or nearly zero in se
 
 The broad-prior arm retains the alternative-host modes and shows much larger differences. For example, at $z_2=0.06$ and 10% distance error, the reversed-weight RMSE is 90.12 versus 33.75 under correct weights; the paired RMSE difference is +56.37 (95% CI [+53.71,+59.03]), and 68% coverage falls by 43.9 percentage points (95% CI [-47.3,-40.4]).
 
-### 2. The broad prior is a diagnostic, not a recommended prior
+### 2. Why a broad uniform-H₀ prior can change mixture mass
+
+For one host at redshift $z_i$, the component likelihood is $\mathcal{N}(d_{\rm obs};cz_i/H_0,\sigma)$. With a sufficiently narrow Gaussian likelihood and a component peak well inside the prior, its integrated contribution under a uniform-$H_0$ prior is approximately
+
+$
+Z_i \approx w_i\int \mathcal{N}(d_{\rm obs};cz_i/H_0,\sigma)\,dH_0
+\propto w_i z_i.
+$
+
+The proportionality follows from the local change of variables near $H_{0,i}=cz_i/d_{\rm obs}$: the likelihood's width in $H_0$ is approximately $\sigma H_{0,i}^2/(cz_i) = \sigma c z_i/d_{\rm obs}^2$. Thus the integrated posterior mass of a host component is not generally equal to its catalogue weight. For example, with redshifts 0.02 and 0.06 and weights 0.7/0.3, the narrow-likelihood approximation gives component masses proportional to 0.014 and 0.018, so the higher-redshift component can contribute about 56% of the normalized mass despite its 30% input weight. Prior truncation can remove one of these modes entirely.
+
+A log-uniform prior on $H_0$ has density proportional to $1/H_0$; under the same interior, narrow-likelihood approximation, this cancels the leading $H_0$-width factor and gives component evidence approximately proportional to $w_i$ instead. This is a **prior-parameterization sensitivity**, not a universal recommendation for either prior. Finite noise, finite support, and modes near prior boundaries modify the approximation. The next experiment should compare these prior measures under a separately prespecified design and audit the component-wise numerical integrals before drawing conclusions about weighting.
+
+### 3. The broad prior is a diagnostic, not a recommended prior
 
 Even the correct-weight broad-prior arm has high RMSE in some cells. A broad uniform prior allows distinct host-redshift explanations to map to widely separated $H_0$ modes. The posterior median and central interval then depend strongly on mixture mass and prior support. This is a demonstration of multimodality and prior sensitivity in the toy model—not a claim that a broad prior or the resulting numerical errors are appropriate for real dark-siren analyses.
 
-### 3. The narrow-prior results are not universally favorable to correct weights
+### 4. The narrow-prior results are not universally favorable to correct weights
 
 A few narrow-prior cells have small negative RMSE differences under reversed weights, with intervals excluding zero. This is possible in a finite, nonlinear posterior mixture: a misspecified weighting can occasionally move the posterior median closer to the injected value. It does not make the reversed model generally superior. The correct-weight model is the data-generating reference, but individual loss functions and prior truncation can produce non-monotone paired outcomes.
 
