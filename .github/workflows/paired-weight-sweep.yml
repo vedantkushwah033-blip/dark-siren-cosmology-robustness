@@ -5,7 +5,9 @@ on:
     branches: [main, fix/known-host-wilson-edge-bounds]
     paths:
       - "scripts/run_paired_weight_sweep.py"
+      - "scripts/audit_paired_weight_sweep.py"
       - "tests/test_paired_weight_sweep.py"
+      - "tests/test_audit_paired_weight_sweep.py"
       - ".github/workflows/paired-weight-sweep.yml"
   pull_request:
     paths:
@@ -66,6 +68,8 @@ jobs:
                   raise SystemExit("Unexpected bootstrap resample count")
           print("PASS: 9 redshift/noise cells × 1,000 shared observations; 18 prior-support cells; 36,000 posterior fits; 4,000 paired bootstrap resamples per metric and cell.")
           PY
+      - name: Independently audit raw records, summaries, bootstrap intervals, and hashes
+        run: python scripts/audit_paired_weight_sweep.py results/paired-weight-sweep
       - name: Upload paired sweep results
         uses: actions/upload-artifact@v4
         with:
