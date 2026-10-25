@@ -88,7 +88,7 @@ def audit(root: Path, seed=20261031, resamples=4000, atol=2e-10):
                 for noise in NOISES:
                     block = grouped[(truth, noise)]
                     arrays = _arm_arrays(block, prefix, truth)
-                    point = _contrasts(arrays, np.arange(reps))[0]
+                    point = _contrasts(arrays, np.arange(reps))
                     indices = rng.integers(0, reps, size=(resamples, reps))
                     boot = _contrasts(arrays, indices)
                     cell_points[(truth, noise)] = point
@@ -101,7 +101,7 @@ def audit(root: Path, seed=20261031, resamples=4000, atol=2e-10):
                         row[metric + "_ci95_low"] = float(np.quantile(boot[:, j], .025))
                         row[metric + "_ci95_high"] = float(np.quantile(boot[:, j], .975))
                     expected_cell_rows.append(row)
-            keys = list(grouped)
+            keys = [(t, n) for t in TRUTHS for n in NOISES]
             point_macro = np.mean([cell_points[k] for k in keys], axis=0)
             macro_boot = np.mean([cell_boots[k] for k in keys], axis=0)
             for j, metric in enumerate(METRICS):
@@ -148,7 +148,7 @@ def audit(root: Path, seed=20261031, resamples=4000, atol=2e-10):
         "all_paired_point_estimates_and_bootstrap_intervals_reconstructed": True,
         "scope": "internal reproducibility under the synthetic two-host model only",
     }
-    (root / "paired_contrast_audit.json").write_text(json.dumps(result, indent=2) + "\\n", encoding="utf-8")
+    (root / "paired_contrast_audit.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(f"PASS: independently reconstructed {len(expected_cell_rows)} cell rows and {len(expected_aggregate_rows)} aggregate rows")
     return result
 
