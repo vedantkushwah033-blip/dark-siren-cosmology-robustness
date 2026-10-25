@@ -26,7 +26,7 @@ def test_posterior_calibration_design_and_summary_metrics():
     assert len(raw)==4*3*100
     assert len(summaries)==4*3*2*2*2
     assert {r["true_H0"] for r in raw}==set(RUN.TRUTHS)
-    assert all(0<=int(r["covered68"])<=1 and 0<=int(r["covered95"])<=1 for r in raw)
+    assert all(0 <= int(value) <= 1 for r in raw for key, value in r.items() if key.endswith(("_covered68", "_covered95")))
     assert all(0<=r["coverage68"]<=1 and 0<=r["coverage95"]<=1 for r in summaries)
 
 def test_independent_audit_reconstructs_posterior_outputs(tmp_path):
