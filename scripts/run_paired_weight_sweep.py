@@ -189,7 +189,7 @@ def main():
             for name in ("per_run.csv", "summary.csv")
         },
     }
-    (out / "run_metadata.json").write_text(json.dumps(metadata, indent=2) + "\\n", encoding="utf-8")
+    (out / "run_metadata.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     print(
         f"Completed {len(rows)} synthetic observations with 4 posterior fits each "
         f"({4 * len(rows)} fits), across {len(summaries)} prior-support × design cells."
