@@ -69,9 +69,17 @@ def analyze(rows, seed=20261031, resamples=4000):
             cell = [r for r in rows if float(r["true_H0"]) == truth
                     and float(r["noise_fraction"]) == noise]
             cell.sort(key=lambda r: int(r["replicate"]))
-            if not cell or len({int(r["replicate"]) for r in cell}) != len(cell):
-                raise ValueError(f"missing or duplicate paired observations for {(truth, noise)}")
+            replicate_ids = [int(r["replicate"]) for r in cell]
+            if (not cell or len(set(replicate_ids)) != len(cell)
+                    or set(replicate_ids) != set(range(len(cell)))):
+                raise ValueError(f"missing, duplicate, or non-contiguous paired observations for {(truth, noise)}")
             cells[(truth, noise)] = cell
+    cell_sizes = {len(cell) for cell in cells.values()}
+    if len(cell_sizes) != 1:
+        raise ValueError("truth/noise cells have unequal replicate counts")
+    expected_ids = set(range(next(iter(cell_sizes))))
+    if any({int(r["replicate"]) for r in cell} != expected_ids for cell in cells.values()):
+        raise ValueError("replicate IDs must be contiguous from zero in every cell")
     rng = np.random.default_rng(seed)
     cell_results, aggregate_results = [], []
     for support in SUPPORTS:
