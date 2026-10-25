@@ -14,7 +14,7 @@ SPEC.loader.exec_module(MODULE)
 
 def make_rows(replicates=100):
     rows = []
-    for truth in MODULE.TRUTHS:
+    for truth_index, truth in enumerate(MODULE.TRUTHS):
         for run in range(replicates):
             for noise in MODULE.NOISES:
                 # Same host quantities across noise levels; wider intervals at higher noise.
