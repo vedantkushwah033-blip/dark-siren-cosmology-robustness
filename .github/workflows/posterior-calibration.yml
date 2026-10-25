@@ -17,8 +17,10 @@ on:
       - "scripts/run_posterior_calibration.py"
       - "scripts/audit_posterior_calibration.py"
       - "scripts/analyze_posterior_calibration_uncertainty.py"
+      - "scripts/analyze_paired_host_weight_contrasts.py"
       - "tests/test_posterior_calibration.py"
       - "tests/test_posterior_calibration_uncertainty.py"
+      - "tests/test_paired_host_weight_contrasts.py"
       - ".github/workflows/posterior-calibration.yml"
   workflow_dispatch:
 
