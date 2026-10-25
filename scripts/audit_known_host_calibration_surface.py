@@ -48,7 +48,12 @@ def recompute_posterior_from_record(row: dict[str, str]) -> dict[str, float]:
     z = float(row["host_redshift"])
     observed = float(row["observed_distance_mpc"])
     sigma = float(row["distance_sigma_mpc"])
-    if not all(math.isfinite(v) for v in (z, observed, sigma)) or sigma <= 0:
+    if (
+        not all(math.isfinite(v) for v in (z, observed, sigma))
+        or z < 0.005 or z > 0.08
+        or observed <= 0
+        or sigma <= 0
+    ):
         raise ValueError("invalid raw observation for posterior reconstruction")
     model_distance = 299792.458 * z / grid
     log_likelihood = -0.5 * ((observed - model_distance) / sigma) ** 2
