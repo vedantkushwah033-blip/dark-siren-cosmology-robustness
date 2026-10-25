@@ -362,6 +362,7 @@ def valid_protocol_metadata():
         "original_commit": "b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f",
         "true_h0_values": [50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0, 90.0],
         "fractional_distance_errors": [0.05, 0.10, 0.15, 0.20],
+        "cells": [{} for _ in range(36)],
     }
 
 
@@ -382,6 +383,7 @@ def test_protocol_metadata_validator_accepts_valid_design():
         ("original_commit", "un-pinned", "pinned protocol"),
         ("true_h0_values", [50, 55, 60, 65, 70, 75, 80, 85, 86], "truth grid"),
         ("fractional_distance_errors", [0.05, 0.10, 0.15, 0.21], "noise grid"),
+        ("cells", [], "exactly 36 cell summaries"),
     ],
 )
 def test_protocol_metadata_validator_rejects_malformed_or_changed_design(field, value, message):
@@ -399,3 +401,17 @@ def test_protocol_metadata_validator_rejects_requested_replicate_mismatch():
 def test_protocol_metadata_validator_rejects_non_object_metadata():
     with pytest.raises(ValueError, match="metadata must be a JSON object"):
         MODULE.validate_metadata_seed_and_design([], 100)
+
+
+def test_protocol_metadata_validator_rejects_non_object_cells():
+    metadata = valid_protocol_metadata()
+    metadata["cells"] = [{} for _ in range(35)] + ["not-an-object"]
+    with pytest.raises(ValueError, match="exactly 36 cell summaries"):
+        MODULE.validate_metadata_seed_and_design(metadata, 100)
+
+
+def test_protocol_metadata_validator_rejects_malformed_cell_entry():
+    metadata = valid_protocol_metadata()
+    metadata["cells"][0] = "not-an-object"
+    with pytest.raises(ValueError, match="each JSON metadata cell must be an object"):
+        MODULE.validate_metadata_seed_and_design(metadata, 100)
