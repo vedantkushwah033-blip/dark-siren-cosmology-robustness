@@ -42,8 +42,9 @@ def validate_summary(rows: list[dict[str, str]], metadata: dict) -> None:
             if not math.isfinite(value):
                 raise ValueError(f"non-finite {field} in summary cell {key}")
         n = int(row["n"])
-        if n <= 0:
-            raise ValueError(f"non-positive replicate count in summary cell {key}")
+        expected_n = int(metadata.get("replicates_per_cell", -1))
+        if expected_n < 1 or n != expected_n:
+            raise ValueError(f"replicate count {n} does not match prespecified {expected_n} in summary cell {key}")
         for level in ("68", "95"):
             coverage = float(row[f"coverage_{level}"])
             low, high = float(row[f"coverage_{level}_wilson_low"]), float(row[f"coverage_{level}_wilson_high"])
@@ -57,6 +58,16 @@ def validate_summary(rows: list[dict[str, str]], metadata: dict) -> None:
         raise ValueError("metadata counts do not agree with summary table")
     if metadata.get("prior") != [50.0, 90.0]:
         raise ValueError("unexpected prior in metadata")
+    if metadata.get("true_h0_values") != list(TRUTHS):
+        raise ValueError("metadata truth grid does not match the prespecified design")
+    if metadata.get("fractional_distance_errors") != list(NOISES):
+        raise ValueError("metadata noise grid does not match the prespecified design")
+    if metadata.get("posterior_grid_points") != 1601:
+        raise ValueError("unexpected posterior grid resolution")
+    if metadata.get("original_repository") != "vedantkushwah033-blip/bayesian-dark-siren-cosmology":
+        raise ValueError("unexpected source simulator repository")
+    if metadata.get("original_commit") != "b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f":
+        raise ValueError("source simulator commit does not match the prespecified revision")
 
 
 
