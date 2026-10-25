@@ -114,6 +114,12 @@ def run_calibration(n_replicates: int = N_REPLICATES, seed: int = SEED):
         "scipy": scipy.__version__,
         "h0_prior": {"distribution": "uniform", "min": GRID_MIN, "max": GRID_MAX},
         "posterior_grid": {"min": GRID_MIN, "max": GRID_MAX, "points": GRID_SIZE, "integration": "trapezoidal"},
+        "generation_protocol": {
+            "truth_draw": "once_per_replicate_from_declared_prior",
+            "selection_conditioning": "rejection_sample_host_and_distance_conditional_on_fixed_truth",
+            "acceptance_rule": "detection_distance_min < observed_distance < detection_distance_max",
+            "rng": "numpy.random.default_rng (PCG64 default bit generator)",
+        },
         "host_redshifts": REDSHIFTS.tolist(),
         "host_weights": HOST_WEIGHTS.tolist(),
         "distance_sigma_mpc": DISTANCE_SIGMA,
