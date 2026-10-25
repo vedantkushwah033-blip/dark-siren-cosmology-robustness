@@ -14,6 +14,7 @@ def load(name, path):
 RUN = load("paired_contrast_runner", "run_posterior_calibration.py")
 AUDIT = load("paired_contrast_auditor", "audit_posterior_calibration.py")
 PAIR = load("paired_host_weight_contrasts", "analyze_paired_host_weight_contrasts.py")
+AUDIT_INDEP = load("independent_paired_contrast_audit", "audit_paired_host_weight_contrasts.py")
 
 def write_csv(path, rows):
     with path.open("w", newline="", encoding="utf-8") as f:
@@ -80,6 +81,12 @@ def test_paired_host_weight_contrasts_complete_and_ordered(tmp_path):
     assert len(list(csv.DictReader((tmp_path / "cell.csv").open()))) == 48
     assert len(list(csv.DictReader((tmp_path / "aggregate.csv").open()))) == 24
     assert "equal-weight average" in (tmp_path / "report.md").read_text().lower()
+    PAIR.write_csv(tmp_path / "paired_host_weight_cell_contrasts.csv", cells)
+    PAIR.write_csv(tmp_path / "paired_host_weight_contrasts.csv", aggregate)
+    independent = AUDIT_INDEP.audit(tmp_path, seed=331, resamples=100)
+    assert independent["audit"] == "PASS"
+    assert independent["cell_contrast_rows_reconstructed"] == 48
+    assert independent["aggregate_contrast_rows_reconstructed"] == 24
 
 def test_paired_contrasts_refuse_non_audited_or_modified_artifact(tmp_path):
     make_audited_fixture(tmp_path)
