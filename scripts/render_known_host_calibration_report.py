@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -56,6 +57,28 @@ def validate_summary(rows: list[dict[str, str]], metadata: dict) -> None:
         raise ValueError("metadata counts do not agree with summary table")
     if metadata.get("prior") != [50.0, 90.0]:
         raise ValueError("unexpected prior in metadata")
+
+
+
+def validate_audit_report(output_dir: Path, audit: dict, metadata: dict, row_count: int) -> None:
+    """Require a PASS report for these exact input bytes before rendering claims."""
+    if audit.get("audit") != "PASS":
+        raise ValueError("independent audit report is not PASS")
+    if audit.get("posterior_summaries_independently_reconstructed_from_raw_observations") is not True:
+        raise ValueError("audit did not independently reconstruct posterior summaries")
+    if int(audit.get("raw_records", -1)) != row_count or int(audit.get("summary_cells", -1)) != 36:
+        raise ValueError("audit counts do not match the report inputs")
+    if audit.get("source_simulator_commit") != metadata.get("original_commit"):
+        raise ValueError("audit source commit does not match result metadata")
+    hashes = audit.get("input_sha256", {})
+    for filename in ("per_run_results.csv", "cell_summary.csv", "cell_summary.json"):
+        expected = hashes.get(filename)
+        if not isinstance(expected, str) or len(expected) != 64:
+            raise ValueError(f"audit report lacks SHA-256 for {filename}")
+        actual = hashlib.sha256((output_dir / filename).read_bytes()).hexdigest()
+        if actual != expected:
+            raise ValueError(f"{filename} has changed since independent audit")
+
 
 
 def render_report(rows: list[dict[str, str]], metadata: dict) -> str:
@@ -129,6 +152,8 @@ def main() -> None:
     out = Path(args.output_dir)
     rows = read_summary(out / "cell_summary.csv")
     metadata = json.loads((out / "cell_summary.json").read_text(encoding="utf-8"))
+    audit = json.loads((out / "audit_report.json").read_text(encoding="utf-8"))
+    validate_audit_report(out, audit, metadata, sum(int(row["n"]) for row in rows))
     report = render_report(rows, metadata)
     path = out / "calibration_surface_report.md"
     path.write_text(report, encoding="utf-8")
