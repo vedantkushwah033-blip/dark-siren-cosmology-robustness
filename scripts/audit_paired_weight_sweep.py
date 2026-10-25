@@ -164,6 +164,27 @@ def audit_directory(root: Path) -> dict[str, object]:
                     value = float(row[f"{support_name}_{label}_{field}"])
                     if not math.isfinite(value):
                         raise ValueError(f"non-finite {support_name}_{label}_{field} in raw row {index}")
+            for label in ("correct", "reversed"):
+                median = float(row[f"{support_name}_{label}_median"])
+                error = float(row[f"{support_name}_{label}_median_error"])
+                lower = float(row[f"{support_name}_{label}_lower_68"])
+                upper = float(row[f"{support_name}_{label}_upper_68"])
+                covered = int(row[f"{support_name}_{label}_covered_68"])
+                width = float(row[f"{support_name}_{label}_width_68"])
+                if not math.isclose(error, median - H0_TRUE, rel_tol=1e-10, abs_tol=1e-10):
+                    raise ValueError(f"median error inconsistent with median in raw row {index}")
+                if not math.isclose(width, upper - lower, rel_tol=1e-10, abs_tol=1e-10):
+                    raise ValueError(f"interval width inconsistent with endpoints in raw row {index}")
+                if covered != int(lower <= H0_TRUE <= upper):
+                    raise ValueError(f"coverage indicator inconsistent with interval in raw row {index}")
+            for support_name in PRIOR_SUPPORTS:
+                expected_abs_diff = (
+                    abs(float(row[f"{support_name}_reversed_median"]) - H0_TRUE)
+                    - abs(float(row[f"{support_name}_correct_median"]) - H0_TRUE)
+                )
+                if not math.isclose(float(row[f"paired_abs_error_difference_{support_name}"]),
+                                    expected_abs_diff, rel_tol=1e-10, abs_tol=1e-10):
+                    raise ValueError(f"paired absolute-error difference inconsistent in raw row {index}")
 
     expected_keys = {(z2, noise) for z2 in Z2_VALUES for noise in NOISE_FRACTIONS}
     if set(groups) != expected_keys or any(set(g) != set(range(replicates)) for g in groups.values()):
