@@ -163,3 +163,17 @@ def test_auditor_end_to_end_recomputes_and_writes_provenance(tmp_path, monkeypat
     assert report["workflow_commit_sha"] == "test-sha"
     assert len(report["input_sha256"]["per_run_results.csv"]) == 64
     assert len(report["auditor_script_sha256"]) == 64
+
+
+def test_auditor_rejects_mixed_truth_within_cell():
+    rows = [synthetic_row(0, 70.0, 0.0), synthetic_row(1, 70.0, 0.0)]
+    rows[1]["true_h0"] = "71.0"
+    with pytest.raises(ValueError, match="truth changes"):
+        MODULE.recompute(rows)
+
+
+def test_auditor_rejects_unprespecified_noise_level():
+    rows = [synthetic_row(0, 70.0, 0.0)]
+    rows[0]["fractional_distance_error"] = "0.12"
+    with pytest.raises(ValueError, match="unexpected fractional"):
+        MODULE.recompute(rows)
