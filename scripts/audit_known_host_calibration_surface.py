@@ -243,13 +243,13 @@ def main() -> None:
     expected_count = 9 * 4 * args.replicates
     if len(raw) != expected_count:
         raise ValueError(f"expected {expected_count} raw rows, found {len(raw)}")
+    if len(stored) != 36:
+        raise ValueError("expected 36 cell summaries in CSV")
+    base_seed = validate_metadata_seed_and_design(metadata, args.replicates)
     for i, row in enumerate(raw):
         independently_reconstructed = recompute_posterior_from_record(row)
         for field, value in independently_reconstructed.items():
             close(float(row[field]), value, f"independent posterior {field} raw row {i}", tol=2e-6)
-    if len(stored) != 36:
-        raise ValueError("expected 36 cell summaries in CSV")
-    base_seed = validate_metadata_seed_and_design(metadata, args.replicates)
     expected_truths = [50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0, 90.0]
     expected_noise = [0.05, 0.10, 0.15, 0.20]
 
