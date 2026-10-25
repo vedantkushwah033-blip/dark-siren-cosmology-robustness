@@ -113,6 +113,7 @@ def run_calibration(n_replicates: int = N_REPLICATES, seed: int = SEED):
         "numpy": np.__version__,
         "scipy": scipy.__version__,
         "h0_prior": {"distribution": "uniform", "min": GRID_MIN, "max": GRID_MAX},
+        "posterior_grid": {"min": GRID_MIN, "max": GRID_MAX, "points": GRID_SIZE, "integration": "trapezoidal"},
         "host_redshifts": REDSHIFTS.tolist(),
         "host_weights": HOST_WEIGHTS.tolist(),
         "distance_sigma_mpc": DISTANCE_SIGMA,
