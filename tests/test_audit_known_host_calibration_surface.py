@@ -406,7 +406,7 @@ def test_protocol_metadata_validator_rejects_non_object_metadata():
 def test_protocol_metadata_validator_rejects_non_object_cells():
     metadata = valid_protocol_metadata()
     metadata["cells"] = [{} for _ in range(35)] + ["not-an-object"]
-    with pytest.raises(ValueError, match="exactly 36 cell summaries"):
+    with pytest.raises(ValueError, match="each JSON metadata cell must be an object"):
         MODULE.validate_metadata_seed_and_design(metadata, 100)
 
 
