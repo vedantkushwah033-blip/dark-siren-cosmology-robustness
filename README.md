@@ -1,5 +1,8 @@
 # Dark-Siren Cosmology Robustness
 
+
+- **Known-host calibration protocol:** [design, estimands, pairing, audit gates, and interpretation limits](docs/known_host_calibration_protocol.md).
+
 A reproducible Bayesian simulation study of galaxy-catalogue incompleteness, host-population misspecification, and statistical calibration in dark-siren cosmology.
 
 **Research status (updated 2026-10-25):** several synthetic experiments and numerical audits have completed, including selection-conditioned SBC controls, fixed-truth coverage maps, prior-support and threshold sensitivity, a 21,600-row prior-threshold factorial, quadrature checks, and posterior-grid accuracy checks. These are validated only within their stated toy-model assumptions; they do not establish astrophysical realism or a real H0 measurement. See the linked experiment reports below. The full repository test suite passed on the current main-branch commit `3a7e2770829281892d6925f3a58680ad61bd08a6` across Python 3.10, 3.11, and 3.12 in GitHub Actions run [40154504719](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40154504719). The separate focused test workflow also passed in run [40154504755](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40154504755). This test status does not mean the pending known-host calibration surface has run; no output from that experiment is claimed here.
