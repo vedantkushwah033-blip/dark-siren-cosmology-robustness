@@ -15,9 +15,9 @@ These are not the same conditioning event. Catalogue missingness should not be r
 
 For a discrete, known candidate population with host weights pi_g(H) (normalized over the full relevant population), an illustrative detected-event likelihood has the form
 
-L_det(D | H, A=1) = [sum_g pi_g(H) p(D | g,H) P(A=1 | D,g,H)] / alpha(H),
+L_det(D | H, A=1) = I(D in R) * [sum_g pi_g(H) p(D | g,H)] / alpha(H),
 
-where alpha(H) is the corresponding population-averaged detection probability under the exact event-generation and detection rule. In the repository's toy distance-threshold model, the observed distance itself determines detection, so the numerator and alpha must be derived consistently from that truncated-data process. This schematic expression is not a substitute for deriving the precise likelihood for the simulator.
+where R is the accepted-data region, I(D in R) is its indicator, and alpha(H) = P(D in R | H) is the population-averaged detection probability under the exact event-generation and detection rule. For a realised detected datum inside R, the indicator equals one. In the repository's toy distance-threshold model, the observed distance itself determines detection, so the numerator and alpha must be derived consistently from that truncated-data process. This schematic expression is not a substitute for deriving the precise likelihood for the simulator.
 
 If selection is defined on noisy observed distance d and the retained sample requires d_min < d < d_max, then for fixed host g with Gaussian distance model,
 
