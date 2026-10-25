@@ -116,6 +116,13 @@ def test_report_refuses_audit_without_independent_posterior_reconstruction(tmp_p
         MODULE.validate_audit_report(tmp_path, audit, {"original_commit": "abc123"}, 3600)
 
 
+def test_report_rejects_invalid_near_prior_edge_fraction():
+    rows, metadata = fixture_summary()
+    rows[0]["median_near_prior_edge_fraction"] = "1.1"
+    with pytest.raises(ValueError, match="near-prior-edge fraction"):
+        MODULE.validate_summary(rows, metadata)
+
+
 def test_report_rejects_replicate_count_or_design_metadata_mismatch():
     rows, metadata = fixture_summary()
     rows[0]["n"] = "99"
