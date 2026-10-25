@@ -118,11 +118,13 @@ def test_selected_posterior_matches_independent_direct_mixture_and_quadrature():
 
 
 def test_prior_predictive_sbc_is_approximately_uniform_for_matched_selection_model():
-    """Prior-predictive PIT check for the exact toy selection likelihood.
-    
-    The generator redraws H0, host, and distance until the same distance-window
-    selection rule used by inference accepts the event. The inference posterior
-    divides the host-mixture likelihood by the matching beta(H0).
+    """Prior-predictive PIT check with H0 drawn once per replicate.
+
+    Conditional on each sampled H0, rejection sampling continues over host and
+    distance draws until the event passes the same detection window used by the
+    likelihood. Redrawing H0 after rejected events would instead weight the
+    simulated truth distribution by detection efficiency beta(H0), breaking
+    the intended prior-predictive calibration design.
     """
     rng = np.random.default_rng(20261032)
     grid = np.linspace(40.0, 100.0, 1201)
@@ -132,8 +134,10 @@ def test_prior_predictive_sbc_is_approximately_uniform_for_matched_selection_mod
     lower, upper = 50.0, 260.0
     pits = []
     for _ in range(300):
+        # Draw the parameter once from the declared prior. Selection conditions
+        # the event data given this truth; it must not resample the truth itself.
+        truth = rng.uniform(40.0, 100.0)
         while True:
-            truth = rng.uniform(40.0, 100.0)
             host = rng.choice(len(z), p=weights)
             distance = rng.normal(299792.458 * z[host] / truth, sigma)
             if lower < distance < upper:
