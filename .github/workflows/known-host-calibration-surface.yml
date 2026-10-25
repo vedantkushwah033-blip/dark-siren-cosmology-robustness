@@ -56,6 +56,9 @@ jobs:
           python scripts/audit_known_host_calibration_surface.py
           results/known-host-calibration-surface
           --replicates "$REPLICATES"
+      - name: Render boundary-aware calibration report
+        run: |
+          python scripts/render_known_host_calibration_report.py results/known-host-calibration-surface
       - name: Upload raw results, summaries, and metadata
         uses: actions/upload-artifact@v4
         with:
