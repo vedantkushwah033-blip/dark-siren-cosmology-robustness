@@ -90,3 +90,73 @@ def test_auditor_rejects_nonfinite_raw_distance():
     rows[0]["observed_distance_mpc"] = "nan"
     with pytest.raises(ValueError, match="non-finite"):
         MODULE.recompute(rows)
+
+
+def test_auditor_end_to_end_recomputes_and_writes_provenance(tmp_path, monkeypatch):
+    import csv
+    import json
+    import sys
+
+    truths = [50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0, 90.0]
+    noises = [0.05, 0.10, 0.15, 0.20]
+    replicates = 100
+    base_seed = 20261025
+    raw_rows = []
+    summary_rows = []
+    for truth in truths:
+        for frac in noises:
+            cell = []
+            for run in range(replicates):
+                z = 0.03 + run * 0.00001
+                distance = 299792.458 * z / truth
+                sigma = frac * distance
+                standardized_noise = ((run % 9) - 4) / 3.0
+                median = truth
+                lower68, upper68 = max(50.0, median - 1.0), min(90.0, median + 1.0)
+                lower95, upper95 = max(50.0, median - 2.0), min(90.0, median + 2.0)
+                row = {
+                    "run": run, "seed": base_seed + run, "true_h0": truth,
+                    "fractional_distance_error": frac, "host_redshift": z,
+                    "true_distance_mpc": distance,
+                    "observed_distance_mpc": distance + sigma * standardized_noise,
+                    "distance_sigma_mpc": sigma, "median": median, "mean": median,
+                    "posterior_sd": 2.0, "lower_68": lower68, "upper_68": upper68,
+                    "lower_95": lower95, "upper_95": upper95,
+                    "width_68": upper68 - lower68, "width_95": upper95 - lower95,
+                    "pull_median": 0.0,
+                }
+                raw_rows.append(row)
+                cell.append({k: str(v) for k, v in row.items()})
+            summary_rows.append(MODULE.recompute(cell))
+
+    with (tmp_path / "per_run_results.csv").open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(raw_rows[0]))
+        writer.writeheader()
+        writer.writerows(raw_rows)
+    with (tmp_path / "cell_summary.csv").open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(summary_rows[0]))
+        writer.writeheader()
+        writer.writerows(summary_rows)
+    metadata = {
+        "true_h0_values": truths, "fractional_distance_errors": noises,
+        "seed": base_seed, "prior": [50.0, 90.0],
+        "raw_row_count": len(raw_rows), "cell_count": len(summary_rows),
+        "original_commit": "pinned-test-commit", "cells": summary_rows,
+    }
+    (tmp_path / "cell_summary.json").write_text(json.dumps(metadata), encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", [
+        "audit_known_host_calibration_surface.py", str(tmp_path), "--replicates", str(replicates)
+    ])
+    monkeypatch.setenv("GITHUB_RUN_ID", "test-run-123")
+    monkeypatch.setenv("GITHUB_SHA", "test-sha")
+    monkeypatch.setenv("GITHUB_REF", "refs/heads/test")
+    MODULE.main()
+
+    report = json.loads((tmp_path / "audit_report.json").read_text(encoding="utf-8"))
+    assert report["audit"] == "PASS"
+    assert report["raw_records"] == 9 * 4 * replicates
+    assert report["summary_cells"] == 36
+    assert report["workflow_run_id"] == "test-run-123"
+    assert report["workflow_commit_sha"] == "test-sha"
+    assert len(report["input_sha256"]["per_run_results.csv"]) == 64
+    assert len(report["auditor_script_sha256"]) == 64
