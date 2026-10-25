@@ -132,9 +132,12 @@ def main() -> None:
 
     grid = np.linspace(PRIOR_MIN, PRIOR_MAX, 1601)
     rows: list[dict] = []
-    for true_h0 in H0_TRUTHS:
+    for truth_index, true_h0 in enumerate(H0_TRUTHS):
         for replicate in range(args.replicates):
-            seed = args.seed + replicate
+            # Keep noise-level pairing within each truth/replicate, but use a
+            # disjoint seed block across truths to avoid accidental cross-truth
+            # reuse of identical catalogues and host draws.
+            seed = args.seed + truth_index * args.replicates + replicate
             # Reuse the same redshifts, luminosities, host draw and standardized
             # noise across the four error levels to improve paired comparisons.
             cat = simulate_galaxy_catalogue(n_galaxies=500, H0_true=true_h0, seed=seed)
