@@ -118,3 +118,27 @@ def test_independent_audit_reconstructs_raw_pits_and_rejects_tampering(tmp_path)
     summary_path.write_text(json.dumps(invalid_protocol), encoding="utf-8")
     with pytest.raises(ValueError, match="generation protocol metadata"):
         audit(raw_path, summary_path)
+
+
+
+@pytest.mark.parametrize(
+    ("field", "mutate"),
+    [
+        ("host_index", lambda value: (int(value) + 1) % 2),
+        ("observed_distance_mpc", lambda value: float(value) + 0.01),
+        ("rejection_attempts", lambda value: int(value) + 1),
+    ],
+)
+def test_independent_audit_replays_host_distance_and_attempt_count(tmp_path, field, mutate):
+    rows, summary = run_calibration(n_replicates=100, seed=1357911)
+    rows[0][field] = mutate(rows[0][field])
+    raw_path = tmp_path / "pit_replicates.csv"
+    summary_path = tmp_path / "pit_summary.json"
+    with raw_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="generation replay mismatch"):
+        audit(raw_path, summary_path)
