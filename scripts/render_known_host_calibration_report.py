@@ -55,6 +55,10 @@ def validate_summary(rows: list[dict[str, str]], metadata: dict) -> None:
         edge_fraction = float(row["median_near_prior_edge_fraction"])
         if not 0.0 <= edge_fraction <= 1.0:
             raise ValueError(f"invalid near-prior-edge fraction in summary cell {key}")
+        if float(row["coverage_68"]) > float(row["coverage_95"]):
+            raise ValueError(f"68% empirical coverage exceeds 95% coverage in summary cell {key}")
+        if float(row["mean_width_68"]) > float(row["mean_width_95"]):
+            raise ValueError(f"mean 68% interval width exceeds 95% width in summary cell {key}")
     if set(keyed) != expected:
         raise ValueError(f"expected 36 design cells; missing={sorted(expected-set(keyed))}; extra={sorted(set(keyed)-expected)}")
     if int(metadata.get("cell_count", -1)) != 36 or int(metadata.get("raw_row_count", -1)) != sum(int(r["n"]) for r in rows):
