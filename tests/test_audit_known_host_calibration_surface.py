@@ -337,3 +337,14 @@ def test_base_seed_validation_accepts_nonnegative_integer():
 def test_base_seed_validation_rejects_negative_or_coercible_nonintegers(value):
     with pytest.raises(ValueError, match="non-negative integer"):
         MODULE.validate_base_seed(value)
+
+
+@pytest.mark.parametrize("value", ["0", "12", "0007"])
+def test_csv_integer_parser_accepts_ascii_nonnegative_integers(value):
+    assert MODULE.parse_nonnegative_integer(value, "test field") == int(value)
+
+
+@pytest.mark.parametrize("value", ["-1", "+1", "1.0", "1e2", " 1", "1 ", "١", "", None, 1, True])
+def test_csv_integer_parser_rejects_coercible_or_malformed_values(value):
+    with pytest.raises(ValueError, match="must be a non-negative integer"):
+        MODULE.parse_nonnegative_integer(value, "test field")
