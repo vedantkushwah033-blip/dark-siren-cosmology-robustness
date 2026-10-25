@@ -1,6 +1,6 @@
 # Known-host calibration surface protocol
 
-**Status:** implementation, focused tests, and a manually dispatchable workflow are committed. Numerical findings are pending a successful run and independent raw-artifact audit.  
+**Status:** implementation, focused tests, boundary-aware report generation, and a manually dispatchable workflow are committed. Numerical findings are pending a successful run and independent raw-artifact audit.  
 **Scope:** a synthetic one-host calibration diagnostic, not a real gravitational-wave analysis or an observational estimate of H0.
 
 ## Research question
@@ -46,6 +46,8 @@ Before interpreting results:
 - Check that all 36 cells have the expected replicate count and no duplicate (truth, noise, replicate) keys.
 - Verify seed pairing by comparing catalogue/host information and standardized noise across the four noise levels within each truth/replicate.
 - Record artifact name, workflow URL, source commits, input-file SHA-256 hashes, auditor-script hash, dependency versions, and any excluded or failed runs.
+- Generate the Markdown results report only after the audit succeeds. The report generator must verify the audit status, raw/cell counts, pinned simulator revision, and SHA-256 hashes of all three input files before it writes report claims.
+- Verify that report metadata describes the exact prespecified truth grid, fractional-noise grid, prior, posterior grid resolution, and replicate count. A report must reject missing/duplicate cells and any cell with an unexpected replicate count.
 
 The independent auditor reconstructs posterior summaries from raw observations without importing the source simulator's posterior implementation, then recomputes cell-level metrics and cross-checks CSV/JSON summaries. An end-to-end regression test corrupts a posterior median and verifies that the audit rejects the artifact. The workflow's embedded checks are still a software guardrail, not a substitute for scientific review.
 
@@ -60,7 +62,9 @@ The independent auditor reconstructs posterior summaries from raw observations w
 
 ## Reproducibility
 
-Implementation: `scripts/run_known_host_calibration_surface.py`  
+Implementation: `scripts/run_known_host_calibration_surface.py`
+Boundary-aware report generator: `scripts/render_known_host_calibration_report.py`
+Report-generator tests: `tests/test_render_known_host_calibration_report.py`  
 Independent auditor: `scripts/audit_known_host_calibration_surface.py`  
 Tests: `tests/test_known_host_calibration_surface.py` and `tests/test_audit_known_host_calibration_surface.py`  
 Dependency note: NumPy 2.0 or newer is required because the pinned simulator uses `numpy.trapezoid`.  
