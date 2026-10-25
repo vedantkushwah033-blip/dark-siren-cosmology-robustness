@@ -4,6 +4,7 @@
 - **Known-host calibration protocol:** [design, estimands, pairing, audit gates, and interpretation limits](docs/known_host_calibration_protocol.md).
 - **Known-host calibration analysis plan:** [prespecified cell summaries, paired comparisons, Monte Carlo uncertainty, and interpretation rules](docs/known_host_calibration_analysis_plan.md).
 - **Known-host calibration results:** [audited 10,800-run experiment, boundary-aware coverage results, and paired contrasts](docs/known_host_calibration_run_20261025.md).
+- **Known-host calibration synthesis and next decision gate:** [cross-experiment interpretation, boundary/prior caveats, and prespecified next steps](docs/known_host_calibration_synthesis_2026-10-25.md).
 - **Paired host-weight sweep protocol:** [prespecified prior-support factor, paired estimands, and audit gates](docs/paired_weight_sweep_protocol.md).
 - **Paired host-weight sweep results:** [18-cell independently audited results showing prior-support sensitivity](docs/paired_weight_sweep_results_20261025.md).
 - **Prior-measure sensitivity protocol:** [paired uniform-H₀ versus log-uniform-H₀ host-component evidence experiment and independent audit gates](docs/prior_measure_sensitivity_protocol.md).
