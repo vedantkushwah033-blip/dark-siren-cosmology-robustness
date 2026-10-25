@@ -177,7 +177,7 @@ def write_cell_report(path, rows):
       "|---:|---:|---|---|---|---:|---:|---:|---:|"]
     for r in rows:
         lines.append(f"| {r['true_H0']:.0f} | {100*r['noise_fraction']:.0f}% | {r['prior_support']} | {r['prior_measure']} | {r['inference_weights']} | {r['bias_estimate']:.2f} [{r['bias_ci95_low']:.2f}, {r['bias_ci95_high']:.2f}] | {r['rmse_estimate']:.2f} [{r['rmse_ci95_low']:.2f}, {r['rmse_ci95_high']:.2f}] | {100*r['coverage68_estimate']:.1f}% [{100*r['coverage68_ci95_low']:.1f}%, {100*r['coverage68_ci95_high']:.1f}%] | {100*r['coverage95_estimate']:.1f}% [{100*r['coverage95_ci95_low']:.1f}%, {100*r['coverage95_ci95_high']:.1f}%] |")
-    path.write_text("\\n".join(lines)+"\\n",encoding="utf-8")
+    path.write_text("\n".join(lines)+"\n",encoding="utf-8")
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
