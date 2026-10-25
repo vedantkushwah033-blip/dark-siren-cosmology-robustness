@@ -132,6 +132,10 @@ def test_independent_audit_reconstructs_raw_pits_and_rejects_tampering(tmp_path)
 def test_independent_audit_replays_host_distance_and_attempt_count(tmp_path, field, mutate):
     rows, summary = run_calibration(n_replicates=100, seed=1357911)
     rows[0][field] = mutate(rows[0][field])
+    if field == "host_index":
+        # Keep the host-index/redshift pair internally consistent so this
+        # mutation reaches the seeded-generation replay check.
+        rows[0]["host_redshift"] = summary["host_redshifts"][int(rows[0]["host_index"])]
     raw_path = tmp_path / "pit_replicates.csv"
     summary_path = tmp_path / "pit_summary.json"
     with raw_path.open("w", newline="", encoding="utf-8") as handle:
