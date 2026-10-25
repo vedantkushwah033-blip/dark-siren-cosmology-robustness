@@ -38,7 +38,11 @@ def fixture_summary():
         "raw_row_count": 3600,
         "replicates_per_cell": 100,
         "prior": [50.0, 90.0],
-        "original_commit": "abc123",
+        "original_commit": "b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f",
+        "original_repository": "vedantkushwah033-blip/bayesian-dark-siren-cosmology",
+        "true_h0_values": list(MODULE.TRUTHS),
+        "fractional_distance_errors": list(MODULE.NOISES),
+        "posterior_grid_points": 1601,
         "seed": 20261025,
     }
     return rows, metadata
@@ -108,3 +112,14 @@ def test_report_refuses_audit_without_independent_posterior_reconstruction(tmp_p
     audit = {"audit": "PASS"}
     with pytest.raises(ValueError, match="did not independently reconstruct"):
         MODULE.validate_audit_report(tmp_path, audit, {"original_commit": "abc123"}, 3600)
+
+
+def test_report_rejects_replicate_count_or_design_metadata_mismatch():
+    rows, metadata = fixture_summary()
+    rows[0]["n"] = "99"
+    with pytest.raises(ValueError, match="does not match prespecified"):
+        MODULE.validate_summary(rows, metadata)
+    rows, metadata = fixture_summary()
+    metadata["fractional_distance_errors"] = [0.05, 0.10, 0.15, 0.25]
+    with pytest.raises(ValueError, match="noise grid"):
+        MODULE.validate_summary(rows, metadata)
