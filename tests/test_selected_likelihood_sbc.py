@@ -146,3 +146,30 @@ def test_independent_audit_replays_host_distance_and_attempt_count(tmp_path, fie
 
     with pytest.raises(ValueError, match="generation replay mismatch"):
         audit(raw_path, summary_path)
+
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (lambda summary: summary["h0_prior"].update({"min": float("nan")}), "prior and posterior-grid support"),
+        (lambda summary: summary["posterior_grid"].update({"integration": "simpson"}), "integration metadata"),
+        (lambda summary: summary.update({"host_redshifts": [0.02, float("nan")]}), "host redshifts"),
+        (lambda summary: summary.update({"distance_sigma_mpc": -1.0}), "noise or detection-interval"),
+        (lambda summary: summary.update({"detection_interval_mpc_open": [260.0, 50.0]}), "noise or detection-interval"),
+    ],
+)
+def test_independent_audit_rejects_invalid_numerical_metadata(tmp_path, mutate, message):
+    rows, summary = run_calibration(n_replicates=100, seed=97531)
+    raw_path = tmp_path / "pit_replicates.csv"
+    summary_path = tmp_path / "pit_summary.json"
+    with raw_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    altered_summary = json.loads(json.dumps(summary))
+    mutate(altered_summary)
+    summary_path.write_text(json.dumps(altered_summary), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=message):
+        audit(raw_path, summary_path)
