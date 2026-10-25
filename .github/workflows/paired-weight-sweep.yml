@@ -47,7 +47,7 @@ jobs:
               summaries = list(csv.DictReader(f))
           with (root / "per_run.csv").open(newline="") as f:
               rows = list(csv.DictReader(f))
-          if len(summaries) != 9 or len(rows) != 9000:
+          if len(summaries) != 18 or len(rows) != 9000:
               raise SystemExit(f"Unexpected output: {len(summaries)} cells, {len(rows)} paired observations")
           for row in summaries:
               for key in ("correct_rmse", "reversed_rmse", "mean_paired_abs_error_diff_reversed_minus_correct",
@@ -64,7 +64,7 @@ jobs:
                       raise SystemExit(f"Invalid confidence interval: {lo}, {hi}")
               if int(row["bootstrap_resamples"]) != 4000:
                   raise SystemExit("Unexpected bootstrap resample count")
-          print("PASS: 9 design cells × 1,000 paired observations; 18,000 posterior fits; 4,000 paired bootstrap resamples per metric and cell.")
+          print("PASS: 9 redshift/noise cells × 1,000 shared observations; 18 prior-support cells; 36,000 posterior fits; 4,000 paired bootstrap resamples per metric and cell.")
           PY
       - name: Upload paired sweep results
         uses: actions/upload-artifact@v4
