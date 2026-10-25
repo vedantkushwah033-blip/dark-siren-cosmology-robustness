@@ -95,3 +95,58 @@ def posterior_h0_selected(H0_grid, redshifts, observed_distance, gw_sigma,
         raise ValueError("Selection-conditioned posterior normalization failed.")
     selected[support] /= area
     return selected
+
+
+def posterior_h0_selected_with_missing_hosts(
+    H0_grid, catalog_redshifts, observed_distance, gw_sigma,
+    detection_distance_max, *, catalog_weights=None, missing_weight=0.0,
+    missing_redshifts=None, missing_weights=None, prior_min=50.0,
+    prior_max=90.0, detection_distance_min=0.0,
+):
+    """Infer H0 with event-selection correction and an explicit missing-host mixture.
+
+    missing_weight is the prior population mass assigned to the unobserved host
+    component, not a fraction to apply after normalizing the full likelihood.
+    Catalogue and missing-component weights are each normalized internally,
+    then scaled by their population masses before combining. Full-population
+    weights are used in both the event likelihood and detection denominator.
+
+    This finite synthetic mixture is not a practical survey correction:
+    callers must supply a defensible model for missing-host redshifts and mass.
+    """
+    catalog_z = np.asarray(catalog_redshifts, dtype=float)
+    if catalog_z.ndim != 1 or catalog_z.size == 0 or not np.all(np.isfinite(catalog_z)) or np.any(catalog_z < 0):
+        raise ValueError("catalog_redshifts must be a non-empty finite non-negative vector.")
+    fraction = float(missing_weight)
+    if not np.isfinite(fraction) or not 0.0 <= fraction < 1.0:
+        raise ValueError("missing_weight must be finite and in [0, 1).")
+
+    cw = np.ones(catalog_z.size, dtype=float) if catalog_weights is None else np.asarray(catalog_weights, dtype=float)
+    if cw.ndim != 1 or cw.size != catalog_z.size or not np.all(np.isfinite(cw)) or np.any(cw < 0) or cw.sum() <= 0:
+        raise ValueError("catalog_weights must be finite, non-negative, match catalogue hosts, and sum positive.")
+    cw = cw / cw.sum() * (1.0 - fraction)
+
+    if fraction > 0.0:
+        if missing_redshifts is None:
+            raise ValueError("missing_redshifts are required when missing_weight > 0.")
+        missing_z = np.asarray(missing_redshifts, dtype=float)
+        if missing_z.ndim != 1 or missing_z.size == 0 or not np.all(np.isfinite(missing_z)) or np.any(missing_z < 0):
+            raise ValueError("missing_redshifts must be a non-empty finite non-negative vector.")
+        mw = np.ones(missing_z.size, dtype=float) if missing_weights is None else np.asarray(missing_weights, dtype=float)
+        if mw.ndim != 1 or mw.size != missing_z.size or not np.all(np.isfinite(mw)) or np.any(mw < 0) or mw.sum() <= 0:
+            raise ValueError("missing_weights must be finite, non-negative, match missing hosts, and sum positive.")
+        mw = mw / mw.sum() * fraction
+        full_z = np.concatenate((catalog_z, missing_z))
+        full_weights = np.concatenate((cw, mw))
+    else:
+        if missing_weights is not None:
+            raise ValueError("missing_weights were supplied but missing_weight is zero.")
+        full_z, full_weights = catalog_z, cw
+
+    # Both the event likelihood mixture and beta(H0) use the same full-population
+    # weights; no catalogue-only renormalization is applied to the missing term.
+    return posterior_h0_selected(
+        H0_grid, full_z, observed_distance, gw_sigma, detection_distance_max,
+        weights=full_weights, prior_min=prior_min, prior_max=prior_max,
+        detection_distance_min=detection_distance_min,
+    )
