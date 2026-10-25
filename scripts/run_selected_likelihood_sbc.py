@@ -144,7 +144,7 @@ def main():
         writer.writeheader()
         writer.writerows(rows)
     summary_path = outdir / "pit_summary.json"
-    summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+    summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     print(f"replicates={summary['n_replicates']} seed={summary['seed']}")
     print(f"mean PIT={summary['pit_mean']:.4f} (MC SE {summary['pit_mean_monte_carlo_se']:.4f})")
