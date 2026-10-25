@@ -69,3 +69,11 @@ There are 2,400 observations per inference arm, but the design intentionally str
 This is a synthetic low-redshift, two-host Gaussian-distance model. It does not include realistic gravitational-wave event likelihoods, galaxy-catalogue selection or incompleteness, redshift errors, detector selection, or hierarchical multi-event population inference. The distance-noise scale is defined relative to the z₂ reference distance in each truth/noise cell. Results are valid only for the stated simulation design.
 
 The appropriate next step is a higher-replicate, truth-stratified calibration run with uncertainty intervals for coverage and a more realistic event/catalogue selection model. Do not present these numbers as an observational H₀ result.
+
+## Truth/noise-specific uncertainty extension
+
+The workflow now additionally writes `cell_uncertainty.csv` and `cell_uncertainty_report.md`. These report bias, RMSE, 68%/95% coverage, and mean 68%/95% interval widths separately for each of the 12 injected-truth × noise cells and each of the eight inference arms. Each interval is calculated by resampling replicates within that one cell, rather than pooling across cells. The design yields 96 arm-by-cell rows.
+
+This cell-level view is important because pooled calibration metrics can conceal opposite behavior at different injected H₀ values or noise levels. The cell-specific percentile intervals quantify Monte Carlo uncertainty under the selected simulation design only; they do not quantify model uncertainty or real-event uncertainty.
+
+The extension is gated on the existing independent audit and SHA-256 checks. The automated test suite includes checks for complete cell coverage, report generation, interval ordering, and rejection of artifacts that have not passed the audit.
