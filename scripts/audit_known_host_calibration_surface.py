@@ -270,9 +270,15 @@ def main() -> None:
         for field in fields:
             close(float(metadata_cell[field]), float(expected[field]), f"JSON metadata {key} {field}", tol=1e-7)
         for field in ("n", "coverage_68_successes", "coverage_95_successes"):
-            if int(metadata_cell[field]) != int(expected[field]):
+            value = metadata_cell[field]
+            if isinstance(value, bool) or not isinstance(value, int):
+                raise ValueError(f"JSON metadata {key} count {field} must be an integer")
+            if value != int(expected[field]):
                 raise ValueError(f"JSON metadata {key} count {field} mismatch")
-        if bool(metadata_cell["truth_on_prior_boundary"]) != expected["truth_on_prior_boundary"]:
+        boundary_flag = metadata_cell["truth_on_prior_boundary"]
+        if not isinstance(boundary_flag, bool):
+            raise ValueError(f"JSON metadata boundary-truth flag must be boolean for cell {key}")
+        if boundary_flag != expected["truth_on_prior_boundary"]:
             raise ValueError(f"JSON metadata boundary-truth flag mismatch for cell {key}")
 
     audit_report = {
