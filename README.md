@@ -8,6 +8,7 @@
 - **Paired host-weight sweep results:** [18-cell independently audited results showing prior-support sensitivity](docs/paired_weight_sweep_results_20261025.md).
 - **Prior-measure sensitivity protocol:** [paired uniform-H₀ versus log-uniform-H₀ host-component evidence experiment and independent audit gates](docs/prior_measure_sensitivity_protocol.md).
 - **Prior-measure sensitivity results:** [9,000-observation experiment, all 36 paired contrasts, and independent audit](docs/prior_measure_sensitivity_results_20261025.md).
+- **Posterior-level calibration protocol:** [multi-truth H₀ bias, RMSE, interval-width, and coverage design](docs/posterior_calibration_protocol.md).
 
 A reproducible Bayesian simulation study of galaxy-catalogue incompleteness, host-population misspecification, and statistical calibration in dark-siren cosmology.
 
