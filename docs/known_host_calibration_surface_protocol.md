@@ -60,7 +60,9 @@ The workflow's embedded checks are a first-pass guardrail, not a substitute for 
 ## Reproducibility
 
 Implementation: `scripts/run_known_host_calibration_surface.py`  
-Tests: `tests/test_known_host_calibration_surface.py`  
+Independent auditor: `scripts/audit_known_host_calibration_surface.py`  
+Tests: `tests/test_known_host_calibration_surface.py` and `tests/test_audit_known_host_calibration_surface.py`  
+Dependency note: NumPy 2.0 or newer is required because the pinned simulator uses `numpy.trapezoid`.  
 Workflow: `.github/workflows/known-host-calibration-surface.yml`  
 Pinned simulator revision: `b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f`
 
