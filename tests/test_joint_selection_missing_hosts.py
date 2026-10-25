@@ -242,8 +242,8 @@ def test_detection_efficiency_and_selected_posterior_are_invariant_to_weight_sca
     np.testing.assert_allclose(posterior_scaled, posterior, rtol=2e-13, atol=2e-14)
 
 
-def test_zero_weight_missing_hosts_have_no_effect_on_full_population_posterior():
-    """A zero-mass missing component must not alter numerator or beta(H0)."""
+def test_zero_missing_mass_reduces_to_catalogue_only_even_if_missing_support_is_supplied():
+    """With zero missing mass, latent missing-host support contributes no mass."""
     baseline = posterior_h0_selected(
         H0, [0.02, 0.04], DISTANCE, 15.0, 300.0,
         weights=[0.7, 0.3], prior_min=40.0, prior_max=100.0,
@@ -251,6 +251,6 @@ def test_zero_weight_missing_hosts_have_no_effect_on_full_population_posterior()
     with_zero_mass_hosts = posterior_h0_selected_with_missing_hosts(
         H0, [0.02, 0.04], DISTANCE, 15.0, 300.0,
         catalog_weights=[0.7, 0.3], missing_weight=0.0,
-        missing_redshifts=None, prior_min=40.0, prior_max=100.0,
+        missing_redshifts=[0.06, 0.08], prior_min=40.0, prior_max=100.0,
     )
     np.testing.assert_allclose(with_zero_mass_hosts, baseline, rtol=1e-12, atol=1e-12)
