@@ -478,3 +478,60 @@ def test_paired_group_rejects_nonfinite_or_invalid_observation_values(field, val
     rows[1][field] = value
     with pytest.raises(ValueError, match=message):
         MODULE.validate_paired_group((70.0, 3), rows)
+
+
+# The runner and the independent auditor intentionally implement their own
+# summary paths. Keep regression coverage for the runner's cell statistics too.
+RUNNER_PATH = Path(__file__).resolve().parents[1] / "scripts" / "run_known_host_calibration_surface.py"
+RUNNER_SPEC = importlib.util.spec_from_file_location("run_known_host_calibration_surface", RUNNER_PATH)
+RUNNER = importlib.util.module_from_spec(RUNNER_SPEC)
+RUNNER_SPEC.loader.exec_module(RUNNER)
+
+
+def runner_summary_row(median, mean, lower68, upper68, lower95, upper95, sd=2.0):
+    return {
+        "median": median, "mean": mean,
+        "lower_68": lower68, "upper_68": upper68,
+        "lower_95": lower95, "upper_95": upper95,
+        "posterior_sd": sd,
+    }
+
+
+def test_runner_summarize_cell_reports_coverage_and_point_error():
+    rows = [
+        runner_summary_row(69.0, 69.2, 68.0, 70.0, 67.0, 71.0),
+        runner_summary_row(70.0, 70.1, 69.0, 71.0, 68.0, 72.0),
+        runner_summary_row(72.0, 71.8, 71.0, 73.0, 70.0, 74.0),
+        runner_summary_row(71.0, 70.8, 70.0, 72.0, 69.0, 73.0),
+    ]
+    result = RUNNER.summarize_cell(rows, true_h0=70.0, fractional_error=0.1)
+    assert result["n"] == 4
+    assert result["coverage_68_successes"] == 3
+    assert result["coverage_68"] == pytest.approx(0.75)
+    assert result["coverage_95_successes"] == 4
+    assert result["coverage_95"] == pytest.approx(1.0)
+    assert result["mean_median_error"] == pytest.approx(0.5)
+    assert result["rmse_median"] == pytest.approx(math.sqrt(1.5))
+    assert result["mean_width_68"] == pytest.approx(2.0)
+    assert result["mean_width_95"] == pytest.approx(4.0)
+
+
+@pytest.mark.parametrize(
+    "bad_row",
+    [
+        runner_summary_row(float("nan"), 70.0, 69.0, 71.0, 68.0, 72.0),
+        runner_summary_row(70.0, float("inf"), 69.0, 71.0, 68.0, 72.0),
+        runner_summary_row(70.0, 70.0, 72.0, 71.0, 68.0, 73.0),
+        runner_summary_row(70.0, 70.0, 69.0, 71.0, 71.0, 72.0),
+        runner_summary_row(70.0, 70.0, 49.0, 71.0, 48.0, 72.0),
+        runner_summary_row(70.0, 70.0, 69.0, 71.0, 68.0, 72.0, sd=0.0),
+    ],
+)
+def test_runner_summarize_cell_rejects_invalid_posterior_summaries(bad_row):
+    with pytest.raises(ValueError):
+        RUNNER.summarize_cell([bad_row], true_h0=70.0, fractional_error=0.1)
+
+
+def test_runner_summarize_cell_rejects_empty_cell():
+    with pytest.raises(ValueError, match="must not be empty"):
+        RUNNER.summarize_cell([], true_h0=70.0, fractional_error=0.1)
