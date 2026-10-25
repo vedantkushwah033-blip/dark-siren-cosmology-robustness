@@ -39,6 +39,21 @@ def read_csv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
+def validate_metadata_cell_counts(metadata_cell: dict, expected: dict, key: tuple[float, float]) -> None:
+    """Reject malformed JSON count/flag types before comparing their values."""
+    for field in ("n", "coverage_68_successes", "coverage_95_successes"):
+        value = metadata_cell[field]
+        # JSON booleans are Python ints by subclassing, so reject them explicitly.
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise ValueError(f"JSON metadata {key} count {field} must be an integer")
+        if value != int(expected[field]):
+            raise ValueError(f"JSON metadata {key} count {field} mismatch")
+    boundary_flag = metadata_cell["truth_on_prior_boundary"]
+    if not isinstance(boundary_flag, bool):
+        raise ValueError(f"JSON metadata boundary-truth flag must be boolean for cell {key}")
+    if boundary_flag != expected["truth_on_prior_boundary"]:
+        raise ValueError(f"JSON metadata boundary-truth flag mismatch for cell {key}")
+
 
 def recompute_posterior_from_record(row: dict[str, str]) -> dict[str, float]:
     """Independently reconstruct one-host posterior summaries from raw data."""
@@ -269,17 +284,7 @@ def main() -> None:
             raise ValueError(f"boundary-truth flag mismatch for cell {key}")
         for field in fields:
             close(float(metadata_cell[field]), float(expected[field]), f"JSON metadata {key} {field}", tol=1e-7)
-        for field in ("n", "coverage_68_successes", "coverage_95_successes"):
-            value = metadata_cell[field]
-            if isinstance(value, bool) or not isinstance(value, int):
-                raise ValueError(f"JSON metadata {key} count {field} must be an integer")
-            if value != int(expected[field]):
-                raise ValueError(f"JSON metadata {key} count {field} mismatch")
-        boundary_flag = metadata_cell["truth_on_prior_boundary"]
-        if not isinstance(boundary_flag, bool):
-            raise ValueError(f"JSON metadata boundary-truth flag must be boolean for cell {key}")
-        if boundary_flag != expected["truth_on_prior_boundary"]:
-            raise ValueError(f"JSON metadata boundary-truth flag mismatch for cell {key}")
+        validate_metadata_cell_counts(metadata_cell, expected, key)
 
     audit_report = {
         "audit": "PASS",
