@@ -56,6 +56,16 @@ jobs:
           python scripts/audit_known_host_calibration_surface.py
           results/known-host-calibration-surface
           --replicates "$REPLICATES"
+      - name: Analyze paired noise-level contrasts
+        env:
+          REPLICATES: ${{ inputs.replicates }}
+          BASE_SEED: ${{ inputs.seed }}
+        run: >-
+          python scripts/analyze_known_host_paired_comparisons.py
+          results/known-host-calibration-surface
+          --replicates "$REPLICATES"
+          --seed "$BASE_SEED"
+          --bootstrap-resamples 4000
       - name: Render boundary-aware calibration report
         run: |
           python scripts/render_known_host_calibration_report.py results/known-host-calibration-surface
