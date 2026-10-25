@@ -125,6 +125,11 @@ def test_auditor_end_to_end_recomputes_and_writes_provenance(tmp_path, monkeypat
                     "width_68": upper68 - lower68, "width_95": upper95 - lower95,
                     "pull_median": 0.0,
                 }
+                # Build a self-consistent fixture using the independently specified likelihood.
+                row.update(MODULE.recompute_posterior_from_record({k: str(v) for k, v in row.items()}))
+                row["width_68"] = row["upper_68"] - row["lower_68"]
+                row["width_95"] = row["upper_95"] - row["lower_95"]
+                row["pull_median"] = (row["median"] - truth) / row["posterior_sd"]
                 raw_rows.append(row)
                 cell.append({k: str(v) for k, v in row.items()})
             summary_rows.append(MODULE.recompute(cell))
