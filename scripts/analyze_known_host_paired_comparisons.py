@@ -61,8 +61,10 @@ def analyze(rows: list[dict[str, str]], replicates: int, n_boot: int, seed: int)
         run, row_seed = int(row["run"]), int(row["seed"])
         if truth not in TRUTHS or noise not in NOISES:
             raise ValueError(f"unexpected truth/noise at raw row {i}")
-        if not 0 <= run < replicates or row_seed != seed + run:
-            raise ValueError(f"unexpected run or seed at raw row {i}")
+        truth_index = TRUTHS.index(truth)
+        expected_seed = seed + truth_index * replicates + run
+        if not 0 <= run < replicates or row_seed != expected_seed:
+            raise ValueError(f"unexpected run or truth-stratified seed at raw row {i}")
         cell = keyed.setdefault((truth, run), {})
         if noise in cell:
             raise ValueError(f"duplicate truth/run/noise record: {(truth, run, noise)}")
