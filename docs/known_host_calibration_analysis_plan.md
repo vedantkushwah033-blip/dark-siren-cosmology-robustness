@@ -14,11 +14,12 @@ The planned design has nine truth values (50, 55, 60, 65, 70, 75, 80, 85, 90 km 
 No scientific interpretation should begin until all of these conditions hold:
 
 1. The designated workflow run is completed successfully.
-2. Its artifact contains raw per-run observations, cell summaries, metadata, independent audit output, and rendered report.
+2. Its artifact contains raw per-run observations, cell summaries, metadata, independent audit output, paired-comparison outputs, and rendered report.
 3. The independent audit reports `PASS`, verifies the exact design and row counts, and independently reconstructs posterior summaries from raw observations.
-4. The report renderer succeeds and its input hashes match the audited files.
-5. The final commit and workflow run ID are recorded alongside the artifact.
-6. Any deviations from the default replicate count, seed, simulator revision, prior, or posterior grid are explicitly recorded.
+4. The paired analysis runs only after that audit and verifies that its input hashes still match the audited files.
+5. The report renderer succeeds and its input hashes match the audited files.
+6. The final commit and workflow run ID are recorded alongside the artifact.
+7. Any deviations from the default replicate count, seed, simulator revision, prior, or posterior grid are explicitly recorded.
 
 A CI pass or a unit-test pass alone does not satisfy these gates.
 
@@ -50,10 +51,12 @@ The intended common-random-number pairing is within a fixed true-H₀ value and 
 
 For each true H₀, use the 0.05 uncertainty cell as the reference and report paired replicate-level differences for:
 - absolute posterior-median error;
-- posterior interval width;
+- 68% and 95% posterior interval width;
 - the 68% and 95% truth-inclusion indicators.
 
-Summarize the distribution of paired differences (mean, median, and an uncertainty interval) rather than comparing only two unpaired cell means. If a bootstrap is used, resample replicate IDs as whole four-level blocks within each true-H₀ stratum, so the within-replicate pairing is preserved. State the number of bootstrap resamples and random seed. These paired comparisons are descriptive unless a formal inferential procedure and multiplicity policy are specified in advance.
+The implementation is `scripts/analyze_known_host_paired_comparisons.py`. It consumes the raw per-run CSV only after verifying the audit status and SHA-256 hashes, checks for complete replicate/noise blocks, and writes `paired_comparisons.csv`, `paired_comparisons.json`, and `paired_comparisons_report.md` to the experiment output directory.
+
+For every truth, comparison noise level, and metric, the analysis reports the mean and median paired difference. Difference direction is **comparison noise level minus the 5% reference**. Its percentile bootstrap interval is for the mean paired difference; replicate IDs are resampled within each fixed-truth stratum, which preserves the pairing for each contrast. The default workflow uses 4,000 bootstrap resamples and records the deterministic bootstrap seed. These comparisons are descriptive; no multiplicity-adjusted confirmatory claims are made. The analysis does not use the four rows as if they were independent.
 
 The main expected qualitative relationship is that larger distance uncertainty will generally widen posteriors and reduce precision. Do not assume coverage must move monotonically with uncertainty; measure it. Do not turn an expected trend into a pass/fail threshold after seeing results.
 
