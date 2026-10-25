@@ -211,3 +211,46 @@ def test_selected_posterior_rejects_observations_outside_open_detection_interval
             weights=[0.7, 0.3], prior_min=40.0, prior_max=100.0,
             detection_distance_min=45.0,
         )
+
+
+def test_detection_efficiency_and_selected_posterior_are_invariant_to_weight_scale():
+    """Only relative host weights may affect a finite-mixture posterior."""
+    z = np.array([0.015, 0.035, 0.07])
+    weights = np.array([2.0, 3.0, 5.0])
+    scaled_weights = 17.0 * weights
+    lower, upper = 40.0, 250.0
+    observed = 160.0
+
+    beta = detection_efficiency_h0(
+        H0, z, 20.0, upper, weights=weights,
+        detection_distance_min=lower,
+    )
+    beta_scaled = detection_efficiency_h0(
+        H0, z, 20.0, upper, weights=scaled_weights,
+        detection_distance_min=lower,
+    )
+    np.testing.assert_allclose(beta_scaled, beta, rtol=2e-14, atol=2e-14)
+
+    posterior = posterior_h0_selected(
+        H0, z, observed, 20.0, upper, weights=weights,
+        prior_min=40.0, prior_max=100.0, detection_distance_min=lower,
+    )
+    posterior_scaled = posterior_h0_selected(
+        H0, z, observed, 20.0, upper, weights=scaled_weights,
+        prior_min=40.0, prior_max=100.0, detection_distance_min=lower,
+    )
+    np.testing.assert_allclose(posterior_scaled, posterior, rtol=2e-13, atol=2e-14)
+
+
+def test_zero_weight_missing_hosts_have_no_effect_on_full_population_posterior():
+    """A zero-mass missing component must not alter numerator or beta(H0)."""
+    baseline = posterior_h0_selected(
+        H0, [0.02, 0.04], DISTANCE, 15.0, 300.0,
+        weights=[0.7, 0.3], prior_min=40.0, prior_max=100.0,
+    )
+    with_zero_mass_hosts = posterior_h0_selected_with_missing_hosts(
+        H0, [0.02, 0.04], DISTANCE, 15.0, 300.0,
+        catalog_weights=[0.7, 0.3], missing_weight=0.0,
+        missing_redshifts=None, prior_min=40.0, prior_max=100.0,
+    )
+    np.testing.assert_allclose(with_zero_mass_hosts, baseline, rtol=1e-12, atol=1e-12)
