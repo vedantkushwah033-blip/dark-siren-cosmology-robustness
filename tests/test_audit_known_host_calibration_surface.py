@@ -461,3 +461,20 @@ def test_paired_group_rejects_unpaired_host_population():
 def test_paired_group_rejects_missing_uncertainty_level():
     with pytest.raises(ValueError, match="has 3 noise levels"):
         MODULE.validate_paired_group((70.0, 3), paired_rows((0.25, 0.25, 0.25, 0.25))[:3])
+
+@pytest.mark.parametrize(
+    "field,value,message",
+    [
+        ("host_redshift", "nan", "non-finite observation values"),
+        ("true_distance_mpc", "inf", "non-finite observation values"),
+        ("observed_distance_mpc", "nan", "non-finite observation values"),
+        ("distance_sigma_mpc", "inf", "non-finite observation values"),
+        ("distance_sigma_mpc", "0", "non-positive distance uncertainty"),
+        ("distance_sigma_mpc", "-0.1", "non-positive distance uncertainty"),
+    ],
+)
+def test_paired_group_rejects_nonfinite_or_invalid_observation_values(field, value, message):
+    rows = paired_rows((0.25, 0.25, 0.25, 0.25))
+    rows[1][field] = value
+    with pytest.raises(ValueError, match=message):
+        MODULE.validate_paired_group((70.0, 3), rows)
