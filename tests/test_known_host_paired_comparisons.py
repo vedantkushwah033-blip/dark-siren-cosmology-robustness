@@ -18,15 +18,15 @@ def make_rows(replicates=100):
         for run in range(replicates):
             for noise in MODULE.NOISES:
                 # Same host quantities across noise levels; wider intervals at higher noise.
-                width = noise * 100
+                half_width = noise * 100
                 median = truth + (noise - 0.05)
                 rows.append({
                     "run": str(run), "seed": str(20261025 + run),
                     "true_h0": str(truth), "fractional_distance_error": str(noise),
                     "host_redshift": "0.03", "true_distance_mpc": str(299792.458 * 0.03 / truth),
                     "median": str(median),
-                    "lower_68": str(median - width), "upper_68": str(median + width),
-                    "lower_95": str(median - 2 * width), "upper_95": str(median + 2 * width),
+                    "lower_68": str(median - half_width), "upper_68": str(median + half_width),
+                    "lower_95": str(median - 2 * half_width), "upper_95": str(median + 2 * half_width),
                 })
     return rows
 
@@ -36,10 +36,10 @@ def test_analyze_emits_all_prespecified_paired_contrasts():
     assert len(results) == 9 * 3 * len(MODULE.METRICS)
     row = next(r for r in results if r["true_h0"] == 70.0
                and r["comparison_fractional_error"] == 0.10 and r["metric"] == "width_68")
-    assert row["mean_difference"] == pytest.approx(5.0)
+    assert row["mean_difference"] == pytest.approx(10.0)
     assert row["n_paired_replicates"] == 100
-    assert row["bootstrap_mean_difference_ci95_low"] == pytest.approx(5.0)
-    assert row["bootstrap_mean_difference_ci95_high"] == pytest.approx(5.0)
+    assert row["bootstrap_mean_difference_ci95_low"] == pytest.approx(10.0)
+    assert row["bootstrap_mean_difference_ci95_high"] == pytest.approx(10.0)
 
 
 def test_analyze_rejects_missing_pair_member():
