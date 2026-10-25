@@ -10,6 +10,7 @@ import csv
 import json
 import math
 import hashlib
+import os
 import importlib.metadata
 import platform
 from collections import defaultdict
@@ -219,6 +220,10 @@ def main() -> None:
         "pairing_checks": "host redshift, true distance, and standardized noise across four noise levels",
         "metadata_json_crosschecked": True,
         "source_simulator_commit": metadata.get("original_commit"),
+        "workflow_run_id": os.environ.get("GITHUB_RUN_ID"),
+        "workflow_commit_sha": os.environ.get("GITHUB_SHA"),
+        "workflow_ref": os.environ.get("GITHUB_REF"),
+        "auditor_script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "base_seed": base_seed,
         "prior": metadata["prior"],
         "python_version": platform.python_version(),
