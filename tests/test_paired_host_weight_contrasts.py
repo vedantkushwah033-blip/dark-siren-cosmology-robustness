@@ -100,7 +100,7 @@ def test_paired_host_weight_contrasts_complete_and_ordered(tmp_path):
     PAIR.write_csv(tmp_path / "paired_host_weight_contrasts.csv", aggregate)
     raw_path = tmp_path / "per_run.csv"
     raw_rows = list(csv.DictReader(raw_path.open(newline="", encoding="utf-8")))
-    raw_rows[0]["observed_distance"] = str(float(raw_rows[0]["observed_distance"]) + 0.1)
+    raw_rows[0]["observed_distance_mpc"] = str(float(raw_rows[0]["observed_distance_mpc"]) + 0.1)
     write_csv(raw_path, raw_rows)
     with pytest.raises(ValueError, match="input SHA-256 mismatch: per_run.csv"):
         AUDIT_INDEP.audit(tmp_path, seed=331, resamples=100)
