@@ -179,3 +179,15 @@ As a descriptive check against a misleading macro-average, I summarized the 12 c
 
 Bias and RMSE differences are in km s⁻¹ Mpc⁻¹; coverage differences are proportions. For broad uniform H₀, the 95% coverage contrast was also negative in all 12 cells (range −0.105 to −0.025). For broad log-uniform H₀, it was negative in 9 cells and positive in 3 (range −0.045 to +0.020). These cell-level signs strengthen the descriptive claim that the broad-support bias, RMSE, and 68% coverage effects are not driven by only one truth/noise setting in this design. They do not establish generality beyond this simulator or account for uncertainty in the choice of model.
 
+## Latest completed validation after regression-test strengthening
+
+**Successful calibration run:** [40186131023](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40186131023)  
+**Code and test commit:** `1df6f450ec3bfaae72044951b4cd4e30069dbee1`  
+**Artifact ID:** `12596377387`; GitHub-reported archive digest: `sha256:4637eafdbe0cf09ff4af3a4bcad7ba8b63fa20d243243c0bf932feda4daa3240`.
+
+This later full calibration run also passed, as did the three-version test matrix. The tests now explicitly check that vectorized bootstrap results match scalar calculations, repeated analyses with the same seed are deterministic, and missing or duplicated replicate blocks are rejected.
+
+I downloaded this run's artifact and compared its `paired_host_weight_contrasts.csv` with the artifact from run 40185998682. The files were **byte-for-byte identical**, and all 24 aggregate estimates and confidence-interval endpoints matched exactly. The audit again passed for 2,400 raw records and 96 summaries. Thus the final bootstrap implementation and strengthened tests are supported by a successful end-to-end calibration run at commit `1df6f450ec3bfaae72044951b4cd4e30069dbee1`.
+
+The repository head subsequently advanced through documentation-only commits that record these checks, the per-cell heterogeneity summary, and a consistent displayed coverage percentage. No analysis code changed after the successful calibration commit described here; the latest documentation-only head's test workflow is queued separately.
+
