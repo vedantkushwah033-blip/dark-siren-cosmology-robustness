@@ -39,25 +39,33 @@ def verify_artifact(root):
 
 
 def _paired_metrics(rows, indices, prefix, truth):
+    """Compute six paired contrasts for one draw or a matrix of bootstrap draws."""
     c, r = prefix + "correct", prefix + "reversed"
-    e0 = np.array([float(rows[i][c + "_median"]) - truth for i in indices])
-    e1 = np.array([float(rows[i][r + "_median"]) - truth for i in indices])
-    cov680 = np.array([int(rows[i][c + "_covered68"]) for i in indices])
-    cov681 = np.array([int(rows[i][r + "_covered68"]) for i in indices])
-    cov950 = np.array([int(rows[i][c + "_covered95"]) for i in indices])
-    cov951 = np.array([int(rows[i][r + "_covered95"]) for i in indices])
-    w680 = np.array([float(rows[i][c + "_upper68"]) - float(rows[i][c + "_lower68"]) for i in indices])
-    w681 = np.array([float(rows[i][r + "_upper68"]) - float(rows[i][r + "_lower68"]) for i in indices])
-    w950 = np.array([float(rows[i][c + "_upper95"]) - float(rows[i][c + "_lower95"]) for i in indices])
-    w951 = np.array([float(rows[i][r + "_upper95"]) - float(rows[i][r + "_lower95"]) for i in indices])
-    return np.array([
-        np.mean(e1 - e0),
-        np.sqrt(np.mean(e1**2)) - np.sqrt(np.mean(e0**2)),
-        np.mean(cov681 - cov680),
-        np.mean(cov951 - cov950),
-        np.mean(w681 - w680),
-        np.mean(w951 - w950),
-    ], dtype=float)
+    indices = np.asarray(indices, dtype=int)
+    e0_all = np.asarray([float(row[c + "_median"]) - truth for row in rows])
+    e1_all = np.asarray([float(row[r + "_median"]) - truth for row in rows])
+    cov680_all = np.asarray([int(row[c + "_covered68"]) for row in rows])
+    cov681_all = np.asarray([int(row[r + "_covered68"]) for row in rows])
+    cov950_all = np.asarray([int(row[c + "_covered95"]) for row in rows])
+    cov951_all = np.asarray([int(row[r + "_covered95"]) for row in rows])
+    w680_all = np.asarray([float(row[c + "_upper68"]) - float(row[c + "_lower68"]) for row in rows])
+    w681_all = np.asarray([float(row[r + "_upper68"]) - float(row[r + "_lower68"]) for row in rows])
+    w950_all = np.asarray([float(row[c + "_upper95"]) - float(row[c + "_lower95"]) for row in rows])
+    w951_all = np.asarray([float(row[r + "_upper95"]) - float(row[r + "_lower95"]) for row in rows])
+    e0, e1 = e0_all[indices], e1_all[indices]
+    cov680, cov681 = cov680_all[indices], cov681_all[indices]
+    cov950, cov951 = cov950_all[indices], cov951_all[indices]
+    w680, w681 = w680_all[indices], w681_all[indices]
+    w950, w951 = w950_all[indices], w951_all[indices]
+    axis = -1
+    return np.stack([
+        np.mean(e1 - e0, axis=axis),
+        np.sqrt(np.mean(e1**2, axis=axis)) - np.sqrt(np.mean(e0**2, axis=axis)),
+        np.mean(cov681 - cov680, axis=axis),
+        np.mean(cov951 - cov950, axis=axis),
+        np.mean(w681 - w680, axis=axis),
+        np.mean(w951 - w950, axis=axis),
+    ], axis=-1).astype(float)
 
 
 def analyze(rows, seed=20261031, resamples=4000):
@@ -90,10 +98,11 @@ def analyze(rows, seed=20261031, resamples=4000):
             for (truth, noise), cell in cells.items():
                 # Paired rows preserve the exact same simulated observation across arms.
                 point = _paired_metrics(cell, np.arange(len(cell)), prefix, truth)
-                boot = np.empty((resamples, len(METRICS)))
-                for b in range(resamples):
-                    ix = rng.integers(0, len(cell), len(cell))
-                    boot[b] = _paired_metrics(cell, ix, prefix, truth)
+                # Vectorize all bootstrap draws at once; this is numerically equivalent
+                # to resampling replicate rows independently within this cell, but avoids
+                # millions of repeated Python-level dictionary lookups.
+                indices = rng.integers(0, len(cell), size=(resamples, len(cell)))
+                boot = _paired_metrics(cell, indices, prefix, truth)
                 point_by_cell[(truth, noise)] = point
                 bootstrap_by_cell[(truth, noise)] = boot
                 row = {"true_H0": truth, "noise_fraction": noise,
