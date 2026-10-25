@@ -191,3 +191,20 @@ I downloaded this run's artifact and compared its `paired_host_weight_contrasts.
 
 The repository head subsequently advanced through documentation-only commits that record these checks, the per-cell heterogeneity summary, and a consistent displayed coverage percentage. No analysis code changed after the successful calibration commit described here; the latest documentation-only head's test workflow is queued separately.
 
+
+
+## Posterior-grid numerical convergence checks
+
+**Workflow:** [numerical diagnostics, run 40186240390](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40186240390)  
+**Code revision:** `2072d254f51069d89cc75bc7cdd45053b0917ca1)  
+**Environments:** Python 3.10, 3.11, and 3.12; all three numerical-diagnostic jobs completed successfully and uploaded result artifacts.
+
+The diagnostic separates numerical-grid effects from changes to the prior itself:
+
+- **Refining the grid on the same [50,90] prior:** increasing from 1,601 to 3,201 points changed the posterior median by about (1.5\times10^{-6}) and the 68%/95% interval endpoints by at most about (5.5\times10^{-6}) H₀ units in the reported baseline case.
+- **Widening only the computational grid while keeping the prior fixed at [50,90]:** posterior summaries agreed to floating-point precision (maximum displayed differences around (1.4\times10^{-14})). This is evidence that the computational grid bounds outside the prior support are not truncating the posterior in this case.
+- **Changing the prior support from [50,90] to [30,110]:** this is not a numerical-grid refinement. It materially changed the posterior: the reported median shifted from 70.42 to 68.20, posterior SD increased from 10.24 to 20.94, and the 95% interval widened from approximately [51.87, 88.76] to [31.72, 105.08]. Prior sensitivity is therefore much larger than the numerical-grid error in this example.
+- **Targeted upper-tail stress case:** for an injected H₀ of 52, reversed weights, and 3% noise, the absolute change in the 95% upper endpoint between consecutive grids fell from 0.106 (1,001 to 2,001 points) to 0.0243, 0.00601, 0.00148, 0.000373, and 0.0000929 as the grid was successively doubled up to 64,001 points. Simpson-versus-trapezoid posterior-area discrepancy also decreased from (3.38\times10^{-6}) to (8.25\times10^{-10}).
+
+These diagnostics support numerical stability for the tested examples, including a deliberately challenging upper-tail case. They do **not** prove uniform convergence for every possible observation, prior, or noise regime. The stress case also shows why reporting only a typical posterior is insufficient: upper-tail quantiles can converge more slowly than the median. Prior-support sensitivity is a separate modeling choice and must not be described as numerical error.
+
