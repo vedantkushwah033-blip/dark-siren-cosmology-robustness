@@ -168,3 +168,14 @@ I compared the paired-contrast CSV from this run with the preceding successful r
 
 The currently newer branch head includes documentation updates after this verified code commit. The scientific implementation itself was tested successfully at the code commit above; any subsequent code change should trigger another validation run.
 
+## Heterogeneity across the 12 truth/noise cells
+
+As a descriptive check against a misleading macro-average, I summarized the 12 cell-specific paired point estimates from the verified vectorized-run artifact (run 40185998682). These are ranges of cell estimates, not confidence intervals, and no multiplicity-adjusted cell-wise hypothesis tests are implied.
+
+| Prior support / measure | Bias difference range | RMSE difference range | 68% coverage difference range | Direction across cells |
+|---|---:|---:|---:|---|
+| Broad uniform H₀ | +15.78 to +65.19 | +12.35 to +48.94 | −0.415 to −0.235 | Bias/RMSE positive in 12/12; 68% coverage negative in 12/12 |
+| Broad log-uniform H₀ | +20.96 to +66.86 | +11.49 to +46.58 | −0.215 to −0.070 | Bias/RMSE positive in 12/12; 68% coverage negative in 12/12 |
+
+Bias and RMSE differences are in km s⁻¹ Mpc⁻¹; coverage differences are proportions. For broad uniform H₀, the 95% coverage contrast was also negative in all 12 cells (range −0.105 to −0.025). For broad log-uniform H₀, it was negative in 9 cells and positive in 3 (range −0.045 to +0.020). These cell-level signs strengthen the descriptive claim that the broad-support bias, RMSE, and 68% coverage effects are not driven by only one truth/noise setting in this design. They do not establish generality beyond this simulator or account for uncertainty in the choice of model.
+
