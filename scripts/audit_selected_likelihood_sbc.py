@@ -39,8 +39,16 @@ def audit(raw_path: str | Path, summary_path: str | Path) -> dict:
     prior = summary["h0_prior"]
     grid_meta = summary["posterior_grid"]
     lo, hi = float(prior["min"]), float(prior["max"])
-    if prior["distribution"] != "uniform" or lo != float(grid_meta["min"]) or hi != float(grid_meta["max"]):
+    if (
+        prior["distribution"] != "uniform"
+        or not np.isfinite([lo, hi]).all()
+        or not lo < hi
+        or lo != float(grid_meta["min"])
+        or hi != float(grid_meta["max"])
+    ):
         raise ValueError("prior and posterior-grid support metadata disagree")
+    if grid_meta.get("integration") != "trapezoidal":
+        raise ValueError("unsupported or missing posterior-grid integration metadata")
     protocol = summary.get("generation_protocol", {})
     expected_protocol = {
         "truth_draw": "once_per_replicate_from_declared_prior",
@@ -58,11 +66,22 @@ def audit(raw_path: str | Path, summary_path: str | Path) -> dict:
     weights = np.asarray(summary["host_weights"], dtype=float)
     if redshifts.ndim != 1 or weights.shape != redshifts.shape or len(redshifts) == 0:
         raise ValueError("invalid host-mixture metadata")
-    if np.any(weights < 0) or not np.isfinite(weights).all() or not np.isclose(weights.sum(), 1.0):
+    if not np.isfinite(redshifts).all() or np.any(redshifts <= 0):
+        raise ValueError("host redshifts must be finite and positive")
+    if (
+        np.any(weights < 0)
+        or not np.isfinite(weights).all()
+        or not np.isclose(weights.sum(), 1.0)
+    ):
         raise ValueError("host weights must be finite, non-negative, and sum to one")
     sigma = float(summary["distance_sigma_mpc"])
     dmin, dmax = map(float, summary["detection_interval_mpc_open"])
-    if not (np.isfinite(sigma) and sigma > 0 and 0 <= dmin < dmax):
+    if not (
+        np.isfinite(sigma)
+        and sigma > 0
+        and np.isfinite([dmin, dmax]).all()
+        and 0 <= dmin < dmax
+    ):
         raise ValueError("invalid noise or detection-interval metadata")
 
     # Replay the declared RNG protocol from the recorded seed. This verifies
