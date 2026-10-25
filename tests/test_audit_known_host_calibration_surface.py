@@ -326,3 +326,14 @@ def test_metadata_cell_validation_rejects_wrong_integer_count():
     metadata_cell["coverage_68_successes"] = 67
     with pytest.raises(ValueError, match="count coverage_68_successes mismatch"):
         MODULE.validate_metadata_cell_counts(metadata_cell, expected, (70.0, 0.1))
+
+
+def test_base_seed_validation_accepts_nonnegative_integer():
+    assert MODULE.validate_base_seed(20261025) == 20261025
+    assert MODULE.validate_base_seed(0) == 0
+
+
+@pytest.mark.parametrize("value", [-1, True, 1.0, "20261025", None])
+def test_base_seed_validation_rejects_negative_or_coercible_nonintegers(value):
+    with pytest.raises(ValueError, match="non-negative integer"):
+        MODULE.validate_base_seed(value)
