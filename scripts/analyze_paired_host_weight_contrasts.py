@@ -101,9 +101,10 @@ def analyze(rows, seed=20261031, resamples=4000):
             point_macro = np.mean([point_by_cell[k] for k in keys], axis=0)
             boot_macro = np.empty((resamples, len(METRICS)))
             for b in range(resamples):
-                boot_macro[b] = np.mean([
-                    bootstrap_by_cell[k][rng.integers(0, resamples)] for k in keys
-                ], axis=0)
+                # Each cell's b-th draw was independently resampled within that cell.
+                # Combine matching draw indices to form one stratified bootstrap replicate;
+                # do not randomly resample the already-generated bootstrap distributions.
+                boot_macro[b] = np.mean([bootstrap_by_cell[k][b] for k in keys], axis=0)
             for j, metric in enumerate(METRICS):
                 aggregate_results.append({
                     "prior_support": support, "prior_measure": measure, "metric": metric,
