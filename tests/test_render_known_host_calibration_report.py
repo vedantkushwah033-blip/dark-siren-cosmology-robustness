@@ -119,11 +119,28 @@ def test_report_refuses_audit_without_independent_posterior_reconstruction(tmp_p
 def test_report_rejects_non_nested_coverage_or_widths():
     rows, metadata = fixture_summary()
     rows[0]["coverage_68"] = "0.96"
+    rows[0]["coverage_68_wilson_low"] = "0.90"
+    rows[0]["coverage_68_wilson_high"] = "0.985"
     with pytest.raises(ValueError, match="68% empirical coverage exceeds 95% coverage"):
         MODULE.validate_summary(rows, metadata)
     rows, metadata = fixture_summary()
     rows[0]["mean_width_68"] = "11.0"
     with pytest.raises(ValueError, match="mean 68% interval width exceeds 95% width"):
+        MODULE.validate_summary(rows, metadata)
+
+
+def test_report_rejects_non_integer_coverage_count():
+    rows, metadata = fixture_summary()
+    rows[0]["coverage_68"] = "0.685"
+    with pytest.raises(ValueError, match="not an integer success count"):
+        MODULE.validate_summary(rows, metadata)
+
+
+def test_report_rejects_rmse_below_absolute_mean_error():
+    rows, metadata = fixture_summary()
+    rows[0]["mean_median_error"] = "0.5"
+    rows[0]["rmse_median"] = "0.4"
+    with pytest.raises(ValueError, match="RMSE is smaller than the absolute mean error"):
         MODULE.validate_summary(rows, metadata)
 
 
