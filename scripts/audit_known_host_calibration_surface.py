@@ -293,8 +293,10 @@ def main() -> None:
             raise ValueError(f"duplicate raw replicate key: {key}")
         if not 0 <= key[2] < args.replicates:
             raise ValueError(f"replicate index outside requested range: {key}")
-        if row_seed != base_seed + key[2]:
-            raise ValueError(f"seed does not match replicate index for {key}")
+        truth_index = expected_truths.index(key[0]) if key[0] in expected_truths else -1
+        expected_seed = base_seed + truth_index * args.replicates + key[2]
+        if row_seed != expected_seed:
+            raise ValueError(f"seed does not match truth-stratified replicate index for {key}")
         seen.add(key)
         grouped[key[:2]].append(row)
         paired[(key[0], key[2])].append(row)
