@@ -73,6 +73,8 @@ jobs:
           --replicates "$REPLICATES"
           --seed "$BASE_SEED"
           --bootstrap-resamples 4000
+      - name: Independently audit paired comparison table and bootstrap intervals
+        run: python scripts/audit_known_host_paired_comparisons.py results/known-host-calibration-surface
       - name: Render boundary-aware calibration report
         run: |
           python scripts/render_known_host_calibration_report.py results/known-host-calibration-surface
