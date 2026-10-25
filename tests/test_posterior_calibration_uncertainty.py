@@ -53,7 +53,7 @@ def test_cell_uncertainty_has_all_truth_noise_and_inference_arms(tmp_path):
     UNC.write_cell_report(report, rows)
     lines = report.read_text(encoding="utf-8").splitlines()
     assert lines[0].startswith("# Truth/noise-specific")
-    assert sum(line.startswith("| ") for line in lines) == len(rows) + 2
+    assert sum(line.startswith("|") for line in lines) == len(rows) + 2
 
 def test_cell_uncertainty_refuses_non_audited_artifact(tmp_path):
     make_audited_fixture(tmp_path)
