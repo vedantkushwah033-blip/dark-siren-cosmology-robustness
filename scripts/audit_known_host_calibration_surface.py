@@ -122,10 +122,6 @@ def recompute(rows: list[dict[str, str]]) -> dict:
         expected_sigma = frac * float(row["true_distance_mpc"])
         close(float(row["distance_sigma_mpc"]), expected_sigma, f"distance sigma row {i}")
         close(float(row["true_distance_mpc"]), 299792.458 * float(row["host_redshift"]) / truth, f"low-z truth distance row {i}", tol=1e-7)
-        independently_reconstructed = recompute_posterior_from_record(row)
-        for field, value in independently_reconstructed.items():
-            close(float(row[field]), value, f"independent posterior {field} row {i}", tol=2e-6)
-
     err = [x - truth for x in medians]
     mean_err = [x - truth for x in means]
     c68 = sum(a <= truth <= b for a, b in zip(l68, u68))
@@ -176,6 +172,10 @@ def main() -> None:
     expected_count = 9 * 4 * args.replicates
     if len(raw) != expected_count:
         raise ValueError(f"expected {expected_count} raw rows, found {len(raw)}")
+    for i, row in enumerate(raw):
+        independently_reconstructed = recompute_posterior_from_record(row)
+        for field, value in independently_reconstructed.items():
+            close(float(row[field]), value, f"independent posterior {field} raw row {i}", tol=2e-6)
     if len(stored) != 36 or len(metadata.get("cells", [])) != 36:
         raise ValueError("expected 36 cell summaries in CSV and JSON metadata")
     if metadata.get("raw_row_count") != expected_count or metadata.get("cell_count") != 36:
