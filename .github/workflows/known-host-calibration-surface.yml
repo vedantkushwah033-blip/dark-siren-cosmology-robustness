@@ -40,17 +40,22 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev]"
       - name: Run known-host calibration surface
+        env:
+          REPLICATES: ${{ inputs.replicates }}
+          BASE_SEED: ${{ inputs.seed }}
         run: |
           python scripts/run_known_host_calibration_surface.py \
             --original-dir original-project \
-            --replicates "${{ inputs.replicates }}" \
-            --seed "${{ inputs.seed }}" \
+            --replicates "$REPLICATES" \
+            --seed "$BASE_SEED" \
             --output-dir results/known-host-calibration-surface
       - name: Independently recompute summaries and audit pairing
+        env:
+          REPLICATES: ${{ inputs.replicates }}
         run: >-
           python scripts/audit_known_host_calibration_surface.py
           results/known-host-calibration-surface
-          --replicates "${{ inputs.replicates }}"
+          --replicates "$REPLICATES"
       - name: Upload raw results, summaries, and metadata
         uses: actions/upload-artifact@v4
         with:
