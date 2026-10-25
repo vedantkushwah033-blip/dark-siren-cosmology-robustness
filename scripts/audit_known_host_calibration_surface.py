@@ -134,8 +134,14 @@ def main() -> None:
         raise ValueError("expected 36 cell summaries in CSV and JSON metadata")
     if metadata.get("raw_row_count") != expected_count or metadata.get("cell_count") != 36:
         raise ValueError("metadata row/cell counts do not match the design")
-    if metadata.get("prior") != [50.0, 90.0]:
-        raise ValueError("unexpected prior in metadata")
+    if metadata.get("replicates_per_cell") != args.replicates:
+        raise ValueError("metadata replicate count does not match the requested design")
+    if metadata.get("prior") != [50.0, 90.0] or metadata.get("posterior_grid_points") != 1601:
+        raise ValueError("unexpected prior or posterior grid in metadata")
+    if metadata.get("original_repository") != "vedantkushwah033-blip/bayesian-dark-siren-cosmology":
+        raise ValueError("unexpected source simulator repository")
+    if metadata.get("original_commit") != "b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f":
+        raise ValueError("source simulator commit does not match the pinned protocol")
     expected_truths = [50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0, 90.0]
     expected_noise = [0.05, 0.10, 0.15, 0.20]
     if metadata.get("true_h0_values") != expected_truths or metadata.get("fractional_distance_errors") != expected_noise:
