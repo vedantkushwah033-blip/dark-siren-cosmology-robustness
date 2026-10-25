@@ -68,3 +68,26 @@ def test_independent_audit_reconstructs_raw_pits_and_rejects_tampering(tmp_path)
 
     with pytest.raises(ValueError, match="PIT mismatch"):
         audit(raw_path, summary_path)
+
+    # Restore untampered raw rows and independently challenge the summary.
+    with raw_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    altered_summary = dict(summary)
+    altered_summary["pit_mean"] = float(summary["pit_mean"]) + 0.05
+    summary_path.write_text(json.dumps(altered_summary), encoding="utf-8")
+    with pytest.raises(ValueError, match="summary field pit_mean"):
+        audit(raw_path, summary_path)
+
+    # A duplicate replicate must also be rejected even if the summary count
+    # is edited to match the longer file.
+    duplicate_rows = [dict(row) for row in rows] + [dict(rows[0])]
+    with raw_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(duplicate_rows[0]))
+        writer.writeheader()
+        writer.writerows(duplicate_rows)
+    altered_summary["n_replicates"] = len(duplicate_rows)
+    summary_path.write_text(json.dumps(altered_summary), encoding="utf-8")
+    with pytest.raises(ValueError, match="duplicate replicate id"):
+        audit(raw_path, summary_path)
