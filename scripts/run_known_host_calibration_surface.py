@@ -205,7 +205,7 @@ def main() -> None:
         "prior": [PRIOR_MIN, PRIOR_MAX],
         "posterior_grid_points": len(grid),
         "seed": args.seed,
-        "paired_design": "Same catalogue seed, host selection, and standardized distance-noise draw across error levels within each truth/replicate.",
+        "paired_design": "Within each truth/replicate, reuse the catalogue seed, host selection, and standardized distance-noise draw across four error levels; use disjoint seed blocks across truths: base_seed + truth_index * replicates + replicate_index.",
         "interpretation_warning": "Synthetic one-host diagnostic under the matched low-redshift distance model. Boundary truths are intentionally included to expose prior-edge effects; not a real GW measurement.",
         "cells": summaries,
     }
