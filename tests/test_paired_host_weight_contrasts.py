@@ -63,7 +63,7 @@ def test_paired_host_weight_contrasts_complete_and_ordered(tmp_path):
     PAIR.write_report(tmp_path / "report.md", aggregate)
     assert len(list(csv.DictReader((tmp_path / "cell.csv").open()))) == 48
     assert len(list(csv.DictReader((tmp_path / "aggregate.csv").open()))) == 24
-    assert "equal-cell average" in (tmp_path / "report.md").read_text().lower()
+    assert "equal-weight average" in (tmp_path / "report.md").read_text().lower()
 
 def test_paired_contrasts_refuse_non_audited_or_modified_artifact(tmp_path):
     make_audited_fixture(tmp_path)
