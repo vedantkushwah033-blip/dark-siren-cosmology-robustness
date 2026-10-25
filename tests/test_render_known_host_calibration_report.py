@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -76,3 +77,34 @@ def test_report_rejects_metadata_count_mismatch():
     metadata["raw_row_count"] = 1
     with pytest.raises(ValueError, match="metadata counts"):
         MODULE.validate_summary(rows, metadata)
+
+
+def test_report_requires_matching_audit_pass_and_exact_input_hashes(tmp_path):
+    metadata = {"original_commit": "abc123"}
+    contents = {
+        "per_run_results.csv": b"raw\n",
+        "cell_summary.csv": b"summary\n",
+        "cell_summary.json": b"{}\n",
+    }
+    hashes = {}
+    for name, data in contents.items():
+        (tmp_path / name).write_bytes(data)
+        hashes[name] = hashlib.sha256(data).hexdigest()
+    audit = {
+        "audit": "PASS",
+        "posterior_summaries_independently_reconstructed_from_raw_observations": True,
+        "raw_records": 3600,
+        "summary_cells": 36,
+        "source_simulator_commit": "abc123",
+        "input_sha256": hashes,
+    }
+    MODULE.validate_audit_report(tmp_path, audit, metadata, 3600)
+    (tmp_path / "cell_summary.csv").write_text("tampered\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="changed since independent audit"):
+        MODULE.validate_audit_report(tmp_path, audit, metadata, 3600)
+
+
+def test_report_refuses_audit_without_independent_posterior_reconstruction(tmp_path):
+    audit = {"audit": "PASS"}
+    with pytest.raises(ValueError, match="did not independently reconstruct"):
+        MODULE.validate_audit_report(tmp_path, audit, {"original_commit": "abc123"}, 3600)
