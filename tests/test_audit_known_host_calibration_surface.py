@@ -380,8 +380,8 @@ def test_protocol_metadata_validator_accepts_valid_design():
         ("prior", [0.0, 90.0], "unexpected prior"),
         ("posterior_grid_points", 1600, "unexpected prior"),
         ("original_commit", "un-pinned", "pinned protocol"),
-        ("true_h0_values", [50, 55, 60, 65, 70, 75, 80, 85, 90], "truth grid"),
-        ("fractional_distance_errors", [0.05, 0.1, 0.15, 0.2], "noise grid"),
+        ("true_h0_values", [50, 55, 60, 65, 70, 75, 80, 85, 86], "truth grid"),
+        ("fractional_distance_errors", [0.05, 0.10, 0.15, 0.21], "noise grid"),
     ],
 )
 def test_protocol_metadata_validator_rejects_malformed_or_changed_design(field, value, message):
