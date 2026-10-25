@@ -68,3 +68,25 @@ def test_auditor_independently_recomputes_coverage_and_errors():
 def test_auditor_rejects_disagreement_in_summary_numbers():
     with pytest.raises(ValueError, match="stored"):
         MODULE.close(0.5, 0.6, "coverage")
+
+
+def test_auditor_rejects_credible_interval_that_excludes_its_median():
+    rows = [synthetic_row(0, 70.0, 0.0)]
+    rows[0]["lower_68"] = "71.0"
+    rows[0]["upper_68"] = "72.0"
+    with pytest.raises(ValueError, match="median"):
+        MODULE.recompute(rows)
+
+
+def test_auditor_rejects_nonpositive_distance_uncertainty():
+    rows = [synthetic_row(0, 70.0, 0.0)]
+    rows[0]["distance_sigma_mpc"] = "0.0"
+    with pytest.raises(ValueError):
+        MODULE.recompute(rows)
+
+
+def test_auditor_rejects_nonfinite_raw_distance():
+    rows = [synthetic_row(0, 70.0, 0.0)]
+    rows[0]["observed_distance_mpc"] = "nan"
+    with pytest.raises(ValueError, match="non-finite"):
+        MODULE.recompute(rows)
