@@ -53,6 +53,9 @@ def test_paired_host_weight_contrasts_complete_and_ordered(tmp_path):
     assert vectorized.shape == (2, len(PAIR.METRICS))
     np.testing.assert_allclose(vectorized, np.asarray(scalar))
     cells, aggregate = PAIR.analyze(raw, seed=331, resamples=100)
+    cells_again, aggregate_again = PAIR.analyze(raw, seed=331, resamples=100)
+    assert cells_again == cells
+    assert aggregate_again == aggregate
     assert reps == 100
     assert len(cells) == 4 * 3 * 2 * 2
     assert len(aggregate) == 2 * 2 * len(PAIR.METRICS)
@@ -86,3 +89,21 @@ def test_paired_contrasts_refuse_non_audited_or_modified_artifact(tmp_path):
     meta_path.write_text(json.dumps(meta))
     with pytest.raises(ValueError, match="independently audited"):
         PAIR.verify_artifact(tmp_path)
+
+
+def test_paired_contrasts_reject_incomplete_replicate_blocks(tmp_path):
+    make_audited_fixture(tmp_path)
+    raw, _ = PAIR.verify_artifact(tmp_path)
+    # Drop one observation from only one truth/noise cell: the design is unbalanced.
+    damaged = [row for row in raw if not (
+        float(row["true_H0"]) == RUN.TRUTHS[0]
+        and float(row["noise_fraction"]) == RUN.NOISES[0]
+        and int(row["replicate"]) == 99
+    )]
+    with pytest.raises(ValueError, match="unequal replicate counts|missing, duplicate"):
+        PAIR.analyze(damaged, seed=331, resamples=100)
+
+    # A duplicated replicate ID must be rejected rather than silently reweighted.
+    duplicated = list(raw) + [dict(raw[0])]
+    with pytest.raises(ValueError, match="missing, duplicate"):
+        PAIR.analyze(duplicated, seed=331, resamples=100)
