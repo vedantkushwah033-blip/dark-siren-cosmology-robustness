@@ -46,6 +46,13 @@ def validate_base_seed(value: object) -> int:
     return value
 
 
+def parse_nonnegative_integer(value: object, label: str) -> int:
+    """Parse an integer-valued CSV field without silently truncating/coercing it."""
+    if not isinstance(value, str) or not value.isascii() or not value.isdigit():
+        raise ValueError(f"{label} must be a non-negative integer")
+    return int(value)
+
+
 def validate_metadata_cell_counts(metadata_cell: dict, expected: dict, key: tuple[float, float]) -> None:
     """Reject malformed JSON count/flag types before comparing their values."""
     for field in ("n", "coverage_68_successes", "coverage_95_successes"):
@@ -229,12 +236,14 @@ def main() -> None:
     paired: dict[tuple[float, int], list[dict[str, str]]] = defaultdict(list)
     base_seed = validate_base_seed(metadata["seed"])
     for row in raw:
-        key = (float(row["true_h0"]), float(row["fractional_distance_error"]), int(row["run"]))
+        run_index = parse_nonnegative_integer(row["run"], "raw replicate index")
+        row_seed = parse_nonnegative_integer(row["seed"], "raw replicate seed")
+        key = (float(row["true_h0"]), float(row["fractional_distance_error"]), run_index)
         if key in seen:
             raise ValueError(f"duplicate raw replicate key: {key}")
         if not 0 <= key[2] < args.replicates:
             raise ValueError(f"replicate index outside requested range: {key}")
-        if int(row["seed"]) != base_seed + key[2]:
+        if row_seed != base_seed + key[2]:
             raise ValueError(f"seed does not match replicate index for {key}")
         seen.add(key)
         grouped[key[:2]].append(row)
