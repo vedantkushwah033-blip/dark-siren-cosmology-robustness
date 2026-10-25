@@ -155,3 +155,16 @@ The broad-support results show a pronounced degradation in point-estimation erro
 The narrow-support effects are much smaller and depend on the prior measure and metric. For example, narrow uniform H₀ shows a positive 68% coverage contrast, while the 95% coverage interval reaches zero. These are descriptive, conditional Monte Carlo results—not universal claims about host weighting and not an observational H₀ measurement.
 
 The successful run and artifact establish reproducibility for the stated synthetic design and commit. They do not address realistic gravitational-wave likelihoods, catalogue selection, peculiar velocities, detector selection, or model misspecification. The next milestone is to verify the newer vectorized implementation on the current branch head and then prioritize a separately prespecified extension that addresses a specific omitted physical or selection effect.
+
+## Vectorized bootstrap reproduction check
+
+**Successful calibration run:** [40185998682](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40185998682)  
+**Code commit tested:** `a4cb98307adcf78eb760aadf7ff255263a60feec`  
+**Artifact ID:** `12595443879`; GitHub-reported archive digest: `sha256:efd813266502c8daf25a70028b690bbb489355919e171542f3c430ed3253633d`.
+
+This run exercised the vectorized paired-bootstrap implementation and completed successfully. Its test workflow also passed. I downloaded and independently inspected the artifact: the audit again reports PASS, the 2,400 raw observations and 96 summaries are present, and the 24 aggregate paired contrasts were generated.
+
+I compared the paired-contrast CSV from this run with the preceding successful run at commit `70dad55ea35e6f40c77bd32b4fc693b45bf7e090`. All 24 aggregate rows matched in point estimates and both interval endpoints to a maximum absolute floating-point difference of **1.78 × 10⁻¹⁵**. The CSV bytes differ because of insignificant floating-point formatting/rounding, but the numeric results are equivalent at machine precision. This confirms that vectorization improved the calculation path without materially changing the statistical results for the fixed seed and design.
+
+The currently newer branch head includes documentation updates after this verified code commit. The scientific implementation itself was tested successfully at the code commit above; any subsequent code change should trigger another validation run.
+
