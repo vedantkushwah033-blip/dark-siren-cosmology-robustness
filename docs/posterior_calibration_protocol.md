@@ -9,7 +9,7 @@ In a deliberately small two-host low-redshift model, how do host-weight misspeci
 ## Fixed design
 
 - Injected H₀ values: 55, 65, 75, and 85 km s⁻¹ Mpc⁻¹.
-- Fractional distance-noise settings: 3%, 10%, and 20%.
+- Noise-scale settings: 3%, 10%, and 20% of the distance expected for the higher-redshift host (z₂ = 0.04). These are reference-scale settings, not the realized fractional uncertainty for both hosts.
 - Two possible host redshifts: z₁ = 0.02 and z₂ = 0.04.
 - Data-generating host probabilities: (0.7, 0.3).
 - Inference weight arms: correct (0.7, 0.3) and reversed (0.3, 0.7).
@@ -19,7 +19,7 @@ In a deliberately small two-host low-redshift model, how do host-weight misspeci
 - Fixed seed: 20261030 for generation; 20261031 is the base seed for deterministic bootstrap analyses.
 - Posterior grid: 2,401 equally spaced points from 10 to 250 km s⁻¹ Mpc⁻¹, restricted to the selected prior support.
 
-For each truth/noise cell, distance uncertainty is set to noise_fraction × c × z₂ / H₀_truth. A host is sampled from the fixed data-generating probabilities, and a Gaussian distance observation is drawn around c × z_host / H₀_truth; nonpositive simulated distances are redrawn. The exact same raw observation is evaluated under all eight inference arms. The inference likelihood is a two-component Gaussian mixture in observed distance.
+For each truth/noise cell, distance uncertainty is set to `noise_fraction × c × z₂ / H₀_truth`. A host is sampled from the fixed data-generating probabilities, and a Gaussian distance observation is drawn around `c × z_host / H₀_truth`; nonpositive simulated distances are redrawn. Because z₁ = z₂/2 while the same sigma is used for both hosts, the realized fractional standard deviation is `noise_fraction` for z₂ and `2 × noise_fraction` for z₁. Interpret the noise column as a reference-scale parameter, not a host-independent fractional error. The exact same raw observation is evaluated under all eight inference arms. The inference likelihood is a two-component Gaussian mixture in observed distance.
 
 ## Primary outputs
 
