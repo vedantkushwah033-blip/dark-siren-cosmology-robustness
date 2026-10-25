@@ -50,8 +50,13 @@ def validate_summary(rows: list[dict[str, str]], metadata: dict) -> None:
             low, high = float(row[f"coverage_{level}_wilson_low"]), float(row[f"coverage_{level}_wilson_high"])
             if not 0 <= low <= coverage <= high <= 1:
                 raise ValueError(f"invalid coverage/Wilson interval for {level}% in cell {key}")
+            successes = coverage * n
+            if not math.isclose(successes, round(successes), rel_tol=0.0, abs_tol=1e-8):
+                raise ValueError(f"{level}% coverage is not an integer success count divided by n in cell {key}")
         if float(row["rmse_median"]) < 0 or float(row["mean_width_68"]) <= 0 or float(row["mean_width_95"]) <= 0:
             raise ValueError(f"invalid RMSE or interval widths in summary cell {key}")
+        if float(row["rmse_median"]) + 1e-12 < abs(float(row["mean_median_error"])):
+            raise ValueError(f"RMSE is smaller than the absolute mean error in summary cell {key}")
         edge_fraction = float(row["median_near_prior_edge_fraction"])
         if not 0.0 <= edge_fraction <= 1.0:
             raise ValueError(f"invalid near-prior-edge fraction in summary cell {key}")
