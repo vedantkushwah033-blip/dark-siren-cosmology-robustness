@@ -53,6 +53,34 @@ def parse_nonnegative_integer(value: object, label: str) -> int:
     return int(value)
 
 
+def validate_metadata_seed_and_design(metadata: dict, replicates: int) -> int:
+    """Validate protocol metadata types and fixed design before auditing records."""
+    if not isinstance(metadata, dict):
+        raise ValueError("metadata must be a JSON object")
+    seed = validate_base_seed(metadata.get("seed"))
+    if isinstance(metadata.get("raw_row_count"), bool) or not isinstance(metadata.get("raw_row_count"), int):
+        raise ValueError("metadata raw_row_count must be an integer")
+    if isinstance(metadata.get("cell_count"), bool) or not isinstance(metadata.get("cell_count"), int):
+        raise ValueError("metadata cell_count must be an integer")
+    if isinstance(metadata.get("replicates_per_cell"), bool) or not isinstance(metadata.get("replicates_per_cell"), int):
+        raise ValueError("metadata replicates_per_cell must be an integer")
+    if metadata["raw_row_count"] != 9 * 4 * replicates or metadata["cell_count"] != 36:
+        raise ValueError("metadata row/cell counts do not match the design")
+    if metadata["replicates_per_cell"] != replicates:
+        raise ValueError("metadata replicate count does not match the requested design")
+    if metadata.get("prior") != [50.0, 90.0] or metadata.get("posterior_grid_points") != 1601:
+        raise ValueError("unexpected prior or posterior grid in metadata")
+    if metadata.get("original_repository") != "vedantkushwaha033-blip/bayesian-dark-siren-cosmology":
+        raise ValueError("unexpected source simulator repository")
+    if metadata.get("original_commit") != "b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f":
+        raise ValueError("source simulator commit does not match the pinned protocol")
+    if metadata.get("true_h0_values") != [50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0, 90.0]:
+        raise ValueError("metadata truth grid does not match the prespecified protocol")
+    if metadata.get("fractional_distance_errors") != [0.05, 0.10, 0.15, 0.20]:
+        raise ValueError("metadata noise grid does not match the prespecified protocol")
+    return seed
+
+
 def validate_metadata_cell_counts(metadata_cell: dict, expected: dict, key: tuple[float, float]) -> None:
     """Reject malformed JSON count/flag types before comparing their values."""
     for field in ("n", "coverage_68_successes", "coverage_95_successes"):
@@ -216,25 +244,13 @@ def main() -> None:
             close(float(row[field]), value, f"independent posterior {field} raw row {i}", tol=2e-6)
     if len(stored) != 36 or len(metadata.get("cells", [])) != 36:
         raise ValueError("expected 36 cell summaries in CSV and JSON metadata")
-    if metadata.get("raw_row_count") != expected_count or metadata.get("cell_count") != 36:
-        raise ValueError("metadata row/cell counts do not match the design")
-    if metadata.get("replicates_per_cell") != args.replicates:
-        raise ValueError("metadata replicate count does not match the requested design")
-    if metadata.get("prior") != [50.0, 90.0] or metadata.get("posterior_grid_points") != 1601:
-        raise ValueError("unexpected prior or posterior grid in metadata")
-    if metadata.get("original_repository") != "vedantkushwah033-blip/bayesian-dark-siren-cosmology":
-        raise ValueError("unexpected source simulator repository")
-    if metadata.get("original_commit") != "b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f":
-        raise ValueError("source simulator commit does not match the pinned protocol")
+    base_seed = validate_metadata_seed_and_design(metadata, args.replicates)
     expected_truths = [50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0, 90.0]
     expected_noise = [0.05, 0.10, 0.15, 0.20]
-    if metadata.get("true_h0_values") != expected_truths or metadata.get("fractional_distance_errors") != expected_noise:
-        raise ValueError("metadata design grid does not match the prespecified protocol")
 
     grouped: dict[tuple[float, float], list[dict[str, str]]] = defaultdict(list)
     seen = set()
     paired: dict[tuple[float, int], list[dict[str, str]]] = defaultdict(list)
-    base_seed = validate_base_seed(metadata["seed"])
     for row in raw:
         run_index = parse_nonnegative_integer(row["run"], "raw replicate index")
         row_seed = parse_nonnegative_integer(row["seed"], "raw replicate seed")
