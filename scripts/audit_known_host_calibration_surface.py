@@ -39,6 +39,41 @@ def read_csv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
+
+def recompute_posterior_from_record(row: dict[str, str]) -> dict[str, float]:
+    """Independently reconstruct one-host posterior summaries from raw data."""
+    import numpy as np
+
+    grid = np.linspace(50.0, 90.0, 1601)
+    z = float(row["host_redshift"])
+    observed = float(row["observed_distance_mpc"])
+    sigma = float(row["distance_sigma_mpc"])
+    if not all(math.isfinite(v) for v in (z, observed, sigma)) or sigma <= 0:
+        raise ValueError("invalid raw observation for posterior reconstruction")
+    model_distance = 299792.458 * z / grid
+    log_likelihood = -0.5 * ((observed - model_distance) / sigma) ** 2
+    log_likelihood -= float(np.max(log_likelihood))
+    posterior = np.exp(log_likelihood)
+    area = float(np.trapezoid(posterior, grid))
+    if not math.isfinite(area) or area <= 0:
+        raise ValueError("independent posterior normalization failed")
+    posterior = posterior / area
+    mean = float(np.trapezoid(grid * posterior, grid))
+    variance = float(np.trapezoid((grid - mean) ** 2 * posterior, grid))
+    sd = math.sqrt(max(variance, 0.0))
+    cdf = np.concatenate([[0.0], np.cumsum((posterior[1:] + posterior[:-1]) * np.diff(grid) / 2.0)])
+    cdf = cdf / cdf[-1]
+    return {
+        "mean": mean,
+        "median": float(np.interp(0.5, cdf, grid)),
+        "posterior_sd": sd,
+        "lower_68": float(np.interp(0.16, cdf, grid)),
+        "upper_68": float(np.interp(0.84, cdf, grid)),
+        "lower_95": float(np.interp(0.025, cdf, grid)),
+        "upper_95": float(np.interp(0.975, cdf, grid)),
+    }
+
+
 def recompute(rows: list[dict[str, str]]) -> dict:
     n = len(rows)
     if n == 0:
@@ -87,6 +122,9 @@ def recompute(rows: list[dict[str, str]]) -> dict:
         expected_sigma = frac * float(row["true_distance_mpc"])
         close(float(row["distance_sigma_mpc"]), expected_sigma, f"distance sigma row {i}")
         close(float(row["true_distance_mpc"]), 299792.458 * float(row["host_redshift"]) / truth, f"low-z truth distance row {i}", tol=1e-7)
+        independently_reconstructed = recompute_posterior_from_record(row)
+        for field, value in independently_reconstructed.items():
+            close(float(row[field]), value, f"independent posterior {field} row {i}", tol=2e-6)
 
     err = [x - truth for x in medians]
     mean_err = [x - truth for x in means]
@@ -233,6 +271,7 @@ def main() -> None:
         "replicates_per_cell": args.replicates,
         "paired_truth_replicate_groups": len(paired),
         "summary_metrics_independently_recomputed": len(fields),
+        "posterior_summaries_independently_reconstructed_from_raw_observations": True,
         "pairing_checks": "host redshift, true distance, and standardized noise across four noise levels",
         "metadata_json_crosschecked": True,
         "source_simulator_commit": metadata.get("original_commit"),
