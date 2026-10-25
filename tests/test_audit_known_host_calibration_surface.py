@@ -425,3 +425,39 @@ def test_auditor_rejects_true_distance_inconsistent_with_low_z_truth():
     )
     with pytest.raises(ValueError, match="low-z truth distance"):
         MODULE.recompute(rows)
+
+def paired_rows(noise_by_fraction):
+    truth = 70.0
+    z = 0.03
+    distance = 299792.458 * z / truth
+    rows = []
+    for frac, noise in zip((0.05, 0.10, 0.15, 0.20), noise_by_fraction):
+        sigma = frac * distance
+        rows.append({
+            "host_redshift": str(z),
+            "true_distance_mpc": str(distance),
+            "observed_distance_mpc": str(distance + sigma * noise),
+            "distance_sigma_mpc": str(sigma),
+        })
+    return rows
+
+
+def test_paired_group_accepts_shared_host_and_standardized_noise():
+    MODULE.validate_paired_group((70.0, 3), paired_rows((-1.25, -1.25, -1.25, -1.25)))
+
+
+def test_paired_group_rejects_unpaired_standardized_noise():
+    with pytest.raises(ValueError, match="standardized noise is not paired"):
+        MODULE.validate_paired_group((70.0, 3), paired_rows((-1.25, -1.25, 0.5, -1.25)))
+
+
+def test_paired_group_rejects_unpaired_host_population():
+    rows = paired_rows((0.25, 0.25, 0.25, 0.25))
+    rows[2]["host_redshift"] = str(float(rows[2]["host_redshift"]) + 0.001)
+    with pytest.raises(ValueError, match="host/population not paired"):
+        MODULE.validate_paired_group((70.0, 3), rows)
+
+
+def test_paired_group_rejects_missing_uncertainty_level():
+    with pytest.raises(ValueError, match="has 3 noise levels"):
+        MODULE.validate_paired_group((70.0, 3), paired_rows((0.25, 0.25, 0.25, 0.25))[:3])
