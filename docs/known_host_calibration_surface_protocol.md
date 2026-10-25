@@ -41,12 +41,13 @@ Before interpreting results:
 - Run the focused tests and the complete Python 3.10/3.11/3.12 test matrix.
 - Confirm exactly 9 × 4 × replicates raw records and 36 summary cells.
 - Confirm all numeric fields are finite; posterior summaries and interval endpoints remain within prior support; standard deviations and interval widths are positive; 68% intervals are nested within 95% intervals.
-- Recompute coverage, Wilson intervals, errors, RMSE, interval widths, and edge fractions from the raw records in an independent audit script or notebook. Compare with the stored summaries.
+- Independently reconstruct every per-run posterior from the raw host redshift, observed distance, distance uncertainty, stated likelihood, uniform prior, and 1,601-point grid. Compare posterior mean, median, standard deviation, and all four interval endpoints with the stored per-run values.
+- Recompute coverage, Wilson intervals, errors, RMSE, interval widths, and edge fractions from the raw records in the independent audit script. Compare with both CSV and JSON summaries; deliberately corrupted posterior summaries must fail the audit.
 - Check that all 36 cells have the expected replicate count and no duplicate (truth, noise, replicate) keys.
 - Verify seed pairing by comparing catalogue/host information and standardized noise across the four noise levels within each truth/replicate.
-- Record artifact name, workflow URL, source commits, artifact SHA-256, dependency versions, and any excluded or failed runs.
+- Record artifact name, workflow URL, source commits, input-file SHA-256 hashes, auditor-script hash, dependency versions, and any excluded or failed runs.
 
-The workflow's embedded checks are a first-pass guardrail, not a substitute for independent post-download recomputation.
+The independent auditor reconstructs posterior summaries from raw observations without importing the source simulator's posterior implementation, then recomputes cell-level metrics and cross-checks CSV/JSON summaries. An end-to-end regression test corrupts a posterior median and verifies that the audit rejects the artifact. The workflow's embedded checks are still a software guardrail, not a substitute for scientific review.
 
 ## Interpretation limits
 
