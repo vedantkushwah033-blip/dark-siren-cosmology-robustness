@@ -240,7 +240,7 @@ def main() -> None:
             for filename in ("per_run_results.csv", "cell_summary.csv", "cell_summary.json")
         },
     }
-    for package in ("numpy", "scipy"):
+    for package in ("numpy", "scipy", "pandas", "matplotlib", "pytest"):
         try:
             audit_report[f"{package}_version"] = importlib.metadata.version(package)
         except importlib.metadata.PackageNotFoundError:
