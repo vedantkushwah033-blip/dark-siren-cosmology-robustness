@@ -116,6 +116,17 @@ def test_report_refuses_audit_without_independent_posterior_reconstruction(tmp_p
         MODULE.validate_audit_report(tmp_path, audit, {"original_commit": "abc123"}, 3600)
 
 
+def test_report_rejects_non_nested_coverage_or_widths():
+    rows, metadata = fixture_summary()
+    rows[0]["coverage_68"] = "0.96"
+    with pytest.raises(ValueError, match="68% empirical coverage exceeds 95% coverage"):
+        MODULE.validate_summary(rows, metadata)
+    rows, metadata = fixture_summary()
+    rows[0]["mean_width_68"] = "11.0"
+    with pytest.raises(ValueError, match="mean 68% interval width exceeds 95% width"):
+        MODULE.validate_summary(rows, metadata)
+
+
 def test_report_rejects_invalid_near_prior_edge_fraction():
     rows, metadata = fixture_summary()
     rows[0]["median_near_prior_edge_fraction"] = "1.1"
