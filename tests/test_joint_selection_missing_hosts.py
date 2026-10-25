@@ -1,5 +1,8 @@
 import numpy as np
 import pytest
+from scipy.integrate import trapezoid
+from scipy.special import ndtr
+from scipy.stats import norm
 
 from dark_siren_robustness.selection import (
     detection_efficiency_h0,
@@ -72,3 +75,43 @@ def test_invalid_missing_component_rejected(kwargs):
             "prior_max": 100.0}
     with pytest.raises(ValueError):
         posterior_h0_selected_with_missing_hosts(**base, **kwargs)
+
+
+def test_no_event_selection_limit_matches_catalogue_only_posterior():
+    from dark_siren_robustness.hardened_inference import posterior_h0
+
+    baseline = posterior_h0(
+        H0, [0.02, 0.04], DISTANCE, 15.0,
+        weights=[0.7, 0.3], prior_min=40.0, prior_max=100.0,
+    )
+    selected = posterior_h0_selected(
+        H0, [0.02, 0.04], DISTANCE, 15.0, 1.0e6,
+        weights=[0.7, 0.3], prior_min=40.0, prior_max=100.0,
+    )
+    np.testing.assert_allclose(selected, baseline, rtol=1e-10, atol=1e-12)
+
+
+def test_selected_posterior_matches_independent_direct_mixture_and_quadrature():
+    # Independently evaluate p(d | H0) / P(detection | H0), then normalize
+    # with trapezoidal quadrature over the prior support.
+    z = np.array([0.02, 0.04])
+    weights = np.array([0.7, 0.3])
+    sigma = 15.0
+    lower, upper = 50.0, 260.0
+    grid = H0
+    means = 299792.458 * z[None, :] / grid[:, None]
+    likelihood = np.sum(
+        weights[None, :] * norm.pdf(DISTANCE, loc=means, scale=sigma), axis=1
+    )
+    beta_hosts = ndtr((upper - means) / sigma) - ndtr((lower - means) / sigma)
+    beta = beta_hosts @ weights
+    support = (grid >= 40.0) & (grid <= 100.0)
+    expected = np.zeros_like(grid)
+    expected[support] = likelihood[support] / beta[support]
+    expected[support] /= trapezoid(expected[support], grid[support])
+
+    actual = posterior_h0_selected(
+        grid, z, DISTANCE, sigma, upper, weights=weights,
+        prior_min=40.0, prior_max=100.0, detection_distance_min=lower,
+    )
+    np.testing.assert_allclose(actual, expected, rtol=2e-10, atol=1e-12)
