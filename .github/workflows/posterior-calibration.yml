@@ -6,9 +6,11 @@ on:
     paths:
       - "scripts/run_posterior_calibration.py"
       - "scripts/audit_posterior_calibration.py"
+      - "scripts/audit_posterior_calibration_generation.py"
       - "scripts/analyze_posterior_calibration_uncertainty.py"
       - "scripts/analyze_paired_host_weight_contrasts.py"
       - "tests/test_posterior_calibration.py"
+      - "tests/test_posterior_calibration_generation.py"
       - "tests/test_posterior_calibration_uncertainty.py"
       - "tests/test_paired_host_weight_contrasts.py"
       - ".github/workflows/posterior-calibration.yml"
@@ -46,6 +48,8 @@ jobs:
             --replicates 200 \
             --seed 20261030 \
             --output-dir results/posterior-calibration
+      - name: Independently reproduce seeded raw observations and provenance
+        run: python scripts/audit_posterior_calibration_generation.py results/posterior-calibration
       - name: Independently reconstruct posterior summaries and calibration metrics
         run: python scripts/audit_posterior_calibration.py results/posterior-calibration
       - name: Quantify Monte Carlo uncertainty with stratified bootstrap
