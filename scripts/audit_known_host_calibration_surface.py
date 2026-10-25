@@ -235,11 +235,19 @@ def validate_paired_group(key: tuple[float, int], group: list[dict[str, str]]) -
         raise ValueError(f"paired truth/replicate {key} has {len(group)} noise levels")
     hosts = [float(r["host_redshift"]) for r in group]
     distances = [float(r["true_distance_mpc"]) for r in group]
+    observed = [float(r["observed_distance_mpc"]) for r in group]
+    sigmas = [float(r["distance_sigma_mpc"]) for r in group]
+    all_values = hosts + distances + observed + sigmas
+    if not all(math.isfinite(value) for value in all_values):
+        raise ValueError(f"paired truth/replicate {key} contains non-finite observation values")
+    if any(sigma <= 0.0 for sigma in sigmas):
+        raise ValueError(f"paired truth/replicate {key} has non-positive distance uncertainty")
     residuals = [
-        (float(r["observed_distance_mpc"]) - float(r["true_distance_mpc"]))
-        / float(r["distance_sigma_mpc"])
-        for r in group
+        (obs - distance) / sigma
+        for obs, distance, sigma in zip(observed, distances, sigmas)
     ]
+    if not all(math.isfinite(value) for value in residuals):
+        raise ValueError(f"paired truth/replicate {key} has non-finite standardized noise")
     if max(hosts) - min(hosts) > 1e-12 or max(distances) - min(distances) > 1e-9:
         raise ValueError(f"host/population not paired across noise levels for {key}")
     if max(residuals) - min(residuals) > 1e-9:
