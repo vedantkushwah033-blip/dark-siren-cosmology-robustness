@@ -6,7 +6,9 @@ on:
     paths:
       - "scripts/run_posterior_calibration.py"
       - "scripts/audit_posterior_calibration.py"
+      - "scripts/analyze_posterior_calibration_uncertainty.py"
       - "tests/test_posterior_calibration.py"
+      - "tests/test_posterior_calibration_uncertainty.py"
       - ".github/workflows/posterior-calibration.yml"
   pull_request:
     paths:
@@ -40,6 +42,8 @@ jobs:
             --output-dir results/posterior-calibration
       - name: Independently reconstruct posterior summaries and calibration metrics
         run: python scripts/audit_posterior_calibration.py results/posterior-calibration
+      - name: Quantify Monte Carlo uncertainty with stratified bootstrap
+        run: python scripts/analyze_posterior_calibration_uncertainty.py results/posterior-calibration --seed 20261031 --bootstrap-resamples 4000
       - name: Upload audited posterior calibration results
         uses: actions/upload-artifact@v4
         with:
