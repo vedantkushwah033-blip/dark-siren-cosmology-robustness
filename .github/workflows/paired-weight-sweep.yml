@@ -12,7 +12,9 @@ on:
   pull_request:
     paths:
       - "scripts/run_paired_weight_sweep.py"
+      - "scripts/audit_paired_weight_sweep.py"
       - "tests/test_paired_weight_sweep.py"
+      - "tests/test_audit_paired_weight_sweep.py"
       - ".github/workflows/paired-weight-sweep.yml"
   workflow_dispatch:
 
