@@ -229,6 +229,23 @@ def recompute(rows: list[dict[str, str]]) -> dict:
     }
 
 
+def validate_paired_group(key: tuple[float, int], group: list[dict[str, str]]) -> None:
+    """Validate common host and standardized-noise draws across uncertainty levels."""
+    if len(group) != 4:
+        raise ValueError(f"paired truth/replicate {key} has {len(group)} noise levels")
+    hosts = [float(r["host_redshift"]) for r in group]
+    distances = [float(r["true_distance_mpc"]) for r in group]
+    residuals = [
+        (float(r["observed_distance_mpc"]) - float(r["true_distance_mpc"]))
+        / float(r["distance_sigma_mpc"])
+        for r in group
+    ]
+    if max(hosts) - min(hosts) > 1e-12 or max(distances) - min(distances) > 1e-9:
+        raise ValueError(f"host/population not paired across noise levels for {key}")
+    if max(residuals) - min(residuals) > 1e-9:
+        raise ValueError(f"standardized noise is not paired across noise levels for {key}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("output_dir", nargs="?", default="results/known-host-calibration-surface")
@@ -276,15 +293,7 @@ def main() -> None:
         if len(cell) != args.replicates:
             raise ValueError(f"cell {key} has {len(cell)} records, expected {args.replicates}")
     for key, group in paired.items():
-        if len(group) != 4:
-            raise ValueError(f"paired truth/replicate {key} has {len(group)} noise levels")
-        hosts = [float(r["host_redshift"]) for r in group]
-        distances = [float(r["true_distance_mpc"]) for r in group]
-        residuals = [(float(r["observed_distance_mpc"]) - float(r["true_distance_mpc"])) / float(r["distance_sigma_mpc"]) for r in group]
-        if max(hosts) - min(hosts) > 1e-12 or max(distances) - min(distances) > 1e-9:
-            raise ValueError(f"host/population not paired across noise levels for {key}")
-        if max(residuals) - min(residuals) > 1e-9:
-            raise ValueError(f"standardized noise is not paired across noise levels for {key}")
+        validate_paired_group(key, group)
 
     stored_by_key = {(float(r["true_h0"]), float(r["fractional_distance_error"])): r for r in stored}
     if len(stored_by_key) != 36:
