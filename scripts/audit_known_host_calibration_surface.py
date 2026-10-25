@@ -112,6 +112,8 @@ def recompute(rows: list[dict[str, str]]) -> dict:
             raise ValueError(f"credible intervals invalid, fail to contain the median, or lie outside prior in cell record {i}")
         if float(row["posterior_sd"]) <= 0:
             raise ValueError(f"non-positive posterior SD in cell record {i}")
+        if float(row["width_68"]) <= 0 or float(row["width_95"]) <= 0:
+            raise ValueError(f"non-positive credible interval width in cell record {i}")
         if float(row["host_redshift"]) < 0.005 or float(row["host_redshift"]) > 0.08:
             raise ValueError(f"host redshift outside the prespecified catalogue range in cell record {i}")
         if float(row["true_distance_mpc"]) <= 0 or float(row["distance_sigma_mpc"]) <= 0:
