@@ -117,4 +117,24 @@ For broad log-uniform H₀, the corresponding differences were +38.82 in bias (9
 
 Under the narrow support, the effect is smaller and metric-dependent. For narrow uniform H₀, reversed weights increased bias by +1.67 (95% interval [+1.55, +1.79]) and RMSE by +0.277 (95% interval [+0.140, +0.405]); 68% coverage increased by 0.0204 (95% interval [+0.0113, +0.0296]). For narrow log-uniform H₀, bias increased by +1.71 (95% interval [+1.59, +1.83]), while the RMSE contrast interval included zero. Thus, this simulation does not support the simplistic claim that reversed weights reduce coverage under every prior: the narrow uniform configuration is a counterexample for 68% coverage.
 
-These intervals are conditional Monte Carlo intervals under this synthetic design. They do not include uncertainty about model structure, realistic GW likelihoods, catalogue selection, or astrophysical populations. The values above were calculated from the already audited artifact; the new automated workflow and tests are being run against the updated branch so the same outputs can be reproduced from the checked-in script.
+These intervals are conditional Monte Carlo intervals under this synthetic design. They do not include uncertainty about model structure, realistic GW likelihoods, catalogue selection, or astrophysical populations. The figures above were exploratory values from the previously audited artifact. A fresh run against the current branch head has now completed successfully; its artifact was downloaded and the generated paired-contrast files inspected. Current-head results are recorded below.
+
+
+## Latest-head paired-contrast verification
+
+**Verified run:** [Posterior-level H₀ calibration, run 40179435921](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40179435921)  
+**Commit:** `8856feb4c092ce1acb7baa11e649e8cec0a398ca`  
+**Artifact ID:** `12593417024` (SHA-256 digest reported by GitHub: `8c08822c465b656d21f800ac504263edf4bc87394895b671b04b31f6786bb45a`).
+
+I downloaded and inspected this artifact from the current branch head. The calibration job, independent reconstruction audit, stratified-bootstrap uncertainty step, paired-contrast step, and artifact upload all completed successfully. The audit reports PASS for 2,400 raw observations, 96 summary rows, reconstructed posterior summaries and calibration metrics, and verified hashes. The paired outputs contain 48 cell-level rows (12 truth/noise cells × four prior configurations) and 24 aggregate rows (four prior configurations × six metrics). The aggregate estimates use 200 paired replicates per cell and 4,000 bootstrap resamples.
+
+| Prior support | Prior measure | Bias difference | RMSE difference | 68% coverage difference | 95% coverage difference |
+|---|---|---:|---:|---:|---:|
+| [20,220] | Uniform H₀ | +34.669 [34.318, 34.999] | +24.800 [23.943, 25.635] | −0.2979 [−0.3196, −0.2779] | −0.06583 [−0.07667, −0.05542] |
+| [20,220] | Log-uniform H₀ | +38.818 [38.428, 39.212] | +23.684 [22.666, 24.695] | −0.1396 [−0.1608, −0.1188] | −0.01375 [−0.02208, −0.00542] |
+| [50,90] | Uniform H₀ | +1.668 [1.550, 1.794] | +0.277 [0.142, 0.401] | +0.02042 [+0.01167, +0.03000] | −0.00208 [−0.00458, +0.00042] |
+| [50,90] | Log-uniform H₀ | +1.709 [1.587, 1.831] | +0.083 [−0.059, +0.221] | −0.02000 [−0.03000, −0.01000] | +0.00042 [−0.00168, +0.00292] |
+
+Entries are reversed minus correct weighting; bias and RMSE are in km s⁻¹ Mpc⁻¹, and coverage differences are proportions (multiply by 100 for percentage points). Bracketed ranges are stratified paired-bootstrap 95% intervals. The table reproduces the qualitative conclusions from the exploratory artifact and gives the exact current-run estimates. In particular, broad-support misspecification is associated with substantially higher bias/RMSE and lower coverage in this toy model, while narrow-support effects are smaller and metric-dependent. The narrow-uniform 68% coverage difference is positive, and the narrow-log-uniform RMSE and both narrow-support 95% coverage contrasts have intervals spanning zero.
+
+The workflow’s green status and the artifact inspection establish reproducibility of this synthetic experiment at the stated commit; they do **not** validate the model against real gravitational-wave observations. The next scientific milestone remains an independently checked realistic-data analysis or a clearly bounded extension of the synthetic data-generating process, not treating this result as an observational H₀ measurement.
