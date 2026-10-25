@@ -91,3 +91,15 @@ def test_independent_audit_reconstructs_raw_pits_and_rejects_tampering(tmp_path)
     summary_path.write_text(json.dumps(altered_summary), encoding="utf-8")
     with pytest.raises(ValueError, match="duplicate replicate id"):
         audit(raw_path, summary_path)
+
+    # The protocol itself is part of the provenance contract.
+    with raw_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    invalid_protocol = dict(summary)
+    invalid_protocol["generation_protocol"] = dict(summary["generation_protocol"])
+    invalid_protocol["generation_protocol"]["truth_draw"] = "redraw_after_rejection"
+    summary_path.write_text(json.dumps(invalid_protocol), encoding="utf-8")
+    with pytest.raises(ValueError, match="generation protocol metadata"):
+        audit(raw_path, summary_path)
