@@ -196,3 +196,52 @@ def test_auditor_rejects_unprespecified_noise_level():
     rows[0]["fractional_distance_error"] = "0.12"
     with pytest.raises(ValueError, match="unexpected fractional"):
         MODULE.recompute(rows)
+
+
+def test_independent_posterior_matches_separate_scipy_reference():
+    import numpy as np
+    from scipy.stats import norm
+
+    row = synthetic_row(0, 70.0, 1.25)
+    row["observed_distance_mpc"] = str(float(row["true_distance_mpc"]) * 1.13)
+    reconstructed = MODULE.recompute_posterior_from_record(row)
+
+    # Separate reference implementation using the simulator's normal-PDF
+    # likelihood form rather than the auditor's log-likelihood calculation.
+    grid = np.linspace(50.0, 90.0, 1601)
+    predicted_distance = 299792.458 * float(row["host_redshift"]) / grid
+    likelihood = norm.pdf(
+        float(row["observed_distance_mpc"]),
+        loc=predicted_distance,
+        scale=float(row["distance_sigma_mpc"]),
+    )
+    likelihood /= np.trapezoid(likelihood, grid)
+    mean = float(np.trapezoid(grid * likelihood, grid))
+    sd = float(np.sqrt(np.trapezoid((grid - mean) ** 2 * likelihood, grid)))
+    cdf = np.concatenate([[0.0], np.cumsum((likelihood[1:] + likelihood[:-1]) * np.diff(grid) / 2)])
+    cdf /= cdf[-1]
+    reference = {
+        "mean": mean,
+        "median": float(np.interp(0.5, cdf, grid)),
+        "posterior_sd": sd,
+        "lower_68": float(np.interp(0.16, cdf, grid)),
+        "upper_68": float(np.interp(0.84, cdf, grid)),
+        "lower_95": float(np.interp(0.025, cdf, grid)),
+        "upper_95": float(np.interp(0.975, cdf, grid)),
+    }
+    for field, expected in reference.items():
+        assert reconstructed[field] == pytest.approx(expected, rel=2e-6, abs=2e-6)
+
+
+def test_auditor_rejects_host_redshift_outside_protocol_range():
+    rows = [synthetic_row(0, 70.0, 0.0)]
+    rows[0]["host_redshift"] = "0.2"
+    with pytest.raises(ValueError, match="host redshift"):
+        MODULE.recompute(rows)
+
+
+def test_auditor_rejects_distance_sigma_inconsistent_with_noise_design():
+    rows = [synthetic_row(0, 70.0, 0.0)]
+    rows[0]["distance_sigma_mpc"] = str(float(rows[0]["distance_sigma_mpc"]) * 1.1)
+    with pytest.raises(ValueError, match="distance sigma"):
+        MODULE.recompute(rows)
