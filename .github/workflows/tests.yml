@@ -43,4 +43,5 @@ jobs:
             artifacts/targeted_grid_convergence.csv
             artifacts/selected_likelihood_sbc/pit_replicates.csv
             artifacts/selected_likelihood_sbc/pit_summary.json
+            artifacts/selected_likelihood_sbc/audit_report.json
           if-no-files-found: error
