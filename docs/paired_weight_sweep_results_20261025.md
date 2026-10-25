@@ -1,8 +1,8 @@
 # Paired host-weight sweep with prior-support factor — results (2026-10-25)
 
 **Status:** completed and independently audited.  
-**Workflow:** [run 40168617988](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40168617988).  
-**Artifact:** [paired-weight-sweep-results ZIP](https://api.github.com/repos/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/artifacts/12588991501/zip).  
+**Workflow:** [run 40168837084](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40168837084).  
+**Artifact:** [paired-weight-sweep-results ZIP](https://api.github.com/repos/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/artifacts/12589821737/zip).  
 **Audit:** PASS; 9,000 generated observations, 18 prior-support/design summaries, 36,000 posterior fits, and 4,000 paired bootstrap resamples per metric/cell. The independent auditor reconstructed all summary estimates and bootstrap intervals and verified the raw/summary SHA-256 hashes.  
 **Protocol:** [paired-weight sweep protocol](paired_weight_sweep_protocol.md).
 
