@@ -21,7 +21,7 @@ def make_rows(replicates=100):
                 half_width = noise * 100
                 median = truth + (noise - 0.05)
                 rows.append({
-                    "run": str(run), "seed": str(20261025 + run),
+                    "run": str(run), "seed": str(20261025 + truth_index * replicates + run),
                     "true_h0": str(truth), "fractional_distance_error": str(noise),
                     "host_redshift": "0.03", "true_distance_mpc": str(299792.458 * 0.03 / truth),
                     "median": str(median),
