@@ -65,8 +65,13 @@ def audit(raw_path: str | Path, summary_path: str | Path) -> dict:
     if not (np.isfinite(sigma) and sigma > 0 and 0 <= dmin < dmax):
         raise ValueError("invalid noise or detection-interval metadata")
 
+    # Replay the declared RNG protocol from the recorded seed. This verifies
+    # the actual simulated truth, host, observed distance, and rejection count,
+    # not merely that those values look plausible.
+    rng = np.random.default_rng(int(summary["seed"]))
     seen = set()
     pits = []
+    truths = []
     for row in rows:
         replicate = int(row["replicate"])
         seed = int(row["seed"])
@@ -87,6 +92,29 @@ def audit(raw_path: str | Path, summary_path: str | Path) -> dict:
             raise ValueError("host redshift does not match host index")
         if not dmin < distance < dmax or attempts < 1:
             raise ValueError("raw observation violates detection or attempt constraints")
+
+        # Exact deterministic replay catches altered raw data and confirms the
+        # fixed-truth rejection-sampling protocol used by the generator.
+        expected_truth = float(rng.uniform(lo, hi))
+        expected_attempts = 0
+        while True:
+            expected_attempts += 1
+            expected_host = int(rng.choice(len(redshifts), p=weights))
+            expected_mean = 299792.458 * redshifts[expected_host] / expected_truth
+            expected_distance = float(rng.normal(expected_mean, sigma))
+            if dmin < expected_distance < dmax:
+                break
+            if expected_attempts > 1_000_000:
+                raise ValueError("deterministic replay exceeded rejection-sampling safety limit")
+        if (
+            truth != expected_truth
+            or host != expected_host
+            or distance != expected_distance
+            or attempts != expected_attempts
+        ):
+            raise ValueError(f"generation replay mismatch at replicate {replicate}")
+        truths.append(truth)
+
         if not 0.0 <= pit_recorded <= 1.0:
             raise ValueError("recorded PIT outside [0, 1]")
 
@@ -128,7 +156,13 @@ def audit(raw_path: str | Path, summary_path: str | Path) -> dict:
     expected_se = float(np.std(pits, ddof=1) / np.sqrt(n)) if n > 1 else 0.0
     expected_variance = float(np.var(pits, ddof=1)) if n > 1 else 0.0
     ks = kstest(pits, "uniform")
+    truth_prior_ks = kstest((np.asarray(truths) - lo) / (hi - lo), "uniform")
+    expected_truth_mean = float(np.mean(truths))
     checks = [
+        ("truth_prior_ks_statistic", float(truth_prior_ks.statistic)),
+        ("truth_prior_ks_p_value_descriptive_only", float(truth_prior_ks.pvalue)),
+        ("truth_prior_mean", expected_truth_mean),
+        ("truth_prior_mean_expected", float((lo + hi) / 2.0)),
         ("pit_mean", expected_mean),
         ("pit_mean_monte_carlo_se", expected_se),
         ("pit_variance", expected_variance),
