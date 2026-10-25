@@ -153,7 +153,7 @@ def audit(root):
                         "ci95_low": lo, "ci95_high": hi,
                         "bootstrap_resamples": boots, "bootstrap_seed": boot_seed,
                     })
-                    cell_index += 1
+                cell_index += 1
     if len(expected) != len(summaries):
         raise ValueError("summary count mismatch")
     numeric = (
