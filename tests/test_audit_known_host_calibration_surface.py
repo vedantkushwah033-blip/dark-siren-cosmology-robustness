@@ -279,3 +279,50 @@ def test_independent_posterior_rejects_nonfinite_observed_distance():
     row["observed_distance_mpc"] = "inf"
     with pytest.raises(ValueError, match="invalid raw observation"):
         MODULE.recompute_posterior_from_record(row)
+
+
+def test_metadata_cell_count_validation_accepts_exact_json_types():
+    expected = {
+        "n": 100,
+        "coverage_68_successes": 68,
+        "coverage_95_successes": 95,
+        "truth_on_prior_boundary": False,
+    }
+    metadata_cell = dict(expected)
+    MODULE.validate_metadata_cell_counts(metadata_cell, expected, (70.0, 0.1))
+
+
+@pytest.mark.parametrize(
+    "field,value,message",
+    [
+        ("n", True, "must be an integer"),
+        ("coverage_68_successes", 68.0, "must be an integer"),
+        ("coverage_95_successes", "95", "must be an integer"),
+        ("truth_on_prior_boundary", "false", "must be boolean"),
+        ("truth_on_prior_boundary", 0, "must be boolean"),
+    ],
+)
+def test_metadata_cell_validation_rejects_coerced_json_types(field, value, message):
+    expected = {
+        "n": 100,
+        "coverage_68_successes": 68,
+        "coverage_95_successes": 95,
+        "truth_on_prior_boundary": False,
+    }
+    metadata_cell = dict(expected)
+    metadata_cell[field] = value
+    with pytest.raises(ValueError, match=message):
+        MODULE.validate_metadata_cell_counts(metadata_cell, expected, (70.0, 0.1))
+
+
+def test_metadata_cell_validation_rejects_wrong_integer_count():
+    expected = {
+        "n": 100,
+        "coverage_68_successes": 68,
+        "coverage_95_successes": 95,
+        "truth_on_prior_boundary": False,
+    }
+    metadata_cell = dict(expected)
+    metadata_cell["coverage_68_successes"] = 67
+    with pytest.raises(ValueError, match="count coverage_68_successes mismatch"):
+        MODULE.validate_metadata_cell_counts(metadata_cell, expected, (70.0, 0.1))
