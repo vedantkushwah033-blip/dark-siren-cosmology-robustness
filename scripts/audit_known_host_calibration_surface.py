@@ -121,6 +121,8 @@ def main() -> None:
     parser.add_argument("output_dir", nargs="?", default="results/known-host-calibration-surface")
     parser.add_argument("--replicates", type=int, required=True)
     args = parser.parse_args()
+    if not 100 <= args.replicates <= 2000:
+        parser.error("--replicates must be between 100 and 2000")
     out = Path(args.output_dir)
     raw = read_csv(out / "per_run_results.csv")
     stored = read_csv(out / "cell_summary.csv")
