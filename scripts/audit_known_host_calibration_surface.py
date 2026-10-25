@@ -116,6 +116,8 @@ def recompute(rows: list[dict[str, str]]) -> dict:
             raise ValueError(f"non-positive credible interval width in cell record {i}")
         if float(row["host_redshift"]) < 0.005 or float(row["host_redshift"]) > 0.08:
             raise ValueError(f"host redshift outside the prespecified catalogue range in cell record {i}")
+        if float(row["observed_distance_mpc"]) <= 0:
+            raise ValueError(f"non-positive observed distance in cell record {i}")
         if float(row["true_distance_mpc"]) <= 0 or float(row["distance_sigma_mpc"]) <= 0:
             raise ValueError(f"non-positive true distance or distance uncertainty in cell record {i}")
         close(float(row["width_68"]), float(row["upper_68"]) - float(row["lower_68"]), f"width_68 row {i}")
