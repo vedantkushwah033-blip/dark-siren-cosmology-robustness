@@ -219,3 +219,16 @@ After the numerical-diagnostics workflow completed on commit `fc1405263d64d1af4f
 - All three archives contained four posterior-grid stability rows and seven targeted-convergence rows, with the expected 22 and 16 columns, respectively.
 
 The observed cross-version differences are at floating-point roundoff scale and do not affect the reported convergence pattern. This comparison is an artifact-level cross-version check, separate from the unit tests and workflow success status. It supports numerical reproducibility for these diagnostic cases; it does not establish universal convergence or astrophysical validity.
+
+
+## Independent paired-contrast reconstruction audit (workflow run 40214297911)
+
+**Workflow:** [successful end-to-end calibration and independent paired-contrast audit](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40214297911)
+**Tested code commit:** `a866e33e394ce112ca058bf007ef84aea11e69a7`
+**Artifact ID:** `12606229596` ([download ZIP](https://api.github.com/repos/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/artifacts/12606229596/zip)).
+
+The workflow completed successfully after adding `scripts/audit_paired_host_weight_contrasts.py`. This auditor does not import the primary contrast-analysis module. It independently reconstructs the 48 truth/noise-cell contrast rows and 24 aggregate contrast rows directly from the audited raw posterior records, including the 4,000-resample stratified paired-bootstrap intervals, then compares them with the generated CSVs.
+
+I downloaded and inspected the actual artifact. `generation_audit.json`, `audit_report.json`, and `paired_contrast_audit.json` all record `PASS`. The paired audit confirms 2,400 raw records, all 12 truth/noise cells, all 48 cell-level contrasts, all 24 aggregate contrasts, verified input hashes, and reconstruction of every paired point estimate and bootstrap interval.
+
+This establishes a stronger reproducibility chain for the declared synthetic experiment. It does not validate the toy model against real gravitational-wave data or establish astrophysical validity. The latest completed calibration run tested the calibration code and workflow at the commit listed above; later commits changed the general test workflow and README, not the numerical calibration implementation.
