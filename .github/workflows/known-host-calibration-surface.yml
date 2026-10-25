@@ -7,7 +7,11 @@ on:
     branches:
       - fix/known-host-wilson-edge-bounds
     paths:
+      - .github/workflows/known-host-calibration-surface.yml
       - scripts/run_known_host_calibration_surface.py
+      - scripts/analyze_known_host_paired_comparisons.py
+      - scripts/audit_known_host_paired_comparisons.py
+      - tests/test_audit_known_host_paired_comparisons.py
   workflow_dispatch:
     inputs:
       replicates:
