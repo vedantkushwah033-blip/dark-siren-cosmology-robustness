@@ -41,6 +41,15 @@ def audit(raw_path: str | Path, summary_path: str | Path) -> dict:
     lo, hi = float(prior["min"]), float(prior["max"])
     if prior["distribution"] != "uniform" or lo != float(grid_meta["min"]) or hi != float(grid_meta["max"]):
         raise ValueError("prior and posterior-grid support metadata disagree")
+    protocol = summary.get("generation_protocol", {})
+    expected_protocol = {
+        "truth_draw": "once_per_replicate_from_declared_prior",
+        "selection_conditioning": "rejection_sample_host_and_distance_conditional_on_fixed_truth",
+        "acceptance_rule": "detection_distance_min < observed_distance < detection_distance_max",
+        "rng": "numpy.random.default_rng (PCG64 default bit generator)",
+    }
+    if protocol != expected_protocol:
+        raise ValueError("generation protocol metadata missing or inconsistent")
     grid_size = int(grid_meta["points"])
     if grid_size < 2:
         raise ValueError("posterior grid must have at least two points")
@@ -166,7 +175,7 @@ def main():
     result = audit(args.raw, args.summary)
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+    output_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(result, indent=2, sort_keys=True))
     print(f"wrote {output_path}")
 
