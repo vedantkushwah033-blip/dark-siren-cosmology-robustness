@@ -88,6 +88,23 @@ def test_paired_host_weight_contrasts_complete_and_ordered(tmp_path):
     assert independent["cell_contrast_rows_reconstructed"] == 48
     assert independent["aggregate_contrast_rows_reconstructed"] == 24
 
+    # The independent auditor must reject a modified aggregate result.
+    altered = list(aggregate)
+    altered[0] = dict(altered[0])
+    altered[0]["equal_cell_mean_difference"] += 0.01
+    PAIR.write_csv(tmp_path / "paired_host_weight_contrasts.csv", altered)
+    with pytest.raises(ValueError, match="paired aggregate contrasts mismatch"):
+        AUDIT_INDEP.audit(tmp_path, seed=331, resamples=100)
+
+    # It must also reject altered raw data even if the contrast CSVs are intact.
+    PAIR.write_csv(tmp_path / "paired_host_weight_contrasts.csv", aggregate)
+    raw_path = tmp_path / "per_run.csv"
+    raw_rows = list(csv.DictReader(raw_path.open(newline="", encoding="utf-8")))
+    raw_rows[0]["observed_distance"] = str(float(raw_rows[0]["observed_distance"]) + 0.1)
+    write_csv(raw_path, raw_rows)
+    with pytest.raises(ValueError, match="input SHA-256 mismatch: per_run.csv"):
+        AUDIT_INDEP.audit(tmp_path, seed=331, resamples=100)
+
 def test_paired_contrasts_refuse_non_audited_or_modified_artifact(tmp_path):
     make_audited_fixture(tmp_path)
     meta_path = tmp_path / "run_metadata.json"
