@@ -245,3 +245,16 @@ def test_auditor_rejects_distance_sigma_inconsistent_with_noise_design():
     rows[0]["distance_sigma_mpc"] = str(float(rows[0]["distance_sigma_mpc"]) * 1.1)
     with pytest.raises(ValueError, match="distance sigma"):
         MODULE.recompute(rows)
+
+
+@pytest.mark.parametrize("truth", [50.0, 90.0])
+def test_independent_posterior_respects_prior_at_boundary_truths(truth):
+    row = synthetic_row(0, truth, 0.0)
+    row["true_h0"] = str(truth)
+    row["true_distance_mpc"] = str(299792.458 * float(row["host_redshift"]) / truth)
+    row["distance_sigma_mpc"] = str(0.2 * float(row["true_distance_mpc"]))
+    row["observed_distance_mpc"] = row["true_distance_mpc"]
+    result = MODULE.recompute_posterior_from_record(row)
+    assert 50.0 <= result["lower_95"] <= result["lower_68"] <= result["median"]
+    assert result["median"] <= result["upper_68"] <= result["upper_95"] <= 90.0
+    assert result["posterior_sd"] > 0.0
