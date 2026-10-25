@@ -120,21 +120,38 @@ Under the narrow support, the effect is smaller and metric-dependent. For narrow
 These intervals are conditional Monte Carlo intervals under this synthetic design. They do not include uncertainty about model structure, realistic GW likelihoods, catalogue selection, or astrophysical populations. The figures above were exploratory values from the previously audited artifact. A fresh run against the current branch head has now completed successfully; its artifact was downloaded and the generated paired-contrast files inspected. Current-head results are recorded below.
 
 
-## Latest-head paired-contrast verification
+## Latest completed paired-contrast artifact verification
 
-**Verified run:** [Posterior-level H₀ calibration, run 40179435921](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40179435921)  
-**Commit:** `8856feb4c092ce1acb7baa11e649e8cec0a398ca`  
-**Artifact ID:** `12593417024` (SHA-256 digest reported by GitHub: `8c08822c465b656d21f800ac504263edf4bc87394895b671b04b31f6786bb45a`).
+**Verified run:** [Posterior-level H₀ calibration, run 40185764559](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40185764559)  
+**Commit:** `70dad55ea35e6f40c77bd32b4fc693b45bf7e090`  
+**Artifact ID:** `12596401738` (GitHub-reported archive digest: `sha256:aec34e3c4d2d0543f0ae1e82d1a5fcecfd401f58a6c072342f4a5a512bf9932e`).
 
-I downloaded and inspected this artifact from the current branch head. The calibration job, independent reconstruction audit, stratified-bootstrap uncertainty step, paired-contrast step, and artifact upload all completed successfully. The audit reports PASS for 2,400 raw observations, 96 summary rows, reconstructed posterior summaries and calibration metrics, and verified hashes. The paired outputs contain 48 cell-level rows (12 truth/noise cells × four prior configurations) and 24 aggregate rows (four prior configurations × six metrics). The aggregate estimates use 200 paired replicates per cell and 4,000 bootstrap resamples.
+This run completed successfully. I downloaded and inspected the artifact archive. The independent audit reports PASS for 2,400 raw observations and 96 summary rows, confirms posterior summaries and calibration metrics were reconstructed from raw observations, and confirms hashes were verified. The artifact contains 48 paired cell-level rows and 24 aggregate rows. The run uses 200 paired observations per truth/noise cell and 4,000 bootstrap resamples. The associated test run at this commit also passed.
 
-| Prior support | Prior measure | Bias difference | RMSE difference | 68% coverage difference | 95% coverage difference |
+This is the **latest completed successful calibration artifact**, but it is not the latest repository head: subsequent commits vectorized the paired bootstrap implementation and added a regression test comparing vectorized results with scalar calculations. Those later commits have fresh workflows running, so their final statuses and artifact equivalence must still be confirmed.
+
+### Paired contrasts: reversed minus correct host weights
+
+| Prior support | Prior measure | Bias difference (km s⁻¹ Mpc⁻¹) | RMSE difference (km s⁻¹ Mpc⁻¹) | 68% coverage difference | 95% coverage difference |
 |---|---|---:|---:|---:|---:|
-| [20,220] | Uniform H₀ | +34.669 [34.318, 34.999] | +24.800 [23.943, 25.635] | −0.2979 [−0.3196, −0.2779] | −0.06583 [−0.07667, −0.05542] |
-| [20,220] | Log-uniform H₀ | +38.818 [38.428, 39.212] | +23.684 [22.666, 24.695] | −0.1396 [−0.1608, −0.1188] | −0.01375 [−0.02208, −0.00542] |
-| [50,90] | Uniform H₀ | +1.668 [1.550, 1.794] | +0.277 [0.142, 0.401] | +0.02042 [+0.01167, +0.03000] | −0.00208 [−0.00458, +0.00042] |
-| [50,90] | Log-uniform H₀ | +1.709 [1.587, 1.831] | +0.083 [−0.059, +0.221] | −0.02000 [−0.03000, −0.01000] | +0.00042 [−0.00168, +0.00292] |
+| [20,220] | Uniform H₀ | +34.669 [34.320, 35.026] | +24.800 [23.935, 25.679] | −0.29792 [−0.31917, −0.27792] | −0.06583 [−0.07667, −0.05500] |
+| [20,220] | Log-uniform H₀ | +38.818 [38.425, 39.210] | +23.684 [22.689, 24.680] | −0.13958 [−0.16083, −0.11833] | −0.01375 [−0.02168, −0.00542] |
+| [50,90] | Uniform H₀ | +1.668 [1.548, 1.786] | +0.277 [0.147, 0.398] | +0.02042 [+0.01125, +0.02958] | −0.00208 [−0.00458, 0.00000] |
+| [50,90] | Log-uniform H₀ | +1.709 [1.584, 1.837] | +0.083 [−0.061, +0.221] | −0.02000 [−0.02958, −0.01042] | +0.00042 [−0.00208, +0.00292] |
 
-Entries are reversed minus correct weighting; bias and RMSE are in km s⁻¹ Mpc⁻¹, and coverage differences are proportions (multiply by 100 for percentage points). Bracketed ranges are stratified paired-bootstrap 95% intervals. The table reproduces the qualitative conclusions from the exploratory artifact and gives the exact current-run estimates. In particular, broad-support misspecification is associated with substantially higher bias/RMSE and lower coverage in this toy model, while narrow-support effects are smaller and metric-dependent. The narrow-uniform 68% coverage difference is positive, and the narrow-log-uniform RMSE and both narrow-support 95% coverage contrasts have intervals spanning zero.
+### Interval-width contrasts
 
-The workflow’s green status and the artifact inspection establish reproducibility of this synthetic experiment at the stated commit; they do **not** validate the model against real gravitational-wave observations. The next scientific milestone remains an independently checked realistic-data analysis or a clearly bounded extension of the synthetic data-generating process, not treating this result as an observational H₀ measurement.
+| Prior support | Prior measure | Mean 68% width difference | Mean 95% width difference |
+|---|---|---:|---:|
+| [20,220] | Uniform H₀ | −6.464 [−6.588, −6.345] | +0.320 [+0.158, +0.478] |
+| [20,220] | Log-uniform H₀ | +6.152 [+5.976, +6.328] | +4.839 [+4.646, +5.029] |
+| [50,90] | Uniform H₀ | −0.329 [−0.459, −0.197] | −0.126 [−0.228, −0.016] |
+| [50,90] | Log-uniform H₀ | +0.054 [−0.078, +0.187] | +0.020 [−0.075, +0.121] |
+
+Bracketed values are stratified paired-bootstrap 95% intervals. Coverage differences are proportions: multiply by 100 to obtain percentage points. Width differences use the same H₀ units as the prior support. Negative values mean the reversed-weight posterior intervals are narrower; that is not automatically an improvement, because coverage and estimation error must be considered jointly.
+
+The broad-support results show a pronounced degradation in point-estimation error and coverage under reversed weights for this synthetic model. The width results also show that the effect is not a uniform broadening: broad uniform weighting produces narrower 68% intervals but much worse coverage, whereas broad log-uniform weighting increases both interval widths. This is a useful warning against judging uncertainty quality from interval width alone.
+
+The narrow-support effects are much smaller and depend on the prior measure and metric. For example, narrow uniform H₀ shows a positive 68% coverage contrast, while the 95% coverage interval reaches zero. These are descriptive, conditional Monte Carlo results—not universal claims about host weighting and not an observational H₀ measurement.
+
+The successful run and artifact establish reproducibility for the stated synthetic design and commit. They do not address realistic gravitational-wave likelihoods, catalogue selection, peculiar velocities, detector selection, or model misspecification. The next milestone is to verify the newer vectorized implementation on the current branch head and then prioritize a separately prespecified extension that addresses a specific omitted physical or selection effect.
