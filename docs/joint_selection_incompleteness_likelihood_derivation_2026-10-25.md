@@ -51,7 +51,7 @@ Before adding code, write down and test these invariants:
 4. **Weight conservation:** observed and missing population masses sum to one under the declared generative model; no double counting and no silent renormalization over only observed hosts.
 5. **Selection denominator:** alpha(H) is computed over the same event/source/host population and detection rule used by the numerator.
 6. **Matched generator/inference:** prior-predictive SBC is tested only after all prior, host-population, catalogue-inclusion, noise, and detection steps match.
-7. **Independent numerical calculation:** compare selected-likelihood normalization and posterior quantiles against a separately implemented quadrature or enumeration on small finite examples.
+7. **Independent numerical calculation:** compare selected-likelihood normalization and posterior quantiles against a separately implemented quadrature or enumeration on small finite examples. The current focused tests now include an independent direct Gaussian-mixture/quadrature reconstruction and a high-threshold no-selection limit check; these are regression gates, not evidence that the full joint catalogue-selection model is validated.
 
 Each test should include a simple finite two- or three-host example where the answer can be computed by direct enumeration. Only then scale to repeated simulation.
 
