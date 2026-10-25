@@ -78,6 +78,11 @@ def validate_metadata_seed_and_design(metadata: dict, replicates: int) -> int:
         raise ValueError("metadata truth grid does not match the prespecified protocol")
     if metadata.get("fractional_distance_errors") != [0.05, 0.10, 0.15, 0.20]:
         raise ValueError("metadata noise grid does not match the prespecified protocol")
+    cells = metadata.get("cells")
+    if not isinstance(cells, list) or len(cells) != 36:
+        raise ValueError("metadata must contain exactly 36 cell summaries")
+    if any(not isinstance(cell, dict) for cell in cells):
+        raise ValueError("each JSON metadata cell must be an object")
     return seed
 
 
@@ -242,8 +247,8 @@ def main() -> None:
         independently_reconstructed = recompute_posterior_from_record(row)
         for field, value in independently_reconstructed.items():
             close(float(row[field]), value, f"independent posterior {field} raw row {i}", tol=2e-6)
-    if len(stored) != 36 or len(metadata.get("cells", [])) != 36:
-        raise ValueError("expected 36 cell summaries in CSV and JSON metadata")
+    if len(stored) != 36:
+        raise ValueError("expected 36 cell summaries in CSV")
     base_seed = validate_metadata_seed_and_design(metadata, args.replicates)
     expected_truths = [50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0, 90.0]
     expected_noise = [0.05, 0.10, 0.15, 0.20]
