@@ -1,6 +1,7 @@
 import csv, hashlib, importlib.util, json
 from pathlib import Path
 import pytest
+import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -50,7 +51,7 @@ def test_paired_host_weight_contrasts_complete_and_ordered(tmp_path):
         for indices in matrix_indices
     ]
     assert vectorized.shape == (2, len(PAIR.METRICS))
-    assert vectorized == pytest.approx(scalar)
+    np.testing.assert_allclose(vectorized, np.asarray(scalar))
     cells, aggregate = PAIR.analyze(raw, seed=331, resamples=100)
     assert reps == 100
     assert len(cells) == 4 * 3 * 2 * 2
