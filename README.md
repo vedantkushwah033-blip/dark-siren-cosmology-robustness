@@ -6,6 +6,7 @@
 - **Known-host calibration results:** [audited 10,800-run experiment, boundary-aware coverage results, and paired contrasts](docs/known_host_calibration_run_20261025.md).
 - **Known-host calibration synthesis and next decision gate:** [cross-experiment interpretation, boundary/prior caveats, and prespecified next steps](docs/known_host_calibration_synthesis_2026-10-25.md).
 - **Prospective joint catalogue-incompleteness × event-selection protocol:** [staged model-compatibility gate, factorial design, estimands, and independent audit requirements](docs/joint_catalogue_incompleteness_detection_selection_protocol.md).
+- **Joint likelihood derivation checkpoint:** [separating event-selection normalization from the latent missing-host population, with compatibility tests and a go/no-go gate](docs/joint_selection_incompleteness_likelihood_derivation_2026-10-25.md).
 - **Paired host-weight sweep protocol:** [prespecified prior-support factor, paired estimands, and audit gates](docs/paired_weight_sweep_protocol.md).
 - **Paired host-weight sweep results:** [18-cell independently audited results showing prior-support sensitivity](docs/paired_weight_sweep_results_20261025.md).
 - **Prior-measure sensitivity protocol:** [paired uniform-H₀ versus log-uniform-H₀ host-component evidence experiment and independent audit gates](docs/prior_measure_sensitivity_protocol.md).
