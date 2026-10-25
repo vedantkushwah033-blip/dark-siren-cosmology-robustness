@@ -88,10 +88,10 @@ def run_paired_sweep(replicates=1000, seed=20261028, bootstrap_resamples=4000):
             err_correct = np.array([r["correct_median_error"] for r in cell])
             err_wrong = np.array([r["reversed_median_error"] for r in cell])
             coverage_diffs = np.array([r["reversed_covered_68"] - r["correct_covered_68"] for r in cell], dtype=float)
-            cell_rng = np.random.default_rng(seed + 104729 * cell_index)
-            abs_error_ci = _percentile_ci(diffs, cell_rng, bootstrap_resamples)
-            coverage_ci = _percentile_ci(coverage_diffs, cell_rng, bootstrap_resamples)
-            rmse_ci = _percentile_ci(np.column_stack([err_correct, err_wrong]), cell_rng, bootstrap_resamples, statistic="rmse_delta")
+            cell_bootstrap_seed = seed + 104729 * cell_index
+            abs_error_ci = _percentile_ci(diffs, np.random.default_rng(cell_bootstrap_seed), bootstrap_resamples)
+            coverage_ci = _percentile_ci(coverage_diffs, np.random.default_rng(cell_bootstrap_seed + 1), bootstrap_resamples)
+            rmse_ci = _percentile_ci(np.column_stack([err_correct, err_wrong]), np.random.default_rng(cell_bootstrap_seed + 2), bootstrap_resamples, statistic="rmse_delta")
             summaries.append({
                 "z1": Z1, "z2": z2, "redshift_separation": z2 - Z1,
                 "noise_fraction": noise_fraction, "replicates": replicates,
@@ -115,7 +115,9 @@ def run_paired_sweep(replicates=1000, seed=20261028, bootstrap_resamples=4000):
                 "rmse_diff_ci95_low": rmse_ci[0],
                 "rmse_diff_ci95_high": rmse_ci[1],
                 "bootstrap_resamples": bootstrap_resamples,
-                "bootstrap_seed": seed + 104729 * cell_index,
+                "bootstrap_seed_abs_error": cell_bootstrap_seed,
+                "bootstrap_seed_coverage": cell_bootstrap_seed + 1,
+                "bootstrap_seed_rmse": cell_bootstrap_seed + 2,
             })
             cell_index += 1
     return rows, summaries
