@@ -9,6 +9,9 @@ import argparse
 import csv
 import json
 import math
+import hashlib
+import importlib.metadata
+import platform
 from collections import defaultdict
 from pathlib import Path
 from statistics import median
@@ -61,10 +64,14 @@ def recompute(rows: list[dict[str, str]]) -> dict:
                 raise ValueError(f"non-finite {field} in cell record {i}")
         if not 50 <= float(row["median"]) <= 90 or not 50 <= float(row["mean"]) <= 90:
             raise ValueError(f"posterior point summary outside prior in cell record {i}")
-        if not (50 <= float(row["lower_95"]) <= float(row["lower_68"]) <= float(row["upper_68"]) <= float(row["upper_95"]) <= 90):
-            raise ValueError(f"credible intervals invalid or outside prior in cell record {i}")
+        if not (50 <= float(row["lower_95"]) <= float(row["lower_68"]) <= float(row["median"]) <= float(row["upper_68"]) <= float(row["upper_95"]) <= 90):
+            raise ValueError(f"credible intervals invalid, fail to contain the median, or lie outside prior in cell record {i}")
         if float(row["posterior_sd"]) <= 0:
             raise ValueError(f"non-positive posterior SD in cell record {i}")
+        if float(row["host_redshift"]) < 0.005 or float(row["host_redshift"]) > 0.08:
+            raise ValueError(f"host redshift outside the prespecified catalogue range in cell record {i}")
+        if float(row["true_distance_mpc"]) <= 0 or float(row["distance_sigma_mpc"]) <= 0:
+            raise ValueError(f"non-positive true distance or distance uncertainty in cell record {i}")
         close(float(row["width_68"]), float(row["upper_68"]) - float(row["lower_68"]), f"width_68 row {i}")
         close(float(row["width_95"]), float(row["upper_95"]) - float(row["lower_95"]), f"width_95 row {i}")
         close(float(row["pull_median"]), (float(row["median"]) - truth) / float(row["posterior_sd"]), f"pull row {i}")
@@ -174,9 +181,18 @@ def main() -> None:
         "rmse_mean", "mean_width_68", "mean_width_95", "mean_posterior_sd",
         "mean_median_pull", "sd_median_pull", "median_near_prior_edge_fraction",
     )
+    metadata_by_key = {
+        (float(cell["true_h0"]), float(cell["fractional_distance_error"])): cell
+        for cell in metadata["cells"]
+    }
+    if len(metadata_by_key) != 36:
+        raise ValueError("duplicate summary-cell keys in JSON metadata")
     for key, cell_rows in grouped.items():
         expected = recompute(cell_rows)
         actual = stored_by_key.get(key)
+        metadata_cell = metadata_by_key.get(key)
+        if metadata_cell is None:
+            raise ValueError(f"JSON metadata missing cell {key}")
         if actual is None:
             raise ValueError(f"summary missing cell {key}")
         if int(actual["n"]) != expected["n"] or int(actual["coverage_68_successes"]) != expected["coverage_68_successes"] or int(actual["coverage_95_successes"]) != expected["coverage_95_successes"]:
@@ -185,7 +201,15 @@ def main() -> None:
             close(float(actual[field]), float(expected[field]), f"summary {key} {field}", tol=1e-7)
         if actual["truth_on_prior_boundary"].lower() != str(expected["truth_on_prior_boundary"]).lower():
             raise ValueError(f"boundary-truth flag mismatch for cell {key}")
-    print(json.dumps({
+        for field in fields:
+            close(float(metadata_cell[field]), float(expected[field]), f"JSON metadata {key} {field}", tol=1e-7)
+        for field in ("n", "coverage_68_successes", "coverage_95_successes"):
+            if int(metadata_cell[field]) != int(expected[field]):
+                raise ValueError(f"JSON metadata {key} count {field} mismatch")
+        if bool(metadata_cell["truth_on_prior_boundary"]) != expected["truth_on_prior_boundary"]:
+            raise ValueError(f"JSON metadata boundary-truth flag mismatch for cell {key}")
+
+    audit_report = {
         "audit": "PASS",
         "raw_records": len(raw),
         "summary_cells": len(stored),
@@ -193,7 +217,23 @@ def main() -> None:
         "paired_truth_replicate_groups": len(paired),
         "summary_metrics_independently_recomputed": len(fields),
         "pairing_checks": "host redshift, true distance, and standardized noise across four noise levels",
-    }, indent=2))
+        "metadata_json_crosschecked": True,
+        "source_simulator_commit": metadata.get("original_commit"),
+        "base_seed": base_seed,
+        "prior": metadata["prior"],
+        "python_version": platform.python_version(),
+        "input_sha256": {
+            filename: hashlib.sha256((out / filename).read_bytes()).hexdigest()
+            for filename in ("per_run_results.csv", "cell_summary.csv", "cell_summary.json")
+        },
+    }
+    for package in ("numpy", "scipy"):
+        try:
+            audit_report[f"{package}_version"] = importlib.metadata.version(package)
+        except importlib.metadata.PackageNotFoundError:
+            audit_report[f"{package}_version"] = "not-installed"
+    (out / "audit_report.json").write_text(json.dumps(audit_report, indent=2), encoding="utf-8")
+    print(json.dumps(audit_report, indent=2))
 
 
 if __name__ == "__main__":
