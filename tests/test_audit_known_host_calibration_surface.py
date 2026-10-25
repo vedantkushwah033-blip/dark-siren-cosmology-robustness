@@ -415,3 +415,13 @@ def test_protocol_metadata_validator_rejects_malformed_cell_entry():
     metadata["cells"][0] = "not-an-object"
     with pytest.raises(ValueError, match="each JSON metadata cell must be an object"):
         MODULE.validate_metadata_seed_and_design(metadata, 100)
+
+def test_auditor_rejects_true_distance_inconsistent_with_low_z_truth():
+    rows = [synthetic_row(0, 70.0, 0.0)]
+    rows[0]["true_distance_mpc"] = str(float(rows[0]["true_distance_mpc"]) * 1.01)
+    # Keep the uncertainty tied to the altered distance to isolate this check.
+    rows[0]["distance_sigma_mpc"] = str(
+        0.1 * float(rows[0]["true_distance_mpc"])
+    )
+    with pytest.raises(ValueError, match="low-z truth distance"):
+        MODULE.recompute(rows)
