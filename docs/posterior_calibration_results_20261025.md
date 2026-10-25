@@ -2,14 +2,14 @@
 
 **Status: independent audit PASS.** This report summarizes the reproducible synthetic two-host experiment. It is not a real gravitational-wave measurement.
 
-- **Workflow:** https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40172704350
-- **Audited artifact:** https://api.github.com/repos/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/artifacts/12590881838/zip
+- **Latest end-to-end workflow (including provenance regression tests):** https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40213569327
+- **Latest audited artifact:** https://api.github.com/repos/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/artifacts/12606681687/zip
 - **Protocol:** [posterior calibration protocol](posterior_calibration_protocol.md)
 - **Data:** 2,400 raw observations; 96 truth × noise × support × prior-measure × weighting summaries.
 - **Injected truths:** 55, 65, 75, 85 km s⁻¹ Mpc⁻¹.
 - **Reference noise-scale settings:** 3%, 10%, 20% of the expected distance at z = 0.04. Because the same sigma is used for both hosts, the realized fractional standard deviation for the z = 0.02 host is twice the listed setting.
 - **Replicates:** 200 per truth/noise cell.
-- **Audit:** independently reconstructed posterior medians and 68%/95% interval endpoints for every raw observation and inference arm; independently recomputed calibration metrics; verified hashes for both CSV inputs.
+- **Audit:** raw-generation provenance audit PASS (seed 20261030 reproduced all 2,400 raw observations and verified the raw-file SHA-256); posterior reconstruction audit PASS (reconstructed medians and 68%/95% interval endpoints for every observation and inference arm, recomputed calibration metrics, and verified both CSV hashes). The workflow also passed the provenance tampering regression tests.
 
 ## Pooled posterior calibration across the prespecified design
 
