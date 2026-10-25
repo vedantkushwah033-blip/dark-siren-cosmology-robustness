@@ -139,9 +139,12 @@ def test_auditor_end_to_end_recomputes_and_writes_provenance(tmp_path, monkeypat
         writer.writerows(summary_rows)
     metadata = {
         "true_h0_values": truths, "fractional_distance_errors": noises,
-        "seed": base_seed, "prior": [50.0, 90.0],
+        "seed": base_seed, "prior": [50.0, 90.0], "posterior_grid_points": 1601,
         "raw_row_count": len(raw_rows), "cell_count": len(summary_rows),
-        "original_commit": "pinned-test-commit", "cells": summary_rows,
+        "replicates_per_cell": replicates,
+        "original_repository": "vedantkushwah033-blip/bayesian-dark-siren-cosmology",
+        "original_commit": "b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f",
+        "cells": summary_rows,
     }
     (tmp_path / "cell_summary.json").write_text(json.dumps(metadata), encoding="utf-8")
     monkeypatch.setattr(sys, "argv", [
