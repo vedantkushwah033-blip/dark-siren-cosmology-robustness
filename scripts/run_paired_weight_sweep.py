@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
+import json
 from pathlib import Path
 
 import numpy as np
@@ -83,7 +85,7 @@ def run_paired_sweep(replicates=1000, seed=20261028, bootstrap_resamples=4000):
                     "noise_fraction": noise_fraction, "replicate": replicate,
                     "true_host_index": host_index,
                     "true_host_redshift": float(redshifts[host_index]),
-                    "true_H0": H0_TRUE,
+                    "true_H0": H0_TRUE, "base_seed": seed,
                     "observed_distance_mpc": distance_observed, "sigma_mpc": sigma,
                 }
                 for support_index, (support_name, (prior_min, prior_max)) in enumerate(PRIOR_SUPPORTS.items()):
@@ -170,6 +172,24 @@ def main():
             writer = csv.DictWriter(handle, fieldnames=list(data[0]))
             writer.writeheader()
             writer.writerows(data)
+    metadata = {
+        "experiment": "paired host-weight sweep with prior-support factor",
+        "audit_status": "PENDING",
+        "base_seed": args.seed,
+        "replicates_per_redshift_noise_cell": args.replicates,
+        "bootstrap_resamples": args.bootstrap_resamples,
+        "prior_supports": {name: list(bounds) for name, bounds in PRIOR_SUPPORTS.items()},
+        "z2_values": list(Z2_VALUES),
+        "noise_fractions": list(NOISE_FRACTIONS),
+        "raw_records": len(rows),
+        "summary_rows": len(summaries),
+        "posterior_fits": 4 * len(rows),
+        "sha256": {
+            name: hashlib.sha256((out / name).read_bytes()).hexdigest()
+            for name in ("per_run.csv", "summary.csv")
+        },
+    }
+    (out / "run_metadata.json").write_text(json.dumps(metadata, indent=2) + "\\n", encoding="utf-8")
     print(
         f"Completed {len(rows)} synthetic observations with 4 posterior fits each "
         f"({4 * len(rows)} fits), across {len(summaries)} prior-support × design cells."
