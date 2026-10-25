@@ -130,7 +130,7 @@ def test_auditor_end_to_end_recomputes_and_writes_provenance(tmp_path, monkeypat
                 lower68, upper68 = max(50.0, median - 1.0), min(90.0, median + 1.0)
                 lower95, upper95 = max(50.0, median - 2.0), min(90.0, median + 2.0)
                 row = {
-                    "run": run, "seed": base_seed + run, "true_h0": truth,
+                    "run": run, "seed": base_seed + truth_index * replicates + run, "true_h0": truth,
                     "fractional_distance_error": frac, "host_redshift": z,
                     "true_distance_mpc": distance,
                     "observed_distance_mpc": distance + sigma * standardized_noise,
