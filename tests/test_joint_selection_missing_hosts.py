@@ -158,3 +158,56 @@ def test_prior_predictive_sbc_is_approximately_uniform_for_matched_selection_mod
     assert abs(float(np.mean(pits)) - 0.5) < 0.06
     counts, _ = np.histogram(pits, bins=np.linspace(0.0, 1.0, 11))
     assert np.max(np.abs(counts / len(pits) - 0.1)) < 0.07
+
+
+def test_missing_host_selected_posterior_matches_independent_full_mixture_quadrature():
+    """Independently reconstruct both numerator and selection denominator.
+
+    This deliberately avoids calling either production posterior helper for the
+    expected result, so a catalogue-only normalization or omitted missing-host
+    contribution cannot cancel out unnoticed.
+    """
+    from scipy.stats import norm
+
+    grid = np.linspace(40.0, 100.0, 6001)
+    catalog_z = np.array([0.02, 0.04])
+    missing_z = np.array([0.06, 0.08])
+    catalog_weights = np.array([0.8, 0.2])
+    missing_weights = np.array([0.25, 0.75])
+    missing_mass = 0.35
+    sigma = 18.0
+    lower, upper = 45.0, 270.0
+    observed = 180.0
+
+    full_z = np.concatenate((catalog_z, missing_z))
+    full_weights = np.concatenate((
+        (1.0 - missing_mass) * catalog_weights,
+        missing_mass * missing_weights,
+    ))
+    means = 299792.458 * full_z[None, :] / grid[:, None]
+    numerator = np.sum(
+        full_weights[None, :] * norm.pdf(observed, loc=means, scale=sigma),
+        axis=1,
+    )
+    host_efficiency = ndtr((upper - means) / sigma) - ndtr((lower - means) / sigma)
+    beta = host_efficiency @ full_weights
+    expected = numerator / beta
+    expected /= trapezoid(expected, grid)
+
+    actual = posterior_h0_selected_with_missing_hosts(
+        grid, catalog_z, observed, sigma, upper,
+        catalog_weights=catalog_weights, missing_weight=missing_mass,
+        missing_redshifts=missing_z, missing_weights=missing_weights,
+        prior_min=40.0, prior_max=100.0, detection_distance_min=lower,
+    )
+    np.testing.assert_allclose(actual, expected, rtol=2e-10, atol=1e-12)
+
+
+@pytest.mark.parametrize("distance", [0.0, 45.0, 270.0, 300.0, np.nan, np.inf])
+def test_selected_posterior_rejects_observations_outside_open_detection_interval(distance):
+    with pytest.raises(ValueError, match="inside the detection interval"):
+        posterior_h0_selected(
+            H0, [0.02, 0.04], distance, 15.0, 270.0,
+            weights=[0.7, 0.3], prior_min=40.0, prior_max=100.0,
+            detection_distance_min=45.0,
+        )
