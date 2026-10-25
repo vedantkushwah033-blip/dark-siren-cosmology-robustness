@@ -52,6 +52,7 @@ Before adding code, write down and test these invariants:
 5. **Selection denominator:** alpha(H) is computed over the same event/source/host population and detection rule used by the numerator.
 6. **Matched generator/inference:** prior-predictive SBC is tested only after all prior, host-population, catalogue-inclusion, noise, and detection steps match.
 7. **Independent numerical calculation:** compare selected-likelihood normalization and posterior quantiles against a separately implemented quadrature or enumeration on small finite examples. The current focused tests now include an independent direct Gaussian-mixture/quadrature reconstruction and a high-threshold no-selection limit check; these are regression gates, not evidence that the full joint catalogue-selection model is validated.
+8. **Prior-predictive selected-likelihood calibration:** simulate H₀ from the declared prior, draw hosts and noisy distances from the same finite mixture, reject events outside the declared detection interval, and compute posterior PIT values using the selected likelihood. A deterministic 300-draw regression test now checks for gross PIT non-uniformity. This is a smoke test for a matched toy likelihood, not a definitive SBC study or astrophysical validation.
 
 Each test should include a simple finite two- or three-host example where the answer can be computed by direct enumeration. Only then scale to repeated simulation.
 
