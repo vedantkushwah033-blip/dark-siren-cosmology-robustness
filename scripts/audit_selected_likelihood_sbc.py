@@ -161,9 +161,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--raw", default="artifacts/selected_likelihood_sbc/pit_replicates.csv")
     parser.add_argument("--summary", default="artifacts/selected_likelihood_sbc/pit_summary.json")
+    parser.add_argument("--output", default="artifacts/selected_likelihood_sbc/audit_report.json")
     args = parser.parse_args()
     result = audit(args.raw, args.summary)
+    output_path = Path(args.output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
     print(json.dumps(result, indent=2, sort_keys=True))
+    print(f"wrote {output_path}")
 
 
 if __name__ == "__main__":
