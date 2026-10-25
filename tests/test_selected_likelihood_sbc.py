@@ -59,6 +59,21 @@ def test_independent_audit_reconstructs_raw_pits_and_rejects_tampering(tmp_path)
     assert result["status"] == "PASS"
     assert result["n_replicates_audited"] == 100
 
+    # The audit must verify the seeded generation process, not only the PIT.
+    altered_truth_rows = [dict(row) for row in rows]
+    altered_truth_rows[0]["truth_h0"] = float(altered_truth_rows[0]["truth_h0"]) + 0.01
+    with raw_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(altered_truth_rows[0]))
+        writer.writeheader()
+        writer.writerows(altered_truth_rows)
+    with pytest.raises(ValueError, match="generation replay mismatch"):
+        audit(raw_path, summary_path)
+
+    # Restore the original records before challenging the PIT itself.
+    with raw_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
     tampered = [dict(row) for row in rows]
     tampered[0]["pit"] = min(1.0, float(tampered[0]["pit"]) + 0.02)
     with raw_path.open("w", newline="", encoding="utf-8") as handle:
