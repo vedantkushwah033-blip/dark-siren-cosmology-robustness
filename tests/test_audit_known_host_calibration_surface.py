@@ -358,7 +358,7 @@ def valid_protocol_metadata():
         "replicates_per_cell": 100,
         "prior": [50.0, 90.0],
         "posterior_grid_points": 1601,
-        "original_repository": "vedantkushwaha033-blip/bayesian-dark-siren-cosmology",
+        "original_repository": "vedantkushwah033-blip/bayesian-dark-siren-cosmology",
         "original_commit": "b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f",
         "true_h0_values": [50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0, 90.0],
         "fractional_distance_errors": [0.05, 0.10, 0.15, 0.20],
