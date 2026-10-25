@@ -87,6 +87,10 @@ def run_calibration(n_replicates: int = N_REPLICATES, seed: int = SEED):
         })
 
     pits = np.asarray([row["pit"] for row in rows], dtype=float)
+    truths = np.asarray([row["truth_h0"] for row in rows], dtype=float)
+    # This is a diagnostic for the intended prior draw, not a pass/fail test.
+    # The finite-sample KS p-value is descriptive and must not be over-read.
+    truth_prior_ks = kstest((truths - GRID_MIN) / (GRID_MAX - GRID_MIN), "uniform")
     counts, edges = np.histogram(pits, bins=np.linspace(0.0, 1.0, 11))
     bins = []
     for i, count in enumerate(counts):
@@ -124,6 +128,10 @@ def run_calibration(n_replicates: int = N_REPLICATES, seed: int = SEED):
         "host_weights": HOST_WEIGHTS.tolist(),
         "distance_sigma_mpc": DISTANCE_SIGMA,
         "detection_interval_mpc_open": [DETECTION_MIN, DETECTION_MAX],
+        "truth_prior_ks_statistic": float(truth_prior_ks.statistic),
+        "truth_prior_ks_p_value_descriptive_only": float(truth_prior_ks.pvalue),
+        "truth_prior_mean": float(np.mean(truths)),
+        "truth_prior_mean_expected": float((GRID_MIN + GRID_MAX) / 2.0),
         "pit_mean": float(np.mean(pits)),
         "pit_mean_monte_carlo_se": float(np.std(pits, ddof=1) / np.sqrt(n_replicates)),
         "pit_variance": float(np.var(pits, ddof=1)),
