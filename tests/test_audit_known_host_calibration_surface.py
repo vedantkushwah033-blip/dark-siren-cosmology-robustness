@@ -348,3 +348,54 @@ def test_csv_integer_parser_accepts_ascii_nonnegative_integers(value):
 def test_csv_integer_parser_rejects_coercible_or_malformed_values(value):
     with pytest.raises(ValueError, match="must be a non-negative integer"):
         MODULE.parse_nonnegative_integer(value, "test field")
+
+
+def valid_protocol_metadata():
+    return {
+        "seed": 20261025,
+        "raw_row_count": 3600,
+        "cell_count": 36,
+        "replicates_per_cell": 100,
+        "prior": [50.0, 90.0],
+        "posterior_grid_points": 1601,
+        "original_repository": "vedantkushwaha033-blip/bayesian-dark-siren-cosmology",
+        "original_commit": "b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f",
+        "true_h0_values": [50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0, 90.0],
+        "fractional_distance_errors": [0.05, 0.10, 0.15, 0.20],
+    }
+
+
+def test_protocol_metadata_validator_accepts_valid_design():
+    assert MODULE.validate_metadata_seed_and_design(valid_protocol_metadata(), 100) == 20261025
+
+
+@pytest.mark.parametrize(
+    "field,value,message",
+    [
+        ("seed", True, "base seed"),
+        ("seed", "20261025", "base seed"),
+        ("raw_row_count", True, "raw_row_count must be an integer"),
+        ("cell_count", 36.0, "cell_count must be an integer"),
+        ("replicates_per_cell", "100", "replicates_per_cell must be an integer"),
+        ("prior", [0.0, 90.0], "unexpected prior"),
+        ("posterior_grid_points", 1600, "unexpected prior"),
+        ("original_commit", "un-pinned", "pinned protocol"),
+        ("true_h0_values", [50, 55, 60, 65, 70, 75, 80, 85, 90], "truth grid"),
+        ("fractional_distance_errors", [0.05, 0.1, 0.15, 0.2], "noise grid"),
+    ],
+)
+def test_protocol_metadata_validator_rejects_malformed_or_changed_design(field, value, message):
+    metadata = valid_protocol_metadata()
+    metadata[field] = value
+    with pytest.raises(ValueError, match=message):
+        MODULE.validate_metadata_seed_and_design(metadata, 100)
+
+
+def test_protocol_metadata_validator_rejects_requested_replicate_mismatch():
+    with pytest.raises(ValueError, match="row/cell counts"):
+        MODULE.validate_metadata_seed_and_design(valid_protocol_metadata(), 300)
+
+
+def test_protocol_metadata_validator_rejects_non_object_metadata():
+    with pytest.raises(ValueError, match="metadata must be a JSON object"):
+        MODULE.validate_metadata_seed_and_design([], 100)
