@@ -39,6 +39,18 @@ def make_audited_fixture(root):
 def test_paired_host_weight_contrasts_complete_and_ordered(tmp_path):
     make_audited_fixture(tmp_path)
     raw, reps = PAIR.verify_artifact(tmp_path)
+    # The vectorized bootstrap path must match scalar paired-metric evaluation.
+    first_cell = [row for row in raw if float(row["true_H0"]) == RUN.TRUTHS[0]
+                  and float(row["noise_fraction"]) == RUN.NOISES[0]]
+    prefix = "broad_20_220_uniform_H0_"
+    matrix_indices = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
+    vectorized = PAIR._paired_metrics(first_cell, matrix_indices, prefix, RUN.TRUTHS[0])
+    scalar = [
+        PAIR._paired_metrics(first_cell, indices, prefix, RUN.TRUTHS[0])
+        for indices in matrix_indices
+    ]
+    assert vectorized.shape == (2, len(PAIR.METRICS))
+    assert vectorized == pytest.approx(scalar)
     cells, aggregate = PAIR.analyze(raw, seed=331, resamples=100)
     assert reps == 100
     assert len(cells) == 4 * 3 * 2 * 2
