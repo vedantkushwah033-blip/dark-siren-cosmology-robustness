@@ -23,11 +23,31 @@ WRONG_WEIGHTS = np.array([0.3, 0.7])
 GRID = np.linspace(25.0, 125.0, 4001)
 
 
-def run_paired_sweep(replicates=1000, seed=20261028):
+def _percentile_ci(values, rng, resamples, statistic="mean"):
+    """Deterministic percentile bootstrap, resampling paired replicate indices."""
+    values = np.asarray(values, dtype=float)
+    draws = np.empty(resamples, dtype=float)
+    for start in range(0, resamples, 250):
+        stop = min(start + 250, resamples)
+        idx = rng.integers(0, len(values), size=(stop - start, len(values)))
+        if statistic == "mean":
+            draws[start:stop] = values[idx].mean(axis=1)
+        elif statistic == "rmse_delta":
+            draws[start:stop] = np.sqrt(np.mean(values[idx, 1] ** 2, axis=1)) - np.sqrt(np.mean(values[idx, 0] ** 2, axis=1))
+        else:
+            raise ValueError(f"Unknown bootstrap statistic: {statistic}")
+    low, high = np.quantile(draws, [0.025, 0.975])
+    return float(low), float(high)
+
+
+def run_paired_sweep(replicates=1000, seed=20261028, bootstrap_resamples=4000):
+    if bootstrap_resamples < 1000:
+        raise ValueError("Use at least 1000 bootstrap resamples.")
     if replicates < 200:
         raise ValueError("Use at least 200 replicates per design cell.")
     rng = np.random.default_rng(seed)
     summaries, rows = [], []
+    cell_index = 0
     for z2 in Z2_VALUES:
         redshifts = np.array([Z1, z2])
         for noise_fraction in NOISE_FRACTIONS:
@@ -67,6 +87,11 @@ def run_paired_sweep(replicates=1000, seed=20261028):
             diffs = np.array([r["paired_abs_error_difference_reversed_minus_correct"] for r in cell])
             err_correct = np.array([r["correct_median_error"] for r in cell])
             err_wrong = np.array([r["reversed_median_error"] for r in cell])
+            coverage_diffs = np.array([r["reversed_covered_68"] - r["correct_covered_68"] for r in cell], dtype=float)
+            cell_rng = np.random.default_rng(seed + 104729 * cell_index)
+            abs_error_ci = _percentile_ci(diffs, cell_rng, bootstrap_resamples)
+            coverage_ci = _percentile_ci(coverage_diffs, cell_rng, bootstrap_resamples)
+            rmse_ci = _percentile_ci(np.column_stack([err_correct, err_wrong]), cell_rng, bootstrap_resamples, statistic="rmse_delta")
             summaries.append({
                 "z1": Z1, "z2": z2, "redshift_separation": z2 - Z1,
                 "noise_fraction": noise_fraction, "replicates": replicates,
@@ -81,7 +106,18 @@ def run_paired_sweep(replicates=1000, seed=20261028):
                 "fraction_reversed_has_larger_abs_error": float(np.mean(diffs > 0)),
                 "correct_mean_width_68": float(np.mean([r["correct_width_68"] for r in cell])),
                 "reversed_mean_width_68": float(np.mean([r["reversed_width_68"] for r in cell])),
+                "paired_abs_error_diff_ci95_low": abs_error_ci[0],
+                "paired_abs_error_diff_ci95_high": abs_error_ci[1],
+                "coverage_68_diff_reversed_minus_correct": float(coverage_diffs.mean()),
+                "coverage_68_diff_ci95_low": coverage_ci[0],
+                "coverage_68_diff_ci95_high": coverage_ci[1],
+                "rmse_diff_reversed_minus_correct": float(np.sqrt(np.mean(err_wrong**2)) - np.sqrt(np.mean(err_correct**2))),
+                "rmse_diff_ci95_low": rmse_ci[0],
+                "rmse_diff_ci95_high": rmse_ci[1],
+                "bootstrap_resamples": bootstrap_resamples,
+                "bootstrap_seed": seed + 104729 * cell_index,
             })
+            cell_index += 1
     return rows, summaries
 
 
@@ -89,9 +125,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--replicates", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=20261028)
+    parser.add_argument("--bootstrap-resamples", type=int, default=4000)
     parser.add_argument("--output-dir", default="results/paired-weight-sweep")
     args = parser.parse_args()
-    rows, summaries = run_paired_sweep(args.replicates, args.seed)
+    rows, summaries = run_paired_sweep(args.replicates, args.seed, args.bootstrap_resamples)
     out = Path(args.output_dir)
     out.mkdir(parents=True, exist_ok=True)
     for name, data in (("per_run.csv", rows), ("summary.csv", summaries)):
