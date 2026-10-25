@@ -168,6 +168,20 @@ def test_auditor_end_to_end_recomputes_and_writes_provenance(tmp_path, monkeypat
     assert report["workflow_commit_sha"] == "test-sha"
     assert len(report["input_sha256"]["per_run_results.csv"]) == 64
     assert len(report["auditor_script_sha256"]) == 64
+    assert report["posterior_summaries_independently_reconstructed_from_raw_observations"] is True
+
+    # Deliberately corrupt one posterior median and confirm the raw-data audit fails.
+    raw_path = tmp_path / "per_run_results.csv"
+    with raw_path.open(newline="", encoding="utf-8") as handle:
+        corrupted_rows = list(csv.DictReader(handle))
+        fieldnames = list(corrupted_rows[0])
+    corrupted_rows[0]["median"] = str(float(corrupted_rows[0]["median"]) + 0.25)
+    with raw_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(corrupted_rows)
+    with pytest.raises(ValueError, match="independent posterior median"):
+        MODULE.main()
 
 
 def test_auditor_rejects_mixed_truth_within_cell():
