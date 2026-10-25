@@ -58,15 +58,15 @@ jobs:
             --output-dir results/known-host-calibration-surface
       - name: Independently recompute summaries and audit pairing
         env:
-          REPLICATES: ${{ inputs.replicates }}
+          REPLICATES: ${{ inputs.replicates || '300' }}
         run: >-
           python scripts/audit_known_host_calibration_surface.py
           results/known-host-calibration-surface
           --replicates "$REPLICATES"
       - name: Analyze paired noise-level contrasts
         env:
-          REPLICATES: ${{ inputs.replicates }}
-          BASE_SEED: ${{ inputs.seed }}
+          REPLICATES: ${{ inputs.replicates || '300' }}
+          BASE_SEED: ${{ inputs.seed || '20261025' }}
         run: >-
           python scripts/analyze_known_host_paired_comparisons.py
           results/known-host-calibration-surface
