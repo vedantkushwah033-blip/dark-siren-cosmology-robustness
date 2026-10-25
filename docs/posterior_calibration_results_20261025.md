@@ -7,7 +7,7 @@
 - **Protocol:** [posterior calibration protocol](posterior_calibration_protocol.md)
 - **Data:** 2,400 raw observations; 96 truth × noise × support × prior-measure × weighting summaries.
 - **Injected truths:** 55, 65, 75, 85 km s⁻¹ Mpc⁻¹.
-- **Noise fractions:** 3%, 10%, 20%.
+- **Reference noise-scale settings:** 3%, 10%, 20% of the expected distance at z = 0.04. Because the same sigma is used for both hosts, the realized fractional standard deviation for the z = 0.02 host is twice the listed setting.
 - **Replicates:** 200 per truth/noise cell.
 - **Audit:** independently reconstructed posterior medians and 68%/95% interval endpoints for every raw observation and inference arm; independently recomputed calibration metrics; verified hashes for both CSV inputs.
 
@@ -66,7 +66,7 @@ There are 2,400 observations per inference arm, but the design intentionally str
 
 ## Scope and limitations
 
-This is a synthetic low-redshift, two-host Gaussian-distance model. It does not include realistic gravitational-wave event likelihoods, galaxy-catalogue selection or incompleteness, redshift errors, detector selection, or hierarchical multi-event population inference. The distance-noise scale is defined relative to the z₂ reference distance in each truth/noise cell. Results are valid only for the stated simulation design.
+This is a synthetic low-redshift, two-host Gaussian-distance model. It does not include realistic gravitational-wave event likelihoods, galaxy-catalogue selection or incompleteness, redshift errors, detector selection, or hierarchical multi-event population inference. The distance-noise scale is defined relative to the z₂ reference distance in each truth/noise cell. Since z₁ = z₂/2 and sigma is shared by both hosts, the realized fractional standard deviation is twice as large for the z₁ host as for the z₂ host. The 3%, 10%, and 20% labels are therefore reference-scale settings, not host-independent fractional uncertainties. Results are valid only for the stated simulation design.
 
 The appropriate next step is a higher-replicate, truth-stratified calibration run with uncertainty intervals for coverage and a more realistic event/catalogue selection model. Do not present these numbers as an observational H₀ result.
 
