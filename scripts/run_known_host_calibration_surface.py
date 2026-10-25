@@ -136,7 +136,8 @@ def main() -> None:
         for replicate in range(args.replicates):
             # Keep noise-level pairing within each truth/replicate, but use a
             # disjoint seed block across truths to avoid accidental cross-truth
-            # reuse of identical catalogues and host draws.
+            # reuse of identical catalogues and host draws. Each truth owns exactly
+            # args.replicates seeds, with replicate indices starting at zero.
             seed = args.seed + truth_index * args.replicates + replicate
             # Reuse the same redshifts, luminosities, host draw and standardized
             # noise across the four error levels to improve paired comparisons.
