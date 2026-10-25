@@ -112,8 +112,10 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=20261025)
     parser.add_argument("--output-dir", default="results/known-host-calibration-surface")
     args = parser.parse_args()
-    if args.replicates < 100:
-        parser.error("--replicates must be at least 100 for a useful calibration diagnostic")
+    if not 100 <= args.replicates <= 2000:
+        parser.error("--replicates must be between 100 and 2000")
+    if args.seed < 0:
+        parser.error("--seed must be non-negative")
 
     import numpy as np
 
