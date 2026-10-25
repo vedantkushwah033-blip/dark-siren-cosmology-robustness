@@ -258,3 +258,24 @@ def test_independent_posterior_respects_prior_at_boundary_truths(truth):
     assert 50.0 <= result["lower_95"] <= result["lower_68"] <= result["median"]
     assert result["median"] <= result["upper_68"] <= result["upper_95"] <= 90.0
     assert result["posterior_sd"] > 0.0
+
+
+@pytest.mark.parametrize("field,value", [
+    ("observed_distance_mpc", "0"),
+    ("observed_distance_mpc", "-1"),
+    ("distance_sigma_mpc", "0"),
+    ("distance_sigma_mpc", "-0.1"),
+    ("host_redshift", "nan"),
+])
+def test_independent_posterior_rejects_invalid_raw_observation(field, value):
+    row = synthetic_row(0, 70.0, 0.0)
+    row[field] = value
+    with pytest.raises(ValueError, match="invalid raw observation"):
+        MODULE.recompute_posterior_from_record(row)
+
+
+def test_independent_posterior_rejects_nonfinite_observed_distance():
+    row = synthetic_row(0, 70.0, 0.0)
+    row["observed_distance_mpc"] = "inf"
+    with pytest.raises(ValueError, match="invalid raw observation"):
+        MODULE.recompute_posterior_from_record(row)
