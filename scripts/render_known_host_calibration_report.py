@@ -110,7 +110,7 @@ def render_report(rows: list[dict[str, str]], metadata: dict) -> str:
         "",
         "Coverage is the empirical fraction of replicate credible intervals containing the fixed truth. Wilson intervals quantify binomial Monte Carlo uncertainty within each cell; they do not account for model misspecification or uncertainty about whether the simulation design represents real events.",
         "",
-        "| True H₀ | Fractional distance error | n | 68% coverage [Wilson 95% CI] | 95% coverage [Wilson 95% CI] | Mean median error | Median RMSE | Mean 68% width | Mean 95% width | Near-edge median fraction |",
+        "| True H₀ | Fractional distance error | n | 68% coverage [Wilson 95% CI] | 95% coverage [Wilson 95% CI] | Mean posterior-median error | RMSE of posterior median | Mean 68% width | Mean 95% width | Near-edge median fraction |",
         "|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for truth in TRUTHS:
@@ -130,7 +130,7 @@ def render_report(rows: list[dict[str, str]], metadata: dict) -> str:
         "",
         "The two boundary truths (50 and 90) are summarized separately from the seven interior truths. Values below are unweighted means across truth cells at each noise level, not pooled-event estimates. Because the truth grid and prior-boundary status differ by group, these summaries are descriptive and should not be interpreted as a causal estimate of the effect of being near a prior boundary.",
         "",
-        "| Fractional distance error | Truth group | Mean 68% coverage | Mean 95% coverage | Mean absolute cell bias | Mean cell RMSE | Mean 68% width | Mean 95% width |",
+        "| Fractional distance error | Truth group | Mean 68% coverage | Mean 95% coverage | Mean absolute cell posterior-median error | Mean cell RMSE of posterior median | Mean 68% width | Mean 95% width |",
         "|---:|---|---:|---:|---:|---:|---:|---:|",
     ])
     for noise in NOISES:
