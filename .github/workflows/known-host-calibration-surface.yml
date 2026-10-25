@@ -1,6 +1,13 @@
 name: known-host-calibration-surface
 
 on:
+  # Run the default calibration automatically when the experiment runner changes
+  # on this working branch; manual dispatch remains available for larger runs.
+  push:
+    branches:
+      - fix/known-host-wilson-edge-bounds
+    paths:
+      - scripts/run_known_host_calibration_surface.py
   workflow_dispatch:
     inputs:
       replicates:
@@ -41,8 +48,8 @@ jobs:
           python -m pip install -e ".[dev]"
       - name: Run known-host calibration surface
         env:
-          REPLICATES: ${{ inputs.replicates }}
-          BASE_SEED: ${{ inputs.seed }}
+          REPLICATES: ${{ inputs.replicates || '300' }}
+          BASE_SEED: ${{ inputs.seed || '20261025' }}
         run: |
           python scripts/run_known_host_calibration_surface.py \
             --original-dir original-project \
