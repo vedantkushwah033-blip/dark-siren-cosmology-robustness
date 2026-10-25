@@ -2,6 +2,7 @@
 
 
 - **Known-host calibration protocol:** [design, estimands, pairing, audit gates, and interpretation limits](docs/known_host_calibration_protocol.md).
+- **Known-host calibration analysis plan:** [prespecified cell summaries, paired comparisons, Monte Carlo uncertainty, and interpretation rules](docs/known_host_calibration_analysis_plan.md).
 
 A reproducible Bayesian simulation study of galaxy-catalogue incompleteness, host-population misspecification, and statistical calibration in dark-siren cosmology.
 
