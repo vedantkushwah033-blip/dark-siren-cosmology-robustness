@@ -14,6 +14,7 @@
 - **Prior-measure sensitivity results:** [9,000-observation experiment, all 36 paired contrasts, and independent audit](docs/prior_measure_sensitivity_results_20261025.md).
 - **Posterior-level calibration protocol:** [multi-truth H₀ bias, RMSE, interval-width, and coverage design](docs/posterior_calibration_protocol.md).
 - **Posterior-calibration raw provenance audit:** `scripts/audit_posterior_calibration_generation.py` independently replays the fixed-seed host and distance generation before posterior reconstruction; tampered raw observations are rejected even if their CSV hash is refreshed.
+- **Paired host-weight contrast audit:** `scripts/audit_paired_host_weight_contrasts.py` independently reconstructs all 48 cell-level and 24 aggregate paired contrasts, including stratified-bootstrap intervals, from the audited raw posterior rows.
 - **Posterior-level calibration results:** [2,400-observation experiment with independently audited bias, RMSE, interval width, and coverage](docs/posterior_calibration_results_20261025.md).
 
 A reproducible Bayesian simulation study of galaxy-catalogue incompleteness, host-population misspecification, and statistical calibration in dark-siren cosmology.
