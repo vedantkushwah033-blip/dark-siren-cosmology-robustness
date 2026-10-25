@@ -63,6 +63,14 @@ def recompute(rows: list[dict[str, str]]) -> dict:
             x = float(row[field])
             if not math.isfinite(x):
                 raise ValueError(f"non-finite {field} in cell record {i}")
+        if float(row["true_h0"]) != truth:
+            raise ValueError(f"truth changes within a summary cell at record {i}")
+        if float(row["fractional_distance_error"]) != frac:
+            raise ValueError(f"fractional distance error changes within a summary cell at record {i}")
+        if truth not in (50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0, 90.0):
+            raise ValueError(f"unexpected true H0 in cell: {truth}")
+        if frac not in (0.05, 0.10, 0.15, 0.20):
+            raise ValueError(f"unexpected fractional distance error in cell: {frac}")
         if not 50 <= float(row["median"]) <= 90 or not 50 <= float(row["mean"]) <= 90:
             raise ValueError(f"posterior point summary outside prior in cell record {i}")
         if not (50 <= float(row["lower_95"]) <= float(row["lower_68"]) <= float(row["median"]) <= float(row["upper_68"]) <= float(row["upper_95"]) <= 90):
