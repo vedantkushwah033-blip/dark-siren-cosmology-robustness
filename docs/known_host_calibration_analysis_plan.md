@@ -47,7 +47,7 @@ Report the two boundary truths (50 and 90) separately from the seven interior tr
 
 ## 4. Comparisons across uncertainty levels
 
-The intended common-random-number pairing is within a fixed true-H₀ value and replicate across the four uncertainty levels. Preserve that pairing in any comparisons. Do not describe different true-H₀ values as fully paired host-level realizations solely because the same seed integer was reused.
+The intended common-random-number pairing is within a fixed true-H₀ value and replicate across the four uncertainty levels. Preserve that pairing in any comparisons. Seed blocks are disjoint across truth strata, so the same catalogue/host realization is not intentionally reused across different true-H₀ values.
 
 For each true H₀, use the 0.05 uncertainty cell as the reference and report paired replicate-level differences for:
 - absolute posterior-median error;
