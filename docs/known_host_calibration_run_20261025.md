@@ -2,14 +2,15 @@
 
 ## Run identity
 
-- GitHub Actions run: [`40166102029`](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40166102029)
+- GitHub Actions run: [`40167238554`](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40167238554)
 - Workflow commit: `858ea0588de32615de0285cb41504db80fabf1be`
 - Pinned simulator commit: `b9277e7bf9ad5e053c40c1c671b70aa7f3d0708f`
 - Base seed: `20261025`
 - Replicates: 300 per truth/noise cell; 36 cells; 10,800 raw records.
 - Prior: H₀ ∈ [50, 90] km s⁻¹ Mpc⁻¹.
-- Audit status: **PASS**. The auditor independently reconstructed posterior summaries from raw observations, checked all 2,700 truth/replicate pairing groups, cross-checked the summary files, and recorded SHA-256 hashes.
-- Artifact: [known-host-calibration-surface](https://api.github.com/repos/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/artifacts/12588427176). GitHub reports expiry on 2027-01-23.
+- Raw calibration audit: **PASS**. The auditor independently reconstructed posterior summaries from raw observations, checked all 2,700 truth/replicate pairing groups, cross-checked the summary files, and recorded SHA-256 hashes.
+- Paired-comparison audit: **PASS**. A separate audit script independently reconstructed all 135 paired estimates and 4,000-resample percentile-bootstrap intervals per contrast, checked raw-input and output hashes, and wrote `paired_comparison_audit.json`.
+- Artifact: [known-host-calibration-surface](https://api.github.com/repos/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/artifacts/12588868361). GitHub reports expiry on 2027-01-23.
 
 ## Main results
 
