@@ -81,7 +81,7 @@ def _rewrite_raw_and_refresh_hash(root, mutate):
     metadata_path = root / "run_metadata.json"
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     metadata["sha256"]["per_run.csv"] = hashlib.sha256(raw_path.read_bytes()).hexdigest()
-    metadata_path.write_text(json.dumps(metadata, indent=2) + "\\n", encoding="utf-8")
+    metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
 
 
 def test_generation_audit_rejects_modified_host_identity_even_after_hash_refresh(tmp_path):
@@ -111,6 +111,6 @@ def test_generation_audit_rejects_missing_or_inconsistent_hash(tmp_path):
     metadata_path = tmp_path / "run_metadata.json"
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     metadata["sha256"]["per_run.csv"] = "0" * 64
-    metadata_path.write_text(json.dumps(metadata, indent=2) + "\\n", encoding="utf-8")
+    metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     with pytest.raises(ValueError, match="SHA-256 mismatch"):
         GEN.audit_generation(tmp_path)
