@@ -15,13 +15,13 @@ The successful run predates a subsequent test-only change that added extra tampe
 
 - Replicates: 1,000
 - Seed: `20261025`
-- Declared prior: uniform (H_0 in [40,100])
+- Declared prior: uniform H0 in [40, 100]
 - Host redshifts: 0.02 and 0.04
 - Host weights: 0.7 and 0.3
 - Distance noise: 15 Mpc Gaussian standard deviation
 - Detection interval: (50 < d_{\\rm obs} < 260) Mpc
 - Posterior grid: 2,401 equally spaced points on [40,100], trapezoidal normalization
-- Generation: draw (H_0) once per replicate; rejection-sample host and distance conditional on that fixed truth until the observation passes the detection window.
+- Generation: draw H0 once per replicate; rejection-sample host and distance conditional on that fixed truth until the observation passes the detection window.
 - Audit: replay the seeded generator protocol and independently reconstruct each PIT from the Gaussian host mixture and the selection-efficiency denominator.
 
 ## Results
