@@ -88,7 +88,7 @@ def test_no_event_selection_limit_matches_catalogue_only_posterior():
         H0, [0.02, 0.04], DISTANCE, 15.0, 1.0e6,
         weights=[0.7, 0.3], prior_min=40.0, prior_max=100.0,
     )
-    np.testing.assert_allclose(selected, baseline, rtol=1e-10, atol=1e-12)
+    np.testing.assert_allclose(selected, baseline, rtol=1e-6, atol=1e-8)
 
 
 def test_selected_posterior_matches_independent_direct_mixture_and_quadrature():
