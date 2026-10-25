@@ -63,7 +63,7 @@ In GitHub, open the repository's **Actions** tab, choose **known-host-calibratio
 - `replicates = 300`
 - `seed = 20261025`
 
-The workflow checks out the pinned simulator commit, executes the surface, independently audits it, renders the report, and uploads the result directory as the `known-host-calibration-surface` artifact. If changing the replicate count or seed for exploratory work, document the change and do not silently compare it as though it were the default protocol.
+The workflow checks out the pinned simulator commit, executes the surface, independently audits it, computes paired noise-level contrasts from the audited raw records, renders the report, and uploads the result directory—including paired-comparison CSV/JSON/Markdown outputs—as the `known-host-calibration-surface` artifact. If changing the replicate count or seed for exploratory work, document the change and do not silently compare it as though it were the default protocol.
 
 ## What this experiment cannot establish
 
