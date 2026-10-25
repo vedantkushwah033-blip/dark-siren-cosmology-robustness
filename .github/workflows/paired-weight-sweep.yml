@@ -2,7 +2,7 @@ name: Paired host-weight sensitivity sweep
 
 on:
   push:
-    branches: [main]
+    branches: [main, fix/known-host-wilson-edge-bounds]
     paths:
       - "scripts/run_paired_weight_sweep.py"
       - "tests/test_paired_weight_sweep.py"
