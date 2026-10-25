@@ -118,7 +118,7 @@ def test_auditor_end_to_end_recomputes_and_writes_provenance(tmp_path, monkeypat
     base_seed = 20261025
     raw_rows = []
     summary_rows = []
-    for truth in truths:
+    for truth_index, truth in enumerate(truths):
         for frac in noises:
             cell = []
             for run in range(replicates):
