@@ -52,6 +52,9 @@ def validate_summary(rows: list[dict[str, str]], metadata: dict) -> None:
                 raise ValueError(f"invalid coverage/Wilson interval for {level}% in cell {key}")
         if float(row["rmse_median"]) < 0 or float(row["mean_width_68"]) <= 0 or float(row["mean_width_95"]) <= 0:
             raise ValueError(f"invalid RMSE or interval widths in summary cell {key}")
+        edge_fraction = float(row["median_near_prior_edge_fraction"])
+        if not 0.0 <= edge_fraction <= 1.0:
+            raise ValueError(f"invalid near-prior-edge fraction in summary cell {key}")
     if set(keyed) != expected:
         raise ValueError(f"expected 36 design cells; missing={sorted(expected-set(keyed))}; extra={sorted(set(keyed)-expected)}")
     if int(metadata.get("cell_count", -1)) != 36 or int(metadata.get("raw_row_count", -1)) != sum(int(r["n"]) for r in rows):
