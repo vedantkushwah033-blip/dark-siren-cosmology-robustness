@@ -106,7 +106,10 @@ def audit(raw_path: str | Path, summary_path: str | Path) -> dict:
                 f"PIT mismatch at replicate {replicate}: recorded={pit_recorded:.12g}, "
                 f"independent={pit_reconstructed:.12g}"
             )
-        pits.append(pit_reconstructed)
+        # Reconstructing the PIT above verifies each recorded value; use the
+        # recorded values for summary reconstruction to avoid bin-edge changes
+        # caused solely by harmless floating-point differences across libraries.
+        pits.append(pit_recorded)
 
     if seen != set(range(n)):
         raise ValueError("replicate ids must be exactly 0..n-1")
