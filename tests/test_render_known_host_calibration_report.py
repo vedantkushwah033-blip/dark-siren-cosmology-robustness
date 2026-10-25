@@ -57,6 +57,8 @@ def test_report_contains_all_cells_and_boundary_comparison():
     assert "Interior (55–85)" in report
     assert "not an observational gravitational-wave result" in report
     assert "Wilson" in report
+    assert "Mean posterior-median error" in report
+    assert "RMSE of posterior median" in report
 
 
 def test_report_rejects_missing_or_duplicate_cells():
