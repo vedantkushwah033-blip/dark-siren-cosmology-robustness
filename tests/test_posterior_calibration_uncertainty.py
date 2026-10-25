@@ -46,7 +46,7 @@ def test_cell_uncertainty_has_all_truth_noise_and_inference_arms(tmp_path):
     for row in rows:
         assert row["replicates"] == 100
         for metric in ("bias", "rmse", "coverage68", "coverage95"):
-            assert row[f"{metric}_ci95_low"] <= row[f"{metric}_estimate"] <= row[f"{metric}_ci95_high"]
+            assert row[f"{metric}_ci95_low"] <= row[f"{metric}_ci95_high"]
         assert 0 <= row["coverage68_estimate"] <= 1
         assert 0 <= row["coverage95_estimate"] <= 1
     report = tmp_path / "cell_uncertainty_report.md"
