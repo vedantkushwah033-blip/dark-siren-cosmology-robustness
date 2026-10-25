@@ -28,7 +28,11 @@ def wilson_interval(successes: int, n: int, z: float = 1.959963984540054) -> tup
     denom = 1.0 + z2 / n
     center = (p + z2 / (2.0 * n)) / denom
     half = z * math.sqrt(p * (1.0 - p) / n + z2 / (4.0 * n * n)) / denom
-    return max(0.0, center - half), min(1.0, center + half)
+    # Avoid a tiny positive lower bound from floating-point cancellation at p=0,
+    # and make the complementary all-success boundary exact as well.
+    lower = 0.0 if successes == 0 else center - half
+    upper = 1.0 if successes == n else center + half
+    return max(0.0, lower), min(1.0, upper)
 
 
 def summarize_cell(rows: list[dict], true_h0: float, fractional_error: float) -> dict:

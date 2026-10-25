@@ -11,6 +11,21 @@ MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
 
+RUNNER_PATH = Path(__file__).resolve().parents[1] / "scripts" / "run_known_host_calibration_surface.py"
+RUNNER_SPEC = importlib.util.spec_from_file_location("run_known_host_calibration_surface", RUNNER_PATH)
+RUNNER_MODULE = importlib.util.module_from_spec(RUNNER_SPEC)
+RUNNER_SPEC.loader.exec_module(RUNNER_MODULE)
+
+
+def test_runner_wilson_interval_has_exact_endpoint_bounds():
+    lower_zero, upper_zero = RUNNER_MODULE.wilson_interval(0, 300)
+    lower_all, upper_all = RUNNER_MODULE.wilson_interval(300, 300)
+    assert lower_zero == 0.0
+    assert 0.0 < upper_zero < 0.05
+    assert 0.95 < lower_all < 1.0
+    assert upper_all == 1.0
+
+
 def synthetic_row(run, median, standardized_noise):
     truth = 70.0
     frac = 0.1
@@ -41,10 +56,10 @@ def synthetic_row(run, median, standardized_noise):
 def test_auditor_wilson_interval_handles_zero_and_all_successes():
     lo0, hi0 = MODULE.wilson(0, 100)
     lo1, hi1 = MODULE.wilson(100, 100)
-    assert lo0 == pytest.approx(0.0)
+    assert lo0 == 0.0
     assert 0 < hi0 < 0.05
     assert 0.95 < lo1 < 1
-    assert hi1 == pytest.approx(1.0)
+    assert hi1 == 1.0
 
 
 def test_auditor_independently_recomputes_coverage_and_errors():
