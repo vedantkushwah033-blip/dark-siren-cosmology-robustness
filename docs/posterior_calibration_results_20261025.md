@@ -208,3 +208,14 @@ The diagnostic separates numerical-grid effects from changes to the prior itself
 
 These diagnostics support numerical stability for the tested examples, including a deliberately challenging upper-tail case. They do **not** prove uniform convergence for every possible observation, prior, or noise regime. The stress case also shows why reporting only a typical posterior is insufficient: upper-tail quantiles can converge more slowly than the median. Prior-support sensitivity is a separate modeling choice and must not be described as numerical error.
 
+
+
+## Cross-version numerical-artifact comparison
+
+After the numerical-diagnostics workflow completed on commit `fc1405263d64d1af4f6ac1b71c4f3f41089dd7eb`, I downloaded the result archives from the Python 3.10, 3.11, and 3.12 jobs and compared their CSV contents directly.
+
+- `posterior_grid_stability.csv`: the Python 3.10 and 3.12 files were byte-identical. Python 3.11 differed only in a few floating-point values, with a maximum absolute numeric difference of (2.84\times10^{-14}).
+- `targeted_grid_convergence.csv`: Python 3.11 and 3.12 were byte-identical. Python 3.10 differed in six numeric fields, with a maximum absolute difference of (7.11\times10^{-15}).
+- All three archives contained four posterior-grid stability rows and seven targeted-convergence rows, with the expected 22 and 16 columns, respectively.
+
+The observed cross-version differences are at floating-point roundoff scale and do not affect the reported convergence pattern. This comparison is an artifact-level cross-version check, separate from the unit tests and workflow success status. It supports numerical reproducibility for these diagnostic cases; it does not establish universal convergence or astrophysical validity.
