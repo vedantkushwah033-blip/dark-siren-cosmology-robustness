@@ -206,6 +206,8 @@ def main() -> None:
     seen = set()
     paired: dict[tuple[float, int], list[dict[str, str]]] = defaultdict(list)
     base_seed = int(metadata["seed"])
+    if base_seed < 0:
+        raise ValueError("base seed must be non-negative")
     for row in raw:
         key = (float(row["true_h0"]), float(row["fractional_distance_error"]), int(row["run"]))
         if key in seen:
