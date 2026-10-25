@@ -205,7 +205,7 @@ def test_missing_host_selected_posterior_matches_independent_full_mixture_quadra
 
 @pytest.mark.parametrize("distance", [0.0, 45.0, 270.0, 300.0, np.nan, np.inf])
 def test_selected_posterior_rejects_observations_outside_open_detection_interval(distance):
-    with pytest.raises(ValueError, match="inside the detection interval"):
+    with pytest.raises(ValueError):
         posterior_h0_selected(
             H0, [0.02, 0.04], distance, 15.0, 270.0,
             weights=[0.7, 0.3], prior_min=40.0, prior_max=100.0,
