@@ -25,6 +25,7 @@
 - **Hidden-host assumption-sensitivity results:** [105,600 fits, independent reconstruction, and paired-bootstrap effects of incorrect assumed fractions/redshifts](docs/hidden_host_assumption_sensitivity_results_2026-10-26.md); [successful workflow and raw artifact](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40284995493).
 - **Literature and novelty audit:** [targeted review of established incompleteness/host-weighting methods, explicit claim limits, and gates before any originality claim](docs/literature_and_novelty_audit_2026-10-26.md).
 - **Published-pipeline benchmark plan:** [CHIMERA/gwcosmo data prerequisites, reproducibility risks, and go/no-go criteria for a fair baseline comparison](docs/reference_pipeline_benchmark_plan_2026-10-26.md).
+- **CHIMERA benchmark target/version audit:** [blocking mismatch between the pinned v2.0 source tree, current-main incomplete-catalogue example, and required data products](docs/chimera_benchmark_target_audit_2026-10-26.md).
 
 A reproducible Bayesian simulation study of galaxy-catalogue incompleteness, host-population misspecification, and statistical calibration in dark-siren cosmology.
 
