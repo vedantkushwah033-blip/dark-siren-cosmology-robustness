@@ -1,5 +1,8 @@
 # Published-pipeline benchmark: feasibility and go/no-go plan (2026-10-26)
 
+
+> **New blocking finding (2026-10-26):** the pinned CHIMERA v2.0 source tree does not contain the incomplete-catalogue notebook cited during initial feasibility review. It contains an empty-catalogue tutorial, which is not equivalent. The incomplete-catalogue notebook is on moving `main` and requires additional mock-event and derived products beyond the three-file v2.0 fixture. See the detailed [CHIMERA target/version audit](chimera_benchmark_target_audit_2026-10-26.md). Do not describe the v2.0 fixture as sufficient to reproduce the incomplete-catalogue tutorial until this discrepancy is resolved.
+
 ## Decision
 
 The next scientifically useful milestone is a benchmark against an established completeness-aware pipeline. Do not present the current toy-model experiments as a substitute for this step.
@@ -57,7 +60,7 @@ Do not commit these large files or add them to ordinary CI. Verify the CHIMERA v
 | Direct drop-in replacement for this repository's toy likelihood | No | No |
 | Immediate low-cost CI benchmark justified from current evidence | No | No |
 
-The current evidence supports CHIMERA as the first candidate for a bounded benchmark because its mock events and injections have a public Zenodo record. Its completeness implementation supports computing masks and completeness interpolants from scratch when the corresponding file paths are set to None; however, the example notebook instead loads precomputed mask/interpolant files and a temporary GW-mask-index file. A reproduction must either recover those exact derived files or explicitly run and validate the upstream preprocessing path from the parent galaxy catalogue and pixelated GW samples. gwcosmo remains a second candidate; its current package release and the older documentation version inspected must be reconciled before a pinned run. Neither pipeline has yet been executed in this repository.
+The initial feasibility review mixed a current-main incomplete-catalogue example with the pinned v2.0 data/code. A follow-up source-tree audit found that the pinned v2.0 tree has an empty-catalogue tutorial, not the incomplete-catalogue example; the latter exists on moving main and references additional mock-event and derived products. See the [CHIMERA target/version audit](chimera_benchmark_target_audit_2026-10-26.md). Consequently, the three-file v2.0 fixture is not currently demonstrated to be sufficient for the intended incompleteness benchmark. Resolve this code/data/version mismatch before selecting CHIMERA as a reproducible reference. gwcosmo remains an alternative, but its exact release and data inputs must likewise be reconciled. Neither pipeline has yet been executed in this repository.
 
 ## Staged benchmark plan
 
