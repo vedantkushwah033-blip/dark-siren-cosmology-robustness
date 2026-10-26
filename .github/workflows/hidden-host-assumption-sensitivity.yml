@@ -5,6 +5,7 @@ on:
     branches: ["**"]
     paths:
       - "scripts/run_hidden_host_assumption_sensitivity.py"
+      - "src/dark_siren_robustness/hardened_inference.py"
       - "scripts/audit_hidden_host_assumption_sensitivity.py"
       - "scripts/summarize_hidden_host_assumption_sensitivity.py"
       - "tests/test_hidden_host_assumption_sensitivity.py"
@@ -15,6 +16,7 @@ on:
   pull_request:
     paths:
       - "scripts/run_hidden_host_assumption_sensitivity.py"
+      - "src/dark_siren_robustness/hardened_inference.py"
       - "scripts/audit_hidden_host_assumption_sensitivity.py"
       - "scripts/summarize_hidden_host_assumption_sensitivity.py"
       - "tests/test_hidden_host_assumption_sensitivity.py"

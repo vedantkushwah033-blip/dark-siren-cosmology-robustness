@@ -5,6 +5,7 @@ on:
     branches: ["**"]
     paths:
       - "scripts/run_host_misspecification_sensitivity_surface.py"
+      - "src/dark_siren_robustness/hardened_inference.py"
       - "scripts/audit_host_misspecification_sensitivity_surface.py"
       - "tests/test_host_misspecification_sensitivity_surface.py"
       - "docs/host_misspecification_sensitivity_surface_protocol.md"
@@ -13,6 +14,7 @@ on:
   pull_request:
     paths:
       - "scripts/run_host_misspecification_sensitivity_surface.py"
+      - "src/dark_siren_robustness/hardened_inference.py"
       - "scripts/audit_host_misspecification_sensitivity_surface.py"
       - "tests/test_host_misspecification_sensitivity_surface.py"
       - "docs/host_misspecification_sensitivity_surface_protocol.md"

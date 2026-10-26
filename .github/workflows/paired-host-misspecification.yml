@@ -5,6 +5,7 @@ on:
     branches: ["**"]
     paths:
       - "scripts/run_paired_host_misspecification.py"
+      - "src/dark_siren_robustness/hardened_inference.py"
       - "scripts/audit_paired_host_misspecification.py"
       - "tests/test_paired_host_misspecification.py"
       - "docs/paired_host_misspecification_protocol.md"
@@ -13,6 +14,7 @@ on:
   pull_request:
     paths:
       - "scripts/run_paired_host_misspecification.py"
+      - "src/dark_siren_robustness/hardened_inference.py"
       - "scripts/audit_paired_host_misspecification.py"
       - "tests/test_paired_host_misspecification.py"
       - "docs/paired_host_misspecification_protocol.md"
