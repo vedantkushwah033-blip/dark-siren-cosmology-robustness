@@ -4,8 +4,11 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 from pathlib import Path
+import platform
 import sys
+from importlib.metadata import version
 
 import numpy as np
 
@@ -34,6 +37,16 @@ def main() -> None:
     summary_path = output / "summary.json"
     metadata = {
         "status": "synthetic sensitivity diagnostic; not an observational GW analysis",
+        "code_revision": os.environ.get("GITHUB_SHA", "not_recorded_outside_ci"),
+        "python_version": platform.python_version(),
+        "numpy_version": np.__version__,
+        "scipy_version": version("scipy"),
+        "failed_run_count": 0,
+        "likelihood_equations": {
+            "A_fixed_realized_sigma": "logL=-0.5*((d_obs-c*z/H0)/sigma_realized)^2-log(sigma_realized)-0.5*log(2*pi)",
+            "B_fractional_sigma_H0": "sigma(H0)=f*c*z/H0; logL=-0.5*((d_obs-c*z/H0)/sigma(H0))^2-log(sigma(H0))-0.5*log(2*pi)",
+            "C_fixed_reference_sigma": "sigma_ref=f*c*z/70; logL=-0.5*((d_obs-c*z/H0)/sigma_ref)^2-log(sigma_ref)-0.5*log(2*pi)",
+        },
         "seed": args.seed,
         "replicates_per_cell": args.replicates,
         "grid_points": args.grid_points,
