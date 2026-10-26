@@ -5,7 +5,14 @@ import argparse
 import csv
 import json
 import math
+import sys
 from pathlib import Path
+
+# Support both direct execution (python scripts/audit_multiseed_grid_sensitivity.py)
+# and package import from tests or other repository scripts.
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPOSITORY_ROOT))
 
 from scripts.audit_calibration_grid_sensitivity import audit_grid_sensitivity
 
