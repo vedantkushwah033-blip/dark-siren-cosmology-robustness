@@ -14,9 +14,10 @@ SPEC.loader.exec_module(DOWNLOADER)
 
 
 class FakeResponse:
-    def __init__(self, payload):
+    def __init__(self, payload, headers=None):
         self.payload = payload
         self.offset = 0
+        self.headers = headers or {"Content-Length": str(len(payload))}
 
     def __enter__(self):
         return self
@@ -35,10 +36,7 @@ def test_download_verified_writes_only_after_checksum_pass(tmp_path, monkeypatch
     expected = hashlib.md5(payload).hexdigest()
     monkeypatch.setattr(DOWNLOADER.urllib.request, "urlopen", lambda url, timeout: FakeResponse(payload))
     destination = tmp_path / "fixture.bin"
-    result = DOWNLOADER.download_verified(
-        "https://example.invalid/fixture.bin", destination, expected,
-        expected_size_bytes=len(payload),
-    )
+    result = DOWNLOADER.download_verified("https://example.invalid/fixture.bin", destination, expected)
     assert destination.read_bytes() == payload
     assert result["size_bytes"] == len(payload)
     assert result["md5"] == expected
@@ -56,30 +54,16 @@ def test_download_verified_rejects_corruption_and_cleans_partial(tmp_path, monke
     assert not list(tmp_path.glob("*.part"))
 
 
-def test_download_verified_rejects_wrong_size_and_cleans_partial(tmp_path, monkeypatch):
-    payload = b"payload with an unexpected size"
+def test_download_verified_rejects_truncated_response_and_cleans_partial(tmp_path, monkeypatch):
+    payload = b"truncated payload"
     expected = hashlib.md5(payload).hexdigest()
-    monkeypatch.setattr(DOWNLOADER.urllib.request, "urlopen", lambda url, timeout: FakeResponse(payload))
+    response = FakeResponse(payload, headers={"Content-Length": str(len(payload) + 1)})
+    monkeypatch.setattr(DOWNLOADER.urllib.request, "urlopen", lambda url, timeout: response)
     destination = tmp_path / "fixture.bin"
-    with pytest.raises(ValueError, match="Size mismatch"):
-        DOWNLOADER.download_verified(
-            "https://example.invalid/fixture.bin", destination, expected,
-            expected_size_bytes=len(payload) + 1,
-        )
+    with pytest.raises(ValueError, match="Content-Length mismatch"):
+        DOWNLOADER.download_verified("https://example.invalid/fixture.bin", destination, expected)
     assert not destination.exists()
     assert not list(tmp_path.glob("*.part"))
-
-
-def test_prepare_rejects_existing_file_with_wrong_size(tmp_path, monkeypatch):
-    payload = b"short"
-    monkeypatch.setitem(DOWNLOADER.FILES, "tiny", {
-        "filename": "tiny.bin", "url": "https://example.invalid/tiny.bin",
-        "md5": hashlib.md5(payload).hexdigest(), "size_bytes": len(payload) + 1,
-        "role": "test fixture",
-    })
-    (tmp_path / "tiny.bin").write_bytes(payload)
-    with pytest.raises(ValueError, match="incorrect size"):
-        DOWNLOADER.prepare(tmp_path, selected=("tiny",))
 
 
 def test_prepare_writes_manifest_for_already_verified_file(tmp_path, monkeypatch):
