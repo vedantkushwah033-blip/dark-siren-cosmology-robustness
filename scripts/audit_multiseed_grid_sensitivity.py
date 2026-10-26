@@ -48,7 +48,7 @@ def _close(observed: str, expected: float, field: str, grid: int) -> None:
         raise ValueError(f"grid {grid}: aggregate field {field} does not match independent reconstruction")
 
 
-def audit_multiseed_sensitivity(root: str | Path) -> dict:
+def audit_multiseed_sensitivity(root: str | Path, *, require_metadata: bool = False) -> dict:
     root = Path(root)
     per_seed_rows = _read_csv(root / "per_seed_paired_contrasts.csv")
     aggregate_rows = _read_csv(root / "multiseed_grid_sensitivity.csv")
@@ -79,6 +79,8 @@ def audit_multiseed_sensitivity(root: str | Path) -> dict:
     # artifacts. During the runner's pre-metadata audit this file is absent;
     # the dedicated post-run CI audit checks it after the PASS marker is written.
     metadata_path = root / "multiseed_metadata.json"
+    if require_metadata and not metadata_path.is_file():
+        raise ValueError("final multi-seed metadata file is required for post-run audit")
     if metadata_path.exists():
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
         if metadata.get("status") != "PASS":
@@ -165,7 +167,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", nargs="?", default="artifacts/multiseed_grid_sensitivity")
     args = parser.parse_args()
-    result = audit_multiseed_sensitivity(args.directory)
+    # CLI invocation audits completed artifacts; the runner explicitly uses
+    # require_metadata=False for its pre-metadata reconstruction pass.
+    result = audit_multiseed_sensitivity(args.directory, require_metadata=True)
     out = Path(args.directory) / "multiseed_audit_report.json"
     out.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(result, indent=2, sort_keys=True))
