@@ -107,8 +107,15 @@ def audit_multiseed_sensitivity(root: str | Path, *, require_metadata: bool = Fa
         if saved_report != report:
             raise ValueError(f"seed {seed}: saved paired-comparison audit does not match reconstruction")
         comparison_rows = _read_csv(seed_dir / "grid_sensitivity.csv")
+        # The per-seed aggregation table adds provenance columns that are
+        # not part of the single-seed comparison table. Exclude both before
+        # comparing the scientific comparison fields.
         aggregate_inputs = [
-            {key: value for key, value in row.items() if key != "seed"}
+            {
+                key: value
+                for key, value in row.items()
+                if key not in {"seed", "n_replicates"}
+            }
             for row in per_seed_rows
             if _integer(row.get("seed"), "seed") == seed
         ]
