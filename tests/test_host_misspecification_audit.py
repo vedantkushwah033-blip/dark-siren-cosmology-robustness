@@ -27,11 +27,17 @@ def test_stress_test_metrics_are_finite_and_bounded():
     assert len(summaries) == 4
     for row in summaries:
         for key in ("mean_median_error", "rmse_median", "coverage_68", "coverage_95",
+                    "coverage_68_wilson_95_low", "coverage_68_wilson_95_high",
+                    "coverage_95_wilson_95_low", "coverage_95_wilson_95_high",
                     "mean_width_68", "mean_width_95"):
             assert np.isfinite(row[key])
         assert row["rmse_median"] >= 0
-        assert 0 <= row["coverage_68"] <= 1
-        assert 0 <= row["coverage_95"] <= 1
+        for coverage, low, high in (
+            ("coverage_68", "coverage_68_wilson_95_low", "coverage_68_wilson_95_high"),
+            ("coverage_95", "coverage_95_wilson_95_low", "coverage_95_wilson_95_high"),
+        ):
+            assert 0 <= row[coverage] <= 1
+            assert 0 <= row[low] <= row[coverage] <= row[high] <= 1
         assert row["mean_width_68"] > 0
         assert row["mean_width_95"] > row["mean_width_68"]
 
@@ -86,9 +92,8 @@ def test_independent_auditor_reconstructs_seeded_small_run(tmp_path):
         writer.writerows(rows)
     summary_path = tmp_path / "summary.csv"
     corrupted_summaries = [dict(s) for s in summaries]
-    corrupted_summaries[0]["coverage_68"] = min(
-        1.0, float(corrupted_summaries[0]["coverage_68"]) + 0.05
-    )
+    original_coverage = float(corrupted_summaries[0]["coverage_68"])
+    corrupted_summaries[0]["coverage_68"] = 0.0 if original_coverage > 0.0 else 1.0
     with summary_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(corrupted_summaries[0]))
         writer.writeheader()
