@@ -132,13 +132,19 @@ def posterior_h0_selected(H0_grid, redshifts, observed_distance, gw_sigma,
         grid, redshifts, distance, gw_sigma, weights=weights,
         prior_min=prior_min, prior_max=prior_max,
     )
-    beta = detection_efficiency_h0(
-        grid, redshifts, gw_sigma, threshold, weights=weights,
+    support = (grid >= prior_min) & (grid <= prior_max)
+    if np.count_nonzero(support) < 2:
+        raise ValueError("H0_grid must contain at least two points inside the prior interval.")
+    # Only evaluate the selection denominator where the posterior is defined.
+    # A grid point outside prior support can have numerically unrepresentable
+    # detection efficiency even when every in-prior value is well behaved; such
+    # an irrelevant point must not invalidate the posterior calculation.
+    beta_support = detection_efficiency_h0(
+        grid[support], redshifts, gw_sigma, threshold, weights=weights,
         detection_distance_min=detection_distance_min,
     )
-    support = (grid >= prior_min) & (grid <= prior_max)
     selected = np.zeros_like(base)
-    selected[support] = base[support] / beta[support]
+    selected[support] = base[support] / beta_support
     area = float(trapezoid(selected[support], grid[support]))
     if not np.isfinite(area) or area <= 0:
         raise ValueError("Selection-conditioned posterior normalization failed.")
