@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+import audit_distance_uncertainty_sensitivity as audit_module
 from audit_distance_uncertainty_sensitivity import audit_artifacts
 from dark_siren_robustness.uncertainty_sensitivity import ARMS, paired_ab_contrasts, run_experiment
 
@@ -79,6 +80,47 @@ def test_independent_audit_rejects_tampered_observation(tmp_path):
         writer.writeheader()
         writer.writerows(rows)
     with pytest.raises(ValueError, match="observed distance"):
+        audit_artifacts(folder)
+
+
+def test_independent_audit_rejects_unpaired_arm_c_random_draw(tmp_path):
+    folder = tmp_path / "artifacts"
+    _write_artifacts(folder)
+    raw_path = folder / "replicates.csv"
+    with raw_path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+        columns = list(rows[0])
+
+    row = next(
+        item for item in rows
+        if item["arm"] == ARMS[2]
+        and float(item["true_h0"]) == 55.0
+        and float(item["fractional_error"]) == 0.05
+        and int(item["replicate"]) == 0
+    )
+    row["standard_normal"] = str(float(row["standard_normal"]) + 0.25)
+    row["observed_distance_mpc"] = str(
+        float(row["true_distance_mpc"])
+        + float(row["generated_sigma_mpc"]) * float(row["standard_normal"])
+    )
+    posterior = audit_module._posterior_from_formula(
+        float(row["observed_distance_mpc"]),
+        float(row["host_redshift"]),
+        float(row["fractional_error"]),
+        float(row["generated_sigma_mpc"]),
+        ARMS[2],
+        np.linspace(50.0, 90.0, 101),
+    )
+    row.update({key: str(value) for key, value in posterior.items()})
+    row["pull_median"] = str(
+        (posterior["median"] - float(row["true_h0"])) / posterior["posterior_sd"]
+    )
+    with raw_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=columns)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    with pytest.raises(ValueError, match="paired A/C .*standard_normal"):
         audit_artifacts(folder)
 
 
