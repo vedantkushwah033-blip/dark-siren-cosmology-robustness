@@ -68,6 +68,25 @@ def audit_multiseed_sensitivity(root: str | Path) -> dict:
         raise ValueError("per-seed rows must have a common replicate count >= 100")
     n_replicates = next(iter(replicate_counts))
 
+    # When final run metadata exists, verify that it describes these exact
+    # artifacts. During the runner's pre-metadata audit this file is absent;
+    # the dedicated post-run CI audit checks it after the PASS marker is written.
+    metadata_path = root / "multiseed_metadata.json"
+    if metadata_path.exists():
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        if metadata.get("status") != "PASS":
+            raise ValueError("multi-seed metadata status must be PASS")
+        if metadata.get("grid_points") != grids:
+            raise ValueError("metadata grid_points do not match aggregate rows")
+        if metadata.get("seeds") != seeds:
+            raise ValueError("metadata seeds do not match per-seed rows")
+        if metadata.get("replicates_per_seed_per_grid") != n_replicates:
+            raise ValueError("metadata replicate count does not match per-seed rows")
+        if metadata.get("per_seed_raw_and_comparison_audits") != "PASS":
+            raise ValueError("metadata does not confirm passing per-seed audits")
+        if metadata.get("independent_aggregate_audit") != "PASS":
+            raise ValueError("metadata does not confirm passing aggregate audit")
+
     # Re-run each seed's paired-comparison audit, and verify that the
     # aggregation input rows are exactly those independently audited rows.
     for seed in seeds:
