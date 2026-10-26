@@ -43,6 +43,11 @@ def test_calibration_runner_rejects_too_small_replicate_count():
         run_calibration(n_replicates=99, seed=1)
 
 
+def test_calibration_runner_rejects_invalid_grid_resolution():
+    with pytest.raises(ValueError, match="at least two points"):
+        run_calibration(n_replicates=100, seed=1, grid_points=1)
+
+
 
 def test_independent_audit_reconstructs_raw_pits_and_rejects_tampering(tmp_path):
     rows, summary = run_calibration(n_replicates=100, seed=246810)
@@ -173,3 +178,19 @@ def test_independent_audit_rejects_invalid_numerical_metadata(tmp_path, mutate, 
 
     with pytest.raises(ValueError, match=message):
         audit(raw_path, summary_path)
+
+
+@pytest.mark.parametrize("grid_points", [1201, 2401, 4801])
+def test_calibration_grid_resolution_is_recorded_and_auditable(tmp_path, grid_points):
+    rows, summary = run_calibration(n_replicates=100, seed=86420, grid_points=grid_points)
+    assert summary["posterior_grid"]["points"] == grid_points
+    raw_path = tmp_path / f"pit_replicates_{grid_points}.csv"
+    summary_path = tmp_path / f"pit_summary_{grid_points}.json"
+    with raw_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+    result = audit(raw_path, summary_path)
+    assert result["status"] == "PASS"
+    assert result["n_replicates_audited"] == 100
