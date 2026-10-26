@@ -34,9 +34,12 @@ def _normal_interval_probability(lower_z, upper_z):
     central = ~(positive_tail | negative_tail)
 
     if np.any(positive_tail):
-        # Phi(b)-Phi(a) = Phi(-a)-Phi(-b), avoiding subtraction near one.
-        probability[positive_tail] = (
-            ndtr(-lower_z[positive_tail]) - ndtr(-upper_z[positive_tail])
+        # Phi(b)-Phi(a) = Phi(-a)-Phi(-b). Evaluate the difference in log
+        # space so close, far-positive-tail probabilities retain precision.
+        log_lower_survival = log_ndtr(-lower_z[positive_tail])
+        log_upper_survival = log_ndtr(-upper_z[positive_tail])
+        probability[positive_tail] = np.exp(log_lower_survival) * (
+            -np.expm1(log_upper_survival - log_lower_survival)
         )
     if np.any(negative_tail):
         # exp(log Phi(b)) * (1 - exp(log Phi(a)-log Phi(b))).
