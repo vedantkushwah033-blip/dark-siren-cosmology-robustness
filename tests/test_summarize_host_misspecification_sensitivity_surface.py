@@ -48,7 +48,7 @@ def test_marginal_summary_and_bootstrap_are_reproducible(tmp_path):
     arms = list(csv.DictReader((out / "marginal_arm_summary.csv").open()))
     contrasts = list(csv.DictReader((out / "marginal_paired_contrasts.csv").open()))
     assert len(arms) == 8
-    assert len(contrasts) == 12
+    assert len(contrasts) == 24
     zero_fraction = [r for r in contrasts if float(r["hidden_fraction"]) == 0
                      and r["contrast"] == "omitted_minus_modelled_hidden"]
     assert all(float(r["equal_cell_mean_difference"]) == pytest.approx(0, abs=1e-12)
