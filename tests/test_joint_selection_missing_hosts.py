@@ -431,3 +431,48 @@ def test_normal_interval_probability_preserves_representable_positive_tail_mass(
     # Confirm the former direct survival-function subtraction loses precision.
     assert abs((naive[0] - expected[0]) / expected[0]) > 1e-11
     np.testing.assert_allclose(actual, expected, rtol=2e-12, atol=0.0)
+
+def test_splitting_one_host_into_duplicate_entries_preserves_selected_posterior():
+    """A catalog representation change must not alter inference when total mass is conserved."""
+    grid = np.linspace(40.0, 100.0, 3001)
+    distance = 299792.458 * 0.03 / 70.0
+    sigma = 12.0
+    upper = 260.0
+    lower = 45.0
+
+    original = posterior_h0_selected(
+        grid,
+        [0.02, 0.04, 0.06],
+        distance,
+        sigma,
+        upper,
+        weights=[0.4, 0.35, 0.25],
+        prior_min=40.0,
+        prior_max=100.0,
+        detection_distance_min=lower,
+    )
+    # Replace the z=0.04 host of mass 0.35 by two identical catalogue rows
+    # carrying masses 0.10 and 0.25. The represented population is unchanged.
+    split = posterior_h0_selected(
+        grid,
+        [0.02, 0.04, 0.04, 0.06],
+        distance,
+        sigma,
+        upper,
+        weights=[0.4, 0.10, 0.25, 0.25],
+        prior_min=40.0,
+        prior_max=100.0,
+        detection_distance_min=lower,
+    )
+    np.testing.assert_allclose(split, original, rtol=2e-12, atol=2e-12)
+
+    beta_original = detection_efficiency_h0(
+        grid, [0.02, 0.04, 0.06], sigma, upper,
+        weights=[0.4, 0.35, 0.25], detection_distance_min=lower,
+    )
+    beta_split = detection_efficiency_h0(
+        grid, [0.02, 0.04, 0.04, 0.06], sigma, upper,
+        weights=[0.4, 0.10, 0.25, 0.25], detection_distance_min=lower,
+    )
+    np.testing.assert_allclose(beta_split, beta_original, rtol=2e-14, atol=2e-14)
+
