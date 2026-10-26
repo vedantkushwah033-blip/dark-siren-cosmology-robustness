@@ -5,6 +5,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Keep only the newest validation run for a branch. Push and pull_request
+# events can otherwise enqueue duplicate, expensive matrix/full-simulation runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   numerical-diagnostics:
     runs-on: ubuntu-latest
