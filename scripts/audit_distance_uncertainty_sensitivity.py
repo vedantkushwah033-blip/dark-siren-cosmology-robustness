@@ -93,6 +93,18 @@ def audit_artifacts(output_dir: str | Path) -> dict:
         raise ValueError("unexpected arm metadata")
     if metadata.get("boundary_truths_must_be_interpreted_separately") is not True:
         raise ValueError("boundary interpretation warning missing")
+    if not isinstance(metadata.get("code_revision"), str) or not metadata["code_revision"]:
+        raise ValueError("code revision provenance missing")
+    for field in ("python_version", "numpy_version", "scipy_version"):
+        if not isinstance(metadata.get(field), str) or not metadata[field]:
+            raise ValueError(f"{field} provenance missing")
+    if metadata.get("failed_run_count") != 0:
+        raise ValueError("completed-run metadata must record zero failed replicates")
+    equations = metadata.get("likelihood_equations")
+    if not isinstance(equations, dict) or set(equations) != set(ARMS):
+        raise ValueError("likelihood equations metadata missing or incomplete")
+    if not all(isinstance(value, str) and value.strip() for value in equations.values()):
+        raise ValueError("likelihood equation metadata must be non-empty strings")
     truths = metadata.get("truths")
     fractions = metadata.get("fractional_errors")
     reps = metadata.get("replicates_per_cell")
@@ -273,6 +285,10 @@ def audit_artifacts(output_dir: str | Path) -> dict:
         "summary_cell_count": len(summary_rows),
         "replicates_per_cell": reps,
         "grid_points": grid_points,
+        "code_revision": metadata["code_revision"],
+        "python_version": metadata["python_version"],
+        "numpy_version": metadata["numpy_version"],
+        "scipy_version": metadata["scipy_version"],
         "unique_raw_keys": len(seen),
         "a_b_pairs_verified": len(truths) * len(fractions) * reps,
         "posterior_rows_reconstructed": len(rows),
