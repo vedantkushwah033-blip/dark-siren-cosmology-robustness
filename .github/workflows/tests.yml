@@ -28,8 +28,10 @@ jobs:
         run: python scripts/audit_selected_likelihood_sbc.py
       - name: Compare selected-likelihood PIT calibration across grid resolutions
         run: python scripts/run_calibration_grid_sensitivity.py --replicates 300 --seed 20261025 --grid-points 1201,2401,4801 --output-dir artifacts/calibration_grid_sensitivity
+      - name: Independently audit paired grid-sensitivity comparison and summary statistics
+        run: python scripts/audit_calibration_grid_sensitivity.py artifacts/calibration_grid_sensitivity
       - name: Test calibration grid-sensitivity experiment
-        run: python -m pytest tests/test_calibration_grid_sensitivity.py -q
+        run: python -m pytest tests/test_calibration_grid_sensitivity.py tests/test_audit_calibration_grid_sensitivity.py -q
       - name: Test independent paired host-weight contrast reconstruction
         run: python -m pytest tests/test_paired_host_weight_contrasts.py -q
       - name: Run focused grid-convergence regression tests
