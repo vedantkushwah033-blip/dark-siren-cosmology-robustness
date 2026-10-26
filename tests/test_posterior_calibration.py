@@ -1,6 +1,8 @@
 import csv, hashlib, importlib.util, json
 from pathlib import Path
 import pytest
+from scipy.integrate import cumulative_trapezoid, trapezoid
+from scipy.stats import norm
 
 ROOT=Path(__file__).resolve().parents[1]
 def load(name,path):
@@ -20,6 +22,28 @@ def fixture(root):
           "raw_records":len(raw),"summary_rows":len(summaries),
           "sha256":{n:hashlib.sha256((root/n).read_bytes()).hexdigest() for n in ("per_run.csv","summary.csv")}}
     (root/"run_metadata.json").write_text(json.dumps(meta,indent=2)+"\n")
+
+
+def test_posterior_uses_likelihood_truncated_to_positive_distances():
+    # Independent direct calculation for one arm. The generator conditions on
+    # positive distances, so an untruncated Gaussian mixture is misspecified.
+    import numpy as np
+    distance, sigma, truth = 25.0, 40.0, 65.0
+    support = (20.0, 220.0)
+    h = RUN.GRID[(RUN.GRID >= support[0]) & (RUN.GRID <= support[1])]
+    mu1, mu2 = RUN.C * RUN.Z1 / h, RUN.C * RUN.Z2 / h
+    likelihood = (
+        0.7 * norm.pdf(distance, loc=mu1, scale=sigma) / norm.cdf(mu1 / sigma)
+        + 0.3 * norm.pdf(distance, loc=mu2, scale=sigma) / norm.cdf(mu2 / sigma)
+    )
+    density = likelihood / trapezoid(likelihood, h)
+    cdf = np.concatenate(([0.0], cumulative_trapezoid(density, h)))
+    cdf /= cdf[-1]
+    expected_median = float(np.interp(0.5, cdf, h))
+    actual = RUN.posterior_summary(
+        distance, sigma, (0.7, 0.3), support, "uniform_H0", truth
+    )
+    assert actual["median"] == pytest.approx(expected_median, abs=1e-10)
 
 def test_posterior_calibration_design_and_summary_metrics():
     raw,summaries=RUN.run(replicates=100,seed=1771)
