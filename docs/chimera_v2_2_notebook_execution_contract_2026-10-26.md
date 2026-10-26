@@ -1,0 +1,70 @@
+# CHIMERA v2.2 incomplete-catalogue notebook: execution contract (2026-10-26)
+
+## Purpose and status
+
+This document records a source-level inspection of the incomplete-catalogue example at the immutable CHIMERA v2.2 commit `fd35f897e36850d865c760c13325c5a46ebe94db`.
+
+**Status: source inspection complete; benchmark not executed by this repository.** The notebook contains saved outputs from an upstream run, but those outputs are not a substitute for reproducing that run from verified inputs in our own environment.
+
+Reference:
+- Repository: https://github.com/CosmoStatGW/CHIMERA
+- Pinned notebook: https://github.com/CosmoStatGW/CHIMERA/blob/fd35f897e36850d865c760c13325c5a46ebe94db/examples/incomplete_galaxy_catalog.ipynb
+- Release: https://github.com/CosmoStatGW/CHIMERA/releases/tag/v2.2
+
+## What the pinned notebook actually does
+
+The notebook's key configuration is:
+
+| Item | Value read from notebook | Implication |
+|---|---|---|
+| Mock identifier | `mock_id = 1` | All mock-specific products must refer to mock 1. |
+| Magnitude cut | `mcut = 10` | Completeness/interpolation products must use this cut. |
+| GW events | 100-event pixelated mock | This is not the 300-event SNR-20 pixelated fixture listed in the v2.0 Zenodo record. |
+| Detection threshold | `snr_cut=25` | Selection injections are filtered at SNR 25. |
+| Fiducial cosmology | `H0=70`, `Om0=0.25` | The displayed posterior includes a fiducial H0 of 70. |
+| H0 evaluation grid | 50 points from 50 to 90 | This is the notebook's reported grid, not a general recommendation for inference. |
+| Selection injections | `N_inj=20*1e6` | The pipeline expects a 20-million-injection selection model. |
+| Completeness masks | 5 masks, nside 32, `nest=False` | Pixel ordering and mask configuration must be consistent. |
+| Population | conditioned PLP mass model and Madau–Dickinson rate | A comparison must match these assumptions or explicitly label the difference. |
+
+The notebook builds the masked completeness object, loads saved GW-mask indices, loads precomputed `p_cat`, `N_gal`, `P_compl`, and redshift grids from `pcat_incomplete.h5`, then evaluates the CHIMERA hyperlikelihood and its selection function.
+
+## Required inputs and derived products
+
+| Input/product | Notebook filename | State in the currently documented v2.0 fixture |
+|---|---|---|
+| Pixelated GW posterior samples | `O5snr25_100evs_mock1_pixelated_nsidelist512-256-128-64-32-16-8_meanpixels15_skyconf0.9_nestFalse.h5` | **Missing / not matched**: the v2.0 fixture lists a different, 300-event SNR-20 file. |
+| Selection injections | `injections_Ninj_2e7_O5Like_snr20.h5` | Listed in v2.0 Zenodo fixture; must still be checksum-verified and filtered with the notebook's SNR threshold. |
+| Completeness masks | `completeness_masks_5x_pix32False.h5` | Not listed in v2.0 fixture. |
+| Mock-specific completeness interpolants | `completeness_masks_5x_pix32False_mock1_mcut10.h5` | Not listed in v2.0 fixture; requires matching mask, galaxy-density model, redshift range, and magnitude cut. |
+| GW-to-mask index cache | `temp_gw_mask_idxs_mock1_mcut10.h5` | Not listed in v2.0 fixture; can potentially be regenerated from the pinned code and matching event pixels/masks. |
+| Precomputed catalogue likelihood terms | `pcat_incomplete.h5` | Not listed in v2.0 fixture; described by the notebook as precomputed elsewhere because the galaxy catalogue is very large. |
+| Underlying mock galaxy data | Not directly loaded in the shown notebook cells | Provenance, exact source path, generation recipe, and redistribution availability remain unresolved. |
+
+The notebook contains a local/HPC directory string (`/leonardo_work/IscrC_LIGEA3/O5_B25/data/`), but the shown cells use relative `./data/` paths. The directory string alone is not a public data source or a reproducible acquisition instruction.
+
+The saved notebook output reports very large mask galaxy counts (including tens to hundreds of millions in some masks). This is an additional reason not to assume that a small parent-catalogue fixture is the same underlying dataset used to create these products. Counts in saved output are clues for provenance investigation, not independently verified properties of an acquired file.
+
+## Scientific comparison contract
+
+Before comparing our model with CHIMERA, record and align at minimum:
+
+1. The exact CHIMERA commit and dependency/environment versions.
+2. The exact event list, event count, PE prior correction, pixelization parameters, and SNR threshold.
+3. The exact injection set and selection-function normalization.
+4. The underlying galaxy catalogue and its generation/provenance, magnitude cut, masks, and completeness interpolants.
+5. The cosmology, population/rate/mass assumptions, H0 prior and evaluation grid.
+6. Whether the comparison targets per-event likelihoods, selection normalization, or the final H0 posterior.
+7. Numerical tolerances and an acceptance rule chosen before inspecting comparison results.
+
+A posterior-curve resemblance alone is not sufficient. If the implementations use different inputs or assumptions, report those differences and do not call the result a matched benchmark.
+
+## Next go/no-go gate
+
+**Go** only when the event file and all essential inputs have a documented source, matching configuration, and verified checksums—or when every derived product can be deterministically regenerated from verified source data using pinned code.
+
+**No-go for end-to-end comparison** while the 100-event SNR-25 event file and the underlying mock-galaxy data / `pcat_incomplete.h5` provenance remain unresolved. Continue with provenance tracing and lightweight source/API compatibility checks, but do not substitute the v2.0 fixture silently or describe the benchmark as run.
+
+## Provenance boundary
+
+This is a source-level execution contract, not an executed reproduction, independent validation of CHIMERA, or evidence that our current model is astrophysically valid. Any future benchmark report must be generated from actual run logs and verified artifacts.
