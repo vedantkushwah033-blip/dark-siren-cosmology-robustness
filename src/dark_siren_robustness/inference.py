@@ -89,7 +89,10 @@ def posterior_h0_low_z(
 
     posterior = np.zeros_like(grid)
     posterior[finite] = np.exp(log_posterior[finite] - np.max(log_posterior[finite]))
-    area = trapezoid(posterior, grid)
+    # Integrate only on prior support. If the supplied grid extends beyond
+    # the prior, integrating the zero-padded array would add artificial
+    # half-bin trapezoid mass outside the support at each prior boundary.
+    area = trapezoid(posterior[valid], grid[valid])
     if not np.isfinite(area) or area <= 0:
         raise ValueError("Posterior normalization failed")
     return posterior / area
