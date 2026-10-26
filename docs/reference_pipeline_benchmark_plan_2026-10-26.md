@@ -7,7 +7,7 @@ The next scientifically useful milestone is a benchmark against an established c
 Two realistic reference options were checked:
 
 1. **CHIMERA** — public source code and tutorials cover complete and incomplete galaxy catalogues. The current incomplete-catalogue example, however, references an O5-like mock data directory, a pixelated 100-event mock, completeness-mask files, and a 20-million-injection HDF5 file. Those files are not part of the notebook itself. The example is therefore not immediately reproducible in this repository without separately acquiring and verifying the referenced data.
-2. **gwcosmo** — mature public dark-siren pipeline with a documented command-line interface. Its dark-siren method requires GW posterior samples, sky maps, a selection-effect injection set, and a precomputed line-of-sight redshift-prior HDF5 file. The official documentation notes that injections and LOS priors are not bundled with the package by default. This creates a data-provenance and compute prerequisite, not merely a Python dependency.
+2. **gwcosmo** — mature public dark-siren pipeline with a documented command-line interface. Its dark-siren method requires GW posterior samples, sky maps, a selection-effect injection set, and a precomputed line-of-sight redshift-prior HDF5 file. The official documentation notes that injections and LOS priors are not bundled with the package by default. A versioning issue must also be resolved: the official documentation inspected here identifies itself as 3.0.1.dev2, while PyPI lists a 3.1.0 release uploaded on 22 July 2026. The benchmark must pin one exact release/commit and confirm that the data/API instructions match that version. This creates a data-provenance and compute prerequisite, not merely a Python dependency.
 
 Sources:
 - [CHIMERA public repository](https://github.com/CosmoStatGW/CHIMERA)
@@ -16,6 +16,8 @@ Sources:
 - [gwcosmo data requirements](https://lscsoft.docs.ligo.org/gwcosmo/data.html)
 - [gwcosmo inference command and input requirements](https://lscsoft.docs.ligo.org/gwcosmo/cosmological-inference.html)
 - [gwcosmo installation and source](https://lscsoft.docs.ligo.org/gwcosmo/installation.html)
+- [gwcosmo PyPI release history](https://pypi.org/project/gwcosmo/)
+- [gwcosmo pipeline validation and systematics paper (2026)](https://doi.org/10.1103/53c5-mtk5)
 
 ## Feasibility comparison
 
