@@ -90,3 +90,9 @@ def test_grid_sensitivity_stops_when_independent_audit_fails(tmp_path, monkeypat
         run_sensitivity([1201, 2401], n_replicates=100, seed=123, output_dir=tmp_path)
     assert (tmp_path / "grid_1201" / "pit_replicates.csv").exists()
     assert not stale_table.exists()
+
+
+@pytest.mark.parametrize("seed", [-1, -100])
+def test_grid_sensitivity_rejects_negative_seeds(tmp_path, seed):
+    with pytest.raises(ValueError, match="seed must be a non-negative integer"):
+        run_sensitivity([1201, 2401], n_replicates=100, seed=seed, output_dir=tmp_path)
