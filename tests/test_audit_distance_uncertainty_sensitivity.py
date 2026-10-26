@@ -77,3 +77,14 @@ def test_independent_audit_rejects_tampered_summary(tmp_path):
     path.write_text(json.dumps(metadata), encoding="utf-8")
     with pytest.raises(ValueError, match="coverage_68 mismatch"):
         audit_artifacts(folder)
+
+
+def test_independent_audit_rejects_tampered_paired_contrast(tmp_path):
+    folder = tmp_path / "artifacts"
+    _write_artifacts(folder)
+    path = folder / "summary.json"
+    metadata = json.loads(path.read_text(encoding="utf-8"))
+    metadata["paired_ab_contrasts"][0]["mean_difference"] += 1.0
+    path.write_text(json.dumps(metadata), encoding="utf-8")
+    with pytest.raises(ValueError, match="mean difference mismatch"):
+        audit_artifacts(folder)
