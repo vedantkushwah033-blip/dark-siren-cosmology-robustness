@@ -70,6 +70,11 @@ def run_sensitivity(
             json.dumps(audit_report, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
+        if audit_report.get("status") != "PASS":
+            raise RuntimeError(
+                f"Independent audit failed for {points}-point grid: "
+                f"{audit_report.get('status', 'missing status')}"
+            )
         results.append({
             "grid_points": points,
             "n_replicates": n_replicates,
