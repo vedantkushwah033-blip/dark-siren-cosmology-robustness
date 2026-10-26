@@ -39,3 +39,22 @@ def test_cosmological_inference_rejects_all_zero_host_weights():
             distance_sigma_mpc=8.0,
             host_weights=[0.0, 0.0],
         )
+
+
+def test_low_z_inference_normalizes_extreme_finite_host_weights():
+    """The baseline mixture should accept finite weights whose raw sum overflows."""
+    from dark_siren_robustness.inference import posterior_h0_low_z
+
+    h0 = np.linspace(50.0, 90.0, 401)
+    common = dict(
+        h0_grid=h0,
+        redshifts=[0.02, 0.04],
+        observed_distance_mpc=100.0,
+        distance_sigma_mpc=15.0,
+        prior_min=50.0,
+        prior_max=90.0,
+    )
+    ordinary = posterior_h0_low_z(**common, host_weights=[2.0, 1.0])
+    extreme = posterior_h0_low_z(**common, host_weights=[1.0e308, 5.0e307])
+
+    np.testing.assert_allclose(extreme, ordinary, rtol=2e-13, atol=2e-13)
