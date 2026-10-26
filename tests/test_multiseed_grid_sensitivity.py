@@ -67,6 +67,8 @@ def test_failed_seed_run_does_not_leave_stale_success_marker(tmp_path, monkeypat
 
     marker = tmp_path / "multiseed_metadata.json"
     marker.write_text(json.dumps({"status": "PASS"}), encoding="utf-8")
+    audit_marker = tmp_path / "multiseed_audit_report.json"
+    audit_marker.write_text(json.dumps({"status": "PASS"}), encoding="utf-8")
 
     def fail_before_audit(**kwargs):
         raise RuntimeError("synthetic failure for fail-closed regression test")
@@ -80,4 +82,5 @@ def test_failed_seed_run_does_not_leave_stale_success_marker(tmp_path, monkeypat
             output_dir=tmp_path,
         )
     assert not marker.exists()
+    assert not audit_marker.exists()
     assert not (tmp_path / "multiseed_grid_sensitivity.csv").exists()
