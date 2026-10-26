@@ -119,6 +119,9 @@ def audit_directory(root: Path, replicates: int = 1000, seed: int = 20261027):
             "width_68": post["upper_68"] - post["lower_68"],
             "width_95": post["upper_95"] - post["lower_95"],
         }
+        for key in ("covered_68", "covered_95", "width_68", "width_95"):
+            if not math.isclose(float(row[key]), float(derived[key]), rel_tol=2e-10, abs_tol=2e-8):
+                raise ValueError(f"Per-run derived-field mismatch at row {i}, field {key}")
         reconstructed[scenario].append(derived)
 
     for summary_row, scenario in zip(actual, SCENARIOS):
