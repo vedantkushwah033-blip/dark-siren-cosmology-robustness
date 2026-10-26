@@ -44,6 +44,8 @@ jobs:
         run: python -m pytest tests/test_host_misspecification_audit.py -q
       - name: Test equal-cell host sensitivity summary and paired bootstrap
         run: python -m pytest tests/test_summarize_host_misspecification_sensitivity_surface.py -q
+      - name: Test prior-support × hidden-host factorial and independent audit
+        run: python -m pytest tests/test_host_prior_support_factorial.py -q
       - name: Run focused grid-convergence regression tests
         run: python -m pytest tests/test_targeted_grid_convergence.py tests/test_grid_refinement_audit.py -q
       - name: Run posterior-grid stability diagnostic
