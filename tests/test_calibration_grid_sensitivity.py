@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+import scripts.run_calibration_grid_sensitivity as grid_sensitivity
 from scripts.run_calibration_grid_sensitivity import run_sensitivity
 
 
@@ -79,3 +80,11 @@ def test_grid_sensitivity_rejects_invalid_seeds(tmp_path, seed):
 def test_grid_sensitivity_rejects_non_integer_grid_sizes(tmp_path):
     with pytest.raises(ValueError, match="Grid resolutions must be integers"):
         run_sensitivity([1201, 2401.5], n_replicates=100, seed=1, output_dir=tmp_path)
+
+
+def test_grid_sensitivity_stops_when_independent_audit_fails(tmp_path, monkeypatch):
+    monkeypatch.setattr(grid_sensitivity, "audit", lambda *_args, **_kwargs: {"status": "FAIL"})
+    with pytest.raises(RuntimeError, match="Independent audit failed for 1201-point grid"):
+        run_sensitivity([1201, 2401], n_replicates=100, seed=123, output_dir=tmp_path)
+    assert (tmp_path / "grid_1201" / "pit_replicates.csv").exists()
+    assert not (tmp_path / "grid_sensitivity.csv").exists()
