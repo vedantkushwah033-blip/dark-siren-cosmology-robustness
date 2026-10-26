@@ -54,6 +54,20 @@ def test_download_verified_rejects_corruption_and_cleans_partial(tmp_path, monke
     assert not list(tmp_path.glob("*.part"))
 
 
+def test_download_verified_rejects_source_size_mismatch_even_when_transfer_is_complete(tmp_path, monkeypatch):
+    payload = b"complete but wrong source size"
+    expected = hashlib.md5(payload).hexdigest()
+    monkeypatch.setattr(DOWNLOADER.urllib.request, "urlopen", lambda url, timeout: FakeResponse(payload))
+    destination = tmp_path / "fixture.bin"
+    with pytest.raises(ValueError, match="Source-size mismatch"):
+        DOWNLOADER.download_verified(
+            "https://example.invalid/fixture.bin", destination, expected,
+            expected_size_bytes=len(payload) + 1,
+        )
+    assert not destination.exists()
+    assert not list(tmp_path.glob("*.part"))
+
+
 def test_download_verified_rejects_truncated_response_and_cleans_partial(tmp_path, monkeypatch):
     payload = b"truncated payload"
     expected = hashlib.md5(payload).hexdigest()
