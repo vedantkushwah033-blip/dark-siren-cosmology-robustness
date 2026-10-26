@@ -85,7 +85,12 @@ def run_sensitivity(
     for result in results:
         delta = pits_by_grid[result["grid_points"]] - reference_pits
         result["reference_grid_points"] = reference_points
-        result["mean_pit_delta_vs_finest"] = float(np.mean(delta))
+        mean_delta = float(np.mean(delta))
+        delta_se = float(np.std(delta, ddof=1) / np.sqrt(len(delta))) if len(delta) > 1 else 0.0
+        result["mean_pit_delta_vs_finest"] = mean_delta
+        result["mean_pit_delta_monte_carlo_se"] = delta_se
+        result["mean_pit_delta_normal_95_low"] = mean_delta - 1.96 * delta_se
+        result["mean_pit_delta_normal_95_high"] = mean_delta + 1.96 * delta_se
         result["rms_pit_delta_vs_finest"] = float(np.sqrt(np.mean(delta**2)))
         result["max_abs_pit_delta_vs_finest"] = float(np.max(np.abs(delta)))
 
