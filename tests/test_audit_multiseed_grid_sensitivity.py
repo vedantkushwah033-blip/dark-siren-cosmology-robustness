@@ -107,3 +107,21 @@ def test_multiseed_audit_rejects_tampered_run_metadata(tmp_path, field, value, m
     path.write_text(json.dumps(metadata), encoding="utf-8")
     with pytest.raises(ValueError, match=message):
         audit_multiseed_sensitivity(tmp_path)
+
+
+def test_standalone_audit_requires_final_metadata(tmp_path):
+    run_multiseed_sensitivity(
+        grid_points=[1201, 2401],
+        seeds=[401, 402],
+        n_replicates=100,
+        output_dir=tmp_path,
+    )
+    metadata_path = tmp_path / "multiseed_metadata.json"
+    metadata_path.unlink()
+    # The pre-metadata audit is an internal runner phase, but a completed-run
+    # audit must not silently accept missing final metadata.
+    with pytest.raises(ValueError, match="final multi-seed metadata file is required"):
+        audit_multiseed_sensitivity(tmp_path, require_metadata=True)
+    # The lower-level mode remains available to reproduce the runner's
+    # pre-metadata aggregate check.
+    assert audit_multiseed_sensitivity(tmp_path, require_metadata=False)["status"] == "PASS"
