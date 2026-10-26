@@ -15,7 +15,9 @@ on:
     paths:
       - "scripts/run_host_prior_support_factorial.py"
       - "scripts/audit_host_prior_support_factorial.py"
+      - "scripts/summarize_host_prior_support_factorial.py"
       - "tests/test_host_prior_support_factorial.py"
+      - "tests/test_summarize_host_prior_support_factorial.py"
       - "docs/host_prior_support_factorial_protocol.md"
       - ".github/workflows/host-prior-support-factorial.yml"
   workflow_dispatch:
