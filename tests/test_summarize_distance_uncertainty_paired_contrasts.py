@@ -21,7 +21,11 @@ def test_stratified_paired_summary_checks_pairs_and_writes_report(tmp_path):
         writer.writeheader()
         writer.writerows(raw)
 
-    script = Path(__file__).resolve().parents[1] / "scripts" / "summarize_distance_uncertainty_paired_contrasts.py"
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "scripts"
+        / "summarize_distance_uncertainty_paired_contrasts.py"
+    )
     output = tmp_path / "paired_summary.json"
     subprocess.run(
         [sys.executable, str(script), str(csv_path), "--seed", "11",

@@ -61,7 +61,8 @@ def check_grid_stability(raw_csv: Path, fine_grid_points: int = 3201,
                     "host_redshift", "observed_distance_mpc", "fractional_error",
                     "generated_sigma_mpc"}
         if not required.issubset(reader.fieldnames or []):
-            raise ValueError(f"raw CSV missing columns: {sorted(required - set(reader.fieldnames or []))}")
+            missing = sorted(required - set(reader.fieldnames or []))
+            raise ValueError(f"raw CSV missing columns: {missing}")
         for row in reader:
             row_count += 1
             truth = float(row["true_h0"])
@@ -108,7 +109,10 @@ def check_grid_stability(raw_csv: Path, fine_grid_points: int = 3201,
         "max_allowed_quantile_change": max_allowed_change,
         "quantile_changes": quantile_changes,
         "coverage_68_by_arm": coverage,
-        "method": "independent Gaussian-likelihood and trapezoidal-grid reconstruction from raw CSV; does not import experiment code",
+        "method": (
+            "independent Gaussian-likelihood and trapezoidal-grid reconstruction "
+            "from raw CSV; does not import experiment code"
+        ),
     }
 
 
@@ -119,7 +123,9 @@ def main() -> None:
     parser.add_argument("--max-allowed-change", type=float, default=1e-3)
     parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()
-    report = check_grid_stability(args.replicates_csv, args.fine_grid_points, args.max_allowed_change)
+    report = check_grid_stability(
+        args.replicates_csv, args.fine_grid_points, args.max_allowed_change
+    )
     output = args.output or args.replicates_csv.with_name("grid_stability_report.json")
     output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(report, indent=2, sort_keys=True))

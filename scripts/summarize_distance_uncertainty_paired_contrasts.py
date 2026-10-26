@@ -46,18 +46,26 @@ def summarize(path: Path, seed: int = 4182026, bootstrap_resamples: int = 10000)
             for rep in reps:
                 arm_rows = {arm: indexed.get((truth, frac, rep, arm)) for arm in expected_arms}
                 if any(row is None for row in arm_rows.values()):
-                    raise ValueError(f"missing paired A/B record at H0={truth}, f={frac}, replicate={rep}")
+                    raise ValueError(
+                        f"missing paired A/B record at H0={truth}, f={frac}, replicate={rep}"
+                    )
                 a, b = arm_rows[A], arm_rows[B]
                 for column in ("host_redshift", "standard_normal", "true_distance_mpc",
                                "observed_distance_mpc", "generated_sigma_mpc"):
                     if float(a[column]) != float(b[column]):
-                        raise ValueError(f"A/B input pairing mismatch for {column} at {truth}, {frac}, {rep}")
+                        raise ValueError(
+                            f"A/B input pairing mismatch for {column} at {truth}, {frac}, {rep}"
+                        )
                 h = truth
                 metric_values = {
                     "coverage68_diff": float(float(a["lower_68"]) <= h <= float(a["upper_68"])) -
                                         float(float(b["lower_68"]) <= h <= float(b["upper_68"])),
-                    "absolute_median_error_diff": abs(float(a["median"]) - h) - abs(float(b["median"]) - h),
-                    "squared_median_error_diff": (float(a["median"]) - h)**2 - (float(b["median"]) - h)**2,
+                    "absolute_median_error_diff": (
+                        abs(float(a["median"]) - h) - abs(float(b["median"]) - h)
+                    ),
+                    "squared_median_error_diff": (
+                        (float(a["median"]) - h) ** 2 - (float(b["median"]) - h) ** 2
+                    ),
                     "width68_diff": (float(a["upper_68"]) - float(a["lower_68"])) -
                                     (float(b["upper_68"]) - float(b["lower_68"])),
                     "width95_diff": (float(a["upper_95"]) - float(a["lower_95"])) -
@@ -91,7 +99,10 @@ def summarize(path: Path, seed: int = 4182026, bootstrap_resamples: int = 10000)
                 "fractional_error": frac,
                 "truth_cells": list(INTERIOR_TRUTHS),
                 "replicates_per_cell": len(per_cell[0]),
-                "estimand": "equal-weight mean of paired A-minus-B replicate differences over the seven fixed interior H0 cells",
+                "estimand": (
+                    "equal-weight mean of paired A-minus-B replicate differences over "
+                    "the seven fixed interior H0 cells"
+                ),
                 "contrast": metric,
                 "direction": "A_minus_B",
                 "mean_difference": point,
