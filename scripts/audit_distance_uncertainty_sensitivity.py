@@ -19,12 +19,14 @@ ARMS = ("A_fixed_realized_sigma", "B_fractional_sigma_H0", "C_fixed_reference_si
 RAW_COLUMNS = {
     "true_h0", "fractional_error", "replicate", "arm", "host_redshift",
     "standard_normal", "true_distance_mpc", "observed_distance_mpc",
-    "generated_sigma_mpc", "median", "mean", "posterior_sd", "lower_68",
+    "generated_sigma_mpc", "pull_median", "median", "mean", "posterior_sd", "lower_68",
     "upper_68", "lower_95", "upper_95",
 }
 SUMMARY_COLUMNS = {
     "true_h0", "fractional_error", "arm", "n", "coverage_68",
-    "coverage_68_successes", "coverage_95", "coverage_95_successes",
+    "coverage_68_successes", "coverage_68_wilson_low", "coverage_68_wilson_high",
+    "coverage_95", "coverage_95_successes", "coverage_95_wilson_low", "coverage_95_wilson_high",
+    "mean_pull_median", "sd_pull_median",
     "mean_median_error", "rmse_median", "mean_posterior_mean_error",
     "rmse_mean", "mean_width_68", "mean_width_95", "truth_on_prior_boundary",
 }
@@ -60,6 +62,14 @@ def _posterior_from_formula(observed, z, frac, sigma_fixed, arm, grid):
     }
 
 
+def _wilson_interval(successes, n, z=1.959963984540054):
+    p = successes / n
+    denominator = 1.0 + z*z/n
+    center = (p + z*z/(2*n)) / denominator
+    half = z * math.sqrt(p*(1-p)/n + z*z/(4*n*n)) / denominator
+    return max(0.0, center-half), min(1.0, center+half)
+
+
 def _close(actual, expected, label, atol=2e-8):
     if not math.isfinite(float(actual)) or not math.isclose(
         float(actual), float(expected), rel_tol=2e-9, abs_tol=atol
@@ -87,6 +97,8 @@ def audit_artifacts(output_dir: str | Path) -> dict:
     fractions = metadata.get("fractional_errors")
     reps = metadata.get("replicates_per_cell")
     grid_points = metadata.get("grid_points")
+    seed = metadata.get("seed")
+    bootstrap_resamples = metadata.get("bootstrap_resamples")
     if truths != [50, 55, 60, 65, 70, 75, 80, 85, 90]:
         raise ValueError("truth grid metadata mismatch")
     if fractions != [0.05, 0.1, 0.15, 0.2]:
@@ -95,6 +107,10 @@ def audit_artifacts(output_dir: str | Path) -> dict:
         raise ValueError("invalid replicate count metadata")
     if isinstance(grid_points, bool) or not isinstance(grid_points, int) or grid_points < 101:
         raise ValueError("invalid grid resolution metadata")
+    if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+        raise ValueError("invalid seed metadata")
+    if isinstance(bootstrap_resamples, bool) or not isinstance(bootstrap_resamples, int) or bootstrap_resamples < 100:
+        raise ValueError("invalid bootstrap resample metadata")
 
     with raw_path.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
@@ -134,6 +150,8 @@ def audit_artifacts(output_dir: str | Path) -> dict:
         )
         for name, value in summary.items():
             _close(numeric[name], value, f"{key}: posterior {name}")
+        _close(numeric["pull_median"], (summary["median"] - truth) / summary["posterior_sd"],
+               f"{key}: posterior-median pull")
         records_by_key[key] = row
         grouped.setdefault((truth, frac, arm), []).append(numeric)
 
@@ -175,9 +193,16 @@ def audit_artifacts(output_dir: str | Path) -> dict:
         mean_errors = np.array([r["mean"] - truth for r in cell])
         c68 = sum(r["lower_68"] <= truth <= r["upper_68"] for r in cell)
         c95 = sum(r["lower_95"] <= truth <= r["upper_95"] for r in cell)
+        c68_low, c68_high = _wilson_interval(c68, n)
+        c95_low, c95_high = _wilson_interval(c95, n)
+        pulls = np.array([r["pull_median"] for r in cell])
         expected = {
             "n": n, "coverage_68": c68/n, "coverage_68_successes": c68,
+            "coverage_68_wilson_low": c68_low, "coverage_68_wilson_high": c68_high,
             "coverage_95": c95/n, "coverage_95_successes": c95,
+            "coverage_95_wilson_low": c95_low, "coverage_95_wilson_high": c95_high,
+            "mean_pull_median": float(pulls.mean()),
+            "sd_pull_median": float(pulls.std(ddof=1)) if n > 1 else 0.0,
             "mean_median_error": float(median_errors.mean()),
             "rmse_median": float(np.sqrt(np.mean(median_errors**2))),
             "mean_posterior_mean_error": float(mean_errors.mean()),
@@ -194,6 +219,53 @@ def audit_artifacts(output_dir: str | Path) -> dict:
             else:
                 _close(observed.get(name), value, f"summary {key}: {name}")
 
+    contrasts = metadata.get("paired_ab_contrasts")
+    metric_names = ("coverage_68_indicator", "absolute_median_error", "squared_median_error",
+                    "width_68", "width_95")
+    expected_contrast_count = len(truths) * len(fractions) * len(metric_names)
+    if not isinstance(contrasts, list) or len(contrasts) != expected_contrast_count:
+        raise ValueError("paired A/B contrast count mismatch")
+    if metadata.get("paired_ab_contrast_count") != expected_contrast_count:
+        raise ValueError("paired A/B contrast-count metadata mismatch")
+    contrasts_by_key = {}
+    for item in contrasts:
+        key = (float(item["true_h0"]), float(item["fractional_error"]), item["contrast"])
+        if key in contrasts_by_key:
+            raise ValueError(f"duplicate paired contrast: {key}")
+        contrasts_by_key[key] = item
+    for cell_index, (truth, frac) in enumerate((float(t), float(f)) for t in truths for f in fractions):
+        pairs = []
+        for rep in range(reps):
+            a = records_by_key[(truth, frac, rep, ARMS[0])]
+            b = records_by_key[(truth, frac, rep, ARMS[1])]
+            a_med, b_med = float(a["median"]), float(b["median"])
+            pairs.append({
+                "coverage_68_indicator": float(float(a["lower_68"]) <= truth <= float(a["upper_68"])) -
+                                          float(float(b["lower_68"]) <= truth <= float(b["upper_68"])),
+                "absolute_median_error": abs(a_med-truth) - abs(b_med-truth),
+                "squared_median_error": (a_med-truth)**2 - (b_med-truth)**2,
+                "width_68": (float(a["upper_68"])-float(a["lower_68"])) -
+                            (float(b["upper_68"])-float(b["lower_68"])),
+                "width_95": (float(a["upper_95"])-float(a["lower_95"])) -
+                            (float(b["upper_95"])-float(b["lower_95"])),
+            })
+        for metric_index, metric in enumerate(metric_names):
+            diffs = np.asarray([p[metric] for p in pairs], dtype=float)
+            rng_seed = (seed + 1_000_003*cell_index + 97_409*metric_index) % (2**32)
+            rng = np.random.default_rng(rng_seed)
+            indices = rng.integers(0, len(diffs), size=(bootstrap_resamples, len(diffs)))
+            boot_means = diffs[indices].mean(axis=1)
+            key = (truth, frac, metric)
+            if key not in contrasts_by_key:
+                raise ValueError(f"missing paired contrast {key}")
+            item = contrasts_by_key[key]
+            if item.get("direction") != "A_minus_B" or item.get("n_paired_replicates") != reps:
+                raise ValueError(f"paired contrast metadata mismatch for {key}")
+            if item.get("bootstrap_resamples") != bootstrap_resamples or item.get("bootstrap_seed") != rng_seed:
+                raise ValueError(f"paired bootstrap metadata mismatch for {key}")
+            _close(item.get("mean_difference"), float(diffs.mean()), f"{key}: mean difference")
+            _close(item.get("bootstrap_95_low"), float(np.quantile(boot_means, .025)), f"{key}: bootstrap low")
+            _close(item.get("bootstrap_95_high"), float(np.quantile(boot_means, .975)), f"{key}: bootstrap high")
     return {
         "status": "PASS",
         "scope": "synthetic known-host low-redshift sensitivity diagnostic only",
@@ -205,6 +277,8 @@ def audit_artifacts(output_dir: str | Path) -> dict:
         "a_b_pairs_verified": len(truths) * len(fractions) * reps,
         "posterior_rows_reconstructed": len(rows),
         "summary_cells_reconstructed": len(summary_rows),
+        "paired_ab_contrast_count": len(contrasts),
+        "paired_ab_bootstrap_intervals_reconstructed": len(contrasts),
         "boundary_truths_separated": True,
         "replicates_sha256": hashlib.sha256(raw_bytes).hexdigest(),
         "summary_sha256": hashlib.sha256(summary_bytes).hexdigest(),
