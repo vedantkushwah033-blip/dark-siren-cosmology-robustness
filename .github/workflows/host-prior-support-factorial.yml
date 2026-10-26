@@ -10,6 +10,7 @@ on:
       - "tests/test_host_prior_support_factorial.py"
       - "tests/test_summarize_host_prior_support_factorial.py"
       - "docs/host_prior_support_factorial_protocol.md"
+      - "docs/missing_host_mixture_likelihood_impact_audit_2026-10-27.md"
       - ".github/workflows/host-prior-support-factorial.yml"
   pull_request:
     paths:
@@ -19,7 +20,9 @@ on:
       - "tests/test_host_prior_support_factorial.py"
       - "tests/test_summarize_host_prior_support_factorial.py"
       - "docs/host_prior_support_factorial_protocol.md"
+      - "docs/missing_host_mixture_likelihood_impact_audit_2026-10-27.md"
       - ".github/workflows/host-prior-support-factorial.yml"
+
   workflow_dispatch:
 
 permissions:
