@@ -17,6 +17,12 @@ def test_grid_sensitivity_replays_and_audits_each_resolution(tmp_path):
     assert [row["grid_points"] for row in results] == [1201, 2401]
     assert all(row["independent_audit"] == "PASS" for row in results)
     assert all(row["n_replicates"] == 100 for row in results)
+    assert all(row["reference_grid_points"] == 2401 for row in results)
+    finest = next(row for row in results if row["grid_points"] == 2401)
+    assert finest["mean_pit_delta_vs_finest"] == 0.0
+    assert finest["rms_pit_delta_vs_finest"] == 0.0
+    assert finest["max_abs_pit_delta_vs_finest"] == 0.0
+    assert results[0]["rms_pit_delta_vs_finest"] >= 0.0
     raw_by_grid = {}
     for points in (1201, 2401):
         case_dir = tmp_path / f"grid_{points}"
