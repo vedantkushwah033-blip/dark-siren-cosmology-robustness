@@ -132,7 +132,10 @@ def audit_multiseed_sensitivity(root: str | Path, *, require_metadata: bool = Fa
         }
         for row_index, (audited_row, aggregate_row) in enumerate(zip(comparison_rows, aggregate_inputs)):
             if set(audited_row) != set(aggregate_row):
-                raise ValueError(f"seed {seed}: aggregate input schema differs from audited comparison table")
+                raise ValueError(
+                    f"aggregate input rows differ from audited comparison table "
+                    f"(seed {seed}, row {row_index}: schema mismatch)"
+                )
             for field in audited_row:
                 left, right = audited_row[field], aggregate_row[field]
                 if field in numeric_fields:
@@ -144,8 +147,8 @@ def audit_multiseed_sensitivity(root: str | Path, *, require_metadata: bool = Fa
                     equal = left == right
                 if not equal:
                     raise ValueError(
-                        f"seed {seed}: aggregate input differs from audited comparison table "
-                        f"at row {row_index}, field {field}"
+                        f"aggregate input rows differ from audited comparison table "
+                        f"(seed {seed}, row {row_index}, field {field})"
                     )
 
     finest = max(grids)
