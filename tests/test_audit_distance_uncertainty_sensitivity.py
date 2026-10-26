@@ -7,7 +7,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from audit_distance_uncertainty_sensitivity import audit_artifacts
-from dark_siren_robustness.uncertainty_sensitivity import ARMS, run_experiment
+from dark_siren_robustness.uncertainty_sensitivity import ARMS, paired_ab_contrasts, run_experiment
 
 
 def _write_artifacts(folder, replicates=2, seed=123, grid_points=101):
@@ -18,11 +18,13 @@ def _write_artifacts(folder, replicates=2, seed=123, grid_points=101):
         writer = csv.DictWriter(handle, fieldnames=list(raw[0]))
         writer.writeheader()
         writer.writerows(raw)
+    bootstrap_resamples = 100
     metadata = {
         "status": "synthetic sensitivity diagnostic; not an observational GW analysis",
         "seed": seed,
         "replicates_per_cell": replicates,
         "grid_points": grid_points,
+        "bootstrap_resamples": bootstrap_resamples,
         "prior": [50.0, 90.0],
         "truths": [50, 55, 60, 65, 70, 75, 80, 85, 90],
         "fractional_errors": [0.05, 0.10, 0.15, 0.20],
@@ -31,6 +33,8 @@ def _write_artifacts(folder, replicates=2, seed=123, grid_points=101):
         "summary_cell_count": len(summaries),
         "boundary_truths_must_be_interpreted_separately": True,
         "summary": summaries,
+        "paired_ab_contrasts": paired_ab_contrasts(raw, seed=seed, bootstrap_resamples=bootstrap_resamples),
+        "paired_ab_contrast_count": 9 * 4 * 5,
     }
     (folder / "summary.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
 
@@ -44,6 +48,8 @@ def test_independent_audit_reconstructs_raw_rows_and_summaries(tmp_path):
     assert report["summary_cell_count"] == 9 * 4 * 3
     assert report["a_b_pairs_verified"] == 9 * 4 * 2
     assert report["posterior_rows_reconstructed"] == report["raw_record_count"]
+    assert report["paired_ab_contrast_count"] == 9 * 4 * 5
+    assert report["paired_ab_bootstrap_intervals_reconstructed"] == 9 * 4 * 5
 
 
 def test_independent_audit_rejects_tampered_observation(tmp_path):
