@@ -330,3 +330,10 @@ python scripts/run_calibration_grid_sensitivity.py \
 ```
 
 The output includes `grid_sensitivity.csv` and a separate `pit_replicates.csv`, `pit_summary.json`, and `audit_report.json` for each grid. The screening run is intended to detect numerical sensitivity, not establish formal equivalence or exact calibration. Any publication-facing conclusion should use more replicates, additional seeds, prespecified tolerances, and realistic selection-model validation.
+
+### Paired host-misspecification experiment
+
+The [paired host-misspecification protocol](docs/paired_host_misspecification_protocol.md), [runner](scripts/run_paired_host_misspecification.py), [independent auditor](scripts/audit_paired_host_misspecification.py), and [adversarial regression tests](tests/test_paired_host_misspecification.py) add a stronger comparison to the earlier unpaired host stress test. Each replicate now generates one synthetic observation and evaluates all four inference assumptions on that identical observation. The experiment reports paired contrasts for reversed versus nominal two-host weights and omitted versus modelled hidden host, with stratified-by-replicate percentile bootstrap intervals. The nominal “correct weights” arm still omits a component of the generating population, so it is not an oracle model. This remains a single-truth, single-noise, single-prior toy diagnostic, not real-data validation.
+
+The full 1,000-observation workflow is [automatically run and independently audited on relevant branch changes](.github/workflows/paired-host-misspecification.yml). Do not cite its numerical results as complete until the workflow succeeds and its uploaded raw outputs and independent audit are checked.
+
