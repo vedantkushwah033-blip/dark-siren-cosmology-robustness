@@ -25,11 +25,11 @@ This paired design isolates posterior-grid discretization: differences in PIT va
 
 I independently compared replicate-level PITs from the downloaded CSVs against the finest (4,801-point) grid:
 
-| Grid points compared with 4,801 | Mean paired PIT difference | RMS paired PIT difference | Maximum absolute paired difference |
-|---:|---:|---:|---:|
-| 1,201 | -2.21e-7 | 2.20e-6 | 1.48e-5 |
-| 2,401 | -3.52e-8 | 4.41e-7 | 3.05e-6 |
-| 4,801 | 0 | 0 | 0 |
+| Grid points compared with 4,801 | Mean paired PIT difference | Monte Carlo SE of mean difference | Approx. 95% interval for mean difference | RMS paired PIT difference | Maximum absolute paired difference |
+|---:|---:|---:|---:|---:|---:|
+| 1,201 | -2.21e-7 | 1.27e-7 | [-4.69e-7, 2.74e-8] | 2.20e-6 | 1.48e-5 |
+| 2,401 | -3.52e-8 | 2.54e-8 | [-8.50e-8, 1.46e-8] | 4.40e-7 | 3.05e-6 |
+| 4,801 | 0 | 0 | [0, 0] by construction | 0 | 0 |
 
 All three grid resolutions passed the independent raw-record/PIT/summary audit. The main 1,000-replicate selected-likelihood calibration artifact in the same job also passed its audit.
 
