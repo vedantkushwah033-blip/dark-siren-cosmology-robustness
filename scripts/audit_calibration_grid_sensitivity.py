@@ -10,7 +10,12 @@ from pathlib import Path
 
 import numpy as np
 
-from scripts.audit_selected_likelihood_sbc import audit
+# Support both direct script execution (where this directory is sys.path[0])
+# and package-style imports from the regression tests.
+if __package__:
+    from .audit_selected_likelihood_sbc import audit
+else:
+    from audit_selected_likelihood_sbc import audit
 
 
 RAW_FIELDS = (
