@@ -58,3 +58,26 @@ def test_low_z_inference_normalizes_extreme_finite_host_weights():
     extreme = posterior_h0_low_z(**common, host_weights=[1.0e308, 5.0e307])
 
     np.testing.assert_allclose(extreme, ordinary, rtol=2e-13, atol=2e-13)
+
+
+def test_low_z_posterior_normalization_is_independent_of_out_of_prior_grid_points():
+    """Adding zero-density grid points outside the prior must not change the posterior."""
+    from dark_siren_robustness.inference import posterior_h0_low_z
+
+    common = dict(
+        redshifts=[0.02, 0.04],
+        observed_distance_mpc=100.0,
+        distance_sigma_mpc=15.0,
+        prior_min=50.0,
+        prior_max=90.0,
+        host_weights=[2.0, 1.0],
+    )
+    in_prior_grid = np.linspace(50.0, 90.0, 401)
+    wider_grid = np.linspace(40.0, 100.0, 601)
+
+    narrow = posterior_h0_low_z(h0_grid=in_prior_grid, **common)
+    wide = posterior_h0_low_z(h0_grid=wider_grid, **common)
+    wide_support = (wider_grid >= 50.0) & (wider_grid <= 90.0)
+
+    np.testing.assert_allclose(wide[wide_support], narrow, rtol=2e-13, atol=2e-13)
+    assert np.all(wide[~wide_support] == 0.0)
