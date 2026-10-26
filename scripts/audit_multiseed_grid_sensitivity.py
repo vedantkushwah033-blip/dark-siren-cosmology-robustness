@@ -48,14 +48,13 @@ def audit_multiseed_sensitivity(root: str | Path) -> dict:
     if not per_seed_rows or len(aggregate_rows) < 2:
         raise ValueError("multi-seed audit requires per-seed rows and at least two grid resolutions")
 
-    seeds = sorted({_integer(row.get("seed"), "seed") for row in per_seed_rows})
+    seed_values = [_integer(row.get("seed"), "seed") for row in per_seed_rows]
+    seeds = list(dict.fromkeys(seed_values))
     grids = [_integer(row.get("grid_points"), "grid_points") for row in aggregate_rows]
     if len(seeds) < 2 or any(seed < 0 for seed in seeds):
         raise ValueError("multi-seed audit requires at least two distinct non-negative seeds")
     if len(set(grids)) != len(grids) or any(grid < 2 for grid in grids):
         raise ValueError("aggregate grid resolutions must be unique integers >= 2")
-    if len(set(_integer(row.get("seed"), "seed") for row in per_seed_rows)) != len(seeds):
-        raise ValueError("invalid seed metadata")
     expected_pairs = {(seed, grid) for seed in seeds for grid in grids}
     observed_pairs = {
         (_integer(row.get("seed"), "seed"), _integer(row.get("grid_points"), "grid_points"))
