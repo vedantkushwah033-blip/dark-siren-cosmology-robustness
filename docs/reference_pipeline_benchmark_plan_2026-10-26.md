@@ -21,6 +21,20 @@ Sources:
 - [gwcosmo PyPI release history](https://pypi.org/project/gwcosmo/)
 - [gwcosmo pipeline validation and systematics paper (2026)](https://doi.org/10.1103/53c5-mtk5)
 
+## Candidate CHIMERA v2.0 input manifest
+
+The Zenodo record lists the following upstream checksums (MD5) and sizes. MD5 is recorded here for source verification; after downloading, compute and store SHA-256 as the repository's stronger local provenance identifier.
+
+| File | Size | Zenodo-listed MD5 | Role in candidate benchmark |
+|---|---:|---|---|
+| [CHIMERA-2.0.zip](https://zenodo.org/records/17143346/files/CHIMERA-2.0.zip) | 63.5 kB | a650fba2d43a5cdac9fa0e8e25880346 | Versioned source archive |
+| [injections_Ninj_2e7_O5Like_snr20.h5](https://zenodo.org/records/17143346/files/injections_Ninj_2e7_O5Like_snr20.h5) | 156.1 MB | 213ab2655b9fac5fb8cdc022fe8bd555 | Selection-effect injections |
+| [parent_galaxy_catalog_1.6M_dVdz.h5](https://zenodo.org/records/17143346/files/parent_galaxy_catalog_1.6M_dVdz.h5) | 133.8 MB | c59d9feece4e0deab2b2b544cdb86303 | Parent galaxy sample |
+| [PE_O5Like_snr20.h5](https://zenodo.org/records/17143346/files/PE_O5Like_snr20.h5) | 180.1 MB | f887599e7e11b19ce21039ecb51616c7 | Non-pixelated event posterior samples |
+| [PE_O5Like_snr20_pixelated_nsidelist512-256-128-64-32-16-8_meanpixels15_skyconf0.9_nestFalse.h5](https://zenodo.org/records/17143346/files/PE_O5Like_snr20_pixelated_nsidelist512-256-128-64-32-16-8_meanpixels15_skyconf0.9_nestFalse.h5) | 192.2 MB | 165914665a87ebb971fad2ed3bc66f15 | Pixelated event samples used by the incomplete-catalogue example |
+
+The three files directly referenced by the incomplete-catalogue example total approximately 482.1 MB (injections, parent galaxy catalogue, pixelated posterior samples), excluding generated completeness masks, interpolation products, temporary mask indices, and software dependencies. These data are publicly listed in [Zenodo record 17143346](https://zenodo.org/records/17143346). Do not automatically add these files to ordinary CI: first verify licence/redistribution terms, the exact CHIMERA v2.0 source archive contents, and end-to-end runtime on a small subset.
+
 ## Feasibility comparison
 
 | Requirement | CHIMERA | gwcosmo |
