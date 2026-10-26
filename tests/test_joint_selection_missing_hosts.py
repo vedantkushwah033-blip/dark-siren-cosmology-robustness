@@ -540,7 +540,9 @@ def test_selection_correction_vanishes_when_detection_is_effectively_complete():
     grid = np.linspace(40.0, 100.0, 3001)
     redshifts = [0.02, 0.04, 0.06]
     weights = [0.4, 0.35, 0.25]
-    sigma = 15.0
+    # A narrow Gaussian makes the lower zero-distance boundary negligible
+    # even at the largest H0 value in this grid.
+    sigma = 1.0
     lower, upper = 0.0, 1.0e6
     observed = 299792.458 * 0.04 / 70.0
 
