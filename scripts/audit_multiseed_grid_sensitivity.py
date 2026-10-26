@@ -112,8 +112,37 @@ def audit_multiseed_sensitivity(root: str | Path, *, require_metadata: bool = Fa
             for row in per_seed_rows
             if _integer(row.get("seed"), "seed") == seed
         ]
-        if comparison_rows != aggregate_inputs:
-            raise ValueError(f"seed {seed}: aggregate input rows differ from audited comparison table")
+        # CSV writers may serialize the same floating-point statistic with
+        # different but numerically equivalent decimal strings. Compare schema
+        # and row order exactly, categorical/integer fields exactly, and numeric
+        # statistics with the same tight tolerance used for reconstructed audits.
+        if len(comparison_rows) != len(aggregate_inputs):
+            raise ValueError(f"seed {seed}: aggregate input row count differs from audited comparison table")
+        numeric_fields = {
+            "pit_mean", "pit_mean_monte_carlo_se", "pit_variance",
+            "ks_statistic", "ks_p_value_descriptive_only",
+            "max_abs_decile_frequency_deviation", "mean_pit_delta_vs_finest",
+            "mean_pit_delta_monte_carlo_se", "mean_pit_delta_normal_95_low",
+            "mean_pit_delta_normal_95_high", "rms_pit_delta_vs_finest",
+            "max_abs_pit_delta_vs_finest",
+        }
+        for row_index, (audited_row, aggregate_row) in enumerate(zip(comparison_rows, aggregate_inputs)):
+            if set(audited_row) != set(aggregate_row):
+                raise ValueError(f"seed {seed}: aggregate input schema differs from audited comparison table")
+            for field in audited_row:
+                left, right = audited_row[field], aggregate_row[field]
+                if field in numeric_fields:
+                    try:
+                        equal = math.isclose(float(left), float(right), rel_tol=2e-9, abs_tol=2e-11)
+                    except (TypeError, ValueError):
+                        equal = False
+                else:
+                    equal = left == right
+                if not equal:
+                    raise ValueError(
+                        f"seed {seed}: aggregate input differs from audited comparison table "
+                        f"at row {row_index}, field {field}"
+                    )
 
     finest = max(grids)
     for row, grid in zip(aggregate_rows, grids):
