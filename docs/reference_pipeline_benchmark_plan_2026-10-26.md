@@ -14,6 +14,7 @@ Sources:
 - [CHIMERA incomplete-galaxy-catalogue example](https://github.com/CosmoStatGW/CHIMERA/blob/main/examples/incomplete_galaxy_catalog.ipynb)
 - [CHIMERA v2.0 mock-data record (Zenodo 17143346)](https://zenodo.org/records/17143346)
 - [CHIMERA documentation](https://chimera-gw.readthedocs.io/latest/)
+- [CHIMERA completeness implementation (mask/interpolant generation and loading)](https://github.com/CosmoStatGW/CHIMERA/blob/main/CHIMERA/catalog/completeness.py)
 - [gwcosmo data requirements](https://lscsoft.docs.ligo.org/gwcosmo/data.html)
 - [gwcosmo inference command and input requirements](https://lscsoft.docs.ligo.org/gwcosmo/cosmological-inference.html)
 - [gwcosmo installation and source](https://lscsoft.docs.ligo.org/gwcosmo/installation.html)
@@ -31,7 +32,7 @@ Sources:
 | Direct drop-in replacement for this repository's toy likelihood | No | No |
 | Immediate low-cost CI benchmark justified from current evidence | No | No |
 
-The current evidence supports CHIMERA as the first candidate for a bounded benchmark because its mock events and injections have a public Zenodo record, but the incomplete-catalogue mask-generation path still needs verification. gwcosmo remains a second candidate; its current package release and the older documentation version inspected must be reconciled before a pinned run. Neither pipeline has yet been executed in this repository.
+The current evidence supports CHIMERA as the first candidate for a bounded benchmark because its mock events and injections have a public Zenodo record. Its completeness implementation supports computing masks and completeness interpolants from scratch when the corresponding file paths are set to None; however, the example notebook instead loads precomputed mask/interpolant files and a temporary GW-mask-index file. A reproduction must either recover those exact derived files or explicitly run and validate the upstream preprocessing path from the parent galaxy catalogue and pixelated GW samples. gwcosmo remains a second candidate; its current package release and the older documentation version inspected must be reconciled before a pinned run. Neither pipeline has yet been executed in this repository.
 
 ## Staged benchmark plan
 
