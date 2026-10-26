@@ -24,6 +24,7 @@ For every seed, the runner delegates to the single-seed experiment. Each grid's 
 
 - `seed_<seed>/grid_<points>/`: raw replicate CSV, summary JSON, and independent audit report for each grid.
 - `seed_<seed>/grid_sensitivity.csv`: within-seed paired contrasts against the finest requested grid.
+- `seed_<seed>/grid_sensitivity_audit.json`: independent reconstruction audit for that seed-level paired comparison table.
 - `per_seed_paired_contrasts.csv`: one row per seed and grid, retaining seed-level PIT summaries and within-seed paired differences.
 - `multiseed_grid_sensitivity.csv`: one row per grid, aggregating across seeds.
 - `multiseed_metadata.json`: design, audit state, and interpretation metadata.
