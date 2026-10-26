@@ -343,3 +343,19 @@ def test_normal_interval_probability_rejects_nonfinite_bounds():
 
     with pytest.raises(ValueError, match="bounds must be finite"):
         _normal_interval_probability(np.array([-np.inf]), np.array([0.0]))
+
+
+def test_out_of_prior_underflow_does_not_invalidate_selected_posterior():
+    # H0=1 is far outside the prior and makes the Gaussian detection
+    # probability underflow, while the prior-supported H0 values have valid
+    # positive efficiencies. The posterior must ignore the irrelevant point.
+    grid = np.linspace(1.0, 100.0, 100)
+    observed_distance = 299792.458 * 0.04 / 70.0
+    posterior = posterior_h0_selected(
+        grid, [0.04], observed_distance, 15.0, 260.0,
+        prior_min=50.0, prior_max=90.0,
+    )
+    support = (grid >= 50.0) & (grid <= 90.0)
+    assert np.all(np.isfinite(posterior))
+    assert np.all(posterior[~support] == 0.0)
+    assert trapezoid(posterior[support], grid[support]) == pytest.approx(1.0)
