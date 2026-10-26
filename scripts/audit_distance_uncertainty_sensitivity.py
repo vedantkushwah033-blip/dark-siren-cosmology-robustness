@@ -178,6 +178,22 @@ def audit_artifacts(output_dir: str | Path) -> dict:
     }
     if seen != expected_keys:
         raise ValueError("raw replicate key grid is incomplete or contains unexpected keys")
+    # Re-run the recorded PRNG stream, rather than merely checking that the
+    # supplied draws are internally self-consistent. This binds the raw data
+    # generation to the recorded seed and documented loop order.
+    rng = np.random.default_rng(seed)
+    for truth in truths:
+        for frac in fractions:
+            for rep in range(reps):
+                expected_z = float(rng.uniform(.005, .08))
+                expected_eps = float(rng.normal())
+                for arm in ARMS:
+                    draw_row = records_by_key[(float(truth), float(frac), rep, arm)]
+                    _close(draw_row["host_redshift"], expected_z,
+                           f"seed replay {truth}/{frac}/{rep}/{arm}: host redshift", atol=1e-12)
+                    _close(draw_row["standard_normal"], expected_eps,
+                           f"seed replay {truth}/{frac}/{rep}/{arm}: standard-normal draw", atol=1e-12)
+
     for truth in truths:
         for frac in fractions:
             for rep in range(reps):
