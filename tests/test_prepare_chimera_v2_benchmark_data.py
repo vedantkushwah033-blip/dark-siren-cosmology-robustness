@@ -35,7 +35,10 @@ def test_download_verified_writes_only_after_checksum_pass(tmp_path, monkeypatch
     expected = hashlib.md5(payload).hexdigest()
     monkeypatch.setattr(DOWNLOADER.urllib.request, "urlopen", lambda url, timeout: FakeResponse(payload))
     destination = tmp_path / "fixture.bin"
-    result = DOWNLOADER.download_verified("https://example.invalid/fixture.bin", destination, expected)
+    result = DOWNLOADER.download_verified(
+        "https://example.invalid/fixture.bin", destination, expected,
+        expected_size_bytes=len(payload),
+    )
     assert destination.read_bytes() == payload
     assert result["size_bytes"] == len(payload)
     assert result["md5"] == expected
@@ -51,6 +54,32 @@ def test_download_verified_rejects_corruption_and_cleans_partial(tmp_path, monke
         DOWNLOADER.download_verified("https://example.invalid/fixture.bin", destination, "0" * 32)
     assert not destination.exists()
     assert not list(tmp_path.glob("*.part"))
+
+
+def test_download_verified_rejects_wrong_size_and_cleans_partial(tmp_path, monkeypatch):
+    payload = b"payload with an unexpected size"
+    expected = hashlib.md5(payload).hexdigest()
+    monkeypatch.setattr(DOWNLOADER.urllib.request, "urlopen", lambda url, timeout: FakeResponse(payload))
+    destination = tmp_path / "fixture.bin"
+    with pytest.raises(ValueError, match="Size mismatch"):
+        DOWNLOADER.download_verified(
+            "https://example.invalid/fixture.bin", destination, expected,
+            expected_size_bytes=len(payload) + 1,
+        )
+    assert not destination.exists()
+    assert not list(tmp_path.glob("*.part"))
+
+
+def test_prepare_rejects_existing_file_with_wrong_size(tmp_path, monkeypatch):
+    payload = b"short"
+    monkeypatch.setitem(DOWNLOADER.FILES, "tiny", {
+        "filename": "tiny.bin", "url": "https://example.invalid/tiny.bin",
+        "md5": hashlib.md5(payload).hexdigest(), "size_bytes": len(payload) + 1,
+        "role": "test fixture",
+    })
+    (tmp_path / "tiny.bin").write_bytes(payload)
+    with pytest.raises(ValueError, match="incorrect size"):
+        DOWNLOADER.prepare(tmp_path, selected=("tiny",))
 
 
 def test_prepare_writes_manifest_for_already_verified_file(tmp_path, monkeypatch):
