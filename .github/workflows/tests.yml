@@ -26,6 +26,10 @@ jobs:
         run: python scripts/run_selected_likelihood_sbc.py --replicates 1000 --output-dir artifacts/selected_likelihood_sbc
       - name: Independently audit raw PIT records and summary
         run: python scripts/audit_selected_likelihood_sbc.py
+      - name: Compare selected-likelihood PIT calibration across grid resolutions
+        run: python scripts/run_calibration_grid_sensitivity.py --replicates 300 --seed 20261025 --grid-points 1201,2401,4801 --output-dir artifacts/calibration_grid_sensitivity
+      - name: Test calibration grid-sensitivity experiment
+        run: python -m pytest tests/test_calibration_grid_sensitivity.py -q
       - name: Test independent paired host-weight contrast reconstruction
         run: python -m pytest tests/test_paired_host_weight_contrasts.py -q
       - name: Run focused grid-convergence regression tests
@@ -44,4 +48,5 @@ jobs:
             artifacts/selected_likelihood_sbc/pit_replicates.csv
             artifacts/selected_likelihood_sbc/pit_summary.json
             artifacts/selected_likelihood_sbc/audit_report.json
+            artifacts/calibration_grid_sensitivity/
           if-no-files-found: error
