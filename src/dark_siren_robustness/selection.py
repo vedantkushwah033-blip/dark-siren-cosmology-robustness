@@ -9,26 +9,48 @@ from __future__ import annotations
 
 import numpy as np
 from scipy.integrate import trapezoid
-from scipy.special import ndtr
+from scipy.special import log_ndtr, ndtr
 
 
 def _normal_interval_probability(lower_z, upper_z):
     """Stable standard-normal probability between ordered bounds.
 
-    Use survival-function symmetry when both bounds are in the positive tail;
-    subtracting two CDF values near one can otherwise erase a representable
-    interval probability through catastrophic cancellation.
+    Use survival-function symmetry for intervals wholly above zero and a
+    log-CDF difference for intervals wholly below zero. The latter avoids
+    losing representable probability when both CDF values are tiny and close
+    together. Intervals crossing zero use the direct CDF difference.
     """
-    lower_z = np.asarray(lower_z, dtype=float)
-    upper_z = np.asarray(upper_z, dtype=float)
+    lower_z, upper_z = np.broadcast_arrays(
+        np.asarray(lower_z, dtype=float), np.asarray(upper_z, dtype=float)
+    )
+    if not np.all(np.isfinite(lower_z)) or not np.all(np.isfinite(upper_z)):
+        raise ValueError("normal interval bounds must be finite")
     if np.any(upper_z < lower_z):
         raise ValueError("upper normal bound must not be below lower bound")
+
+    probability = np.empty(lower_z.shape, dtype=float)
     positive_tail = lower_z >= 0.0
-    return np.where(
-        positive_tail,
-        ndtr(-lower_z) - ndtr(-upper_z),
-        ndtr(upper_z) - ndtr(lower_z),
-    )
+    negative_tail = upper_z <= 0.0
+    central = ~(positive_tail | negative_tail)
+
+    if np.any(positive_tail):
+        # Phi(b)-Phi(a) = Phi(-a)-Phi(-b), avoiding subtraction near one.
+        probability[positive_tail] = (
+            ndtr(-lower_z[positive_tail]) - ndtr(-upper_z[positive_tail])
+        )
+    if np.any(negative_tail):
+        # exp(log Phi(b)) * (1 - exp(log Phi(a)-log Phi(b))).
+        # expm1 retains relative precision when the two log-CDFs are close.
+        log_lower = log_ndtr(lower_z[negative_tail])
+        log_upper = log_ndtr(upper_z[negative_tail])
+        probability[negative_tail] = np.exp(log_upper) * (
+            -np.expm1(log_lower - log_upper)
+        )
+    if np.any(central):
+        probability[central] = (
+            ndtr(upper_z[central]) - ndtr(lower_z[central])
+        )
+    return probability
 
 from .hardened_inference import C_KM_S, posterior_h0
 
