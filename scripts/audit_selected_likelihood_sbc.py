@@ -33,11 +33,21 @@ def audit(raw_path: str | Path, summary_path: str | Path) -> dict:
     with raw_path.open(newline="", encoding="utf-8") as handle:
         rows = list(csv.DictReader(handle))
     n = len(rows)
-    if n != int(summary["n_replicates"]) or n < 1:
+    declared_n = summary.get("n_replicates")
+    if isinstance(declared_n, bool) or not isinstance(declared_n, int) or declared_n < 1:
+        raise ValueError("summary replicate count must be a positive integer")
+    if n != declared_n:
         raise ValueError("raw row count does not match summary replicate count")
+
+    seed_value = summary.get("seed")
+    if isinstance(seed_value, bool) or not isinstance(seed_value, int) or seed_value < 0:
+        raise ValueError("summary seed must be a non-negative integer")
 
     prior = summary["h0_prior"]
     grid_meta = summary["posterior_grid"]
+    grid_size_value = grid_meta.get("points")
+    if isinstance(grid_size_value, bool) or not isinstance(grid_size_value, int) or grid_size_value < 2:
+        raise ValueError("posterior grid point count must be an integer of at least two")
     lo, hi = float(prior["min"]), float(prior["max"])
     if (
         prior["distribution"] != "uniform"
@@ -58,9 +68,7 @@ def audit(raw_path: str | Path, summary_path: str | Path) -> dict:
     }
     if protocol != expected_protocol:
         raise ValueError("generation protocol metadata missing or inconsistent")
-    grid_size = int(grid_meta["points"])
-    if grid_size < 2:
-        raise ValueError("posterior grid must have at least two points")
+    grid_size = grid_size_value
     grid = np.linspace(lo, hi, grid_size)
     redshifts = np.asarray(summary["host_redshifts"], dtype=float)
     weights = np.asarray(summary["host_weights"], dtype=float)
@@ -87,7 +95,7 @@ def audit(raw_path: str | Path, summary_path: str | Path) -> dict:
     # Replay the declared RNG protocol from the recorded seed. This verifies
     # the actual simulated truth, host, observed distance, and rejection count,
     # not merely that those values look plausible.
-    rng = np.random.default_rng(int(summary["seed"]))
+    rng = np.random.default_rng(seed_value)
     seen = set()
     pits = []
     truths = []
@@ -103,7 +111,7 @@ def audit(raw_path: str | Path, summary_path: str | Path) -> dict:
         if replicate in seen:
             raise ValueError(f"duplicate replicate id {replicate}")
         seen.add(replicate)
-        if seed != int(summary["seed"]):
+        if seed != seed_value:
             raise ValueError("raw seed does not match summary")
         if not lo <= truth <= hi or not 0 <= host < len(redshifts):
             raise ValueError("truth or host index outside declared support")
