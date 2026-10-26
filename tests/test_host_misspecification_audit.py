@@ -34,3 +34,25 @@ def test_stress_test_metrics_are_finite_and_bounded():
         assert 0 <= row["coverage_95"] <= 1
         assert row["mean_width_68"] > 0
         assert row["mean_width_95"] > row["mean_width_68"]
+
+def test_independent_auditor_reconstructs_seeded_small_run(tmp_path):
+    import csv
+    import importlib.util
+
+    audit_path = Path(__file__).resolve().parents[1] / "scripts" / "audit_host_misspecification_audit.py"
+    audit_spec = importlib.util.spec_from_file_location("independent_host_audit", audit_path)
+    auditor = importlib.util.module_from_spec(audit_spec)
+    audit_spec.loader.exec_module(auditor)
+
+    rows, summaries = module.run_stress_test(replicates=200, seed=29)
+    for filename, records in (("per_run.csv", rows), ("summary.csv", summaries)):
+        with (tmp_path / filename).open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=list(records[0]))
+            writer.writeheader()
+            writer.writerows(records)
+
+    result = auditor.audit_directory(tmp_path, replicates=200, seed=29)
+    assert result["status"] == "PASS"
+    assert result["raw_rows"] == 800
+    assert result["posterior_reconstructions"] == 800
+
