@@ -155,3 +155,45 @@ def test_independent_audit_rejects_changed_likelihood_equation_metadata(tmp_path
     path.write_text(json.dumps(metadata), encoding="utf-8")
     with pytest.raises(ValueError, match="likelihood equation metadata"):
         audit_artifacts(folder)
+
+
+
+def test_independent_audit_rejects_common_draws_that_do_not_match_recorded_seed(tmp_path):
+    folder = tmp_path / "artifacts"
+    _write_artifacts(folder)
+    raw_path = folder / "replicates.csv"
+    with raw_path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+        columns = list(rows[0])
+
+    # Keep the three arms paired and every row internally consistent, but alter
+    # the shared random draw. Only replaying the recorded seed detects this.
+    for row in rows:
+        if (float(row["true_h0"]) == 50.0
+                and float(row["fractional_error"]) == 0.05
+                and int(row["replicate"]) == 0):
+            row["standard_normal"] = str(float(row["standard_normal"]) + 0.25)
+            row["observed_distance_mpc"] = str(
+                float(row["true_distance_mpc"])
+                + float(row["generated_sigma_mpc"]) * float(row["standard_normal"])
+            )
+            posterior = audit_module._posterior_from_formula(
+                float(row["observed_distance_mpc"]),
+                float(row["host_redshift"]),
+                float(row["fractional_error"]),
+                float(row["generated_sigma_mpc"]),
+                row["arm"],
+                np.linspace(50.0, 90.0, 101),
+            )
+            row.update({key: str(value) for key, value in posterior.items()})
+            row["pull_median"] = str(
+                (posterior["median"] - float(row["true_h0"])) / posterior["posterior_sd"]
+            )
+
+    with raw_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=columns)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    with pytest.raises(ValueError, match="seed replay .*standard-normal draw"):
+        audit_artifacts(folder)
