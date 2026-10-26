@@ -22,6 +22,7 @@ The following branch files call the corrected API with a nonzero missing fractio
 - `scripts/run_hidden_host_assumption_sensitivity.py` — associated report: `docs/hidden_host_assumption_sensitivity_results_2026-10-26.md`.
 - `scripts/run_host_misspecification_audit.py` — associated report: `docs/host_misspecification_results_2026-10-26.md`.
 - `scripts/run_paired_host_misspecification.py` — associated paired host-misspecification results/protocol.
+- `scripts/run_host_misspecification_sensitivity_surface.py` — associated report: `docs/host_misspecification_sensitivity_surface_results_2026-10-26.md`.
 - `scripts/run_host_prior_support_factorial.py` — hidden-host × prior-support factorial results and its independent audit.
 
 This list is a confirmed minimum, not a claim that all downstream callers have been exhaustively enumerated. Other scripts or wrappers may call the API indirectly; inspect their call graph before declaring the impact inventory complete. The `run_oracle_missing_host_control.py` script uses a different `missing_host_weighting` argument and is not assumed affected by this particular code change without tracing its implementation.
