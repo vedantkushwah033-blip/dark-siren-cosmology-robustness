@@ -1,4 +1,5 @@
 import csv, hashlib, importlib.util, json
+import numpy as np
 from pathlib import Path
 import pytest
 
@@ -63,3 +64,17 @@ def test_cell_uncertainty_refuses_non_audited_artifact(tmp_path):
     meta_path.write_text(json.dumps(meta), encoding="utf-8")
     with pytest.raises(ValueError, match="must pass independent audit"):
         UNC.analyze_cell_uncertainty(tmp_path, resamples=20)
+
+
+def test_stratified_bootstrap_is_deterministic_and_preserves_cell_structure():
+    values = np.vstack([np.full(20, i / 12) for i in range(12)])
+    a = UNC.stratified_bootstrap(values, seed=77, resamples=300, batch_size=30)
+    b = UNC.stratified_bootstrap(values, seed=77, resamples=300, batch_size=30)
+    assert a == b
+    assert a["mean_ci95_low"] == pytest.approx(values.mean())
+    assert a["mean_ci95_high"] == pytest.approx(values.mean())
+
+
+def test_stratified_bootstrap_rejects_wrong_design_shape():
+    with pytest.raises(ValueError, match="12-cell array"):
+        UNC.stratified_bootstrap(np.ones((3, 10)), seed=1, resamples=100)
