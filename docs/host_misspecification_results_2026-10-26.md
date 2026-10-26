@@ -1,4 +1,4 @@
-> **Supersession notice — 2026-10-27:** These results were generated before correction of the direct missing-host mixture likelihood, which previously applied the catalogue population-mass factor twice. Treat all numerical results below as historical/provisional, not as the current validated result. Regenerate the experiment from the corrected implementation and pass the independent raw-artifact audit before using these estimates in a paper, abstract, or application. See [`missing_host_mixture_likelihood_impact_audit_2026-10-27.md`](missing_host_mixture_likelihood_impact_audit_2026-10-27.md).
+> **Revalidation note — 2026-10-27:** This experiment has now been rerun from corrected revision `0ac70cba1708be82c7b994145f4b0507101afa05`; its independent reconstruction audit passed. The new 4,000-row raw artifact agrees with the historical artifact to floating-point precision (maximum absolute difference in posterior summaries about `1.5e-13`; all scenario-level metrics agree at the displayed precision). The historical run records source revision `5caad04955d735583f77d2c56e455aa28ad43b40`, which predates the later transient log-space double-scaling regression, so this particular report's numbers are reproduced rather than superseded. This does **not** validate the other hidden-host experiments; see the [impact audit](missing_host_mixture_likelihood_impact_audit_2026-10-27.md).
 
 # Host-population misspecification stress-test results
 
@@ -7,6 +7,18 @@
 **Workflow:** [Host-weight and omitted-host misspecification audit](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40278173997)  
 **Artifact:** [Raw per-replicate records and scenario summaries](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40278173997/artifacts/12631380406)  
 **Artifact SHA-256:** `c627c12bcad2c41db75769f3566dd2a5cc1b1bd3e9988332760ac901462f094c`
+
+## Corrected-revision rerun and artifact provenance
+
+- **Corrected source revision:** `0ac70cba1708be82c7b994145f4b0507101afa05`
+- **Workflow run:** [40416457719 — passed](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40416457719)
+- **Artifact:** [corrected raw records and summaries](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40416457719/artifacts/12694878568)
+- **Artifact ZIP SHA-256:** `e56cbeebe4b353eab78bfb533117142fc138f163e0719575264ee416ba910c20`
+- **Raw `per_run.csv` SHA-256:** `829fc5cb6f61a33d8ec78eb88aae000b5f034131f7b4aa034bfa956dc985cb5b`
+- **Raw `summary.csv` SHA-256:** `ff1148ef0938564810249237ecf41ca7dd6deacc63b200c8f6e6f5a8be2dd8ce`
+- **Independent reconstruction:** passed for all 4,000 seeded records and four scenario summaries.
+
+The historical artifact SHA-256 was `c627c12bcad2c41db75769f3566dd2a5cc1b1bd3e9988332760ac901462f094c`. Comparing both downloaded artifacts shows the maximum absolute difference across per-run posterior interval summaries is below `1.5e-13`; differences are floating-point rounding only. The table below is therefore reproduced by the corrected revision at the precision reported.
 
 ## Design and verification
 
