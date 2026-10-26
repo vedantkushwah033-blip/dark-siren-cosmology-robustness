@@ -73,9 +73,9 @@ def test_grid_sensitivity_rejects_invalid_replicate_counts(tmp_path, n_replicate
 @pytest.mark.parametrize("seed", [1.5, "seed", True])
 def test_grid_sensitivity_rejects_invalid_seeds(tmp_path, seed):
     with pytest.raises(ValueError, match="seed must be an integer"):
-        run_sensitivity([1201, 2401], n_replicates=10, seed=seed, output_dir=tmp_path)
+        run_sensitivity([1201, 2401], n_replicates=100, seed=seed, output_dir=tmp_path)
 
 
 def test_grid_sensitivity_rejects_non_integer_grid_sizes(tmp_path):
     with pytest.raises(ValueError, match="Grid resolutions must be integers"):
-        run_sensitivity([1201, 2401.5], n_replicates=10, seed=1, output_dir=tmp_path)
+        run_sensitivity([1201, 2401.5], n_replicates=100, seed=1, output_dir=tmp_path)
