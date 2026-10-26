@@ -63,3 +63,18 @@ def test_audit_rejects_unpaired_comparison_metadata(tmp_path, mutate, message):
         writer.writerows(rows)
     with pytest.raises(ValueError, match=message):
         audit_grid_sensitivity(tmp_path)
+
+
+def test_audit_rejects_comparison_without_passing_grid_audit(tmp_path):
+    run_sensitivity([1201, 2401], n_replicates=100, seed=24683, output_dir=tmp_path)
+    path = tmp_path / "grid_sensitivity.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+        fields = list(rows[0])
+    rows[0]["independent_audit"] = "FAIL"
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+    with pytest.raises(ValueError, match="does not record a passing independent audit"):
+        audit_grid_sensitivity(tmp_path)
