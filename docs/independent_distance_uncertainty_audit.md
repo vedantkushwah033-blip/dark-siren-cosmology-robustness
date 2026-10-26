@@ -10,7 +10,7 @@ python scripts/audit_distance_uncertainty_sensitivity.py artifacts/distance_unce
 The auditor does not import the runner or the likelihood module. It independently:
 - checks the expected truth × fractional-error × replicate × arm design and uniqueness of every record;
 - reconstructs true distances, generated uncertainty scales, and observations from the recorded standardized noise;
-- verifies the exact paired observations for Arms A and B;
+- verifies the exact paired observations for Arms A and B, and checks that all three arms share the same redshift and standard-normal draw while preserving Arm C's distinct generated noise scale;
 - recomputes the three Gaussian log-likelihood forms and posterior grid summaries;
 - reconstructs coverage, Wilson intervals, pull summaries, error, RMSE, and interval-width summaries from the raw rows;
 - independently reconstructs the paired replicate-level A-minus-B coverage, absolute-error, squared-error, and interval-width contrasts and their bootstrap intervals;
