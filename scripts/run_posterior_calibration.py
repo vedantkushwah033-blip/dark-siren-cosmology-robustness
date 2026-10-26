@@ -1,4 +1,4 @@
-"""Posterior-level calibration of a synthetic two-host H0 mixture.
+"""Posterior-level calibration of a positive-truncated synthetic two-host H0 mixture.
 
 Same synthetic observation is evaluated under both catalogue-weight choices,
 two prior supports, and uniform/log-uniform prior measures. This is not a
@@ -28,9 +28,13 @@ def posterior_summary(distance, sigma, weights, support, measure, truth):
     h = GRID[mask]
     if h.size < 2:
         raise ValueError("Prior support contains fewer than two grid points")
+    # The generator redraws nonpositive Gaussian distances. The matching
+    # likelihood must therefore use each host's Gaussian density truncated to
+    # d > 0, rather than an untruncated Gaussian mixture.
+    mu1, mu2 = C * Z1 / h, C * Z2 / h
     likelihood = (
-        weights[0] * norm.pdf(distance, loc=C * Z1 / h, scale=sigma)
-        + weights[1] * norm.pdf(distance, loc=C * Z2 / h, scale=sigma)
+        weights[0] * norm.pdf(distance, loc=mu1, scale=sigma) / norm.cdf(mu1 / sigma)
+        + weights[1] * norm.pdf(distance, loc=mu2, scale=sigma) / norm.cdf(mu2 / sigma)
     )
     prior = np.ones_like(h) if measure == "uniform_H0" else 1.0 / h
     if measure not in MEASURES:
