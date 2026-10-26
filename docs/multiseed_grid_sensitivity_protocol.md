@@ -27,6 +27,7 @@ For every seed, the runner delegates to the single-seed experiment. Each grid's 
 - `seed_<seed>/grid_sensitivity_audit.json`: independent reconstruction audit for that seed-level paired comparison table.
 - `per_seed_paired_contrasts.csv`: one row per seed and grid, retaining seed-level PIT summaries and within-seed paired differences.
 - `multiseed_grid_sensitivity.csv`: one row per grid, aggregating across seeds.
+- `multiseed_audit_report.json`: independent reconstruction of the across-seed aggregate statistics and completeness checks.
 - `multiseed_metadata.json`: design, audit state, and interpretation metadata.
 
 The aggregate table reports the mean and sample standard deviation of per-seed PIT means, plus the standard error across seeds. It separately reports the mean and standard error across seeds of each seed's mean paired PIT difference from the finest grid. This keeps seed-to-seed variability distinct from the within-seed standard error of paired replicate-level differences. With only two or three seeds, these uncertainty estimates are themselves imprecise and should be treated as descriptive.
