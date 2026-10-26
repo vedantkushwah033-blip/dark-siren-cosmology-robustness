@@ -114,8 +114,8 @@ def audit_directory(root: Path, replicates: int = 1000, seed: int = 20261027):
                 raise ValueError(f"Posterior reconstruction mismatch at row {i}, field {key}")
         derived = {
             **post,
-            "covered_68": int(float(row["lower_68"]) <= H0_TRUE <= float(row["upper_68"])),
-            "covered_95": int(float(row["lower_95"]) <= H0_TRUE <= float(row["upper_95"])),
+            "covered_68": int(post["lower_68"] <= H0_TRUE <= post["upper_68"]),
+            "covered_95": int(post["lower_95"] <= H0_TRUE <= post["upper_95"]),
             "width_68": post["upper_68"] - post["lower_68"],
             "width_95": post["upper_95"] - post["lower_95"],
         }
