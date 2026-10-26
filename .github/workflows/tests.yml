@@ -32,8 +32,8 @@ jobs:
         run: python scripts/audit_calibration_grid_sensitivity.py artifacts/calibration_grid_sensitivity
       - name: Test calibration grid-sensitivity experiment
         run: python -m pytest tests/test_calibration_grid_sensitivity.py tests/test_audit_calibration_grid_sensitivity.py -q
-      - name: Test multi-seed paired grid-sensitivity aggregation
-        run: python -m pytest tests/test_multiseed_grid_sensitivity.py -q
+      - name: Test multi-seed paired grid-sensitivity aggregation and independent audit
+        run: python -m pytest tests/test_multiseed_grid_sensitivity.py tests/test_audit_multiseed_grid_sensitivity.py -q
       - name: Test independent paired host-weight contrast reconstruction
         run: python -m pytest tests/test_paired_host_weight_contrasts.py -q
       - name: Run focused grid-convergence regression tests
