@@ -28,6 +28,17 @@
 - [CHIMERA README and licence statement](https://github.com/CosmoStatGW/CHIMERA/blob/080a1ad716b02867a8d1dba27b3724a495ee3990/README.md)
 - [CHIMERA v2.0 mock-data record](https://zenodo.org/records/17143346)
 
+## Additional preprocessing path confirmed from current-main source
+
+Source inspection confirms that some derived products can be regenerated in principle, provided the correct underlying catalogue and GW-event inputs are obtained:
+
+- `mask_completeness.get_masks(..., dir_masks=None)` computes sky masks from galaxy right ascension and declination and saves the mask products.
+- `mask_completeness.get_completeness_interpolants(dir_compl=None)` computes and saves completeness-vs-redshift interpolants, requiring the relevant galaxy redshifts, theoretical galaxy-density function, and matching completeness settings.
+- `set_gw_mask_idxs(pix_gw, nside_gw, nest_gw)` maps event sky pixels onto the completeness masks. The notebook currently loads these indices from `temp_gw_mask_idxs_mock1_mcut10.h5`.
+- `precompute_p_cat(completeness, cosmo, z_grids, fname_data_gal, data_gw_pixelated, z_err=...)` can create the `p_cat`, `N_gal`, and `P_compl` arrays; `save_p_cat`/ `load_p_cat` persist and reload them. This is described upstream as an expensive one-time computation.
+
+This narrows the unknowns but does **not** resolve them: the exact source catalogue used by the current-main notebook, its relationship to the v2.0 parent catalogue, the 100-event SNR-25 mock data, the (m_{cut}=10) galaxy selection, the redshift-error convention, and the provenance of the saved `pcat_incomplete.h5` still need to be pinned and checked. Recomputing derived files with different inputs or settings would create a new benchmark, not reproduce the notebook's original result.
+
 ## Required go/no-go steps
 
 1. Choose one consistent reference: either a release/commit that contains the desired incomplete-catalogue example, or a different v2.0-supported scientific question.
