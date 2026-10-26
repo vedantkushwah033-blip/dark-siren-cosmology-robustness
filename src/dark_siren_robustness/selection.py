@@ -29,8 +29,8 @@ def _normal_interval_probability(lower_z, upper_z):
         raise ValueError("upper normal bound must not be below lower bound")
 
     probability = np.empty(lower_z.shape, dtype=float)
-    positive_tail = lower_z >= 0.0
-    negative_tail = upper_z <= 0.0
+    positive_tail = lower_z > 0.0
+    negative_tail = upper_z < 0.0
     central = ~(positive_tail | negative_tail)
 
     if np.any(positive_tail):
