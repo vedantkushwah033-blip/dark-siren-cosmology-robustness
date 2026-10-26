@@ -54,10 +54,11 @@ def check_grid_stability(raw_csv: Path, fine_grid_points: int = 3201,
     grid = np.linspace(50.0, 90.0, fine_grid_points)
     changes = {column: [] for column in SUMMARY_COLUMNS}
     coverage = {}
+    seen_keys = set()
     row_count = 0
     with raw_csv.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
-        required = {"true_h0", "arm", "lower_68", "upper_68", *SUMMARY_COLUMNS,
+        required = {"true_h0", "arm", "replicate", "lower_68", "upper_68", *SUMMARY_COLUMNS,
                     "host_redshift", "observed_distance_mpc", "fractional_error",
                     "generated_sigma_mpc"}
         if not required.issubset(reader.fieldnames or []):
@@ -66,7 +67,13 @@ def check_grid_stability(raw_csv: Path, fine_grid_points: int = 3201,
         for row in reader:
             row_count += 1
             truth = float(row["true_h0"])
+            fractional_error = float(row["fractional_error"])
+            replicate = int(row["replicate"])
             arm = row["arm"]
+            key = (truth, fractional_error, replicate, arm)
+            if key in seen_keys:
+                raise ValueError(f"duplicate raw record key: {key}")
+            seen_keys.add(key)
             if arm not in coverage:
                 coverage[arm] = {"coarse_successes": 0, "fine_successes": 0, "n": 0}
             fine = _posterior_quantiles(row, grid)
@@ -104,6 +111,7 @@ def check_grid_stability(raw_csv: Path, fine_grid_points: int = 3201,
         "status": "PASS",
         "scope": "synthetic known-host low-redshift sensitivity diagnostic only",
         "raw_record_count": row_count,
+        "unique_record_key_count": len(seen_keys),
         "fine_grid_points": fine_grid_points,
         "fine_grid_support": [50.0, 90.0],
         "max_allowed_quantile_change": max_allowed_change,
