@@ -16,6 +16,11 @@ import numpy as np
 C_KM_S = 299_792.458
 PRIOR_MIN, PRIOR_MAX = 50.0, 90.0
 ARMS = ("A_fixed_realized_sigma", "B_fractional_sigma_H0", "C_fixed_reference_sigma")
+EXPECTED_EQUATIONS = {
+    "A_fixed_realized_sigma": "logL=-0.5*((d_obs-c*z/H0)/sigma_realized)^2-log(sigma_realized)-0.5*log(2*pi)",
+    "B_fractional_sigma_H0": "sigma(H0)=f*c*z/H0; logL=-0.5*((d_obs-c*z/H0)/sigma(H0))^2-log(sigma(H0))-0.5*log(2*pi)",
+    "C_fixed_reference_sigma": "sigma_ref=f*c*z/70; logL=-0.5*((d_obs-c*z/H0)/sigma_ref)^2-log(sigma_ref)-0.5*log(2*pi)",
+}
 RAW_COLUMNS = {
     "true_h0", "fractional_error", "replicate", "arm", "host_redshift",
     "standard_normal", "true_distance_mpc", "observed_distance_mpc",
@@ -103,8 +108,8 @@ def audit_artifacts(output_dir: str | Path) -> dict:
     equations = metadata.get("likelihood_equations")
     if not isinstance(equations, dict) or set(equations) != set(ARMS):
         raise ValueError("likelihood equations metadata missing or incomplete")
-    if not all(isinstance(value, str) and value.strip() for value in equations.values()):
-        raise ValueError("likelihood equation metadata must be non-empty strings")
+    if equations != EXPECTED_EQUATIONS:
+        raise ValueError("likelihood equation metadata does not match the audited model definitions")
     truths = metadata.get("truths")
     fractions = metadata.get("fractional_errors")
     reps = metadata.get("replicates_per_cell")
