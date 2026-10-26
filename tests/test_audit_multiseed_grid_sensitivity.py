@@ -63,3 +63,23 @@ def test_multiseed_audit_rejects_tampered_metadata(tmp_path, field, value, messa
         writer.writerows(rows)
     with pytest.raises(ValueError, match=message):
         audit_multiseed_sensitivity(tmp_path)
+
+
+def test_multiseed_audit_rejects_tampered_per_seed_input(tmp_path):
+    run_multiseed_sensitivity(
+        grid_points=[1201, 2401],
+        seeds=[302, 301],
+        n_replicates=100,
+        output_dir=tmp_path,
+    )
+    path = tmp_path / "per_seed_paired_contrasts.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+        fields = list(rows[0])
+    rows[0]["pit_mean"] = str(float(rows[0]["pit_mean"]) + 0.01)
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+    with pytest.raises(ValueError, match="aggregate input rows differ from audited comparison table"):
+        audit_multiseed_sensitivity(tmp_path)
