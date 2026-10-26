@@ -57,3 +57,24 @@ def test_multiseed_runner_rejects_invalid_design(tmp_path, grids, seeds, replica
     with pytest.raises(ValueError, match=message):
         run_multiseed_sensitivity(grids, seeds, replicates, tmp_path)
     assert not (tmp_path / "multiseed_grid_sensitivity.csv").exists()
+
+
+def test_failed_seed_run_does_not_leave_stale_success_marker(tmp_path, monkeypatch):
+    import scripts.run_multiseed_grid_sensitivity as runner
+
+    marker = tmp_path / "multiseed_metadata.json"
+    marker.write_text(json.dumps({"status": "PASS"}), encoding="utf-8")
+
+    def fail_before_audit(**kwargs):
+        raise RuntimeError("synthetic failure for fail-closed regression test")
+
+    monkeypatch.setattr(runner, "run_sensitivity", fail_before_audit)
+    with pytest.raises(RuntimeError, match="synthetic failure"):
+        runner.run_multiseed_sensitivity(
+            grid_points=[1201, 2401],
+            seeds=[101, 202],
+            n_replicates=100,
+            output_dir=tmp_path,
+        )
+    assert not marker.exists()
+    assert not (tmp_path / "multiseed_grid_sensitivity.csv").exists()
