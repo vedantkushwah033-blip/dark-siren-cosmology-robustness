@@ -34,6 +34,29 @@ This list is a confirmed minimum, not a claim that all downstream callers have b
 - Passing unit tests does not establish that the model's assumptions describe real gravitational-wave events or galaxy catalogues.
 - Known-host-only experiments that never invoke the missing-host component are not automatically affected by this fix, but should still be linked to the exact revision used for their results.
 
+## Reproduction commands
+
+Run from the repository root in a clean environment after installing the package and development dependencies (`python -m pip install -e ".[dev]"`). Keep each output directory separate; do not overwrite or mix pre-correction artifacts with regenerated files.
+
+```bash
+python scripts/run_hidden_host_assumption_sensitivity.py --replicates 200 --seed 20261032 --bootstrap-resamples 1000 --output-dir results/hidden-host-assumption-sensitivity
+python scripts/audit_hidden_host_assumption_sensitivity.py --input-dir results/hidden-host-assumption-sensitivity --replicates 200 --seed 20261032 --bootstrap-resamples 1000
+
+python scripts/run_host_misspecification_audit.py --replicates 1000 --seed 20261027 --output-dir results/host-misspecification-audit
+python scripts/audit_host_misspecification_audit.py --input-dir results/host-misspecification-audit --replicates 1000 --seed 20261027
+
+python scripts/run_host_misspecification_sensitivity_surface.py --replicates 200 --seed 20261029 --bootstrap-resamples 1000 --output-dir results/host-misspecification-sensitivity-surface
+python scripts/audit_host_misspecification_sensitivity_surface.py --input-dir results/host-misspecification-sensitivity-surface --replicates 200 --seed 20261029 --bootstrap-resamples 1000
+
+python scripts/run_paired_host_misspecification.py --replicates 1000 --seed 20261027 --bootstrap-resamples 4000 --output-dir results/paired-host-misspecification
+python scripts/audit_paired_host_misspecification.py --input-dir results/paired-host-misspecification --replicates 1000 --seed 20261027 --bootstrap-resamples 4000
+
+python scripts/run_host_prior_support_factorial.py --replicates 200 --seed 20261030 --bootstrap-resamples 1000 --output-dir results/host-prior-support-factorial
+python scripts/audit_host_prior_support_factorial.py --input-dir results/host-prior-support-factorial --replicates 200 --seed 20261030 --bootstrap-resamples 1000
+```
+
+The commands above use the runners' declared default design sizes and seeds. A successful process exit is necessary but not sufficient: retain the raw records and summaries, capture the tested Git revision and dependency versions, and verify each independent auditor's success before updating any result narrative. If any audit fails, stop and investigate rather than relaxing tolerances.
+
 ## Required release gate
 
 1. Confirm the explicit full-mixture regression test passes on Python 3.10, 3.11, and 3.12.
