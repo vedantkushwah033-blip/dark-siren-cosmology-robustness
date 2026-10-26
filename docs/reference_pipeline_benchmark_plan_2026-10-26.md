@@ -3,6 +3,8 @@
 
 > **New blocking finding (2026-10-26):** the pinned CHIMERA v2.0 source tree does not contain the incomplete-catalogue notebook cited during initial feasibility review. It contains an empty-catalogue tutorial, which is not equivalent. The incomplete-catalogue notebook is on moving `main` and requires additional mock-event and derived products beyond the three-file v2.0 fixture. See the detailed [CHIMERA target/version audit](chimera_benchmark_target_audit_2026-10-26.md). Do not describe the v2.0 fixture as sufficient to reproduce the incomplete-catalogue tutorial until this discrepancy is resolved.
 
+> **Updated candidate:** CHIMERA v2.2 (commit `fd35f897e36850d865c760c13325c5a46ebe94db`) explicitly includes the incomplete-catalogue example and is the better code target for that question. Its required example inputs still need separate provenance and reproducible acquisition; the v2.0 Zenodo fixture alone has not been shown to suffice. Treat v2.2 as a candidate, not a completed benchmark.
+
 ## Decision
 
 The next scientifically useful milestone is a benchmark against an established completeness-aware pipeline. Do not present the current toy-model experiments as a substitute for this step.
