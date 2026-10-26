@@ -94,3 +94,27 @@ def test_audit_rejects_replicate_count_below_experiment_minimum(tmp_path):
         writer.writerows(rows)
     with pytest.raises(ValueError, match="replicate count must be >= 100"):
         audit_grid_sensitivity(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("grid_points", "1201.5"),
+        ("n_replicates", "100.5"),
+        ("seed", "24684.5"),
+        ("reference_grid_points", "2401.0"),
+    ],
+)
+def test_audit_rejects_fractional_integer_metadata(tmp_path, field, value):
+    run_sensitivity([1201, 2401], n_replicates=100, seed=24684, output_dir=tmp_path)
+    path = tmp_path / "grid_sensitivity.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+        fields = list(rows[0])
+    rows[0][field] = value
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+    with pytest.raises(ValueError, match="must be an integer"):
+        audit_grid_sensitivity(tmp_path)
