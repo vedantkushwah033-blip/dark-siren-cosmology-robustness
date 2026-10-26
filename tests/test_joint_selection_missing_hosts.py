@@ -48,6 +48,32 @@ def test_complete_population_matches_explicit_full_mixture():
     assert np.sum(np.r_[0.65 * np.array([0.7, 0.3]), 0.35]) == pytest.approx(1.0)
 
 
+
+def test_missing_host_zero_weight_rejects_unused_missing_weights():
+    with pytest.raises(ValueError, match="missing_weights were supplied but missing_weight is zero"):
+        posterior_h0_selected_with_missing_hosts(
+            H0, [0.02, 0.04], DISTANCE, 15.0, 300.0,
+            catalog_weights=[0.7, 0.3], missing_weight=0.0,
+            missing_weights=[1.0], prior_min=40.0, prior_max=100.0,
+        )
+
+
+def test_missing_host_mixture_is_invariant_to_rescaling_component_weights():
+    kwargs = dict(
+        H0_grid=H0, catalog_redshifts=[0.02, 0.04],
+        observed_distance=DISTANCE, gw_sigma=15.0,
+        detection_distance_max=300.0, missing_weight=0.35,
+        missing_redshifts=[0.06, 0.08], prior_min=40.0, prior_max=100.0,
+    )
+    a = posterior_h0_selected_with_missing_hosts(
+        **kwargs, catalog_weights=[7.0, 3.0], missing_weights=[2.0, 1.0]
+    )
+    b = posterior_h0_selected_with_missing_hosts(
+        **kwargs, catalog_weights=[70.0, 30.0], missing_weights=[20.0, 10.0]
+    )
+    np.testing.assert_allclose(a, b, rtol=1e-12, atol=1e-12)
+
+
 def test_selection_efficiency_uses_full_population_weights():
     beta = detection_efficiency_h0(
         H0, [0.02, 0.04, 0.06], 15.0, 300.0,
