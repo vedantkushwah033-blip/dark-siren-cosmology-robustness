@@ -31,6 +31,9 @@ def test_multiseed_runner_preserves_seed_level_audits_and_aggregates(tmp_path):
     assert all(row["independent_audit"] == "PASS" for row in per_seed)
     for seed in (101, 202):
         assert (tmp_path / f"seed_{seed}" / "grid_sensitivity.csv").exists()
+        comparison_audit = json.loads((tmp_path / f"seed_{seed}" / "grid_sensitivity_audit.json").read_text(encoding="utf-8"))
+        assert comparison_audit["status"] == "PASS"
+        assert comparison_audit["comparison_statistics_reconstructed"] is True
         for grid in (1201, 2401):
             assert (tmp_path / f"seed_{seed}" / f"grid_{grid}" / "audit_report.json").exists()
 
