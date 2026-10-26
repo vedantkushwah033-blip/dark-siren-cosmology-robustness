@@ -8,6 +8,12 @@ on:
       - "scripts/audit_host_misspecification_audit.py"
       - "tests/test_host_misspecification_audit.py"
       - ".github/workflows/host-misspecification-audit.yml"
+  pull_request:
+    paths:
+      - "scripts/run_host_misspecification_audit.py"
+      - "scripts/audit_host_misspecification_audit.py"
+      - "tests/test_host_misspecification_audit.py"
+      - ".github/workflows/host-misspecification-audit.yml"
   workflow_dispatch:
 
 permissions:
