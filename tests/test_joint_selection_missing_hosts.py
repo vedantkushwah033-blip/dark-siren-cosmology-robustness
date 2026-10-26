@@ -333,11 +333,11 @@ def test_normal_interval_probability_preserves_representable_negative_tail_mass(
     log_upper = log_ndtr(upper)
     expected = np.exp(log_upper) * (-np.expm1(log_lower - log_upper))
     actual = _normal_interval_probability(lower, upper)
-    naive = ndtr(-lower) - ndtr(-upper)
+    naive = ndtr(upper) - ndtr(lower)
     assert expected[0] > 0.0
     assert actual[0] > 0.0
     # Prove this case distinguishes the stable implementation from the old
-    # direct survival-function subtraction, not merely that both are positive.
+    # direct CDF subtraction, not merely that both are positive.
     assert abs((naive[0] - expected[0]) / expected[0]) > 1e-11
     np.testing.assert_allclose(actual, expected, rtol=2e-12, atol=0.0)
 
@@ -379,6 +379,9 @@ def test_normal_interval_probability_preserves_representable_positive_tail_mass(
         -np.expm1(log_upper_survival - log_lower_survival)
     )
     actual = _normal_interval_probability(lower, upper)
+    naive = ndtr(-lower) - ndtr(-upper)
     assert expected[0] > 0.0
     assert actual[0] > 0.0
+    # Confirm the former direct survival-function subtraction loses precision.
+    assert abs((naive[0] - expected[0]) / expected[0]) > 1e-11
     np.testing.assert_allclose(actual, expected, rtol=2e-12, atol=0.0)
