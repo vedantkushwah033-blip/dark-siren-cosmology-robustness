@@ -56,3 +56,15 @@ def test_independent_auditor_reconstructs_seeded_small_run(tmp_path):
     assert result["raw_rows"] == 800
     assert result["posterior_reconstructions"] == 800
 
+    import pytest
+
+    raw_path = tmp_path / "per_run.csv"
+    tampered = list(rows)
+    tampered[0] = {**tampered[0], "width_68": tampered[0]["width_68"] + 1.0}
+    with raw_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(tampered[0]))
+        writer.writeheader()
+        writer.writerows(tampered)
+    with pytest.raises(ValueError, match="Per-run derived-field mismatch"):
+        auditor.audit_directory(tmp_path, replicates=200, seed=29)
+
