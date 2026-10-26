@@ -69,9 +69,18 @@ def posterior_h0_from_distance_grid(
     if not np.isfinite(prior_min) or not np.isfinite(prior_max) or prior_min >= prior_max:
         raise ValueError("prior bounds must be finite and prior_min < prior_max")
     weights = np.ones(distances.shape[1]) if host_weights is None else np.asarray(host_weights, dtype=float)
-    if weights.ndim != 1 or weights.size != distances.shape[1] or np.any(~np.isfinite(weights)) or np.any(weights < 0) or weights.sum() <= 0:
+    if (
+        weights.ndim != 1
+        or weights.size != distances.shape[1]
+        or np.any(~np.isfinite(weights))
+        or np.any(weights < 0)
+        or not np.any(weights > 0)
+    ):
         raise ValueError("host_weights must be finite, non-negative, match hosts, and sum positive")
-    weights = weights / weights.sum()
+    # Scale before summing: finite weights can still overflow when added
+    # directly (e.g. [1e308, 5e307]), corrupting an otherwise valid mixture.
+    scaled_weights = weights / np.max(weights)
+    weights = scaled_weights / scaled_weights.sum()
     positive = weights > 0
     log_weights = np.full(weights.shape, -np.inf)
     log_weights[positive] = np.log(weights[positive])
