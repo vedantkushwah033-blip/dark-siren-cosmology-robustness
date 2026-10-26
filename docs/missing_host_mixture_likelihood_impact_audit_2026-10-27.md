@@ -1,7 +1,7 @@
 # Impact audit: missing-host mixture likelihood correction
 
 **Audit date:** 2026-10-27  
-**Status:** implementation regression test committed; full numerical-diagnostics workflow still running at audit time. Affected historical result artifacts have **not yet been regenerated**.
+**Status (updated 2026-10-27):** the host-misspecification audit has been rerun from the corrected implementation and its independent reconstruction passed. That experiment's historical artifact was generated at a source revision that predates the transient regression and matches the corrected rerun to floating-point precision. The other four directly identified hidden-host experiments still require separate regenerated artifacts and audits; do not treat this one successful rerun as clearing them.
 
 ## Finding
 
@@ -26,6 +26,14 @@ The following branch files call the corrected API with a nonzero missing fractio
 - `scripts/run_host_prior_support_factorial.py` — hidden-host × prior-support factorial results and its independent audit.
 
 This list is a confirmed minimum, not a claim that all downstream callers have been exhaustively enumerated. Other scripts or wrappers may call the API indirectly; inspect their call graph before declaring the impact inventory complete. The `run_oracle_missing_host_control.py` script uses a different `missing_host_weighting` argument and is not assumed affected by this particular code change without tracing its implementation.
+
+## Rerun evidence and corrected scope
+
+The host-misspecification stress test was rerun on source revision `0ac70cba1708be82c7b994145f4b0507101afa05` in [workflow run 40416457719](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40416457719). The run passed the experiment, file validation, and independent reconstruction steps for 4,000 records. Its artifact is available at [artifact 12694878568](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40416457719/artifacts/12694878568), ZIP SHA-256 `e56cbeebe4b353eab78bfb533117142fc138f163e0719575264ee416ba910c20`.
+
+A direct comparison against the previously published artifact (ZIP SHA-256 `c627c12bcad2c41db75769f3566dd2a5cc1b1bd3e9988332760ac901462f094c`) found identical scenario-level metrics at the report's displayed precision and only floating-point-rounding differences in per-run posterior summaries (maximum absolute difference below `1.5e-13`). The old report names source revision `5caad04955d735583f77d2c56e455aa28ad43b40`; its linear-space likelihood predates the later log-space rewrite that briefly introduced the extra `log1p(-missing_weight)` factor. Thus this specific historical experiment is reproduced by the corrected run and should not be described as numerically invalidated by that later transient bug.
+
+This finding narrows the earlier blanket warning; it does not clear other reports. The direct-call inventory below remains a minimum set for separate revision/artifact verification. For each other experiment, inspect its recorded source revision and regenerate it from the corrected code before reusing its numerical claims.
 
 ## What is not established by this audit
 
@@ -60,9 +68,9 @@ The commands above use the runners' declared default design sizes and seeds. A s
 ## Required release gate
 
 1. Confirm the explicit full-mixture regression test passes on Python 3.10, 3.11, and 3.12.
-2. Rerun each affected experiment from the corrected commit with its declared seed and design.
+2. Host-misspecification audit: **completed** on revision `0ac70cba1708be82c7b994145f4b0507101afa05`; its historical artifact matches at reported precision. Rerun each of the other affected experiments from the corrected commit with its declared seed and design.
 3. Run the independent auditor against the newly generated raw artifacts; record hashes, source revision, runtime versions, and audit result.
-4. Recompute marginal summaries and paired intervals from the regenerated raw records.
+4. Recompute marginal summaries and paired intervals from the regenerated raw records; record any historical artifact that is shown to predate the regression and match the corrected rerun.
 5. Replace historical interpretations only after the regenerated results pass audit; preserve old artifacts as superseded for traceability.
 6. Do not claim external-method validation or publication readiness until a benchmark with verified input provenance and an independently checked reference implementation has been completed.
 
