@@ -25,6 +25,19 @@ GRID = np.linspace(25.0, 125.0, 4001)
 SCENARIOS = ("correct_weights", "reversed_weights", "hidden_host_ignored", "hidden_host_modelled")
 SUMMARY_FIELDS = ("mean_median_error", "median_median_error", "rmse_median",
                   "coverage_68", "coverage_95", "mean_width_68", "mean_width_95")
+WILSON_Z_95 = 1.959963984540054
+
+
+def wilson_score_interval(successes: int, trials: int, z: float = WILSON_Z_95):
+    """Independent Wilson score interval calculation for a binomial proportion."""
+    if trials <= 0 or successes < 0 or successes > trials:
+        raise ValueError("Invalid binomial counts for Wilson interval.")
+    p = successes / trials
+    z_squared = z * z
+    scale = 1.0 + z_squared / trials
+    midpoint = (p + z_squared / (2.0 * trials)) / scale
+    radius = z * math.sqrt(p * (1.0 - p) / trials + z_squared / (4.0 * trials * trials)) / scale
+    return max(0.0, midpoint - radius), min(1.0, midpoint + radius)
 
 
 def read_csv(path: Path):
@@ -129,12 +142,20 @@ def audit_directory(root: Path, replicates: int = 1000, seed: int = 20261027):
             raise ValueError(f"Summary design mismatch for {scenario}")
         rows = reconstructed[scenario]
         errors = np.array([r["median_error"] for r in rows])
+        covered_68 = int(sum(r["covered_68"] for r in rows))
+        covered_95 = int(sum(r["covered_95"] for r in rows))
+        ci_68 = wilson_score_interval(covered_68, len(rows))
+        ci_95 = wilson_score_interval(covered_95, len(rows))
         expected_metrics = {
             "mean_median_error": float(errors.mean()),
             "median_median_error": float(np.median(errors)),
             "rmse_median": float(np.sqrt(np.mean(errors**2))),
-            "coverage_68": float(np.mean([r["covered_68"] for r in rows])),
-            "coverage_95": float(np.mean([r["covered_95"] for r in rows])),
+            "coverage_68": covered_68 / len(rows),
+            "coverage_68_wilson_95_low": ci_68[0],
+            "coverage_68_wilson_95_high": ci_68[1],
+            "coverage_95": covered_95 / len(rows),
+            "coverage_95_wilson_95_low": ci_95[0],
+            "coverage_95_wilson_95_high": ci_95[1],
             "mean_width_68": float(np.mean([r["width_68"] for r in rows])),
             "mean_width_95": float(np.mean([r["width_95"] for r in rows])),
         }
