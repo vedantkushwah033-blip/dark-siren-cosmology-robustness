@@ -18,7 +18,8 @@ def _normal_interval_probability(lower_z, upper_z):
     Use survival-function symmetry for intervals wholly above zero and a
     log-CDF difference for intervals wholly below zero. The latter avoids
     losing representable probability when both CDF values are tiny and close
-    together. Intervals crossing zero use the direct CDF difference.
+    together. Intervals touching or crossing zero use an erf difference to
+    avoid cancellation when both CDF values round to one half.
     """
     lower_z, upper_z = np.broadcast_arrays(
         np.asarray(lower_z, dtype=float), np.asarray(upper_z, dtype=float)
