@@ -71,6 +71,34 @@ def test_grid_stability_rejects_duplicate_raw_record(tmp_path):
     with pytest.raises(ValueError, match="duplicate raw record key"):
         check_grid_stability(raw_path, fine_grid_points=3201)
 
+def test_grid_stability_rejects_missing_arm(tmp_path):
+    raw, _ = run_experiment(
+        replicates=2, seed=734, grid_points=1601,
+        truths=(70.0,), fractional_errors=(0.05,),
+    )
+    raw = [row for row in raw if row["arm"] != "C_fixed_reference_sigma" or int(row["replicate"]) != 0]
+    raw_path = tmp_path / "replicates.csv"
+    _write_raw_csv(raw_path, raw)
+
+    with pytest.raises(ValueError, match="incomplete or unexpected likelihood arms"):
+        check_grid_stability(raw_path, fine_grid_points=3201)
+
+
+def test_grid_stability_rejects_missing_replicate_from_one_cell(tmp_path):
+    raw, _ = run_experiment(
+        replicates=2, seed=735, grid_points=1601,
+        truths=(55.0, 70.0), fractional_errors=(0.05,),
+    )
+    raw = [row for row in raw if not (
+        float(row["true_h0"]) == 55.0 and int(row["replicate"]) == 0
+    )]
+    raw_path = tmp_path / "replicates.csv"
+    _write_raw_csv(raw_path, raw)
+
+    with pytest.raises(ValueError, match="replicate IDs must be contiguous|inconsistent replicate IDs"):
+        check_grid_stability(raw_path, fine_grid_points=3201)
+
+
 def test_grid_stability_rejects_even_fine_grid(tmp_path):
     with pytest.raises(ValueError, match="odd integer"):
         check_grid_stability(tmp_path / "not_read.csv", fine_grid_points=3200)
