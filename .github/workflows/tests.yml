@@ -24,6 +24,10 @@ jobs:
         run: python -m pytest tests/test_uncertainty_sensitivity.py -q
       - name: Run paired distance-uncertainty sensitivity smoke experiment
         run: python scripts/run_distance_uncertainty_sensitivity.py --replicates 2 --seed 20261026 --output-dir artifacts/distance_uncertainty_sensitivity
+      - name: Test independent distance-uncertainty artifact audit
+        run: python -m pytest tests/test_audit_distance_uncertainty_sensitivity.py -q
+      - name: Independently reconstruct distance-uncertainty raw records and summaries
+        run: python scripts/audit_distance_uncertainty_sensitivity.py artifacts/distance_uncertainty_sensitivity
       - name: Test joint selection and missing-host compatibility limits
         run: python -m pytest tests/test_joint_selection_missing_hosts.py -q
       - name: Test selected-likelihood calibration runner determinism and summary invariants
