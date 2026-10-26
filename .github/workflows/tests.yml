@@ -18,6 +18,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install package and test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Test explicit distance-uncertainty likelihood models
+        run: python -m pytest tests/test_uncertainty_likelihoods.py -q
       - name: Test joint selection and missing-host compatibility limits
         run: python -m pytest tests/test_joint_selection_missing_hosts.py -q
       - name: Test selected-likelihood calibration runner determinism and summary invariants
