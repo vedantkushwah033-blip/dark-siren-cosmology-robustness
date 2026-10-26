@@ -31,9 +31,9 @@ def _write_artifacts(folder, replicates=2, seed=123, grid_points=101):
         "scipy_version": version("scipy"),
         "failed_run_count": 0,
         "likelihood_equations": {
-            "A_fixed_realized_sigma": "fixed realized sigma",
-            "B_fractional_sigma_H0": "sigma(H0)=f*c*z/H0, normalized Gaussian",
-            "C_fixed_reference_sigma": "fixed sigma_ref=f*c*z/70",
+            "A_fixed_realized_sigma": "logL=-0.5*((d_obs-c*z/H0)/sigma_realized)^2-log(sigma_realized)-0.5*log(2*pi)",
+            "B_fractional_sigma_H0": "sigma(H0)=f*c*z/H0; logL=-0.5*((d_obs-c*z/H0)/sigma(H0))^2-log(sigma(H0))-0.5*log(2*pi)",
+            "C_fixed_reference_sigma": "sigma_ref=f*c*z/70; logL=-0.5*((d_obs-c*z/H0)/sigma_ref)^2-log(sigma_ref)-0.5*log(2*pi)",
         },
         "seed": seed,
         "replicates_per_cell": replicates,
@@ -101,4 +101,15 @@ def test_independent_audit_rejects_tampered_paired_contrast(tmp_path):
     metadata["paired_ab_contrasts"][0]["mean_difference"] += 1.0
     path.write_text(json.dumps(metadata), encoding="utf-8")
     with pytest.raises(ValueError, match="mean difference mismatch"):
+        audit_artifacts(folder)
+
+
+def test_independent_audit_rejects_changed_likelihood_equation_metadata(tmp_path):
+    folder = tmp_path / "artifacts"
+    _write_artifacts(folder)
+    path = folder / "summary.json"
+    metadata = json.loads(path.read_text(encoding="utf-8"))
+    metadata["likelihood_equations"]["B_fractional_sigma_H0"] = "omit normalization"
+    path.write_text(json.dumps(metadata), encoding="utf-8")
+    with pytest.raises(ValueError, match="likelihood equation metadata"):
         audit_artifacts(folder)
