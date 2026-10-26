@@ -38,11 +38,17 @@ def wilson_interval(successes: int, trials: int, z: float = 1.959963984540054):
     return float(center - half), float(center + half)
 
 
-def run_calibration(n_replicates: int = N_REPLICATES, seed: int = SEED):
+def run_calibration(
+    n_replicates: int = N_REPLICATES,
+    seed: int = SEED,
+    grid_points: int = GRID_SIZE,
+):
     if n_replicates < 100:
         raise ValueError("Use at least 100 replicates for this diagnostic.")
+    if grid_points < 2:
+        raise ValueError("Posterior grid must contain at least two points.")
     rng = np.random.default_rng(seed)
-    grid = np.linspace(GRID_MIN, GRID_MAX, GRID_SIZE)
+    grid = np.linspace(GRID_MIN, GRID_MAX, grid_points)
     rows = []
 
     for replicate in range(n_replicates):
@@ -117,7 +123,7 @@ def run_calibration(n_replicates: int = N_REPLICATES, seed: int = SEED):
         "numpy": np.__version__,
         "scipy": scipy.__version__,
         "h0_prior": {"distribution": "uniform", "min": GRID_MIN, "max": GRID_MAX},
-        "posterior_grid": {"min": GRID_MIN, "max": GRID_MAX, "points": GRID_SIZE, "integration": "trapezoidal"},
+        "posterior_grid": {"min": GRID_MIN, "max": GRID_MAX, "points": grid_points, "integration": "trapezoidal"},
         "generation_protocol": {
             "truth_draw": "once_per_replicate_from_declared_prior",
             "selection_conditioning": "rejection_sample_host_and_distance_conditional_on_fixed_truth",
@@ -147,12 +153,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--replicates", type=int, default=N_REPLICATES)
     parser.add_argument("--seed", type=int, default=SEED)
+    parser.add_argument("--grid-points", type=int, default=GRID_SIZE)
     parser.add_argument("--output-dir", default="artifacts/selected_likelihood_sbc")
     args = parser.parse_args()
     outdir = Path(args.output_dir)
     outdir.mkdir(parents=True, exist_ok=True)
 
-    rows, summary = run_calibration(args.replicates, args.seed)
+    rows, summary = run_calibration(args.replicates, args.seed, args.grid_points)
     raw_path = outdir / "pit_replicates.csv"
     with raw_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
