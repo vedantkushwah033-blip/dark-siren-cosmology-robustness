@@ -76,6 +76,9 @@ jobs:
       - name: Independently audit full distance-uncertainty experiment (Python 3.12 only)
         if: matrix.python-version == '3.12'
         run: python scripts/audit_distance_uncertainty_sensitivity.py artifacts/distance_uncertainty_sensitivity_full
+      - name: Summarize paired likelihood contrasts with stratified bootstrap (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: python scripts/summarize_distance_uncertainty_paired_contrasts.py artifacts/distance_uncertainty_sensitivity_full/replicates.csv --seed 4182026 --bootstrap-resamples 10000
       - name: Upload numerical diagnostic results
         uses: actions/upload-artifact@v4
         with:
