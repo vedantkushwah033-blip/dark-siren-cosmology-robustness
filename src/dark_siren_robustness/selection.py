@@ -11,6 +11,25 @@ import numpy as np
 from scipy.integrate import trapezoid
 from scipy.special import ndtr
 
+
+def _normal_interval_probability(lower_z, upper_z):
+    """Stable standard-normal probability between ordered bounds.
+
+    Use survival-function symmetry when both bounds are in the positive tail;
+    subtracting two CDF values near one can otherwise erase a representable
+    interval probability through catastrophic cancellation.
+    """
+    lower_z = np.asarray(lower_z, dtype=float)
+    upper_z = np.asarray(upper_z, dtype=float)
+    if np.any(upper_z < lower_z):
+        raise ValueError("upper normal bound must not be below lower bound")
+    positive_tail = lower_z >= 0.0
+    return np.where(
+        positive_tail,
+        ndtr(-lower_z) - ndtr(-upper_z),
+        ndtr(upper_z) - ndtr(lower_z),
+    )
+
 from .hardened_inference import C_KM_S, posterior_h0
 
 
@@ -48,7 +67,10 @@ def detection_efficiency_h0(H0_grid, redshifts, gw_sigma, detection_distance_max
     means = C_KM_S * z[None, :] / grid[:, None]
     # Detection is the interval lower_threshold < d_obs < threshold.
     # Include both boundaries in beta so it matches the generator exactly.
-    host_efficiency = ndtr((threshold - means) / sigma) - ndtr((lower_threshold - means) / sigma)
+    host_efficiency = _normal_interval_probability(
+        (lower_threshold - means) / sigma,
+        (threshold - means) / sigma,
+    )
     beta = host_efficiency @ w
     # Roundoff can push a probability a few ulps above one, but a zero
     # computed efficiency must not be replaced by machine tiny: that would
