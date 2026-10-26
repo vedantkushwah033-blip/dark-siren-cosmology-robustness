@@ -55,3 +55,13 @@ def test_paired_contrasts_are_reproducible_and_have_bootstrap_intervals():
 def test_experiment_rejects_invalid_design(kwargs):
     with pytest.raises(ValueError):
         run_experiment(**kwargs)
+
+
+def test_small_fractional_error_produces_concentrated_interior_posterior():
+    raw, _ = run_experiment(
+        replicates=2, seed=77, grid_points=1601,
+        truths=(70.0,), fractional_errors=(0.005,),
+    )
+    assert len(raw) == 2 * len(ARMS)
+    assert all(abs(row["median"] - 70.0) < 2.0 for row in raw)
+    assert all(row["posterior_sd"] < 2.0 for row in raw)
