@@ -527,3 +527,36 @@ def test_extreme_finite_host_weights_normalize_without_overflow():
         prior_min=40.0, prior_max=100.0,
     )
     np.testing.assert_allclose(missing_extreme, missing_baseline, rtol=2e-13, atol=2e-13)
+
+
+def test_selection_correction_vanishes_when_detection_is_effectively_complete():
+    """When beta(H0) is one across prior support, selection must not change inference."""
+    from dark_siren_robustness.hardened_inference import posterior_h0
+    from dark_siren_robustness.selection import (
+        detection_efficiency_h0,
+        posterior_h0_selected,
+    )
+
+    grid = np.linspace(40.0, 100.0, 3001)
+    redshifts = [0.02, 0.04, 0.06]
+    weights = [0.4, 0.35, 0.25]
+    sigma = 15.0
+    lower, upper = 0.0, 1.0e6
+    observed = 299792.458 * 0.04 / 70.0
+
+    beta = detection_efficiency_h0(
+        grid, redshifts, sigma, upper, weights=weights,
+        detection_distance_min=lower,
+    )
+    np.testing.assert_allclose(beta, np.ones_like(grid), rtol=0.0, atol=2e-15)
+
+    unselected = posterior_h0(
+        grid, redshifts, observed, sigma, weights=weights,
+        prior_min=40.0, prior_max=100.0,
+    )
+    selected = posterior_h0_selected(
+        grid, redshifts, observed, sigma, upper, weights=weights,
+        prior_min=40.0, prior_max=100.0,
+        detection_distance_min=lower,
+    )
+    np.testing.assert_allclose(selected, unselected, rtol=2e-12, atol=2e-12)
