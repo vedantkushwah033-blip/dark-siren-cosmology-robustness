@@ -194,3 +194,21 @@ def test_calibration_grid_resolution_is_recorded_and_auditable(tmp_path, grid_po
     result = audit(raw_path, summary_path)
     assert result["status"] == "PASS"
     assert result["n_replicates_audited"] == 100
+
+
+@pytest.mark.parametrize("seed", [-1, -100, 1.5, "seed", True])
+def test_calibration_runner_rejects_invalid_seed(seed):
+    with pytest.raises(ValueError, match="seed must be a non-negative integer"):
+        run_calibration(n_replicates=100, seed=seed)
+
+
+@pytest.mark.parametrize("n_replicates", [99, 100.5, True, "100"])
+def test_calibration_runner_rejects_invalid_replicate_count(n_replicates):
+    with pytest.raises(ValueError, match="n_replicates must be an integer of at least 100"):
+        run_calibration(n_replicates=n_replicates, seed=1)
+
+
+@pytest.mark.parametrize("grid_points", [1, 1201.5, True, "1201"])
+def test_calibration_runner_rejects_invalid_grid_points(grid_points):
+    with pytest.raises(ValueError, match="grid_points must be an integer of at least two"):
+        run_calibration(n_replicates=100, seed=1, grid_points=grid_points)
