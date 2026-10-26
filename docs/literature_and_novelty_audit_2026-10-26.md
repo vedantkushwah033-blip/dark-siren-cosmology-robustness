@@ -1,4 +1,4 @@
-# Targeted literature and novelty audit (2026-10-26)
+# Targeted literature and novelty audit (updated 2026-10-27)
 
 ## Executive conclusion
 
@@ -22,6 +22,10 @@ This is a targeted literature audit, not a systematic review: it is intended to 
 | [Clustering effects on the dark siren determination of H0: a simulation study](https://doi.org/10.1093/mnras/stag1662) (2026) | High-resolution cosmological simulations with clustering, catalogue completeness variation, and tests of modelling choices; reports robustness to prior-range choices in its setup. | Our observed prior-support sensitivity is a property of our simplified setup and must not be generalized. The difference is a reason to compare generators and likelihood assumptions, not to claim disagreement with realistic analyses. |
 | [Scalable dark siren cosmology with gwcosmo: GPU acceleration, validation, and systematics](https://doi.org/10.1103/53c5-mtk5) (2026) | Describes a validated, accelerated gwcosmo pipeline, including injection-recovery on 2,000 simulated events and comparison against the earlier implementation on 141 GWTC-4.0 events. | A mature pipeline already has substantial simulation and real-event validation. Our own toy-model reconstruction is a lower-level unit test, not a substitute for pipeline-level validation. |
 | [Dark standard siren cosmology with bright galaxy subsets](https://doi.org/10.1093/mnras/stag605) (2026) | Tests the use of bright galaxy subsets with GWTC and GLADE+ data. | Host-selection/weighting alternatives have already been tested with observational data; this repository needs a distinct, explicit estimand to add value. |
+
+| Leyde, Baker & Enzi (2026), [Cosmic cartography. Part II. Completing galaxy catalogs for gravitational-wave cosmology](https://doi.org/10.1088/1475-7516/2026/01/013) | Reconstructs the latent true galaxy field and magnitude distribution while respecting large-scale spatial correlations; validates on Millennium-simulation mocks. | A latent missing-galaxy population should not be presented as novel by itself. A single fixed or finite hidden-redshift mixture is a much simpler control model and needs to be compared with clustered field reconstruction. |
+| Gray, Williams & Papadopoulos (2026), [Expanding the scope of dark siren cosmology: Inferring the population properties of gravitational-wave-hosting galaxies](https://arxiv.org/abs/2609.04991) | Updates gwcosmo methodology with a sampled redshift prior and jointly infers host-galaxy weighting/population properties alongside cosmology, reproducing a subset of GWTC-5.0 results. | Jointly learning host-population properties is an active direction; this repository's fixed assumed hidden fraction/redshift is a controlled misspecification study, not an alternative operational inference method. |
+| Cheng & Gair (2026), [Unified harmonic framework for dark siren cosmology](https://doi.org/10.1103/295h-s6ss) | Clarifies the relationship between galaxy-catalogue inference and two-point cross-correlation approaches, including marginalization over the unknown galaxy field. | The field has multiple established routes for handling unknown galaxy structure. A credible external benchmark should state which estimand and latent-field assumptions it is comparing against. |
 
 ## What our results do and do not establish
 
