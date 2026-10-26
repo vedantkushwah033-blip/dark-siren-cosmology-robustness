@@ -62,6 +62,8 @@ def audit_grid_sensitivity(root: str | Path) -> dict:
     summaries: dict[int, dict] = {}
 
     for row, grid in zip(rows, grids):
+        if row.get("independent_audit") != "PASS":
+            raise ValueError(f"grid {grid}: comparison table does not record a passing independent audit")
         case = root / f"grid_{grid}"
         raw_path, summary_path = case / "pit_replicates.csv", case / "pit_summary.json"
         report = audit(raw_path, summary_path)
