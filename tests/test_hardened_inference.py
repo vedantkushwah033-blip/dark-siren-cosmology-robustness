@@ -114,14 +114,14 @@ def test_posterior_summary_ignores_zero_density_outside_prior_support():
 
 
 
-def test_missing_host_population_mass_matches_explicit_full_mixture():
+@pytest.mark.parametrize("missing_mass", [0.05, 0.35, 0.80])
+def test_missing_host_population_mass_matches_explicit_full_mixture(missing_mass):
     """Missing mass must be applied once, not twice, to the catalogue component."""
     grid = np.linspace(40.0, 100.0, 3001)
     catalog_z = np.array([0.02, 0.04])
     missing_z = np.array([0.06, 0.08])
     catalog_weights = np.array([0.7, 0.3])
     missing_weights = np.array([0.25, 0.75])
-    missing_mass = 0.35
     observed, sigma = 175.0, 18.0
 
     combined = posterior_h0(
