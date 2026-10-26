@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from scipy.integrate import trapezoid
-from scipy.special import log_ndtr, ndtr
+from scipy.special import erf, log_ndtr, ndtr
 from scipy.stats import norm
 
 from dark_siren_robustness.selection import (
@@ -158,6 +158,20 @@ def test_normal_interval_probability_retains_tail_precision(lower_z, upper_z):
     actual = float(_normal_interval_probability(lower_z, upper_z))
     assert expected > 0.0
     assert abs(naive - expected) / expected > 1e-11
+    assert actual == pytest.approx(expected, rel=1e-12, abs=0.0)
+
+
+def test_normal_interval_probability_preserves_narrow_interval_crossing_zero():
+    """CDF subtraction can round a representable, narrow central interval to zero."""
+    lower_z, upper_z = -1e-20, 1e-20
+    expected = 0.5 * (
+        erf(upper_z / np.sqrt(2.0)) - erf(lower_z / np.sqrt(2.0))
+    )
+    naive = ndtr(upper_z) - ndtr(lower_z)
+    actual = float(_normal_interval_probability(lower_z, upper_z))
+
+    assert naive == 0.0
+    assert expected > 0.0
     assert actual == pytest.approx(expected, rel=1e-12, abs=0.0)
 
 def test_detection_efficiency_fails_closed_when_probability_underflows():
