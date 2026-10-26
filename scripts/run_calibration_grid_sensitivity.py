@@ -31,8 +31,8 @@ def run_sensitivity(
 ) -> list[dict]:
     if isinstance(n_replicates, bool) or not isinstance(n_replicates, int) or n_replicates < 100:
         raise ValueError("n_replicates must be an integer of at least 100.")
-    if isinstance(seed, bool) or not isinstance(seed, int):
-        raise ValueError("seed must be an integer.")
+    if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+        raise ValueError("seed must be a non-negative integer.")
     if len(grid_points) < 2:
         raise ValueError("Provide at least two grid resolutions for comparison.")
     if any(isinstance(points, bool) or not isinstance(points, int) for points in grid_points):
