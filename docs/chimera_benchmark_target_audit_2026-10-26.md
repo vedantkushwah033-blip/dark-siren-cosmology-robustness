@@ -95,3 +95,10 @@ Evidence:
 - [CHIMERA v2.0 Zenodo archive and file inventory](https://zenodo.org/records/17143346)
 
 **Decision unchanged:** do not download the v2.0 fixture and present it as v2.2. The next defensible step is to request/locate the missing data provenance or explicitly design a separately labelled v2.0 compatibility benchmark.
+
+
+## Licence metadata discrepancy — do not infer redistribution rights
+
+A separate inspection of the pinned v2.2 source metadata found an unresolved inconsistency: the repository README and top-level `LICENSE` identify GPL-3.0, while `pyproject.toml` declares MIT. These declarations are not interchangeable. Until the upstream maintainers clarify which licence applies to the distributed code, this project should treat CHIMERA as an external, separately installed dependency and should not copy its source files or assume that the MIT declaration permits redistribution. The licence of the scientific data files is a separate question and must be checked independently; a code licence does not automatically establish the data licence.
+
+This is a provenance/compliance blocker, not evidence that the numerical pipeline is incorrect. It does not prevent a local, properly attributed benchmark in principle, but the exact code version, data terms, and redistribution permissions must be recorded before sharing a bundled benchmark artifact.
