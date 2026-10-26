@@ -52,8 +52,15 @@ def audit(root):
     for name, path in (("per_run.csv",raw_path),("summary.csv",sum_path)):
         if meta.get("sha256",{}).get(name) != sha(path):
             raise ValueError(f"SHA-256 mismatch for {name}")
-    reps, seed = int(meta["replicates_per_truth_noise_cell"]), int(meta["base_seed"])
-    if reps < 100: raise ValueError("replicate count below protocol minimum")
+    # JSON booleans are Python ints, and int(100.5) silently truncates.
+    # Reject both so malformed provenance cannot pass by coercion.
+    reps_value = meta.get("replicates_per_truth_noise_cell")
+    seed_value = meta.get("base_seed")
+    if type(reps_value) is not int or reps_value < 100:
+        raise ValueError("replicates_per_truth_noise_cell must be an integer >= 100")
+    if type(seed_value) is not int or seed_value < 0:
+        raise ValueError("base_seed must be a non-negative integer")
+    reps, seed = reps_value, seed_value
     raw, summaries = read_csv(raw_path), read_csv(sum_path)
     if len(raw) != len(TRUTHS)*len(NOISES)*reps: raise ValueError("raw row count mismatch")
     if len(summaries) != len(TRUTHS)*len(NOISES)*len(SUPPORTS)*len(MEASURES)*len(WEIGHTS):
