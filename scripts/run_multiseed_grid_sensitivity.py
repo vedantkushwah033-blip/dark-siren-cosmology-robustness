@@ -25,7 +25,7 @@ from scripts.run_selected_likelihood_sbc import N_REPLICATES, SEED
 def run_multiseed_sensitivity(
     grid_points: list[int],
     seeds: list[int],
-    n_replicates: int = N_REPLICATES,
+    n_replicates: int = 300,
     output_dir: str | Path = "artifacts/multiseed_grid_sensitivity",
 ) -> list[dict]:
     if isinstance(n_replicates, bool) or not isinstance(n_replicates, int) or n_replicates < 100:
@@ -129,7 +129,7 @@ def _sample_sd(values: list[float]) -> float:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--replicates", type=int, default=N_REPLICATES)
+    parser.add_argument("--replicates", type=int, default=300)
     parser.add_argument("--seeds", default=f"{SEED},20261026,20261027")
     parser.add_argument("--grid-points", default="1201,2401,4801")
     parser.add_argument("--output-dir", default="artifacts/multiseed_grid_sensitivity")
