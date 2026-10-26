@@ -318,3 +318,28 @@ def test_zero_missing_mass_reduces_to_catalogue_only_even_if_missing_support_is_
         missing_redshifts=[0.06, 0.08], prior_min=40.0, prior_max=100.0,
     )
     np.testing.assert_allclose(with_zero_mass_hosts, baseline, rtol=1e-12, atol=1e-12)
+
+
+
+def test_normal_interval_probability_preserves_representable_negative_tail_mass():
+    # Direct subtraction of two tiny CDF values is poorly conditioned here.
+    # Compare with a log-CDF/expm1 reference that retains the relative gap.
+    from scipy.special import log_ndtr
+    from dark_siren_robustness.selection import _normal_interval_probability
+
+    lower = np.array([-37.500001])
+    upper = np.array([-37.5])
+    log_lower = log_ndtr(lower)
+    log_upper = log_ndtr(upper)
+    expected = np.exp(log_upper) * (-np.expm1(log_lower - log_upper))
+    actual = _normal_interval_probability(lower, upper)
+    assert expected[0] > 0.0
+    assert actual[0] > 0.0
+    np.testing.assert_allclose(actual, expected, rtol=2e-12, atol=0.0)
+
+
+def test_normal_interval_probability_rejects_nonfinite_bounds():
+    from dark_siren_robustness.selection import _normal_interval_probability
+
+    with pytest.raises(ValueError, match="bounds must be finite"):
+        _normal_interval_probability(np.array([-np.inf]), np.array([0.0]))
