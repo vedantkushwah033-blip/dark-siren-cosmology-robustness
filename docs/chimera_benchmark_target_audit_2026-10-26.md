@@ -4,6 +4,17 @@
 
 **Do not treat the current CHIMERA v2.0 Zenodo fixture as a complete, ready-to-run reproduction of the incomplete-catalogue tutorial.** Inspection of the pinned source tree found a material version/data mismatch that must be resolved before an external benchmark can be claimed.
 
+## Updated candidate choice after checking official releases
+
+The official GitHub release list contains **CHIMERA v2.2**, published 2026-06-09, at commit `fd35f897e36850d865c760c13325c5a46ebe94db`. Its release notes explicitly list `examples/incomplete_galaxy_catalog.ipynb` and describe API-breaking changes relative to earlier releases. Therefore, if the scientific target is specifically incomplete-catalogue inference, **v2.2 is a more coherent code target than v2.0**.
+
+This does not yet make the benchmark reproducible: the v2.2 notebook's 100-event SNR-25 mock posterior file and saved derived products are not listed in the v2.0 Zenodo data record. The official v2.1 Zenodo record is a software archive, not evidence that these exact notebook inputs are available there. The v2.2 source pin and every data product must be tracked separately, with provenance and generation settings established before execution.
+
+Candidate reference:
+- Code release: [CHIMERA v2.2](https://github.com/CosmoStatGW/CHIMERA/releases/tag/v2.2)
+- Exact commit: `fd35f897e36850d865c760c13325c5a46ebe94db`
+- Notebook: [incomplete-galaxy-catalog example at the pinned v2.2 commit](https://github.com/CosmoStatGW/CHIMERA/blob/fd35f897e36850d865c760c13325c5a46ebe94db/examples/incomplete_galaxy_catalog.ipynb)
+
 ## What was checked
 
 - Reference code commit: `080a1ad716b02867a8d1dba27b3724a495ee3990`.
