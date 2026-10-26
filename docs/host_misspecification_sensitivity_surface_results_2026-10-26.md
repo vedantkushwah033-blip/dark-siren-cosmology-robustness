@@ -86,6 +86,19 @@ Negative coverage contrasts mean the omitted-host arm covers less often than the
 
 Reversing the weights shifts the posterior-median error upward in every hidden-fraction stratum and modestly increases RMSE; its effect grows for the mean error at higher hidden-host fractions. These are equal-cell averages over this design, not universal effects of host weighting.
 
+## Cell-level heterogeneity check
+
+The uploaded paired-contrast table also permits a descriptive count of the 27 individual cells in each hidden-fraction stratum where the cell-level 95% bootstrap interval lies entirely on the expected side of zero. These are exploratory counts across many cellwise comparisons, with no multiple-comparison adjustment; they should not be treated as confirmatory hypothesis tests.
+
+| Hidden fraction | RMSE: estimate positive / CI entirely positive | 68% coverage: estimate negative / CI entirely negative | 95% coverage: estimate negative / CI entirely negative |
+|---:|---:|---:|---:|
+| 0.00 | 0 / 0 | 0 / 0 | 0 / 0 |
+| 0.15 | 25 / 21 | 19 / 18 | 13 / 12 |
+| 0.30 | 22 / 19 | 20 / 18 | 15 / 12 |
+| 0.45 | 22 / 19 | 20 / 16 | 15 / 13 |
+
+At nonzero fractions, the direction is not identical in every cell. The macro-average pattern is supported by many cells, but variation with injected H0, noise level, and hidden-host redshift remains material and is a reason to avoid a universal claim.
+
 ## Interpretation and caveats
 
 1. **The zero-fraction negative control passed.** With no hidden population, the modelled-hidden-host and base-weight arms give identical posteriors and summaries. This helps rule out an implementation artifact in the added mixture component.
