@@ -28,8 +28,12 @@ def sha(path):
 def reconstruct(distance, sigma, weights, support, measure, truth):
     mask = (GRID >= support[0]) & (GRID <= support[1])
     h = GRID[mask]
-    likelihood = weights[0] * norm.pdf(distance, loc=C*Z1/h, scale=sigma)
-    likelihood += weights[1] * norm.pdf(distance, loc=C*Z2/h, scale=sigma)
+    # Independently reconstruct the positive-truncated Gaussian mixture:
+    # raw distances are generated conditional on d > 0, so each component
+    # needs its own truncation normalization.
+    mu1, mu2 = C*Z1/h, C*Z2/h
+    likelihood = weights[0] * norm.pdf(distance, loc=mu1, scale=sigma) / norm.cdf(mu1/sigma)
+    likelihood += weights[1] * norm.pdf(distance, loc=mu2, scale=sigma) / norm.cdf(mu2/sigma)
     prior = np.ones_like(h) if measure == "uniform_H0" else 1.0/h
     density = likelihood * prior
     area = float(trapezoid(density, h))
