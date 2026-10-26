@@ -45,3 +45,24 @@ def test_audit_rejects_tampered_summary_after_hash_refresh(tmp_path):
     meta["sha256"]["summary.csv"]=hashlib.sha256(path.read_bytes()).hexdigest()
     mp.write_text(json.dumps(meta,indent=2)+"\n")
     with pytest.raises(ValueError,match="rmse_median mismatch"): AUDIT.audit(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("replicates_per_truth_noise_cell", 100.5, "must be an integer >= 100"),
+        ("replicates_per_truth_noise_cell", True, "must be an integer >= 100"),
+        ("replicates_per_truth_noise_cell", 99, "must be an integer >= 100"),
+        ("base_seed", -1, "must be a non-negative integer"),
+        ("base_seed", 1.5, "must be a non-negative integer"),
+        ("base_seed", False, "must be a non-negative integer"),
+    ],
+)
+def test_audit_rejects_malformed_numeric_metadata(tmp_path, field, value, message):
+    fixture(tmp_path)
+    metadata_path = tmp_path / "run_metadata.json"
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    metadata[field] = value
+    metadata_path.write_text(json.dumps(metadata, indent=2) + "\\n", encoding="utf-8")
+    with pytest.raises(ValueError, match=message):
+        AUDIT.audit(tmp_path)
