@@ -5,6 +5,7 @@ import argparse
 import csv
 import json
 import math
+import re
 from pathlib import Path
 
 import numpy as np
@@ -31,6 +32,13 @@ def _read_csv(path: Path) -> list[dict]:
         return list(csv.DictReader(handle))
 
 
+def _integer(value: str, field: str) -> int:
+    """Parse integer-valued CSV metadata without silently truncating decimals."""
+    if not isinstance(value, str) or re.fullmatch(r"-?[0-9]+", value.strip()) is None:
+        raise ValueError(f"comparison field {field} must be an integer")
+    return int(value.strip())
+
+
 def _close(observed: str, expected: float, field: str, grid: int) -> None:
     value = float(observed)
     if not math.isfinite(value) or not math.isclose(value, expected, rel_tol=2e-9, abs_tol=2e-11):
@@ -43,13 +51,13 @@ def audit_grid_sensitivity(root: str | Path) -> dict:
     rows = _read_csv(comparison_path)
     if len(rows) < 2:
         raise ValueError("comparison must contain at least two grid resolutions")
-    grids = [int(row["grid_points"]) for row in rows]
+    grids = [_integer(row.get("grid_points"), "grid_points") for row in rows]
     if len(set(grids)) != len(grids) or any(g < 2 for g in grids):
         raise ValueError("grid resolutions must be unique integers >= 2")
     reference_grid = max(grids)
     try:
-        replicate_counts = [int(row["n_replicates"]) for row in rows]
-        seeds = [int(row["seed"]) for row in rows]
+        replicate_counts = [_integer(row.get("n_replicates"), "n_replicates") for row in rows]
+        seeds = [_integer(row.get("seed"), "seed") for row in rows]
     except (KeyError, TypeError, ValueError) as exc:
         raise ValueError("comparison rows must contain integer replicate counts and seeds") from exc
     if len(set(replicate_counts)) != 1:
@@ -74,9 +82,9 @@ def audit_grid_sensitivity(root: str | Path) -> dict:
             raise ValueError(f"grid {grid}: raw-record audit did not pass")
         raw = _read_csv(raw_path)
         summary = json.loads(summary_path.read_text(encoding="utf-8"))
-        if len(raw) != int(row["n_replicates"]) or int(summary["n_replicates"]) != len(raw):
+        if len(raw) != _integer(row.get("n_replicates"), "n_replicates") or int(summary["n_replicates"]) != len(raw):
             raise ValueError(f"grid {grid}: replicate-count mismatch")
-        if int(summary["seed"]) != int(row["seed"]):
+        if int(summary["seed"]) != _integer(row.get("seed"), "seed"):
             raise ValueError(f"grid {grid}: seed mismatch")
         if int(summary["posterior_grid"]["points"]) != grid:
             raise ValueError(f"grid {grid}: grid metadata mismatch")
@@ -114,7 +122,7 @@ def audit_grid_sensitivity(root: str | Path) -> dict:
         }
         for field, value in expected.items():
             if field == "reference_grid_points":
-                if int(row[field]) != value:
+                if _integer(row.get(field), field) != value:
                     raise ValueError(f"grid {grid}: incorrect reference grid")
             else:
                 _close(row[field], value, field, grid)
