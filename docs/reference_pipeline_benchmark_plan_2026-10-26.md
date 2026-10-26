@@ -6,12 +6,13 @@ The next scientifically useful milestone is a benchmark against an established c
 
 Two realistic reference options were checked:
 
-1. **CHIMERA** — public source code and tutorials cover complete and incomplete galaxy catalogues. The current incomplete-catalogue example, however, references an O5-like mock data directory, a pixelated 100-event mock, completeness-mask files, and a 20-million-injection HDF5 file. Those files are not part of the notebook itself. The example is therefore not immediately reproducible in this repository without separately acquiring and verifying the referenced data.
+1. **CHIMERA** — public source code and tutorials cover complete and incomplete galaxy catalogues. The required O5-like mock inputs are available from the public [CHIMERA v2.0 Zenodo record](https://zenodo.org/records/17143346), which lists 662.3 MB of files. Relevant listed files include the 156.1 MB 20-million-injection HDF5 file, a 133.8 MB parent-galaxy catalogue, and 180.1/192.2 MB GW posterior-sample files (the latter is the pixelated version used by the incomplete-catalogue notebook). This makes CHIMERA a plausible benchmark candidate, not an impossible one. However, the incomplete-catalogue notebook also references completeness-mask/interpolation products and temporary mask indices; their generation and provenance must be traced before the example is reproducible end-to-end.
 2. **gwcosmo** — mature public dark-siren pipeline with a documented command-line interface. Its dark-siren method requires GW posterior samples, sky maps, a selection-effect injection set, and a precomputed line-of-sight redshift-prior HDF5 file. The official documentation notes that injections and LOS priors are not bundled with the package by default. A versioning issue must also be resolved: the official documentation inspected here identifies itself as 3.0.1.dev2, while PyPI lists a 3.1.0 release uploaded on 22 July 2026. The benchmark must pin one exact release/commit and confirm that the data/API instructions match that version. This creates a data-provenance and compute prerequisite, not merely a Python dependency.
 
 Sources:
 - [CHIMERA public repository](https://github.com/CosmoStatGW/CHIMERA)
 - [CHIMERA incomplete-galaxy-catalogue example](https://github.com/CosmoStatGW/CHIMERA/blob/main/examples/incomplete_galaxy_catalog.ipynb)
+- [CHIMERA v2.0 mock-data record (Zenodo 17143346)](https://zenodo.org/records/17143346)
 - [CHIMERA documentation](https://chimera-gw.readthedocs.io/latest/)
 - [gwcosmo data requirements](https://lscsoft.docs.ligo.org/gwcosmo/data.html)
 - [gwcosmo inference command and input requirements](https://lscsoft.docs.ligo.org/gwcosmo/cosmological-inference.html)
@@ -30,7 +31,7 @@ Sources:
 | Direct drop-in replacement for this repository's toy likelihood | No | No |
 | Immediate low-cost CI benchmark justified from current evidence | No | No |
 
-The current evidence does not justify claiming that either pipeline can be run end-to-end in the existing CI environment without additional data acquisition and a dependency/runtime assessment.
+The current evidence supports CHIMERA as the first candidate for a bounded benchmark because its mock events and injections have a public Zenodo record, but the incomplete-catalogue mask-generation path still needs verification. gwcosmo remains a second candidate; its current package release and the older documentation version inspected must be reconciled before a pinned run. Neither pipeline has yet been executed in this repository.
 
 ## Staged benchmark plan
 
