@@ -63,6 +63,15 @@ def _normal_interval_probability(lower_z, upper_z):
 from .hardened_inference import C_KM_S, posterior_h0
 
 
+def _normalized_weights(weights, name):
+    """Normalize finite non-negative weights without overflowing their sum."""
+    scale = float(np.max(weights))
+    if scale <= 0.0:
+        raise ValueError(f"{name} must have a positive sum.")
+    scaled = weights / scale
+    return scaled / scaled.sum()
+
+
 def detection_efficiency_h0(H0_grid, redshifts, gw_sigma, detection_distance_max,
                             weights=None, detection_distance_min=0.0):
     """Return beta(H0) = P(detected | H0) for the toy finite distance interval.
@@ -91,9 +100,9 @@ def detection_efficiency_h0(H0_grid, redshifts, gw_sigma, detection_distance_max
     w = np.ones(z.size, dtype=float) if weights is None else np.asarray(weights, dtype=float)
     if w.ndim != 1 or w.size != z.size or not np.all(np.isfinite(w)) or np.any(w < 0):
         raise ValueError("weights must be finite, non-negative and match redshifts.")
-    if w.sum() <= 0:
+    if not np.any(w > 0):
         raise ValueError("weights must have a positive sum.")
-    w = w / w.sum()
+    w = _normalized_weights(w, "weights")
     means = C_KM_S * z[None, :] / grid[:, None]
     # Detection is the interval lower_threshold < d_obs < threshold.
     # Include both boundaries in beta so it matches the generator exactly.
@@ -185,9 +194,9 @@ def posterior_h0_selected_with_missing_hosts(
         raise ValueError("missing_weight must be finite and in [0, 1).")
 
     cw = np.ones(catalog_z.size, dtype=float) if catalog_weights is None else np.asarray(catalog_weights, dtype=float)
-    if cw.ndim != 1 or cw.size != catalog_z.size or not np.all(np.isfinite(cw)) or np.any(cw < 0) or cw.sum() <= 0:
+    if cw.ndim != 1 or cw.size != catalog_z.size or not np.all(np.isfinite(cw)) or np.any(cw < 0) or not np.any(cw > 0):
         raise ValueError("catalog_weights must be finite, non-negative, match catalogue hosts, and sum positive.")
-    cw = cw / cw.sum() * (1.0 - fraction)
+    cw = _normalized_weights(cw, "catalog_weights") * (1.0 - fraction)
 
     if fraction > 0.0:
         if missing_redshifts is None:
@@ -196,9 +205,9 @@ def posterior_h0_selected_with_missing_hosts(
         if missing_z.ndim != 1 or missing_z.size == 0 or not np.all(np.isfinite(missing_z)) or np.any(missing_z < 0):
             raise ValueError("missing_redshifts must be a non-empty finite non-negative vector.")
         mw = np.ones(missing_z.size, dtype=float) if missing_weights is None else np.asarray(missing_weights, dtype=float)
-        if mw.ndim != 1 or mw.size != missing_z.size or not np.all(np.isfinite(mw)) or np.any(mw < 0) or mw.sum() <= 0:
+        if mw.ndim != 1 or mw.size != missing_z.size or not np.all(np.isfinite(mw)) or np.any(mw < 0) or not np.any(mw > 0):
             raise ValueError("missing_weights must be finite, non-negative, match missing hosts, and sum positive.")
-        mw = mw / mw.sum() * fraction
+        mw = _normalized_weights(mw, "missing_weights") * fraction
         full_z = np.concatenate((catalog_z, missing_z))
         full_weights = np.concatenate((cw, mw))
     else:
