@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from scipy.integrate import trapezoid
-from scipy.special import erf, log_ndtr, ndtr
+from scipy.special import log_ndtr, ndtr
 from scipy.stats import norm
 
 from dark_siren_robustness.selection import (
@@ -167,9 +167,9 @@ def test_normal_interval_probability_retains_tail_precision(lower_z, upper_z):
 )
 def test_normal_interval_probability_preserves_narrow_interval_touching_zero(lower_z, upper_z):
     """CDF subtraction can round a representable, narrow central interval to zero."""
-    expected = 0.5 * (
-        erf(upper_z / np.sqrt(2.0)) - erf(lower_z / np.sqrt(2.0))
-    )
+    # Across a 2e-20-wide interval around zero, the standard-normal
+    # density is constant to far beyond double precision: width * phi(0).
+    expected = (upper_z - lower_z) / np.sqrt(2.0 * np.pi)
     naive = ndtr(upper_z) - ndtr(lower_z)
     actual = float(_normal_interval_probability(lower_z, upper_z))
 
