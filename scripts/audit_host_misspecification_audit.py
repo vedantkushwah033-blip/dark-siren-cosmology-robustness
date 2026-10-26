@@ -80,12 +80,16 @@ def independent_summary(scenario: str, observed: float):
     else:
         raise ValueError(f"Unknown scenario {scenario}")
     means = C * z[None, :] / GRID[:, None]
+    # The generator redraws non-positive distances, so each component density
+    # must be conditioned on D > 0: divide by Phi(mu / sigma).
+    component_density = norm.pdf(observed, loc=means, scale=SIGMA) / norm.cdf(means / SIGMA)
     likelihood = (1.0 - missing_weight) * np.sum(
-        weights[None, :] * norm.pdf(observed, loc=means, scale=SIGMA), axis=1
+        weights[None, :] * component_density, axis=1
     )
     if missing_weight:
         hidden_mean = C * Z_HIDDEN / GRID
-        likelihood += missing_weight * norm.pdf(observed, loc=hidden_mean, scale=SIGMA)
+        hidden_density = norm.pdf(observed, loc=hidden_mean, scale=SIGMA) / norm.cdf(hidden_mean / SIGMA)
+        likelihood += missing_weight * hidden_density
     mask = (GRID >= PRIOR[0]) & (GRID <= PRIOR[1])
     x, density = GRID[mask], likelihood[mask]
     density = density / trapezoid(density, x)
