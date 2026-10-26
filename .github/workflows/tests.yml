@@ -52,6 +52,8 @@ jobs:
         run: python -m pytest tests/test_hidden_host_assumption_sensitivity.py -q
       - name: Test marginal hidden-host assumption summaries
         run: python -m pytest tests/test_summarize_hidden_host_assumption_sensitivity.py -q
+      - name: Test checksum-verified CHIMERA benchmark-data preparation
+        run: python -m pytest tests/test_prepare_chimera_v2_benchmark_data.py -q
       - name: Run focused grid-convergence regression tests
         run: python -m pytest tests/test_targeted_grid_convergence.py tests/test_grid_refinement_audit.py -q
       - name: Run posterior-grid stability diagnostic
