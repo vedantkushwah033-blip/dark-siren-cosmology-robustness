@@ -27,13 +27,13 @@ The Zenodo record lists the following upstream checksums (MD5) and sizes. MD5 is
 
 | File | Size | Zenodo-listed MD5 | Role in candidate benchmark |
 |---|---:|---|---|
-| [CHIMERA-2.0.zip](https://zenodo.org/records/17143346/files/CHIMERA-2.0.zip) | 63.5 kB | a650fba2d43a5cdac9fa0e8e25880346 | Versioned source archive |
+| [CHIMERA v2.0 software archive](https://zenodo.org/records/17143872) | 9.7 MB | 6b11c8659c0627dcfcf85f35a2473fb2 | Versioned upstream code (separate Zenodo software record 17143872) |
 | [injections_Ninj_2e7_O5Like_snr20.h5](https://zenodo.org/records/17143346/files/injections_Ninj_2e7_O5Like_snr20.h5) | 156.1 MB | 213ab2655b9fac5fb8cdc022fe8bd555 | Selection-effect injections |
 | [parent_galaxy_catalog_1.6M_dVdz.h5](https://zenodo.org/records/17143346/files/parent_galaxy_catalog_1.6M_dVdz.h5) | 133.8 MB | c59d9feece4e0deab2b2b544cdb86303 | Parent galaxy sample |
 | [PE_O5Like_snr20.h5](https://zenodo.org/records/17143346/files/PE_O5Like_snr20.h5) | 180.1 MB | f887599e7e11b19ce21039ecb51616c7 | Non-pixelated event posterior samples |
 | [PE_O5Like_snr20_pixelated_nsidelist512-256-128-64-32-16-8_meanpixels15_skyconf0.9_nestFalse.h5](https://zenodo.org/records/17143346/files/PE_O5Like_snr20_pixelated_nsidelist512-256-128-64-32-16-8_meanpixels15_skyconf0.9_nestFalse.h5) | 192.2 MB | 165914665a87ebb971fad2ed3bc66f15 | Pixelated event samples used by the incomplete-catalogue example |
 
-The three files directly referenced by the incomplete-catalogue example total approximately 482.1 MB (injections, parent galaxy catalogue, pixelated posterior samples), excluding generated completeness masks, interpolation products, temporary mask indices, and software dependencies. These data are publicly listed in [Zenodo record 17143346](https://zenodo.org/records/17143346). An opt-in helper, [prepare_chimera_v2_benchmark_data.py](../scripts/prepare_chimera_v2_benchmark_data.py), streams the three-file fixture, checks the Zenodo-listed MD5 before publishing each file, computes a local SHA-256, and writes a provenance manifest. Its test suite uses mocked responses and never downloads the large files.
+The three files directly referenced by the incomplete-catalogue example total approximately 482.1 MB (injections, parent galaxy catalogue, pixelated posterior samples), excluding generated completeness masks, interpolation products, temporary mask indices, and software dependencies. These data are publicly listed in [Zenodo record 17143346](https://zenodo.org/records/17143346); the versioned v2.0 code is in the separate [CHIMERA software release record 17143872](https://zenodo.org/records/17143872). Do not mistake the small 63.5 kB archive listed alongside the data for the full software source. An opt-in helper, [prepare_chimera_v2_benchmark_data.py](../scripts/prepare_chimera_v2_benchmark_data.py), streams the three-file fixture, checks the Zenodo-listed MD5 before publishing each file, computes a local SHA-256, and writes a provenance manifest. Its test suite uses mocked responses and never downloads the large files.
 
 For a local feasibility check, first run:
 ```bash
