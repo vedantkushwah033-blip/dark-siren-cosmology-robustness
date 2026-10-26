@@ -70,6 +70,12 @@ jobs:
         run: python scripts/run_posterior_grid_stability.py --output artifacts/posterior_grid_stability.csv
       - name: Run targeted upper-tail convergence diagnostic
         run: python scripts/run_targeted_grid_convergence.py --output artifacts/targeted_grid_convergence.csv
+      - name: Run full 300-replicate distance-uncertainty sensitivity experiment (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: python scripts/run_distance_uncertainty_sensitivity.py --replicates 300 --seed 20261026 --grid-points 1601 --bootstrap-resamples 2000 --output-dir artifacts/distance_uncertainty_sensitivity_full
+      - name: Independently audit full distance-uncertainty experiment (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: python scripts/audit_distance_uncertainty_sensitivity.py artifacts/distance_uncertainty_sensitivity_full
       - name: Upload numerical diagnostic results
         uses: actions/upload-artifact@v4
         with:
@@ -78,6 +84,7 @@ jobs:
             artifacts/posterior_grid_stability.csv
             artifacts/targeted_grid_convergence.csv
             artifacts/distance_uncertainty_sensitivity/
+            artifacts/distance_uncertainty_sensitivity_full/
             artifacts/selected_likelihood_sbc/pit_replicates.csv
             artifacts/selected_likelihood_sbc/pit_summary.json
             artifacts/selected_likelihood_sbc/audit_report.json
