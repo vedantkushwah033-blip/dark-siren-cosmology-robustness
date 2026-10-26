@@ -8,7 +8,14 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import sys
 from pathlib import Path
+
+# Direct execution sets sys.path to scripts/, whereas pytest/import execution
+# normally starts at the repository root. Normalize both entry points.
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPOSITORY_ROOT))
 
 from scripts.audit_selected_likelihood_sbc import audit
 from scripts.run_selected_likelihood_sbc import N_REPLICATES, SEED, run_calibration
