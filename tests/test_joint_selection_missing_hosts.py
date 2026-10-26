@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 from scipy.integrate import trapezoid
-from scipy.special import ndtr
+from scipy.special import log_ndtr, ndtr
 from scipy.stats import norm
 
 from dark_siren_robustness.selection import (
+    _normal_interval_probability,
     detection_efficiency_h0,
     posterior_h0_selected,
     posterior_h0_selected_with_missing_hosts,
@@ -130,6 +131,34 @@ def test_detection_efficiency_preserves_representable_positive_tail_probability(
     assert np.all(beta > 0.0)
     np.testing.assert_allclose(beta, expected, rtol=1e-12, atol=0.0)
 
+
+
+@pytest.mark.parametrize(
+    ("lower_z", "upper_z"),
+    [
+        (-8.000001, -8.0),  # lower-tail CDF subtraction loses relative precision
+        (8.0, 8.000001),    # upper-tail CDF values both round to one
+    ],
+)
+def test_normal_interval_probability_retains_tail_precision(lower_z, upper_z):
+    """The interval calculation must retain precision lost by direct CDF subtraction."""
+    if upper_z <= 0.0:
+        log_lower = log_ndtr(lower_z)
+        log_upper = log_ndtr(upper_z)
+        expected = np.exp(log_upper) * (-np.expm1(log_lower - log_upper))
+        naive = ndtr(upper_z) - ndtr(lower_z)
+    else:
+        log_lower_survival = log_ndtr(-lower_z)
+        log_upper_survival = log_ndtr(-upper_z)
+        expected = np.exp(log_lower_survival) * (
+            -np.expm1(log_upper_survival - log_lower_survival)
+        )
+        naive = ndtr(upper_z) - ndtr(lower_z)
+
+    actual = float(_normal_interval_probability(lower_z, upper_z))
+    assert expected > 0.0
+    assert abs(naive - expected) / expected > 1e-11
+    assert actual == pytest.approx(expected, rel=1e-12, abs=0.0)
 
 def test_detection_efficiency_fails_closed_when_probability_underflows():
     # At these deliberately extreme values, both Gaussian CDF terms underflow
