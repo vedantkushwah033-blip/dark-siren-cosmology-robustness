@@ -58,6 +58,11 @@ def run_multiseed_sensitivity(
     per_seed_rows = []
     for seed in seeds:
         seed_dir = root / f"seed_{seed}"
+        # Clear success markers for this seed before touching any of its files;
+        # a failed rerun must not leave a stale PASS report beside new/partial data.
+        (seed_dir / "grid_sensitivity_audit.json").unlink(missing_ok=True)
+        for points in grid_points:
+            (seed_dir / f"grid_{points}" / "audit_report.json").unlink(missing_ok=True)
         seed_results = run_sensitivity(
             grid_points=grid_points,
             n_replicates=n_replicates,
