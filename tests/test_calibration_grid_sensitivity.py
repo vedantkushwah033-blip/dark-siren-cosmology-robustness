@@ -93,7 +93,10 @@ def test_grid_sensitivity_stops_when_independent_audit_fails(tmp_path, monkeypat
         run_sensitivity([1201, 2401], n_replicates=100, seed=123, output_dir=tmp_path)
     assert (tmp_path / "grid_1201" / "pit_replicates.csv").exists()
     assert not stale_table.exists()
-    assert not stale_audit.exists()
+    # The stale PASS marker must be replaced by the current failure result,
+    # so a failed audit cannot be mistaken for a successful prior run.
+    assert stale_audit.exists()
+    assert json.loads(stale_audit.read_text(encoding="utf-8"))["status"] == "FAIL"
 
 
 @pytest.mark.parametrize("seed", [-1, -100])
