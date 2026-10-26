@@ -103,6 +103,16 @@ def test_invalid_missing_component_rejected(kwargs):
         posterior_h0_selected_with_missing_hosts(**base, **kwargs)
 
 
+def test_detection_efficiency_fails_closed_when_probability_underflows():
+    # At these deliberately extreme values, both Gaussian CDF terms underflow
+    # to the same value. Returning machine-tiny would fabricate nonzero support.
+    with pytest.raises(ValueError, match="not representable as a positive probability"):
+        detection_efficiency_h0(
+            np.array([40.0, 100.0]), [100.0], 1.0, 1.0,
+            detection_distance_min=0.0,
+        )
+
+
 def test_no_event_selection_limit_matches_catalogue_only_posterior():
     from dark_siren_robustness.hardened_inference import posterior_h0
 
