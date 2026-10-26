@@ -105,7 +105,8 @@ def summarize(path: Path, seed: int = 4182026, bootstrap_resamples: int = 10000)
         "scope": "synthetic known-host low-redshift sensitivity diagnostic only",
         "raw_record_count": len(rows),
         "interior_truth_cells": list(INTERIOR_TRUTHS),
-        "a_b_pairs_checked": sum(1 for key in differences if key[0] in INTERIOR_TRUTHS),
+        "all_a_b_pairs_checked": len(differences),
+        "interior_a_b_pairs_checked": sum(1 for key in differences if key[0] in INTERIOR_TRUTHS),
         "pairing_verified": True,
         "results": results,
     }
