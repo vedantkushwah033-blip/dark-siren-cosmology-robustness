@@ -183,8 +183,13 @@ def audit_artifacts(output_dir: str | Path) -> dict:
             for rep in range(reps):
                 a = records_by_key[(float(truth), float(frac), rep, ARMS[0])]
                 b = records_by_key[(float(truth), float(frac), rep, ARMS[1])]
-                for col in ("host_redshift", "standard_normal", "true_distance_mpc",
-                            "observed_distance_mpc", "generated_sigma_mpc"):
+                c = records_by_key[(float(truth), float(frac), rep, ARMS[2])]
+                # All arms are intended to use common redshift and standard-normal
+                # draws; only Arm C's generated absolute noise scale differs.
+                for col in ("host_redshift", "standard_normal", "true_distance_mpc"):
+                    _close(a[col], b[col], f"paired A/B {truth}/{frac}/{rep}: {col}")
+                    _close(a[col], c[col], f"paired A/C {truth}/{frac}/{rep}: {col}")
+                for col in ("observed_distance_mpc", "generated_sigma_mpc"):
                     _close(a[col], b[col], f"paired A/B {truth}/{frac}/{rep}: {col}")
 
     summary_rows = metadata.get("summary")
