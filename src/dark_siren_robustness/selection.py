@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import numpy as np
 from scipy.integrate import trapezoid
-from scipy.special import log_ndtr, ndtr
+from scipy.special import erf, log_ndtr, ndtr
 
 
 def _normal_interval_probability(lower_z, upper_z):
@@ -50,8 +50,12 @@ def _normal_interval_probability(lower_z, upper_z):
             -np.expm1(log_lower - log_upper)
         )
     if np.any(central):
-        probability[central] = (
-            ndtr(upper_z[central]) - ndtr(lower_z[central])
+        # For intervals crossing zero, CDF values can both round to 0.5 when
+        # the interval is extremely narrow. The erf identity subtracts values
+        # with opposite signs and preserves the representable interval mass.
+        probability[central] = 0.5 * (
+            erf(upper_z[central] / np.sqrt(2.0))
+            - erf(lower_z[central] / np.sqrt(2.0))
         )
     return probability
 
