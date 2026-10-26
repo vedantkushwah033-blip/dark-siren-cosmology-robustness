@@ -82,3 +82,16 @@ Sources inspected:
 ### Current decision
 
 The source audit is more precise, but the benchmark remains **NO-GO for exact end-to-end reproduction** until the exact 100-event SNR-25 event file and the underlying mock galaxy catalogue / precomputed `pcat_incomplete.h5` are located with documented provenance, or regenerated from verified source data with a fully specified recipe. Do not treat the saved notebook output as an independently rerun result. Do not substitute the v2.0 300-event SNR-20 sample and label it a v2.2 replication.
+
+### Additional upstream release/archive inventory (checked 2026-10-26)
+
+A recursive tree inspection of the pinned v2.2 commit found the incomplete-catalogue notebook and CHIMERA's Python module `CHIMERA/data.py`, but no tracked `data/` directory or dedicated download helper for the notebook's six required products. The GitHub Releases API lists v2.2, v2.1, v2.0, and v1.0.0 releases, each with **no attached release assets**. Thus there is no release-attached archive that resolves the missing v2.2 products.
+
+The public Zenodo record linked to CHIMERA v2.0 lists four data files: the 20-million-injection sample, a 1.6-million-galaxy parent catalogue, and pixelated/non-pixelated SNR-20 PE samples. It does not list the v2.2 notebook's 100-event SNR-25 mock, completeness masks/interpolants, GW-mask cache, or `pcat_incomplete.h5`. This confirms that the v2.0 record is a useful source for a separate v2.0 fixture, but not a complete source for the matched v2.2 benchmark.
+
+Evidence:
+- [Pinned v2.2 repository tree](https://github.com/CosmoStatGW/CHIMERA/tree/fd35f897e36850d865c760c13325c5a46ebe94db)
+- [CHIMERA GitHub releases](https://github.com/CosmoStatGW/CHIMERA/releases)
+- [CHIMERA v2.0 Zenodo archive and file inventory](https://zenodo.org/records/17143346)
+
+**Decision unchanged:** do not download the v2.0 fixture and present it as v2.2. The next defensible step is to request/locate the missing data provenance or explicitly design a separately labelled v2.0 compatibility benchmark.
