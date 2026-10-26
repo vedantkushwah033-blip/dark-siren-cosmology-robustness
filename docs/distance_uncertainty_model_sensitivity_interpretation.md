@@ -40,17 +40,24 @@ realistic gravitational-wave distance posterior, and not a measurement of
 2. Bias and RMSE are descriptive properties of this specified simulation,
    prior, and finite grid. They do not establish performance under a realistic
    population of gravitational-wave events.
-3. Truths at 50 and 90 lie exactly on the prior boundaries. Their coverage,
-   posterior summaries, and errors are boundary-sensitive and must be shown
-   separately from interior truths.
+3. Truths at 50 and 90 lie exactly on the prior boundaries. In this
+   implementation, the central equal-tail 68% interval has zero frequentist
+   coverage at those exact endpoints because its quantiles lie inside the
+   continuous prior support. Do not use those endpoint cells to assess nominal
+   coverage; report them separately. Truths near the boundaries (including
+   55 and 85) can also show prior-truncation effects, especially at large
+   fractional errors, so coverage should be inspected by truth rather than
+   only through an average across truths.
 4. The experiment uses a uniform prior and a low-redshift approximation
    \(d=c z/H_0\). It omits realistic GW likelihoods, redshift uncertainty,
    selection effects, catalogue incompleteness, host-population uncertainty,
    and cosmological-model complexity.
-5. The CI experiment is only a smoke test with two replicates per cell. Its
-   output verifies execution and auditability, not scientific conclusions.
-   The default 300-replicate experiment must be run and its full artifacts
-   independently audited before reporting numerical findings.
+5. The CI includes a two-replicate smoke test and a separate full run with
+   300 replicates per truth/error cell. The full run's raw artifacts are
+   independently audited and checked for grid-resolution stability. These
+   checks support reproducible computation for the specified model; they do
+   not establish scientific realism or validate the assumptions for real
+   gravitational-wave data.
 
 ## Appropriate conclusion
 
