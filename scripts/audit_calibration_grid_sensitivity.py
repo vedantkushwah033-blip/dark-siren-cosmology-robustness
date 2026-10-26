@@ -47,6 +47,17 @@ def audit_grid_sensitivity(root: str | Path) -> dict:
     if len(set(grids)) != len(grids) or any(g < 2 for g in grids):
         raise ValueError("grid resolutions must be unique integers >= 2")
     reference_grid = max(grids)
+    try:
+        replicate_counts = [int(row["n_replicates"]) for row in rows]
+        seeds = [int(row["seed"]) for row in rows]
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("comparison rows must contain integer replicate counts and seeds") from exc
+    if len(set(replicate_counts)) != 1:
+        raise ValueError("all grid resolutions must use the same replicate count")
+    if len(set(seeds)) != 1:
+        raise ValueError("all grid resolutions must use the same random seed for paired comparison")
+    if replicate_counts[0] < 2 or seeds[0] < 0:
+        raise ValueError("replicate count must be >= 2 and seed must be non-negative")
     records: dict[int, list[dict]] = {}
     summaries: dict[int, dict] = {}
 
