@@ -72,19 +72,19 @@ def infer_row(row):
     d, sigma = row["observed_distance_mpc"], row["sigma_mpc"]
     if scenario == "correct_weights":
         density = posterior_h0(GRID, OBSERVED_REDSHIFTS, d, sigma, weights=[0.7, 0.3],
-                               prior_min=PRIOR_MIN, prior_max=PRIOR_MAX)
+                               prior_min=PRIOR_MIN, prior_max=PRIOR_MAX, positive_truncated=True)
     elif scenario == "reversed_weights":
         density = posterior_h0(GRID, OBSERVED_REDSHIFTS, d, sigma, weights=[0.3, 0.7],
-                               prior_min=PRIOR_MIN, prior_max=PRIOR_MAX)
+                               prior_min=PRIOR_MIN, prior_max=PRIOR_MAX, positive_truncated=True)
     elif scenario == "hidden_host_ignored":
         # Deliberately omit z=0.03; renormalize the two observed hosts.
         density = posterior_h0(GRID, OBSERVED_REDSHIFTS, d, sigma, weights=[0.5, 0.5],
-                               prior_min=PRIOR_MIN, prior_max=PRIOR_MAX)
+                               prior_min=PRIOR_MIN, prior_max=PRIOR_MAX, positive_truncated=True)
     elif scenario == "hidden_host_modelled":
         # The model assigns 30% prior weight to the hidden-host component.
         density = posterior_h0(GRID, OBSERVED_REDSHIFTS, d, sigma, weights=[0.5, 0.5],
                                missing_weight=0.30, missing_redshifts=[HIDDEN_REDSHIFT],
-                               prior_min=PRIOR_MIN, prior_max=PRIOR_MAX)
+                               prior_min=PRIOR_MIN, prior_max=PRIOR_MAX, positive_truncated=True)
     else:
         raise ValueError(f"Unknown scenario: {scenario}")
     return posterior_summary(GRID, density)
