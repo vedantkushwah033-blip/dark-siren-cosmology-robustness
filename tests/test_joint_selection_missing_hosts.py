@@ -161,9 +161,12 @@ def test_normal_interval_probability_retains_tail_precision(lower_z, upper_z):
     assert actual == pytest.approx(expected, rel=1e-12, abs=0.0)
 
 
-def test_normal_interval_probability_preserves_narrow_interval_crossing_zero():
+@pytest.mark.parametrize(
+    ("lower_z", "upper_z"),
+    [(-1e-20, 0.0), (0.0, 1e-20), (-1e-20, 1e-20)],
+)
+def test_normal_interval_probability_preserves_narrow_interval_touching_zero(lower_z, upper_z):
     """CDF subtraction can round a representable, narrow central interval to zero."""
-    lower_z, upper_z = -1e-20, 1e-20
     expected = 0.5 * (
         erf(upper_z / np.sqrt(2.0)) - erf(lower_z / np.sqrt(2.0))
     )
