@@ -49,6 +49,8 @@ def run_multiseed_sensitivity(
     aggregate_path.unlink(missing_ok=True)
     per_seed_path = root / "per_seed_paired_contrasts.csv"
     per_seed_path.unlink(missing_ok=True)
+    # Do not let a failed rerun leave an old metadata PASS marker behind.
+    (root / "multiseed_metadata.json").unlink(missing_ok=True)
 
     per_seed_rows = []
     for seed in seeds:
