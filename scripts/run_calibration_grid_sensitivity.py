@@ -53,6 +53,9 @@ def run_sensitivity(
     for points in grid_points:
         case_dir = root / f"grid_{points}"
         case_dir.mkdir(parents=True, exist_ok=True)
+        # Remove the previous audit marker before regenerating this grid. If
+        # raw validation raises, a stale PASS report must not survive.
+        (case_dir / "audit_report.json").unlink(missing_ok=True)
         rows, summary = run_calibration(
             n_replicates=n_replicates,
             seed=seed,
