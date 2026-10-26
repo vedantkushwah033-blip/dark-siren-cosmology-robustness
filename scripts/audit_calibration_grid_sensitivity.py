@@ -58,7 +58,7 @@ def audit_grid_sensitivity(root: str | Path) -> dict:
     try:
         replicate_counts = [_integer(row.get("n_replicates"), "n_replicates") for row in rows]
         seeds = [_integer(row.get("seed"), "seed") for row in rows]
-    except (KeyError, TypeError, ValueError) as exc:
+    except (KeyError, TypeError) as exc:
         raise ValueError("comparison rows must contain integer replicate counts and seeds") from exc
     if len(set(replicate_counts)) != 1:
         raise ValueError("all grid resolutions must use the same replicate count")
