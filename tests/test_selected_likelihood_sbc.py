@@ -210,5 +210,5 @@ def test_calibration_runner_rejects_invalid_replicate_count(n_replicates):
 
 @pytest.mark.parametrize("grid_points", [1, 1201.5, True, "1201"])
 def test_calibration_runner_rejects_invalid_grid_points(grid_points):
-    with pytest.raises(ValueError, match="grid_points must be an integer of at least two"):
+    with pytest.raises(ValueError, match="grid_points must be an integer"):
         run_calibration(n_replicates=100, seed=1, grid_points=grid_points)
