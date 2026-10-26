@@ -73,7 +73,7 @@ def test_grid_sensitivity_rejects_invalid_replicate_counts(tmp_path, n_replicate
 
 @pytest.mark.parametrize("seed", [1.5, "seed", True])
 def test_grid_sensitivity_rejects_invalid_seeds(tmp_path, seed):
-    with pytest.raises(ValueError, match="seed must be an integer"):
+    with pytest.raises(ValueError, match="seed must be a non-negative integer"):
         run_sensitivity([1201, 2401], n_replicates=100, seed=seed, output_dir=tmp_path)
 
 
