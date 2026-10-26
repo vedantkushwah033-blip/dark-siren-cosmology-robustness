@@ -78,3 +78,19 @@ def test_audit_rejects_comparison_without_passing_grid_audit(tmp_path):
         writer.writerows(rows)
     with pytest.raises(ValueError, match="does not record a passing independent audit"):
         audit_grid_sensitivity(tmp_path)
+
+
+def test_audit_rejects_replicate_count_below_experiment_minimum(tmp_path):
+    run_sensitivity([1201, 2401], n_replicates=100, seed=24684, output_dir=tmp_path)
+    path = tmp_path / "grid_sensitivity.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+        fields = list(rows[0])
+    for row in rows:
+        row["n_replicates"] = "99"
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+    with pytest.raises(ValueError, match="replicate count must be >= 100"):
+        audit_grid_sensitivity(tmp_path)
