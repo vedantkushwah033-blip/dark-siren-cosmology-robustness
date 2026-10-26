@@ -43,10 +43,12 @@ def run_calibration(
     seed: int = SEED,
     grid_points: int = GRID_SIZE,
 ):
-    if n_replicates < 100:
-        raise ValueError("Use at least 100 replicates for this diagnostic.")
-    if grid_points < 2:
-        raise ValueError("Posterior grid must contain at least two points.")
+    if isinstance(n_replicates, bool) or not isinstance(n_replicates, int) or n_replicates < 100:
+        raise ValueError("n_replicates must be an integer of at least 100.")
+    if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+        raise ValueError("seed must be a non-negative integer.")
+    if isinstance(grid_points, bool) or not isinstance(grid_points, int) or grid_points < 2:
+        raise ValueError("grid_points must be an integer of at least two.")
     rng = np.random.default_rng(seed)
     grid = np.linspace(GRID_MIN, GRID_MAX, grid_points)
     rows = []
