@@ -37,6 +37,6 @@ The primary prior contrast is the equal-cell paired difference in a metric under
 
 ## Interpretation guardrails
 
-The [50,90] prior excludes truths 55 and 85 only narrowly, while the wider priors alter posterior support and interval geometry. Wider priors are not automatically superior; results can change because the prior is part of the statistical model. The hidden-host model is a deliberately simplified discrete mixture and assumes the hidden fraction and redshift are known to the inference procedure. This is a hybrid oracle-style diagnostic, not a realistic catalogue-completeness model.
+The [50,90] prior includes truths 55 and 85 near its lower and upper boundaries, respectively; it does not exclude either truth. Its support can nevertheless truncate posterior mass near those boundaries, while the wider priors alter posterior support and interval geometry. Wider priors are not automatically superior; results can change because the prior is part of the statistical model. The hidden-host model is a deliberately simplified discrete mixture and assumes the hidden fraction and redshift are known to the inference procedure. This is a hybrid oracle-style diagnostic, not a realistic catalogue-completeness model.
 
 The experiment omits realistic GW likelihoods, detector selection, peculiar velocities, galaxy-catalogue completeness uncertainty, and full hierarchical population inference. Do not use it to claim an observational H0 result, publication readiness, or validation against real gravitational-wave data.
