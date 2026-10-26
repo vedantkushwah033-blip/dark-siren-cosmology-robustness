@@ -122,7 +122,7 @@ def run_multiseed_sensitivity(
     # Only publish the success metadata after this independent audit passes.
     aggregate_audit = audit_multiseed_sensitivity(root)
     (root / "multiseed_audit_report.json").write_text(
-        json.dumps(aggregate_audit, indent=2, sort_keys=True) + "\\n",
+        json.dumps(aggregate_audit, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
     if aggregate_audit.get("status") != "PASS":
