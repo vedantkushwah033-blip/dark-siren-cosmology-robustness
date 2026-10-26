@@ -55,6 +55,22 @@ def test_grid_stability_rejects_material_coarse_quantile_error(tmp_path):
         check_grid_stability(raw_path, fine_grid_points=3201)
 
 
+
+def test_grid_stability_rejects_duplicate_raw_record(tmp_path):
+    raw, _ = run_experiment(
+        replicates=2,
+        seed=733,
+        grid_points=1601,
+        truths=(70.0,),
+        fractional_errors=(0.05,),
+    )
+    raw.append(dict(raw[0]))
+    raw_path = tmp_path / "replicates.csv"
+    _write_raw_csv(raw_path, raw)
+
+    with pytest.raises(ValueError, match="duplicate raw record key"):
+        check_grid_stability(raw_path, fine_grid_points=3201)
+
 def test_grid_stability_rejects_even_fine_grid(tmp_path):
     with pytest.raises(ValueError, match="odd integer"):
         check_grid_stability(tmp_path / "not_read.csv", fine_grid_points=3200)
