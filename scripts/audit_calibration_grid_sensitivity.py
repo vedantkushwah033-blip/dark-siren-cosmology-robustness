@@ -56,8 +56,11 @@ def audit_grid_sensitivity(root: str | Path) -> dict:
         raise ValueError("all grid resolutions must use the same replicate count")
     if len(set(seeds)) != 1:
         raise ValueError("all grid resolutions must use the same random seed for paired comparison")
-    if replicate_counts[0] < 2 or seeds[0] < 0:
-        raise ValueError("replicate count must be >= 2 and seed must be non-negative")
+    # Enforce the same predeclared minimum as the experiment runner. An audit
+    # must not certify a hand-edited or externally produced tiny sample merely
+    # because its arithmetic is internally consistent.
+    if replicate_counts[0] < 100 or seeds[0] < 0:
+        raise ValueError("replicate count must be >= 100 and seed must be non-negative")
     records: dict[int, list[dict]] = {}
     summaries: dict[int, dict] = {}
 
