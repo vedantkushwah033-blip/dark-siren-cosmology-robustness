@@ -120,7 +120,7 @@ def test_independent_audit_rejects_unpaired_arm_c_random_draw(tmp_path):
         writer.writeheader()
         writer.writerows(rows)
 
-    with pytest.raises(ValueError, match="paired A/C .*standard_normal"):
+    with pytest.raises(ValueError, match="(paired A/C .*standard_normal|seed replay .*standard-normal draw)"):
         audit_artifacts(folder)
 
 
