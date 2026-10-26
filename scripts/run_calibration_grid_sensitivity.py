@@ -29,8 +29,14 @@ def run_sensitivity(
     seed: int = SEED,
     output_dir: str | Path = "artifacts/calibration_grid_sensitivity",
 ) -> list[dict]:
+    if isinstance(n_replicates, bool) or not isinstance(n_replicates, int) or n_replicates < 2:
+        raise ValueError("n_replicates must be an integer of at least 2.")
+    if isinstance(seed, bool) or not isinstance(seed, int):
+        raise ValueError("seed must be an integer.")
     if len(grid_points) < 2:
         raise ValueError("Provide at least two grid resolutions for comparison.")
+    if any(isinstance(points, bool) or not isinstance(points, int) for points in grid_points):
+        raise ValueError("Grid resolutions must be integers.")
     if len(set(grid_points)) != len(grid_points):
         raise ValueError("Grid resolutions must be unique.")
     if any(points < 2 for points in grid_points):
