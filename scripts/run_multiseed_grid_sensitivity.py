@@ -19,6 +19,7 @@ if str(_REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPOSITORY_ROOT))
 
 from scripts.audit_calibration_grid_sensitivity import audit_grid_sensitivity
+from scripts.audit_multiseed_grid_sensitivity import audit_multiseed_sensitivity
 from scripts.run_calibration_grid_sensitivity import run_sensitivity
 from scripts.run_selected_likelihood_sbc import N_REPLICATES, SEED
 
@@ -52,6 +53,7 @@ def run_multiseed_sensitivity(
     per_seed_path.unlink(missing_ok=True)
     # Do not let a failed rerun leave an old metadata PASS marker behind.
     (root / "multiseed_metadata.json").unlink(missing_ok=True)
+    (root / "multiseed_audit_report.json").unlink(missing_ok=True)
 
     per_seed_rows = []
     for seed in seeds:
@@ -115,6 +117,16 @@ def run_multiseed_sensitivity(
         writer = csv.DictWriter(handle, fieldnames=list(aggregate_rows[0]))
         writer.writeheader()
         writer.writerows(aggregate_rows)
+
+    # Reconstruct the across-seed aggregation from saved per-seed records.
+    # Only publish the success metadata after this independent audit passes.
+    aggregate_audit = audit_multiseed_sensitivity(root)
+    (root / "multiseed_audit_report.json").write_text(
+        json.dumps(aggregate_audit, indent=2, sort_keys=True) + "\\n",
+        encoding="utf-8",
+    )
+    if aggregate_audit.get("status") != "PASS":
+        raise RuntimeError("Independent multi-seed aggregate audit did not pass.")
     metadata = {
         "status": "PASS",
         "interpretation": "Synthetic numerical sensitivity only; not astrophysical validation.",
@@ -123,6 +135,7 @@ def run_multiseed_sensitivity(
         "replicates_per_seed_per_grid": n_replicates,
         "seed_is_uncertainty_unit_for_aggregate_se": True,
         "per_seed_raw_and_comparison_audits": "PASS",
+        "independent_aggregate_audit": "PASS",
         "aggregate_csv": aggregate_path.name,
         "per_seed_csv": per_seed_path.name,
     }
