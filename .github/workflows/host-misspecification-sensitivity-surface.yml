@@ -8,6 +8,7 @@ on:
       - "scripts/audit_host_misspecification_sensitivity_surface.py"
       - "tests/test_host_misspecification_sensitivity_surface.py"
       - "docs/host_misspecification_sensitivity_surface_protocol.md"
+      - "docs/missing_host_mixture_likelihood_impact_audit_2026-10-27.md"
       - ".github/workflows/host-misspecification-sensitivity-surface.yml"
   pull_request:
     paths:
@@ -15,7 +16,9 @@ on:
       - "scripts/audit_host_misspecification_sensitivity_surface.py"
       - "tests/test_host_misspecification_sensitivity_surface.py"
       - "docs/host_misspecification_sensitivity_surface_protocol.md"
+      - "docs/missing_host_mixture_likelihood_impact_audit_2026-10-27.md"
       - ".github/workflows/host-misspecification-sensitivity-surface.yml"
+
   workflow_dispatch:
 
 permissions:
