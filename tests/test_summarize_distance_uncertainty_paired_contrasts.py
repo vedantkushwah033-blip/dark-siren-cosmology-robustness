@@ -33,7 +33,8 @@ def test_stratified_paired_summary_checks_pairs_and_writes_report(tmp_path):
     report = json.loads(output.read_text(encoding="utf-8"))
     assert report["status"] == "PASS"
     assert report["pairing_verified"] is True
-    assert report["a_b_pairs_checked"] == 14
+    assert report["all_a_b_pairs_checked"] == 14
+    assert report["interior_a_b_pairs_checked"] == 14
     assert len(report["results"]) == 5
     assert all(item["replicates_per_cell"] == 2 for item in report["results"])
     assert all(item["stratified_bootstrap_95_low"] <= item["stratified_bootstrap_95_high"]
