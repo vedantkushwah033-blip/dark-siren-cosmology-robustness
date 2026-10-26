@@ -62,6 +62,12 @@ def audit(root):
         raise ValueError("base_seed must be a non-negative integer")
     reps, seed = reps_value, seed_value
     raw, summaries = read_csv(raw_path), read_csv(sum_path)
+    # Counts are provenance claims too: require exact integer metadata and compare
+    # it with the files, rather than trusting the design-derived counts alone.
+    for field, observed in (("raw_records", len(raw)), ("summary_rows", len(summaries))):
+        declared = meta.get(field)
+        if type(declared) is not int or declared != observed:
+            raise ValueError(f"{field} metadata mismatch")
     if len(raw) != len(TRUTHS)*len(NOISES)*reps: raise ValueError("raw row count mismatch")
     if len(summaries) != len(TRUTHS)*len(NOISES)*len(SUPPORTS)*len(MEASURES)*len(WEIGHTS):
         raise ValueError("summary row count mismatch")
