@@ -55,6 +55,13 @@ def check_grid_stability(raw_csv: Path, fine_grid_points: int = 3201,
     changes = {column: [] for column in SUMMARY_COLUMNS}
     coverage = {}
     seen_keys = set()
+    arms_by_replicate = {}
+    replicates_by_cell = {}
+    expected_arms = {
+        "A_fixed_realized_sigma",
+        "B_fractional_sigma_H0",
+        "C_fixed_reference_sigma",
+    }
     row_count = 0
     with raw_csv.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
@@ -74,6 +81,10 @@ def check_grid_stability(raw_csv: Path, fine_grid_points: int = 3201,
             if key in seen_keys:
                 raise ValueError(f"duplicate raw record key: {key}")
             seen_keys.add(key)
+            replicate_key = (truth, fractional_error, replicate)
+            arms_by_replicate.setdefault(replicate_key, set()).add(arm)
+            cell_key = (truth, fractional_error)
+            replicates_by_cell.setdefault(cell_key, set()).add(replicate)
             if arm not in coverage:
                 coverage[arm] = {"coarse_successes": 0, "fine_successes": 0, "n": 0}
             fine = _posterior_quantiles(row, grid)
@@ -93,6 +104,25 @@ def check_grid_stability(raw_csv: Path, fine_grid_points: int = 3201,
             coverage[arm]["n"] += 1
     if row_count == 0:
         raise ValueError("raw CSV is empty")
+    for key, observed_arms in arms_by_replicate.items():
+        if observed_arms != expected_arms:
+            missing = sorted(expected_arms - observed_arms)
+            unexpected = sorted(observed_arms - expected_arms)
+            raise ValueError(
+                f"incomplete or unexpected likelihood arms for replicate {key}: "
+                f"missing={missing}, unexpected={unexpected}"
+            )
+    replicate_sets = list(replicates_by_cell.values())
+    if replicate_sets:
+        reference_replicates = replicate_sets[0]
+        if reference_replicates != set(range(max(reference_replicates) + 1)):
+            raise ValueError("replicate IDs must be contiguous from zero within each truth/error cell")
+        for cell, replicates in replicates_by_cell.items():
+            if replicates != reference_replicates:
+                raise ValueError(
+                    f"inconsistent replicate IDs across truth/error cells at {cell}: "
+                    f"expected={sorted(reference_replicates)}, observed={sorted(replicates)}"
+                )
     for arm, item in coverage.items():
         item["coarse_coverage_68"] = item["coarse_successes"] / item["n"]
         item["fine_coverage_68"] = item["fine_successes"] / item["n"]
