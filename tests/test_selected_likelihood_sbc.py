@@ -212,3 +212,28 @@ def test_calibration_runner_rejects_invalid_replicate_count(n_replicates):
 def test_calibration_runner_rejects_invalid_grid_points(grid_points):
     with pytest.raises(ValueError, match="grid_points must be an integer"):
         run_calibration(n_replicates=100, seed=1, grid_points=grid_points)
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (lambda summary: summary.update({"seed": 246810.5}), "summary seed must be a non-negative integer"),
+        (lambda summary: summary["posterior_grid"].update({"points": 2401.5}), "posterior grid point count must be an integer"),
+        (lambda summary: summary.update({"n_replicates": 100.5}), "summary replicate count must be a positive integer"),
+        (lambda summary: summary.update({"seed": True}), "summary seed must be a non-negative integer"),
+    ],
+)
+def test_independent_audit_rejects_noninteger_provenance_metadata(tmp_path, mutate, message):
+    rows, summary = run_calibration(n_replicates=100, seed=246810)
+    raw_path = tmp_path / "pit_replicates.csv"
+    summary_path = tmp_path / "pit_summary.json"
+    with raw_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    altered_summary = json.loads(json.dumps(summary))
+    mutate(altered_summary)
+    summary_path.write_text(json.dumps(altered_summary), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=message):
+        audit(raw_path, summary_path)
