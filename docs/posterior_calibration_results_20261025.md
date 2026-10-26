@@ -1,5 +1,7 @@
 # Posterior-level H₀ calibration: audited results (2026-10-25)
 
+> **Historical results superseded pending rerun.** A scientific consistency review found that the generator redraws nonpositive Gaussian distance observations, while the original inference used untruncated Gaussian component densities. That means the original simulation and likelihood were not exactly matched. The runner and independent posterior auditor are being corrected to use host-specific positive-truncated Gaussian densities. All numerical tables below describe the earlier implementation only; do not cite them as results of the corrected model until the workflow regenerates and independently audits fresh artifacts.
+
 **Status: independent audit PASS.** This report summarizes the reproducible synthetic two-host experiment. It is not a real gravitational-wave measurement.
 
 - **Latest end-to-end workflow (including provenance regression tests):** https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40213569327
