@@ -6,7 +6,9 @@ on:
     paths:
       - "scripts/run_host_prior_support_factorial.py"
       - "scripts/audit_host_prior_support_factorial.py"
+      - "scripts/summarize_host_prior_support_factorial.py"
       - "tests/test_host_prior_support_factorial.py"
+      - "tests/test_summarize_host_prior_support_factorial.py"
       - "docs/host_prior_support_factorial_protocol.md"
       - ".github/workflows/host-prior-support-factorial.yml"
   pull_request:
@@ -92,6 +94,13 @@ jobs:
             --seed 20261030 \
             --bootstrap-resamples 1000 \
             --input-dir results/host-prior-support-factorial
+      - name: Create equal-cell marginal summaries and paired-bootstrap intervals
+        run: |
+          python scripts/summarize_host_prior_support_factorial.py \
+            --input-dir results/host-prior-support-factorial \
+            --output-dir results/host-prior-support-factorial \
+            --bootstrap-resamples 1000 \
+            --seed 20261031
       - name: Upload full factorial outputs
         uses: actions/upload-artifact@v4
         with:
