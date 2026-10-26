@@ -41,3 +41,25 @@ def test_audit_rejects_duplicate_grid_rows(tmp_path):
         writer.writerows(rows)
     with pytest.raises(ValueError, match="unique"):
         audit_grid_sensitivity(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        ("replicates", "same replicate count"),
+        ("seed", "same random seed"),
+    ],
+)
+def test_audit_rejects_unpaired_comparison_metadata(tmp_path, mutate, message):
+    run_sensitivity([1201, 2401], n_replicates=100, seed=24682, output_dir=tmp_path)
+    path = tmp_path / "grid_sensitivity.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+        fields = list(rows[0])
+    rows[1]["n_replicates" if mutate == "replicates" else "seed"] = "101" if mutate == "replicates" else "24683"
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+    with pytest.raises(ValueError, match=message):
+        audit_grid_sensitivity(tmp_path)
