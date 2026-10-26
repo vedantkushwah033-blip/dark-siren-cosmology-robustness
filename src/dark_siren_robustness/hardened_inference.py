@@ -106,7 +106,7 @@ def posterior_h0(
     catalog_log_weights[positive_catalog] = np.log(catalog_weights[positive_catalog])
     catalog_log_likelihood = logsumexp(
         catalog_log_density + catalog_log_weights[None, :], axis=1
-    ) + np.log1p(-miss_fraction)
+    )
 
     log_likelihood = catalog_log_likelihood
     if miss_fraction > 0:
