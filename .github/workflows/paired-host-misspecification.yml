@@ -8,6 +8,7 @@ on:
       - "scripts/audit_paired_host_misspecification.py"
       - "tests/test_paired_host_misspecification.py"
       - "docs/paired_host_misspecification_protocol.md"
+      - "docs/missing_host_mixture_likelihood_impact_audit_2026-10-27.md"
       - ".github/workflows/paired-host-misspecification.yml"
   pull_request:
     paths:
@@ -15,7 +16,9 @@ on:
       - "scripts/audit_paired_host_misspecification.py"
       - "tests/test_paired_host_misspecification.py"
       - "docs/paired_host_misspecification_protocol.md"
+      - "docs/missing_host_mixture_likelihood_impact_audit_2026-10-27.md"
       - ".github/workflows/paired-host-misspecification.yml"
+
   workflow_dispatch:
 
 permissions:
