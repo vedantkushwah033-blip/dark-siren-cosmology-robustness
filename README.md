@@ -17,6 +17,7 @@
 - **Posterior-calibration raw provenance audit:** `scripts/audit_posterior_calibration_generation.py` independently replays the fixed-seed host and distance generation before posterior reconstruction; tampered raw observations are rejected even if their CSV hash is refreshed.
 - **Paired host-weight contrast audit:** `scripts/audit_paired_host_weight_contrasts.py` independently reconstructs all 48 cell-level and 24 aggregate paired contrasts, including stratified-bootstrap intervals, from the audited raw posterior rows.
 - **Posterior-level calibration results:** [2,400-observation experiment with independently audited bias, RMSE, interval width, and coverage](docs/posterior_calibration_results_20261025.md).
+- **Host-population misspecification stress test:** [independent audit protocol](docs/host_misspecification_independent_audit_protocol_2026-10-26.md) and `scripts/run_host_misspecification_audit.py` / `scripts/audit_host_misspecification_audit.py`. The audit reconstructs all synthetic fits and summary metrics, and now reports 95% Wilson intervals for empirical coverage to expose finite-replicate Monte Carlo uncertainty. These intervals are scenario-wise uncertainty summaries, not paired scenario-comparison tests; all conclusions remain limited to the declared toy model.
 
 A reproducible Bayesian simulation study of galaxy-catalogue incompleteness, host-population misspecification, and statistical calibration in dark-siren cosmology.
 
