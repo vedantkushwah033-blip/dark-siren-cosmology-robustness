@@ -11,7 +11,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-from dark_siren_robustness.uncertainty_sensitivity import run_experiment
+from dark_siren_robustness.uncertainty_sensitivity import paired_ab_contrasts, run_experiment
 
 
 def main() -> None:
@@ -19,9 +19,11 @@ def main() -> None:
     parser.add_argument("--replicates", type=int, default=300)
     parser.add_argument("--seed", type=int, default=20261026)
     parser.add_argument("--grid-points", type=int, default=1601)
+    parser.add_argument("--bootstrap-resamples", type=int, default=2000)
     parser.add_argument("--output-dir", default="artifacts/distance_uncertainty_sensitivity")
     args = parser.parse_args()
     raw, summaries = run_experiment(args.replicates, args.seed, args.grid_points)
+    paired_contrasts = paired_ab_contrasts(raw, seed=args.seed, bootstrap_resamples=args.bootstrap_resamples)
     output = Path(args.output_dir)
     output.mkdir(parents=True, exist_ok=True)
     raw_path = output / "replicates.csv"
@@ -35,6 +37,7 @@ def main() -> None:
         "seed": args.seed,
         "replicates_per_cell": args.replicates,
         "grid_points": args.grid_points,
+        "bootstrap_resamples": args.bootstrap_resamples,
         "prior": [50.0, 90.0],
         "truths": [50, 55, 60, 65, 70, 75, 80, 85, 90],
         "fractional_errors": [0.05, 0.10, 0.15, 0.20],
@@ -43,6 +46,8 @@ def main() -> None:
         "summary_cell_count": len(summaries),
         "boundary_truths_must_be_interpreted_separately": True,
         "summary": summaries,
+        "paired_ab_contrasts": paired_contrasts,
+        "paired_ab_contrast_count": len(paired_contrasts),
     }
     summary_path.write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"Wrote {len(raw)} raw records to {raw_path}")
