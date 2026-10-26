@@ -103,6 +103,18 @@ def test_invalid_missing_component_rejected(kwargs):
         posterior_h0_selected_with_missing_hosts(**base, **kwargs)
 
 
+def test_detection_efficiency_preserves_representable_positive_tail_probability():
+    # Direct CDF subtraction rounds both Phi(6) and Phi(5) to values near one;
+    # the survival-function identity preserves the small but representable mass.
+    beta = detection_efficiency_h0(
+        np.array([40.0, 100.0]), [0.0], 1.0, 6.0,
+        detection_distance_min=5.0,
+    )
+    expected = ndtr(-5.0) - ndtr(-6.0)
+    assert np.all(beta > 0.0)
+    np.testing.assert_allclose(beta, expected, rtol=1e-12, atol=0.0)
+
+
 def test_detection_efficiency_fails_closed_when_probability_underflows():
     # At these deliberately extreme values, both Gaussian CDF terms underflow
     # to the same value. Returning machine-tiny would fabricate nonzero support.
