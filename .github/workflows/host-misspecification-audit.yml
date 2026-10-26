@@ -1,8 +1,11 @@
 name: Host-weight and omitted-host misspecification audit
 
 on:
+  # Run the reproducible stress experiment on feature branches as well as main.
+  # This ensures pull-request revisions receive a full artifact-backed audit,
+  # rather than only the small regression-test fixture.
   push:
-    branches: [main]
+    branches: ["**"]
     paths:
       - "scripts/run_host_misspecification_audit.py"
       - "scripts/audit_host_misspecification_audit.py"
