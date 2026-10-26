@@ -114,7 +114,7 @@ def audit_multiseed_sensitivity(root: str | Path, *, require_metadata: bool = Fa
             {
                 key: value
                 for key, value in row.items()
-                if key not in {"seed", "n_replicates"}
+                if key not in {"seed", "n_replicates", "independent_audit"}
             }
             for row in per_seed_rows
             if _integer(row.get("seed"), "seed") == seed
