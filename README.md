@@ -1,5 +1,7 @@
 # Dark-Siren Cosmology Robustness
 
+- **Pinned CHIMERA v2.2 execution contract:** [notebook configuration, input inventory, and go/no-go gate for the incomplete-catalogue benchmark](docs/chimera_v2_2_notebook_execution_contract_2026-10-26.md).
+
 
 - **Known-host calibration protocol:** [design, estimands, pairing, audit gates, and interpretation limits](docs/known_host_calibration_protocol.md).
 - **Known-host calibration analysis plan:** [prespecified cell summaries, paired comparisons, Monte Carlo uncertainty, and interpretation rules](docs/known_host_calibration_analysis_plan.md).
