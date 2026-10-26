@@ -66,3 +66,36 @@ def test_audit_rejects_malformed_numeric_metadata(tmp_path, field, value, messag
     metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     with pytest.raises(ValueError, match=message):
         AUDIT.audit(tmp_path)
+
+
+@pytest.mark.parametrize("replicates", [99, 100.5, True, "100"])
+def test_runner_rejects_invalid_replicate_types_and_counts(replicates):
+    with pytest.raises(ValueError, match="replicates must be an integer of at least 100"):
+        RUN.run(replicates=replicates, seed=1771)
+
+
+@pytest.mark.parametrize("seed", [-1, 1.5, True, "1771"])
+def test_runner_rejects_invalid_seed_types_and_values(seed):
+    with pytest.raises(ValueError, match="seed must be a non-negative integer"):
+        RUN.run(replicates=100, seed=seed)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("raw_records", 1199),
+        ("raw_records", 1200.0),
+        ("raw_records", True),
+        ("summary_rows", 95),
+        ("summary_rows", 96.0),
+        ("summary_rows", False),
+    ],
+)
+def test_audit_rejects_incorrect_or_noninteger_declared_row_counts(tmp_path, field, value):
+    fixture(tmp_path)
+    metadata_path = tmp_path / "run_metadata.json"
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    metadata[field] = value
+    metadata_path.write_text(json.dumps(metadata, indent=2) + "\\n", encoding="utf-8")
+    with pytest.raises(ValueError, match=f"{field} metadata mismatch"):
+        AUDIT.audit(tmp_path)
