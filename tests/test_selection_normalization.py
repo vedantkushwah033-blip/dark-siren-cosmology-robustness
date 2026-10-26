@@ -143,3 +143,25 @@ def test_selection_conditioned_distance_density_integrates_to_one(lower, upper):
     area, error = quad(conditional_density, lower, upper, epsabs=1e-11, epsrel=1e-11)
     assert error < 1e-8
     assert area == pytest.approx(1.0, abs=1e-10)
+
+
+
+def test_hardened_posterior_remains_normalizable_when_linear_gaussian_density_underflows():
+    """Log-space mixtures preserve relative likelihoods beyond norm.pdf's range."""
+    grid = np.linspace(50.0, 90.0, 401)
+    redshifts = np.array([0.02, 0.04])
+    observed_distance = 1200.0
+    sigma = 20.0
+    means = C_KM_S * redshifts[None, :] / grid[:, None]
+
+    # The linear densities underflow to zero, while their log densities still
+    # vary smoothly enough over the grid to define a normalized posterior.
+    assert np.all(norm.pdf(observed_distance, loc=means, scale=sigma) == 0.0)
+    posterior = posterior_h0(
+        grid, redshifts, observed_distance, sigma,
+        weights=[0.7, 0.3], prior_min=50.0, prior_max=90.0,
+    )
+    assert np.all(np.isfinite(posterior))
+    assert np.all(posterior >= 0.0)
+    assert trapezoid(posterior, grid) == pytest.approx(1.0, abs=1e-10)
+    assert np.count_nonzero(posterior) > 2
