@@ -34,6 +34,10 @@ jobs:
         run: python -m pytest tests/test_calibration_grid_sensitivity.py tests/test_audit_calibration_grid_sensitivity.py -q
       - name: Test multi-seed paired grid-sensitivity aggregation and independent audit
         run: python -m pytest tests/test_multiseed_grid_sensitivity.py tests/test_audit_multiseed_grid_sensitivity.py -q
+      - name: Run independently audited multi-seed grid-sensitivity smoke experiment
+        run: python scripts/run_multiseed_grid_sensitivity.py --replicates 100 --seeds 101,202 --grid-points 1201,2401 --output-dir artifacts/multiseed_grid_sensitivity
+      - name: Independently audit multi-seed aggregate artifacts
+        run: python scripts/audit_multiseed_grid_sensitivity.py artifacts/multiseed_grid_sensitivity
       - name: Test independent paired host-weight contrast reconstruction
         run: python -m pytest tests/test_paired_host_weight_contrasts.py -q
       - name: Run focused grid-convergence regression tests
@@ -53,4 +57,5 @@ jobs:
             artifacts/selected_likelihood_sbc/pit_summary.json
             artifacts/selected_likelihood_sbc/audit_report.json
             artifacts/calibration_grid_sensitivity/
+            artifacts/multiseed_grid_sensitivity/
           if-no-files-found: error
