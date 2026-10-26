@@ -68,3 +68,30 @@ def test_independent_auditor_reconstructs_seeded_small_run(tmp_path):
     with pytest.raises(ValueError, match="Per-run derived-field mismatch"):
         auditor.audit_directory(tmp_path, replicates=200, seed=29)
 
+
+    # The audit must reject missing raw rows even when all remaining values
+    # are internally consistent, and it must reconstruct aggregate metrics
+    # rather than trusting the summary file.
+    with raw_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows[1:])
+    with pytest.raises(ValueError, match="Raw/summary row count"):
+        auditor.audit_directory(tmp_path, replicates=200, seed=29)
+
+    # Restore raw records and corrupt an aggregate coverage metric.
+    with raw_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    summary_path = tmp_path / "summary.csv"
+    corrupted_summaries = [dict(s) for s in summaries]
+    corrupted_summaries[0]["coverage_68"] = min(
+        1.0, float(corrupted_summaries[0]["coverage_68"]) + 0.05
+    )
+    with summary_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(corrupted_summaries[0]))
+        writer.writeheader()
+        writer.writerows(corrupted_summaries)
+    with pytest.raises(ValueError, match="Summary reconstruction mismatch"):
+        auditor.audit_directory(tmp_path, replicates=200, seed=29)
