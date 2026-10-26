@@ -23,6 +23,10 @@ def test_grid_sensitivity_replays_and_audits_each_resolution(tmp_path):
     assert finest["rms_pit_delta_vs_finest"] == 0.0
     assert finest["max_abs_pit_delta_vs_finest"] == 0.0
     assert results[0]["rms_pit_delta_vs_finest"] >= 0.0
+    for row in results:
+        assert row["mean_pit_delta_normal_95_low"] <= row["mean_pit_delta_vs_finest"]
+        assert row["mean_pit_delta_vs_finest"] <= row["mean_pit_delta_normal_95_high"]
+        assert row["mean_pit_delta_monte_carlo_se"] >= 0.0
     raw_by_grid = {}
     for points in (1201, 2401):
         case_dir = tmp_path / f"grid_{points}"
