@@ -48,7 +48,7 @@ def run_calibration(
     if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
         raise ValueError("seed must be a non-negative integer.")
     if isinstance(grid_points, bool) or not isinstance(grid_points, int) or grid_points < 2:
-        raise ValueError("grid_points must be an integer of at least two.")
+        raise ValueError("grid_points must be an integer and at least two points.")
     rng = np.random.default_rng(seed)
     grid = np.linspace(GRID_MIN, GRID_MAX, grid_points)
     rows = []
