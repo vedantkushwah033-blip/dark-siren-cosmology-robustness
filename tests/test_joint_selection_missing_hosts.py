@@ -476,3 +476,54 @@ def test_splitting_one_host_into_duplicate_entries_preserves_selected_posterior(
     )
     np.testing.assert_allclose(beta_split, beta_original, rtol=2e-14, atol=2e-14)
 
+
+
+def test_extreme_finite_host_weights_normalize_without_overflow():
+    """Equivalent finite weights near float max must preserve mixture inference."""
+    from dark_siren_robustness.hardened_inference import posterior_h0
+
+    ordinary = np.array([2.0, 1.0])
+    extreme = np.array([1.0e308, 5.0e307])
+    z = [0.02, 0.04]
+
+    baseline = posterior_h0(
+        H0, z, DISTANCE, 15.0, weights=ordinary,
+        prior_min=40.0, prior_max=100.0,
+    )
+    robust = posterior_h0(
+        H0, z, DISTANCE, 15.0, weights=extreme,
+        prior_min=40.0, prior_max=100.0,
+    )
+    np.testing.assert_allclose(robust, baseline, rtol=2e-13, atol=2e-13)
+
+    beta_baseline = detection_efficiency_h0(
+        H0, z, 15.0, 300.0, weights=ordinary,
+    )
+    beta_extreme = detection_efficiency_h0(
+        H0, z, 15.0, 300.0, weights=extreme,
+    )
+    np.testing.assert_allclose(beta_extreme, beta_baseline, rtol=2e-13, atol=2e-13)
+
+    selected_baseline = posterior_h0_selected(
+        H0, z, DISTANCE, 15.0, 300.0, weights=ordinary,
+        prior_min=40.0, prior_max=100.0,
+    )
+    selected_extreme = posterior_h0_selected(
+        H0, z, DISTANCE, 15.0, 300.0, weights=extreme,
+        prior_min=40.0, prior_max=100.0,
+    )
+    np.testing.assert_allclose(selected_extreme, selected_baseline, rtol=2e-13, atol=2e-13)
+
+    missing_baseline = posterior_h0_selected_with_missing_hosts(
+        H0, [0.02, 0.04], DISTANCE, 15.0, 300.0,
+        catalog_weights=[2.0, 1.0], missing_weight=0.25,
+        missing_redshifts=[0.06, 0.08], missing_weights=[1.0, 3.0],
+        prior_min=40.0, prior_max=100.0,
+    )
+    missing_extreme = posterior_h0_selected_with_missing_hosts(
+        H0, [0.02, 0.04], DISTANCE, 15.0, 300.0,
+        catalog_weights=[1.0e308, 5.0e307], missing_weight=0.25,
+        missing_redshifts=[0.06, 0.08], missing_weights=[2.5e307, 7.5e307],
+        prior_min=40.0, prior_max=100.0,
+    )
+    np.testing.assert_allclose(missing_extreme, missing_baseline, rtol=2e-13, atol=2e-13)
