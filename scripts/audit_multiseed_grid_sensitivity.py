@@ -68,7 +68,8 @@ def audit_multiseed_sensitivity(root: str | Path) -> dict:
         raise ValueError("per-seed rows must have a common replicate count >= 100")
     n_replicates = next(iter(replicate_counts))
 
-    # Re-run each seed's paired-comparison audit, not just trust the PASS flag.
+    # Re-run each seed's paired-comparison audit, and verify that the
+    # aggregation input rows are exactly those independently audited rows.
     for seed in seeds:
         seed_dir = root / f"seed_{seed}"
         report = audit_grid_sensitivity(seed_dir)
@@ -77,6 +78,14 @@ def audit_multiseed_sensitivity(root: str | Path) -> dict:
         saved_report = json.loads((seed_dir / "grid_sensitivity_audit.json").read_text(encoding="utf-8"))
         if saved_report != report:
             raise ValueError(f"seed {seed}: saved paired-comparison audit does not match reconstruction")
+        comparison_rows = _read_csv(seed_dir / "grid_sensitivity.csv")
+        aggregate_inputs = [
+            {key: value for key, value in row.items() if key != "seed"}
+            for row in per_seed_rows
+            if _integer(row.get("seed"), "seed") == seed
+        ]
+        if comparison_rows != aggregate_inputs:
+            raise ValueError(f"seed {seed}: aggregate input rows differ from audited comparison table")
 
     finest = max(grids)
     for row, grid in zip(aggregate_rows, grids):
