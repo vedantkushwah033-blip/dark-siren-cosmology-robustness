@@ -14,6 +14,8 @@ on:
       - "tests/test_posterior_calibration_generation.py"
       - "tests/test_posterior_calibration_uncertainty.py"
       - "tests/test_paired_host_weight_contrasts.py"
+      - "src/dark_siren_robustness/selection.py"
+      - "tests/test_joint_selection_missing_hosts.py"
       - ".github/workflows/posterior-calibration.yml"
   pull_request:
     paths:
@@ -26,6 +28,8 @@ on:
       - "tests/test_posterior_calibration_generation.py"
       - "tests/test_posterior_calibration_uncertainty.py"
       - "tests/test_paired_host_weight_contrasts.py"
+      - "src/dark_siren_robustness/selection.py"
+      - "tests/test_joint_selection_missing_hosts.py"
       - ".github/workflows/posterior-calibration.yml"
   workflow_dispatch:
 
