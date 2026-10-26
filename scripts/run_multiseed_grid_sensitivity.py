@@ -18,6 +18,7 @@ _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPOSITORY_ROOT))
 
+from scripts.audit_calibration_grid_sensitivity import audit_grid_sensitivity
 from scripts.run_calibration_grid_sensitivity import run_sensitivity
 from scripts.run_selected_likelihood_sbc import N_REPLICATES, SEED
 
@@ -54,12 +55,23 @@ def run_multiseed_sensitivity(
 
     per_seed_rows = []
     for seed in seeds:
+        seed_dir = root / f"seed_{seed}"
         seed_results = run_sensitivity(
             grid_points=grid_points,
             n_replicates=n_replicates,
             seed=seed,
-            output_dir=root / f"seed_{seed}",
+            output_dir=seed_dir,
         )
+        # Auditing each grid's raw records is necessary but not sufficient:
+        # independently reconstruct the paired comparison table before using
+        # any of its rows in the across-seed aggregate.
+        comparison_audit = audit_grid_sensitivity(seed_dir)
+        (seed_dir / "grid_sensitivity_audit.json").write_text(
+            json.dumps(comparison_audit, indent=2, sort_keys=True) + "\\n",
+            encoding="utf-8",
+        )
+        if comparison_audit.get("status") != "PASS":
+            raise RuntimeError(f"Seed {seed}: paired comparison audit did not pass.")
         for row in seed_results:
             if row.get("independent_audit") != "PASS":
                 raise RuntimeError(f"Seed {seed}, grid {row.get('grid_points')}: independent audit did not pass.")
