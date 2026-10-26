@@ -85,11 +85,15 @@ def test_grid_sensitivity_rejects_non_integer_grid_sizes(tmp_path):
 def test_grid_sensitivity_stops_when_independent_audit_fails(tmp_path, monkeypatch):
     stale_table = tmp_path / "grid_sensitivity.csv"
     stale_table.write_text("stale success\n", encoding="utf-8")
+    stale_audit = tmp_path / "grid_1201" / "audit_report.json"
+    stale_audit.parent.mkdir(parents=True)
+    stale_audit.write_text('{"status": "PASS"}', encoding="utf-8")
     monkeypatch.setattr(grid_sensitivity, "audit", lambda *_args, **_kwargs: {"status": "FAIL"})
     with pytest.raises(RuntimeError, match="Independent audit failed for 1201-point grid"):
         run_sensitivity([1201, 2401], n_replicates=100, seed=123, output_dir=tmp_path)
     assert (tmp_path / "grid_1201" / "pit_replicates.csv").exists()
     assert not stale_table.exists()
+    assert not stale_audit.exists()
 
 
 @pytest.mark.parametrize("seed", [-1, -100])
