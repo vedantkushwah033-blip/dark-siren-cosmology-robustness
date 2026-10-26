@@ -40,6 +40,8 @@ jobs:
         run: python scripts/audit_multiseed_grid_sensitivity.py artifacts/multiseed_grid_sensitivity
       - name: Test independent paired host-weight contrast reconstruction
         run: python -m pytest tests/test_paired_host_weight_contrasts.py -q
+      - name: Test host-misspecification stress test and independent reconstruction audit
+        run: python -m pytest tests/test_host_misspecification_audit.py -q
       - name: Run focused grid-convergence regression tests
         run: python -m pytest tests/test_targeted_grid_convergence.py tests/test_grid_refinement_audit.py -q
       - name: Run posterior-grid stability diagnostic
