@@ -103,6 +103,21 @@ def test_invalid_missing_component_rejected(kwargs):
         posterior_h0_selected_with_missing_hosts(**base, **kwargs)
 
 
+def test_detection_efficiency_matches_cdf_difference_in_negative_tail():
+    # For H0=40 and z=0.001, the mean distance is above [5, 6], so both
+    # standardized interval bounds are negative. Check the non-survival branch.
+    h0 = np.array([40.0])
+    z = np.array([0.001])
+    mean = 299792.458 * z[0] / h0[0]
+    lower_z = (5.0 - mean) / 1.0
+    upper_z = (6.0 - mean) / 1.0
+    expected = ndtr(upper_z) - ndtr(lower_z)
+    actual = detection_efficiency_h0(
+        h0, z, 1.0, 6.0, detection_distance_min=5.0,
+    )
+    np.testing.assert_allclose(actual, [expected], rtol=1e-12, atol=0.0)
+
+
 def test_detection_efficiency_preserves_representable_positive_tail_probability():
     # Direct CDF subtraction rounds both Phi(6) and Phi(5) to values near one;
     # the survival-function identity preserves the small but representable mass.
