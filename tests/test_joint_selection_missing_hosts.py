@@ -359,3 +359,22 @@ def test_out_of_prior_underflow_does_not_invalidate_selected_posterior():
     assert np.all(np.isfinite(posterior))
     assert np.all(posterior[~support] == 0.0)
     assert trapezoid(posterior[support], grid[support]) == pytest.approx(1.0)
+
+
+def test_normal_interval_probability_preserves_representable_positive_tail_mass():
+    # Symmetric counterpart to the negative-tail regression: direct survival
+    # subtraction loses relative precision for close bounds far above zero.
+    from scipy.special import log_ndtr
+    from dark_siren_robustness.selection import _normal_interval_probability
+
+    lower = np.array([37.5])
+    upper = np.array([37.500001])
+    log_lower_survival = log_ndtr(-lower)
+    log_upper_survival = log_ndtr(-upper)
+    expected = np.exp(log_lower_survival) * (
+        -np.expm1(log_upper_survival - log_lower_survival)
+    )
+    actual = _normal_interval_probability(lower, upper)
+    assert expected[0] > 0.0
+    assert actual[0] > 0.0
+    np.testing.assert_allclose(actual, expected, rtol=2e-12, atol=0.0)
