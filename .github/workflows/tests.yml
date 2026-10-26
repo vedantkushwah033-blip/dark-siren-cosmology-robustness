@@ -20,6 +20,10 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
       - name: Test explicit distance-uncertainty likelihood models
         run: python -m pytest tests/test_uncertainty_likelihoods.py -q
+      - name: Test paired distance-uncertainty sensitivity experiment
+        run: python -m pytest tests/test_uncertainty_sensitivity.py -q
+      - name: Run paired distance-uncertainty sensitivity smoke experiment
+        run: python scripts/run_distance_uncertainty_sensitivity.py --replicates 2 --seed 20261026 --output-dir artifacts/distance_uncertainty_sensitivity
       - name: Test joint selection and missing-host compatibility limits
         run: python -m pytest tests/test_joint_selection_missing_hosts.py -q
       - name: Test selected-likelihood calibration runner determinism and summary invariants
@@ -69,6 +73,7 @@ jobs:
           path: |
             artifacts/posterior_grid_stability.csv
             artifacts/targeted_grid_convergence.csv
+            artifacts/distance_uncertainty_sensitivity/
             artifacts/selected_likelihood_sbc/pit_replicates.csv
             artifacts/selected_likelihood_sbc/pit_summary.json
             artifacts/selected_likelihood_sbc/audit_report.json
