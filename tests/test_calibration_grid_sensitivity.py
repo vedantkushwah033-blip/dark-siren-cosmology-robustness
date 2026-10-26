@@ -64,9 +64,9 @@ def test_grid_sensitivity_rejects_invalid_grid_sets(tmp_path, grid_points, messa
         run_sensitivity(grid_points, n_replicates=100, seed=1, output_dir=tmp_path)
 
 
-@pytest.mark.parametrize("n_replicates", [0, 1, -5, 1.5, True])
+@pytest.mark.parametrize("n_replicates", [0, 1, 2, 99, -5, 1.5, True])
 def test_grid_sensitivity_rejects_invalid_replicate_counts(tmp_path, n_replicates):
-    with pytest.raises(ValueError, match="n_replicates must be an integer of at least 2"):
+    with pytest.raises(ValueError, match="n_replicates must be an integer of at least 100"):
         run_sensitivity([1201, 2401], n_replicates=n_replicates, seed=1, output_dir=tmp_path)
 
 
