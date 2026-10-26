@@ -47,7 +47,7 @@ A passing unit test is not a substitute for the independent raw-data and posteri
 - Uniform and log-uniform priors encode different prior measures; neither should be called universally superior based on this experiment.
 - Incorrect weights may change posterior modes and tails. The direction and magnitude of effects are conditional on this specific two-host model.
 - Empirical coverage is a repeated-sampling property of this simulator, not the posterior probability that a particular real-event interval contains H₀.
-- Bootstrap intervals quantify Monte Carlo uncertainty conditional on the simulation design. They do not quantify model discrepancy or astrophysical uncertainty.
+- Bootstrap intervals quantify Monte Carlo uncertainty conditional on the simulation design. They do not quantify model discrepancy or astrophysical uncertainty. With 200 replicates per truth/noise cell, nominal 68% coverage has a binomial standard error of about 3.3 percentage points and nominal 95% coverage about 1.5 points; treat cell-level coverage as pilot-resolution evidence, not a high-precision calibration claim.
 - Do not describe synthetic values as observed or measured H₀, and do not claim astrophysical realism or a full dark-siren analysis from these controls.
 
 ## Reproduction
