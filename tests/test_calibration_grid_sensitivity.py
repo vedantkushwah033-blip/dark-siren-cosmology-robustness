@@ -17,13 +17,24 @@ def test_grid_sensitivity_replays_and_audits_each_resolution(tmp_path):
     assert [row["grid_points"] for row in results] == [1201, 2401]
     assert all(row["independent_audit"] == "PASS" for row in results)
     assert all(row["n_replicates"] == 100 for row in results)
+    raw_by_grid = {}
     for points in (1201, 2401):
         case_dir = tmp_path / f"grid_{points}"
-        assert (case_dir / "pit_replicates.csv").exists()
+        raw_path = case_dir / "pit_replicates.csv"
+        assert raw_path.exists()
         assert (case_dir / "pit_summary.json").exists()
         report = json.loads((case_dir / "audit_report.json").read_text(encoding="utf-8"))
         assert report["status"] == "PASS"
         assert report["n_replicates_audited"] == 100
+        with raw_path.open(newline="", encoding="utf-8") as handle:
+            raw_by_grid[points] = list(csv.DictReader(handle))
+
+    # The experiment is paired: only posterior-grid discretization should
+    # change, not the seeded synthetic truth/host/observation records.
+    for field in ("truth_h0", "host_index", "host_redshift", "observed_distance_mpc", "rejection_attempts"):
+        assert [row[field] for row in raw_by_grid[1201]] == [
+            row[field] for row in raw_by_grid[2401]
+        ]
     with (tmp_path / "grid_sensitivity.csv").open(newline="", encoding="utf-8") as handle:
         table = list(csv.DictReader(handle))
     assert len(table) == 2
