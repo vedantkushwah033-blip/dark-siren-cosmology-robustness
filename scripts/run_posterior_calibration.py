@@ -55,8 +55,11 @@ def posterior_summary(distance, sigma, weights, support, measure, truth):
 
 
 def run(replicates=200, seed=20261030):
-    if replicates < 100:
-        raise ValueError("Protocol requires at least 100 replicates per truth/noise cell")
+    # Validate types before NumPy can coerce booleans or truncate fractional counts.
+    if type(replicates) is not int or replicates < 100:
+        raise ValueError("replicates must be an integer of at least 100")
+    if type(seed) is not int or seed < 0:
+        raise ValueError("seed must be a non-negative integer")
     rng = np.random.default_rng(seed)
     raw = []
     summaries = []
