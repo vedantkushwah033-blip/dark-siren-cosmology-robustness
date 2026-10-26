@@ -55,14 +55,8 @@ def hash_file(path: Path, algorithm: str) -> str:
     return digest.hexdigest()
 
 
-def download_verified(
-    url: str,
-    destination: Path,
-    expected_md5: str,
-    timeout: int = 60,
-    expected_size_bytes: int | None = None,
-) -> dict:
-    """Stream to a temporary file; publish only after checksum and optional size verification."""
+def download_verified(url: str, destination: Path, expected_md5: str, timeout: int = 60) -> dict:
+    """Stream to a temporary file; publish only after source-length and MD5 verification when available."""
     destination.parent.mkdir(parents=True, exist_ok=True)
     fd, temp_name = tempfile.mkstemp(prefix=destination.name + ".", suffix=".part", dir=destination.parent)
     os.close(fd)
@@ -71,6 +65,8 @@ def download_verified(
     size = 0
     try:
         with urllib.request.urlopen(url, timeout=timeout) as response, temp_path.open("wb") as output:
+            content_length = response.headers.get("Content-Length")
+            expected_transfer_size = int(content_length) if content_length is not None else None
             while True:
                 chunk = response.read(1024 * 1024)
                 if not chunk:
@@ -79,9 +75,10 @@ def download_verified(
                 md5.update(chunk)
                 size += len(chunk)
         actual_md5 = md5.hexdigest()
-        if expected_size_bytes is not None and size != expected_size_bytes:
+        if expected_transfer_size is not None and size != expected_transfer_size:
             raise ValueError(
-                f"Size mismatch for {destination.name}: expected {expected_size_bytes} bytes, got {size}"
+                f"Content-Length mismatch for {destination.name}: "
+                f"server declared {expected_transfer_size} bytes, received {size}"
             )
         if actual_md5.lower() != expected_md5.lower():
             raise ValueError(f"MD5 mismatch for {destination.name}: expected {expected_md5}, got {actual_md5}")
@@ -109,21 +106,12 @@ def prepare(output_dir: Path, selected=("injections", "parent_catalog", "pixelat
         destination = output_dir / spec["filename"]
         if destination.exists():
             actual_md5 = hash_file(destination, "md5")
-            actual_size = destination.stat().st_size
-            if actual_size != spec["size_bytes"]:
-                raise ValueError(
-                    f"Existing file has incorrect size: {destination}; "
-                    f"expected {spec['size_bytes']} bytes, got {actual_size}; move it aside and retry"
-                )
             if actual_md5 != spec["md5"]:
                 raise ValueError(f"Existing file has incorrect MD5: {destination}; move it aside and retry")
-            result = {"size_bytes": actual_size, "md5": actual_md5,
+            result = {"size_bytes": destination.stat().st_size, "md5": actual_md5,
                       "sha256": hash_file(destination, "sha256"), "status": "already_verified"}
         else:
-            result = download_verified(
-                spec["url"], destination, spec["md5"], timeout,
-                expected_size_bytes=spec["size_bytes"],
-            )
+            result = download_verified(spec["url"], destination, spec["md5"], timeout)
             result["status"] = "downloaded_and_verified"
         manifest["files"][key] = {
             "filename": spec["filename"], "url": spec["url"], "role": spec["role"],
