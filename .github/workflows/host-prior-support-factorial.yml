@@ -1,0 +1,101 @@
+name: Prior-support and hidden-host factorial
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "scripts/run_host_prior_support_factorial.py"
+      - "scripts/audit_host_prior_support_factorial.py"
+      - "tests/test_host_prior_support_factorial.py"
+      - "docs/host_prior_support_factorial_protocol.md"
+      - ".github/workflows/host-prior-support-factorial.yml"
+  pull_request:
+    paths:
+      - "scripts/run_host_prior_support_factorial.py"
+      - "scripts/audit_host_prior_support_factorial.py"
+      - "tests/test_host_prior_support_factorial.py"
+      - "docs/host_prior_support_factorial_protocol.md"
+      - ".github/workflows/host-prior-support-factorial.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prior-host-factorial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package and development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run focused tests including adversarial audit
+        run: python -m pytest tests/test_host_prior_support_factorial.py -q
+      - name: Run paired prior-support factorial
+        run: |
+          python scripts/run_host_prior_support_factorial.py \
+            --replicates 200 \
+            --seed 20261030 \
+            --bootstrap-resamples 1000 \
+            --output-dir results/host-prior-support-factorial
+      - name: Validate factorial shape, pairing, finite values, and intervals
+        run: |
+          python - <<'PY'
+          import csv, math
+          from pathlib import Path
+          root = Path("results/host-prior-support-factorial")
+          def read(name):
+              with (root / name).open(newline="", encoding="utf-8") as f:
+                  return list(csv.DictReader(f))
+          raw = read("per_run.csv")
+          summaries = read("summary.csv")
+          arm = read("arm_contrasts.csv")
+          prior = read("prior_contrasts.csv")
+          expected = (86400, 432, 1296, 1728)
+          observed = (len(raw), len(summaries), len(arm), len(prior))
+          if observed != expected:
+              raise SystemExit(f"Unexpected output sizes: {observed}; expected {expected}")
+          block_size = 3 * 4
+          expected_priors = [(50.0,90.0),(40.0,100.0),(30.0,120.0)]
+          expected_arms = ["base_weights","reversed_weights","equal_weights","hidden_host_modelled"]
+          for start in range(0, len(raw), block_size):
+              block = raw[start:start+block_size]
+              if len({r["observed_distance_mpc"] for r in block}) != 1:
+                  raise SystemExit(f"Observation pairing failed near raw row {start}")
+              for j, prior_bounds in enumerate(expected_priors):
+                  arm_block = block[j*4:(j+1)*4]
+                  if [r["inference_arm"] for r in arm_block] != expected_arms:
+                      raise SystemExit(f"Inference-arm order failed near raw row {start}")
+                  if any((float(r["prior_min"]),float(r["prior_max"])) != prior_bounds for r in arm_block):
+                      raise SystemExit(f"Prior order failed near raw row {start}")
+          for rows in (raw,summaries,arm,prior):
+              for row in rows:
+                  for key,value in row.items():
+                      if key in ("inference_arm","contrast","left_arm","right_arm","metric"):
+                          continue
+                      if not math.isfinite(float(value)):
+                          raise SystemExit(f"Non-finite value in {key}: {value}")
+          for rows in (arm,prior):
+              if any(float(r["ci95_low"]) > float(r["ci95_high"]) for r in rows):
+                  raise SystemExit("Reversed paired-bootstrap interval")
+          print("PASS: 36 shared-data cells × 200 observations × 3 priors × 4 arms = 86,400 posterior fits.")
+          PY
+      - name: Independently reconstruct data, posterior fits, summaries, and paired intervals
+        run: |
+          python scripts/audit_host_prior_support_factorial.py \
+            --replicates 200 \
+            --seed 20261030 \
+            --bootstrap-resamples 1000 \
+            --input-dir results/host-prior-support-factorial
+      - name: Upload full factorial outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-prior-support-factorial
+          path: results/host-prior-support-factorial/
+          if-no-files-found: error
+          retention-days: 90
