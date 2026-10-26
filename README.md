@@ -18,6 +18,7 @@
 - **Paired host-weight contrast audit:** `scripts/audit_paired_host_weight_contrasts.py` independently reconstructs all 48 cell-level and 24 aggregate paired contrasts, including stratified-bootstrap intervals, from the audited raw posterior rows.
 - **Posterior-level calibration results:** [2,400-observation experiment with independently audited bias, RMSE, interval width, and coverage](docs/posterior_calibration_results_20261025.md).
 - **Host-population misspecification stress test:** [independent audit protocol](docs/host_misspecification_independent_audit_protocol_2026-10-26.md) and `scripts/run_host_misspecification_audit.py` / `scripts/audit_host_misspecification_audit.py`. The audit reconstructs all synthetic fits and summary metrics, and now reports 95% Wilson intervals for empirical coverage to expose finite-replicate Monte Carlo uncertainty. These intervals are scenario-wise uncertainty summaries, not paired scenario-comparison tests; all conclusions remain limited to the declared toy model.
+- **Latest host-misspecification run:** [1,000 replicates per scenario, 4,000 independently reconstructed fits, results and interpretation limits](docs/host_misspecification_results_2026-10-26.md); [workflow run and raw artifact](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40278173997).
 
 A reproducible Bayesian simulation study of galaxy-catalogue incompleteness, host-population misspecification, and statistical calibration in dark-siren cosmology.
 
