@@ -51,6 +51,12 @@ jobs:
                   raise SystemExit("Coverage outside [0,1]")
           print("PASS: 4 scenarios × 1,000 replicates = 4,000 posterior fits.")
           PY
+      - name: Independently reconstruct seeded data, posterior fits, and summaries
+        run: |
+          python scripts/audit_host_misspecification_audit.py \
+            --replicates 1000 \
+            --seed 20261027 \
+            --input-dir results/host-misspecification-audit
       - name: Upload stress-test results
         uses: actions/upload-artifact@v4
         with:
