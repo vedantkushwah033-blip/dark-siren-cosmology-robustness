@@ -1,3 +1,5 @@
+> **Supersession notice — 2026-10-27:** These results were generated before correction of the direct missing-host mixture likelihood, which previously applied the catalogue population-mass factor twice. Treat all numerical results below as historical/provisional, not as the current validated result. Regenerate the experiment from the corrected implementation and pass the independent raw-artifact audit before using these estimates in a paper, abstract, or application. See [`missing_host_mixture_likelihood_impact_audit_2026-10-27.md`](missing_host_mixture_likelihood_impact_audit_2026-10-27.md).
+
 # Prior-support × hidden-host interaction: audited synthetic results (2026-10-26)
 
 ## Executive summary
