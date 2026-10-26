@@ -1,0 +1,68 @@
+"""Regression tests for the independent distance-uncertainty grid-stability check."""
+from __future__ import annotations
+
+import csv
+
+import pytest
+
+from scripts.check_distance_uncertainty_grid_stability import check_grid_stability
+from dark_siren_robustness.uncertainty_sensitivity import run_experiment
+
+
+def _write_raw_csv(path, rows):
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def test_grid_stability_reconstructs_runner_output(tmp_path):
+    raw, _ = run_experiment(
+        replicates=2,
+        seed=731,
+        grid_points=1601,
+        truths=(70.0,),
+        fractional_errors=(0.05,),
+    )
+    raw_path = tmp_path / "replicates.csv"
+    _write_raw_csv(raw_path, raw)
+
+    report = check_grid_stability(raw_path, fine_grid_points=3201)
+
+    assert report["status"] == "PASS"
+    assert report["raw_record_count"] == 6
+    assert report["method"].startswith("independent Gaussian-likelihood")
+    assert all(item["coverage_unchanged"] for item in report["coverage_68_by_arm"].values())
+    assert all(
+        item["maximum_absolute_change"] <= 1e-3
+        for item in report["quantile_changes"].values()
+    )
+
+
+def test_grid_stability_rejects_material_coarse_quantile_error(tmp_path):
+    raw, _ = run_experiment(
+        replicates=2,
+        seed=732,
+        grid_points=1601,
+        truths=(70.0,),
+        fractional_errors=(0.05,),
+    )
+    raw[0]["median"] = str(float(raw[0]["median"]) + 0.01)
+    raw_path = tmp_path / "replicates.csv"
+    _write_raw_csv(raw_path, raw)
+
+    with pytest.raises(ValueError, match="exceeds tolerance"):
+        check_grid_stability(raw_path, fine_grid_points=3201)
+
+
+def test_grid_stability_rejects_even_fine_grid(tmp_path):
+    with pytest.raises(ValueError, match="odd integer"):
+        check_grid_stability(tmp_path / "not_read.csv", fine_grid_points=3200)
+
+
+def test_grid_stability_rejects_missing_raw_columns(tmp_path):
+    raw_path = tmp_path / "incomplete.csv"
+    raw_path.write_text("true_h0,arm\n70,A_fixed_realized_sigma\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="raw CSV missing columns"):
+        check_grid_stability(raw_path, fine_grid_points=3201)
