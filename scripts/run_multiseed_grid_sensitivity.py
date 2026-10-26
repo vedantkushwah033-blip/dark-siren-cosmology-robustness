@@ -67,7 +67,7 @@ def run_multiseed_sensitivity(
         # any of its rows in the across-seed aggregate.
         comparison_audit = audit_grid_sensitivity(seed_dir)
         (seed_dir / "grid_sensitivity_audit.json").write_text(
-            json.dumps(comparison_audit, indent=2, sort_keys=True) + "\\n",
+            json.dumps(comparison_audit, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
         if comparison_audit.get("status") != "PASS":
