@@ -1,0 +1,49 @@
+# Impact audit: missing-host mixture likelihood correction
+
+**Audit date:** 2026-10-27  
+**Status:** implementation regression test committed; full numerical-diagnostics workflow still running at audit time. Affected historical result artifacts have **not yet been regenerated**.
+
+## Finding
+
+For a catalogue component with normalized internal host weights and a missing-population component with normalized internal weights, the intended mixture is
+
+\[
+L(H_0)=(1-f_{\rm miss})L_{\rm cat}(H_0)+f_{\rm miss}L_{\rm miss}(H_0).
+\]
+
+The direct `posterior_h0(..., missing_weight=f, missing_redshifts=...)` implementation previously applied the catalogue mass factor twice. That gave a relative mixture proportional to `(1-f)^2 L_cat + f L_missing`, rather than the intended expression. Commit `bf0d14fceecdae63a9f05a9913ae36f192e5d8c0` removed the extra catalogue factor. Commit `aadd8532087a56925c5fe9aa6edc9de1ffcfd82f` adds a regression test comparing the API output against an explicitly concatenated full population, with a tight numerical tolerance.
+
+This is a model-correctness change, not a cosmetic refactor. Any previously generated posterior or summary that used the affected direct API with a nonzero missing fraction must be treated as provisional until rerun from the corrected revision.
+
+## Directly identified experiment entry points
+
+The following branch files call the corrected API with a nonzero missing fraction and therefore require regenerated artifacts if their published outputs were produced before the correction:
+
+- `scripts/run_hidden_host_assumption_sensitivity.py` — associated report: `docs/hidden_host_assumption_sensitivity_results_2026-10-26.md`.
+- `scripts/run_host_misspecification_audit.py` — associated report: `docs/host_misspecification_results_2026-10-26.md`.
+- `scripts/run_paired_host_misspecification.py` — associated paired host-misspecification results/protocol.
+- `scripts/run_host_prior_support_factorial.py` — hidden-host × prior-support factorial results and its independent audit.
+
+This list is a confirmed minimum, not a claim that all downstream callers have been exhaustively enumerated. Other scripts or wrappers may call the API indirectly; inspect their call graph before declaring the impact inventory complete. The `run_oracle_missing_host_control.py` script uses a different `missing_host_weighting` argument and is not assumed affected by this particular code change without tracing its implementation.
+
+## What is not established by this audit
+
+- No numerical claim is made here about how much any historical result will change.
+- Existing independent reconstruction audits establish that an artifact matches the implementation and seed that generated it; they do not protect against a later-discovered error in the implementation itself.
+- Passing unit tests does not establish that the model's assumptions describe real gravitational-wave events or galaxy catalogues.
+- Known-host-only experiments that never invoke the missing-host component are not automatically affected by this fix, but should still be linked to the exact revision used for their results.
+
+## Required release gate
+
+1. Confirm the explicit full-mixture regression test passes on Python 3.10, 3.11, and 3.12.
+2. Rerun each affected experiment from the corrected commit with its declared seed and design.
+3. Run the independent auditor against the newly generated raw artifacts; record hashes, source revision, runtime versions, and audit result.
+4. Recompute marginal summaries and paired intervals from the regenerated raw records.
+5. Replace historical interpretations only after the regenerated results pass audit; preserve old artifacts as superseded for traceability.
+6. Do not claim external-method validation or publication readiness until a benchmark with verified input provenance and an independently checked reference implementation has been completed.
+
+## Provenance
+
+- Likelihood correction: [commit bf0d14f](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/commit/bf0d14fceecdae63a9f05a9913ae36f192e5d8c0)
+- Explicit mixture regression: [commit aadd853](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/commit/aadd8532087a56925c5fe9aa6edc9de1ffcfd82f)
+- Working pull request: [PR #3](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/pull/3)
