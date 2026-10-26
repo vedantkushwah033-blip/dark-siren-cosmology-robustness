@@ -11,6 +11,7 @@ Two realistic reference options were checked:
 
 Sources:
 - [CHIMERA public repository](https://github.com/CosmoStatGW/CHIMERA)
+- [Pinned CHIMERA v2.0 commit](https://github.com/CosmoStatGW/CHIMERA/commit/080a1ad716b02867a8d1dba27b3724a495ee3990)
 - [CHIMERA incomplete-galaxy-catalogue example](https://github.com/CosmoStatGW/CHIMERA/blob/main/examples/incomplete_galaxy_catalog.ipynb)
 - [CHIMERA v2.0 mock-data record (Zenodo 17143346)](https://zenodo.org/records/17143346)
 - [CHIMERA documentation](https://chimera-gw.readthedocs.io/latest/)
@@ -27,7 +28,7 @@ The Zenodo record lists the following upstream checksums (MD5) and sizes. MD5 is
 
 | File | Size | Zenodo-listed MD5 | Role in candidate benchmark |
 |---|---:|---|---|
-| [CHIMERA v2.0 software archive](https://zenodo.org/records/17143872) | 9.7 MB | 6b11c8659c0627dcfcf85f35a2473fb2 | Versioned upstream code (separate Zenodo software record 17143872) |
+| [CHIMERA v2.0 software archive](https://zenodo.org/records/17143872) | 9.7 MB | 6b11c8659c0627dcfcf85f35a2473fb2 | Versioned upstream code; Git tag v2.0 resolves to commit 080a1ad716b02867a8d1dba27b3724a495ee3990 |
 | [injections_Ninj_2e7_O5Like_snr20.h5](https://zenodo.org/records/17143346/files/injections_Ninj_2e7_O5Like_snr20.h5) | 156.1 MB | 213ab2655b9fac5fb8cdc022fe8bd555 | Selection-effect injections |
 | [parent_galaxy_catalog_1.6M_dVdz.h5](https://zenodo.org/records/17143346/files/parent_galaxy_catalog_1.6M_dVdz.h5) | 133.8 MB | c59d9feece4e0deab2b2b544cdb86303 | Parent galaxy sample |
 | [PE_O5Like_snr20.h5](https://zenodo.org/records/17143346/files/PE_O5Like_snr20.h5) | 180.1 MB | f887599e7e11b19ce21039ecb51616c7 | Non-pixelated event posterior samples |
