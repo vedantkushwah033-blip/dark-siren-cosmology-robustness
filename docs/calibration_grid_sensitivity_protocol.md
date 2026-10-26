@@ -24,7 +24,7 @@ For each resolution, the runner writes:
 - `pit_summary.json`: model/protocol metadata, PIT mean and Monte Carlo standard error, variance, descriptive KS statistic and p-value, decile counts, and Wilson intervals.
 - `audit_report.json`: independent replay/reconstruction outcome.
 
-The top-level `grid_sensitivity.csv` contains one row per resolution with grid size, replicate count, seed, PIT summary diagnostics, and audit status. It also reports the mean, root-mean-square, and maximum absolute **paired per-replicate PIT differences** against the finest requested grid. These paired differences are more sensitive to numerical discretization than comparing aggregate means alone. The finest grid has zero difference by construction. CI archives these files under `artifacts/calibration_grid_sensitivity/`.
+The top-level `grid_sensitivity.csv` contains one row per resolution with grid size, replicate count, seed, PIT summary diagnostics, and audit status. It also reports the mean, Monte Carlo standard error, a normal-approximation 95% interval for the mean, root-mean-square, and maximum absolute **paired per-replicate PIT differences** against the finest requested grid. These paired differences are more sensitive to numerical discretization than comparing aggregate means alone. The normal interval describes replicate-to-replicate variability in the paired difference; it is not a formal equivalence test. The finest grid has zero difference by construction. CI archives these files under `artifacts/calibration_grid_sensitivity/`.
 
 ## Interpretation rules
 
