@@ -44,6 +44,10 @@ def run_sensitivity(
 
     root = Path(output_dir)
     root.mkdir(parents=True, exist_ok=True)
+    # Remove any prior success marker before starting. Otherwise a failed rerun
+    # could leave a stale comparison table that looks like current output.
+    comparison_path = root / "grid_sensitivity.csv"
+    comparison_path.unlink(missing_ok=True)
     results = []
     pits_by_grid = {}
     for points in grid_points:
@@ -105,7 +109,6 @@ def run_sensitivity(
         result["rms_pit_delta_vs_finest"] = float(np.sqrt(np.mean(delta**2)))
         result["max_abs_pit_delta_vs_finest"] = float(np.max(np.abs(delta)))
 
-    comparison_path = root / "grid_sensitivity.csv"
     with comparison_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(results[0]))
         writer.writeheader()
