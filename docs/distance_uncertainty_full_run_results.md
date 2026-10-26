@@ -32,6 +32,28 @@ The following averages are computed by first summarizing each cell, then equally
 
 In this setup, interior-cell mean coverage is above nominal at the larger noise fractions, and average absolute bias generally grows with noise. The differences between A and B are modest and vary by truth/error cell; they do not support a universal claim that either likelihood is superior. The 300-replicate cell coverage estimates have Monte Carlo uncertainty, which is why the cell-level Wilson intervals and paired-bootstrap contrasts should be consulted rather than interpreting tiny differences as decisive.
 
+## Paired A-versus-B contrasts across interior truths
+
+A second post-processing analysis aggregates the paired A-minus-B differences over the seven fixed interior truth cells. Within each cell, the 300 replicate pairs are resampled; the seven cell means are then equally averaged. The 95% intervals below are stratified percentile-bootstrap intervals from 10,000 resamples. Positive values mean A is larger than B for that metric. For coverage, the differences are proportions; for error metrics they are in the stated units.
+
+| Fractional error | 68% coverage difference (A−B), 95% interval | Absolute median-error difference (A−B), 95% interval (km/s/Mpc) | Squared-error difference (A−B), 95% interval ((km/s/Mpc)^2) |
+|---:|---:|---:|---:|
+| 5% | −0.0033 [−0.0090, 0.0024] | 0.0208 [0.0148, 0.0268] | 0.154 [0.110, 0.200] |
+| 10% | −0.0038 [−0.0114, 0.0033] | 0.0490 [0.0334, 0.0646] | 0.439 [0.171, 0.697] |
+| 15% | −0.0033 [−0.0090, 0.0024] | 0.0180 [−0.0035, 0.0395] | −0.215 [−0.712, 0.262] |
+| 20% | −0.0029 [−0.0095, 0.0038] | 0.0018 [−0.0303, 0.0325] | −0.585 [−1.363, 0.188] |
+
+| Fractional error | 68% interval-width difference (A−B), 95% interval (km/s/Mpc) | 95% interval-width difference (A−B), 95% interval (km/s/Mpc) |
+|---:|---:|---:|
+| 5% | 0.0553 [0.0439, 0.0666] | 0.1119 [0.0914, 0.1325] |
+| 10% | 0.1626 [0.1415, 0.1843] | 0.1850 [0.1481, 0.2213] |
+| 15% | 0.1305 [0.1061, 0.1552] | −0.1473 [−0.2363, −0.0561] |
+| 20% | 0.0698 [0.0197, 0.1189] | −0.2329 [−0.3632, −0.1004] |
+
+The paired coverage differences are small and every interval includes zero. The absolute-error contrast favors B at 5–10% in this setup, but the intervals overlap zero at 15–20%; squared-error contrasts are also uncertain at the larger fractions. Interval widths behave differently for the 68% and 95% intervals as noise increases. This heterogeneity is a reason to avoid a single overall “winner” claim. The contrast intervals quantify Monte Carlo uncertainty for this fixed simulation design; they do not account for model misspecification or uncertainty about which simulation design is scientifically appropriate.
+
+The reproducible post-processing command is `python scripts/summarize_distance_uncertainty_paired_contrasts.py artifacts/distance_uncertainty_sensitivity_full/replicates.csv --seed 4182026 --bootstrap-resamples 10000`. CI runs it after the independent artifact audit.
+
 ## Independent grid-resolution check
 
 As a separate post-run check, all 32,400 raw records were recomputed on a 3,201-point H0 grid and compared with the stored 1,601-point summaries:
