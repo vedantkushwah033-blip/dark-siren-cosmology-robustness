@@ -4,10 +4,10 @@
 
 The default experiment was run in GitHub Actions on Python 3.12.15 with NumPy 2.5.4 and SciPy 1.18.1, seed `20261026`, 300 replicates per truth/fractional-error cell, a 1,601-point grid over (H_0\in[50,90]), and 2,000 paired-bootstrap resamples. The run produced 32,400 raw posterior rows, 108 summary cells, 10,800 paired A/B replicate comparisons, and 180 paired-bootstrap contrasts.
 
-The independent auditor returned `PASS`: it reconstructed all 32,400 posterior rows, all 108 cell summaries, the A/B pair structure, and all 180 paired-bootstrap intervals from the raw CSV. It also replayed the recorded random seed and loop order. The audit identifies the tested workflow revision as `3b7efd516d7c9ca1a096c529369416f250747e2b`.
+The independent auditor returned `PASS` in the latest recorded workflow run, [40403940836](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40403940836). It reconstructed all 32,400 posterior rows, all 108 cell summaries, the A/B pair structure, and all 180 paired-bootstrap intervals from the raw CSV, and replayed the recorded random seed and loop order. The artifact metadata records code revision `824ce5724ca6c165ea590a25df6d1740cc53e99c`, which is the pull request's merge-ref commit for head `ba80157f6ee437b4ac9a3ab501b24d8dc804e4ae`.
 
-- Raw CSV SHA-256: `576d0cf61f9d89362133f9c607f3476d775b2477525a3f02e8d039d9c816c722`
-- Summary JSON SHA-256: `5578b4b15101fde0f4d9f27457d0addb0434760efc6cee6af67a7a5a4b52b077`
+- Raw CSV SHA-256: `62af121350d62b141f0f93917258e1967cd51b611234e6c4c9839f3088e2a4da`
+- Summary JSON SHA-256: `7fe816ba96f2ed49781da511a589dcab692539f9ccfbf0e5e57e949270a5fd8a`
 
 The files are in the `numerical-diagnostics-py3.12` Actions artifact under `distance_uncertainty_sensitivity_full/`.
 
