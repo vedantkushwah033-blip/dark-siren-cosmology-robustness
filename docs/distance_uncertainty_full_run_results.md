@@ -32,6 +32,24 @@ The following averages are computed by first summarizing each cell, then equally
 
 In this setup, interior-cell mean coverage is above nominal at the larger noise fractions, and average absolute bias generally grows with noise. The differences between A and B are modest and vary by truth/error cell; they do not support a universal claim that either likelihood is superior. The 300-replicate cell coverage estimates have Monte Carlo uncertainty, which is why the cell-level Wilson intervals and paired-bootstrap contrasts should be consulted rather than interpreting tiny differences as decisive.
 
+## Coverage depends strongly on the generating truth
+
+For Arm B, the observed 68% interval coverage varies materially across interior truths; equal-weight averages conceal this heterogeneity:
+
+| True H0 (km/s/Mpc) | 5% error | 10% error | 15% error | 20% error |
+|---:|---:|---:|---:|---:|
+| 55 | 69.0% | 72.7% | 69.0% | 58.7% |
+| 60 | 66.3% | 72.0% | 72.0% | 73.0% |
+| 65 | 67.0% | 64.0% | 72.0% | 77.7% |
+| 70 | 72.0% | 63.3% | 68.7% | 86.0% |
+| 75 | 69.7% | 69.3% | 84.3% | 89.3% |
+| 80 | 70.3% | 77.7% | 87.0% | 84.3% |
+| 85 | 82.0% | 78.3% | 76.7% | 69.0% |
+
+At 20% fractional error, for example, Arm B coverage ranges from 58.7% at H0=55 to 89.3% at H0=75. The equal-weight interior average is therefore a compact description of this chosen grid of truths, not evidence of uniform calibration. The prior boundaries and nearby truths are particularly important when interpreting the larger-error cases.
+
+**Boundary-truth warning:** for the exact prior-boundary truths H0=50 and H0=90, the central equal-tail 68% credible interval has zero frequentist coverage in this implementation: its 16th and 84th percentiles lie inside the continuous prior support rather than including the exact endpoint. Those cells must not be used to assess nominal 68% coverage. The main tables above exclude both exact boundary truths; the boundary cells remain in the raw artifacts for transparency and separate numerical checks.
+
 ## Paired A-versus-B contrasts across interior truths
 
 A second post-processing analysis aggregates the paired A-minus-B differences over the seven fixed interior truth cells. Within each cell, the 300 replicate pairs are resampled; the seven cell means are then equally averaged. The 95% intervals below are stratified percentile-bootstrap intervals from 10,000 resamples. Positive values mean A is larger than B for that metric. For coverage, the differences are proportions; for error metrics they are in the stated units.
