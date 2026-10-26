@@ -1,7 +1,11 @@
 import csv
 import json
 from pathlib import Path
+import platform
 import sys
+from importlib.metadata import version
+
+import numpy as np
 
 import pytest
 
@@ -21,6 +25,16 @@ def _write_artifacts(folder, replicates=2, seed=123, grid_points=101):
     bootstrap_resamples = 100
     metadata = {
         "status": "synthetic sensitivity diagnostic; not an observational GW analysis",
+        "code_revision": "test-fixture",
+        "python_version": platform.python_version(),
+        "numpy_version": np.__version__,
+        "scipy_version": version("scipy"),
+        "failed_run_count": 0,
+        "likelihood_equations": {
+            "A_fixed_realized_sigma": "fixed realized sigma",
+            "B_fractional_sigma_H0": "sigma(H0)=f*c*z/H0, normalized Gaussian",
+            "C_fixed_reference_sigma": "fixed sigma_ref=f*c*z/70",
+        },
         "seed": seed,
         "replicates_per_cell": replicates,
         "grid_points": grid_points,
