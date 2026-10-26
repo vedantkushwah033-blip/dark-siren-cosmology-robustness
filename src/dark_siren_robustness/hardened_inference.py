@@ -34,6 +34,18 @@ def _vector(value, name, *, nonnegative=False, strictly_increasing=False, min_si
     return array
 
 
+def _normalized_weights(weights, name):
+    """Normalize non-negative finite weights without overflowing their sum."""
+    values = _vector(weights, name, nonnegative=True)
+    if values.size == 0:
+        raise ValueError(f"{name} must contain at least one weight.")
+    scale = float(np.max(values))
+    if scale <= 0.0:
+        raise ValueError(f"{name} must have a positive sum.")
+    scaled = values / scale
+    return scaled / scaled.sum()
+
+
 def posterior_h0(
     H0_grid, redshifts, gw_distance, gw_sigma, weights=None,
     missing_weight=0.0, missing_redshifts=None, missing_weights=None,
@@ -63,21 +75,21 @@ def posterior_h0(
         raise ValueError("prior_min must be less than prior_max.")
 
     catalog_weights = np.ones(z.size) if weights is None else _vector(weights, "weights", nonnegative=True)
-    if catalog_weights.size != z.size or catalog_weights.sum() <= 0:
+    if catalog_weights.size != z.size or not np.any(catalog_weights > 0):
         raise ValueError("Invalid catalogue weights.")
     miss_fraction = _finite_scalar(missing_weight, "missing_weight")
     if not 0.0 <= miss_fraction < 1.0:
         raise ValueError("missing_weight must be in [0, 1).")
-    catalog_weights = catalog_weights / catalog_weights.sum() * (1.0 - miss_fraction)
+    catalog_weights = _normalized_weights(catalog_weights, "weights") * (1.0 - miss_fraction)
 
     if miss_fraction > 0:
         if missing_redshifts is None:
             raise ValueError("missing_redshifts are required when missing_weight > 0.")
         mz = _vector(missing_redshifts, "missing_redshifts", nonnegative=True)
         mw = np.ones(mz.size) if missing_weights is None else _vector(missing_weights, "missing_weights", nonnegative=True)
-        if mw.size != mz.size or mw.sum() <= 0:
+        if mw.size != mz.size or not np.any(mw > 0):
             raise ValueError("Invalid missing-host support or weights.")
-        mw = mw / mw.sum()
+        mw = _normalized_weights(mw, "missing_weights")
     else:
         mz = np.array([], dtype=float)
         mw = np.array([], dtype=float)
