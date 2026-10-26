@@ -55,8 +55,14 @@ def hash_file(path: Path, algorithm: str) -> str:
     return digest.hexdigest()
 
 
-def download_verified(url: str, destination: Path, expected_md5: str, timeout: int = 60) -> dict:
-    """Stream to a temporary file; atomically publish only after MD5 verification."""
+def download_verified(
+    url: str,
+    destination: Path,
+    expected_md5: str,
+    timeout: int = 60,
+    expected_size_bytes: int | None = None,
+) -> dict:
+    """Stream to a temporary file; publish only after checksum and optional size verification."""
     destination.parent.mkdir(parents=True, exist_ok=True)
     fd, temp_name = tempfile.mkstemp(prefix=destination.name + ".", suffix=".part", dir=destination.parent)
     os.close(fd)
@@ -73,6 +79,10 @@ def download_verified(url: str, destination: Path, expected_md5: str, timeout: i
                 md5.update(chunk)
                 size += len(chunk)
         actual_md5 = md5.hexdigest()
+        if expected_size_bytes is not None and size != expected_size_bytes:
+            raise ValueError(
+                f"Size mismatch for {destination.name}: expected {expected_size_bytes} bytes, got {size}"
+            )
         if actual_md5.lower() != expected_md5.lower():
             raise ValueError(f"MD5 mismatch for {destination.name}: expected {expected_md5}, got {actual_md5}")
         temp_path.replace(destination)
@@ -99,12 +109,21 @@ def prepare(output_dir: Path, selected=("injections", "parent_catalog", "pixelat
         destination = output_dir / spec["filename"]
         if destination.exists():
             actual_md5 = hash_file(destination, "md5")
+            actual_size = destination.stat().st_size
+            if actual_size != spec["size_bytes"]:
+                raise ValueError(
+                    f"Existing file has incorrect size: {destination}; "
+                    f"expected {spec['size_bytes']} bytes, got {actual_size}; move it aside and retry"
+                )
             if actual_md5 != spec["md5"]:
                 raise ValueError(f"Existing file has incorrect MD5: {destination}; move it aside and retry")
-            result = {"size_bytes": destination.stat().st_size, "md5": actual_md5,
+            result = {"size_bytes": actual_size, "md5": actual_md5,
                       "sha256": hash_file(destination, "sha256"), "status": "already_verified"}
         else:
-            result = download_verified(spec["url"], destination, spec["md5"], timeout)
+            result = download_verified(
+                spec["url"], destination, spec["md5"], timeout,
+                expected_size_bytes=spec["size_bytes"],
+            )
             result["status"] = "downloaded_and_verified"
         manifest["files"][key] = {
             "filename": spec["filename"], "url": spec["url"], "role": spec["role"],
