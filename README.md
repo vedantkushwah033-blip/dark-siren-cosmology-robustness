@@ -311,3 +311,20 @@ The oracle runner's `median_bias` definition has since been standardized to matc
 ## Latest validation milestone
 
 The full test suite passed on Python 3.10, 3.11, and 3.12. The joint distance-model × host-mixture experiment passed its independent output audit, and the posterior-grid resolution audit completed successfully. Read the [validation milestone report](docs/validation_milestone_2026-10-24.md) for run links, counts, numerical findings, and limitations. These results are synthetic diagnostics, not an observational H0 measurement.
+
+
+## Selected-likelihood calibration grid sensitivity
+
+The selected-likelihood PIT calibration runner accepts `--grid-points` so the same seeded synthetic observations can be evaluated on different posterior-grid resolutions. The new [grid-sensitivity protocol](docs/calibration_grid_sensitivity_protocol.md) compares 1,201, 2,401, and 4,801 grid points using 300 replicates per grid in CI. Each resolution's raw records and summary are independently audited before a comparison CSV is written.
+
+To reproduce the screening experiment locally:
+
+```bash
+python scripts/run_calibration_grid_sensitivity.py \
+  --replicates 300 \
+  --seed 20261025 \
+  --grid-points 1201,2401,4801 \
+  --output-dir artifacts/calibration_grid_sensitivity
+```
+
+The output includes `grid_sensitivity.csv` and a separate `pit_replicates.csv`, `pit_summary.json`, and `audit_report.json` for each grid. The screening run is intended to detect numerical sensitivity, not establish formal equivalence or exact calibration. Any publication-facing conclusion should use more replicates, additional seeds, prespecified tolerances, and realistic selection-model validation.
