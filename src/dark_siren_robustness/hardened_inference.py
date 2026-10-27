@@ -6,6 +6,7 @@ and weighted Gaussian-mixture likelihood while rejecting malformed inputs explic
 """
 import numpy as np
 from scipy.integrate import trapezoid
+from scipy.special import logsumexp
 from scipy.stats import norm
 
 C_KM_S = 299792.458
@@ -32,6 +33,18 @@ def _vector(value, name, *, nonnegative=False, strictly_increasing=False, min_si
     if strictly_increasing and np.any(np.diff(array) <= 0):
         raise ValueError(f"{name} must be strictly increasing.")
     return array
+
+
+def _normalized_weights(weights, name):
+    """Normalize non-negative finite weights without overflowing their sum."""
+    values = _vector(weights, name, nonnegative=True)
+    if values.size == 0:
+        raise ValueError(f"{name} must contain at least one weight.")
+    scale = float(np.max(values))
+    if scale <= 0.0:
+        raise ValueError(f"{name} must have a positive sum.")
+    scaled = values / scale
+    return scaled / scaled.sum()
 
 
 def posterior_h0(
@@ -63,41 +76,66 @@ def posterior_h0(
         raise ValueError("prior_min must be less than prior_max.")
 
     catalog_weights = np.ones(z.size) if weights is None else _vector(weights, "weights", nonnegative=True)
-    if catalog_weights.size != z.size or catalog_weights.sum() <= 0:
+    if catalog_weights.size != z.size or not np.any(catalog_weights > 0):
         raise ValueError("Invalid catalogue weights.")
     miss_fraction = _finite_scalar(missing_weight, "missing_weight")
     if not 0.0 <= miss_fraction < 1.0:
         raise ValueError("missing_weight must be in [0, 1).")
-    catalog_weights = catalog_weights / catalog_weights.sum() * (1.0 - miss_fraction)
+    catalog_weights = _normalized_weights(catalog_weights, "weights") * (1.0 - miss_fraction)
 
     if miss_fraction > 0:
         if missing_redshifts is None:
             raise ValueError("missing_redshifts are required when missing_weight > 0.")
         mz = _vector(missing_redshifts, "missing_redshifts", nonnegative=True)
         mw = np.ones(mz.size) if missing_weights is None else _vector(missing_weights, "missing_weights", nonnegative=True)
-        if mw.size != mz.size or mw.sum() <= 0:
+        if mw.size != mz.size or not np.any(mw > 0):
             raise ValueError("Invalid missing-host support or weights.")
-        mw = mw / mw.sum()
+        mw = _normalized_weights(mw, "missing_weights")
     else:
         mz = np.array([], dtype=float)
         mw = np.array([], dtype=float)
 
     distance_grid = C_KM_S * z[None, :] / grid[:, None]
-    catalog_density = norm.pdf(distance, loc=distance_grid, scale=sigma)
+    # Work in log space: norm.pdf can underflow to zero for every host even
+    # when relative likelihoods remain informative across the H0 grid.
+    catalog_log_density = norm.logpdf(distance, loc=distance_grid, scale=sigma)
     if positive_truncated:
-        catalog_density = catalog_density / norm.cdf(distance_grid / sigma)
-    likelihood = np.sum(catalog_weights[None, :] * catalog_density, axis=1)
+        catalog_log_density -= norm.logcdf(distance_grid / sigma)
+    catalog_log_weights = np.full(catalog_weights.shape, -np.inf)
+    positive_catalog = catalog_weights > 0
+    catalog_log_weights[positive_catalog] = np.log(catalog_weights[positive_catalog])
+    catalog_log_likelihood = logsumexp(
+        catalog_log_density + catalog_log_weights[None, :], axis=1
+    )
+
+    log_likelihood = catalog_log_likelihood
     if miss_fraction > 0:
         missing_distance_grid = C_KM_S * mz[None, :] / grid[:, None]
-        missing_density = norm.pdf(distance, loc=missing_distance_grid, scale=sigma)
+        missing_log_density = norm.logpdf(
+            distance, loc=missing_distance_grid, scale=sigma
+        )
         if positive_truncated:
-            missing_density = missing_density / norm.cdf(missing_distance_grid / sigma)
-        likelihood += miss_fraction * np.sum(mw[None, :] * missing_density, axis=1)
+            missing_log_density -= norm.logcdf(missing_distance_grid / sigma)
+        missing_log_weights = np.full(mw.shape, -np.inf)
+        positive_missing = mw > 0
+        missing_log_weights[positive_missing] = np.log(mw[positive_missing])
+        missing_log_likelihood = logsumexp(
+            missing_log_density + missing_log_weights[None, :], axis=1
+        ) + np.log(miss_fraction)
+        log_likelihood = np.logaddexp(
+            catalog_log_likelihood, missing_log_likelihood
+        )
 
     in_prior = (grid >= prior_lo) & (grid <= prior_hi)
     if np.count_nonzero(in_prior) < 2:
         raise ValueError("H0_grid must contain at least two points inside the prior interval.")
-    posterior = np.where(in_prior, likelihood, 0.0)
+    supported_log_likelihood = log_likelihood[in_prior]
+    finite = np.isfinite(supported_log_likelihood)
+    if not np.any(finite):
+        raise ValueError("Posterior normalization failed: no finite likelihood on prior support.")
+    log_max = np.max(supported_log_likelihood[finite])
+    posterior = np.zeros_like(grid)
+    posterior[in_prior] = np.exp(supported_log_likelihood - log_max)
     # Normalize over the actual prior support. Including exterior zero points
     # in trapezoidal integration would create artificial half-bin mass where
     # the density jumps at the discontinuous prior boundaries.

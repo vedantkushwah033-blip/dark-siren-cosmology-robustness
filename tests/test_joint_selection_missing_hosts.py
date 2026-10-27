@@ -431,3 +431,134 @@ def test_normal_interval_probability_preserves_representable_positive_tail_mass(
     # Confirm the former direct survival-function subtraction loses precision.
     assert abs((naive[0] - expected[0]) / expected[0]) > 1e-11
     np.testing.assert_allclose(actual, expected, rtol=2e-12, atol=0.0)
+
+def test_splitting_one_host_into_duplicate_entries_preserves_selected_posterior():
+    """A catalog representation change must not alter inference when total mass is conserved."""
+    grid = np.linspace(40.0, 100.0, 3001)
+    distance = 299792.458 * 0.03 / 70.0
+    sigma = 12.0
+    upper = 260.0
+    lower = 45.0
+
+    original = posterior_h0_selected(
+        grid,
+        [0.02, 0.04, 0.06],
+        distance,
+        sigma,
+        upper,
+        weights=[0.4, 0.35, 0.25],
+        prior_min=40.0,
+        prior_max=100.0,
+        detection_distance_min=lower,
+    )
+    # Replace the z=0.04 host of mass 0.35 by two identical catalogue rows
+    # carrying masses 0.10 and 0.25. The represented population is unchanged.
+    split = posterior_h0_selected(
+        grid,
+        [0.02, 0.04, 0.04, 0.06],
+        distance,
+        sigma,
+        upper,
+        weights=[0.4, 0.10, 0.25, 0.25],
+        prior_min=40.0,
+        prior_max=100.0,
+        detection_distance_min=lower,
+    )
+    np.testing.assert_allclose(split, original, rtol=2e-12, atol=2e-12)
+
+    beta_original = detection_efficiency_h0(
+        grid, [0.02, 0.04, 0.06], sigma, upper,
+        weights=[0.4, 0.35, 0.25], detection_distance_min=lower,
+    )
+    beta_split = detection_efficiency_h0(
+        grid, [0.02, 0.04, 0.04, 0.06], sigma, upper,
+        weights=[0.4, 0.10, 0.25, 0.25], detection_distance_min=lower,
+    )
+    np.testing.assert_allclose(beta_split, beta_original, rtol=2e-14, atol=2e-14)
+
+
+
+def test_extreme_finite_host_weights_normalize_without_overflow():
+    """Equivalent finite weights near float max must preserve mixture inference."""
+    from dark_siren_robustness.hardened_inference import posterior_h0
+
+    ordinary = np.array([2.0, 1.0])
+    extreme = np.array([1.0e308, 5.0e307])
+    z = [0.02, 0.04]
+
+    baseline = posterior_h0(
+        H0, z, DISTANCE, 15.0, weights=ordinary,
+        prior_min=40.0, prior_max=100.0,
+    )
+    robust = posterior_h0(
+        H0, z, DISTANCE, 15.0, weights=extreme,
+        prior_min=40.0, prior_max=100.0,
+    )
+    np.testing.assert_allclose(robust, baseline, rtol=2e-13, atol=2e-13)
+
+    beta_baseline = detection_efficiency_h0(
+        H0, z, 15.0, 300.0, weights=ordinary,
+    )
+    beta_extreme = detection_efficiency_h0(
+        H0, z, 15.0, 300.0, weights=extreme,
+    )
+    np.testing.assert_allclose(beta_extreme, beta_baseline, rtol=2e-13, atol=2e-13)
+
+    selected_baseline = posterior_h0_selected(
+        H0, z, DISTANCE, 15.0, 300.0, weights=ordinary,
+        prior_min=40.0, prior_max=100.0,
+    )
+    selected_extreme = posterior_h0_selected(
+        H0, z, DISTANCE, 15.0, 300.0, weights=extreme,
+        prior_min=40.0, prior_max=100.0,
+    )
+    np.testing.assert_allclose(selected_extreme, selected_baseline, rtol=2e-13, atol=2e-13)
+
+    missing_baseline = posterior_h0_selected_with_missing_hosts(
+        H0, [0.02, 0.04], DISTANCE, 15.0, 300.0,
+        catalog_weights=[2.0, 1.0], missing_weight=0.25,
+        missing_redshifts=[0.06, 0.08], missing_weights=[1.0, 3.0],
+        prior_min=40.0, prior_max=100.0,
+    )
+    missing_extreme = posterior_h0_selected_with_missing_hosts(
+        H0, [0.02, 0.04], DISTANCE, 15.0, 300.0,
+        catalog_weights=[1.0e308, 5.0e307], missing_weight=0.25,
+        missing_redshifts=[0.06, 0.08], missing_weights=[2.5e307, 7.5e307],
+        prior_min=40.0, prior_max=100.0,
+    )
+    np.testing.assert_allclose(missing_extreme, missing_baseline, rtol=2e-13, atol=2e-13)
+
+
+def test_selection_correction_vanishes_when_detection_is_effectively_complete():
+    """When beta(H0) is one across prior support, selection must not change inference."""
+    from dark_siren_robustness.hardened_inference import posterior_h0
+    from dark_siren_robustness.selection import (
+        detection_efficiency_h0,
+        posterior_h0_selected,
+    )
+
+    grid = np.linspace(40.0, 100.0, 3001)
+    redshifts = [0.02, 0.04, 0.06]
+    weights = [0.4, 0.35, 0.25]
+    # A narrow Gaussian makes the lower zero-distance boundary negligible
+    # even at the largest H0 value in this grid.
+    sigma = 1.0
+    lower, upper = 0.0, 1.0e6
+    observed = 299792.458 * 0.04 / 70.0
+
+    beta = detection_efficiency_h0(
+        grid, redshifts, sigma, upper, weights=weights,
+        detection_distance_min=lower,
+    )
+    np.testing.assert_allclose(beta, np.ones_like(grid), rtol=0.0, atol=2e-15)
+
+    unselected = posterior_h0(
+        grid, redshifts, observed, sigma, weights=weights,
+        prior_min=40.0, prior_max=100.0,
+    )
+    selected = posterior_h0_selected(
+        grid, redshifts, observed, sigma, upper, weights=weights,
+        prior_min=40.0, prior_max=100.0,
+        detection_distance_min=lower,
+    )
+    np.testing.assert_allclose(selected, unselected, rtol=2e-12, atol=2e-12)

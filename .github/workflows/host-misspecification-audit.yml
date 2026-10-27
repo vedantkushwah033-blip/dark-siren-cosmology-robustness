@@ -8,14 +8,18 @@ on:
     branches: ["**"]
     paths:
       - "scripts/run_host_misspecification_audit.py"
+      - "src/dark_siren_robustness/hardened_inference.py"
       - "scripts/audit_host_misspecification_audit.py"
       - "tests/test_host_misspecification_audit.py"
+      - "docs/missing_host_mixture_likelihood_impact_audit_2026-10-27.md"
       - ".github/workflows/host-misspecification-audit.yml"
   pull_request:
     paths:
       - "scripts/run_host_misspecification_audit.py"
+      - "src/dark_siren_robustness/hardened_inference.py"
       - "scripts/audit_host_misspecification_audit.py"
       - "tests/test_host_misspecification_audit.py"
+      - "docs/missing_host_mixture_likelihood_impact_audit_2026-10-27.md"
       - ".github/workflows/host-misspecification-audit.yml"
   workflow_dispatch:
 

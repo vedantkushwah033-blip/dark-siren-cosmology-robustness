@@ -115,7 +115,7 @@ def prepare(output_dir: Path, selected=("injections", "parent_catalog", "pixelat
             result["status"] = "downloaded_and_verified"
         manifest["files"][key] = {
             "filename": spec["filename"], "url": spec["url"], "role": spec["role"],
-            "expected_md5": spec["md5"], **result,
+            "approx_size_bytes_from_record_listing": spec["size_bytes"], "expected_md5": spec["md5"], **result,
         }
     manifest_path = output_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")

@@ -1,3 +1,5 @@
+> **Revalidation note — 2026-10-27:** This experiment was rerun on corrected revision `ecb260886716c54fdd2d5e47390701949f5a18d5`; the independent reconstruction passed. A row-by-row comparison of historical artifact `12632994472` and corrected artifact `12696226361` found identical categorical fields and summary/contrast values at displayed precision; the maximum absolute difference in any raw numeric field was `8.74e-12`, consistent with floating-point evaluation. Corrected artifact SHA-256: `ee684f9ee3b59717f62c6149ea15e05cb0ea3bf2ff1703294e0b7006dc4b9ff8`. See the [corrected rerun provenance report](corrected_hidden_host_rerun_provenance_2026-10-27.md). These remain conditional results from a synthetic model, not astrophysical validation.
+
 # Hidden-host assumption sensitivity: audited synthetic results (2026-10-26)
 
 ## Executive summary
@@ -16,6 +18,7 @@ The oracle arm is supplied the true hidden fraction and true redshift. It is a s
 - Successful workflow and independent audit: [GitHub Actions run 40284995493](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40284995493)
 - Raw artifact: [hidden-host-assumption-sensitivity](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40284995493/artifacts/12632994472)
 - Artifact SHA-256: `94b3cb3fa5167a680eeeeb52c18180ed244b04bf7178947be6911aecbc3e4356`
+- **Corrected-revision rerun:** [workflow 40417072147](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40417072147), [artifact 12696226361](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40417072147/artifacts/12696226361); revision `ecb260886716c54fdd2d5e47390701949f5a18d5`; independent reconstruction passed.
 - Runner/auditor/summarizer revision: `49a4ab544798374516190d6cfc0b147c76635e56`
 - Data seed: `20261032`; cell bootstrap seed: `20261033`
 - 48 true-data cells × 200 replicates = 9,600 shared synthetic observations.

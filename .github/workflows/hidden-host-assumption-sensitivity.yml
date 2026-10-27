@@ -5,21 +5,26 @@ on:
     branches: ["**"]
     paths:
       - "scripts/run_hidden_host_assumption_sensitivity.py"
+      - "src/dark_siren_robustness/hardened_inference.py"
       - "scripts/audit_hidden_host_assumption_sensitivity.py"
       - "scripts/summarize_hidden_host_assumption_sensitivity.py"
       - "tests/test_hidden_host_assumption_sensitivity.py"
       - "tests/test_summarize_hidden_host_assumption_sensitivity.py"
       - "docs/hidden_host_assumption_sensitivity_protocol.md"
+      - "docs/missing_host_mixture_likelihood_impact_audit_2026-10-27.md"
       - ".github/workflows/hidden-host-assumption-sensitivity.yml"
   pull_request:
     paths:
       - "scripts/run_hidden_host_assumption_sensitivity.py"
+      - "src/dark_siren_robustness/hardened_inference.py"
       - "scripts/audit_hidden_host_assumption_sensitivity.py"
       - "scripts/summarize_hidden_host_assumption_sensitivity.py"
       - "tests/test_hidden_host_assumption_sensitivity.py"
       - "tests/test_summarize_hidden_host_assumption_sensitivity.py"
       - "docs/hidden_host_assumption_sensitivity_protocol.md"
+      - "docs/missing_host_mixture_likelihood_impact_audit_2026-10-27.md"
       - ".github/workflows/hidden-host-assumption-sensitivity.yml"
+
   workflow_dispatch:
 
 permissions:

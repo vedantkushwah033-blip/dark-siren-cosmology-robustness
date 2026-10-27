@@ -60,12 +60,13 @@ def posterior_h0_low_z(
         or weights.size != z.size
         or np.any(~np.isfinite(weights))
         or np.any(weights < 0)
-        or not np.isfinite(weights.sum())
-        or weights.sum() <= 0
+        or not np.any(weights > 0)
     ):
         raise ValueError("host_weights must be finite, non-negative, and match redshifts")
 
-    weights = weights / weights.sum()
+    # Avoid overflow when summing large but finite relative host weights.
+    scaled_weights = weights / np.max(weights)
+    weights = scaled_weights / scaled_weights.sum()
     valid = (grid >= prior_min) & (grid <= prior_max)
     if not np.any(valid):
         raise ValueError("h0_grid has no points inside the prior bounds")
@@ -88,7 +89,10 @@ def posterior_h0_low_z(
 
     posterior = np.zeros_like(grid)
     posterior[finite] = np.exp(log_posterior[finite] - np.max(log_posterior[finite]))
-    area = trapezoid(posterior, grid)
+    # Integrate only on prior support. If the supplied grid extends beyond
+    # the prior, integrating the zero-padded array would add artificial
+    # half-bin trapezoid mass outside the support at each prior boundary.
+    area = trapezoid(posterior[valid], grid[valid])
     if not np.isfinite(area) or area <= 0:
         raise ValueError("Posterior normalization failed")
     return posterior / area

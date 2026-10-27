@@ -59,6 +59,19 @@ Before comparing our model with CHIMERA, record and align at minimum:
 
 A posterior-curve resemblance alone is not sufficient. If the implementations use different inputs or assumptions, report those differences and do not call the result a matched benchmark.
 
+## Source-level likelihood compatibility audit
+
+A source inspection of the pinned CHIMERA v2.2 commit `fd35f897e36850d865c760c13325c5a46ebe94db` shows why the current finite-host Gaussian toy likelihood is a control model, not an end-to-end substitute for CHIMERA.
+
+1. **Catalogue plus missing/background population.** In `CHIMERA/catalog/catalog.py`, `pixelated_catalog.p_gal` constructs
+   `p_gal = fR * p_cat + (1 - P_compl) * p_bkg`.
+   Here `p_cat` is a precomputed event × pixel × redshift catalogue term; `P_compl` is the completeness evaluated on the analysis grid; and `p_bkg` is a normalized background redshift density. The completeness normalization `fR` is computed from the completeness function and background density. This is not equivalent, in general, to a single fixed hidden-host redshift with a scalar missing fraction.
+2. **Event numerator.** In `CHIMERA/likelihood.py`, the pixelated numerator combines the 3D GW posterior density, the CBC redshift/population density, and the cosmological Jacobian `dDL/dz * (1+z)^2`; it integrates over redshift and sums contributions over sky pixels.
+3. **Detection selection.** The hyperlikelihood calls the selection model's `N_exp`. In scale-free mode it subtracts `log(N_exp)` from the event log-likelihood; in the non-scale-free mode it includes the rate/exposure factor and subtracts `N_exp / N_events`. The notebook configures an injection file and `N_inj = 20e6`, with the injection data filtered at `snr_cut=25`.
+4. **Current repository model boundary.** The finite-host robustness experiments use a one-dimensional synthetic distance observation and discrete host redshifts. They do not currently ingest the notebook's pixelated GW posterior samples, reconstruct `p_cat` from the underlying galaxy catalogue, or reproduce CHIMERA's event numerator and selection normalization as a matched likelihood. A visually similar H0 curve would not close these gaps.
+
+**Consequence:** external validation must be staged. First establish input provenance and API/environment compatibility; then reproduce one documented CHIMERA likelihood calculation on a small verified fixture; only after that should a matched end-to-end comparison be attempted. If the upstream event file and `pcat_incomplete.h5`/underlying mock-galaxy source remain unavailable, report the benchmark as blocked rather than replacing them with a different fixture.
+
 ## Next go/no-go gate
 
 **Go** only when the event file and all essential inputs have a documented source, matching configuration, and verified checksums—or when every derived product can be deterministically regenerated from verified source data using pinned code.
