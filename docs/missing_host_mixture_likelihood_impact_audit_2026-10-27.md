@@ -1,7 +1,7 @@
 # Impact audit: missing-host mixture likelihood correction
 
 **Audit date:** 2026-10-27  
-**Status (updated 2026-10-27):** all four other directly identified hidden-host experiments have now also been rerun from corrected branch revision `ecb260886716c54fdd2d5e47390701949f5a18d5`; their workflow jobs and independent reconstruction steps completed successfully. The general numerical-diagnostics workflow passed on Python 3.10, 3.11, and 3.12. See the [corrected rerun provenance report](corrected_hidden_host_rerun_provenance_2026-10-27.md) for run IDs, artifact IDs, and downloaded artifact hashes. Numerical report tables must still be reconciled against their historical artifacts before final manuscript reuse. This closes the named rerun gate, not the external realism/novelty gate.
+**Status (updated 2026-10-27):** all four additional directly identified hidden-host experiments were rerun from corrected branch revision `ecb260886716c54fdd2d5e47390701949f5a18d5`; their workflow jobs and independent reconstruction steps completed successfully. Historical and corrected CSV artifacts were compared row-by-row; categorical fields match exactly and numeric differences are at floating-point precision, with summary tables agreeing at displayed precision. General numerical-diagnostics tests passed on Python 3.10, 3.11, and 3.12 at that revision. See the [corrected rerun provenance report](corrected_hidden_host_rerun_provenance_2026-10-27.md) for run IDs, artifact IDs, and downloaded artifact hashes. This closes the named rerun-and-artifact-reconciliation gate, not the downstream caller inventory, external realism, or novelty gates.
 
 ## Finding
 
