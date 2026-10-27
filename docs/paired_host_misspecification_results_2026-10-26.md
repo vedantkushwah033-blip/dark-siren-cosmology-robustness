@@ -1,4 +1,4 @@
-> **Supersession notice — 2026-10-27:** These results were generated before correction of the direct missing-host mixture likelihood, which previously applied the catalogue population-mass factor twice. Treat all numerical results below as historical/provisional, not as the current validated result. Regenerate the experiment from the corrected implementation and pass the independent raw-artifact audit before using these estimates in a paper, abstract, or application. See [`missing_host_mixture_likelihood_impact_audit_2026-10-27.md`](missing_host_mixture_likelihood_impact_audit_2026-10-27.md).
+> **Revalidation note — 2026-10-27:** This experiment was rerun on corrected revision `ecb260886716c54fdd2d5e47390701949f5a18d5`; the independent reconstruction passed. A row-by-row comparison of historical artifact `12631703296` and corrected artifact `12695609236` found identical categorical fields and summary/contrast values at displayed precision; the maximum absolute difference in any raw numeric field was `1.85e-13`, consistent with floating-point evaluation. Corrected artifact SHA-256: `ab680e0de5256397f76513f320a99b81f40fcc5ca11c9efa4dabf5b4aa779743`. See the [corrected rerun provenance report](corrected_hidden_host_rerun_provenance_2026-10-27.md). These remain conditional results from a synthetic model, not astrophysical validation.
 
 # Paired host-misspecification experiment: audited results (2026-10-26)
 
@@ -13,6 +13,7 @@ The most important result in this fixed toy design is that explicitly modelling 
 - Workflow: [Paired host-misspecification experiment, successful run](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40280238225)
 - Artifact: [raw records, summaries, and paired contrasts](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40280238225/artifacts/12631703296)
 - Artifact SHA-256: `abc6f451311b921a0370e94356848a65734ecfb554f8443b43b740bf2b9f0d47`
+- **Corrected-revision rerun:** [workflow 40417072077](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40417072077), [artifact 12695609236](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40417072077/artifacts/12695609236); revision `ecb260886716c54fdd2d5e47390701949f5a18d5`; independent reconstruction passed.
 - Runner/auditor/workflow revision: `49eb51371465bb0e819e5a8a7b5d0704b32dea95`
 - Data seed: `20261027`
 - Bootstrap seed: `20261028`
