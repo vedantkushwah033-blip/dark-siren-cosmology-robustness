@@ -145,3 +145,32 @@ def test_missing_host_population_mass_matches_explicit_full_mixture(missing_mass
     )
 
     np.testing.assert_allclose(combined, explicit, rtol=2e-12, atol=2e-12)
+
+
+@pytest.mark.parametrize("missing_mass", [0.0, 1e-12, 1e-8])
+def test_missing_component_limiting_cases(missing_mass):
+    """Zero missing mass is the catalogue-only model; tiny mass changes it continuously."""
+    grid = np.linspace(40.0, 100.0, 3001)
+    catalog_z = np.array([0.02, 0.04])
+    observed, sigma = 175.0, 18.0
+    catalog_only = posterior_h0(
+        grid, catalog_z, observed, sigma,
+        prior_min=40.0, prior_max=100.0,
+    )
+    if missing_mass == 0.0:
+        with_zero_mass = posterior_h0(
+            grid, catalog_z, observed, sigma,
+            missing_weight=0.0,
+            # Missing support is intentionally unnecessary when its mass is zero.
+            prior_min=40.0, prior_max=100.0,
+        )
+        np.testing.assert_allclose(with_zero_mass, catalog_only, rtol=1e-13, atol=1e-13)
+    else:
+        with_tiny_mass = posterior_h0(
+            grid, catalog_z, observed, sigma,
+            missing_weight=missing_mass,
+            missing_redshifts=[0.06, 0.08],
+            missing_weights=[0.25, 0.75],
+            prior_min=40.0, prior_max=100.0,
+        )
+        np.testing.assert_allclose(with_tiny_mass, catalog_only, rtol=2e-6, atol=2e-8)
