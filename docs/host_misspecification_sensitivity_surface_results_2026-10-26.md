@@ -1,4 +1,4 @@
-> **Supersession notice — 2026-10-27:** These results were generated before correction of the direct missing-host mixture likelihood, which previously applied the catalogue population-mass factor twice. Treat all numerical results below as historical/provisional, not as the current validated result. Regenerate the experiment from the corrected implementation and pass the independent raw-artifact audit before using these estimates in a paper, abstract, or application. See [`missing_host_mixture_likelihood_impact_audit_2026-10-27.md`](missing_host_mixture_likelihood_impact_audit_2026-10-27.md).
+> **Revalidation note — 2026-10-27:** This experiment was rerun on corrected revision `ecb260886716c54fdd2d5e47390701949f5a18d5`; the independent reconstruction passed. A row-by-row comparison of historical artifact `12632197386` and corrected artifact `12696905126` found identical categorical fields and summary/contrast values at displayed precision; the maximum absolute difference in any raw numeric field was `6.11e-13`, consistent with floating-point evaluation. Corrected artifact SHA-256: `c2c2c485d6b5357ffe58c1540a013b0da3cbdbada48c653094d08f1ce1974974`. See the [corrected rerun provenance report](corrected_hidden_host_rerun_provenance_2026-10-27.md). These remain conditional results from a synthetic model, not astrophysical validation.
 
 # Paired host-misspecification sensitivity surface: audited results (2026-10-26)
 
@@ -13,6 +13,7 @@ Across equal-weight averages of the 27 truth/noise/redshift cells at each hidden
 - Successful workflow and independent audit: [GitHub Actions run](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40280537559)
 - Raw artifact: [21,600 observations, per-run posterior summaries, cell summaries, and paired contrasts](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40280537559/artifacts/12632197386)
 - Artifact SHA-256: `452cc37bab97fb95605d38a9e1eff1643e8cb6d66a417ddb107af7beff56bd67`
+- **Corrected-revision rerun:** [workflow 40417072115](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40417072115), [artifact 12696905126](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40417072115/artifacts/12696905126); revision `ecb260886716c54fdd2d5e47390701949f5a18d5`; independent reconstruction passed.
 - Runner/auditor/workflow revision: `cbcca36982d3e2b4aee96e7b30067361797eedb5`
 - Data seed: `20261029`; cell bootstrap seed: `20261030`
 - Full design: 108 cells, 200 observations per cell, four inference arms; 86,400 posterior fits
