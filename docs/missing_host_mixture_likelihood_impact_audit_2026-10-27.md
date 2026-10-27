@@ -1,7 +1,7 @@
 # Impact audit: missing-host mixture likelihood correction
 
 **Audit date:** 2026-10-27  
-**Status (updated 2026-10-27):** the host-misspecification audit has been rerun from the corrected implementation and its independent reconstruction passed. That experiment's historical artifact was generated at a source revision that predates the transient regression and matches the corrected rerun to floating-point precision. The other four directly identified hidden-host experiments still require separate regenerated artifacts and audits; do not treat this one successful rerun as clearing them.
+**Status (updated 2026-10-27):** all four other directly identified hidden-host experiments have now also been rerun from corrected branch revision `ecb260886716c54fdd2d5e47390701949f5a18d5`; their workflow jobs and independent reconstruction steps completed successfully. The general numerical-diagnostics workflow passed on Python 3.10, 3.11, and 3.12. See the [corrected rerun provenance report](corrected_hidden_host_rerun_provenance_2026-10-27.md) for run IDs, artifact IDs, and downloaded artifact hashes. Numerical report tables must still be reconciled against their historical artifacts before final manuscript reuse. This closes the named rerun gate, not the external realism/novelty gate.
 
 ## Finding
 
@@ -25,7 +25,7 @@ The following branch files call the corrected API with a nonzero missing fractio
 - `scripts/run_host_misspecification_sensitivity_surface.py` — associated report: `docs/host_misspecification_sensitivity_surface_results_2026-10-26.md`.
 - `scripts/run_host_prior_support_factorial.py` — hidden-host × prior-support factorial results and its independent audit.
 
-This list is a confirmed minimum, not a claim that all downstream callers have been exhaustively enumerated. Other scripts or wrappers may call the API indirectly; inspect their call graph before declaring the impact inventory complete. The `run_oracle_missing_host_control.py` script uses a different `missing_host_weighting` argument and is not assumed affected by this particular code change without tracing its implementation.
+This list is a confirmed minimum, not a claim that all downstream callers have been exhaustively enumerated. Other scripts or wrappers may call the API indirectly; inspect their call graph before declaring the impact inventory complete. The `run_oracle_missing_host_control.py` script uses a different `missing_host_weighting` argument and is not assumed affected by this particular code change without tracing its implementation. The four additional listed experiments have now been rerun and independently audited on the corrected branch; see the provenance report for exact records.
 
 ## Rerun evidence and corrected scope
 
@@ -33,7 +33,7 @@ The host-misspecification stress test was rerun on source revision `0ac70cba1708
 
 A direct comparison against the previously published artifact (ZIP SHA-256 `c627c12bcad2c41db75769f3566dd2a5cc1b1bd3e9988332760ac901462f094c`) found identical scenario-level metrics at the report's displayed precision and only floating-point-rounding differences in per-run posterior summaries (maximum absolute difference below `1.5e-13`). The old report names source revision `5caad04955d735583f77d2c56e455aa28ad43b40`; its linear-space likelihood predates the later log-space rewrite that briefly introduced the extra `log1p(-missing_weight)` factor. Thus this specific historical experiment is reproduced by the corrected run and should not be described as numerically invalidated by that later transient bug.
 
-This finding narrows the earlier blanket warning; it does not clear other reports. The direct-call inventory below remains a minimum set for separate revision/artifact verification. For each other experiment, inspect its recorded source revision and regenerate it from the corrected code before reusing its numerical claims.
+This finding narrows the earlier blanket warning. The direct-call inventory remains a minimum set for downstream call-graph verification. The four additional workflows now pass on the corrected revision, but each report should be reconciled with its regenerated artifact and historical artifact before any numerical claim is copied into a manuscript. A workflow pass establishes consistency with the implemented model, not scientific adequacy.
 
 ## What is not established by this audit
 
@@ -68,10 +68,10 @@ The commands above use the runners' declared default design sizes and seeds. A s
 ## Required release gate
 
 1. Confirm the explicit full-mixture regression test passes on Python 3.10, 3.11, and 3.12.
-2. Host-misspecification audit: **completed** on revision `0ac70cba1708be82c7b994145f4b0507101afa05`; its historical artifact matches at reported precision. Rerun each of the other affected experiments from the corrected commit with its declared seed and design.
-3. Run the independent auditor against the newly generated raw artifacts; record hashes, source revision, runtime versions, and audit result.
-4. Recompute marginal summaries and paired intervals from the regenerated raw records; record any historical artifact that is shown to predate the regression and match the corrected rerun.
-5. Replace historical interpretations only after the regenerated results pass audit; preserve old artifacts as superseded for traceability.
+2. Host-misspecification audit: **completed** on revision `0ac70cba1708be82c7b994145f4b0507101afa05`; historical artifact matches at reported precision.
+3. Hidden-host assumption, host-sensitivity surface, prior-support factorial, and paired host-misspecification experiments: **rerun and independent reconstruction passed** on revision `ecb260886716c54fdd2d5e47390701949f5a18d5`; see the [provenance report](corrected_hidden_host_rerun_provenance_2026-10-27.md).
+4. Reconcile each corrected artifact against its historical counterpart and update the result tables and interpretation where values differ. Preserve old artifacts for traceability; do not assume all historical numbers are unchanged merely because a workflow passes.
+5. Verify the downstream caller inventory, including wrappers that may call the likelihood indirectly.
 6. Do not claim external-method validation or publication readiness until a benchmark with verified input provenance and an independently checked reference implementation has been completed.
 
 ## Provenance
