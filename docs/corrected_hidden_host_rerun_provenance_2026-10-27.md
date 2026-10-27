@@ -4,7 +4,7 @@
 
 The four hidden-host experiments identified in the missing-host mixture likelihood impact audit have now been rerun on corrected branch revision `ecb260886716c54fdd2d5e47390701949f5a18d5`. Each workflow completed successfully and ran its independent reconstruction auditor before uploading the artifact. The repository's general numerical-diagnostics workflow also passed on Python 3.10, 3.11, and 3.12 at this revision.
 
-This closes the **rerun-and-implementation-audit gate** for these four named experiments. It does not establish that the toy model is astrophysically realistic, that its scientific assumptions are correct, or that the research question is novel. Before replacing historical report tables, compare the regenerated outputs with the historical artifacts and update each report from the corrected artifact rather than assuming numerical identity.
+This closes the **rerun-and-implementation-audit gate** for these four named experiments. I downloaded the historical and corrected artifacts and compared every CSV row and field. All categorical/string fields match exactly; summary and contrast tables agree to floating-point precision. The maximum absolute difference in any raw per-run numeric field was 8.74e-12 (hidden-host assumption), 6.11e-13 (sensitivity surface), 2.37e-12 (prior-support factorial), and 1.85e-13 (paired host-misspecification). The differences are negligible floating-point changes and the published tables agree at displayed precision. This does not establish that the toy model is astrophysically realistic, that its scientific assumptions are correct, or that the research question is novel.
 
 ## Corrected artifacts
 
@@ -19,6 +19,10 @@ All runs below use source revision `ecb260886716c54fdd2d5e47390701949f5a18d5`, b
 
 The row counts above are design/shape checks, not independent evidence by themselves. The workflow jobs also invoke the corresponding audit scripts, which regenerate seeded observations and reconstruct posterior summaries and contrasts. The run records show successful job conclusions.
 
+## Historical-artifact comparison
+
+The historical ZIP hashes were `94b3cb3fa5167a680eeeeb52c18180ed244b04bf7178947be6911aecbc3e4356` (hidden-host assumption), `452cc37bab97fb95605d38a9e1eff1643e8cb6d66a417ddb107af7beff56bd67` (sensitivity surface), `61f78104305fc7d3fb4992e0841b7aa8addc9b27864bd090a6bf719243279c16` (prior-support factorial), and `abc6f451311b921a0370e94356848a65734ecfb554f8443b43b740bf2b9f0d47` (paired host-misspecification). All were compared row-by-row with the corrected artifacts listed above. The maximum raw numeric differences are caused by floating-point evaluation and do not change any summary or contrast beyond the reported precision. The earlier source revisions for these runs contain the linear-space implementation (same inference source blob across the historical revisions), predating the transient extra-factor bug in the later log-space rewrite. The reruns therefore confirm the historical numerical tables rather than revealing material invalidation.
+
 ## Interpretation boundary
 
 - The likelihood correction is a model-correctness change: the intended catalogue/missing-population mixture is
@@ -30,7 +34,7 @@ The row counts above are design/shape checks, not independent evidence by themse
 
 ## Next release gate
 
-1. Compare each corrected artifact with its historical artifact and record whether the numerical tables change.
-2. Update the four experiment reports with corrected-revision provenance and any changed values; retain historical artifacts and explicitly mark superseded results.
+1. Update the four experiment reports with corrected-revision provenance and the row-by-row artifact comparison; preserve historical artifact hashes for traceability.
+2. Verify the downstream caller inventory, including wrappers that may call the likelihood indirectly.
 3. Run the targeted novelty review against a documented completeness-aware baseline before making any originality or publication-readiness claim.
 4. Keep the project framed as a synthetic robustness/audit study unless and until realistic benchmark validation supports a stronger claim.
