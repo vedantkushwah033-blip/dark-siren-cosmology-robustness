@@ -6,8 +6,6 @@ observed catalogue; analysts receive only the assumed law assigned to their arm.
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
-
 import numpy as np
 import pandas as pd
 from scipy.integrate import trapezoid
