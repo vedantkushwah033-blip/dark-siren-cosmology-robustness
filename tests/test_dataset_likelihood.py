@@ -183,3 +183,18 @@ def test_prior_boundaries_between_grid_points_are_included_in_normalization():
     assert trapezoid(norm_density, norm_grid) == pytest.approx(1.0, abs=2e-10)
     assert posterior[grid < lo].sum() == 0.0
     assert posterior[grid > hi].sum() == 0.0
+
+
+@pytest.mark.parametrize(
+    ("grid", "prior_min", "prior_max"),
+    [
+        (np.linspace(60.0, 100.0, 201), 50.0, 90.0),
+        (np.linspace(40.0, 80.0, 201), 50.0, 90.0),
+    ],
+)
+def test_grid_must_span_full_prior_interval(grid, prior_min, prior_max):
+    with pytest.raises(ValueError, match="must span the full prior interval"):
+        dataset_posterior_h0(
+            grid, [event(175.0, 18.0)],
+            prior_min=prior_min, prior_max=prior_max,
+        )
