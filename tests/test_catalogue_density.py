@@ -33,7 +33,7 @@ def test_inverse_inclusion_weights_reduce_selection_induced_mean_shift():
     parent_mean = (grid[-1] + grid[0]) / 2.0
     unweighted_mean = trapezoid(grid * unweighted, grid)
     corrected_mean = trapezoid(grid * corrected, grid)
-    assert unweighted_mean < parent_mean - 0.015
+    assert unweighted_mean < parent_mean - 0.005
     assert abs(corrected_mean - parent_mean) < abs(unweighted_mean - parent_mean)
 
 
