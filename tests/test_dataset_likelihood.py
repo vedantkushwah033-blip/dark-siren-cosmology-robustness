@@ -99,3 +99,22 @@ def test_empty_dataset_rejected():
 def test_missing_component_requires_support():
     with pytest.raises(ValueError, match="missing_redshifts"):
         event_log_likelihood(GRID, **event(175.0, 18.0, missing_weight=0.2))
+
+
+def test_missing_host_mixture_matches_existing_event_level_posterior():
+    item = event(
+        175.0, 18.0, weights=[0.7, 0.3],
+        missing_weight=0.25,
+        missing_redshifts=[0.06, 0.08],
+        missing_weights=[0.25, 0.75],
+    )
+    expected = posterior_h0(
+        GRID, item["redshifts"], item["gw_distance"], item["gw_sigma"],
+        weights=item["weights"],
+        missing_weight=item["missing_weight"],
+        missing_redshifts=item["missing_redshifts"],
+        missing_weights=item["missing_weights"],
+        **PRIOR,
+    )
+    actual = dataset_posterior_h0(GRID, [item], **PRIOR)
+    np.testing.assert_allclose(actual, expected, rtol=2e-11, atol=2e-12)
