@@ -63,7 +63,7 @@ def test_audit_rejects_tampered_posterior_even_if_manifest_is_rehashed(tmp_path)
         audit_artifacts(folder)
 
 
-def test_audit_rejects_missing_arm(tmp_path):
+def test_audit_rejects_missing_arm_even_when_manifest_is_rehashed(tmp_path):
     folder = tmp_path / "pilot"
     _run_smoke(folder)
     raw = folder / "replicate_metrics.csv"
@@ -75,5 +75,11 @@ def test_audit_rejects_missing_arm(tmp_path):
         writer = csv.DictWriter(handle, fieldnames=columns)
         writer.writeheader()
         writer.writerows(rows)
-    with pytest.raises(ValueError, match="SHA-256 mismatch"):
+    # Rehash the modified CSV so the audit reaches structural validation
+    # instead of passing merely because the manifest detects tampering.
+    manifest_path = folder / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["files"]["replicate_metrics.csv"]["sha256"] = hashlib.sha256(raw.read_bytes()).hexdigest()
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="raw record count mismatch"):
         audit_artifacts(folder)
