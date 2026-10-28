@@ -70,6 +70,26 @@ def _posterior(row, grid):
             "ci68_low": low, "ci68_high": high, "ci68_width": high - low}
 
 
+def _wilson(successes, trials):
+    z = 1.959963984540054
+    p = successes / trials
+    z2 = z * z
+    denominator = 1.0 + z2 / trials
+    center = (p + z2 / (2.0 * trials)) / denominator
+    half = z * math.sqrt(p * (1.0 - p) / trials + z2 / (4.0 * trials * trials)) / denominator
+    return max(0.0, center - half), min(1.0, center + half)
+
+
+def _paired_summary(values):
+    mean = sum(values) / len(values)
+    if len(values) < 2:
+        return {"mean": mean, "standard_error": None, "normal_95_low": None, "normal_95_high": None}
+    variance = sum((x - mean) ** 2 for x in values) / (len(values) - 1)
+    se = math.sqrt(variance / len(values))
+    return {"mean": mean, "standard_error": se,
+            "normal_95_low": mean - 1.96 * se, "normal_95_high": mean + 1.96 * se}
+
+
 def audit_artifacts(output_dir: str | Path) -> dict:
     folder = Path(output_dir)
     raw_path, summary_path, manifest_path = (
@@ -145,6 +165,7 @@ def audit_artifacts(output_dir: str | Path) -> dict:
         group = [by_key[(rep, arm)] for rep in range(n_replicates)]
         errors = [_num(row["posterior_mean"], "posterior_mean") - h0_true for row in group]
         covered = [_bool(row["covered_68"]) for row in group]
+        wilson_low, wilson_high = _wilson(sum(covered), n_replicates)
         expected = {
             "n_replicates": n_replicates,
             "mean_bias": sum(errors) / n_replicates,
@@ -152,6 +173,8 @@ def audit_artifacts(output_dir: str | Path) -> dict:
             "empirical_68_coverage": sum(covered) / n_replicates,
             "coverage_numerator": sum(covered),
             "coverage_denominator": n_replicates,
+            "coverage_wilson_95_low": wilson_low,
+            "coverage_wilson_95_high": wilson_high,
             "mean_68_interval_width": sum(float(row["ci68_width"]) for row in group) / n_replicates,
             "mean_density_ise": sum(float(row["density_ise"]) for row in group) / n_replicates,
             "mean_weight_ess_fraction": sum(float(row["weight_ess_fraction"]) for row in group) / n_replicates,
@@ -163,6 +186,40 @@ def audit_artifacts(output_dir: str | Path) -> dict:
                     raise ValueError(f"{arm} aggregate {metric} mismatch")
             else:
                 _close(aggregate_by_arm[arm].get(metric), value, f"{arm} aggregate {metric}")
+    baseline = [by_key[(rep, "catalogue_only")] for rep in range(n_replicates)]
+    reconstructed_contrasts = {}
+    for arm in ARMS:
+        if arm == "catalogue_only":
+            continue
+        comparison = [by_key[(rep, arm)] for rep in range(n_replicates)]
+        squared_differences = [
+            (_num(row["posterior_mean"], "posterior_mean") - h0_true) ** 2
+            - (_num(base["posterior_mean"], "posterior_mean") - h0_true) ** 2
+            for row, base in zip(comparison, baseline)
+        ]
+        density_differences = [
+            _num(row["density_ise"], "density_ise") - _num(base["density_ise"], "density_ise")
+            for row, base in zip(comparison, baseline)
+        ]
+        reconstructed_contrasts[arm] = {
+            "squared_error_difference": _paired_summary(squared_differences),
+            "density_ise_difference": _paired_summary(density_differences),
+        }
+    saved_contrasts = summary.get("paired_contrasts_vs_catalogue_only")
+    if not isinstance(saved_contrasts, list) or len(saved_contrasts) != len(ARMS) - 1:
+        raise ValueError("paired contrast summaries missing or incomplete")
+    saved_by_arm = {item.get("arm"): item for item in saved_contrasts if isinstance(item, dict)}
+    if set(saved_by_arm) != set(reconstructed_contrasts):
+        raise ValueError("paired contrast arm labels mismatch")
+    for arm, contrasts in reconstructed_contrasts.items():
+        for metric, fields in contrasts.items():
+            saved = saved_by_arm[arm].get(metric, {})
+            for field, value in fields.items():
+                if value is None:
+                    if saved.get(field) is not None:
+                        raise ValueError(f"{arm} paired {metric} {field} should be null for one replicate")
+                else:
+                    _close(saved.get(field), value, f"{arm} paired {metric} {field}", atol=1e-7)
     return {"status": "PASS", "raw_records": len(rows), "replicates": n_replicates,
             "posterior_grids_reconstructed": len(rows), "aggregate_arms_reconstructed": len(ARMS),
             "replicate_metrics_sha256": hashlib.sha256(raw_path.read_bytes()).hexdigest(),
