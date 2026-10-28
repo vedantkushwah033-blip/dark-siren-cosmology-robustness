@@ -99,6 +99,7 @@ def audit(output_dir: Path) -> dict:
                 "n_parent": int(len(group)),
                 "expected_retained": expected,
                 "observed_retained": observed,
+                "binomial_sd": float(np.sqrt(variance)),
                 "standardized_residual": float((observed - expected) / np.sqrt(variance)),
                 "mean_inclusion_probability": float(gp.mean()),
                 "observed_retention_fraction": float(observed / len(group)),
