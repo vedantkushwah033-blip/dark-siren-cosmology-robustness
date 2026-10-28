@@ -265,3 +265,79 @@ def test_selection_conditioning_rejects_shape_mismatch_and_invalid_event_count()
                 np.array([0.2, 0.5, 0.8]),
                 n_events=invalid_count,
             )
+
+
+def test_toy_detection_efficiency_matches_analytic_single_host_gaussian():
+    from scipy.stats import norm
+    from dark_siren_robustness.dataset_likelihood import event_detection_efficiency
+
+    grid = np.array([60.0, 70.0, 80.0])
+    z = 0.03
+    sigma = 20.0
+    threshold = 100.0
+    actual = event_detection_efficiency(
+        grid, redshifts=[z], gw_sigma=sigma,
+        detection_distance_min=threshold,
+    )
+    means = 299_792.458 * z / grid
+    expected = norm.sf((threshold - means) / sigma)
+    np.testing.assert_allclose(actual, expected, rtol=2e-14, atol=1e-15)
+    assert np.all(np.diff(actual) < 0)
+
+
+def test_toy_detection_efficiency_uses_same_catalogue_missing_mixture():
+    from scipy.stats import norm
+    from dark_siren_robustness.dataset_likelihood import event_detection_efficiency
+
+    grid = np.array([65.0, 75.0])
+    catalog_z = np.array([0.02, 0.04])
+    hidden_z = np.array([0.06])
+    catalog_weights = np.array([0.25, 0.75])
+    hidden_weight = 0.3
+    sigma = 25.0
+    threshold = 120.0
+    actual = event_detection_efficiency(
+        grid, redshifts=catalog_z, weights=catalog_weights,
+        gw_sigma=sigma, detection_distance_min=threshold,
+        missing_weight=hidden_weight, missing_redshifts=hidden_z,
+        missing_weights=[1.0],
+    )
+    means_cat = 299_792.458 * catalog_z[None, :] / grid[:, None]
+    means_hidden = 299_792.458 * hidden_z[None, :] / grid[:, None]
+    expected = (1 - hidden_weight) * np.sum(
+        catalog_weights[None, :] * norm.sf((threshold - means_cat) / sigma),
+        axis=1,
+    ) + hidden_weight * norm.sf((threshold - means_hidden[:, 0]) / sigma)
+    np.testing.assert_allclose(actual, expected, rtol=2e-14, atol=1e-15)
+
+
+def test_positive_truncated_detection_efficiency_conditions_on_positive_distance():
+    from scipy.stats import norm
+    from dark_siren_robustness.dataset_likelihood import event_detection_efficiency
+
+    grid = np.array([60.0, 75.0])
+    z = 0.01
+    sigma = 35.0
+    threshold = 80.0
+    actual = event_detection_efficiency(
+        grid, redshifts=[z], gw_sigma=sigma,
+        detection_distance_min=threshold, positive_truncated=True,
+    )
+    means = 299_792.458 * z / grid
+    expected = norm.sf((threshold - means) / sigma) / norm.sf((0.0 - means) / sigma)
+    np.testing.assert_allclose(actual, expected, rtol=2e-14, atol=1e-15)
+
+
+def test_toy_detection_efficiency_rejects_missing_support_and_invalid_threshold():
+    from dark_siren_robustness.dataset_likelihood import event_detection_efficiency
+
+    with pytest.raises(ValueError, match="missing_redshifts"):
+        event_detection_efficiency(
+            GRID, redshifts=[0.02], gw_sigma=20.0,
+            detection_distance_min=100.0, missing_weight=0.2,
+        )
+    with pytest.raises(ValueError, match="non-negative"):
+        event_detection_efficiency(
+            GRID, redshifts=[0.02], gw_sigma=20.0,
+            detection_distance_min=-1.0, positive_truncated=True,
+        )
