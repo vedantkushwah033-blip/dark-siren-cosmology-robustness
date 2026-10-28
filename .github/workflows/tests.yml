@@ -36,6 +36,10 @@ jobs:
         run: python -m pytest tests/test_completeness.py -q
       - name: Test independent catalogue-thinning artifact audit
         run: python -m pytest tests/test_catalogue_thinning_audit.py -q
+      - name: Test separated catalogue and GW selection generator
+        run: python -m pytest tests/test_generative_selection.py -q
+      - name: Run separated-selection generator smoke experiment
+        run: python scripts/run_synthetic_selection_experiment.py --seed 20261028 --n-parent 1200 --n-detected 25 --output-dir artifacts/synthetic_selection_smoke
       - name: Test paired distance-uncertainty sensitivity experiment
         run: python -m pytest tests/test_uncertainty_sensitivity.py -q
       - name: Run paired distance-uncertainty sensitivity smoke experiment

@@ -1,4 +1,9 @@
 from __future__ import annotations
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
 import numpy as np
 import pandas as pd
 import pytest
@@ -42,3 +47,24 @@ def test_invalid_configuration_is_rejected() -> None:
         generate_synthetic_population(n_parent=20)
     with pytest.raises(ValueError):
         catalogue_inclusion_probability(np.array([0.1, 0.2]), width=0.0)
+
+def test_runner_writes_separate_observable_and_truth_artifacts(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[1]
+    output_dir = tmp_path / "selection-output"
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(root / "src") + os.pathsep + env.get("PYTHONPATH", "")
+    completed = subprocess.run(
+        [sys.executable, str(root / "scripts" / "run_synthetic_selection_experiment.py"),
+         "--seed", "120", "--n-parent", "1200", "--n-detected", "25",
+         "--output-dir", str(output_dir)],
+        cwd=root, env=env, text=True, capture_output=True, check=False,
+    )
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    config = json.loads((output_dir / "config.json").read_text())
+    assert config["n_parent"] == 1200
+    assert config["n_detected_events"] == 25
+    observed_events = pd.read_csv(output_dir / "gw_events_observed.csv")
+    truth_events = pd.read_csv(output_dir / "gw_event_truth.csv")
+    assert list(observed_events.columns) == ["event_id", "distance_mpc", "detected"]
+    assert "host_redshift" in truth_events.columns
+    assert len(observed_events) == len(truth_events) == 25
