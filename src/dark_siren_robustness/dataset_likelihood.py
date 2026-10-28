@@ -84,6 +84,10 @@ def dataset_posterior_h0(H0_grid, events: Sequence[Mapping], *, prior_min=50.0, 
         raise ValueError("prior_min and prior_max must be finite with prior_min < prior_max.")
     if len(events) == 0:
         raise ValueError("At least one event is required.")
+    if grid[0] > lo or grid[-1] < hi:
+        raise ValueError(
+            "H0_grid must span the full prior interval; extrapolation beyond the grid is unsupported."
+        )
     support = (grid >= lo) & (grid <= hi)
     if np.count_nonzero(support) < 2:
         raise ValueError("H0_grid must contain at least two points inside the prior interval.")
