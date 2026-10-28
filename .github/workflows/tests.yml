@@ -109,6 +109,11 @@ jobs:
       - name: Independently recompute full-run posteriors on a finer grid (Python 3.12 only)
         if: matrix.python-version == '3.12'
         run: python scripts/check_distance_uncertainty_grid_stability.py artifacts/distance_uncertainty_sensitivity_full/replicates.csv --fine-grid-points 3201 --max-allowed-change 0.001
+      - name: Run and independently audit catalogue-thinning calibration (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python scripts/run_catalogue_thinning_audit.py --n-parent 40000 --seed 20261028 --output-dir artifacts/catalogue_thinning
+          python scripts/audit_catalogue_thinning_audit.py artifacts/catalogue_thinning
       - name: Upload numerical diagnostic results
         uses: actions/upload-artifact@v4
         with:
@@ -125,5 +130,6 @@ jobs:
             artifacts/selected_likelihood_sbc/audit_report.json
             artifacts/calibration_grid_sensitivity/
             artifacts/multiseed_grid_sensitivity/
+            artifacts/catalogue_thinning/
           if-no-files-found: error
 
