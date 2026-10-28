@@ -33,9 +33,9 @@ def test_runner_writes_manifest_and_independent_audit_passes(tmp_path):
     _run_smoke(folder)
     report = audit_artifacts(folder)
     assert report["status"] == "PASS"
-    assert report["raw_records"] == 10
+    assert report["raw_records"] == 12
     assert report["replicates"] == 2
-    assert report["posterior_grids_reconstructed"] == 10
+    assert report["posterior_grids_reconstructed"] == 12
     manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["files"]["replicate_metrics.csv"]["sha256"] == report["replicate_metrics_sha256"]
     assert len(report["summary_sha256"]) == 64
