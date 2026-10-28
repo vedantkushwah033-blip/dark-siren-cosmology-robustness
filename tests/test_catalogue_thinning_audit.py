@@ -112,3 +112,25 @@ def test_independent_audit_rejects_tampered_binomial_standard_deviation(tmp_path
     assert checked.returncode != 0
     assert "binomial_sd" in checked.stdout + checked.stderr
 
+def test_independent_audit_rejects_nonbinary_raw_retained_flag(tmp_path: Path) -> None:
+    output_dir = tmp_path / "nonbinary-retained-flag"
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(ROOT / "src") + os.pathsep + env.get("PYTHONPATH", "")
+    generated = run_script(
+        RUNNER,
+        "--n-parent", "1200",
+        "--seed", "735",
+        "--output-dir", str(output_dir),
+        env=env,
+    )
+    assert generated.returncode == 0, generated.stdout + generated.stderr
+
+    records_path = output_dir / "catalogue_thinning_records.csv"
+    records = pd.read_csv(records_path)
+    records.loc[0, "retained"] = 0.5
+    records.to_csv(records_path, index=False, float_format="%.12g")
+
+    checked = run_script(AUDITOR, str(output_dir), env=env)
+    assert checked.returncode != 0
+    assert "binary values" in checked.stdout + checked.stderr
+

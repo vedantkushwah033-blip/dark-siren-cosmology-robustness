@@ -54,9 +54,14 @@ def audit(output_dir: Path) -> dict:
         raise AssertionError("object_id must be unique and consecutive from zero")
     distance = data["distance_mpc"].to_numpy(dtype=float)
     p = data["inclusion_probability"].to_numpy(dtype=float)
-    retained = data["retained"].to_numpy(dtype=int)
+    retained_raw = data["retained"].to_numpy(dtype=float)
     if not np.all(np.isfinite(distance)) or not np.all(np.isfinite(p)):
         raise AssertionError("Non-finite distance or probability in raw records")
+    # Validate before integer conversion: casting first would silently turn
+    # malformed values such as 0.5 into 0 and could hide record corruption.
+    if not np.all(np.isfinite(retained_raw)) or not np.all(np.isin(retained_raw, [0.0, 1.0])):
+        raise AssertionError("Raw retained flags must be finite binary values (0 or 1)")
+    retained = retained_raw.astype(np.int8)
     if np.any(distance < EXPECTED_DOMAIN[0]) or np.any(distance >= EXPECTED_DOMAIN[1]):
         raise AssertionError("Distances fall outside the declared half-open domain")
     if np.any(np.diff(distance) <= 0):
