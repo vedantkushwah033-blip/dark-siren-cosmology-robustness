@@ -96,3 +96,50 @@ Do not add a classifier merely to make the project sound more advanced. If the d
 ## Conclusion
 
 The current strongest defensible direction is a rigorous, reproducible, narrowly scoped statistical simulation study—not a claim to solve dark-siren catalogue incompleteness. A stronger contribution might emerge from a well-defined diagnostic-identifiability result, but its novelty and usefulness remain unproven and require further work.
+
+
+## Literature refresh — 2026-10-28
+
+This refresh adds several relevant papers surfaced in a targeted search of publisher and preprint records. It is **not a systematic review**: only abstracts and publisher/preprint summaries were inspected for these additions, so the full methods and supplementary material still need reading before a manuscript-level novelty statement.
+
+### 6. Tagliazucchi et al. (accepted 2026): Gaussian-process reconstruction of incomplete catalogues
+
+**Publisher record:** [Physical Review D accepted paper, DOI 10.1103/vmzf-1wxq](https://journals.aps.org/prd/accepted/10.1103/vmzf-1wxq).
+
+The publisher record says the method uses a Gaussian process for line-of-sight galaxy-redshift reconstruction, fitted to incomplete catalogues with a hierarchical Bayesian likelihood that accounts for the survey selection function. The abstract reports tests on mock GW and galaxy catalogues and average precision improvements under the paper's specified configurations.
+
+**Novelty implication:** GP pilots and catalogue-incompleteness/host-weighting effects are not sufficient to establish novelty. The current repository's simplified GP pilot must not be framed as a new catalogue-completion method or as equivalent to this selection-aware hierarchical approach.
+
+### 7. Gray, Williams & Papadopoulos (2026 preprint): jointly inferring host-galaxy population properties
+
+**Preprint:** [arXiv:2609.04991](https://arxiv.org/abs/2609.04991).
+
+The abstract describes a sampled-redshift-prior method that jointly infers host-galaxy weighting, gravitational-wave population properties, and cosmology, with a reported application to GWTC-5.0 cosmology results.
+
+**Novelty implication:** Host-population assumptions and their interaction with cosmological inference are active, rapidly developing topics. A simulation that changes host weighting cannot be called novel solely because it explores misspecification; it needs a precise diagnostic or inferential estimand and a direct comparison with this line of work.
+
+### 8. Borghi et al. (2025 preprint): catalogue incompleteness and host weighting in CHIMERA
+
+**Preprint:** [arXiv:2509.18243](https://arxiv.org/abs/2509.18243).
+
+The abstract describes a CHIMERA-based framework studying incomplete spectroscopic catalogues and stellar-mass host-weighting schemes for a simulated O5-like population of 100 binary-black-hole events.
+
+**Novelty implication:** This makes the proposed exact CHIMERA benchmark especially relevant, but does not make a small synthetic model a substitute for it. Until the required mock data and version-specific reference products are available, describe any comparison as unverified rather than validated against CHIMERA.
+
+### 9. VanWyngarden et al. (2025): conditions under which incomplete bright-galaxy catalogues can still be informative
+
+**Preprint:** [arXiv:2511.04786](https://arxiv.org/abs/2511.04786).
+
+The abstract reports that, in particular mock-catalogue and localization conditions, a bright subset can yield an unbiased, informative (H_0) posterior, with the result depending on galaxy clustering and localization volume.
+
+**Novelty implication:** Catalogue incompleteness does not imply a universal direction or magnitude of bias. The manuscript should report the precise data-generating assumptions, selection mechanism, and regime rather than presenting one toy-model outcome as a general law.
+
+## Updated novelty decision
+
+These additions reinforce the existing no-go on broad novelty claims. The project should **not** claim to solve catalogue incompleteness, introduce a new general host-weighting method, or improve real-data (H_0) constraints. The strongest plausible contribution remains a transparent, independently audited characterization of when prespecified diagnostics can and cannot distinguish compound misspecification **within a precisely declared synthetic model**. Even that claim remains conditional on the existing diagnostic-identifiability design being implemented, evaluated across multiple configurations and seeds, and compared with full-text literature.
+
+Before any submission:
+1. Read full texts and supplements for the four additions above.
+2. Build a claim-by-claim comparison matrix for estimands, generator assumptions, selection treatment, diagnostics, and validation evidence.
+3. Verify bibliographic status, especially the 2026 preprint and accepted-paper records, on the publication date.
+4. Keep the CHIMERA v2.2 external-validation gate explicit; no synthetic-only result should be described as a CHIMERA reproduction.
