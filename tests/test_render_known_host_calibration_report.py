@@ -160,3 +160,32 @@ def test_report_rejects_replicate_count_or_design_metadata_mismatch():
     metadata["fractional_distance_errors"] = [0.05, 0.10, 0.15, 0.25]
     with pytest.raises(ValueError, match="noise grid"):
         MODULE.validate_summary(rows, metadata)
+
+
+
+def test_report_accepts_boundary_cell_with_zero_coverage_and_rounding_noise():
+    """Regression: a tiny positive Wilson lower bound can arise from floating-point rounding."""
+    rows, metadata = fixture_summary()
+    rows[0].update({
+        "coverage_68": "0.0", "coverage_68_wilson_low": "8.673617379884035e-19",
+        "coverage_68_wilson_high": "0.012643",
+        "coverage_95": "0.0", "coverage_95_wilson_low": "8.673617379884035e-19",
+        "coverage_95_wilson_high": "0.012643",
+    })
+    MODULE.validate_summary(rows, metadata)
+
+
+def test_report_still_rejects_wilson_interval_materially_excluding_coverage():
+    rows, metadata = fixture_summary()
+    rows[0]["coverage_68_wilson_low"] = "1e-6"
+    rows[0]["coverage_68"] = "0.0"
+    with pytest.raises(ValueError, match="invalid coverage/Wilson"):
+        MODULE.validate_summary(rows, metadata)
+
+
+def test_report_explains_structural_zero_coverage_at_prior_boundaries():
+    rows, metadata = fixture_summary()
+    report = MODULE.render_report(rows, metadata)
+    assert "structural boundary effect" in report
+    assert "equal-tailed intervals" in report
+    assert "seven interior truths" in report

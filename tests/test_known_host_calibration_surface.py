@@ -113,3 +113,24 @@ def test_summary_rejects_truth_outside_prior_support(true_h0):
             fractional_error=0.1,
         )
 
+
+
+
+@pytest.mark.parametrize("n", [1, 10, 100, 300, 1000])
+@pytest.mark.parametrize("successes", [0, 1])
+def test_wilson_interval_brackets_endpoint_proportions(n, successes):
+    count = 0 if successes == 0 else n
+    lo, hi = MODULE.wilson_interval(count, n)
+    p = count / n
+    assert 0.0 <= lo <= p <= hi <= 1.0
+    if count == 0:
+        assert lo == 0.0
+    else:
+        assert hi == 1.0
+
+
+@pytest.mark.parametrize("n", [50, 300, 777])
+def test_wilson_interval_brackets_every_possible_observed_proportion(n):
+    for count in range(n + 1):
+        lo, hi = MODULE.wilson_interval(count, n)
+        assert lo <= count / n <= hi

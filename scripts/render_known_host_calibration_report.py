@@ -48,7 +48,8 @@ def validate_summary(rows: list[dict[str, str]], metadata: dict) -> None:
         for level in ("68", "95"):
             coverage = float(row[f"coverage_{level}"])
             low, high = float(row[f"coverage_{level}_wilson_low"]), float(row[f"coverage_{level}_wilson_high"])
-            if not 0 <= low <= coverage <= high <= 1:
+            tol = 1e-12  # tolerate floating-point rounding only
+            if not (-tol <= low <= coverage + tol and coverage - tol <= high <= 1 + tol):
                 raise ValueError(f"invalid coverage/Wilson interval for {level}% in cell {key}")
             successes = coverage * n
             if not math.isclose(successes, round(successes), rel_tol=0.0, abs_tol=1e-8):
@@ -163,6 +164,7 @@ def render_report(rows: list[dict[str, str]], metadata: dict) -> str:
         "3. Increasing interval width with noise is not itself evidence of correct calibration; coverage and error must be considered together.",
         "4. This is a one-host, synthetic, matched-model experiment. It does not validate catalogue incompleteness corrections, host-galaxy weighting under model mismatch, or real LVK inference.",
         "5. Any claims about a real calibration surface must be based on the raw artifact after the independent auditor reports PASS.",
+        "6. At the two prior-boundary truths (H₀ = 50 and 90), central equal-tailed intervals from a continuous posterior supported on [50, 90] exclude the exact boundary; zero empirical coverage there is therefore a structural boundary effect, not evidence about calibration at interior truths. Report these cells separately and use the seven interior truths for interior-calibration statements.",
         "",
     ])
     return "\n".join(lines)
