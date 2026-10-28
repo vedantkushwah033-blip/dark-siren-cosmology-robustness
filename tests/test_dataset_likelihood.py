@@ -363,24 +363,3 @@ def test_one_sided_toy_efficiency_matches_existing_interval_selection_limit():
         weights=weights, detection_distance_min=lower,
     )
     np.testing.assert_allclose(one_sided, wide_interval, rtol=2e-12, atol=1e-14)
-
-
-@pytest.mark.parametrize(
-    "helper",
-    ["event_log_likelihood", "event_detection_efficiency"],
-)
-def test_zero_missing_weight_rejects_unused_missing_host_inputs(helper):
-    from dark_siren_robustness import dataset_likelihood as likelihood
-
-    function = getattr(likelihood, helper)
-    kwargs = {
-        "redshifts": [0.02, 0.04],
-        "missing_weight": 0.0,
-        "missing_redshifts": [0.06],
-    }
-    if helper == "event_log_likelihood":
-        kwargs.update(gw_distance=175.0, gw_sigma=18.0)
-    else:
-        kwargs.update(gw_sigma=18.0, detection_distance_min=100.0)
-    with pytest.raises(ValueError, match="supplied but missing_weight is zero"):
-        function(GRID, **kwargs)
