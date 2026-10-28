@@ -122,3 +122,50 @@ def dataset_posterior_h0(H0_grid, events: Sequence[Mapping], *, prior_min=50.0, 
     posterior = np.zeros_like(grid)
     posterior[support] = np.exp(joint_log_likelihood[support] - log_shift) / area
     return posterior
+
+
+def selection_conditioned_log_likelihood(
+    joint_log_likelihood, detection_efficiency, *, n_events,
+):
+    """Condition an unconditional joint event likelihood on GW detection.
+
+    Parameters
+    ----------
+    joint_log_likelihood:
+        One-dimensional sum of the *unconditional* event log likelihoods,
+        evaluated on a common H0 grid.
+    detection_efficiency:
+        P(det | H0), evaluated on the same grid under the same population,
+        host-mixture, and noise assumptions as the event likelihood.
+    n_events:
+        Number of detected events in the analysed sample.
+
+    Returns
+    -------
+    ndarray
+        joint_log_likelihood - n_events * log(detection_efficiency).
+
+    This is the conditional-on-detection correction for a fixed-size sample
+    when event likelihoods are unconditional and detections are conditionally
+    independent. It does not calculate detection efficiency, model event
+    counts/rates, or validate that the caller used a consistent population
+    model. Do not apply it to event likelihoods that already condition on
+    detection, as that would double-correct selection.
+    """
+    log_l = _vector(
+        joint_log_likelihood, "joint_log_likelihood", min_size=2
+    )
+    efficiency = _vector(
+        detection_efficiency, "detection_efficiency", min_size=2
+    )
+    if log_l.size != efficiency.size:
+        raise ValueError(
+            "joint_log_likelihood and detection_efficiency must have the same size."
+        )
+    if np.any(efficiency <= 0) or np.any(efficiency > 1):
+        raise ValueError("detection_efficiency must lie in (0, 1].")
+    if isinstance(n_events, (bool, np.bool_)) or not isinstance(
+        n_events, (int, np.integer)
+    ) or n_events < 1:
+        raise ValueError("n_events must be a positive integer.")
+    return log_l - int(n_events) * np.log(efficiency)
