@@ -46,7 +46,7 @@ The runner records raw replicate/arm metrics, aggregate metrics, runtime, softwa
 
 ## Metrics
 
-Replicate records include density integrated squared error, H0 posterior mean and equal-tail interval, coverage indicator, posterior-grid values, weight ESS and ESS fraction, maximum and 95th-percentile normalized weight, assumed selection probability minimum, and minimum GW-like detection efficiency. Aggregates include bias, RMSE, empirical coverage numerator/denominator, interval width, density ISE, and weight diagnostics.
+Replicate records include density integrated squared error, H0 posterior mean and equal-tail interval, coverage indicator, posterior-grid values, weight ESS and ESS fraction, maximum and 95th-percentile normalized weight, assumed selection probability minimum, and minimum GW-like detection efficiency. Aggregates include bias, RMSE, empirical coverage numerator/denominator with a 95% Wilson score interval, interval width, density ISE, and weight diagnostics. Paired contrasts versus catalogue-only are calculated for H0 squared error and density ISE, with a replicate-level standard error and normal-approximation 95% interval when at least two replicates are available. With one replicate, uncertainty bounds are explicitly null rather than implying precision.
 
 ## Important limitations and gates
 
