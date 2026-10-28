@@ -86,7 +86,7 @@ def test_independent_audit_rejects_tampered_posterior_grid(tmp_path):
     # Alter the grid while preserving all summary columns: a scalar-only audit
     # would miss this inconsistency.
     density = json.loads(rows[0]["posterior_density_grid_json"])
-    density[10] *= 1.25
+    density[len(density) // 2] *= 1.25
     rows[0]["posterior_density_grid_json"] = json.dumps(density, separators=(",", ":"))
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=columns)
