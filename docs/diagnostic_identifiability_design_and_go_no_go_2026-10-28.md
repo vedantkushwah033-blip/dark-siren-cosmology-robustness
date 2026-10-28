@@ -13,6 +13,19 @@ The current repository contains separately audited sensitivity experiments for h
 
 The target is diagnostic identifiability under this simulator—not a universal misspecification detector, a new H0 estimator, or a validated dark-siren method. Novelty remains unestablished until the full methods/results of the closest literature are compared.
 
+## 1A. Existing analysis discovered in a supplied but unintegrated patch bundle
+
+A nine-patch `pr3_all_9_commits.mbox` supplied for review contains completed synthetic analyses named:
+- prior-predictive calibration of distance-uncertainty likelihoods;
+- decomposition of fixed-truth coverage heterogeneity;
+- a diagnostic-power study reporting complementary blind spots of PIT and coverage diagnostics.
+
+The reported diagnostic-power result already evaluates multiple analyst-model errors and sample sizes (N = 100, 300, 1000) in one synthetic configuration. It reports that PIT/coverage diagnostics have complementary sensitivities, while several moderate misspecifications are difficult to detect at N ≤ 1000. The supplied results explicitly state that the study uses one configuration and one seed and does not test interactions between the error families.
+
+**This changes the priority:** do not implement another broad diagnostic-power study until these existing analyses are integrated or independently reviewed. A genuinely new follow-on would need a distinct prespecified estimand—for example, a host-error × distance-noise-error interaction—or a robustness replication across configurations/seeds. First reconcile the uploaded bundle with the live PR #3 branch and verify the results/artifacts/tests at the rebased revision.
+
+Important provenance limitation: the uploaded file contains **nine** patches, while the accompanying handoff text refers to a separate **13-commit** rebased series. These are not assumed to be the same patch set. The nine-patch bundle has not been applied to or verified against the live PR #3 head in this audit.
+
 ## 2. Critical feasibility gate: event-level versus dataset-level inference
 
 The inspected `posterior_h0` API accepts a single scalar `gw_distance` and `gw_sigma` per call, with a vector of candidate host redshifts inside that event's mixture. That is an event-level posterior routine, not, by itself, a multi-event hierarchical likelihood or a dataset-level posterior-predictive diagnostic framework.
