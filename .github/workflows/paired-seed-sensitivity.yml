@@ -70,33 +70,129 @@ jobs:
             --seed "$BASE_SEED" \
             --output-dir results/paired-seed
 
-      - name: Validate output files
+      - name: Validate output contents and pairing identities
         run: |
           python - <<'PY'
-          import csv, json
+          import csv
+          import json
+          import math
           from pathlib import Path
+
           out = Path("results/paired-seed")
-          expected = {
+          expected_files = {
               "paired_per_run_results.csv",
               "paired_contrasts.csv",
               "paired_contrast_summary.csv",
               "paired_metadata.json",
           }
-          missing = expected - {p.name for p in out.iterdir()}
+          actual_files = {p.name for p in out.iterdir() if p.is_file()}
+          missing = expected_files - actual_files
           if missing:
               raise SystemExit(f"Missing outputs: {sorted(missing)}")
-          meta = json.loads((out / "paired_metadata.json").read_text())
-          per_run = list(csv.DictReader((out / "paired_per_run_results.csv").open()))
-          contrasts = list(csv.DictReader((out / "paired_contrasts.csv").open()))
-          summaries = list(csv.DictReader((out / "paired_contrast_summary.csv").open()))
+
+          def read_csv(name):
+              with (out / name).open(newline="", encoding="utf-8") as stream:
+                  return list(csv.DictReader(stream))
+
+          meta = json.loads((out / "paired_metadata.json").read_text(encoding="utf-8"))
+          per_run = read_csv("paired_per_run_results.csv")
+          contrasts = read_csv("paired_contrasts.csv")
+          summaries = read_csv("paired_contrast_summary.csv")
           reps = int(meta["replicates_per_scenario"])
-          if len(per_run) != reps * int(meta["scenario_count"]):
+          scenario_names = [item["name"] for item in meta["scenarios"]]
+          contrast_names = [item["name"] for item in meta["contrasts"]]
+          metrics = {
+              "median", "mean", "posterior_sd", "width_68", "width_95",
+              "pull_median", "pull_mean", "covered_68", "covered_95",
+          }
+          expected_ids = set(range(reps))
+
+          if len(scenario_names) != int(meta["scenario_count"]) or len(set(scenario_names)) != len(scenario_names):
+              raise SystemExit("Scenario metadata count or uniqueness failure")
+          if len(contrast_names) != int(meta["contrast_count"]) or len(set(contrast_names)) != len(contrast_names):
+              raise SystemExit("Contrast metadata count or uniqueness failure")
+          if len(per_run) != reps * len(scenario_names):
               raise SystemExit("Unexpected per-run row count")
-          if len(contrasts) != reps * int(meta["contrast_count"]) * int(meta["metric_count"]):
+          if len(contrasts) != reps * len(contrast_names) * len(metrics):
               raise SystemExit("Unexpected paired contrast row count")
-          if len(summaries) != int(meta["contrast_count"]) * int(meta["metric_count"]):
+          if len(summaries) != len(contrast_names) * len(metrics):
               raise SystemExit("Unexpected contrast summary row count")
-          print(f"Validated outputs: {len(per_run)} scenario rows; {len(contrasts)} contrast rows; {len(summaries)} summaries")
+
+          by_scenario = {}
+          for name in scenario_names:
+              rows = [r for r in per_run if r["scenario"] == name]
+              ids = [int(r["pair_id"]) for r in rows]
+              if len(rows) != reps or set(ids) != expected_ids or len(set(ids)) != reps:
+                  raise SystemExit(f"{name}: missing, duplicate, or unexpected replicate IDs")
+              by_scenario[name] = {int(r["pair_id"]): r for r in rows}
+              for r in rows:
+                  for key in ("median", "mean", "posterior_sd", "lower_68", "upper_68",
+                              "lower_95", "upper_95", "width_68", "width_95",
+                              "pull_median", "pull_mean", "realized_completeness"):
+                      value = float(r[key])
+                      if not math.isfinite(value):
+                          raise SystemExit(f"{name} replicate {r['pair_id']}: non-finite {key}")
+                  if float(r["lower_68"]) > float(r["upper_68"]) or float(r["lower_95"]) > float(r["upper_95"]):
+                      raise SystemExit(f"{name} replicate {r['pair_id']}: reversed interval")
+                  completeness = float(r["realized_completeness"])
+                  if not 0.0 <= completeness <= 1.0:
+                      raise SystemExit(f"{name} replicate {r['pair_id']}: invalid completeness")
+                  if r["covered_68"] not in {"0", "1"} or r["covered_95"] not in {"0", "1"}:
+                      raise SystemExit(f"{name} replicate {r['pair_id']}: invalid coverage indicator")
+
+          summary_keys = set()
+          for row in summaries:
+              key = (row["contrast"], row["metric"])
+              if key in summary_keys:
+                  raise SystemExit(f"Duplicate contrast summary: {key}")
+              summary_keys.add(key)
+              if row["contrast"] not in contrast_names or row["metric"] not in metrics:
+                  raise SystemExit(f"Unexpected summary key: {key}")
+              if int(row["n_pairs"]) != reps:
+                  raise SystemExit(f"Incorrect pair count in summary: {key}")
+              for field in ("mean_difference", "paired_difference_se"):
+                  if not math.isfinite(float(row[field])):
+                      raise SystemExit(f"Non-finite {field} in summary: {key}")
+
+          contrast_keys = set()
+          for row in contrasts:
+              contrast = row["contrast"]
+              metric = row["metric"]
+              pair_id = int(row["pair_id"])
+              key = (contrast, metric, pair_id)
+              if key in contrast_keys:
+                  raise SystemExit(f"Duplicate contrast row: {key}")
+              contrast_keys.add(key)
+              if contrast not in contrast_names or metric not in metrics or pair_id not in expected_ids:
+                  raise SystemExit(f"Unexpected contrast key: {key}")
+              a_name, b_name = row["scenario_a"], row["scenario_b"]
+              if a_name not in by_scenario or b_name not in by_scenario:
+                  raise SystemExit(f"Unknown scenario in contrast: {key}")
+              a = by_scenario[a_name][pair_id]
+              b = by_scenario[b_name][pair_id]
+              value_a, value_b = float(row["value_a"]), float(row["value_b"])
+              difference = float(row["difference_b_minus_a"])
+              if not all(math.isfinite(v) for v in (value_a, value_b, difference)):
+                  raise SystemExit(f"Non-finite paired value: {key}")
+              if not math.isclose(value_a, float(a[metric]), rel_tol=1e-10, abs_tol=1e-10):
+                  raise SystemExit(f"Scenario A value mismatch: {key}")
+              if not math.isclose(value_b, float(b[metric]), rel_tol=1e-10, abs_tol=1e-10):
+                  raise SystemExit(f"Scenario B value mismatch: {key}")
+              if not math.isclose(difference, value_b - value_a, rel_tol=1e-10, abs_tol=1e-10):
+                  raise SystemExit(f"Incorrect B-minus-A difference: {key}")
+
+          expected_summary_keys = {(c, m) for c in contrast_names for m in metrics}
+          expected_contrast_keys = {(c, m, i) for c in contrast_names for m in metrics for i in expected_ids}
+          if summary_keys != expected_summary_keys:
+              raise SystemExit("Contrast-summary key set is incomplete or unexpected")
+          if contrast_keys != expected_contrast_keys:
+              raise SystemExit("Paired-contrast key set is incomplete or unexpected")
+
+          print(
+              f"Validated {len(per_run)} scenario rows, {len(contrasts)} paired rows, "
+              f"{len(summaries)} summaries; all scenario replicate IDs align."
+          )
+          print("Note: this checks output integrity and IDs, not scientific validity of pairing.")
           PY
 
       - name: Upload paired-seed outputs
