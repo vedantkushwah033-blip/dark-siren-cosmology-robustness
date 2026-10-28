@@ -50,7 +50,7 @@ def run_benchmark(*, n_replicates=10, n_parent=6000, n_detected=40, seed=2026102
                 "known_completeness": (observed_z, p_include)}
         for arm, (sample, probabilities) in arms.items():
             host = estimate_host_density(z, sample, inclusion_probability=probabilities,
-                                         merger_weight=merger, bandwidth_factor=0.8)
+                                         merger_weight=merger, bandwidth_factor=None)
             like = selection_aware_toy_likelihood(z, host, h0, distances, sigma=sigma_mpc,
                                                   detection_threshold=detection_threshold_mpc)
             s = posterior_summary(h0, like["selected_log_likelihood"])
@@ -72,7 +72,7 @@ def run_benchmark(*, n_replicates=10, n_parent=6000, n_detected=40, seed=2026102
         "seed_start": seed, "h0_true_km_s_mpc": h0_true, "sigma_mpc": sigma_mpc,
         "detection_threshold_mpc": detection_threshold_mpc,
         "h0_grid": [h0_min, h0_max, h0_points], "redshift_grid": [float(z[0]), float(z[-1]), z_points],
-        "bandwidth_factor": 0.8, "arms": {
+        "bandwidth_factor": None, "bandwidth_rule": "weighted Scott rule (h = weighted_SD * n_eff**(-1/5))", "arms": {
             "oracle": "parent truth redshifts; benchmark reference only",
             "catalogue_only": "observed catalogue without completeness correction",
             "known_completeness": "observed catalogue with known declared inclusion probabilities"},
