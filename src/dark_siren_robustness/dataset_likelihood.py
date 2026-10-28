@@ -96,11 +96,25 @@ def dataset_posterior_h0(H0_grid, events: Sequence[Mapping], *, prior_min=50.0, 
     finite = np.isfinite(supported)
     if not np.any(finite):
         raise ValueError("Joint posterior normalization failed: no finite likelihood on prior support.")
-    shifted = np.zeros(grid.size, dtype=float)
-    shifted[support] = np.exp(supported - np.max(supported[finite]))
-    area = float(trapezoid(shifted[support], grid[support]))
+
+    # Integrate over the full prior interval even when lo/hi fall between grid
+    # points. Interpolate log likelihood at inserted boundaries (piecewise-linear
+    # in log likelihood); otherwise trapezoidal normalization silently truncates
+    # the prior support to the first/last interior grid points.
+    interior_grid = grid[support]
+    interior_log_likelihood = joint_log_likelihood[support]
+    norm_grid = np.unique(np.concatenate(([lo], interior_grid, [hi])))
+    norm_log_likelihood = np.interp(norm_grid, interior_grid, interior_log_likelihood)
+    finite_norm = np.isfinite(norm_log_likelihood)
+    if not np.any(finite_norm):
+        raise ValueError("Joint posterior normalization failed: no finite likelihood on prior support.")
+    log_shift = float(np.max(norm_log_likelihood[finite_norm]))
+    norm_density = np.exp(norm_log_likelihood - log_shift)
+    norm_density[~finite_norm] = 0.0
+    area = float(trapezoid(norm_density, norm_grid))
     if not np.isfinite(area) or area <= 0:
         raise ValueError("Joint posterior normalization failed.")
+
     posterior = np.zeros_like(grid)
-    posterior[support] = shifted[support] / area
+    posterior[support] = np.exp(joint_log_likelihood[support] - log_shift) / area
     return posterior
