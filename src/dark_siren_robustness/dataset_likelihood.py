@@ -1,8 +1,12 @@
-"""Minimal dataset-level composition for the controlled synthetic event model.
+"""Minimal dataset-level composition for a controlled synthetic event model.
 
-This module supports conditionally independent events with a shared H0 and a
-uniform prior on a declared grid. It does not implement selection conditioning,
-event-rate inference, or shared nuisance parameters.
+This module combines prior-free event log likelihoods for conditionally
+independent events with a shared H0 and uniform prior. It also exposes isolated
+selection-conditioning and toy detection-efficiency primitives; those helpers
+do not turn dataset_posterior_h0 into a selection-aware hierarchical model.
+Event-rate inference and shared nuisance-parameter marginalization remain out
+of scope. None of the toy selection functions is a gravitational-wave detector
+model.
 """
 from __future__ import annotations
 from collections.abc import Mapping, Sequence
@@ -184,6 +188,13 @@ def event_detection_efficiency(
     conditioned on d > 0, and the detection threshold must be non-negative.
     Catalogue and missing-host components use the same normalized mixture
     convention as event_log_likelihood.
+
+    Scientific interpretation matters: the redshift mixture and weights supplied
+    here must represent the population distribution used to normalize detection
+    probability. An event-specific candidate-host catalogue is not automatically
+    that population distribution. This toy helper deliberately assumes that the
+    declared finite mixture is appropriate for both the event likelihood and
+    the selection integral; it does not infer or validate that assumption.
 
     This is a transparent one-sided toy selection function, not a gravitational-wave
     detector efficiency. The more general finite-interval selection model used
