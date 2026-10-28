@@ -25,6 +25,14 @@ def estimate_host_density(
     positive: zero-probability regions cannot be recovered by inverse weights.
     Reflection reduces, but does not eliminate, KDE boundary bias. The final
     density is truncated and renormalized on the specified finite domain.
+
+    Bandwidth convention:
+    - None: weighted Scott rule, h = weighted_SD(sample) * n_eff**(-1/5).
+    - A positive factor: h = factor * weighted_SD(sample).
+
+    The spread is computed from the original observed sample before reflection.
+    This is a physical bandwidth convention, not SciPy gaussian_kde's
+    bw_method-float covariance-factor convention.
     """
     grid = np.asarray(redshift_grid, dtype=float)
     sample = np.asarray(observed_redshift, dtype=float)
