@@ -1,8 +1,9 @@
 # Dataset-level likelihood review: prior-grid and model-scope checks
 
 **Date:** 2026-10-28  
-**Reviewed revision:** `80568631442d160b9b273df1ccbb10a568a2ba4f`  
-**Status:** source review; latest workflow was pending when checked.
+**Initial reviewed revision:** `80568631442d160b9b273df1ccbb10a568a2ba4f`  
+**Follow-up fix:** `051d2d78558af8ddee5ab10eccb24d068d66a4d6` plus regression tests in `c8d12223753549daee24b7591cdb0883a5ffd0f4`.  
+**Status:** prior-grid-boundary issue addressed in code; exact-head CI was pending at the time of this update.
 
 ## Summary
 
@@ -10,18 +11,19 @@ The new `dataset_likelihood.py` is a useful minimal composition layer for condit
 
 This is not yet a population-level dark-siren likelihood. It is a discrete-grid posterior prototype for a declared toy event likelihood.
 
-## Finding 1 — grid support does not require prior boundaries to be represented
+## Finding 1 — prior-grid boundaries omitted: fixed with a fail-closed contract
 
-The function checks that at least two grid points lie within `[prior_min, prior_max]`, then normalizes the posterior using only those supported grid points and trapezoidal integration. It does not require the grid to include either prior boundary, nor does it insert the boundaries by interpolation.
+The initial implementation accepted a grid that did not include the declared prior endpoints, then integrated only over interior nodes. That could silently change the numerical integration domain.
 
-This behavior is a legitimate discrete-grid convention if explicitly intended, but it can silently approximate a continuous uniform prior on a truncated grid interval rather than the declared full interval. Near a prior edge, the difference can affect posterior normalization and interval summaries.
+The follow-up patch now:
+- requires positive prior bounds with `prior_min < prior_max`;
+- rejects a grid that does not span the full prior interval;
+- rejects a grid that does not contain both prior endpoints exactly;
+- adds regression tests for omitted endpoints, insufficient grid span, and non-positive prior bounds.
 
-**Recommendation:** choose and test one explicit policy:
-1. Require grid points to include both prior boundaries within a documented tolerance; or
-2. Interpolate log likelihood to the exact prior boundaries and integrate on the augmented grid; or
-3. Clearly define the prior as the discrete grid restricted to supported grid nodes and document its quadrature convention.
+This deliberately chooses a fail-closed grid contract rather than silently interpolating the log likelihood. It is less flexible than boundary interpolation but straightforward and auditable. Existing callers must supply grids containing the declared prior endpoints. The tests still need to pass on the exact final commit before this fix is called CI-validated.
 
-For research-facing continuous-grid inference, option 2 is generally the more flexible choice, but it needs independent numerical tests. Do not silently alter the existing API without reviewing callers.
+**Remaining numerical requirement:** the endpoint check does not establish grid convergence. Posterior summaries should still be compared with finer grids or independent quadrature, particularly for narrow likelihoods and truths near prior boundaries.
 
 ## Finding 2 — non-negative redshift validation is broader than the intended extragalactic domain
 
@@ -43,7 +45,7 @@ Each event mapping has its own `missing_weight` and missing-host support. This i
 
 ## Required tests before confirmatory use
 
-- Prior bounds exactly represented, and behavior when they are not.
+- Prior bounds exactly represented, and behavior when they are not (implemented as a fail-closed contract; exact-head CI pending at this document revision).
 - Convergence against a dense-grid or independent quadrature reference.
 - Posterior summary stability for truths near each prior edge.
 - Strictly positive host-redshift validation, or a documented zero-redshift boundary test.
