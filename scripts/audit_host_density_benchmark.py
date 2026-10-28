@@ -1,8 +1,9 @@
 """Consistency audit for host-density-to-H0 benchmark summary artifacts.
 
-Important: the current schema stores posterior summaries and a claimed integral,
-not the posterior grid. The auditor can check that claimed scalar but cannot
-independently reconstruct posterior normalization or quantiles from the grid.
+The auditor independently integrates each saved posterior density vector and
+reconstructs its mean, equal-tail quantiles, interval width, and aggregate
+metrics. This is artifact-consistency validation, not a reimplementation of
+the scientific likelihood or KDE.
 """
 from __future__ import annotations
 

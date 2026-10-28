@@ -14,7 +14,7 @@ REQUIRED = {
     "ci68_low", "ci68_high", "ci68_width", "posterior_integral",
     "posterior_density_grid_json", "covered_68", "density_ise", "weight_ess",
     "weight_ess_fraction", "max_normalized_weight", "q95_normalized_weight",
-    "min_assumed_inclusion_probability",
+    "min_assumed_inclusion_probability", "n_parent", "n_catalogue_observed",
 }
 
 
@@ -139,6 +139,25 @@ def audit_artifacts(output_dir: str | Path) -> dict:
         if seed != int(summary["seed_start"]) + rep:
             raise ValueError(f"seed mismatch at {key}")
         _close(row["h0_true"], h0_true, "row true H0")
+        n_parent = int(row["n_parent"])
+        n_catalogue = int(row["n_catalogue_observed"])
+        if n_parent < 100 or not 1 <= n_catalogue <= n_parent:
+            raise ValueError(f"invalid parent/catalogue counts at {key}")
+        sample_size = n_parent if arm in {"analytic_truth", "oracle"} else n_catalogue
+        ess = _num(row["weight_ess"], "weight_ess")
+        ess_fraction = _num(row["weight_ess_fraction"], "weight_ess_fraction")
+        max_weight = _num(row["max_normalized_weight"], "max_normalized_weight")
+        q95_weight = _num(row["q95_normalized_weight"], "q95_normalized_weight")
+        min_probability = _num(
+            row["min_assumed_inclusion_probability"], "min_assumed_inclusion_probability"
+        )
+        if not 0 < ess <= sample_size + 1e-8:
+            raise ValueError(f"weight ESS outside (0, sample size] at {key}")
+        _close(ess_fraction, ess / sample_size, "weight ESS fraction", atol=1e-8)
+        if not 0 < max_weight <= 1 or not 0 < q95_weight <= max_weight + 1e-9:
+            raise ValueError(f"invalid normalized-weight diagnostics at {key}")
+        if not 0 < min_probability <= 1:
+            raise ValueError(f"minimum assumed inclusion probability outside (0, 1] at {key}")
         reconstructed = _posterior(row, grid)
         for metric, value in reconstructed.items():
             _close(row[metric], value, f"reconstructed {metric}")
@@ -157,6 +176,10 @@ def audit_artifacts(output_dir: str | Path) -> dict:
     for rep in range(n_replicates):
         if {arm for r, arm in by_key if r == rep} != set(ARMS):
             raise ValueError(f"replicate {rep} is not paired across all arms")
+        paired = [by_key[(rep, arm)] for arm in ARMS]
+        for column in ("seed", "h0_true", "n_parent", "n_catalogue_observed"):
+            if len({str(row[column]) for row in paired}) != 1:
+                raise ValueError(f"paired arms disagree on {column} at replicate {rep}")
     aggregates = summary.get("aggregate_metrics")
     aggregate_by_arm = {item.get("arm"): item for item in aggregates if isinstance(item, dict)}
     if set(aggregate_by_arm) != set(ARMS):

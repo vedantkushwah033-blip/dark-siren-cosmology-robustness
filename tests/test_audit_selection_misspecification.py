@@ -83,3 +83,45 @@ def test_audit_rejects_missing_arm_even_when_manifest_is_rehashed(tmp_path):
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + chr(10), encoding="utf-8")
     with pytest.raises(ValueError, match="raw record count mismatch"):
         audit_artifacts(folder)
+
+
+
+def test_audit_rejects_impossible_weight_ess_even_if_manifest_is_rehashed(tmp_path):
+    folder = tmp_path / "pilot"
+    _run_smoke(folder)
+    raw = folder / "replicate_metrics.csv"
+    with raw.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+        columns = list(rows[0])
+    # Catalogue-only has at most n_catalogue_observed effective samples.
+    rows[0]["weight_ess"] = str(int(rows[0]["n_catalogue_observed"]) + 10)
+    with raw.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=columns)
+        writer.writeheader()
+        writer.writerows(rows)
+    manifest_path = folder / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["files"]["replicate_metrics.csv"]["sha256"] = hashlib.sha256(raw.read_bytes()).hexdigest()
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + chr(10), encoding="utf-8")
+    with pytest.raises(ValueError, match="weight ESS"):
+        audit_artifacts(folder)
+
+
+def test_audit_rejects_invalid_assumed_inclusion_probability_even_if_manifest_is_rehashed(tmp_path):
+    folder = tmp_path / "pilot"
+    _run_smoke(folder)
+    raw = folder / "replicate_metrics.csv"
+    with raw.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+        columns = list(rows[0])
+    rows[0]["min_assumed_inclusion_probability"] = "0"
+    with raw.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=columns)
+        writer.writeheader()
+        writer.writerows(rows)
+    manifest_path = folder / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["files"]["replicate_metrics.csv"]["sha256"] = hashlib.sha256(raw.read_bytes()).hexdigest()
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + chr(10), encoding="utf-8")
+    with pytest.raises(ValueError, match="minimum assumed inclusion probability"):
+        audit_artifacts(folder)
