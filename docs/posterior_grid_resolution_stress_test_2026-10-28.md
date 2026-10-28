@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-This is a **targeted numerical stress test of the posterior-grid calculation**, not a new astrophysical result and not a full production-repository test run. The calculation independently reimplemented the equations in `hardened_inference.py` and `posterior_summary` and compared a coarse grid against a much finer reference grid. The production module was inspected at the current research branch, but the stress calculation did not import the repository package directly; the numbers below should therefore be treated as an independently reproduced warning that still needs to be converted into a repository regression test.
+This is a **targeted numerical stress test of the posterior-grid calculation**, not a new astrophysical result. The initial table below came from an independent reimplementation; a follow-up audit, `scripts/audit_extreme_grid_resolution.py`, now performs the same comparison using the actual `posterior_h0` and `posterior_summary` package functions. Regression tests are in `tests/test_extreme_grid_resolution_audit.py`, and the test workflow has been updated to run the test and archive its JSON report. The latest commit's CI must complete before this repository-level audit is called validated.
 
 ## Question
 
@@ -40,7 +40,7 @@ This is a general numerical limitation of summarizing a sharply peaked density f
 
 ## Recommended engineering response
 
-1. Add this as a deterministic regression/stress test that runs against the actual package function, not only an independent transcription.
+1. The direct-package deterministic stress audit and regression test have now been added. Check their GitHub Actions result for the exact head SHA before treating them as validated.
 2. Define an explicit resolution criterion and behavior. A possible criterion is the number of grid intervals spanning the central 68% interval, but the threshold must be tested against reference-grid errors across peak locations, prior boundaries, and mixture/multimodal cases before being adopted.
 3. Prefer a warning or explicit convergence diagnostic over silently returning a precise-looking but unresolved summary. Avoid changing default behavior until backward compatibility and downstream workflow effects are assessed.
 4. Re-run grid-convergence checks on the exact posterior summaries used in headline experiments, and record the tested commit, grid, and maximum discrepancies.
@@ -49,5 +49,5 @@ This is a general numerical limitation of summarizing a sharply peaked density f
 
 - The stress test used one host and a deliberately narrow likelihood to probe numerical failure, not a population of realistic gravitational-wave events.
 - The fine grid is a numerical reference, not an analytic posterior.
-- The numbers are from an independent reimplementation of the inspected equations, not yet a test executed against the repository import.
-- No production code, historical artifact, or experiment output was changed by this report.
+- The original table is from an independent reimplementation; the newly added direct-package audit should reproduce it closely, but that has not yet been confirmed by the pending CI run.
+- No production inference code, historical artifact, or headline experiment output was changed by this report.
