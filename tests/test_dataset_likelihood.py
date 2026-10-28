@@ -156,3 +156,30 @@ def test_multi_event_posterior_matches_direct_joint_likelihood_normalization():
     expected = normalize_on_prior(joint)
     actual = dataset_posterior_h0(GRID, items, **PRIOR)
     np.testing.assert_allclose(actual, expected, rtol=2e-11, atol=2e-12)
+
+
+def test_prior_boundaries_between_grid_points_are_included_in_normalization():
+    grid = np.linspace(40.0, 100.0, 301)
+    lo, hi = 50.07, 89.93
+    item = event(175.0, 18.0)
+    posterior = dataset_posterior_h0(
+        grid, [item], prior_min=lo, prior_max=hi
+    )
+    inside = (grid >= lo) & (grid <= hi)
+    interior_grid = grid[inside]
+    interior_density = posterior[inside]
+    assert interior_grid.size >= 2
+    assert np.all(interior_density > 0)
+
+    # Reconstruct the implementation's log-linear boundary interpolation and
+    # verify that the normalized density integrates over [lo, hi], not merely
+    # over the first and last interior grid points.
+    norm_grid = np.concatenate(([lo], interior_grid, [hi]))
+    norm_density = np.concatenate((
+        [np.exp(np.interp(lo, interior_grid[:2], np.log(interior_density[:2])))],
+        interior_density,
+        [np.exp(np.interp(hi, interior_grid[-2:], np.log(interior_density[-2:])))],
+    ))
+    assert trapezoid(norm_density, norm_grid) == pytest.approx(1.0, abs=2e-10)
+    assert posterior[grid < lo].sum() == 0.0
+    assert posterior[grid > hi].sum() == 0.0
