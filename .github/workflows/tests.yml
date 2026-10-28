@@ -40,6 +40,12 @@ jobs:
         run: python -m pytest tests/test_generative_selection.py -q
       - name: Run separated-selection generator smoke experiment
         run: python scripts/run_synthetic_selection_experiment.py --seed 20261028 --n-parent 1200 --n-detected 25 --output-dir artifacts/synthetic_selection_smoke
+      - name: Test bounded KDE host-density estimation and selection-weight correction
+        run: python -m pytest tests/test_catalogue_density.py -q
+      - name: Test host-density-to-H0 benchmark
+        run: python -m pytest tests/test_host_density_benchmark.py -q
+      - name: Run small host-density-to-H0 benchmark smoke experiment
+        run: python scripts/run_host_density_benchmark.py --replicates 1 --n-parent 1200 --n-detected 8 --h0-points 51 --z-points 201 --output-dir artifacts/host_density_benchmark_smoke
       - name: Test paired distance-uncertainty sensitivity experiment
         run: python -m pytest tests/test_uncertainty_sensitivity.py -q
       - name: Run paired distance-uncertainty sensitivity smoke experiment
