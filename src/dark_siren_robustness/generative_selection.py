@@ -119,8 +119,8 @@ def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000
         "catalogue_selection": {"formula": "floor + (1-floor)/(1+exp((z-midpoint)/width))", "floor": 0.10, "midpoint": 0.22, "width": 0.05},
         "merger_weight": "1 + 1.5*(z-z_min)/(z_max-z_min)",
         "distance_model": "d_obs ~ Normal(c*z/H0_true, sigma_mpc^2); detected iff d_obs >= threshold",
-        "observable_files": ["catalogue_observed.csv", "gw_events_observed.csv"],
-        "truth_only_files": ["parent_truth.csv", "gw_event_truth.csv"],
+        "observable_files": ["observable/catalogue_observed.csv", "observable/gw_events_observed.csv"],
+        "truth_only_files": ["truth/parent_truth.csv", "truth/gw_event_truth.csv"],
         "scientific_limit": "Low-redshift Euclidean distance toy with fixed H0 and fixed Gaussian noise; not realistic GW inference or real survey data.",
     }
     return {"config": config, "parent_truth": parent_truth, "catalogue_observed": catalogue_observed, "gw_events_observed": gw_events_observed, "gw_event_truth": gw_event_truth}

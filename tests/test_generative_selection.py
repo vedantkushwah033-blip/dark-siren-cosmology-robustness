@@ -63,6 +63,8 @@ def test_runner_writes_separate_observable_and_truth_artifacts(tmp_path: Path) -
     config = json.loads((output_dir / "config.json").read_text())
     assert config["n_parent"] == 1200
     assert config["n_detected_events"] == 25
+    assert config["observable_files"] == ["observable/catalogue_observed.csv", "observable/gw_events_observed.csv"]
+    assert config["truth_only_files"] == ["truth/parent_truth.csv", "truth/gw_event_truth.csv"]
     observed_events = pd.read_csv(output_dir / "observable" / "gw_events_observed.csv")
     truth_events = pd.read_csv(output_dir / "truth" / "gw_event_truth.csv")
     assert list(observed_events.columns) == ["event_id", "distance_mpc", "detected"]
