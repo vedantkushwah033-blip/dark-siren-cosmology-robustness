@@ -80,8 +80,15 @@ def dataset_posterior_h0(H0_grid, events: Sequence[Mapping], *, prior_min=50.0, 
     """
     grid = _vector(H0_grid, "H0_grid", min_size=2, increasing=True)
     lo, hi = float(prior_min), float(prior_max)
-    if not np.isfinite(lo) or not np.isfinite(hi) or lo >= hi:
-        raise ValueError("prior_min and prior_max must be finite with prior_min < prior_max.")
+    if not np.isfinite(lo) or not np.isfinite(hi) or lo <= 0 or lo >= hi:
+        raise ValueError("prior_min and prior_max must be finite, positive, and satisfy prior_min < prior_max.")
+    if grid[0] > lo or grid[-1] < hi:
+        raise ValueError("H0_grid must span the full prior interval [prior_min, prior_max].")
+    # The trapezoid rule must integrate over the declared prior support itself,
+    # not over the nearest interior grid points. Requiring both endpoints avoids
+    # silently changing the prior when a grid omits one or both boundaries.
+    if not np.any(grid == lo) or not np.any(grid == hi):
+        raise ValueError("H0_grid must include prior_min and prior_max exactly.")
     if len(events) == 0:
         raise ValueError("At least one event is required.")
     support = (grid >= lo) & (grid <= hi)
