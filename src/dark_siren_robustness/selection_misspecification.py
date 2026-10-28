@@ -84,7 +84,10 @@ def run_selection_misspecification(
     target_density = _normalized(latent_galaxy_intensity(z) * merger, z)
     # Fixed truth law used by the generator: floor=.10, midpoint=.22, width=.05.
     true_selection = {"floor": 0.10, "midpoint": 0.22, "width": 0.05}
-    analyst_models: dict[str, dict | None] = {
+    analyst_models: dict[str, dict | str | None] = {
+        # Analytic target is a diagnostic control: it removes finite-parent KDE
+        # noise and isolates bias from the event likelihood / selection model.
+        "analytic_truth": "analytic_truth",
         "oracle": None,
         "catalogue_only": None,
         "correct_weighting": true_selection,
@@ -104,18 +107,26 @@ def run_selection_misspecification(
         observed_z = sim["catalogue_observed"]["redshift"].to_numpy(dtype=float)
         distances = sim["gw_events_observed"]["distance_mpc"].to_numpy(dtype=float)
         for arm, assumed in analyst_models.items():
-            if arm == "oracle":
+            if arm == "analytic_truth":
+                # Exact declared target on the simulation grid. This is not an
+                # observable method; it is a diagnostic control for separating
+                # KDE/finite-parent error from likelihood/selection bias.
                 sample = parent_z
                 probability = None
+                density = target_density.copy()
             else:
-                sample = observed_z
-                probability = None if assumed is None else catalogue_inclusion_probability(
-                    observed_z, **assumed
+                if arm == "oracle":
+                    sample = parent_z
+                    probability = None
+                else:
+                    sample = observed_z
+                    probability = None if assumed is None else catalogue_inclusion_probability(
+                        observed_z, **assumed
+                    )
+                density = estimate_host_density(
+                    z, sample, inclusion_probability=probability,
+                    merger_weight=merger, bandwidth_factor=bandwidth_factor,
                 )
-            density = estimate_host_density(
-                z, sample, inclusion_probability=probability,
-                merger_weight=merger, bandwidth_factor=bandwidth_factor,
-            )
             likelihood = selection_aware_toy_likelihood(
                 z, density, h0, distances, sigma=sigma_mpc,
                 detection_threshold=detection_threshold_mpc,
@@ -205,6 +216,7 @@ def run_selection_misspecification(
         "paired_contrast_interval_note": "Normal-approximation intervals use the replicate-level paired-difference standard error; for one replicate only, uncertainty bounds are null. Use more replicates for research claims.",
         "limitations": [
             "Synthetic low-redshift Euclidean toy, not real GW or LVK inference.",
+            "Analytic-truth density is an inaccessible diagnostic control, not an estimable method.",
             "Oracle density uses parent redshifts and is not observable in practice.",
             "Correct weighting assumes the true selection law is known.",
             "The target density is the declared analytic toy intensity times a merger weight.",
