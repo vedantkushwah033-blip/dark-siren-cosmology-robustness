@@ -8,7 +8,7 @@ import json
 import math
 from pathlib import Path
 
-ARMS = ("oracle", "catalogue_only", "correct_weighting", "shifted_transition", "shallow_slope")
+ARMS = ("analytic_truth", "oracle", "catalogue_only", "correct_weighting", "shifted_transition", "shallow_slope")
 REQUIRED = {
     "replicate", "seed", "arm", "h0_true", "posterior_mean", "posterior_median",
     "ci68_low", "ci68_high", "ci68_width", "posterior_integral",
