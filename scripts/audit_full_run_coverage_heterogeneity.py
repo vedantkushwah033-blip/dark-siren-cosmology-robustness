@@ -30,10 +30,12 @@ def wilson(successes: int, n: int, z: float = 1.959963984540054) -> list[float]:
     denom = 1.0 + z * z / n
     center = (p + z * z / (2.0 * n)) / denom
     half = z * math.sqrt(p * (1.0 - p) / n + z * z / (4.0 * n * n)) / denom
-    return [max(0.0, center - half), min(1.0, center + half)]
+    low = 0.0 if successes == 0 else max(0.0, center - half)
+    high = 1.0 if successes == n else min(1.0, center + half)
+    return [low, high]
 
 
-def audit(path: Path) -> dict:
+def audit(path: Path, *, require_full_design: bool = False) -> dict:
     raw = path.read_bytes()
     digest = hashlib.sha256(raw).hexdigest()
     rows = []
@@ -55,6 +57,10 @@ def audit(path: Path) -> dict:
                 raise ValueError(f"non-finite value at CSV line {line_number}")
             if bounds[0] > bounds[1] or bounds[2] > bounds[3]:
                 raise ValueError(f"reversed interval at CSV line {line_number}")
+            if bounds[2] > bounds[0] or bounds[3] < bounds[1]:
+                raise ValueError(f"95% interval does not contain 68% interval at CSV line {line_number}")
+            if replicate < 0 or frac <= 0:
+                raise ValueError(f"negative replicate index or nonpositive fractional error at CSV line {line_number}")
             rows.append({
                 "true_h0": truth,
                 "fractional_error": frac,
@@ -71,6 +77,25 @@ def audit(path: Path) -> dict:
     arms = sorted({r["arm"] for r in rows})
     if set(arms) != set(EXPECTED_ARMS):
         raise ValueError(f"unexpected arm set: {arms}")
+
+    design_complete = None
+    if require_full_design:
+        expected_truths = {50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0, 90.0}
+        expected_fractions = {0.05, 0.10, 0.15, 0.20}
+        expected_replicates = set(range(300))
+        if {r["true_h0"] for r in rows} != expected_truths:
+            raise ValueError("full design has unexpected or missing true_h0 cells")
+        if {r["fractional_error"] for r in rows} != expected_fractions:
+            raise ValueError("full design has unexpected or missing fractional_error cells")
+        for truth in expected_truths:
+            for frac in expected_fractions:
+                for arm in EXPECTED_ARMS:
+                    cell = [r for r in rows if r["true_h0"] == truth and r["fractional_error"] == frac and r["arm"] == arm]
+                    if len(cell) != 300 or {r["replicate"] for r in cell} != expected_replicates:
+                        raise ValueError(f"incomplete replicate cell: true_h0={truth}, fractional_error={frac}, arm={arm}")
+        if len(rows) != 32400:
+            raise ValueError(f"full design expected 32400 rows, found {len(rows)}")
+        design_complete = True
 
     def summarize(group: list[dict]) -> dict:
         n = len(group)
@@ -119,6 +144,8 @@ def audit(path: Path) -> dict:
         "source_sha256": digest,
         "raw_record_count": len(rows),
         "unique_record_key_count": len(set(keys)),
+        "full_design_required": require_full_design,
+        "full_design_complete": design_complete,
         "coverage_rule": "closed interval: lower <= true_h0 <= upper",
         "boundary_truths": [50.0, 90.0],
         "interior_truth_rule": "50 < true_h0 < 90; this experiment's interior truths are 55,60,65,70,75,80,85",
@@ -139,8 +166,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input_csv", type=Path)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--require-full-design", action="store_true", help="Require all 9 truths × 4 error fractions × 300 replicates × 3 arms")
     args = parser.parse_args()
-    report = audit(args.input_csv)
+    report = audit(args.input_csv, require_full_design=args.require_full_design)
     text = json.dumps(report, indent=2, sort_keys=True) + "\n"
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(text, encoding="utf-8")
