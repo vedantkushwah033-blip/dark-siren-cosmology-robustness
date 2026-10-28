@@ -10,7 +10,21 @@ from dark_siren_robustness.generative_selection import catalogue_inclusion_proba
 from dark_siren_robustness.selection_toy import selection_aware_toy_likelihood
 
 def posterior_summary(grid, loglike):
-    shifted = np.asarray(loglike, dtype=float) - np.max(loglike)
+    """Normalize a log-likelihood on an explicit, finite H0 grid.
+
+    The function uses an implicit flat prior over the supplied grid. It rejects
+    malformed inputs rather than allowing NaNs, duplicate grid points, or
+    mismatched arrays to contaminate posterior summaries.
+    """
+    grid = np.asarray(grid, dtype=float)
+    loglike = np.asarray(loglike, dtype=float)
+    if grid.ndim != 1 or grid.size < 2 or not np.all(np.isfinite(grid)):
+        raise ValueError("H0 grid must be a finite one-dimensional array with at least two points")
+    if np.any(np.diff(grid) <= 0):
+        raise ValueError("H0 grid must be strictly increasing")
+    if loglike.ndim != 1 or loglike.shape != grid.shape or not np.all(np.isfinite(loglike)):
+        raise ValueError("loglike must be finite, one-dimensional, and match the H0 grid")
+    shifted = loglike - np.max(loglike)
     density = np.exp(shifted)
     area = float(trapezoid(density, grid))
     if not np.isfinite(area) or area <= 0:
