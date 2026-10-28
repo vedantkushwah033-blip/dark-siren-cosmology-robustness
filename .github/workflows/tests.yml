@@ -74,6 +74,10 @@ jobs:
         run: python -m pytest tests/test_prepare_chimera_v2_benchmark_data.py -q
       - name: Run focused grid-convergence regression tests
         run: python -m pytest tests/test_targeted_grid_convergence.py tests/test_grid_refinement_audit.py -q
+      - name: Test extreme posterior-grid resolution audit
+        run: python -m pytest tests/test_extreme_grid_resolution_audit.py -q
+      - name: Run deterministic extreme posterior-grid resolution audit
+        run: python scripts/audit_extreme_grid_resolution.py --output artifacts/extreme_grid_resolution_audit.json
       - name: Test independent distance-uncertainty grid-stability reconstruction
         run: python -m pytest tests/test_check_distance_uncertainty_grid_stability.py -q
       - name: Run posterior-grid stability diagnostic
