@@ -30,6 +30,8 @@ jobs:
         run: python -m pytest tests/test_dataset_likelihood.py -q
       - name: Test empirical toy detection-efficiency calibration
         run: python -m pytest tests/test_detection_efficiency_empirical.py -q
+      - name: Test low-redshift selection-aware toy likelihood
+        run: python -m pytest tests/test_selection_toy.py -q
       - name: Test paired distance-uncertainty sensitivity experiment
         run: python -m pytest tests/test_uncertainty_sensitivity.py -q
       - name: Run paired distance-uncertainty sensitivity smoke experiment
