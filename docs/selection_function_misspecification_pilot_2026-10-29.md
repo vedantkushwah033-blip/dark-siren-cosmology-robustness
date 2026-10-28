@@ -23,6 +23,8 @@ The assumed law affects inverse-inclusion weights only; it does not generate the
 
 The host-density target for integrated squared error is the declared analytic latent galaxy intensity multiplied by the same linear merger-weight function and normalized on the redshift grid. This target is a toy truth, not an empirical galaxy distribution.
 
+**Bandwidth semantics update:** after correcting the KDE API, an explicit `bandwidth_factor=f` means `h = f × weighted_SD(original observed sample)`; it is not SciPy's covariance multiplier and not a multiplier of Scott's bandwidth. Since values such as `f=0.8` are therefore very broad for this use, the selection pilot now defaults to Scott's weighted rule when `--bandwidth-factor` is omitted. Treat explicit factors as sensitivity settings, not as the default analysis choice.
+
 ### New diagnostic control: analytic truth
 
 The added `analytic_truth` arm uses this exact normalized target density directly, bypassing KDE. It is not an observable inference method and must not be presented as a competing practical estimator. Its purpose is to separate three sources of error: (i) finite-parent/KDE error in the `oracle` arm, (ii) catalogue incompleteness and weighting error in the other catalogue arms, and (iii) residual bias caused by the event likelihood, detection conditioning, numerical integration, or simulation mismatch. If the analytic-truth arm remains biased, tuning KDE bandwidth cannot be the explanation for that residual. This control should be examined before interpreting any apparent estimator ranking.
@@ -39,7 +41,7 @@ python scripts/run_selection_misspecification.py \
 python scripts/audit_selection_misspecification.py artifacts/selection_misspecification_smoke
 ```
 
-A 30-replicate pilot at the default grids is the configured initial research pilot, not a precise coverage study:
+A 30-replicate pilot at the default grids (now using Scott bandwidth unless an explicit factor is supplied) is the configured initial research pilot, not a precise coverage study:
 
 ```bash
 python scripts/run_selection_misspecification.py --replicates 30 \
