@@ -126,3 +126,24 @@ def test_audit_rejects_invalid_assumed_inclusion_probability_even_if_manifest_is
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + chr(10), encoding="utf-8")
     with pytest.raises(ValueError, match="minimum assumed inclusion probability"):
         audit_artifacts(folder)
+
+
+
+def test_audit_rejects_invalid_detection_efficiency_even_if_manifest_is_rehashed(tmp_path):
+    folder = tmp_path / "pilot"
+    _run_smoke(folder)
+    raw = folder / "replicate_metrics.csv"
+    with raw.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+        columns = list(rows[0])
+    rows[0]["min_detection_efficiency"] = "0"
+    with raw.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=columns)
+        writer.writeheader()
+        writer.writerows(rows)
+    manifest_path = folder / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["files"]["replicate_metrics.csv"]["sha256"] = hashlib.sha256(raw.read_bytes()).hexdigest()
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + chr(10), encoding="utf-8")
+    with pytest.raises(ValueError, match="minimum detection efficiency"):
+        audit_artifacts(folder)
