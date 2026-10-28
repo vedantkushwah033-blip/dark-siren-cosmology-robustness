@@ -1,8 +1,12 @@
-"""Minimal dataset-level composition for the controlled synthetic event model.
+"""Minimal dataset-level composition for a controlled synthetic event model.
 
-This module supports conditionally independent events with a shared H0 and a
-uniform prior on a declared grid. It does not implement selection conditioning,
-event-rate inference, or shared nuisance parameters.
+This module combines prior-free event log likelihoods for conditionally
+independent events with a shared H0 and uniform prior. It also exposes isolated
+selection-conditioning and toy detection-efficiency primitives; those helpers
+do not turn dataset_posterior_h0 into a selection-aware hierarchical model.
+Event-rate inference and shared nuisance-parameter marginalization remain out
+of scope. None of the toy selection functions is a gravitational-wave detector
+model.
 """
 from __future__ import annotations
 from collections.abc import Mapping, Sequence
@@ -84,6 +88,10 @@ def dataset_posterior_h0(H0_grid, events: Sequence[Mapping], *, prior_min=50.0, 
         raise ValueError("prior_min and prior_max must be finite with prior_min < prior_max.")
     if len(events) == 0:
         raise ValueError("At least one event is required.")
+    if grid[0] > lo or grid[-1] < hi:
+        raise ValueError(
+            "H0_grid must span the full prior interval; extrapolation beyond the grid is unsupported."
+        )
     support = (grid >= lo) & (grid <= hi)
     if np.count_nonzero(support) < 2:
         raise ValueError("H0_grid must contain at least two points inside the prior interval.")
@@ -96,11 +104,140 @@ def dataset_posterior_h0(H0_grid, events: Sequence[Mapping], *, prior_min=50.0, 
     finite = np.isfinite(supported)
     if not np.any(finite):
         raise ValueError("Joint posterior normalization failed: no finite likelihood on prior support.")
-    shifted = np.zeros(grid.size, dtype=float)
-    shifted[support] = np.exp(supported - np.max(supported[finite]))
-    area = float(trapezoid(shifted[support], grid[support]))
+
+    # Integrate over the full prior interval even when lo/hi fall between grid
+    # points. Interpolate log likelihood at inserted boundaries (piecewise-linear
+    # in log likelihood); otherwise trapezoidal normalization silently truncates
+    # the prior support to the first/last interior grid points.
+    interior_grid = grid[support]
+    interior_log_likelihood = joint_log_likelihood[support]
+    norm_grid = np.unique(np.concatenate(([lo], interior_grid, [hi])))
+    norm_log_likelihood = np.interp(norm_grid, grid, joint_log_likelihood)
+    finite_norm = np.isfinite(norm_log_likelihood)
+    if not np.any(finite_norm):
+        raise ValueError("Joint posterior normalization failed: no finite likelihood on prior support.")
+    log_shift = float(np.max(norm_log_likelihood[finite_norm]))
+    norm_density = np.exp(norm_log_likelihood - log_shift)
+    norm_density[~finite_norm] = 0.0
+    area = float(trapezoid(norm_density, norm_grid))
     if not np.isfinite(area) or area <= 0:
         raise ValueError("Joint posterior normalization failed.")
+
     posterior = np.zeros_like(grid)
-    posterior[support] = shifted[support] / area
+    posterior[support] = np.exp(joint_log_likelihood[support] - log_shift) / area
     return posterior
+
+
+def selection_conditioned_log_likelihood(
+    joint_log_likelihood, detection_efficiency, *, n_events,
+):
+    """Condition an unconditional joint event likelihood on GW detection.
+
+    Parameters
+    ----------
+    joint_log_likelihood:
+        One-dimensional sum of the *unconditional* event log likelihoods,
+        evaluated on a common H0 grid.
+    detection_efficiency:
+        P(det | H0), evaluated on the same grid under the same population,
+        host-mixture, and noise assumptions as the event likelihood.
+    n_events:
+        Number of detected events in the analysed sample.
+
+    Returns
+    -------
+    ndarray
+        joint_log_likelihood - n_events * log(detection_efficiency).
+
+    This is the conditional-on-detection correction for a fixed-size sample
+    when event likelihoods are unconditional and detections are conditionally
+    independent. It does not calculate detection efficiency, model event
+    counts/rates, or validate that the caller used a consistent population
+    model. Do not apply it to event likelihoods that already condition on
+    detection, as that would double-correct selection.
+    """
+    log_l = _vector(
+        joint_log_likelihood, "joint_log_likelihood", min_size=2
+    )
+    efficiency = _vector(
+        detection_efficiency, "detection_efficiency", min_size=2
+    )
+    if log_l.size != efficiency.size:
+        raise ValueError(
+            "joint_log_likelihood and detection_efficiency must have the same size."
+        )
+    if np.any(efficiency <= 0) or np.any(efficiency > 1):
+        raise ValueError("detection_efficiency must lie in (0, 1].")
+    if isinstance(n_events, (bool, np.bool_)) or not isinstance(
+        n_events, (int, np.integer)
+    ) or n_events < 1:
+        raise ValueError("n_events must be a positive integer.")
+    return log_l - int(n_events) * np.log(efficiency)
+
+
+def event_detection_efficiency(
+    H0_grid, *, redshifts, gw_sigma, detection_distance_min,
+    weights=None, missing_weight=0.0, missing_redshifts=None,
+    missing_weights=None, positive_truncated=False,
+):
+    """Compute toy P(detected | H0) for a distance-threshold selection.
+
+    The toy observation model is d ~ Normal(c*z/H0, gw_sigma**2), with
+    detection defined by observed distance d >= detection_distance_min.
+    If positive_truncated=True, the Gaussian observation is additionally
+    conditioned on d > 0, and the detection threshold must be non-negative.
+    Catalogue and missing-host components use the same normalized mixture
+    convention as event_log_likelihood.
+
+    Scientific interpretation matters: the redshift mixture and weights supplied
+    here must represent the population distribution used to normalize detection
+    probability. An event-specific candidate-host catalogue is not automatically
+    that population distribution. This toy helper deliberately assumes that the
+    declared finite mixture is appropriate for both the event likelihood and
+    the selection integral; it does not infer or validate that assumption.
+
+    This is a transparent one-sided toy selection function, not a gravitational-wave
+    detector efficiency. The more general finite-interval selection model used
+    by selected-posterior inference lives in selection.py; this helper is kept
+    as a standalone analytic calculator and is cross-checked against that
+    implementation in the one-sided/infinite-upper-cut limit. It assumes fixed
+    host weights and a fixed noise scale; it does not model SNR, sky location,
+    detector duty cycle, or rate evolution.
+    """
+    grid = _vector(H0_grid, "H0_grid", min_size=2, increasing=True)
+    if np.any(grid <= 0):
+        raise ValueError("H0_grid must be positive.")
+    z = _vector(redshifts, "redshifts", nonnegative=True)
+    sigma = float(gw_sigma)
+    threshold = float(detection_distance_min)
+    missing_weight = float(missing_weight)
+    if not np.isfinite(sigma) or sigma <= 0:
+        raise ValueError("gw_sigma must be finite and positive.")
+    if not np.isfinite(threshold) or (positive_truncated and threshold < 0):
+        raise ValueError("detection_distance_min must be finite and non-negative for positive_truncated.")
+    if not np.isfinite(missing_weight) or not 0 <= missing_weight < 1:
+        raise ValueError("missing_weight must be in [0, 1).")
+    cat_w = _weights(weights, z.size, "weights") * (1.0 - missing_weight)
+
+    def component_efficiency(host_z, host_weights):
+        means = C_KM_S * host_z[None, :] / grid[:, None]
+        numerator = norm.sf((threshold - means) / sigma)
+        if positive_truncated:
+            denominator = norm.sf((0.0 - means) / sigma)
+            with np.errstate(divide="ignore", invalid="ignore"):
+                numerator = np.divide(
+                    numerator, denominator,
+                    out=np.zeros_like(numerator), where=denominator > 0,
+                )
+        return np.sum(numerator * host_weights[None, :], axis=1)
+
+    efficiency = component_efficiency(z, cat_w)
+    if missing_weight > 0:
+        if missing_redshifts is None:
+            raise ValueError("missing_redshifts are required when missing_weight > 0.")
+        mz = _vector(missing_redshifts, "missing_redshifts", nonnegative=True)
+        mw = _weights(missing_weights, mz.size, "missing_weights") * missing_weight
+        efficiency += component_efficiency(mz, mw)
+    if not np.all(np.isfinite(efficiency)) or np.any(efficiency <= 0) or np.any(efficiency > 1):
+        raise ValueError("Computed detection efficiency is outside (0, 1]; check model inputs.")
+    return efficiency

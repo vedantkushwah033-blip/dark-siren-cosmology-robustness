@@ -81,3 +81,14 @@ A source inspection of the pinned CHIMERA v2.2 commit `fd35f897e36850d865c760c13
 ## Provenance boundary
 
 This is a source-level execution contract, not an executed reproduction, independent validation of CHIMERA, or evidence that our current model is astrophysically valid. Any future benchmark report must be generated from actual run logs and verified artifacts.
+
+
+## Public-release provenance recheck (2026-10-28)
+
+A follow-up check of the official [CHIMERA GitHub releases](https://github.com/CosmoStatGW/CHIMERA/releases) and the public [CHIMERA v2.0 Zenodo record](https://zenodo.org/records/17143346) does not close the v2.2 input gap.
+
+- The official GitHub release page identifies v2.2 as a software release at commit `fd35f89`; the release notes describe software/API changes and the new example notebooks, but do not document a downloadable archive containing the exact 100-event SNR-25 mock and the v2.2-derived incomplete-catalogue products required above.
+- The public v2.0 Zenodo record lists an SNR-20 pixelated event file named `PE_O5Like_snr20_pixelated_nsidelist512-256-128-64-32-16-8_meanpixels15_skyconf0.9_nestFalse.h5`, plus an injection file and parent galaxy catalogue. This is not the v2.2 notebook's required `O5snr25_100evs_mock1_pixelated_...` file. Similar filenames or shared injection products do not establish matching event samples, selection cuts, masks, or precomputed catalogue likelihood terms.
+- The search did not identify a public source for `pcat_incomplete.h5` or the exact mock-1, magnitude-cut-10 completeness products. Absence from these checked public records is not proof that the files are unavailable elsewhere; it means their source and checksums remain unverified for this project.
+
+**Decision unchanged: NO-GO for a matched end-to-end CHIMERA v2.2 benchmark.** The v2.0 fixture may be used only for a separately named, version-matched compatibility exercise if its full assumptions are documented; it must not be presented as reproducing the v2.2 incomplete-catalogue notebook.

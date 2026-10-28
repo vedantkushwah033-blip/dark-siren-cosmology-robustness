@@ -2,7 +2,7 @@
 
 **Status:** mathematical contract plus isolated prototype; not a validated hierarchical dark-siren likelihood.  
 **Date:** 2026-10-28  
-**Branch:** `audit/research-readiness-2026-10-28`
+**Branch:** `fix/prior-boundary-grid-normalization`
 
 ## Why this contract exists
 
@@ -96,8 +96,23 @@ If the mechanisms are not separable at the chosen sample size, that is a valid p
 
 **Current status: NO-GO for a confirmatory dataset-level diagnostic-identifiability run.** Existing event-level inference and synthetic experiments do not by themselves establish that a coherent shared-parameter dataset likelihood and prespecified diagnostic vector have been implemented and validated together. This document narrows the design requirements; it does not close that gate.
 
-The first isolated prototype now lives in `src/dark_siren_robustness/dataset_likelihood.py`, with 13 limiting-case and metamorphic tests in `tests/test_dataset_likelihood.py`. It composes prior-free event log likelihoods and applies the uniform H0 prior once. Tests cover one-event equivalence (including missing-host mixtures and positive-distance truncation), log-likelihood additivity, event-order invariance, event duplication, zero hidden-host mass, prior-support normalization, host-weight scale invariance, missing-weight boundary rejection, and direct three-event normalization. The workflow previously reported success on commit `97c7588e800659d7be9998d40647d0df008088ad`, but inspection showed its YAML did not invoke this new test file. Commit `8587d3d85ac97db9e17c8d73bbd1b526d8f18970` adds the dedicated pytest step; validation of that updated workflow is pending. This is only a prototype: selection conditioning, event-rate inference, and shared nuisance parameters remain out of scope. Production inference code and existing headline artifacts remain unchanged.
+The first isolated prototype lives in `src/dark_siren_robustness/dataset_likelihood.py`; its dedicated tests are in `tests/test_dataset_likelihood.py`. It composes prior-free event log likelihoods and applies the uniform H0 prior once. The suite covers one-event equivalence (including missing-host mixtures and positive-distance truncation), log-likelihood additivity, event-order invariance, event duplication, zero hidden-host mass, prior-support normalization, host-weight scale invariance, missing-weight boundary rejection, direct three-event normalization, off-grid prior endpoints, and rejection of likelihood grids that fail to span the prior. There are 15 test functions (16 pytest cases including the two parameterized grid-rejection cases).
+
+The off-grid-boundary fix inserts the exact prior endpoints into the trapezoidal normalization grid and linearly interpolates the joint log likelihood at those endpoints from the full input grid. The input grid must span the prior interval; unsupported extrapolation is rejected. The returned array still gives density values only at the caller's original grid points, with zeros outside prior support. When a boundary falls between grid points, downstream numerical integration should include the same exact endpoints rather than integrate only the returned interior samples.
+
+GitHub Actions run #1681 (run ID `40672003105`) passed on commit `4af63d5c414e4857cf021ef3fd2a66810371f874`; numerical-diagnostics jobs passed on Python 3.10, 3.11, and 3.12, and the longer 3.12-only experiment/audit steps completed successfully. This validates the configured checks, not scientific validity of a real-data analysis. This remains an isolated prototype: selection conditioning, event-rate inference, and shared nuisance parameters are out of scope. Production inference code and existing headline artifacts remain unchanged.
 
 ## Scope limitations
 
 This is a simplified low-redshift relation, d_L approximately c*z/H0, with finite candidate-host mixtures and toy Gaussian distance observations. It does not include a full gravitational-wave strain likelihood, real detector selection, a realistic galaxy-population model, a rate model, or external CHIMERA validation. No real-data H0 estimate or novelty claim follows from this design contract.
+
+
+## 8. Isolated selection-conditioning primitive added (2026-10-28)
+
+The source module now contains `selection_conditioned_log_likelihood(joint_log_likelihood, detection_efficiency, n_events=...)`. Given a prior-free sum of *unconditional* event log likelihoods and a separately computed efficiency array on the same H0 grid, it returns:
+
+`log L_selected(H0) = log L_unconditional(D | H0) - N log beta(H0)`
+
+This is only an algebraic correction primitive. It does **not** compute `beta(H0)`, establish that the supplied efficiency uses the same host/population/noise model as the numerator, implement a GW detection statistic, model event counts, or turn the current prototype into a validated selection-aware hierarchical likelihood. Do not use it if the input event likelihood already conditions on detection. The caller remains responsible for choosing between a fixed-count conditional likelihood and a rate/Poisson point-process model.
+
+Regression tests added with this helper check the algebra, the constant-efficiency limiting case, invalid efficiency values, mismatched array lengths, and invalid event counts. These tests are necessary but not sufficient for the full benchmark. The next gate is an independently integrated toy detection efficiency derived from an explicitly declared generative model, followed by a check that the numerator and denominator share exactly the same population mixture.

@@ -156,3 +156,304 @@ def test_multi_event_posterior_matches_direct_joint_likelihood_normalization():
     expected = normalize_on_prior(joint)
     actual = dataset_posterior_h0(GRID, items, **PRIOR)
     np.testing.assert_allclose(actual, expected, rtol=2e-11, atol=2e-12)
+
+
+def test_prior_boundaries_between_grid_points_are_included_in_normalization():
+    grid = np.linspace(40.0, 100.0, 301)
+    lo, hi = 50.07, 89.93
+    item = event(175.0, 18.0)
+    posterior = dataset_posterior_h0(
+        grid, [item], prior_min=lo, prior_max=hi
+    )
+    log_likelihood = event_log_likelihood(grid, **item)
+    support = (grid >= lo) & (grid <= hi)
+    interior_grid = grid[support]
+    assert interior_grid.size >= 2
+
+    # Independent reconstruction: interpolate log likelihood at both prior
+    # endpoints using the full original grid, including the grid points just
+    # outside prior support, then integrate across the exact prior interval.
+    norm_grid = np.unique(np.concatenate(([lo], interior_grid, [hi])))
+    norm_log_likelihood = np.interp(norm_grid, grid, log_likelihood)
+    shift = np.max(norm_log_likelihood)
+    norm_density = np.exp(norm_log_likelihood - shift)
+    area = trapezoid(norm_density, norm_grid)
+    norm_density /= area
+    expected = np.zeros_like(grid)
+    expected[support] = np.exp(log_likelihood[support] - shift) / area
+    np.testing.assert_allclose(posterior, expected, rtol=2e-12, atol=2e-12)
+    assert trapezoid(norm_density, norm_grid) == pytest.approx(1.0, abs=2e-10)
+    assert posterior[grid < lo].sum() == 0.0
+    assert posterior[grid > hi].sum() == 0.0
+
+@pytest.mark.parametrize(
+    ("grid", "prior_min", "prior_max"),
+    [
+        (np.linspace(60.0, 100.0, 201), 50.0, 90.0),
+        (np.linspace(40.0, 80.0, 201), 50.0, 90.0),
+    ],
+)
+def test_grid_must_span_full_prior_interval(grid, prior_min, prior_max):
+    with pytest.raises(ValueError, match="must span the full prior interval"):
+        dataset_posterior_h0(
+            grid, [event(175.0, 18.0)],
+            prior_min=prior_min, prior_max=prior_max,
+        )
+
+
+def test_selection_conditioning_subtracts_log_detection_efficiency():
+    from dark_siren_robustness.dataset_likelihood import (
+        selection_conditioned_log_likelihood,
+    )
+
+    joint = np.array([-3.0, -2.0, -4.0])
+    efficiency = np.array([0.2, 0.5, 0.8])
+    actual = selection_conditioned_log_likelihood(
+        joint, efficiency, n_events=4
+    )
+    np.testing.assert_allclose(actual, joint - 4 * np.log(efficiency))
+
+
+def test_constant_detection_efficiency_changes_only_likelihood_offset():
+    from dark_siren_robustness.dataset_likelihood import (
+        selection_conditioned_log_likelihood,
+    )
+
+    joint = np.array([-4.0, -2.0, -3.0])
+    corrected = selection_conditioned_log_likelihood(
+        joint, np.full(joint.size, 0.25), n_events=7
+    )
+    np.testing.assert_allclose(corrected - joint, np.full(3, -7 * np.log(0.25)))
+    np.testing.assert_allclose(
+        np.diff(corrected), np.diff(joint), rtol=0, atol=1e-13
+    )
+
+
+@pytest.mark.parametrize(
+    "efficiency",
+    [
+        np.array([0.2, 0.0, 0.8]),
+        np.array([0.2, -0.1, 0.8]),
+        np.array([0.2, 1.1, 0.8]),
+        np.array([0.2, np.nan, 0.8]),
+    ],
+)
+def test_selection_conditioning_rejects_invalid_efficiencies(efficiency):
+    from dark_siren_robustness.dataset_likelihood import (
+        selection_conditioned_log_likelihood,
+    )
+
+    with pytest.raises(ValueError):
+        selection_conditioned_log_likelihood(
+            np.array([-3.0, -2.0, -4.0]), efficiency, n_events=3
+        )
+
+
+def test_selection_conditioning_rejects_shape_mismatch_and_invalid_event_count():
+    from dark_siren_robustness.dataset_likelihood import (
+        selection_conditioned_log_likelihood,
+    )
+
+    with pytest.raises(ValueError, match="same size"):
+        selection_conditioned_log_likelihood(
+            np.array([-3.0, -2.0, -4.0]), np.array([0.2, 0.8]), n_events=2
+        )
+    for invalid_count in (0, -1, 1.5, True):
+        with pytest.raises(ValueError, match="positive integer"):
+            selection_conditioned_log_likelihood(
+                np.array([-3.0, -2.0, -4.0]),
+                np.array([0.2, 0.5, 0.8]),
+                n_events=invalid_count,
+            )
+
+
+def test_toy_detection_efficiency_matches_analytic_single_host_gaussian():
+    from scipy.stats import norm
+    from dark_siren_robustness.dataset_likelihood import event_detection_efficiency
+
+    grid = np.array([60.0, 70.0, 80.0])
+    z = 0.03
+    sigma = 20.0
+    threshold = 100.0
+    actual = event_detection_efficiency(
+        grid, redshifts=[z], gw_sigma=sigma,
+        detection_distance_min=threshold,
+    )
+    means = 299_792.458 * z / grid
+    expected = norm.sf((threshold - means) / sigma)
+    np.testing.assert_allclose(actual, expected, rtol=2e-14, atol=1e-15)
+    assert np.all(np.diff(actual) < 0)
+
+
+def test_toy_detection_efficiency_uses_same_catalogue_missing_mixture():
+    from scipy.stats import norm
+    from dark_siren_robustness.dataset_likelihood import event_detection_efficiency
+
+    grid = np.array([65.0, 75.0])
+    catalog_z = np.array([0.02, 0.04])
+    hidden_z = np.array([0.06])
+    catalog_weights = np.array([0.25, 0.75])
+    hidden_weight = 0.3
+    sigma = 25.0
+    threshold = 120.0
+    actual = event_detection_efficiency(
+        grid, redshifts=catalog_z, weights=catalog_weights,
+        gw_sigma=sigma, detection_distance_min=threshold,
+        missing_weight=hidden_weight, missing_redshifts=hidden_z,
+        missing_weights=[1.0],
+    )
+    means_cat = 299_792.458 * catalog_z[None, :] / grid[:, None]
+    means_hidden = 299_792.458 * hidden_z[None, :] / grid[:, None]
+    expected = (1 - hidden_weight) * np.sum(
+        catalog_weights[None, :] * norm.sf((threshold - means_cat) / sigma),
+        axis=1,
+    ) + hidden_weight * norm.sf((threshold - means_hidden[:, 0]) / sigma)
+    np.testing.assert_allclose(actual, expected, rtol=2e-14, atol=1e-15)
+
+
+def test_positive_truncated_detection_efficiency_conditions_on_positive_distance():
+    from scipy.stats import norm
+    from dark_siren_robustness.dataset_likelihood import event_detection_efficiency
+
+    grid = np.array([60.0, 75.0])
+    z = 0.01
+    sigma = 35.0
+    threshold = 80.0
+    actual = event_detection_efficiency(
+        grid, redshifts=[z], gw_sigma=sigma,
+        detection_distance_min=threshold, positive_truncated=True,
+    )
+    means = 299_792.458 * z / grid
+    expected = norm.sf((threshold - means) / sigma) / norm.sf((0.0 - means) / sigma)
+    np.testing.assert_allclose(actual, expected, rtol=2e-14, atol=1e-15)
+
+
+def test_toy_detection_efficiency_rejects_missing_support_and_invalid_threshold():
+    from dark_siren_robustness.dataset_likelihood import event_detection_efficiency
+
+    with pytest.raises(ValueError, match="missing_redshifts"):
+        event_detection_efficiency(
+            GRID, redshifts=[0.02], gw_sigma=20.0,
+            detection_distance_min=100.0, missing_weight=0.2,
+        )
+    with pytest.raises(ValueError, match="non-negative"):
+        event_detection_efficiency(
+            GRID, redshifts=[0.02], gw_sigma=20.0,
+            detection_distance_min=-1.0, positive_truncated=True,
+        )
+
+
+def test_one_sided_toy_efficiency_matches_existing_interval_selection_limit():
+    """Cross-check independent implementations as the upper cut tends to infinity."""
+    from dark_siren_robustness.dataset_likelihood import event_detection_efficiency
+    from dark_siren_robustness.selection import detection_efficiency_h0
+
+    grid = np.array([60.0, 70.0, 80.0])
+    redshifts = np.array([0.02, 0.035, 0.05])
+    weights = np.array([0.2, 0.5, 0.3])
+    sigma = 22.0
+    lower = 95.0
+
+    one_sided = event_detection_efficiency(
+        grid, redshifts=redshifts, weights=weights,
+        gw_sigma=sigma, detection_distance_min=lower,
+    )
+    wide_interval = detection_efficiency_h0(
+        grid, redshifts, sigma, 10000.0,
+        weights=weights, detection_distance_min=lower,
+    )
+    np.testing.assert_allclose(one_sided, wide_interval, rtol=2e-12, atol=1e-14)
+
+
+def test_selection_conditioning_helper_matches_existing_selected_posterior():
+    from dark_siren_robustness.dataset_likelihood import (
+        selection_conditioned_log_likelihood,
+    )
+    from dark_siren_robustness.selection import (
+        detection_efficiency_h0,
+        posterior_h0_selected,
+    )
+
+    item = event(
+        150.0, 25.0, redshifts=(0.02, 0.04), weights=[0.3, 0.7]
+    )
+    upper_threshold = 180.0
+    base_log_likelihood = event_log_likelihood(GRID, **item)
+    beta = detection_efficiency_h0(
+        GRID, item["redshifts"], item["gw_sigma"], upper_threshold,
+        weights=item["weights"],
+    )
+    corrected_log_likelihood = selection_conditioned_log_likelihood(
+        base_log_likelihood, beta, n_events=1
+    )
+    reconstructed = normalize_on_prior(corrected_log_likelihood)
+    existing = posterior_h0_selected(
+        GRID, item["redshifts"], item["gw_distance"], item["gw_sigma"],
+        upper_threshold, weights=item["weights"], **PRIOR,
+    )
+    np.testing.assert_allclose(
+        reconstructed, existing, rtol=3e-10, atol=3e-12
+    )
+
+
+
+def test_missing_host_selected_posterior_matches_shared_mixture_correction():
+    """The event numerator and beta denominator must use the same host mixture."""
+    from dark_siren_robustness.dataset_likelihood import (
+        event_detection_efficiency,
+        selection_conditioned_log_likelihood,
+    )
+    from dark_siren_robustness.selection import (
+        posterior_h0_selected_with_missing_hosts,
+    )
+
+    catalog_z = np.array([0.02, 0.04])
+    catalog_weights = np.array([0.7, 0.3])
+    missing_z = np.array([0.055, 0.075])
+    missing_weights = np.array([0.25, 0.75])
+    missing_mass = 0.35
+    distance = 150.0
+    sigma = 25.0
+    lower_cut = 80.0
+    # A very wide upper cut makes the finite-interval reference numerically
+    # equivalent to the one-sided toy efficiency used by the standalone helper.
+    upper_cut = 10_000.0
+
+    event_log_l = event_log_likelihood(
+        GRID,
+        redshifts=catalog_z,
+        gw_distance=distance,
+        gw_sigma=sigma,
+        weights=catalog_weights,
+        missing_weight=missing_mass,
+        missing_redshifts=missing_z,
+        missing_weights=missing_weights,
+    )
+    beta = event_detection_efficiency(
+        GRID,
+        redshifts=catalog_z,
+        weights=catalog_weights,
+        gw_sigma=sigma,
+        detection_distance_min=lower_cut,
+        missing_weight=missing_mass,
+        missing_redshifts=missing_z,
+        missing_weights=missing_weights,
+    )
+    corrected = selection_conditioned_log_likelihood(
+        event_log_l, beta, n_events=1
+    )
+    reconstructed = normalize_on_prior(corrected)
+    reference = posterior_h0_selected_with_missing_hosts(
+        GRID,
+        catalog_z,
+        distance,
+        sigma,
+        upper_cut,
+        catalog_weights=catalog_weights,
+        missing_weight=missing_mass,
+        missing_redshifts=missing_z,
+        missing_weights=missing_weights,
+        detection_distance_min=lower_cut,
+        **PRIOR,
+    )
+    np.testing.assert_allclose(reconstructed, reference, rtol=5e-9, atol=5e-11)
