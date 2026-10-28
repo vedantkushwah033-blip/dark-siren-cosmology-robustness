@@ -62,7 +62,7 @@ P_{\rm det}(z,H_0)=
 \Phi\!\left(\frac{cz/H_0-d_{\min}}{\sigma}\right),
 $$
 
-for a common $\sigma$; event-specific uncertainties require a correspondingly specified population-level convention. If the model truncates distances to $d>0$, the generating distribution and detection-efficiency calculation must both include that truncation. They must never silently mix truncated and untruncated conventions.
+for the common $\sigma$ used by the initial prototype. The generating distribution and efficiency calculation must use the same noise convention. If the model truncates distances to $d>0$, both must include that truncation. They must never silently mix truncated and untruncated conventions.
 
 Under the shared host-population assumption, the detection efficiency is
 
@@ -89,7 +89,7 @@ $$
 \log\mathcal L_{\rm det}(H_0)=
 \sum_{i=1}^{N}\log\left[
 \int_{\mathcal Z}p_{\rm host}(z)
-\mathcal N(d_i;cz/H_0,\sigma_i^2)\,dz\right]
+\mathcal N(d_i;cz/H_0,\sigma^2)\,dz\right]
 -N\log\beta(H_0)+C,
 $$
 
