@@ -80,6 +80,6 @@ def test_audit_rejects_missing_arm_even_when_manifest_is_rehashed(tmp_path):
     manifest_path = folder / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["files"]["replicate_metrics.csv"]["sha256"] = hashlib.sha256(raw.read_bytes()).hexdigest()
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     with pytest.raises(ValueError, match="raw record count mismatch"):
         audit_artifacts(folder)
