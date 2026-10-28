@@ -89,3 +89,26 @@ def test_independent_audit_rejects_misdeclared_completeness_model(tmp_path: Path
     checked = run_script(AUDITOR, str(output_dir), env=env)
     assert checked.returncode != 0
     assert "parameters differ" in checked.stdout + checked.stderr
+
+def test_independent_audit_rejects_tampered_binomial_standard_deviation(tmp_path: Path) -> None:
+    output_dir = tmp_path / "tampered-binomial-sd"
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(ROOT / "src") + os.pathsep + env.get("PYTHONPATH", "")
+    generated = run_script(
+        RUNNER,
+        "--n-parent", "1200",
+        "--seed", "734",
+        "--output-dir", str(output_dir),
+        env=env,
+    )
+    assert generated.returncode == 0, generated.stdout + generated.stderr
+
+    summary_path = output_dir / "catalogue_thinning_summary.json"
+    summary = json.loads(summary_path.read_text())
+    summary["strata"][0]["binomial_sd"] += 0.5
+    summary_path.write_text(json.dumps(summary, indent=2) + "\\n")
+
+    checked = run_script(AUDITOR, str(output_dir), env=env)
+    assert checked.returncode != 0
+    assert "binomial_sd" in checked.stdout + checked.stderr
+
