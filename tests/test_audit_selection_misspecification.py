@@ -49,7 +49,7 @@ def test_audit_rejects_tampered_posterior_even_if_manifest_is_rehashed(tmp_path)
         rows = list(csv.DictReader(handle))
         columns = list(rows[0])
     density = json.loads(rows[0]["posterior_density_grid_json"])
-    density[10] *= 1.25
+    density[len(density) // 2] *= 1.25
     rows[0]["posterior_density_grid_json"] = json.dumps(density, separators=(",", ":"))
     with raw.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=columns)
