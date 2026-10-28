@@ -108,7 +108,7 @@ def dataset_posterior_h0(H0_grid, events: Sequence[Mapping], *, prior_min=50.0, 
     interior_grid = grid[support]
     interior_log_likelihood = joint_log_likelihood[support]
     norm_grid = np.unique(np.concatenate(([lo], interior_grid, [hi])))
-    norm_log_likelihood = np.interp(norm_grid, interior_grid, interior_log_likelihood)
+    norm_log_likelihood = np.interp(norm_grid, grid, joint_log_likelihood)
     finite_norm = np.isfinite(norm_log_likelihood)
     if not np.any(finite_norm):
         raise ValueError("Joint posterior normalization failed: no finite likelihood on prior support.")
