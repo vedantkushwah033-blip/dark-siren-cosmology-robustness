@@ -165,25 +165,25 @@ def test_prior_boundaries_between_grid_points_are_included_in_normalization():
     posterior = dataset_posterior_h0(
         grid, [item], prior_min=lo, prior_max=hi
     )
-    inside = (grid >= lo) & (grid <= hi)
-    interior_grid = grid[inside]
-    interior_density = posterior[inside]
+    log_likelihood = event_log_likelihood(grid, **item)
+    support = (grid >= lo) & (grid <= hi)
+    interior_grid = grid[support]
     assert interior_grid.size >= 2
-    assert np.all(interior_density > 0)
 
-    # Reconstruct the implementation's log-linear boundary interpolation and
-    # verify that the normalized density integrates over [lo, hi], not merely
-    # over the first and last interior grid points.
-    norm_grid = np.concatenate(([lo], interior_grid, [hi]))
-    norm_density = np.concatenate((
-        [np.exp(np.interp(lo, interior_grid[:2], np.log(interior_density[:2])))],
-        interior_density,
-        [np.exp(np.interp(hi, interior_grid[-2:], np.log(interior_density[-2:])))],
-    ))
+    # Independent reconstruction: interpolate log likelihood at both prior
+    # endpoints using the full original grid, including the grid points just
+    # outside prior support, then integrate across the exact prior interval.
+    norm_grid = np.unique(np.concatenate(([lo], interior_grid, [hi])))
+    norm_log_likelihood = np.interp(norm_grid, grid, log_likelihood)
+    shift = np.max(norm_log_likelihood)
+    norm_density = np.exp(norm_log_likelihood - shift)
+    area = trapezoid(norm_density, norm_grid)
+    expected = np.zeros_like(grid)
+    expected[support] = np.exp(log_likelihood[support] - shift) / area
+    np.testing.assert_allclose(posterior, expected, rtol=2e-12, atol=2e-12)
     assert trapezoid(norm_density, norm_grid) == pytest.approx(1.0, abs=2e-10)
     assert posterior[grid < lo].sum() == 0.0
     assert posterior[grid > hi].sum() == 0.0
-
 
 @pytest.mark.parametrize(
     ("grid", "prior_min", "prior_max"),
