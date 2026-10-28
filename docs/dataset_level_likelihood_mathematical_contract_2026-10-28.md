@@ -105,3 +105,14 @@ GitHub Actions run #1681 (run ID `40672003105`) passed on commit `4af63d5c414e48
 ## Scope limitations
 
 This is a simplified low-redshift relation, d_L approximately c*z/H0, with finite candidate-host mixtures and toy Gaussian distance observations. It does not include a full gravitational-wave strain likelihood, real detector selection, a realistic galaxy-population model, a rate model, or external CHIMERA validation. No real-data H0 estimate or novelty claim follows from this design contract.
+
+
+## 8. Isolated selection-conditioning primitive added (2026-10-28)
+
+The source module now contains `selection_conditioned_log_likelihood(joint_log_likelihood, detection_efficiency, n_events=...)`. Given a prior-free sum of *unconditional* event log likelihoods and a separately computed efficiency array on the same H0 grid, it returns:
+
+`log L_selected(H0) = log L_unconditional(D | H0) - N log beta(H0)`
+
+This is only an algebraic correction primitive. It does **not** compute `beta(H0)`, establish that the supplied efficiency uses the same host/population/noise model as the numerator, implement a GW detection statistic, model event counts, or turn the current prototype into a validated selection-aware hierarchical likelihood. Do not use it if the input event likelihood already conditions on detection. The caller remains responsible for choosing between a fixed-count conditional likelihood and a rate/Poisson point-process model.
+
+Regression tests added with this helper check the algebra, the constant-efficiency limiting case, invalid efficiency values, mismatched array lengths, and invalid event counts. These tests are necessary but not sufficient for the full benchmark. The next gate is an independently integrated toy detection efficiency derived from an explicitly declared generative model, followed by a check that the numerator and denominator share exactly the same population mixture.
