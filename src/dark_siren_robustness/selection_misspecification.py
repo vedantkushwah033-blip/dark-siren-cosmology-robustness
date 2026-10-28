@@ -27,6 +27,28 @@ def _normalized(values: np.ndarray, grid: np.ndarray) -> np.ndarray:
     return values / area
 
 
+def _wilson_interval(successes: int, trials: int, z_value: float = 1.959963984540054) -> tuple[float, float]:
+    """95% Wilson score interval for a binomial proportion."""
+    if trials < 1 or not 0 <= successes <= trials:
+        raise ValueError("invalid binomial count")
+    p = successes / trials
+    z2 = z_value * z_value
+    denominator = 1.0 + z2 / trials
+    center = (p + z2 / (2.0 * trials)) / denominator
+    half = z_value * np.sqrt(p * (1.0 - p) / trials + z2 / (4.0 * trials * trials)) / denominator
+    return max(0.0, float(center - half)), min(1.0, float(center + half))
+
+
+def _paired_mean_contrast(values: np.ndarray) -> dict:
+    mean = float(np.mean(values))
+    if len(values) < 2:
+        return {"mean": mean, "standard_error": None, "normal_95_low": None, "normal_95_high": None}
+    standard_error = float(np.std(values, ddof=1) / np.sqrt(len(values)))
+    return {"mean": mean, "standard_error": standard_error,
+            "normal_95_low": mean - 1.96 * standard_error,
+            "normal_95_high": mean + 1.96 * standard_error}
+
+
 def run_selection_misspecification(
     *,
     n_replicates: int = 30,
@@ -129,6 +151,7 @@ def run_selection_misspecification(
     for arm, group in frame.groupby("arm", sort=False):
         errors = group["posterior_mean"].to_numpy(dtype=float) - h0_true
         covered = group["covered_68"].astype(bool).to_numpy()
+        coverage_low, coverage_high = _wilson_interval(int(np.sum(covered)), len(covered))
         aggregate.append({
             "arm": arm, "n_replicates": len(group),
             "mean_bias": float(np.mean(errors)),
@@ -136,10 +159,32 @@ def run_selection_misspecification(
             "empirical_68_coverage": float(np.mean(covered)),
             "coverage_numerator": int(np.sum(covered)),
             "coverage_denominator": int(len(covered)),
+            "coverage_wilson_95_low": coverage_low,
+            "coverage_wilson_95_high": coverage_high,
             "mean_68_interval_width": float(group["ci68_width"].mean()),
             "mean_density_ise": float(group["density_ise"].mean()),
             "mean_weight_ess_fraction": float(group["weight_ess_fraction"].mean()),
             "mean_max_normalized_weight": float(group["max_normalized_weight"].mean()),
+        })
+    baseline = frame[frame["arm"] == "catalogue_only"].set_index("replicate")
+    paired_contrasts = []
+    for arm in analyst_models:
+        if arm == "catalogue_only":
+            continue
+        comparison = frame[frame["arm"] == arm].set_index("replicate")
+        squared_error_difference = (
+            (comparison["posterior_mean"] - h0_true) ** 2
+            - (baseline["posterior_mean"] - h0_true) ** 2
+        ).to_numpy(dtype=float)
+        density_ise_difference = (
+            comparison["density_ise"] - baseline["density_ise"]
+        ).to_numpy(dtype=float)
+        paired_contrasts.append({
+            "arm": arm,
+            "reference_arm": "catalogue_only",
+            "negative_values_favor_comparison_arm": True,
+            "squared_error_difference": _paired_mean_contrast(squared_error_difference),
+            "density_ise_difference": _paired_mean_contrast(density_ise_difference),
         })
     summary = {
         "status": "synthetic_selection_misspecification_pilot_not_real_H0_measurement",
@@ -156,6 +201,8 @@ def run_selection_misspecification(
         "density_target": "normalized latent_galaxy_intensity(z) times declared linear merger weight",
         "arms": list(analyst_models),
         "aggregate_metrics": aggregate,
+        "paired_contrasts_vs_catalogue_only": paired_contrasts,
+        "paired_contrast_interval_note": "Normal-approximation intervals use the replicate-level paired-difference standard error; for one replicate only, uncertainty bounds are null. Use more replicates for research claims.",
         "limitations": [
             "Synthetic low-redshift Euclidean toy, not real GW or LVK inference.",
             "Oracle density uses parent redshifts and is not observable in practice.",
