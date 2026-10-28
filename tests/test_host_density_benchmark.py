@@ -18,6 +18,8 @@ def test_three_arms_share_each_replicate_and_return_valid_posteriors():
     assert rows.ci68_width.gt(0).all()
     assert len(summary["aggregate_metrics"]) == 3
     assert summary["status"] == "synthetic_exploratory_benchmark_not_real_H0_measurement"
+    assert summary["bandwidth_factor"] is None
+    assert "weighted Scott rule" in summary["bandwidth_rule"]
 
 def test_rejects_too_coarse_grid():
     with pytest.raises(ValueError, match="grid"):
