@@ -49,12 +49,6 @@ def event_log_likelihood(
         raise ValueError("gw_sigma must be finite and positive.")
     if not np.isfinite(missing_weight) or not 0 <= missing_weight < 1:
         raise ValueError("missing_weight must be in [0, 1).")
-    if missing_weight == 0 and (
-        missing_redshifts is not None or missing_weights is not None
-    ):
-        raise ValueError(
-            "missing_redshifts/missing_weights were supplied but missing_weight is zero."
-        )
     catalog_weights = _weights(weights, z.size, "weights") * (1.0 - missing_weight)
 
     def mixture_log_density(host_z, host_weights):
@@ -212,12 +206,6 @@ def event_detection_efficiency(
         raise ValueError("detection_distance_min must be finite and non-negative for positive_truncated.")
     if not np.isfinite(missing_weight) or not 0 <= missing_weight < 1:
         raise ValueError("missing_weight must be in [0, 1).")
-    if missing_weight == 0 and (
-        missing_redshifts is not None or missing_weights is not None
-    ):
-        raise ValueError(
-            "missing_redshifts/missing_weights were supplied but missing_weight is zero."
-        )
     cat_w = _weights(weights, z.size, "weights") * (1.0 - missing_weight)
 
     def component_efficiency(host_z, host_weights):
