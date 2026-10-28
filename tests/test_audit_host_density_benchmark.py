@@ -27,7 +27,9 @@ def test_independent_audit_reconstructs_paired_rows_and_aggregates(tmp_path):
     assert report["status"] == "PASS"
     assert report["raw_record_count"] == 6
     assert report["replicates_verified"] == 2
-    assert report["posterior_normalizations_verified"] == 6
+    assert report["recorded_posterior_integral_claims_checked"] == 6
+    assert report["posterior_grid_independently_reconstructed"] is False
+    assert "recorded scalar" in report["audit_boundary"]
     assert report["aggregate_metrics_reconstructed"] == 3
     assert len(report["replicate_metrics_sha256"]) == 64
 
