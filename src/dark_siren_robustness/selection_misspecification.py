@@ -66,10 +66,11 @@ def run_selection_misspecification(
 ) -> tuple[pd.DataFrame, dict]:
     """Run paired arms under one fixed true catalogue-selection law.
 
-    Arms are oracle, catalogue-only, correct inverse-inclusion weighting,
-    shifted-transition weighting, and shallow-slope weighting. The assumed
-    selection model is only used to calculate weights; it never changes the
-    generated catalogue or GW-like event distances.
+    Arms are analytic truth (an inaccessible diagnostic control), finite-parent
+    oracle KDE, catalogue-only, correct inverse-inclusion weighting, shifted-
+    transition weighting, and shallow-slope weighting. The assumed selection
+    model only changes weights; it never changes the generated catalogue or
+    GW-like event distances.
     """
     if n_replicates < 1 or n_parent < 100 or n_detected < 1:
         raise ValueError("n_replicates/n_detected must be positive and n_parent >= 100")
