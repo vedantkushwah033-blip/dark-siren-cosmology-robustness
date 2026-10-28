@@ -365,3 +365,8 @@ Two new source-level / artifact-level analyses document limits that matter befor
 - [Fixed-truth coverage reference-interval audit](docs/fixed_truth_coverage_reference_interval_audit_2026-10-28.md): compares Bayesian equal-tail credible-interval coverage with an inverted Gaussian distance confidence interval in the archived Arm A synthetic artifact. This distinguishes two coverage estimands; it does not establish universal posterior calibration or astrophysical validity.
 
 These are in the draft research-readiness pull request and must pass exact-commit CI before being described as validated workflow outputs. The toy low-redshift relation, finite distance-window selection rule, prior sensitivity, and grid-resolution stress cases remain explicit limitations.
+
+
+### Dataset-level likelihood scope audit
+
+The [dataset-level likelihood grid and scope audit](docs/dataset_likelihood_grid_and_scope_audit_2026-10-28.md) reviews the new independent-event composition prototype. It highlights that the code does not require the numerical grid to include the declared prior boundaries, and that shared completeness/nuisance parameters and selection conditioning remain outside its scope. These are source-review findings and recommendations, not evidence of a runtime failure. Resolve the prior-grid convention and add convergence tests before using this prototype for confirmatory calibration.
