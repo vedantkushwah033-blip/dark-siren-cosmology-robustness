@@ -1,4 +1,9 @@
-"""Independent consistency audit for host-density-to-H0 benchmark artifacts."""
+"""Consistency audit for host-density-to-H0 benchmark summary artifacts.
+
+Important: the current schema stores posterior summaries and a claimed integral,
+not the posterior grid. The auditor can check that claimed scalar but cannot
+independently reconstruct posterior normalization or quantiles from the grid.
+"""
 from __future__ import annotations
 
 import argparse
@@ -152,11 +157,13 @@ def audit_artifacts(output_dir: str | Path) -> dict:
         "raw_record_count": len(rows),
         "replicates_verified": n_replicates,
         "paired_arm_groups_verified": n_replicates,
-        "posterior_normalizations_verified": len(rows),
+        "recorded_posterior_integral_claims_checked": len(rows),
+        "posterior_grid_independently_reconstructed": False,
         "aggregate_metrics_reconstructed": len(ARMS),
         "replicate_metrics_sha256": hashlib.sha256(raw_bytes).hexdigest(),
         "summary_json_sha256": hashlib.sha256(summary_bytes).hexdigest(),
         "scope": "synthetic toy benchmark only; not a real H0 measurement",
+        "audit_boundary": "posterior_integral is a recorded scalar; posterior grid, mean, and quantiles are not independently reconstructed from grid samples",
     }
 
 
