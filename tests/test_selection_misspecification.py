@@ -28,6 +28,10 @@ def test_selection_misspecification_is_paired_and_reproducible():
     assert summary["status"] == "synthetic_selection_misspecification_pilot_not_real_H0_measurement"
     assert summary["true_catalogue_selection"]["midpoint"] == 0.22
     assert summary["assumed_models"]["shifted_transition"]["midpoint"] == 0.27
+    assert all(0 <= item["coverage_wilson_95_low"] <= item["coverage_wilson_95_high"] <= 1
+               for item in summary["aggregate_metrics"])
+    assert len(summary["paired_contrasts_vs_catalogue_only"]) == 4
+    assert summary["paired_contrasts_vs_catalogue_only"][0]["squared_error_difference"]["standard_error"] is None
 
 
 def test_selection_misspecification_rejects_invalid_grids():
