@@ -169,3 +169,60 @@ def selection_conditioned_log_likelihood(
     ) or n_events < 1:
         raise ValueError("n_events must be a positive integer.")
     return log_l - int(n_events) * np.log(efficiency)
+
+
+def event_detection_efficiency(
+    H0_grid, *, redshifts, gw_sigma, detection_distance_min,
+    weights=None, missing_weight=0.0, missing_redshifts=None,
+    missing_weights=None, positive_truncated=False,
+):
+    """Compute toy P(detected | H0) for a distance-threshold selection.
+
+    The toy observation model is d ~ Normal(c*z/H0, gw_sigma**2), with
+    detection defined by observed distance d >= detection_distance_min.
+    If positive_truncated=True, the Gaussian observation is additionally
+    conditioned on d > 0, and the detection threshold must be non-negative.
+    Catalogue and missing-host components use the same normalized mixture
+    convention as event_log_likelihood.
+
+    This is a transparent toy selection function, not a gravitational-wave
+    detector efficiency. It assumes fixed host weights and a fixed noise scale;
+    it does not model SNR, sky location, detector duty cycle, or rate evolution.
+    """
+    grid = _vector(H0_grid, "H0_grid", min_size=2, increasing=True)
+    if np.any(grid <= 0):
+        raise ValueError("H0_grid must be positive.")
+    z = _vector(redshifts, "redshifts", nonnegative=True)
+    sigma = float(gw_sigma)
+    threshold = float(detection_distance_min)
+    missing_weight = float(missing_weight)
+    if not np.isfinite(sigma) or sigma <= 0:
+        raise ValueError("gw_sigma must be finite and positive.")
+    if not np.isfinite(threshold) or (positive_truncated and threshold < 0):
+        raise ValueError("detection_distance_min must be finite and non-negative for positive_truncated.")
+    if not np.isfinite(missing_weight) or not 0 <= missing_weight < 1:
+        raise ValueError("missing_weight must be in [0, 1).")
+    cat_w = _weights(weights, z.size, "weights") * (1.0 - missing_weight)
+
+    def component_efficiency(host_z, host_weights):
+        means = C_KM_S * host_z[None, :] / grid[:, None]
+        numerator = norm.sf((threshold - means) / sigma)
+        if positive_truncated:
+            denominator = norm.sf((0.0 - means) / sigma)
+            with np.errstate(divide="ignore", invalid="ignore"):
+                numerator = np.divide(
+                    numerator, denominator,
+                    out=np.zeros_like(numerator), where=denominator > 0,
+                )
+        return np.sum(numerator * host_weights[None, :], axis=1)
+
+    efficiency = component_efficiency(z, cat_w)
+    if missing_weight > 0:
+        if missing_redshifts is None:
+            raise ValueError("missing_redshifts are required when missing_weight > 0.")
+        mz = _vector(missing_redshifts, "missing_redshifts", nonnegative=True)
+        mw = _weights(missing_weights, mz.size, "missing_weights") * missing_weight
+        efficiency += component_efficiency(mz, mw)
+    if not np.all(np.isfinite(efficiency)) or np.any(efficiency <= 0) or np.any(efficiency > 1):
+        raise ValueError("Computed detection efficiency is outside (0, 1]; check model inputs.")
+    return efficiency
