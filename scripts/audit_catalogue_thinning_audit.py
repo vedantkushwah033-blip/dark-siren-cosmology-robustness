@@ -10,6 +10,9 @@ import numpy as np
 import pandas as pd
 
 BIN_EDGES_MPC = [0.0, 300.0, 600.0, 900.0, 1200.0000001]
+EXPECTED_DOMAIN = [0.0, 1200.0]
+EXPECTED_SCALE_MPC = 450.0
+EXPECTED_FLOOR = 0.05
 
 
 def sha256_file(path: Path) -> str:
@@ -26,6 +29,20 @@ def audit(output_dir: Path) -> dict:
     data = pd.read_csv(records_path)
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
 
+    if summary.get("experiment") != "controlled_distance_dependent_catalogue_thinning":
+        raise AssertionError("Unexpected experiment identifier")
+    if summary.get("status") != "synthetic_calibration_only_not_a_real_survey_model":
+        raise AssertionError("Summary must retain the synthetic-only status")
+    if summary.get("distance_domain_mpc") != EXPECTED_DOMAIN:
+        raise AssertionError("Declared distance domain differs from the audited design")
+    model = summary.get("completeness_model", {})
+    if model.get("formula") != "p(d) = floor + (1 - floor) * exp(-d / scale_mpc)":
+        raise AssertionError("Unexpected completeness formula declaration")
+    if model.get("scale_mpc") != EXPECTED_SCALE_MPC or model.get("floor") != EXPECTED_FLOOR:
+        raise AssertionError("Declared completeness parameters differ from audited constants")
+    if not isinstance(summary.get("seed"), int) or summary["seed"] < 0:
+        raise AssertionError("Seed must be a non-negative integer")
+
     required = {"object_id", "distance_mpc", "inclusion_probability", "retained"}
     if set(data.columns) != required:
         raise AssertionError(f"Unexpected raw-record columns: {list(data.columns)}")
@@ -40,10 +57,16 @@ def audit(output_dir: Path) -> dict:
     retained = data["retained"].to_numpy(dtype=int)
     if not np.all(np.isfinite(distance)) or not np.all(np.isfinite(p)):
         raise AssertionError("Non-finite distance or probability in raw records")
+    if np.any(distance < EXPECTED_DOMAIN[0]) or np.any(distance >= EXPECTED_DOMAIN[1]):
+        raise AssertionError("Distances fall outside the declared half-open domain")
+    if np.any(np.diff(distance) <= 0):
+        raise AssertionError("Parent-catalogue distances must be strictly increasing")
     if np.any((p < 0) | (p > 1)) or not np.all(np.isin(retained, [0, 1])):
         raise AssertionError("Invalid inclusion probabilities or retained flags")
     # Recompute the declared model without importing the production function.
-    expected_p = 0.05 + 0.95 * np.exp(-distance / 450.0)
+    expected_p = EXPECTED_FLOOR + (1.0 - EXPECTED_FLOOR) * np.exp(
+        -distance / EXPECTED_SCALE_MPC
+    )
     if not np.allclose(p, expected_p, rtol=1e-10, atol=1e-12):
         raise AssertionError("Raw inclusion probabilities do not match the declared formula")
     if sha256_file(records_path) != summary["records_sha256"]:
@@ -53,7 +76,9 @@ def audit(output_dir: Path) -> dict:
         raise AssertionError("Total retained count does not match summary")
     if not np.isclose(p.sum(), summary["overall_expected_retained"], rtol=1e-10):
         raise AssertionError("Overall expected retained count does not match raw records")
-    if not np.isclose(retained.mean(), summary["overall_observed_retention_fraction"], rtol=1e-12):
+    if not np.isclose(
+        retained.mean(), summary["overall_observed_retention_fraction"], rtol=1e-12
+    ):
         raise AssertionError("Overall observed retention fraction does not match raw records")
 
     data = data.assign(
