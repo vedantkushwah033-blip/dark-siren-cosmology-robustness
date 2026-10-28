@@ -57,3 +57,8 @@ The same Actions artifact includes a separate deterministic stress test comparin
 3. Report cell-level intervals and the full truth × noise breakdown. The independent dataset replicate is the unit for Monte Carlo uncertainty.
 4. Keep this one-known-host, low-redshift Gaussian model clearly separated from catalogue-incompleteness/host-mixture claims. This audit does not establish real LVK validity, novelty, or publication readiness.
 5. Before a confirmatory claim, prespecify the primary estimand and truth/noise weighting, define boundary handling, and distinguish a numerical-resolution check from scientific model adequacy.
+
+
+## Follow-up: matched frequentist reference interval
+
+A separate independent calculation now compares the stored Bayesian equal-tail intervals with a Gaussian distance confidence interval inverted through \(d=cz/H_0\), using the same Arm A observations and realized sigma. The interior-truth Bayesian coverage is 73.29% at nominal 68% and 97.12% at nominal 95%; the inverted Gaussian reference gives 67.62% and 95.12%, respectively. At the central truth \(H_0=70\), the Bayesian coverage is 71.50% / 98.17%, versus 66.33% / 95.50% for the reference intervals. This supports the methodological distinction between Bayesian credible coverage and frequentist confidence coverage; it does not prove universal posterior calibration. The reference uses Arm A's oracle-like known sigma and is not an operational correction. Full method, counts, Wilson intervals, assumptions, and caveats: [fixed-truth coverage reference-interval audit](fixed_truth_coverage_reference_interval_audit_2026-10-28.md).
