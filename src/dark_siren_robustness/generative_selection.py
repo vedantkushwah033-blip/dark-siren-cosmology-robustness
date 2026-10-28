@@ -54,8 +54,8 @@ def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000
         raise ValueError("h0_true must be finite and positive")
     if not np.isfinite(sigma_mpc) or sigma_mpc <= 0:
         raise ValueError("sigma_mpc must be finite and positive")
-    if not np.isfinite(detection_threshold_mpc):
-        raise ValueError("detection_threshold_mpc must be finite")
+    if not np.isfinite(detection_threshold_mpc) or detection_threshold_mpc <= 0:
+        raise ValueError("detection_threshold_mpc must be finite and positive")
     if not (0 < z_min < z_max):
         raise ValueError("redshift bounds must satisfy 0 < z_min < z_max")
     rng = np.random.default_rng(int(seed))
