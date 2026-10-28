@@ -106,7 +106,7 @@ def test_independent_audit_rejects_tampered_binomial_standard_deviation(tmp_path
     summary_path = output_dir / "catalogue_thinning_summary.json"
     summary = json.loads(summary_path.read_text())
     summary["strata"][0]["binomial_sd"] += 0.5
-    summary_path.write_text(json.dumps(summary, indent=2) + "\\n")
+    summary_path.write_text(json.dumps(summary, indent=2) + "\n")
 
     checked = run_script(AUDITOR, str(output_dir), env=env)
     assert checked.returncode != 0
