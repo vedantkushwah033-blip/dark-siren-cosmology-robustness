@@ -118,3 +118,41 @@ def test_missing_host_mixture_matches_existing_event_level_posterior():
     )
     actual = dataset_posterior_h0(GRID, [item], **PRIOR)
     np.testing.assert_allclose(actual, expected, rtol=2e-11, atol=2e-12)
+
+
+def test_dataset_posterior_is_zero_outside_prior_and_normalized_inside():
+    items = [event(175.0, 18.0), event(210.0, 25.0, redshifts=(0.03, 0.05))]
+    posterior = dataset_posterior_h0(GRID, items, **PRIOR)
+    support = (GRID >= PRIOR["prior_min"]) & (GRID <= PRIOR["prior_max"])
+    assert np.all(posterior[~support] == 0.0)
+    assert trapezoid(posterior[support], GRID[support]) == pytest.approx(1.0, abs=2e-12)
+
+
+def test_rescaling_host_weights_does_not_change_posterior():
+    base = event(175.0, 18.0, weights=[0.7, 0.3])
+    scaled = event(175.0, 18.0, weights=[7.0, 3.0])
+    a = dataset_posterior_h0(GRID, [base], **PRIOR)
+    b = dataset_posterior_h0(GRID, [scaled], **PRIOR)
+    np.testing.assert_allclose(a, b, rtol=2e-12, atol=2e-12)
+
+
+def test_missing_weight_one_is_rejected_by_declared_parameterization():
+    with pytest.raises(ValueError, match=r"missing_weight must be in \[0, 1\)"):
+        event_log_likelihood(
+            GRID, redshifts=[0.02], gw_distance=175.0, gw_sigma=18.0,
+            missing_weight=1.0, missing_redshifts=[0.03],
+        )
+
+
+def test_multi_event_posterior_matches_direct_joint_likelihood_normalization():
+    items = [
+        event(175.0, 18.0, weights=[0.7, 0.3]),
+        event(210.0, 25.0, redshifts=(0.03, 0.05), weights=[0.4, 0.6]),
+        event(260.0, 32.0, redshifts=(0.025, 0.055)),
+    ]
+    joint = np.zeros_like(GRID)
+    for item in items:
+        joint += event_log_likelihood(GRID, **item)
+    expected = normalize_on_prior(joint)
+    actual = dataset_posterior_h0(GRID, items, **PRIOR)
+    np.testing.assert_allclose(actual, expected, rtol=2e-11, atol=2e-12)
