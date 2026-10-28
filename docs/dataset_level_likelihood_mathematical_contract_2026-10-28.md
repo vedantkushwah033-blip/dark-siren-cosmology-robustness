@@ -2,7 +2,7 @@
 
 **Status:** mathematical contract plus isolated prototype; not a validated hierarchical dark-siren likelihood.  
 **Date:** 2026-10-28  
-**Branch:** `audit/research-readiness-2026-10-28`
+**Branch:** `fix/prior-boundary-grid-normalization`
 
 ## Why this contract exists
 
