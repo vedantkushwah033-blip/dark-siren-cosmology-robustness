@@ -1,6 +1,6 @@
 # Dataset-level likelihood contract for the diagnostic-identifiability gate
 
-**Status:** mathematical contract / design review; not an implementation or a validated hierarchical dark-siren likelihood.  
+**Status:** mathematical contract plus isolated prototype; not a validated hierarchical dark-siren likelihood.  
 **Date:** 2026-10-28  
 **Branch:** `audit/research-readiness-2026-10-28`
 
@@ -96,7 +96,7 @@ If the mechanisms are not separable at the chosen sample size, that is a valid p
 
 **Current status: NO-GO for a confirmatory dataset-level diagnostic-identifiability run.** Existing event-level inference and synthetic experiments do not by themselves establish that a coherent shared-parameter dataset likelihood and prespecified diagnostic vector have been implemented and validated together. This document narrows the design requirements; it does not close that gate.
 
-The next engineering step is a separate, minimal dataset-likelihood prototype plus limiting-case tests, after confirming the exact current branch head and test layout. Production inference code and existing headline artifacts should remain unchanged until this isolated prototype passes review.
+The first isolated prototype now lives in `src/dark_siren_robustness/dataset_likelihood.py`, with limiting-case tests in `tests/test_dataset_likelihood.py`. It composes prior-free event log likelihoods and applies the uniform H0 prior once. It deliberately excludes selection conditioning, event-rate inference, and shared nuisance parameters. The tests cover one-event equivalence, log-likelihood additivity, event-order invariance, event duplication, zero hidden-host mass, positive-distance truncation consistency, and invalid empty/missing-support inputs. This is only a prototype: the tests have been committed but the current head's CI result is still pending, and selection/hierarchical extensions remain out of scope. Production inference code and existing headline artifacts remain unchanged.
 
 ## Scope limitations
 
