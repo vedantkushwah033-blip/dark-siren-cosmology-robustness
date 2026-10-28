@@ -199,3 +199,69 @@ def test_grid_must_span_full_prior_interval(grid, prior_min, prior_max):
             grid, [event(175.0, 18.0)],
             prior_min=prior_min, prior_max=prior_max,
         )
+
+
+def test_selection_conditioning_subtracts_log_detection_efficiency():
+    from dark_siren_robustness.dataset_likelihood import (
+        selection_conditioned_log_likelihood,
+    )
+
+    joint = np.array([-3.0, -2.0, -4.0])
+    efficiency = np.array([0.2, 0.5, 0.8])
+    actual = selection_conditioned_log_likelihood(
+        joint, efficiency, n_events=4
+    )
+    np.testing.assert_allclose(actual, joint - 4 * np.log(efficiency))
+
+
+def test_constant_detection_efficiency_changes_only_likelihood_offset():
+    from dark_siren_robustness.dataset_likelihood import (
+        selection_conditioned_log_likelihood,
+    )
+
+    joint = np.array([-4.0, -2.0, -3.0])
+    corrected = selection_conditioned_log_likelihood(
+        joint, np.full(joint.size, 0.25), n_events=7
+    )
+    np.testing.assert_allclose(corrected - joint, np.full(3, -7 * np.log(0.25)))
+    np.testing.assert_allclose(
+        np.diff(corrected), np.diff(joint), rtol=0, atol=1e-13
+    )
+
+
+@pytest.mark.parametrize(
+    "efficiency",
+    [
+        np.array([0.2, 0.0, 0.8]),
+        np.array([0.2, -0.1, 0.8]),
+        np.array([0.2, 1.1, 0.8]),
+        np.array([0.2, np.nan, 0.8]),
+    ],
+)
+def test_selection_conditioning_rejects_invalid_efficiencies(efficiency):
+    from dark_siren_robustness.dataset_likelihood import (
+        selection_conditioned_log_likelihood,
+    )
+
+    with pytest.raises(ValueError):
+        selection_conditioned_log_likelihood(
+            np.array([-3.0, -2.0, -4.0]), efficiency, n_events=3
+        )
+
+
+def test_selection_conditioning_rejects_shape_mismatch_and_invalid_event_count():
+    from dark_siren_robustness.dataset_likelihood import (
+        selection_conditioned_log_likelihood,
+    )
+
+    with pytest.raises(ValueError, match="same size"):
+        selection_conditioned_log_likelihood(
+            np.array([-3.0, -2.0, -4.0]), np.array([0.2, 0.8]), n_events=2
+        )
+    for invalid_count in (0, -1, 1.5, True):
+        with pytest.raises(ValueError, match="positive integer"):
+            selection_conditioned_log_likelihood(
+                np.array([-3.0, -2.0, -4.0]),
+                np.array([0.2, 0.5, 0.8]),
+                n_events=invalid_count,
+            )
