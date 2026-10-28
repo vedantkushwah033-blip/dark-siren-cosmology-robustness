@@ -156,3 +156,23 @@ def test_multi_event_posterior_matches_direct_joint_likelihood_normalization():
     expected = normalize_on_prior(joint)
     actual = dataset_posterior_h0(GRID, items, **PRIOR)
     np.testing.assert_allclose(actual, expected, rtol=2e-11, atol=2e-12)
+
+
+def test_dataset_grid_must_include_exact_prior_boundaries():
+    # This grid spans [50, 90] but does not include either boundary exactly.
+    # Integrating only the interior nodes would silently change the declared
+    # uniform-prior support and can bias normalization/quantiles.
+    incomplete = np.linspace(40.0, 100.0, 3000)
+    with pytest.raises(ValueError, match="include prior_min and prior_max exactly"):
+        dataset_posterior_h0(incomplete, [event(175.0, 18.0)], **PRIOR)
+
+
+def test_dataset_grid_must_cover_the_full_prior_interval():
+    too_narrow = np.linspace(55.0, 85.0, 1501)
+    with pytest.raises(ValueError, match="span the full prior interval"):
+        dataset_posterior_h0(too_narrow, [event(175.0, 18.0)], **PRIOR)
+
+
+def test_prior_bounds_must_be_positive():
+    with pytest.raises(ValueError, match="finite, positive"):
+        dataset_posterior_h0(GRID, [event(175.0, 18.0)], prior_min=0.0, prior_max=90.0)
