@@ -30,7 +30,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=20261029)
     parser.add_argument("--h0-points", type=int, default=161)
     parser.add_argument("--z-points", type=int, default=801)
-    parser.add_argument("--bandwidth-factor", type=float, default=0.8)
+    parser.add_argument("--bandwidth-factor", type=float, default=None, help="Optional physical bandwidth multiplier h=factor*weighted_SD; omit to use Scott rule")
     parser.add_argument("--output-dir", type=Path, default=Path("artifacts/selection_misspecification"))
     args = parser.parse_args()
     started = time.perf_counter()
