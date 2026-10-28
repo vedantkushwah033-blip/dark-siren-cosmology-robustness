@@ -341,3 +341,25 @@ def test_toy_detection_efficiency_rejects_missing_support_and_invalid_threshold(
             GRID, redshifts=[0.02], gw_sigma=20.0,
             detection_distance_min=-1.0, positive_truncated=True,
         )
+
+
+def test_one_sided_toy_efficiency_matches_existing_interval_selection_limit():
+    """Cross-check independent implementations as the upper cut tends to infinity."""
+    from dark_siren_robustness.dataset_likelihood import event_detection_efficiency
+    from dark_siren_robustness.selection import detection_efficiency_h0
+
+    grid = np.array([60.0, 70.0, 80.0])
+    redshifts = np.array([0.02, 0.035, 0.05])
+    weights = np.array([0.2, 0.5, 0.3])
+    sigma = 22.0
+    lower = 95.0
+
+    one_sided = event_detection_efficiency(
+        grid, redshifts=redshifts, weights=weights,
+        gw_sigma=sigma, detection_distance_min=lower,
+    )
+    wide_interval = detection_efficiency_h0(
+        grid, redshifts, sigma, 10000.0,
+        weights=weights, detection_distance_min=lower,
+    )
+    np.testing.assert_allclose(one_sided, wide_interval, rtol=2e-12, atol=1e-14)
