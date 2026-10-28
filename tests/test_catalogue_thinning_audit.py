@@ -127,6 +127,9 @@ def test_independent_audit_rejects_nonbinary_raw_retained_flag(tmp_path: Path) -
 
     records_path = output_dir / "catalogue_thinning_records.csv"
     records = pd.read_csv(records_path)
+    # Pandas 3.0 rejects lossy assignment into an integer column; promote
+    # before injecting the deliberately malformed fractional flag.
+    records["retained"] = records["retained"].astype(float)
     records.loc[0, "retained"] = 0.5
     records.to_csv(records_path, index=False, float_format="%.12g")
 
