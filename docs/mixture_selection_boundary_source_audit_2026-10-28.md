@@ -81,3 +81,18 @@ The interior-truth Bayesian coverage above nominal in the archived simulation is
 ## Bottom line
 
 No source-level evidence of a remaining missing-mass double-counting error was found in the inspected functions. Weight normalization, log-space mixture arithmetic, and the toy selection denominator are internally consistent with the stated synthetic model and have targeted independent tests. The largest remaining threats are scientific scope, fixed-truth versus Bayesian calibration interpretation, prior-boundary reporting, posterior-grid convergence, and the gap between toy selection and a realistic GW detection pipeline.
+
+
+## 7. API-contract details discovered during cross-module review
+
+### Scalar versus host-specific measurement uncertainty
+
+The conceptual likelihood sometimes written for this project uses host-specific uncertainties, sigma_{d,i}. The currently inspected selection APIs instead accept a single scalar gw_sigma shared by all hosts in a call. uncertainty_likelihoods.py also provides scalar/array-broadcasting functions for the three one-host sensitivity arms, but it is not a general heteroskedastic catalogue likelihood. This is not a bug for the explicitly declared shared-sigma toy model; it is a scope mismatch if the paper's equation claims arbitrary sigma_{d,i}. Either state the common-sigma assumption in the methods and notation, or implement and test host-specific uncertainties consistently in both event likelihood and beta(H0) before claiming that extension.
+
+### Zero-redshift validation differs across APIs
+
+hardened_inference.posterior_h0 and the selected mixture API accept finite non-negative host redshifts, while uncertainty_likelihoods.candidate_distance_mpc requires strictly positive redshifts. A zero-redshift entry maps to zero mean distance in the linear toy model, but is not a meaningful extragalactic host for this study. This interface difference should be resolved deliberately: either reject z=0 consistently in public cosmology-facing APIs or document why the lower-level generic likelihood permits it. Do not silently change the contract without a regression test.
+
+### Selection assumes a shared noise model
+
+The inspected beta(H0) calculation uses the same scalar Gaussian noise scale and fixed distance window for all mixture components. If catalogue and missing populations have different distance-uncertainty distributions, or detection depends on additional source properties, the selection denominator must integrate those variables and use the corresponding component-specific observation model. The present code does not support that generalization merely because it correctly sums over host weights.
