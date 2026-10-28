@@ -67,3 +67,37 @@ def test_sample_outside_declared_domain_is_rejected():
     grid = np.linspace(0.01, 0.40, 101)
     with pytest.raises(ValueError, match="inside"):
         estimate_host_density(grid, np.linspace(0.0, 0.39, 20))
+
+
+@pytest.mark.parametrize("bandwidth_factor", [None, 0.35])
+def test_reflected_weighted_kde_matches_direct_kernel_sum(bandwidth_factor):
+    """Guard bandwidth semantics against covariance changes from reflection."""
+    grid = np.linspace(0.01, 0.40, 401)
+    sample = np.array([0.025, 0.041, 0.072, 0.11, 0.16, 0.23, 0.31, 0.37])
+    inclusion_probability = np.array([0.25, 0.30, 0.40, 0.55, 0.70, 0.80, 0.90, 0.95])
+    raw_weights = 1.0 / inclusion_probability
+    weights = raw_weights / raw_weights.max()
+    effective_n = weights.sum() ** 2 / np.sum(weights ** 2)
+    mean = np.average(sample, weights=weights)
+    variance = np.average((sample - mean) ** 2, weights=weights)
+    factor = effective_n ** (-1.0 / 5.0) if bandwidth_factor is None else bandwidth_factor
+    bandwidth = factor * np.sqrt(variance)
+
+    augmented_sample = np.concatenate((
+        sample,
+        2.0 * grid[0] - sample,
+        2.0 * grid[-1] - sample,
+    ))
+    normalized_weights = weights / weights.sum()
+    augmented_weights = np.tile(normalized_weights / 3.0, 3)
+    standardized = (grid[:, None] - augmented_sample[None, :]) / bandwidth
+    expected = (
+        np.exp(-0.5 * standardized ** 2) @ augmented_weights
+    ) / (np.sqrt(2.0 * np.pi) * bandwidth)
+    expected /= trapezoid(expected, grid)
+
+    actual = estimate_host_density(
+        grid, sample, inclusion_probability=inclusion_probability,
+        bandwidth_factor=bandwidth_factor,
+    )
+    np.testing.assert_allclose(actual, expected, rtol=2e-12, atol=2e-12)
