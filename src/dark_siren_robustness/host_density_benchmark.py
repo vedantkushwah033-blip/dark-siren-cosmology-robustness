@@ -1,0 +1,97 @@
+"""Exploratory synthetic comparison of host-density estimates in toy H0 inference."""
+from __future__ import annotations
+import argparse, json
+from pathlib import Path
+import numpy as np
+import pandas as pd
+from scipy.integrate import cumulative_trapezoid, trapezoid
+from dark_siren_robustness.catalogue_density import estimate_host_density
+from dark_siren_robustness.generative_selection import catalogue_inclusion_probability, generate_synthetic_population
+from dark_siren_robustness.selection_toy import selection_aware_toy_likelihood
+
+def posterior_summary(grid, loglike):
+    shifted = np.asarray(loglike, dtype=float) - np.max(loglike)
+    density = np.exp(shifted)
+    area = float(trapezoid(density, grid))
+    if not np.isfinite(area) or area <= 0:
+        raise ArithmeticError("H0 posterior normalization failed")
+    density /= area
+    cdf = np.r_[0.0, cumulative_trapezoid(density, grid)]
+    cdf /= cdf[-1]
+    q16, q50, q84 = (float(np.interp(q, cdf, grid)) for q in (0.16, 0.50, 0.84))
+    return {"posterior_mean": float(trapezoid(grid*density, grid)),
+            "posterior_median": q50, "ci68_low": q16, "ci68_high": q84,
+            "ci68_width": q84-q16, "posterior_integral": float(trapezoid(density, grid))}
+
+def run_benchmark(*, n_replicates=10, n_parent=6000, n_detected=40, seed=20261028,
+                  h0_true=70.0, sigma_mpc=140.0, detection_threshold_mpc=250.0,
+                  h0_min=50.0, h0_max=90.0, h0_points=161, z_points=801):
+    if n_replicates < 1 or n_parent < 100 or n_detected < 1:
+        raise ValueError("n_replicates/n_detected must be positive and n_parent >= 100")
+    if h0_points < 31 or z_points < 101 or not (0 < h0_min < h0_max):
+        raise ValueError("invalid H0 or redshift grid settings")
+    z = np.linspace(0.01, 0.40, z_points)
+    h0 = np.linspace(h0_min, h0_max, h0_points)
+    merger = 1.0 + 1.5*(z-z[0])/(z[-1]-z[0])
+    rows = []
+    for rep in range(n_replicates):
+        sim = generate_synthetic_population(seed=seed+rep, n_parent=n_parent, n_detected=n_detected,
+            h0_true=h0_true, sigma_mpc=sigma_mpc, detection_threshold_mpc=detection_threshold_mpc,
+            z_min=float(z[0]), z_max=float(z[-1]))
+        parent_z = sim["parent_truth"]["redshift"].to_numpy(dtype=float)
+        observed_z = sim["catalogue_observed"]["redshift"].to_numpy(dtype=float)
+        # Known selection is evaluated from the declared law using observable redshifts.
+        p_include = catalogue_inclusion_probability(observed_z)
+        distances = sim["gw_events_observed"]["distance_mpc"].to_numpy(dtype=float)
+        arms = {"oracle": (parent_z, None), "catalogue_only": (observed_z, None),
+                "known_completeness": (observed_z, p_include)}
+        for arm, (sample, probabilities) in arms.items():
+            host = estimate_host_density(z, sample, inclusion_probability=probabilities,
+                                         merger_weight=merger, bandwidth_factor=0.8)
+            like = selection_aware_toy_likelihood(z, host, h0, distances, sigma=sigma_mpc,
+                                                  detection_threshold=detection_threshold_mpc)
+            s = posterior_summary(h0, like["selected_log_likelihood"])
+            rows.append({"replicate": rep, "seed": seed+rep, "arm": arm, "h0_true": h0_true,
+                "n_parent": len(parent_z), "n_catalogue_observed": len(observed_z),
+                "n_detected": len(distances), "min_detection_efficiency": float(np.min(like["detection_efficiency"])),
+                **s, "covered_68": bool(s["ci68_low"] <= h0_true <= s["ci68_high"])})
+    frame = pd.DataFrame(rows)
+    aggregate = []
+    for arm, group in frame.groupby("arm", sort=False):
+        errors = group.posterior_mean.to_numpy() - h0_true
+        aggregate.append({"arm": arm, "n_replicates": len(group), "mean_bias": float(np.mean(errors)),
+            "rmse": float(np.sqrt(np.mean(errors**2))), "empirical_68_coverage": float(group.covered_68.mean()),
+            "mean_68_interval_width": float(group.ci68_width.mean()),
+            "mean_posterior_mean": float(group.posterior_mean.mean())})
+    summary = {"status": "synthetic_exploratory_benchmark_not_real_H0_measurement",
+        "method": "paired seeds; fixed H0; Gaussian distance noise; fixed-threshold detection",
+        "n_replicates": n_replicates, "n_parent": n_parent, "n_detected": n_detected,
+        "seed_start": seed, "h0_true_km_s_mpc": h0_true, "sigma_mpc": sigma_mpc,
+        "detection_threshold_mpc": detection_threshold_mpc,
+        "h0_grid": [h0_min, h0_max, h0_points], "redshift_grid": [float(z[0]), float(z[-1]), z_points],
+        "bandwidth_factor": 0.8, "arms": {
+            "oracle": "parent truth redshifts; benchmark reference only",
+            "catalogue_only": "observed catalogue without completeness correction",
+            "known_completeness": "observed catalogue with known declared inclusion probabilities"},
+        "limitations": ["No real detector response or event-rate inference.",
+            "Known-completeness assumes the selection law is exactly known.",
+            "KDE bandwidth sensitivity and grid convergence still require study.",
+            "Coverage is noisy for small replicate counts.",
+            "Truth is used for scoring and oracle only, never non-oracle estimation."],
+        "aggregate_metrics": aggregate}
+    return frame, summary
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--replicates", type=int, default=10); p.add_argument("--n-parent", type=int, default=6000)
+    p.add_argument("--n-detected", type=int, default=40); p.add_argument("--seed", type=int, default=20261028)
+    p.add_argument("--h0-points", type=int, default=161); p.add_argument("--z-points", type=int, default=801)
+    p.add_argument("--output-dir", type=Path, default=Path("artifacts/host_density_benchmark"))
+    a = p.parse_args()
+    rows, summary = run_benchmark(n_replicates=a.replicates, n_parent=a.n_parent,
+        n_detected=a.n_detected, seed=a.seed, h0_points=a.h0_points, z_points=a.z_points)
+    a.output_dir.mkdir(parents=True, exist_ok=True)
+    rows.to_csv(a.output_dir/"replicate_metrics.csv", index=False)
+    (a.output_dir/"summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True)+"\n", encoding="utf-8")
+    print(json.dumps(summary, indent=2, sort_keys=True))
+if __name__ == "__main__": main()
