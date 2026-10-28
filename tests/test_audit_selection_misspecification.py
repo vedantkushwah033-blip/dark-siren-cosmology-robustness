@@ -94,7 +94,8 @@ def test_audit_rejects_impossible_weight_ess_even_if_manifest_is_rehashed(tmp_pa
         rows = list(csv.DictReader(handle))
         columns = list(rows[0])
     # Catalogue-only has at most n_catalogue_observed effective samples.
-    rows[0]["weight_ess"] = str(int(rows[0]["n_catalogue_observed"]) + 10)
+    row = next(row for row in rows if row["arm"] == "catalogue_only")
+    row["weight_ess"] = str(int(row["n_catalogue_observed"]) + 10)
     with raw.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=columns)
         writer.writeheader()
