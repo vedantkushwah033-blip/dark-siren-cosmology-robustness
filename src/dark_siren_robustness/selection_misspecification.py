@@ -62,7 +62,7 @@ def run_selection_misspecification(
     h0_max: float = 90.0,
     h0_points: int = 161,
     z_points: int = 801,
-    bandwidth_factor: float = 0.8,
+    bandwidth_factor: float | None = None,
 ) -> tuple[pd.DataFrame, dict]:
     """Run paired arms under one fixed true catalogue-selection law.
 
@@ -75,8 +75,10 @@ def run_selection_misspecification(
         raise ValueError("n_replicates/n_detected must be positive and n_parent >= 100")
     if h0_points < 31 or z_points < 101 or not (0 < h0_min < h0_max):
         raise ValueError("invalid H0 or redshift grid settings")
-    if not np.isfinite(bandwidth_factor) or bandwidth_factor <= 0:
-        raise ValueError("bandwidth_factor must be finite and positive")
+    if bandwidth_factor is not None and (
+        not np.isfinite(bandwidth_factor) or bandwidth_factor <= 0
+    ):
+        raise ValueError("bandwidth_factor must be finite and positive when supplied")
 
     z = np.linspace(0.01, 0.40, z_points)
     h0 = np.linspace(h0_min, h0_max, h0_points)
@@ -207,6 +209,7 @@ def run_selection_misspecification(
         "h0_grid": [h0_min, h0_max, h0_points],
         "redshift_grid": [float(z[0]), float(z[-1]), z_points],
         "bandwidth_factor": bandwidth_factor,
+        "bandwidth_convention": "Scott weighted rule by default; explicit factor means h=factor times weighted SD of original sample",
         "true_catalogue_selection": true_selection,
         "assumed_models": {key: value for key, value in analyst_models.items()},
         "density_target": "normalized latent_galaxy_intensity(z) times declared linear merger weight",
