@@ -185,9 +185,13 @@ def event_detection_efficiency(
     Catalogue and missing-host components use the same normalized mixture
     convention as event_log_likelihood.
 
-    This is a transparent toy selection function, not a gravitational-wave
-    detector efficiency. It assumes fixed host weights and a fixed noise scale;
-    it does not model SNR, sky location, detector duty cycle, or rate evolution.
+    This is a transparent one-sided toy selection function, not a gravitational-wave
+    detector efficiency. The more general finite-interval selection model used
+    by selected-posterior inference lives in selection.py; this helper is kept
+    as a standalone analytic calculator and is cross-checked against that
+    implementation in the one-sided/infinite-upper-cut limit. It assumes fixed
+    host weights and a fixed noise scale; it does not model SNR, sky location,
+    detector duty cycle, or rate evolution.
     """
     grid = _vector(H0_grid, "H0_grid", min_size=2, increasing=True)
     if np.any(grid <= 0):
