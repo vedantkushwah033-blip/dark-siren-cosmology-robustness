@@ -355,3 +355,13 @@ The [prespecified 108-cell protocol](docs/host_misspecification_sensitivity_surf
 
 The [equal-cell marginal summary script](scripts/summarize_host_misspecification_sensitivity_surface.py) verifies the raw-to-summary reconstruction and produces equal-cell arm summaries plus stratified paired-bootstrap intervals across hidden-fraction strata.
 
+
+
+## Research-readiness audits (2026-10-28)
+
+Two new source-level / artifact-level analyses document limits that matter before any publication-facing claim:
+
+- [Mixture, selection-normalization, and boundary source audit](docs/mixture_selection_boundary_source_audit_2026-10-28.md): reviews the current synthetic mixture weighting, log-space arithmetic, toy detection efficiency beta(H0), and prior-boundary handling. It found no source-level evidence of the historical missing-mass double-counting bug in the inspected functions, but does not validate a real detector-selection model.
+- [Fixed-truth coverage reference-interval audit](docs/fixed_truth_coverage_reference_interval_audit_2026-10-28.md): compares Bayesian equal-tail credible-interval coverage with an inverted Gaussian distance confidence interval in the archived Arm A synthetic artifact. This distinguishes two coverage estimands; it does not establish universal posterior calibration or astrophysical validity.
+
+These are in the draft research-readiness pull request and must pass exact-commit CI before being described as validated workflow outputs. The toy low-redshift relation, finite distance-window selection rule, prior sensitivity, and grid-resolution stress cases remain explicit limitations.
