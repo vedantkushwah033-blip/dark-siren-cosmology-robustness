@@ -22,3 +22,8 @@ The artifact audit is still not an independent scientific reimplementation of th
 
 A PASS does **not** validate the toy likelihood as a realistic gravitational-wave detector model, prove completeness correction is robust to a misspecified selection law, or establish a real measurement of H0. The experiment is a synthetic methodological study. Coverage estimates are noisy when replicate counts are small; report the numerator, denominator, and Monte Carlo uncertainty.
 
+
+
+## Bandwidth convention correction (2026-10-29)
+
+The benchmark runner now uses the weighted Scott rule by default (`bandwidth_factor=None`). An explicit factor is defined by the current estimator as `h = factor × weighted_SD`, not as a multiplier of Scott's bandwidth. The former hard-coded `bandwidth_factor=0.8` therefore represented a broad physical bandwidth under the corrected convention and is no longer the benchmark default. Previously generated benchmark artifacts and numerical summaries must be regenerated before comparison or interpretation; the source change alone does not validate new scientific conclusions.
