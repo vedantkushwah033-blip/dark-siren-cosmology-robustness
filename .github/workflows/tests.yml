@@ -5,11 +5,11 @@ on:
   pull_request:
   workflow_dispatch:
 
-# Keep only the newest validation run for a branch. Push and pull_request
-# events can otherwise enqueue duplicate, expensive matrix/full-simulation runs.
+# Serialize duplicate push/pull_request validations on a branch without killing
+# an active full matrix run. GitHub may emit both events for the same PR update.
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   numerical-diagnostics:
@@ -32,6 +32,8 @@ jobs:
         run: python -m pytest tests/test_detection_efficiency_empirical.py -q
       - name: Test low-redshift selection-aware toy likelihood
         run: python -m pytest tests/test_selection_toy.py -q
+      - name: Test catalogue completeness and Bernoulli thinning
+        run: python -m pytest tests/test_completeness.py -q
       - name: Test paired distance-uncertainty sensitivity experiment
         run: python -m pytest tests/test_uncertainty_sensitivity.py -q
       - name: Run paired distance-uncertainty sensitivity smoke experiment
@@ -124,3 +126,4 @@ jobs:
             artifacts/calibration_grid_sensitivity/
             artifacts/multiseed_grid_sensitivity/
           if-no-files-found: error
+
