@@ -178,6 +178,7 @@ def test_prior_boundaries_between_grid_points_are_included_in_normalization():
     shift = np.max(norm_log_likelihood)
     norm_density = np.exp(norm_log_likelihood - shift)
     area = trapezoid(norm_density, norm_grid)
+    norm_density /= area
     expected = np.zeros_like(grid)
     expected[support] = np.exp(log_likelihood[support] - shift) / area
     np.testing.assert_allclose(posterior, expected, rtol=2e-12, atol=2e-12)
