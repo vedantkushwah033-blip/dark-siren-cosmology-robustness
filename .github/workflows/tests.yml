@@ -103,6 +103,7 @@ jobs:
           path: |
             artifacts/posterior_grid_stability.csv
             artifacts/targeted_grid_convergence.csv
+            artifacts/extreme_grid_resolution_audit.json
             artifacts/distance_uncertainty_sensitivity/
             artifacts/distance_uncertainty_sensitivity_full/
             artifacts/selected_likelihood_sbc/pit_replicates.csv
