@@ -50,6 +50,14 @@ jobs:
         run: python -m pytest tests/test_audit_host_density_benchmark.py -q
       - name: Independently audit host-density benchmark smoke artifacts
         run: python scripts/audit_host_density_benchmark.py artifacts/host_density_benchmark_smoke
+      - name: Test selection-function misspecification experiment
+        run: python -m pytest tests/test_selection_misspecification.py -q
+      - name: Run paired selection-function misspecification smoke experiment
+        run: python scripts/run_selection_misspecification.py --replicates 2 --n-parent 1200 --n-detected 8 --seed 55129 --h0-points 51 --z-points 201 --output-dir artifacts/selection_misspecification_smoke
+      - name: Test independent selection-misspecification artifact audit
+        run: python -m pytest tests/test_audit_selection_misspecification.py -q
+      - name: Independently audit selection-misspecification smoke artifacts
+        run: python scripts/audit_selection_misspecification.py artifacts/selection_misspecification_smoke
       - name: Test paired distance-uncertainty sensitivity experiment
         run: python -m pytest tests/test_uncertainty_sensitivity.py -q
       - name: Run paired distance-uncertainty sensitivity smoke experiment
