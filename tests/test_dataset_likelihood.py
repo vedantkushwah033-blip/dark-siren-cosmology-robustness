@@ -394,3 +394,66 @@ def test_selection_conditioning_helper_matches_existing_selected_posterior():
     np.testing.assert_allclose(
         reconstructed, existing, rtol=3e-10, atol=3e-12
     )
+
+
+
+def test_missing_host_selected_posterior_matches_shared_mixture_correction():
+    """The event numerator and beta denominator must use the same host mixture."""
+    from dark_siren_robustness.dataset_likelihood import (
+        event_detection_efficiency,
+        selection_conditioned_log_likelihood,
+    )
+    from dark_siren_robustness.selection import (
+        posterior_h0_selected_with_missing_hosts,
+    )
+
+    catalog_z = np.array([0.02, 0.04])
+    catalog_weights = np.array([0.7, 0.3])
+    missing_z = np.array([0.055, 0.075])
+    missing_weights = np.array([0.25, 0.75])
+    missing_mass = 0.35
+    distance = 150.0
+    sigma = 25.0
+    lower_cut = 80.0
+    # A very wide upper cut makes the finite-interval reference numerically
+    # equivalent to the one-sided toy efficiency used by the standalone helper.
+    upper_cut = 10_000.0
+
+    event_log_l = event_log_likelihood(
+        GRID,
+        redshifts=catalog_z,
+        gw_distance=distance,
+        gw_sigma=sigma,
+        weights=catalog_weights,
+        missing_weight=missing_mass,
+        missing_redshifts=missing_z,
+        missing_weights=missing_weights,
+    )
+    beta = event_detection_efficiency(
+        GRID,
+        redshifts=catalog_z,
+        weights=catalog_weights,
+        gw_sigma=sigma,
+        detection_distance_min=lower_cut,
+        missing_weight=missing_mass,
+        missing_redshifts=missing_z,
+        missing_weights=missing_weights,
+    )
+    corrected = selection_conditioned_log_likelihood(
+        event_log_l, beta, n_events=1
+    )
+    reconstructed = normalize_on_prior(corrected)
+    reference = posterior_h0_selected_with_missing_hosts(
+        GRID,
+        catalog_z,
+        distance,
+        sigma,
+        upper_cut,
+        catalog_weights=catalog_weights,
+        missing_weight=missing_mass,
+        missing_redshifts=missing_z,
+        missing_weights=missing_weights,
+        detection_distance_min=lower_cut,
+        **PRIOR,
+    )
+    np.testing.assert_allclose(reconstructed, reference, rtol=5e-9, atol=5e-11)
