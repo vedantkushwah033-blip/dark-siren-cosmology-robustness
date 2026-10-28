@@ -76,6 +76,8 @@ jobs:
         run: python -m pytest tests/test_targeted_grid_convergence.py tests/test_grid_refinement_audit.py -q
       - name: Test extreme posterior-grid resolution audit
         run: python -m pytest tests/test_extreme_grid_resolution_audit.py -q
+      - name: Test fixed-truth coverage reference-interval audit
+        run: python -m pytest tests/test_audit_fixed_truth_coverage_reference_interval.py -q
       - name: Run deterministic extreme posterior-grid resolution audit
         run: python scripts/audit_extreme_grid_resolution.py --output artifacts/extreme_grid_resolution_audit.json
       - name: Test independent distance-uncertainty grid-stability reconstruction
@@ -90,6 +92,9 @@ jobs:
       - name: Independently audit full distance-uncertainty experiment (Python 3.12 only)
         if: matrix.python-version == '3.12'
         run: python scripts/audit_distance_uncertainty_sensitivity.py artifacts/distance_uncertainty_sensitivity_full
+      - name: Compare fixed-truth Bayesian coverage with inverted Gaussian reference intervals (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: python scripts/audit_fixed_truth_coverage_reference_interval.py artifacts/distance_uncertainty_sensitivity_full/replicates.csv --output artifacts/fixed_truth_coverage_reference_interval_audit.json
       - name: Summarize paired likelihood contrasts with stratified bootstrap (Python 3.12 only)
         if: matrix.python-version == '3.12'
         run: python scripts/summarize_distance_uncertainty_paired_contrasts.py artifacts/distance_uncertainty_sensitivity_full/replicates.csv --seed 4182026 --bootstrap-resamples 10000
@@ -104,6 +109,7 @@ jobs:
             artifacts/posterior_grid_stability.csv
             artifacts/targeted_grid_convergence.csv
             artifacts/extreme_grid_resolution_audit.json
+            artifacts/fixed_truth_coverage_reference_interval_audit.json
             artifacts/distance_uncertainty_sensitivity/
             artifacts/distance_uncertainty_sensitivity_full/
             artifacts/selected_likelihood_sbc/pit_replicates.csv
