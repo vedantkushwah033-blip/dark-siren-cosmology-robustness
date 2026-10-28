@@ -12,15 +12,20 @@ Independent artifact auditor: `scripts/audit_selection_misspecification.py`
 
 The generator uses the existing true catalogue inclusion law
 `p_true(z) = 0.10 + 0.90 / (1 + exp((z - 0.22) / 0.05))`.
-The assumed law affects inverse-inclusion weights only; it does not generate the catalogue. Each replicate shares one parent population and one GW-like detected-distance sample across five arms:
+The assumed law affects inverse-inclusion weights only; it does not generate the catalogue. Each replicate shares one parent population and one GW-like detected-distance sample across six arms:
 
-1. `oracle`: parent redshifts, as an idealized reference;
-2. `catalogue_only`: observed incomplete catalogue, unweighted;
-3. `correct_weighting`: inverse inclusion probabilities under the true declared law;
-4. `shifted_transition`: assumed midpoint 0.27 instead of 0.22;
-5. `shallow_slope`: assumed width 0.075 instead of 0.05.
+1. `analytic_truth`: exact declared target density on the simulation grid; an inaccessible diagnostic control that removes KDE and finite-parent noise;
+2. `oracle`: parent redshifts passed through the KDE estimator, as a finite-parent reference;
+3. `catalogue_only`: observed incomplete catalogue, unweighted;
+4. `correct_weighting`: inverse inclusion probabilities under the true declared law;
+5. `shifted_transition`: assumed midpoint 0.27 instead of 0.22;
+6. `shallow_slope`: assumed width 0.075 instead of 0.05.
 
 The host-density target for integrated squared error is the declared analytic latent galaxy intensity multiplied by the same linear merger-weight function and normalized on the redshift grid. This target is a toy truth, not an empirical galaxy distribution.
+
+### New diagnostic control: analytic truth
+
+The added `analytic_truth` arm uses this exact normalized target density directly, bypassing KDE. It is not an observable inference method and must not be presented as a competing practical estimator. Its purpose is to separate three sources of error: (i) finite-parent/KDE error in the `oracle` arm, (ii) catalogue incompleteness and weighting error in the other catalogue arms, and (iii) residual bias caused by the event likelihood, detection conditioning, numerical integration, or simulation mismatch. If the analytic-truth arm remains biased, tuning KDE bandwidth cannot be the explanation for that residual. This control should be examined before interpreting any apparent estimator ranking.
 
 ## Outputs and reproduction
 
