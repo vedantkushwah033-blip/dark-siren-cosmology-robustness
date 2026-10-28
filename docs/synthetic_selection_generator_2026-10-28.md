@@ -17,11 +17,13 @@ Catalogue incompleteness and gravitational-wave detection are different selectio
 
 ## Output contract
 
-- catalogue_observed.csv: observable catalogue only (object_id, redshift).
-- gw_events_observed.csv: observable events only (event_id, distance_mpc, detected).
-- parent_truth.csv: truth-only parent population, inclusion probabilities, and retention flags.
-- gw_event_truth.csv: truth-only host IDs, host redshifts, and latent mean distances.
+- observable/catalogue_observed.csv: observable catalogue only (object_id, redshift).
+- observable/gw_events_observed.csv: observable events only (event_id, distance_mpc, detected).
+- truth/parent_truth.csv: truth-only parent population, inclusion probabilities, and retention flags.
+- truth/gw_event_truth.csv: truth-only host IDs, host redshifts, and latent mean distances.
 - config.json: seed, units, distributions, selection definitions, parameters, and limitations.
+
+The runner physically separates observable and truth tables into different subdirectories. This is a guardrail against accidental leakage, not an access-control boundary.
 
 Truth tables are for simulation scoring and oracle diagnostics only. They must not be passed to non-oracle inference. The observable event table deliberately excludes true host redshift and host object ID.
 
