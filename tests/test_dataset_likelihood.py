@@ -363,3 +363,34 @@ def test_one_sided_toy_efficiency_matches_existing_interval_selection_limit():
         weights=weights, detection_distance_min=lower,
     )
     np.testing.assert_allclose(one_sided, wide_interval, rtol=2e-12, atol=1e-14)
+
+
+def test_selection_conditioning_helper_matches_existing_selected_posterior():
+    from dark_siren_robustness.dataset_likelihood import (
+        selection_conditioned_log_likelihood,
+    )
+    from dark_siren_robustness.selection import (
+        detection_efficiency_h0,
+        posterior_h0_selected,
+    )
+
+    item = event(
+        150.0, 25.0, redshifts=(0.02, 0.04), weights=[0.3, 0.7]
+    )
+    upper_threshold = 180.0
+    base_log_likelihood = event_log_likelihood(GRID, **item)
+    beta = detection_efficiency_h0(
+        GRID, item["redshifts"], item["gw_sigma"], upper_threshold,
+        weights=item["weights"],
+    )
+    corrected_log_likelihood = selection_conditioned_log_likelihood(
+        base_log_likelihood, beta, n_events=1
+    )
+    reconstructed = normalize_on_prior(corrected_log_likelihood)
+    existing = posterior_h0_selected(
+        GRID, item["redshifts"], item["gw_distance"], item["gw_sigma"],
+        upper_threshold, weights=item["weights"], **PRIOR,
+    )
+    np.testing.assert_allclose(
+        reconstructed, existing, rtol=3e-10, atol=3e-12
+    )
