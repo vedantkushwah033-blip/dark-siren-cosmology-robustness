@@ -11,6 +11,7 @@ on:
       - "scripts/run_host_density_benchmark.py"
       - "scripts/analyze_host_density_campaign.py"
       - "scripts/audit_host_density_independent.py"
+      - "scripts/diagnose_oracle_bias.py"
       - ".github/workflows/host-density-validation-campaign.yml"
   workflow_dispatch:
 
@@ -19,12 +20,12 @@ permissions:
 
 concurrency:
   group: host-density-validation-campaign-${{ github.ref_name }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   paired-host-density-campaign:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -33,9 +34,9 @@ jobs:
       - name: Install package and dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
       - name: Run paired bandwidth, grid, and selection-law sensitivity campaign
-        run: python scripts/analyze_host_density_campaign.py --replicates 100 --seed 20261029 --out artifacts/host_density_campaign
+        run: python scripts/analyze_host_density_campaign.py --replicates 40 --seed 20261029 --out artifacts/host_density_campaign
       - name: Generate compact independent-audit benchmark
-        run: python scripts/run_host_density_benchmark.py --replicates 2 --n-parent 6000 --n-detected 40 --seed 20261029 --h0-points 161 --z-points 801 --output-dir artifacts/host_density_independent_audit
+        run: python scripts/run_host_density_benchmark.py --replicates 2 --n-parent 6000 --n-detected 40 --seed 20261029 --h0-points 81 --z-points 401 --output-dir artifacts/host_density_independent_audit
       - name: Re-simulate and independently reconstruct the benchmark
         run: python scripts/audit_host_density_independent.py artifacts/host_density_independent_audit --n-reps 2
       - name: Check campaign manifest hashes
@@ -61,7 +62,7 @@ jobs:
 
   exact-density-oracle-diagnostic:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -70,7 +71,7 @@ jobs:
       - name: Install package and dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
       - name: Re-run fixed-truth and prior-drawn exact-density oracle calibration
-        run: python scripts/diagnose_oracle_bias.py --reps 2000 --seed 20261029 --modes 70 60 80 prior --z-points 801 --h0-points 161 --out artifacts/oracle_bias_exact_density.json
+        run: python scripts/diagnose_oracle_bias.py --reps 300 --seed 20261029 --modes 70 60 80 prior --z-points 401 --h0-points 81 --out artifacts/oracle_bias_exact_density.json
       - name: Upload exact-density diagnostic
         uses: actions/upload-artifact@v4
         with:

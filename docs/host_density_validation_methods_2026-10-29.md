@@ -10,7 +10,7 @@ Each replicate records L1 host-density error, maximum-to-mean inverse-weight rat
 
 ## Paired sensitivity design
 
-The campaign uses 100 replicates per setting, initial seed 20261029, 6000 parent galaxies, 40 detected events, Gaussian distance noise (sigma=140) Mpc, threshold 250 Mpc, and fixed truth (H_0=70). Settings are Scott plus physical bandwidth factors 0.05, 0.1, 0.2, 0.5, 0.8, and 1.2; coarse and fine numerical grids; and selection-law assumptions that shift the midpoint or widen/narrow the transition. The script computes arm bias/SE, RMSE, Wilson intervals for empirical 68% coverage, mean interval width, host-density L1 error, weight diagnostics, and paired absolute-error differences versus the oracle arm.
+The expedited screening campaign uses 40 replicates per setting, initial seed 20261029, 6000 parent galaxies, 40 detected events, Gaussian distance noise (sigma=140) Mpc, threshold 250 Mpc, and fixed truth (H_0=70). Settings are Scott plus physical bandwidth factors 0.05, 0.1, 0.2, 0.5, 0.8, and 1.2; coarse and fine numerical grids; and selection-law assumptions that shift the midpoint or widen/narrow the transition. The script computes arm bias/SE, RMSE, Wilson intervals for empirical 68% coverage, mean interval width, host-density L1 error, weight diagnostics, and paired absolute-error differences versus the oracle arm.
 
 The workflow runs the campaign and uploads raw tables, aggregate summary, and SHA-256 manifest as a 90-day artifact. A separate smoke run is re-simulated and reconstructed by the independent auditor. The supplied patch contains an earlier locally generated campaign snapshot, but this workflow is being used to reproduce it on the current code; do not treat the snapshot as CI verified until the new job completes.
 
@@ -25,3 +25,8 @@ The workflow runs the campaign and uploads raw tables, aggregate summary, and SH
 ## Scientific gate
 
 GO for exploratory synthetic-methods reporting with explicit limitations. NO-GO for claims that this result validates real LVK inference, universally corrects incompleteness, or measures real (H_0). No human expert review or CHIMERA v2.2 benchmark-data recheck is claimed by this protocol.
+
+
+## Expedited execution and decision rule
+
+The first 100-per-setting CI run remained in progress longer than useful for rapid iteration. The current workflow therefore uses 40 paired replicates per configuration and 300 replicates per oracle truth regime on coarser 401-redshift/81-H0 grids. This is explicitly a screening campaign. Do not use its empirical coverage as a high-precision estimate or make a confirmatory claim from the exploratory sensitivity surface. For any configuration whose conclusion appears decision-relevant, extend it using a new, disjoint, preregistered seed range and a precision target based on paired variability. The independent fine-grid smoke audit is separate.

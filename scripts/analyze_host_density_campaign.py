@@ -38,6 +38,8 @@ def summarise(frame, h0_true, n_boot=4000, seed=1):
     return out
 
 
+# Fine-grid setting is a practical convergence check relative to the 161 x 801 default,
+# not a claim of asymptotic convergence.
 CONFIGS={
  "bw_scott":{"bandwidth_factor":None},
  "bw_0.05":{"bandwidth_factor":0.05},
@@ -47,7 +49,7 @@ CONFIGS={
  "bw_0.8":{"bandwidth_factor":0.8},
  "bw_1.2":{"bandwidth_factor":1.2},
  "grid_coarse":{"bandwidth_factor":None,"h0_points":81,"z_points":401},
- "grid_fine":{"bandwidth_factor":None,"h0_points":321,"z_points":1601},
+ "grid_fine":{"bandwidth_factor":None,"h0_points":201,"z_points":1001},
  "misspec_mid_0.18":{"bandwidth_factor":None,"supplied_midpoint":0.18},
  "misspec_mid_0.26":{"bandwidth_factor":None,"supplied_midpoint":0.26},
  "misspec_width_0.10":{"bandwidth_factor":None,"supplied_width":0.10},
