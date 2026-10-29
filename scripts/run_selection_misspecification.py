@@ -31,6 +31,9 @@ def main() -> None:
     parser.add_argument("--h0-points", type=int, default=161)
     parser.add_argument("--z-points", type=int, default=801)
     parser.add_argument("--bandwidth-factor", type=float, default=None, help="Optional physical bandwidth multiplier h=factor*weighted_SD; omit to use Scott rule")
+    parser.add_argument("--catalogue-floor", type=float, default=0.10)
+    parser.add_argument("--catalogue-midpoint", type=float, default=0.22)
+    parser.add_argument("--catalogue-width", type=float, default=0.05)
     parser.add_argument("--output-dir", type=Path, default=Path("artifacts/selection_misspecification"))
     args = parser.parse_args()
     started = time.perf_counter()
@@ -39,6 +42,9 @@ def main() -> None:
         n_detected=args.n_detected, seed=args.seed,
         h0_points=args.h0_points, z_points=args.z_points,
         bandwidth_factor=args.bandwidth_factor,
+        catalogue_floor=args.catalogue_floor,
+        catalogue_midpoint=args.catalogue_midpoint,
+        catalogue_width=args.catalogue_width,
     )
     elapsed = time.perf_counter() - started
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -72,6 +78,9 @@ def main() -> None:
             "n_parent": args.n_parent, "n_detected": args.n_detected,
             "seed_start": args.seed, "h0_points": args.h0_points,
             "z_points": args.z_points, "bandwidth_factor": args.bandwidth_factor,
+            "catalogue_floor": args.catalogue_floor,
+            "catalogue_midpoint": args.catalogue_midpoint,
+            "catalogue_width": args.catalogue_width,
         },
         "files": {
             raw_path.name: {"sha256": _sha256(raw_path), "bytes": raw_path.stat().st_size},
