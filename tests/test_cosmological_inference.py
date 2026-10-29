@@ -94,6 +94,9 @@ def test_gaussian_distance_estimator_can_be_non_positive():
 
 def test_posterior_rejects_bad_weights_and_distance_shapes():
     with pytest.raises(ValueError, match="host_weights"):
-        posterior_h0_from_distance_grid([50, 70, 90], np.ones((3, 2)), 100, 10, host_weights=[0, 0])
+        posterior_h0_from_distance_grid(
+            [50, 70, 90], np.ones((3, 2)), 100, 10,
+            host_weights=[0, 0], prior_min=50, prior_max=90,
+        )
     with pytest.raises(ValueError, match="shape"):
         posterior_h0_from_distance_grid([50, 70, 90], np.ones(3), 100, 10)
