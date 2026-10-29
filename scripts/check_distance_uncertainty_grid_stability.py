@@ -42,15 +42,14 @@ def _posterior_quantiles(row: dict[str, str], grid: np.ndarray) -> dict[str, flo
     cdf = np.r_[0.0, np.cumsum(0.5 * (density[1:] + density[:-1]) * np.diff(grid))]
     cdf /= cdf[-1]
     values = [float(np.interp(q, cdf, grid)) for q in QUANTILES]
-    # Flag probability near either edge using one spacing of the reference 1,601-point grid.
-    # This is a diagnostic only: it does not fail the audit by itself.
+    # Integrate a fixed-width region using the interpolated CDF, not a node mask.
+    # This is grid-resolution invariant and avoids floating-point equality at the edge.
     coarse_spacing = 40.0 / 1600.0
-    left_mask = grid <= grid[0] + coarse_spacing
-    right_mask = grid >= grid[-1] - coarse_spacing
-    boundary_mass = float(
-        np.trapezoid(density[left_mask], grid[left_mask])
-        + np.trapezoid(density[right_mask], grid[right_mask])
-    )
+    left_edge = float(grid[0])
+    right_edge = float(grid[-1])
+    left_cdf = float(np.interp(left_edge + coarse_spacing, grid, cdf))
+    right_cdf = float(np.interp(right_edge - coarse_spacing, grid, cdf))
+    boundary_mass = float(left_cdf + (1.0 - right_cdf))
     result = dict(zip(SUMMARY_COLUMNS, values))
     result["boundary_mass_within_one_coarse_spacing"] = boundary_mass
     return result
@@ -212,6 +211,9 @@ def compare_grid_resolutions(
     median_abs_tolerance: float = 0.02,
     median_relative_tolerance: float = 5e-4,
     interval_relative_tolerance: float = 1e-3,
+    endpoint_absolute_tolerance: float = 0.01,
+    endpoint_change_over_95_width_tolerance: float = 0.05,
+    production_min_coarse_grid: int = 1601,
 ) -> dict:
     """Compare independently reconstructed posterior summaries across grid resolutions.
 
@@ -224,9 +226,14 @@ def compare_grid_resolutions(
         raise ValueError("grid_points must contain at least two odd integers >= 3")
     if tuple(sorted(set(points))) != points:
         raise ValueError("grid_points must be strictly increasing and unique")
-    tolerances = (median_abs_tolerance, median_relative_tolerance, interval_relative_tolerance)
+    tolerances = (
+        median_abs_tolerance, median_relative_tolerance, interval_relative_tolerance,
+        endpoint_absolute_tolerance, endpoint_change_over_95_width_tolerance,
+    )
     if any(not math.isfinite(x) or x <= 0 for x in tolerances):
         raise ValueError("all convergence tolerances must be finite and positive")
+    if production_min_coarse_grid not in points[:-1]:
+        raise ValueError("production_min_coarse_grid must be one of the coarse grid resolutions")
 
     grids = {n: np.linspace(50.0, 90.0, n) for n in points}
     summaries = {n: [] for n in points}
@@ -287,35 +294,72 @@ def compare_grid_resolutions(
             flips[arm] = {"changed_68_coverage_classifications": int(changed), "n": len(indices)}
         median_abs = by_summary["median"]["maximum_absolute_change"]
         median_rel = by_summary["median"]["maximum_relative_change"]
-        interval_rel = max(
-            by_summary["lower_68"]["maximum_relative_change"],
-            by_summary["upper_68"]["maximum_relative_change"],
-            by_summary["lower_95"]["maximum_relative_change"],
-            by_summary["upper_95"]["maximum_relative_change"],
+        endpoint_columns = ("lower_68", "upper_68", "lower_95", "upper_95")
+        interval_rel = max(by_summary[col]["maximum_relative_change"] for col in endpoint_columns)
+        endpoint_abs = max(by_summary[col]["maximum_absolute_change"] for col in endpoint_columns)
+        width_ratios = []
+        for i in range(len(row_metadata)):
+            width = summaries[fine_n][i]["upper_95"] - summaries[fine_n][i]["lower_95"]
+            if not math.isfinite(width) or width <= 0:
+                raise ValueError("non-positive or non-finite fine-grid 95% posterior width")
+            width_ratios.extend(
+                abs(summaries[coarse_n][i][col] - summaries[fine_n][i][col]) / width
+                for col in endpoint_columns
+            )
+        max_width_ratio = float(max(width_ratios))
+        coverage_flip_count = sum(v["changed_68_coverage_classifications"] for v in flips.values())
+        meets = bool(
+            median_abs <= median_abs_tolerance
+            and median_rel <= median_relative_tolerance
+            and interval_rel <= interval_relative_tolerance
+            and endpoint_abs <= endpoint_absolute_tolerance
+            and max_width_ratio <= endpoint_change_over_95_width_tolerance
+            and coverage_flip_count == 0
         )
         comparisons.append({
             "coarse_grid_points": coarse_n,
             "fine_grid_points": fine_n,
             "summary_changes": by_summary,
+            "maximum_endpoint_absolute_change": endpoint_abs,
+            "maximum_endpoint_change_over_fine_95_width": max_width_ratio,
             "coverage_classification_changes_by_arm": flips,
-            "meets_configured_thresholds": bool(
-                median_abs <= median_abs_tolerance
-                and median_rel <= median_relative_tolerance
-                and interval_rel <= interval_relative_tolerance
-            ),
+            "coverage_flip_count": int(coverage_flip_count),
+            "is_at_or_above_production_resolution": coarse_n >= production_min_coarse_grid,
+            "meets_configured_thresholds": meets,
             "thresholds": {
                 "maximum_absolute_median_change": median_abs_tolerance,
                 "maximum_relative_median_change": median_relative_tolerance,
                 "maximum_relative_interval_endpoint_change": interval_relative_tolerance,
+                "maximum_absolute_interval_endpoint_change": endpoint_absolute_tolerance,
+                "maximum_endpoint_change_as_fraction_of_95_width": endpoint_change_over_95_width_tolerance,
+                "maximum_coverage_classification_flips": 0,
+                "production_min_coarse_grid": production_min_coarse_grid,
             },
         })
+    release_comparisons = [
+        item for item in comparisons
+        if item["coarse_grid_points"] >= production_min_coarse_grid
+    ]
+    if not release_comparisons:
+        raise ValueError("no adjacent grid comparison is at or above production resolution")
+    coverage_failed = any(item["coverage_flip_count"] > 0 for item in release_comparisons)
+    thresholds_passed = all(item["meets_configured_thresholds"] for item in release_comparisons)
+    status = "FAIL" if coverage_failed else ("PASS" if thresholds_passed else "REVIEW")
     return {
-        "status": "PASS" if comparisons[-1]["meets_configured_thresholds"] else "REVIEW",
-        "interpretation": "The final adjacent-grid comparison meets the configured numerical thresholds; this is not evidence of model adequacy or universal convergence.",
+        "status": status,
+        "interpretation": (
+            "PASS means every adjacent comparison at or above the declared production resolution "
+            "met absolute, relative, width-normalised, and coverage-stability checks. Coarser "
+            "comparisons are retained as diagnostics but do not establish production convergence. "
+            "This is not evidence of model adequacy or universal convergence."
+        ),
         "scope": "synthetic known-host low-redshift sensitivity diagnostic only",
         "raw_record_count": len(row_metadata),
         "grid_points": list(points),
         "support": [50.0, 90.0],
+        "production_min_coarse_grid": production_min_coarse_grid,
+        "release_comparison_count": len(release_comparisons),
+        "release_comparisons_all_pass": thresholds_passed and not coverage_failed,
         "comparisons": comparisons,
         "method": "independent Gaussian-likelihood and trapezoidal-grid reconstruction from raw CSV",
     }
