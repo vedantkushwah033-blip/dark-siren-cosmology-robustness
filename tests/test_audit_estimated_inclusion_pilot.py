@@ -40,3 +40,28 @@ def test_independent_pilot_auditor_detects_corrupted_summary(tmp_path):
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(AssertionError, match="n_attempted"):
         audit_pilot_artifacts(tmp_path)
+
+
+def test_independent_pilot_auditor_rejects_unexpected_contrast(tmp_path):
+    frame, summary = run_estimated_inclusion_pilot(
+        n_replicates=1,
+        n_parent=1000,
+        n_detected=5,
+        validation_sizes=(100,),
+        seed=20261033,
+        h0_points=41,
+        z_points=201,
+    )
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    summary["contrasts"].append({
+        "comparison_arm": "fabricated_arm",
+        "reference_arm": "catalogue_only",
+        "n_paired_replicates": 1,
+        "mean_absolute_error_reduction": 0.0,
+        "standard_error": None,
+        "normal_95_low": None,
+        "normal_95_high": None,
+    })
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="unexpected stored contrasts"):
+        audit_pilot_artifacts(tmp_path)
