@@ -68,3 +68,9 @@ This 1,200-row artifact is a distinct model and experiment from the separate exa
 ## Recommended manuscript language
 
 Use the Stage B locked paired contrast as the primary confirmatory result, and present these newest results as supporting diagnostics/sensitivity analyses. Report the fixed-truth calibration failures rather than hiding them. Do not select a bandwidth or misspecified selection law merely because it gives a lower RMSE in these 40 replicates. For a stronger sensitivity claim, increase replicates under a preregistered plan and independently reconstruct the full campaign—not only the compact benchmark. Real-data validation remains a separate, currently unmet gate.
+
+## Cross-check against the canonical campaign report
+
+The canonical screening report is `docs/host_density_sensitivity_screening_results_2026-10-29.md`. It should be treated as the authoritative full table; the compact table above is a summary. To make the interpretation explicit, the default-bandwidth oracle reference has bias +1.123, RMSE 3.936, 68% coverage 52.5%, and density L1 error 0.058. The known-inclusion arm has bias +1.180, RMSE 3.896, coverage 55.0%, and density L1 error 0.082. The catalogue-only arm has bias −8.634, RMSE 9.165, coverage 10.0%, and density L1 error 0.537. The paired absolute-error contrast for known-inclusion weighting minus oracle is −0.057, with bootstrap 95% interval [−0.199, +0.083], which includes zero.
+
+For full sensitivity details, including catalogue-only and weighted metrics at every bandwidth, grid differences, and all selection-curve variants, use the canonical report rather than extrapolating from the shortened table here. The sensitivity campaign's 40-replicate-per-setting design and two-replicate independent posterior smoke audit remain important evidence limits.
