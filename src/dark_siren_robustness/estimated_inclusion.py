@@ -21,7 +21,7 @@ def fit_logistic_inclusion_model(
     *,
     z_min: float,
     z_max: float,
-) -> dict[str, float | str]:
+) -> dict[str, float | str | bool]:
     """Fit logit P(included=1 | z) = intercept + slope * standardized_z.
 
     Standardization is fixed by the declared domain: standardized_z is
@@ -67,8 +67,14 @@ def fit_logistic_inclusion_model(
     )
     if not result.success or not np.all(np.isfinite(result.x)) or not np.isfinite(result.fun):
         raise RuntimeError(f"logistic inclusion fit failed: {result.message}")
+    coefficient_bound_hit = bool(
+        np.isclose(abs(float(result.x[0])), 25.0, rtol=0.0, atol=1e-5)
+        or np.isclose(abs(float(result.x[1])), 50.0, rtol=0.0, atol=1e-5)
+    )
     return {
         "model": "logistic_inclusion_v1",
+        "fit_status": "boundary_limited" if coefficient_bound_hit else "converged",
+        "coefficient_bound_hit": coefficient_bound_hit,
         "intercept": float(result.x[0]),
         "slope": float(result.x[1]),
         "z_min": float(z_min),
@@ -118,6 +124,7 @@ def estimate_host_density_from_validation(
     validation_redshift: ArrayLike,
     validation_included: ArrayLike,
     *,
+    merger_weight: ArrayLike | None = None,
     bandwidth_factor: float | None = None,
 ) -> dict[str, object]:
     """Estimate host density using inclusion probabilities learned from audit data.
@@ -127,7 +134,9 @@ def estimate_host_density_from_validation(
     returned density uses only the observed catalogue and the audit records;
     the true inclusion probabilities and hidden parent objects are never inputs.
 
-    This wrapper intentionally applies no weight clipping. Its diagnostics make
+    merger_weight, when supplied, is a positive rate multiplier defined on
+    redshift_grid (not an object-level weight). This wrapper intentionally
+    applies no inverse-inclusion weight clipping. Its diagnostics make
     potentially unstable inverse weights visible; scientific use should
     preregister any positivity guard or cap rather than tuning it to H0 results.
     """
@@ -158,6 +167,7 @@ def estimate_host_density_from_validation(
         grid,
         observed,
         inclusion_probability=probability,
+        merger_weight=merger_weight,
         bandwidth_factor=bandwidth_factor,
     )
     return {
