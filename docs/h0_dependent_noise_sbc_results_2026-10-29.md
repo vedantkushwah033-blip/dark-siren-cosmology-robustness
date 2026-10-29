@@ -4,13 +4,13 @@
 
 ## Reproducibility and independent audit
 
-- Source commit: `9c662b657c4472b9614bf013625af8647e1a2d5d` (enhanced independent-auditor revision).
-- GitHub Actions: [SBC workflow run #40797551664](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40797551664) — succeeded.
-- Artifact ID: `12864761259`; artifact name `h0-dependent-noise-sbc-9c662b657c4472b9614bf013625af8647e1a2d5d`; ZIP artifact digest `sha256:12259a52b37fb827e1fa158d89a8cdaa07603a081055dbea8c8f4af8cebef6c0`.
+- Source commit: `e9a512d46aeeb7070649ac8f851c1d86103f4379` (non-finite metric guard and adversarial tamper-test revision).
+- GitHub Actions: [SBC workflow run #40797963979](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40797963979) — succeeded.
+- Artifact ID: `12864343125`; artifact name `h0-dependent-noise-sbc-e9a512d46aeeb7070649ac8f851c1d86103f4379`; ZIP artifact digest `sha256:53b671d8269a2207b36233884c36a347e06cc4c74f8b6bb08b9d7d7c94b0d00b`.
 - Records: 1,200 total; 300 each for prior-drawn truth and fixed H0=60, 70, 80.
-- Raw records: 278,704 bytes; SHA-256 `af888132ddfcc540523a3873fac6d3350a01ac50323ab86b85d4af5bcff1fb83`.
-- Summary: 5,466 bytes; SHA-256 `3e435952b3f3b4e54fd2795ef11d2e3de1d32b08426a56b19acb5f9ac06cac46`.
-- Independent audit: **PASS**. All 1,200 raw records were regenerated from their seeds; detected distances, likelihoods, posterior means, medians, credible interval endpoints and CDF ranks were reconstructed. The strengthened auditor also recomputed every saved aggregate summary directly from the reconstructed raw rows, including bias and its Monte Carlo SE, RMSE, nominal coverage, Wilson intervals, rank decile counts and descriptive chi-square statistics, and interval widths. The audit JSON records `summary_aggregates_reconstructed: true`. Maximum absolute differences were below 4.3×10⁻¹⁴ for posterior means, 2.9×10⁻¹⁴ for interval endpoints/medians, and 3.4×10⁻¹⁶ for ranks. The ZIP's two manifest-tracked file hashes and byte counts were independently checked after download; raw-CSV aggregate reanalysis agreed with saved headline metrics to <3.6×10⁻¹⁵ absolute discrepancy for the checked fields. Both raw-data and summary hashes were checked.
+- Raw records: 278,551 bytes; SHA-256 `e239b18f452084790b9fa8aee2c8305f0d5dfef79c4555358f197f096626576d`.
+- Summary: 5,464 bytes; SHA-256 `ba32c697119365a37b8dc55da648fddab235e8a85280cdc022a39ab02dfff38d`.
+- Independent audit: **PASS**. All 1,200 raw records were regenerated from their seeds; detected distances, likelihoods, posterior means, medians, credible interval endpoints and CDF ranks were reconstructed. The strengthened auditor also recomputed every saved aggregate summary directly from the reconstructed raw rows, including bias and its Monte Carlo SE, RMSE, nominal coverage, Wilson intervals, rank decile counts and descriptive chi-square statistics, and interval widths. The audit JSON records `summary_aggregates_reconstructed: true`. Maximum absolute differences were below 4.3×10⁻¹⁴ for posterior means, 2.9×10⁻¹⁴ for interval endpoints/medians, and 3.4×10⁻¹⁶ for ranks. The ZIP's two manifest-tracked file hashes and byte counts were independently checked after download; raw-CSV aggregate reanalysis agreed with saved headline metrics to <3.6×10⁻¹⁵ absolute discrepancy for the checked fields. This is the most recent artifact on the non-finite-guard revision and uses the unchanged seeded CSV but a new summary hash because the source commit identifier changed. Both raw-data and summary hashes were checked.
 
 This is strong evidence that the implemented generator, declared toy likelihood, saved data and audit code agree numerically. It is not independent evidence that the toy model is realistic.
 
