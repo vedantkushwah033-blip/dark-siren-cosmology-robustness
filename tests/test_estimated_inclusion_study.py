@@ -15,6 +15,7 @@ def test_estimated_inclusion_pilot_is_reproducible_and_retains_failures():
     second, _ = run_estimated_inclusion_pilot(**kwargs)
 
     assert len(first) == 4  # catalogue-only, oracle, and two estimated arms
+    assert first["status"].eq("success").any(), first[["arm", "error"]].to_dict("records")
     assert first[["replicate", "arm", "status"]].equals(
         second[["replicate", "arm", "status"]]
     )

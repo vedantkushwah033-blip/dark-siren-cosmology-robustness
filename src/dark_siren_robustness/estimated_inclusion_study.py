@@ -243,11 +243,20 @@ def run_estimated_inclusion_pilot(
     successful = frame.loc[frame["status"] == "success"].copy()
     for arm in frame["arm"].drop_duplicates():
         group = successful.loc[successful["arm"] == arm]
+        n_success = int(len(group))
+        if not n_success:
+            summaries.append({
+                "arm": arm,
+                "n_attempted": int((frame["arm"] == arm).sum()),
+                "n_success": 0,
+                "n_failed": int((frame["arm"] == arm).sum()),
+                "status": "no_successful_fits",
+            })
+            continue
         covered = group["covered_68"].astype(bool).to_numpy()
         n_covered = int(np.sum(covered))
-        n_success = int(len(group))
+        w_low, w_high = _wilson(n_covered, n_success)
         if n_success:
-            w_low, w_high = _wilson(n_covered, n_success)
             summaries.append({
                 "arm": arm,
                 "n_attempted": int((frame["arm"] == arm).sum()),
@@ -276,20 +285,22 @@ def run_estimated_inclusion_pilot(
                 "status": "no_successful_fits",
             })
 
-    baseline = successful.loc[successful["arm"] == "catalogue_only"].set_index("replicate")
     contrasts: list[dict] = []
-    for arm in [f"oracle"] + [f"estimated_{m}" for m in sizes]:
-        comparison = successful.loc[successful["arm"] == arm].set_index("replicate")
-        paired = baseline[["absolute_error"]].join(
-            comparison[["absolute_error"]], how="inner", lsuffix="_baseline", rsuffix="_comparison"
-        )
-        values = (
-            paired["absolute_error_baseline"] - paired["absolute_error_comparison"]
-        ).to_numpy(dtype=float)
-        if values.size:
-            item = _contrast_summary(values)
-            item.update({"comparison_arm": arm, "reference_arm": "catalogue_only"})
-            contrasts.append(item)
+    if not successful.empty:
+        baseline = successful.loc[successful["arm"] == "catalogue_only"].set_index("replicate")
+        for arm in ["oracle"] + [f"estimated_{m}" for m in sizes]:
+            comparison = successful.loc[successful["arm"] == arm].set_index("replicate")
+            paired = baseline[["absolute_error"]].join(
+                comparison[["absolute_error"]], how="inner",
+                lsuffix="_baseline", rsuffix="_comparison"
+            )
+            values = (
+                paired["absolute_error_baseline"] - paired["absolute_error_comparison"]
+            ).to_numpy(dtype=float)
+            if values.size:
+                item = _contrast_summary(values)
+                item.update({"comparison_arm": arm, "reference_arm": "catalogue_only"})
+                contrasts.append(item)
 
     summary = {
         "study": "estimated_catalogue_inclusion_probability_pilot",
