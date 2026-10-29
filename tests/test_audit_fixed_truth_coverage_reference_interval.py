@@ -73,3 +73,34 @@ def test_reference_interval_audit_rejects_reversed_posterior_interval(tmp_path):
 
     with pytest.raises(ValueError, match="reversed 68% posterior interval"):
         audit(source)
+
+
+
+def test_reference_interval_audit_reports_prior_boundary_and_near_boundary_strata(tmp_path):
+    source = tmp_path / "boundary_replicates.csv"
+    c = 299_792.458
+    rows = []
+    for replicate, truth in enumerate((50.0, 55.0, 85.0, 90.0)):
+        redshift = 0.02
+        distance = c * redshift / truth
+        sigma = 0.1 * distance
+        rows.append({
+            "true_h0": truth,
+            "fractional_error": 0.1,
+            "replicate": replicate,
+            "arm": "A_fixed_realized_sigma",
+            "host_redshift": redshift,
+            "observed_distance_mpc": distance,
+            "generated_sigma_mpc": sigma,
+            "lower_68": truth - 5.0,
+            "upper_68": truth + 5.0,
+            "lower_95": truth - 10.0,
+            "upper_95": truth + 10.0,
+        })
+    write_fixture(source, rows)
+
+    report = audit(source)
+
+    assert report["groups"]["prior_boundary_truths_50_or_90"]["68"]["all_arm_a_records"]["n"] == 2
+    assert report["groups"]["near_boundary_truths_55_or_85"]["68"]["all_arm_a_records"]["n"] == 2
+    assert report["groups"]["interior_truths_55_to_85"]["68"]["all_arm_a_records"]["n"] == 3
