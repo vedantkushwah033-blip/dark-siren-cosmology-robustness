@@ -205,3 +205,15 @@ def test_independent_auditor_rejects_absolute_error_inconsistent_with_posterior_
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(AssertionError, match="absolute_error disagrees"):
         audit_pilot_artifacts(tmp_path)
+
+
+
+def test_independent_pilot_auditor_rejects_duplicate_contrast_entries(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261047)
+    if not summary["contrasts"]:
+        pytest.skip("pilot produced no evaluable paired contrast")
+    summary["contrasts"].append(dict(summary["contrasts"][0]))
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="duplicate comparison contrasts"):
+        audit_pilot_artifacts(tmp_path)
