@@ -1,0 +1,35 @@
+name: hidden-fraction-selection-contract
+
+on:
+  push:
+    branches:
+      - research/hidden-fraction-selection-cutoff-protocol-2026-10-29
+    paths:
+      - "src/dark_siren_robustness/selection_conditioned_hidden_host.py"
+      - "tests/test_selection_conditioned_hidden_host.py"
+      - ".github/workflows/hidden-fraction-selection-contract.yml"
+  pull_request:
+    paths:
+      - "src/dark_siren_robustness/selection_conditioned_hidden_host.py"
+      - "tests/test_selection_conditioned_hidden_host.py"
+      - ".github/workflows/hidden-fraction-selection-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-contract:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run hidden-host mixture likelihood contract tests
+        run: python -m pytest tests/test_selection_conditioned_hidden_host.py -q
