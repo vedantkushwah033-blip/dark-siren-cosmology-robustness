@@ -42,7 +42,14 @@ def _posterior_quantiles(row: dict[str, str], grid: np.ndarray) -> dict[str, flo
     cdf = np.r_[0.0, np.cumsum(0.5 * (density[1:] + density[:-1]) * np.diff(grid))]
     cdf /= cdf[-1]
     values = [float(np.interp(q, cdf, grid)) for q in QUANTILES]
-    return dict(zip(SUMMARY_COLUMNS, values))
+    # Flag probability near either edge using one spacing of the reference 1,601-point grid.
+    # This is a diagnostic only: it does not fail the audit by itself.
+    coarse_spacing = 40.0 / 1600.0
+    edge_mask = (grid <= grid[0] + coarse_spacing) | (grid >= grid[-1] - coarse_spacing)
+    boundary_mass = float(np.trapezoid(density[edge_mask], grid[edge_mask]))
+    result = dict(zip(SUMMARY_COLUMNS, values))
+    result["boundary_mass_within_one_coarse_spacing"] = boundary_mass
+    return result
 
 
 def check_grid_stability(raw_csv: Path, fine_grid_points: int = 3201,
@@ -53,8 +60,11 @@ def check_grid_stability(raw_csv: Path, fine_grid_points: int = 3201,
         raise ValueError("max_allowed_change must be finite and positive")
     grid = np.linspace(50.0, 90.0, fine_grid_points)
     changes = {column: [] for column in SUMMARY_COLUMNS}
+    boundary_masses = []
+    boundary_mass_threshold = 0.05
     coverage = {}
     seen_keys = set()
+    boundary_flags = []
     arms_by_replicate = {}
     replicates_by_cell = {}
     expected_arms = {
@@ -88,6 +98,16 @@ def check_grid_stability(raw_csv: Path, fine_grid_points: int = 3201,
             if arm not in coverage:
                 coverage[arm] = {"coarse_successes": 0, "fine_successes": 0, "n": 0}
             fine = _posterior_quantiles(row, grid)
+            boundary_mass = fine["boundary_mass_within_one_coarse_spacing"]
+            boundary_masses.append(boundary_mass)
+            if boundary_mass > boundary_mass_threshold:
+                boundary_flags.append({
+                    "true_h0": truth,
+                    "fractional_error": fractional_error,
+                    "replicate": replicate,
+                    "arm": arm,
+                    "boundary_mass": boundary_mass,
+                })
             for column in SUMMARY_COLUMNS:
                 coarse = float(row[column])
                 delta = abs(coarse - fine[column])
@@ -146,6 +166,15 @@ def check_grid_stability(raw_csv: Path, fine_grid_points: int = 3201,
         "fine_grid_support": [50.0, 90.0],
         "max_allowed_quantile_change": max_allowed_change,
         "quantile_changes": quantile_changes,
+        "boundary_mass_diagnostic": {
+            "definition": "posterior probability within one 1,601-point-grid spacing (0.025 H0 units) of either endpoint",
+            "threshold": boundary_mass_threshold,
+            "flagged_record_count": len(boundary_flags),
+            "maximum_mass": float(max(boundary_masses)),
+            "median_mass": float(np.median(boundary_masses)),
+            "flags_are_diagnostic_not_automatic_failures": True,
+            "flagged_records": boundary_flags,
+        },
         "coverage_68_by_arm": coverage,
         "method": (
             "independent Gaussian-likelihood and trapezoidal-grid reconstruction "
