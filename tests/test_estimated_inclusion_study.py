@@ -19,6 +19,6 @@ def test_estimated_inclusion_pilot_is_reproducible_and_retains_failures():
         second[["replicate", "arm", "status"]]
     )
     assert summary["status"] == "NON_CONFIRMATORY_SYNTHETIC_PILOT"
-    assert { "catalogue_only", "oracle", "estimated_100", "estimated_200" } == set(first["arm"])
+    assert {"catalogue_only", "oracle", "estimated_100", "estimated_200"} == set(first["arm"])
     assert all(first["status"].isin(["success", "failed"]))
     assert len(summary["contrasts"]) <= 3

@@ -63,7 +63,7 @@ jobs:
           summary = json.loads((p / 'summary.json').read_text())
           assert summary['status'] == 'NON_CONFIRMATORY_SYNTHETIC_PILOT'
           assert (p / 'replicates.csv').stat().st_size > 0
-          print(f\"Validated {len(summary['arm_summaries'])} arm summaries.\")
+          print("Validated {} arm summaries.".format(len(summary['arm_summaries'])))
           PY
       - name: Test host-density-to-H0 benchmark
         run: python -m pytest tests/test_host_density_benchmark.py -q
