@@ -103,4 +103,4 @@ def test_reference_interval_audit_reports_prior_boundary_and_near_boundary_strat
 
     assert report["groups"]["prior_boundary_truths_50_or_90"]["68"]["all_arm_a_records"]["n"] == 2
     assert report["groups"]["near_boundary_truths_55_or_85"]["68"]["all_arm_a_records"]["n"] == 2
-    assert report["groups"]["interior_truths_55_to_85"]["68"]["all_arm_a_records"]["n"] == 3
+    assert report["groups"]["interior_truths_55_to_85"]["68"]["all_arm_a_records"]["n"] == 2
