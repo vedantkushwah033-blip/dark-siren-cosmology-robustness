@@ -52,6 +52,26 @@ def test_summary_normalizes_valid_density_and_returns_ordered_intervals():
     assert summary["median"] < summary["upper_68"] < summary["upper_95"] < 90
 
 
+@pytest.mark.parametrize(
+    ("grid", "prior_min", "prior_max", "message"),
+    [
+        ([60.0, 70.0, 80.0], 50.0, 90.0, "span the full prior interval"),
+        ([50.0, 60.0, 80.0], 50.0, 90.0, "span the full prior interval"),
+        ([49.0, 60.0, 89.0, 91.0], 50.0, 90.0, "contain prior_min and prior_max exactly"),
+        ([49.0, 51.0, 89.0, 91.0], 50.0, 90.0, "contain prior_min and prior_max exactly"),
+    ],
+)
+def test_posterior_rejects_grid_that_truncates_or_misrepresents_prior_support(
+    grid, prior_min, prior_max, message
+):
+    """Do not silently renormalize on a subset or node approximation of the prior."""
+    with pytest.raises(ValueError, match=message):
+        posterior_h0(
+            grid, [0.02, 0.04], 150.0, 20.0,
+            prior_min=prior_min, prior_max=prior_max,
+        )
+
+
 def test_missing_host_component_requires_support():
     with pytest.raises(ValueError, match="missing_redshifts"):
         posterior_h0([50, 70, 90], [0.02], 100.0, 10.0, missing_weight=0.2)
