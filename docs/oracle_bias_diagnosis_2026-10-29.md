@@ -42,3 +42,19 @@ The dedicated workflow [#40797592794](https://github.com/vedantkushwah033-blip/d
 | Fixed H0=80 | 300 | +0.543 ± 0.189 | 3.306 | 69.7% | 91.3% | 0.324 |
 
 The prior-drawn result is broadly compatible with calibration on this screening run. Fixed-truth posterior-mean bias is positive at all three tested values but is small relative to RMSE. The fixed-truth PIT chi-square p-values must not be interpreted using the prior-drawn SBC uniformity criterion: ranks at fixed truths do not have the same prior-predictive uniformity guarantee. This new run supports the distinction between prior-averaged calibration and conditional estimator bias, but the aggregate-only artifact is not sufficient for independent seed-level auditing. The 2,000-replicate local table is a different dataset and was not reproduced exactly by this coarser screen.
+
+
+## Latest independently audited exact-density artifact
+
+**Run:** [#40802415000](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40802415000), source commit `6d5f999eacab3dce3dc9eac5e444af22c25dc3c2`; the exact-density oracle job completed successfully. **Artifact:** ID `12867070639`, ZIP digest `sha256:4853794c2840980a8efc8bd6d82e1b82fc492aea3af4b291818db24464bd4134`.
+
+The raw CSV contains 1,200 rows across four truth regimes (300 each), 1,129,316 bytes, SHA-256 `a38c64a2b9be9afce46c8f7b88659fa9f34f08a146d68376142b2184ba14cbee`. The summary JSON has 3,881 bytes, SHA-256 `a26c3b62d2612f04f34d9c2fb416ca1ae6024a69845ef7622666f1fe2efe3d72`. The independent report is **PASS**: all 1,200 seeds and accepted-distance vectors were replayed, all posteriors independently reconstructed, summary aggregates rederived, and file hashes/byte counts verified. Maximum errors were ≤1.85×10⁻¹³ for posterior summaries and ≤1.85×10⁻¹⁴ for ranks; true parameters and detected distances replayed exactly.
+
+| Truth design | Replicates | Mean posterior-mean bias ± MC SE | RMSE | 68% coverage | 90% coverage | Mean posterior-CDF rank |
+|---|---:|---:|---:|---:|---:|---:|
+| H₀ drawn from prior [50,90] | 300 | −0.221 ± 0.168 | 2.909 | 70.0% | 91.0% | 0.524 |
+| Fixed H₀=60 | 300 | +0.375 ± 0.151 | 2.639 | 72.0% | 89.3% | 0.480 |
+| Fixed H₀=70 | 300 | +0.154 ± 0.189 | 3.271 | 68.7% | 88.0% | 0.505 |
+| Fixed H₀=80 | 300 | +0.305 ± 0.191 | 3.314 | 67.0% | 92.7% | 0.474 |
+
+The prior-drawn rank mean and ten-bin p-value (0.105) are broadly compatible with prior-predictive calibration at this moderate Monte Carlo resolution. Fixed-truth rows describe conditional estimator behavior and should not be judged using the same rank-uniformity criterion as prior-drawn SBC. This continuous-target control isolates finite-parent/KDE error from the remaining behavior of this toy likelihood; it is not a realistic gravitational-wave analysis.

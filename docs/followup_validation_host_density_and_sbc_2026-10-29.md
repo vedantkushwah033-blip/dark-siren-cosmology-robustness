@@ -37,7 +37,7 @@ Design: paired seeds 20261029–20261068; 40 replicates per configuration; 6,000
 
 The 40-replicate campaign is a screening exercise. Its empirical coverage values have wide uncertainty and must not be used as evidence of calibrated 68% intervals. The fine/coarse comparison suggests integration-grid effects are small for this particular summary, but does not replace a general convergence analysis.
 
-**Audit distinction.** The artifact includes a checksum-verified campaign manifest. The separate independent-audit payload in this artifact is a compact two-replicate benchmark (not a full independent replay of all 520 campaign rows). Do not describe the full sensitivity campaign as independently reconstructed row-by-row based on that compact audit alone.
+**Audit distinction.** The archive manifest and byte counts were checked, and aggregate metrics were independently rederived from each raw CSV. The new auditor then reconstructed all 1,560 fit rows in separate per-configuration local runs, and all passed. The clean all-configurations CI reproduction/audit is in progress at [#40802415000](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40802415000); check its final status and audit JSON before describing the one-shot CI check as passed. The older compact two-replicate smoke audit no longer defines the full scope of the local audit.
 
 ## H0-dependent-noise selected-likelihood calibration
 
@@ -74,3 +74,8 @@ Use the Stage B locked paired contrast as the primary confirmatory result, and p
 The canonical screening report is `docs/host_density_sensitivity_screening_results_2026-10-29.md`. It should be treated as the authoritative full table; the compact table above is a summary. To make the interpretation explicit, the default-bandwidth oracle reference has bias +1.123, RMSE 3.936, 68% coverage 52.5%, and density L1 error 0.058. The known-inclusion arm has bias +1.180, RMSE 3.896, coverage 55.0%, and density L1 error 0.082. The catalogue-only arm has bias −8.634, RMSE 9.165, coverage 10.0%, and density L1 error 0.537. The paired absolute-error contrast for known-inclusion weighting minus oracle is −0.057, with bootstrap 95% interval [−0.199, +0.083], which includes zero.
 
 For full sensitivity details, including catalogue-only and weighted metrics at every bandwidth, grid differences, and all selection-curve variants, use the canonical report rather than extrapolating from the shortened table here. The sensitivity campaign's 40-replicate-per-setting design and two-replicate independent posterior smoke audit remain important evidence limits.
+
+
+## Exact-density oracle audit (latest revision)
+
+The exact-density oracle job in [run #40802415000](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40802415000) completed successfully. Its raw CSV has 1,200 rows (300 per truth regime), 1,129,316 bytes, SHA-256 `a38c64a2b9be9afce46c8f7b88659fa9f34f08a146d68376142b2184ba14cbee`; summary JSON 3,881 bytes, SHA-256 `a26c3b62d2612f04f34d9c2fb416ca1ae6024a69845ef7622666f1fe2efe3d72`. The independent oracle auditor passed, replayed all seeds and detected distances exactly, reconstructed every posterior and summary aggregate, and verified the manifest. Maximum posterior summary error was below 1.9×10⁻¹³. Artifact ID `12867070639`; archive digest `sha256:4853794c2840980a8efc8bd6d82e1b82fc492aea3af4b291818db24464bd4134`. This continuous-density fixed-noise oracle is distinct from the H₀-dependent-noise discrete-host study.
