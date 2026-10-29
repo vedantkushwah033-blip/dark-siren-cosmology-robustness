@@ -3,11 +3,10 @@
 ## Exact-head automated validation
 
 Working branch: `research/audit-posterior-grid-integrity`  
-Last checked code head: `cbd8d58a79089b5b2b089c27759b01bd8c8f7d6f`  
-Push-triggered Actions run: [#40832784066](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40832784066)  
-Pull-request merge-ref Actions run: [#40832806297](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40832806297), testing merge ref `29308d22e59d4e1c8f93538953e92de67fe27881`.
+Current head at this update: `20b4a17e216e9de8d76e7b4bfbe5a6f6b03e9dca`  
+Exact-head Actions run: [#40854750158](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40854750158); independent duplicate exact-head run: [#40854458789](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40854458789). Earlier code-head run: [#40832784066](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40832784066); earlier pull-request merge-ref run: [#40832806297](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40832806297), testing merge ref `29308d22e59d4e1c8f93538953e92de67fe27881`.
 
-Both runs completed successfully; the merge-ref workflow passed the numerical-diagnostics matrix on Python 3.10, 3.11, and 3.12. Jobs exercise likelihood composition, H0-dependent noise and selection-conditioned inference, independent artifact auditors, catalogue thinning, host-density estimation, selection-function misspecification, distance-uncertainty sensitivity, posterior-grid stability, and associated diagnostics. These results support software reproducibility on the tested environments, not realism of the synthetic assumptions. The README and this release-gate record are now being refreshed; their new documentation-only commit must pass its own check before it can be called green.
+Both exact-head runs completed successfully; each passed the numerical-diagnostics matrix on Python 3.10, 3.11, and 3.12. Jobs exercise likelihood composition, H0-dependent noise and selection-conditioned inference, independent artifact auditors, catalogue thinning, host-density estimation, selection-function misspecification, distance-uncertainty sensitivity, posterior-grid stability, and associated diagnostics. These results support software reproducibility on the tested environments, not realism of the synthetic assumptions. The cancelled duplicate run #40854450158 is not used as validation evidence.
 
 ## External CHIMERA v2.2 benchmark gate
 
