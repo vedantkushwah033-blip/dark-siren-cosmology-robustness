@@ -229,9 +229,15 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
 
     successful = frame.loc[success]
     baseline = successful.loc[successful["arm"] == "catalogue_only"].set_index("replicate")
-    stored_contrasts = {
-        item["comparison_arm"]: item for item in summary.get("contrasts", [])
-    }
+    raw_contrasts = summary.get("contrasts", [])
+    if not isinstance(raw_contrasts, list):
+        raise AssertionError("summary.contrasts must be a list")
+    if any(not isinstance(item, dict) or "comparison_arm" not in item for item in raw_contrasts):
+        raise AssertionError("each contrast entry must be an object with comparison_arm")
+    contrast_names = [item["comparison_arm"] for item in raw_contrasts]
+    if len(contrast_names) != len(set(contrast_names)):
+        raise AssertionError("summary contains duplicate comparison contrasts")
+    stored_contrasts = {item["comparison_arm"]: item for item in raw_contrasts}
     expected_comparisons = [arm for arm in arms_in_rows if arm != "catalogue_only"]
     unexpected_contrasts = set(stored_contrasts) - set(expected_comparisons)
     if unexpected_contrasts:
