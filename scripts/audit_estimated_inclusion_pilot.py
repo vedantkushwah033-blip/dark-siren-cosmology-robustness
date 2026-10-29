@@ -61,6 +61,13 @@ def _required_finite_number(value: object, label: str) -> float:
         raise AssertionError(f"{label}: expected a finite number")
     return number
 
+def _integer_values(values: pd.Series, label: str) -> np.ndarray:
+    """Parse integer-valued CSV columns without silently truncating decimals."""
+    numeric = pd.to_numeric(values, errors="raise").to_numpy(dtype=float)
+    if not np.all(np.isfinite(numeric)) or not np.all(numeric == np.floor(numeric)):
+        raise AssertionError(f"{label}: expected finite integer-valued entries")
+    return numeric.astype(np.int64)
+
 def audit_pilot_artifacts(output_dir: str | Path) -> dict:
     root = Path(output_dir)
     csv_path, json_path = root / "replicates.csv", root / "summary.json"
@@ -122,26 +129,29 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
     if arms_in_rows != expected_arms:
         raise AssertionError(f"replicate arm set differs from declared design: expected={sorted(expected_arms)}, observed={sorted(arms_in_rows)}")
     expected_replicates = set(range(requested_replicates))
-    observed_replicates = set(pd.to_numeric(frame["replicate"], errors="raise").astype(int).unique())
+    replicate_values = _integer_values(frame["replicate"], "replicate")
+    observed_replicates = set(np.unique(replicate_values).tolist())
     if observed_replicates != expected_replicates:
         raise AssertionError(f"replicate IDs differ from declared design: expected={sorted(expected_replicates)}, observed={sorted(observed_replicates)}")
     expected_pairs = {(replicate, arm) for replicate in expected_replicates for arm in expected_arms}
-    observed_pairs = set(zip(frame["replicate"].astype(int), frame["arm"]))
+    observed_pairs = set(zip(replicate_values.tolist(), frame["arm"]))
     if observed_pairs != expected_pairs:
         missing_pairs = sorted(expected_pairs - observed_pairs)[:5]
         extra_pairs = sorted(observed_pairs - expected_pairs)[:5]
         raise AssertionError(f"incomplete replicate-arm matrix; missing={missing_pairs}, extra={extra_pairs}")
     expected_validation_size = {"catalogue_only": 0, "oracle": 0, **{f"estimated_{v}": v for v in validation_sizes}}
     for arm, expected_size in expected_validation_size.items():
-        sizes = set(pd.to_numeric(frame.loc[frame["arm"] == arm, "validation_size"], errors="raise").astype(int))
+        sizes = set(_integer_values(frame.loc[frame["arm"] == arm, "validation_size"], f"{arm}.validation_size").tolist())
         if sizes != {expected_size}:
             raise AssertionError(f"{arm}: validation_size does not match declared design")
     if not isinstance(summary.get("arm_summaries"), list):
         raise AssertionError("summary.arm_summaries must be a list")
-    arms_in_summary = {item.get("arm") for item in summary["arm_summaries"] if isinstance(item, dict)}
-    if arms_in_rows != arms_in_summary:
-        raise AssertionError("summary arm set does not match replicate table")
-    arms_in_summary = {item["arm"] for item in summary.get("arm_summaries", [])}
+    if any(not isinstance(item, dict) or "arm" not in item for item in summary["arm_summaries"]):
+        raise AssertionError("each summary arm entry must be an object with an arm name")
+    summary_arm_names = [item["arm"] for item in summary["arm_summaries"]]
+    if len(summary_arm_names) != len(set(summary_arm_names)):
+        raise AssertionError("summary contains duplicate arm summaries")
+    arms_in_summary = set(summary_arm_names)
     if arms_in_rows != arms_in_summary:
         raise AssertionError("summary arm set does not match replicate table")
     for replicate, group in frame.groupby("replicate"):
