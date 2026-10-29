@@ -113,13 +113,21 @@ def test_independent_pilot_auditor_requires_explicit_h0_truth(tmp_path):
 
 
 def test_independent_pilot_auditor_rejects_missing_replicate_arm_pair(tmp_path):
-    frame, summary = _write_small_pilot(tmp_path, seed=20261042)
-    frame = frame.iloc[:-1]
+    frame, summary = run_estimated_inclusion_pilot(
+        n_replicates=2,
+        n_parent=1000,
+        n_detected=5,
+        validation_sizes=(100,),
+        seed=20261042,
+        h0_points=41,
+        z_points=201,
+    )
+    # Keep every arm represented, but remove one replicate/arm cell.
+    frame = frame.drop(frame.index[-1])
     frame.to_csv(tmp_path / "replicates.csv", index=False)
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(AssertionError, match="incomplete replicate-arm matrix"):
         audit_pilot_artifacts(tmp_path)
-
 
 def test_strict_boolean_parser_does_not_treat_string_false_as_true():
     from scripts.audit_estimated_inclusion_pilot import _strict_bool
