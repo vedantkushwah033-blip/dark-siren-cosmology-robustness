@@ -92,7 +92,7 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
     if not failed_errors.str.len().gt(0).all():
         raise AssertionError("failed rows must preserve a nonempty error reason")
     numeric = [
-        "posterior_mean", "ci68_low", "ci68_high", "ci68_width",
+        "posterior_mean", "posterior_median", "ci68_low", "ci68_high", "ci68_width",
         "absolute_error", "density_ise", "weight_ess", "weight_ess_fraction",
         "max_inverse_weight",
     ]
@@ -175,9 +175,34 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
             continue
         if stored.get("status") == "no_successful_fits":
             raise AssertionError(f"{arm}: summary marks an arm non-evaluable despite successful rows")
-        error = group["posterior_mean"].to_numpy(dtype=float) - h0_true
+        posterior_mean = group["posterior_mean"].to_numpy(dtype=float)
+        ci_low = group["ci68_low"].to_numpy(dtype=float)
+        ci_high = group["ci68_high"].to_numpy(dtype=float)
+        ci_width = group["ci68_width"].to_numpy(dtype=float)
+        row_abs_error = group["absolute_error"].to_numpy(dtype=float)
+        error = posterior_mean - h0_true
+        if not np.allclose(ci_width, ci_high - ci_low, rtol=1e-9, atol=1e-9):
+            raise AssertionError(f"{arm}: ci68_width disagrees with interval endpoints")
+        if not np.allclose(row_abs_error, np.abs(error), rtol=1e-9, atol=1e-9):
+            raise AssertionError(f"{arm}: absolute_error disagrees with posterior_mean and h0_true")
+        if (group["density_ise"].to_numpy(dtype=float) < 0).any():
+            raise AssertionError(f"{arm}: density_ise cannot be negative")
+        ess = group["weight_ess"].to_numpy(dtype=float)
+        ess_fraction = group["weight_ess_fraction"].to_numpy(dtype=float)
+        n_catalogue = group["n_catalogue"].to_numpy(dtype=float)
+        if (ess <= 0).any() or (ess > n_catalogue + 1e-9).any():
+            raise AssertionError(f"{arm}: weight_ess must be positive and no greater than n_catalogue")
+        if not np.allclose(ess_fraction, ess / n_catalogue, rtol=1e-9, atol=1e-9):
+            raise AssertionError(f"{arm}: weight_ess_fraction disagrees with weight_ess / n_catalogue")
+        if (group["max_inverse_weight"].to_numpy(dtype=float) < 1.0 - 1e-9).any():
+            raise AssertionError(f"{arm}: max_inverse_weight cannot be below one")
+        mae = group["inclusion_probability_mae"].to_numpy(dtype=float)
+        if arm != "catalogue_only" and not np.all(np.isfinite(mae)):
+            raise AssertionError(f"{arm}: inclusion_probability_mae must be finite for successful rows")
+        if np.any(np.isfinite(mae) & (mae < 0)):
+            raise AssertionError(f"{arm}: inclusion_probability_mae cannot be negative")
         covered = np.array([_strict_bool(v, f"{arm}.covered_68") for v in group["covered_68"]], dtype=bool)
-        reconstructed_coverage = ((group["ci68_low"].to_numpy(dtype=float) <= h0_true) & (h0_true <= group["ci68_high"].to_numpy(dtype=float)))
+        reconstructed_coverage = ((ci_low <= h0_true) & (h0_true <= ci_high))
         if not np.array_equal(covered, reconstructed_coverage):
             raise AssertionError(f"{arm}: covered_68 flags disagree with interval endpoints and h0_true")
         successes, trials = int(np.sum(covered)), int(len(covered))
