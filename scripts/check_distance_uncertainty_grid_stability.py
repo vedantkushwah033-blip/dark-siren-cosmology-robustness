@@ -348,7 +348,7 @@ def compare_grid_resolutions(
                 "maximum_relative_interval_endpoint_change": interval_relative_tolerance,
                 "maximum_absolute_interval_endpoint_change": endpoint_absolute_tolerance,
                 "maximum_endpoint_change_as_fraction_of_95_width": endpoint_change_over_95_width_tolerance,
-                "successive_maximum_summary_change_must_shrink": true,
+                "successive_maximum_summary_change_must_shrink": True,
                 "maximum_coverage_classification_flips": 0,
                 "production_min_coarse_grid": production_min_coarse_grid,
             },
