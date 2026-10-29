@@ -34,8 +34,8 @@ def posterior_h0_low_z(
 
     if grid.ndim != 1 or grid.size < 2:
         raise ValueError("h0_grid must be a one-dimensional array with at least two points")
-    if np.any(~np.isfinite(grid)) or np.any(np.diff(grid) <= 0):
-        raise ValueError("h0_grid must be finite and strictly increasing")
+    if np.any(~np.isfinite(grid)) or np.any(np.diff(grid) <= 0) or np.any(grid <= 0):
+        raise ValueError("h0_grid must be finite, positive, and strictly increasing")
     if z.ndim != 1 or z.size == 0:
         raise ValueError("redshifts must be a non-empty one-dimensional array")
     if np.any(~np.isfinite(z)) or np.any(z < 0):
@@ -50,6 +50,10 @@ def posterior_h0_low_z(
         or prior_min >= prior_max
     ):
         raise ValueError("prior bounds must be finite and prior_min < prior_max")
+    if grid[0] > prior_min or grid[-1] < prior_max:
+        raise ValueError("h0_grid must span the full prior interval")
+    if not np.any(grid == prior_min) or not np.any(grid == prior_max):
+        raise ValueError("h0_grid must contain prior_min and prior_max exactly")
 
     if host_weights is None:
         weights = np.ones(z.size, dtype=float)
