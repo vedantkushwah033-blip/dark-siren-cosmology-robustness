@@ -56,8 +56,8 @@ def posterior_h0_from_distance_grid(
     """
     grid = np.asarray(h0_grid, dtype=float)
     distances = np.asarray(predicted_distance_mpc, dtype=float)
-    if grid.ndim != 1 or grid.size < 2 or np.any(~np.isfinite(grid)) or np.any(np.diff(grid) <= 0):
-        raise ValueError("h0_grid must be finite, one-dimensional, and strictly increasing")
+    if grid.ndim != 1 or grid.size < 2 or np.any(~np.isfinite(grid)) or np.any(grid <= 0) or np.any(np.diff(grid) <= 0):
+        raise ValueError("h0_grid must be finite, positive, one-dimensional, and strictly increasing")
     if distances.ndim != 2 or distances.shape[0] != grid.size or distances.shape[1] == 0:
         raise ValueError("predicted_distance_mpc must have shape (len(h0_grid), n_hosts)")
     if np.any(~np.isfinite(distances)) or np.any(distances < 0):
@@ -68,6 +68,10 @@ def posterior_h0_from_distance_grid(
         raise ValueError("distance_sigma_mpc must be finite and positive")
     if not np.isfinite(prior_min) or not np.isfinite(prior_max) or prior_min >= prior_max:
         raise ValueError("prior bounds must be finite and prior_min < prior_max")
+    if grid[0] > prior_min or grid[-1] < prior_max:
+        raise ValueError("h0_grid must span the full prior interval")
+    if not np.any(grid == prior_min) or not np.any(grid == prior_max):
+        raise ValueError("h0_grid must contain prior_min and prior_max exactly")
     weights = np.ones(distances.shape[1]) if host_weights is None else np.asarray(host_weights, dtype=float)
     if (
         weights.ndim != 1
