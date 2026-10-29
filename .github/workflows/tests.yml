@@ -56,6 +56,8 @@ jobs:
         run: python -m pytest tests/test_audit_host_density_independent.py -q
       - name: Test prior-averaged oracle calibration and negative control
         run: python -m pytest tests/test_oracle_prior_averaged_calibration.py -q
+      - name: Test independent exact-density oracle data and posterior audit
+        run: python -m pytest tests/test_audit_oracle_bias.py -q
       - name: Run small host-density-to-H0 benchmark smoke experiment
         run: python scripts/run_host_density_benchmark.py --replicates 1 --n-parent 1200 --n-detected 8 --h0-points 51 --z-points 201 --output-dir artifacts/host_density_benchmark_smoke
       - name: Check host-density smoke manifest and checksums

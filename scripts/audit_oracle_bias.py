@@ -259,7 +259,12 @@ def audit(summary_path, raw_path=None, manifest_path=None):
         try:
             true = float(row["h0_true"])
             distances = np.asarray(json.loads(row["distances_json"]), dtype=float)
-            saved = {key_name: float(row[key_name]) for key_name in max_error}
+            metric_fields = (
+                "posterior_mean", "posterior_median", "ci68_low", "ci68_high",
+                "ci90_low", "ci90_high", "rank",
+            )
+            saved = {field: float(row[field]) for field in metric_fields}
+            saved_integral = float(row["posterior_integral"])
         except (TypeError, ValueError, KeyError, json.JSONDecodeError) as exc:
             raise ValueError(f"invalid numeric/data field at {key}") from exc
         if not np.isfinite(true) or not np.all(np.isfinite(distances)) or distances.shape != (N_DETECTED,):
@@ -268,7 +273,7 @@ def audit(summary_path, raw_path=None, manifest_path=None):
             raise ValueError(f"saved distance does not satisfy the detection rule at {key}")
         if not all(np.isfinite(v) for v in saved.values()):
             raise ValueError(f"non-finite saved posterior metric at {key}")
-        if abs(float(row["posterior_integral"]) - 1.0) > 2e-10:
+        if not np.isfinite(saved_integral) or abs(saved_integral - 1.0) > 2e-10:
             raise ValueError(f"posterior integral failure at {key}")
         parsed.append((mode, rep, row, true, distances, saved))
 
@@ -312,11 +317,13 @@ def audit(summary_path, raw_path=None, manifest_path=None):
         "rmse", "cov68", "cov90", "pit_chi2_9df", "pit_p",
     )
     for mode, rows in by_mode.items():
-        rows.sort(key=lambda item: item["h0_true"] if False else item["posterior_mean"])  # sorting is not used for the statistics below
         expected = _recompute_summary(mode, rows, reps)
         saved_summary = summary_by_mode[mode]
+        expected_truth = None if mode == "prior" else float(_label_truth(mode))
         if saved_summary.get("mode_seed") != expected_seeds[mode] or saved_summary.get("reps") != reps:
             raise ValueError(f"saved summary configuration mismatch for {mode}")
+        if saved_summary.get("h0") != ("prior" if expected_truth is None else expected_truth):
+            raise ValueError(f"saved summary truth mismatch for {mode}")
         for field in summary_numeric:
             value = float(saved_summary.get(field, float("nan")))
             if not np.isfinite(value) or not np.isclose(value, expected[field], rtol=1e-9, atol=1e-9):
