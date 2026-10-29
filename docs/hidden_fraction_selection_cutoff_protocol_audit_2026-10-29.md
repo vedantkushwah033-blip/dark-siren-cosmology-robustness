@@ -1,7 +1,7 @@
 # Protocol audit and implementation contract: hidden-host fraction × event-selection cutoff
 
 **Date:** 2026-10-29  
-**Status:** design refinement; not a result and not an implementation claim  
+**Status:** design refinement plus a tested likelihood primitive; no experiment results are claimed  
 **Source prompt:** user-supplied “Comprehensive Independent Scientific Audit & Experimental Protocol” (Mission 1 and Mission 2).  
 **Base commit:** `78f3b5419569a21ed4ef0395d69e2c1a56157856`.
 
@@ -210,4 +210,4 @@ If implemented and independently audited, the strongest safe claim would be limi
 - that a nonsignificant result establishes equivalence;
 - a novel method without direct comparison to the closest published methods.
 
-**Current status:** protocol refinement only. No new simulation run or numerical result is claimed in this document.
+**Current status:** protocol refinement and deterministic likelihood primitive implemented. Module: `src/dark_siren_robustness/selection_conditioned_hidden_host.py`; tests: `tests/test_selection_conditioned_hidden_host.py`. The dedicated Python 3.10/3.11/3.12 contract workflow passed at [run #40859955488](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40859955488). This validates the primitive's coded limiting cases and numerical contract only. The full fraction × cutoff experiment, independent artifact auditor, PPC/SBC study, and all scientific results remain unimplemented/unrun.
