@@ -1,0 +1,136 @@
+"""Compare selected-likelihood PIT summaries across posterior-grid resolutions.
+
+This is a synthetic numerical-sensitivity diagnostic. Every grid's raw records
+and summary are independently audited before the comparison CSV is written.
+"""
+from __future__ import annotations
+
+import argparse
+import csv
+import json
+import sys
+from pathlib import Path
+
+import numpy as np
+
+# Direct execution sets sys.path to scripts/, whereas pytest/import execution
+# normally starts at the repository root. Normalize both entry points.
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPOSITORY_ROOT))
+
+from scripts.audit_selected_likelihood_sbc import audit
+from scripts.run_selected_likelihood_sbc import N_REPLICATES, SEED, run_calibration
+
+
+def run_sensitivity(
+    grid_points: list[int],
+    n_replicates: int = N_REPLICATES,
+    seed: int = SEED,
+    output_dir: str | Path = "artifacts/calibration_grid_sensitivity",
+) -> list[dict]:
+    if isinstance(n_replicates, bool) or not isinstance(n_replicates, int) or n_replicates < 100:
+        raise ValueError("n_replicates must be an integer of at least 100.")
+    if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+        raise ValueError("seed must be a non-negative integer.")
+    if len(grid_points) < 2:
+        raise ValueError("Provide at least two grid resolutions for comparison.")
+    if any(isinstance(points, bool) or not isinstance(points, int) for points in grid_points):
+        raise ValueError("Grid resolutions must be integers.")
+    if len(set(grid_points)) != len(grid_points):
+        raise ValueError("Grid resolutions must be unique.")
+    if any(points < 2 for points in grid_points):
+        raise ValueError("Each grid resolution must contain at least two points.")
+
+    root = Path(output_dir)
+    root.mkdir(parents=True, exist_ok=True)
+    # Remove any prior success marker before starting. Otherwise a failed rerun
+    # could leave a stale comparison table that looks like current output.
+    comparison_path = root / "grid_sensitivity.csv"
+    comparison_path.unlink(missing_ok=True)
+    results = []
+    pits_by_grid = {}
+    for points in grid_points:
+        case_dir = root / f"grid_{points}"
+        case_dir.mkdir(parents=True, exist_ok=True)
+        # Remove the previous audit marker before regenerating this grid. If
+        # raw validation raises, a stale PASS report must not survive.
+        (case_dir / "audit_report.json").unlink(missing_ok=True)
+        rows, summary = run_calibration(
+            n_replicates=n_replicates,
+            seed=seed,
+            grid_points=points,
+        )
+        raw_path = case_dir / "pit_replicates.csv"
+        with raw_path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+            writer.writeheader()
+            writer.writerows(rows)
+        summary_path = case_dir / "pit_summary.json"
+        summary_path.write_text(
+            json.dumps(summary, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        audit_report = audit(raw_path, summary_path)
+        pits_by_grid[points] = np.asarray([row["pit"] for row in rows], dtype=float)
+        (case_dir / "audit_report.json").write_text(
+            json.dumps(audit_report, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        if audit_report.get("status") != "PASS":
+            raise RuntimeError(
+                f"Independent audit failed for {points}-point grid: "
+                f"{audit_report.get('status', 'missing status')}"
+            )
+        results.append({
+            "grid_points": points,
+            "n_replicates": n_replicates,
+            "seed": seed,
+            "pit_mean": summary["pit_mean"],
+            "pit_mean_monte_carlo_se": summary["pit_mean_monte_carlo_se"],
+            "pit_variance": summary["pit_variance"],
+            "ks_statistic": summary["ks_statistic"],
+            "ks_p_value_descriptive_only": summary["ks_p_value_descriptive_only"],
+            "max_abs_decile_frequency_deviation": summary["max_abs_decile_frequency_deviation"],
+            "independent_audit": audit_report["status"],
+        })
+
+    # All resolutions use the same seeded observations, so paired PIT
+    # differences isolate grid discretization. Use the finest requested grid
+    # as the numerical reference and report differences replicate by replicate.
+    reference_points = max(grid_points)
+    reference_pits = pits_by_grid[reference_points]
+    for result in results:
+        delta = pits_by_grid[result["grid_points"]] - reference_pits
+        result["reference_grid_points"] = reference_points
+        mean_delta = float(np.mean(delta))
+        delta_se = float(np.std(delta, ddof=1) / np.sqrt(len(delta))) if len(delta) > 1 else 0.0
+        result["mean_pit_delta_vs_finest"] = mean_delta
+        result["mean_pit_delta_monte_carlo_se"] = delta_se
+        result["mean_pit_delta_normal_95_low"] = mean_delta - 1.96 * delta_se
+        result["mean_pit_delta_normal_95_high"] = mean_delta + 1.96 * delta_se
+        result["rms_pit_delta_vs_finest"] = float(np.sqrt(np.mean(delta**2)))
+        result["max_abs_pit_delta_vs_finest"] = float(np.max(np.abs(delta)))
+
+    with comparison_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(results[0]))
+        writer.writeheader()
+        writer.writerows(results)
+    return results
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--replicates", type=int, default=N_REPLICATES)
+    parser.add_argument("--seed", type=int, default=SEED)
+    parser.add_argument("--grid-points", default="1201,2401,4801")
+    parser.add_argument("--output-dir", default="artifacts/calibration_grid_sensitivity")
+    args = parser.parse_args()
+    points = [int(item.strip()) for item in args.grid_points.split(",") if item.strip()]
+    results = run_sensitivity(points, args.replicates, args.seed, args.output_dir)
+    print(json.dumps(results, indent=2))
+    print(f"wrote {Path(args.output_dir) / 'grid_sensitivity.csv'}")
+
+
+if __name__ == "__main__":
+    main()
