@@ -118,6 +118,7 @@ def estimate_host_density_from_validation(
     validation_redshift: ArrayLike,
     validation_included: ArrayLike,
     *,
+    merger_weight: ArrayLike | None = None,
     bandwidth_factor: float | None = None,
 ) -> dict[str, object]:
     """Estimate host density using inclusion probabilities learned from audit data.
@@ -158,6 +159,7 @@ def estimate_host_density_from_validation(
         grid,
         observed,
         inclusion_probability=probability,
+        merger_weight=merger_weight,
         bandwidth_factor=bandwidth_factor,
     )
     return {
