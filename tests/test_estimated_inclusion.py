@@ -67,3 +67,48 @@ def test_predict_rejects_unknown_model_and_out_of_domain_values():
         predict_inclusion_probability([0.1], {**model, "model": "other"})
     with pytest.raises(ValueError, match="inside"):
         predict_inclusion_probability([0.5], model)
+
+
+
+def test_validation_estimator_integrates_with_bounded_host_density():
+    from scipy.integrate import trapezoid
+
+    rng = np.random.default_rng(20261030)
+    z_min, z_max = 0.01, 0.40
+    grid = np.linspace(z_min, z_max, 401)
+    parent_z = rng.uniform(z_min, z_max, 10000)
+    x = (parent_z - (z_min + z_max) / 2) / ((z_max - z_min) / 2)
+    true_probability = expit(0.25 - 1.2 * x)
+    retained = rng.random(parent_z.size) < true_probability
+    observed = parent_z[retained]
+    validation_idx = rng.choice(parent_z.size, size=3000, replace=False)
+
+    from dark_siren_robustness.estimated_inclusion import estimate_host_density_from_validation
+
+    result = estimate_host_density_from_validation(
+        grid,
+        observed,
+        parent_z[validation_idx],
+        retained[validation_idx].astype(int),
+        bandwidth_factor=0.8,
+    )
+    density = result["density"]
+    assert np.all(np.isfinite(density))
+    assert np.all(density >= 0)
+    assert trapezoid(density, grid) == pytest.approx(1.0, abs=1e-10)
+    assert result["n_validation"] == len(validation_idx)
+    assert 0 < result["inverse_weight_effective_sample_size"] <= len(observed)
+    assert result["inverse_weight_maximum"] >= 1.0
+    assert len(result["observed_inclusion_probability"]) == len(observed)
+
+
+def test_validation_estimator_rejects_audit_sample_with_single_class():
+    from dark_siren_robustness.estimated_inclusion import estimate_host_density_from_validation
+
+    grid = np.linspace(0.01, 0.40, 101)
+    observed = np.linspace(0.02, 0.39, 20)
+    validation = np.linspace(0.01, 0.40, 50)
+    with pytest.raises(ValueError, match="both"):
+        estimate_host_density_from_validation(
+            grid, observed, validation, np.ones(validation.size, dtype=int)
+        )
