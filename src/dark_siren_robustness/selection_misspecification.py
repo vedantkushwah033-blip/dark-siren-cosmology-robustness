@@ -110,7 +110,14 @@ def run_selection_misspecification(
     ):
         raise ValueError("bandwidth_factor must be finite and positive when supplied")
 
-    if not np.isfinite(catalogue_floor) or not 0 < catalogue_floor <= 1:\n        raise ValueError("catalogue_floor must be in (0, 1]")\n    if not np.isfinite(catalogue_midpoint) or catalogue_midpoint <= 0:\n        raise ValueError("catalogue_midpoint must be finite and positive")\n    if not np.isfinite(catalogue_width) or catalogue_width <= 0:\n        raise ValueError("catalogue_width must be finite and positive")\n\n    z = np.linspace(0.01, 0.40, z_points)
+    if not np.isfinite(catalogue_floor) or not 0 < catalogue_floor <= 1:
+        raise ValueError("catalogue_floor must be in (0, 1]")
+    if not np.isfinite(catalogue_midpoint) or catalogue_midpoint <= 0:
+        raise ValueError("catalogue_midpoint must be finite and positive")
+    if not np.isfinite(catalogue_width) or catalogue_width <= 0:
+        raise ValueError("catalogue_width must be finite and positive")
+
+    z = np.linspace(0.01, 0.40, z_points)
     h0 = np.linspace(h0_min, h0_max, h0_points)
     merger = 1.0 + 1.5 * (z - z[0]) / (z[-1] - z[0])
     target_density = _normalized(latent_galaxy_intensity(z) * merger, z)
@@ -171,7 +178,10 @@ def run_selection_misspecification(
                 "replicate": rep, "seed": rep_seed, "arm": arm,
                 "h0_true": h0_true, "n_parent": len(parent_z),
                 "n_catalogue_observed": len(observed_z), "n_detected": len(distances),
-                "assumed_selection_model": json.dumps(assumed, sort_keys=True),\n                "true_catalogue_floor": float(catalogue_floor),\n                "true_catalogue_midpoint": float(catalogue_midpoint),\n                "true_catalogue_width": float(catalogue_width),
+                "assumed_selection_model": json.dumps(assumed, sort_keys=True),
+                "true_catalogue_floor": float(catalogue_floor),
+                "true_catalogue_midpoint": float(catalogue_midpoint),
+                "true_catalogue_width": float(catalogue_width),
                 "density_ise": float(trapezoid((density - target_density) ** 2, z)),
                 "posterior_mean": post["posterior_mean"],
                 "posterior_median": post["posterior_median"],
@@ -257,7 +267,8 @@ def run_selection_misspecification(
         "redshift_grid": [float(z[0]), float(z[-1]), z_points],
         "bandwidth_factor": bandwidth_factor,
         "bandwidth_convention": "Scott weighted rule by default; explicit factor means h=factor times weighted SD of original sample",
-        "true_catalogue_selection": true_selection,\n        "catalogue_selection_parameters_are_configurable": True,
+        "true_catalogue_selection": true_selection,
+        "catalogue_selection_parameters_are_configurable": True,
         "assumed_models": {key: value for key, value in analyst_models.items()},
         "density_target": "normalized latent_galaxy_intensity(z) times declared linear merger weight",
         "arms": list(analyst_models),
