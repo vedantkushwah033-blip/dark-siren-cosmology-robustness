@@ -27,3 +27,16 @@ The controlled synthetic results can support a carefully scoped methods manuscri
 ## Confirmatory seed dependence and bias-compensation follow-up
 
 The 750-replicate confirmatory study has overlapping seed ranges across its three condition-specific jobs: 150 seeds are shared by low-floor/high-floor, 150 by high-floor/broad-transition, and 50 by low-floor/broad-transition. Within-condition paired contrasts remain valid, but cross-condition estimates must not be described as independent replications. The four-cell shallow-transition follow-up shows an RMSE advantage at true H0=60, but that advantage disappears or reverses at H0=80; an interval spanning zero is inconclusive, not affirmative evidence for either arm.
+
+
+## Status correction — 29 October 2026, latest exact-head check
+
+The latest PR-triggered numerical-diagnostics run checked during this update is [run #40874302252](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40874302252). All three matrix jobs completed successfully: Python 3.10, 3.11, and 3.12; no failed steps were reported. The workflow exercised the test suite's synthetic likelihood, selection normalization, artifact-auditor and numerical-diagnostic checks. This is software-level evidence only.
+
+The prior documentation/seed-overlap commit's workflow [#40858566961](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40858566961) is **cancelled** and is not counted as a passing run. The newer successful matrix above is the current passing evidence identified in this check.
+
+The independent equation audit at [docs/independent_likelihood_equation_audit_2026-10-29.md](independent_likelihood_equation_audit_2026-10-29.md) documents the implemented discrete-host mixture likelihood, H0-dependent noise, fixed-detected-count selection correction, positive-truncation normalization, and endpoint-inclusive prior normalization. It is an equation-level review, not an independent numerical rerun or detector-level validation.
+
+**Pull-request integration remains a separate gate:** PR #7 is open and unmerged, has 82 changed files and 173 commits ahead according to the PR description, and targets `experiment/catalogue-density-estimators` rather than `main`. The base branch should be confirmed as intentional; the large accumulated diff deserves maintainer review and may warrant splitting before merge. No automatic merge or retargeting was performed.
+
+**Still NO-GO:** CHIMERA v2.2 exact-input benchmark, real LVK/GWTC observational validation, external domain-expert sign-off, and publication/peer-review claims. The internal manuscript remains a synthetic-methodology draft.
