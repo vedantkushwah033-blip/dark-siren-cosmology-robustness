@@ -26,6 +26,11 @@ def test_independent_pilot_auditor_reconstructs_output(tmp_path):
     assert report["n_replicate_arm_pairs_observed"] == 4
     assert set(report["per_arm_counts"]) == {"catalogue_only", "oracle", "estimated_100", "estimated_200"}
     assert "n_boundary_limited_successful_fits" in report
+    assert set(report["comparison_diagnostics"]) == {"oracle", "estimated_100", "estimated_200"}
+    assert all(
+        item["n_attempted_common_replicates"] == 1
+        for item in report["comparison_diagnostics"].values()
+    )
 
 
 def test_independent_pilot_auditor_detects_corrupted_summary(tmp_path):
@@ -123,3 +128,40 @@ def test_strict_boolean_parser_does_not_treat_string_false_as_true():
     assert _strict_bool("True", "fixture") is True
     with pytest.raises(AssertionError, match="explicit Boolean"):
         _strict_bool("not-a-bool", "fixture")
+
+
+
+def test_independent_auditor_accepts_explicit_all_failed_artifact_without_fit_columns(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261044)
+    frame["status"] = "failed"
+    frame["error"] = "Synthetic forced failure for auditor test"
+    frame["fit_status"] = "failed"
+    frame["fit_boundary_limited"] = False
+    fit_columns = [
+        "posterior_mean", "posterior_median", "ci68_low", "ci68_high",
+        "ci68_width", "covered_68", "absolute_error", "density_ise",
+        "weight_ess", "weight_ess_fraction", "max_inverse_weight",
+        "inclusion_probability_mae",
+    ]
+    frame = frame.drop(columns=[name for name in fit_columns if name in frame.columns])
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    summary["contrasts"] = []
+    summary["arm_summaries"] = [
+        {
+            "arm": arm,
+            "n_attempted": 1,
+            "n_success": 0,
+            "n_failed": 1,
+            "status": "no_successful_fits",
+        }
+        for arm in ["catalogue_only", "oracle", "estimated_100"]
+    ]
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    report = audit_pilot_artifacts(tmp_path)
+    assert report["status"] == "PASS"
+    assert report["n_success"] == 0
+    assert report["n_failed"] == 3
+    assert all(
+        arm["status"] == "non_evaluable_no_successful_fits"
+        for arm in report["per_arm_counts"].values()
+    )
