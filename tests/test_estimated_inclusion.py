@@ -112,3 +112,29 @@ def test_validation_estimator_rejects_audit_sample_with_single_class():
         estimate_host_density_from_validation(
             grid, observed, validation, np.ones(validation.size, dtype=int)
         )
+
+
+def test_validation_estimator_passes_grid_level_merger_weight():
+    from scipy.integrate import trapezoid
+    from dark_siren_robustness.estimated_inclusion import estimate_host_density_from_validation
+
+    rng = np.random.default_rng(20261031)
+    grid = np.linspace(0.01, 0.40, 301)
+    parent = rng.uniform(grid[0], grid[-1], 5000)
+    x = (parent - (grid[0] + grid[-1]) / 2) / ((grid[-1] - grid[0]) / 2)
+    p = expit(0.1 - 0.8 * x)
+    retained = rng.binomial(1, p)
+    idx = rng.choice(parent.size, 2500, replace=False)
+    observed = parent[retained.astype(bool)]
+    merger_weight = 1.0 + 2.0 * grid
+
+    result = estimate_host_density_from_validation(
+        grid, observed, parent[idx], retained[idx], merger_weight=merger_weight
+    )
+    baseline = estimate_host_density_from_validation(
+        grid, observed, parent[idx], retained[idx]
+    )
+    assert trapezoid(result["density"], grid) == pytest.approx(1.0, abs=1e-10)
+    assert trapezoid(grid * result["density"], grid) > trapezoid(
+        grid * baseline["density"], grid
+    )

@@ -118,6 +118,7 @@ def estimate_host_density_from_validation(
     validation_redshift: ArrayLike,
     validation_included: ArrayLike,
     *,
+    merger_weight: ArrayLike | None = None,
     bandwidth_factor: float | None = None,
 ) -> dict[str, object]:
     """Estimate host density using inclusion probabilities learned from audit data.
@@ -127,7 +128,9 @@ def estimate_host_density_from_validation(
     returned density uses only the observed catalogue and the audit records;
     the true inclusion probabilities and hidden parent objects are never inputs.
 
-    This wrapper intentionally applies no weight clipping. Its diagnostics make
+    merger_weight, when supplied, is a positive rate multiplier defined on
+    redshift_grid (not an object-level weight). This wrapper intentionally
+    applies no inverse-inclusion weight clipping. Its diagnostics make
     potentially unstable inverse weights visible; scientific use should
     preregister any positivity guard or cap rather than tuning it to H0 results.
     """
@@ -158,6 +161,7 @@ def estimate_host_density_from_validation(
         grid,
         observed,
         inclusion_probability=probability,
+        merger_weight=merger_weight,
         bandwidth_factor=bandwidth_factor,
     )
     return {
