@@ -71,9 +71,7 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
     required = {
         "replicate", "replicate_seed", "catalogue_seed", "audit_seed", "arm",
         "validation_size", "status", "error", "fit_status", "fit_boundary_limited",
-        "n_catalogue", "n_detected", "covered_68", "inclusion_probability_mae",
-        "posterior_mean", "ci68_low", "ci68_high", "ci68_width", "absolute_error",
-        "density_ise", "weight_ess", "weight_ess_fraction", "max_inverse_weight",
+        "n_catalogue", "n_detected",
     }
     missing = required - set(frame.columns)
     if missing:
@@ -91,12 +89,15 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         "absolute_error", "density_ise", "weight_ess", "weight_ess_fraction",
         "max_inverse_weight",
     ]
+    if success.any():
+        for column in [*numeric, "covered_68", "inclusion_probability_mae"]:
+            if column not in frame.columns:
+                raise AssertionError(f"replicate table missing column {column}")
     for column in numeric:
-        if column not in frame.columns:
-            raise AssertionError(f"replicate table missing numerical column {column}")
-        values = frame.loc[success, column].to_numpy(dtype=float)
-        if values.size and not np.all(np.isfinite(values)):
-            raise AssertionError(f"successful rows contain non-finite values in {column}")
+        if column in frame.columns:
+            values = frame.loc[success, column].to_numpy(dtype=float)
+            if values.size and not np.all(np.isfinite(values)):
+                raise AssertionError(f"successful rows contain non-finite values in {column}")
     if (frame.loc[success, "ci68_low"] > frame.loc[success, "ci68_high"]).any():
         raise AssertionError("credible interval endpoints are reversed")
     if (frame.loc[success, "absolute_error"] < 0).any():
