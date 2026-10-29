@@ -28,6 +28,8 @@ jobs:
         run: python -m pytest tests/test_uncertainty_likelihoods.py -q
       - name: Test hardened posterior inference and prior-support grid guards
         run: python -m pytest tests/test_hardened_inference.py tests/test_hardened_inference_equivalence.py -q
+      - name: Test low-z and cosmology-aware posterior support validation
+        run: python -m pytest tests/test_inference.py tests/test_cosmological_inference.py -q
       - name: Test isolated dataset-level likelihood composition
         run: python -m pytest tests/test_dataset_likelihood.py -q
       - name: Test H0-dependent noise and selection-conditioned dataset inference
