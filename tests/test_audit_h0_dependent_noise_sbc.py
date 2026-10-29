@@ -107,3 +107,28 @@ def test_independent_auditor_rejects_rehashed_seed_mismatch(valid_artifact, tmp_
     _rehash(artifact, "replicates.csv")
     with pytest.raises(ValueError, match="seed does not match"):
         audit(artifact)
+
+
+@pytest.mark.parametrize(
+    ("column", "value", "message"),
+    [
+        ("posterior_mean", "nan", "posterior_mean is non-finite"),
+        ("posterior_integral", "nan", "posterior integral failure"),
+    ],
+)
+def test_independent_auditor_rejects_rehashed_nonfinite_raw_metrics(
+    valid_artifact, tmp_path, column, value, message
+):
+    """A refreshed checksum must not make NaN-bearing replicate rows trustworthy."""
+    artifact = _copy_artifact(valid_artifact, tmp_path / f"nonfinite-{column}")
+    csv_path = artifact / "replicates.csv"
+    with csv_path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    rows[0][column] = value
+    with csv_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    _rehash(artifact, "replicates.csv")
+    with pytest.raises(ValueError, match=message):
+        audit(artifact)

@@ -279,11 +279,21 @@ def audit(output_dir):
             raise ValueError(f"distance replay failed at {(mode, rep)}")
         computed = independently_reconstruct_posterior(saved_distances, z, raw_w, true)
         for key in maximum_error:
-            delta = abs(float(row[key]) - computed[key])
+            try:
+                saved_value = float(row[key])
+            except (KeyError, TypeError, ValueError) as exc:
+                raise ValueError(f"{key} is absent/invalid at {(mode, rep)}") from exc
+            if not np.isfinite(saved_value):
+                raise ValueError(f"{key} is non-finite at {(mode, rep)}")
+            delta = abs(saved_value - computed[key])
             maximum_error[key] = max(maximum_error[key], delta)
-            if delta > 1e-7:
+            if not np.isfinite(delta) or delta > 1e-7:
                 raise ValueError(f"{key} mismatch at {(mode, rep)}: {delta}")
-        if abs(float(row["posterior_integral"]) - 1.0) > 2e-10:
+        try:
+            saved_integral = float(row["posterior_integral"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(f"posterior integral is absent/invalid at {(mode, rep)}") from exc
+        if not np.isfinite(saved_integral) or abs(saved_integral - 1.0) > 2e-10:
             raise ValueError(f"posterior integral failure at {(mode, rep)}")
         expected_covered_68 = computed["ci68_low"] <= true <= computed["ci68_high"]
         expected_covered_90 = computed["ci90_low"] <= true <= computed["ci90_high"]
