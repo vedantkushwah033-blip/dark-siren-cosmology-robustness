@@ -131,6 +131,9 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         item["comparison_arm"]: item for item in summary.get("contrasts", [])
     }
     expected_comparisons = [arm for arm in arms_in_rows if arm != "catalogue_only"]
+    unexpected_contrasts = set(stored_contrasts) - set(expected_comparisons)
+    if unexpected_contrasts:
+        raise AssertionError(f"unexpected stored contrasts: {sorted(unexpected_contrasts)}")
     for arm in expected_comparisons:
         comparison = successful.loc[successful["arm"] == arm].set_index("replicate")
         paired = baseline[["absolute_error"]].join(
@@ -146,6 +149,8 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         stored = stored_contrasts.get(arm)
         if stored is None:
             raise AssertionError(f"{arm}: missing paired contrast")
+        if stored.get("reference_arm") != "catalogue_only":
+            raise AssertionError(f"{arm}: contrast reference_arm must be catalogue_only")
         _close(stored.get("n_paired_replicates"), values.size, f"{arm}.contrast.n")
         mean = float(np.mean(values))
         _close(stored.get("mean_absolute_error_reduction"), mean, f"{arm}.contrast.mean")
