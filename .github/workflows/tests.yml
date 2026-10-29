@@ -48,8 +48,25 @@ jobs:
         run: python -m pytest tests/test_catalogue_density.py -q
       - name: Test host-density-to-H0 benchmark
         run: python -m pytest tests/test_host_density_benchmark.py -q
+      - name: Test corrected physical KDE bandwidth semantics
+        run: python -m pytest tests/test_kde_bandwidth_definition.py -q
+      - name: Test independent host-density re-simulation audit
+        run: python -m pytest tests/test_audit_host_density_independent.py -q
+      - name: Test prior-averaged oracle calibration and negative control
+        run: python -m pytest tests/test_oracle_prior_averaged_calibration.py -q
       - name: Run small host-density-to-H0 benchmark smoke experiment
         run: python scripts/run_host_density_benchmark.py --replicates 1 --n-parent 1200 --n-detected 8 --h0-points 51 --z-points 201 --output-dir artifacts/host_density_benchmark_smoke
+      - name: Check host-density smoke manifest and checksums
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          p = Path('artifacts/host_density_benchmark_smoke')
+          m = json.loads((p/'manifest.json').read_text())
+          assert all(hashlib.sha256((p/name).read_bytes()).hexdigest() == row['sha256']
+                     for name, row in m['files'].items())
+          print(f"Verified {len(m['files'])} manifest entries.")
+          PY
       - name: Test independent host-density benchmark artifact audit
         run: python -m pytest tests/test_audit_host_density_benchmark.py -q
       - name: Independently audit host-density benchmark smoke artifacts
