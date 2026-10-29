@@ -20,7 +20,7 @@ All conditions use true H0 = 70 km s^-1 Mpc^-1; 4,000 parent galaxies per replic
 | High floor | 0.25 | 0.22 | 0.05 | 20271100 | 250 |
 | Broad transition | 0.10 | 0.22 | 0.08 | 20271200 | 250 |
 
-Seed ranges are disjoint from the pilot and the first stress screen. The three conditions will be run independently, with raw replicate rows, summary, configuration manifest, checksums, and the independent posterior-grid/aggregate auditor. No condition may be dropped based on its outcome.
+The seed ranges are disjoint from the pilot and the first stress screen, but **they are not mutually disjoint across these three conditions**: low-floor and high-floor share 150 seed values (20271100–20271249), high-floor and broad-transition share 150 (20271200–20271349), and low-floor and broad-transition share 50 (20271200–20271249). The conditions ran in separate workflow jobs. Each condition's primary contrast is paired within that condition; the shared seed labels do not invalidate those within-condition contrasts, but the three conditions must not be described as independent replications. Cross-condition contrasts should account for possible dependence from shared seed labels. This overlap is disclosed rather than silently changing the confirmatory seed design after results were observed. Preserve raw replicate rows, summary, configuration manifest, checksums, and the independent posterior-grid/aggregate auditor. No condition may be dropped based on its outcome.
 
 ## Analysis and reporting
 
