@@ -153,7 +153,7 @@ The host-density bandwidth/grid sensitivity campaign is being regenerated separa
 
 In a declared fixed-H0 synthetic experiment, ignoring catalogue incompleteness caused a large downward bias and poor nominal 68% interval coverage; inverse-inclusion weighting with the exactly known toy inclusion law substantially reduced the error. The preregistered paired contrast was positive with a bootstrap interval excluding zero. A separate H0-dependent-noise selection-conditioned likelihood also passed seed-replay and posterior-reconstruction audits, while exposing expected conditional shrinkage under a weakly informative three-event experiment.
 
-These results demonstrate the value of explicit controls and independently auditable simulation artifacts. They do not establish a real-data method, a new H0 measurement, or universal robustness to catalogue incompleteness. Any broader scientific claim should wait for the completed sensitivity campaign, a careful literature comparison and an exact, validated external benchmark.
+These results demonstrate the value of explicit controls and independently auditable simulation artifacts. They do not establish a real-data method, a new H0 measurement, or universal robustness to catalogue incompleteness. The host-density sensitivity campaign is now complete and documents material bandwidth sensitivity; the literature comparison remains focused rather than systematic, and the exact external CHIMERA benchmark remains unrun. Broader claims should wait for external benchmark feasibility or a documented alternative, domain-expert review, and a more realistic likelihood and selection model.
 
 ## References
 

@@ -1,53 +1,47 @@
-# Host-density validation: local paired sensitivity campaign
+# Host-density validation campaign — 29 October 2026
 
-**Status:** Exploratory local result snapshot from the uploaded three-commit patch. The patch's CSV and summary SHA-256 checksums were checked, and a two-replicate subset passed the new independent reconstruction audit. The full 13-configuration campaign has now been wired into GitHub Actions for a clean rerun; this report is **not yet the CI-generated replacement artifact**. Do not conflate these local results with the separately locked Stage B study.
+**Status:** completed exploratory CI campaign; artifact integrity and aggregate reconstruction checked. This is a synthetic screening study, not a real-data result or a confirmatory universal claim.
 
-## Baseline Scott estimator
+## Provenance and design
 
-The local run used 100 paired replicates, seed 20261029, 6,000 parent galaxies, 40 detected events, true (H_0=70) km s(^{-1}) Mpc(^{-1}), distance-noise scale 140 Mpc, and a 250 Mpc detection threshold. The catalogue inclusion law had floor 0.1, midpoint 0.22, and width 0.05. The estimator used the corrected weighted-Scott bandwidth convention and the same fixed-noise likelihood as the host-density benchmark.
+- Workflow: [host-density validation campaign run #40797592794](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40797592794)
+- Source commit: `5bbe5a434878af396e8c58e3ddfe7af0356e29ed`
+- Artifact ID: `12865051001`
+- Design: 13 configurations × 40 paired replicates × three arms.
+- Toy settings: fixed H0 = 70 km s⁻¹ Mpc⁻¹; 6,000 parent galaxies; 40 detected events; distance-noise scale 140 Mpc; 250 Mpc detection threshold.
+- Integrity: all 14 manifest-listed campaign files matched their recorded SHA-256 hashes and byte counts. The saved CSV aggregates were independently recomputed from raw rows to numerical precision (maximum discrepancy about 1.8×10⁻¹⁵). A separate independent posterior-reconstruction smoke audit passed on two fresh seeds. It did **not** independently regenerate every posterior in all 520 campaign replicates.
 
-| Arm | Bias (km s(^{-1}) Mpc(^{-1})) | RMSE | Nominal 68% interval coverage |
-|---|---:|---:|---:|
-| Complete-parent oracle KDE | +0.88 | 3.64 | 0.61 |
-| Incomplete catalogue without correction | −8.97 | 9.46 | 0.06 |
-| Known inclusion probabilities | +0.93 | 3.66 | 0.59 |
+## Baseline Scott-bandwidth results
 
-The catalogue-only arm's mean absolute posterior-mean error exceeded oracle by 6.07 km s(^{-1}) Mpc(^{-1}), paired 95% interval [5.11, 6.90]. Known-completeness weighting differed from oracle by +0.01 [−0.09, +0.10] in that same absolute-error contrast. The severe catalogue-only degradation is specific to this constructed example.
-
-## Bandwidth and grid sensitivity
-
-The tested physical factors mean (h=f\,\times\,SD_w(\text{original sample})); the default Scott rule uses (h=SD_w n_{\rm eff}^{-1/5}). Factors 0.05, 0.1, and 0.2 gave results broadly similar to Scott's default in the local snapshot. Factors 0.5, 0.8, and 1.2 increasingly oversmoothed the density. At factor 1.2, catalogue-only bias was −1.93, RMSE 4.13, and 68% coverage 0.62. That does **not** establish a completeness correction: flattening the inferred host density can accidentally change posterior errors while leaving the selection problem unresolved.
-
-Changing the posterior/redshift grids through the locally tested coarse, default, and fine settings did not change the reported summaries at the displayed precision. The current GitHub workflow will regenerate these configurations and produce the underlying tables/manifest in one downloadable artifact.
-
-## Selection-law misspecification
-
-The estimator's assumed inclusion law was deliberately changed while the data generator retained the true midpoint 0.22 and width 0.05.
-
-| Assumed inclusion law | Bias | RMSE | 68% coverage | Paired absolute-error difference vs oracle (95% CI) |
+| Arm | Bias (km s⁻¹ Mpc⁻¹) | RMSE | Nominal 68% coverage | Density L1 |
 |---|---:|---:|---:|---:|
-| Midpoint 0.18 | little degradation in this sample | — | — | — |
-| Midpoint 0.26 | little degradation in this sample | — | — | — |
-| Width 0.10 (shallower transition) | −2.86 | 4.35 | 0.49 | +0.79 [ +0.17, +1.40 ] |
-| Width 0.025 (steeper transition) | +2.31 | 4.28 | 0.51 | +0.43 [ +0.18, +0.68 ] |
+| Complete-parent oracle | — | 3.936 | — | — |
+| Catalogue only, no correction | −8.634 | 9.165 | 10.0% | 0.537 |
+| Known inclusion probabilities | +1.180 | 3.896 | 55.0% | 0.082 |
 
-These are finite-sample results from a single synthetic population and noise model. The midpoint variants produced little degradation in this sample; that is not evidence that midpoint misspecification is generally harmless. The two width variants clearly changed coverage, but the paired contrasts compare to oracle and should not be read as a universal penalty under all settings.
+These screening figures are separate from the locked 500-replicate Stage B experiment and must not be pooled with it.
 
-The inverse-inclusion weight diagnostics in the local data showed maximum-to-mean weight ratios around 2.8–5.0 and minimum effective-sample-size fractions around 0.46–0.88. These diagnostics are useful here because the inclusion-probability floor bounds extreme weights. They do not establish stable inverse weighting for selection laws with tiny probabilities.
+The paired known-inclusion versus oracle absolute-error difference was −0.057 km s⁻¹ Mpc⁻¹, bootstrap interval [−0.199, +0.083], an inconclusive contrast. The catalogue-only arm was much worse than the oracle on this constructed population. The weighted arm's coverage was only 55% in this 40-replicate screen, so the RMSE similarity must not be presented as proof of calibrated intervals.
 
-## Independent audit scope
+## Sensitivity findings
 
-The accompanying independent auditor:
-- resimulates selected replicate seeds from the same declared generator;
-- recomputes reflected weighted KDEs with a separate kernel-sum implementation;
-- computes selected posterior summaries with Simpson quadrature on finer grids;
-- checks the saved manifest hashes when present;
-- compares posterior means within 0.05 and medians/interval bounds within 0.10 km s(^{-1}) Mpc(^{-1}).
+- Grid-resolution changes were tiny over the tested settings: posterior-mean changes were at most 8.51×10⁻⁴ km s⁻¹ Mpc⁻¹ for the coarse grid and 1.03×10⁻⁴ for the fine grid.
+- Bandwidth changes were material. Factors 0.5–1.2 changed density and posterior summaries; at factor 1.2, catalogue-only RMSE was about 4.238 while oracle RMSE worsened to about 5.339 in the campaign summary. This is consistent with accidental bias compensation under oversmoothing, not reliable correction of catalogue incompleteness.
+- Selection-curve width assumptions also changed bias and coverage. The campaign does not establish that midpoint misspecification is generally harmless or that inverse-inclusion weighting is robust when inclusion probabilities are small.
+- A separate coarse-grid oracle calibration workflow reported 300 prior/fixed-truth replicates, but did not preserve row-level seeds and raw records. Treat it as weaker aggregate evidence, not a fully replayable audit.
 
-Only a small subset of the 100-replicate Scott run was re-audited in the original local work; the other configurations were checksum-checked but were not all independently reconstructed. The new campaign workflow is intended to close the reproducibility gap by rerunning all configurations and separately auditing a fresh smoke sample.
+## Interpretation and release decision
 
-## Decision
+**Supported:** in this particular synthetic setup, ignoring the declared catalogue-inclusion mechanism badly distorts the estimated host density and degrades H0 error; known-inclusion weighting substantially improves the density estimate.
 
-**GO:** exploratory synthetic-methods reporting with explicit uncertainty and model limits.
+**Not supported:** a universal completeness correction, calibrated real-world H0 inference, superiority over Gaussian-process methods or external GW pipelines, or a new measurement of H0.
 
-**NO-GO:** claim of validated real LVK performance, a universal correction for incompleteness, or a measurement of real (H_0). This benchmark omits realistic detector response, uncertain redshifts, peculiar velocities, event-rate marginalization, and survey-level hierarchical inference.
+The experiment conditions on a fixed detected-event count and uses a simplified low-redshift Gaussian-distance model. It omits realistic detector/network selection, uncertain redshifts, peculiar velocities, event-rate marginalization and survey-level hierarchical population inference. Correct weighting assumes the inclusion probabilities are known exactly.
+
+## Remaining gates
+
+1. The exact-head Python 3.10/3.11/3.12 numerical-diagnostics workflow passed on commit `e9a512d46aeeb7070649ac8f851c1d86103f4379`: [run #40797969025](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40797969025).
+2. CHIMERA v2.2 remains **NO-GO** until its exact required mock and completeness inputs and compatible execution are available and verified. No external benchmark run is claimed.
+3. The literature positioning is focused, not a systematic review; no external subject-matter review or peer review is claimed.
+
+**Bottom line:** suitable as a transparent exploratory synthetic-methodology report, with these limitations explicit. Not ready to be represented as a real-data astrophysics result.

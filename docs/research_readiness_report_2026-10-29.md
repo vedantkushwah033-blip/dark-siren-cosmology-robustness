@@ -15,15 +15,15 @@
 ## Still open
 
 - The expanded host-density sensitivity campaign must complete. Its current expedited run uses 40 replicates per sensitivity configuration and 300 exact-density replicates per truth regime. These are exploratory screening designs, not a high-precision confirmatory campaign.
-- The general full-suite CI must pass on the latest branch head. The specialized H0-dependent-noise SBC workflow has passed on source commit `9c662b657c4472b9614bf013625af8647e1a2d5d`, with 1,200 rows and the enhanced auditor independently reconstructing all saved per-replicate posteriors and all summary aggregates. That specialized workflow is not a substitute for the full Python 3.10/3.11/3.12 suite; the latest exact-head full suite is still pending/queued.
+- The exact-head full numerical-diagnostics matrix passed on Python 3.10, 3.11 and 3.12 at commit `e9a512d46aeeb7070649ac8f851c1d86103f4379` ([run #40797969025](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40797969025)). This validates the tested software paths, not physical realism.
 - The CHIMERA v2.2 external benchmark is not complete. The exact expected input dataset(s), compatibility with the tagged release, and execution output have not been verified. Do not substitute files from an older release.
 - A full reading and assumption-by-assumption comparison of the closest 2026 completeness/GP methods is outstanding. The repository includes a focused literature/positioning audit, not a systematic review.
 - No expert review, arXiv submission, peer review, or publication claim is made.
 
 ## Required gates before release
 
-1. Obtain a passing exact-head Python 3.10/3.11/3.12 test matrix and preserve its run URL.
-2. Finish the host-density campaign, inspect raw tables and manifest, and require independent reconstruction checks to pass. Update the local-snapshot report using the regenerated artifact rather than mixing results across code versions.
+1. **Passed:** preserve the exact-head Python 3.10/3.11/3.12 numerical-diagnostics run URL above.
+2. **Completed with a scoped audit:** the host-density campaign artifact and aggregates were checked and the report is updated. Independent posterior reconstruction was a two-replicate smoke audit, not a full row-by-row reconstruction of the entire campaign.
 3. Add a concise comparison table distinguishing assumptions in this project, the 2026 GP reconstruction study, the 2026 gwcosmo completeness test, and the host-population inference preprint.
 4. Inspect CHIMERA v2.2 data availability and run feasibility from the pinned release; document a no-go if exact inputs are unavailable.
 5. Re-read the manuscript tables against artifacts, have a knowledgeable researcher review the model assumptions, and retain all toy-model limitations in any abstract or outreach.
