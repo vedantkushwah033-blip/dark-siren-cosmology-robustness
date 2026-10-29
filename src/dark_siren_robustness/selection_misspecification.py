@@ -89,6 +89,9 @@ def run_selection_misspecification(
     h0_points: int = 161,
     z_points: int = 801,
     bandwidth_factor: float | None = None,
+    catalogue_floor: float = 0.10,
+    catalogue_midpoint: float = 0.22,
+    catalogue_width: float = 0.05,
 ) -> tuple[pd.DataFrame, dict]:
     """Run paired arms under one fixed true catalogue-selection law.
 
