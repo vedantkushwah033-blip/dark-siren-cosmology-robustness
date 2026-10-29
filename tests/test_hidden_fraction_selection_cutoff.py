@@ -56,3 +56,25 @@ def test_small_pilot_and_independent_artifact_audit(tmp_path):
     assert result["events_reconstructed_structure"] == len(D_MAX_LEVELS) * 3
     assert result["posterior_grids_independently_reconstructed"] == len(D_MAX_LEVELS) * len(F_MODELS)
     assert result["expected_posterior_grids"] == len(D_MAX_LEVELS) * len(F_MODELS)
+
+
+def test_smooth_selection_misspecification_pilot_and_independent_audit(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    output = tmp_path / "smooth-pilot"
+    subprocess.run(
+        [
+            sys.executable, str(root / "scripts" / "run_smooth_selection_misspecification.py"),
+            "--replicates", "1", "--n-events", "2", "--h0-points", "31",
+            "--z-points", "101", "--seed", "20261029", "--output-dir", str(output),
+        ],
+        check=True, capture_output=True, text=True, cwd=root,
+    )
+    audit = subprocess.run(
+        [sys.executable, str(root / "scripts" / "audit_smooth_selection_misspecification.py"), str(output)],
+        check=True, capture_output=True, text=True, cwd=root,
+    )
+    result = json.loads(audit.stdout)
+    assert result["status"] == "PASS"
+    assert result["events_structurally_checked"] == 3 * 2
+    assert result["posterior_fits_independently_reconstructed"] == 3 * 3 * 3
+    assert result["expected_posterior_fits"] == 3 * 3 * 3
