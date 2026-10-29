@@ -13,7 +13,10 @@ from scipy.integrate import trapezoid
 from scipy.special import expit
 
 from dark_siren_robustness.catalogue_density import estimate_host_density
-from dark_siren_robustness.estimated_inclusion import estimate_host_density_from_validation
+from dark_siren_robustness.estimated_inclusion import (
+    estimate_host_density_from_validation,
+    predict_inclusion_probability,
+)
 from dark_siren_robustness.generative_selection import (
     generate_synthetic_population,
     latent_galaxy_intensity,
@@ -204,8 +207,14 @@ def run_estimated_inclusion_pilot(
                     fit_boundary_limited = bool(result["model"]["coefficient_bound_hit"])
                     weight_ess = float(result["inverse_weight_effective_sample_size"])
                     max_inverse_weight = float(result["inverse_weight_maximum"])
+                    # Score probability estimation over the full synthetic parent
+                    # population, not only retained objects. Parent truth is used
+                    # strictly for simulation evaluation, never for fitting/weighting.
+                    estimated_parent_probability = predict_inclusion_probability(
+                        parent_z, result["model"]
+                    )
                     probability_mae = float(np.mean(np.abs(
-                        result["observed_inclusion_probability"] - true_probability[retained]
+                        estimated_parent_probability - true_probability
                     )))
 
                 likelihood = selection_aware_toy_likelihood(
