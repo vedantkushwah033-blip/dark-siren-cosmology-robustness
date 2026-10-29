@@ -1,0 +1,70 @@
+name: audit-locked-stage-b-artifact
+
+on:
+  push:
+    branches:
+      - research/audit-posterior-grid-integrity
+    paths:
+      - "scripts/analyze_selection_misspecification_pairs.py"
+      - "scripts/audit_selection_misspecification.py"
+      - "docs/selection_misspecification_stage_b_report_2026-10-29.md"
+      - ".github/workflows/audit-stage-b-artifact.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: audit-locked-stage-b-artifact-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  independently-reanalyze-locked-stage-b:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Download the immutable Stage B workflow artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/stage_b_source artifacts/stage_b_analysis
+          curl --fail --silent --show-error --location \\
+            -H "Authorization: Bearer ${GH_TOKEN}" \\
+            -H "Accept: application/vnd.github+json" \\
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/12864010259/zip" \\
+            -o /tmp/locked-stage-b.zip
+          unzip -q /tmp/locked-stage-b.zip -d artifacts/stage_b_source
+      - name: Assert the artifact is the preregistered locked simulation commit
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('artifacts/stage_b_source')
+          manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
+          assert manifest['git_commit'] == '12ed103e83bc398df37db8eba8584a9b2b9bc9ad', manifest.get('git_commit')
+          assert manifest['configuration']['seed_start'] == 20262030
+          assert manifest['replicate_count'] == 500
+          print('Locked Stage B artifact identity verified.')
+          PY
+      - name: Independently reconstruct saved posterior grids and primary estimand
+        run: python scripts/audit_selection_misspecification.py artifacts/stage_b_source
+      - name: Independently recompute arm metrics and paired contrasts from raw CSV
+        run: >-
+          python scripts/analyze_selection_misspecification_pairs.py
+          artifacts/stage_b_source
+          --output artifacts/stage_b_analysis/paired_analysis.json
+      - name: Upload supplementary independent analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage-b-independent-paired-analysis-${{ github.sha }}
+          path: artifacts/stage_b_analysis/paired_analysis.json
+          if-no-files-found: error
+          retention-days: 90

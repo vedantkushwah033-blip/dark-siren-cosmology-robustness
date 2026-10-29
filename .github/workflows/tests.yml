@@ -28,6 +28,10 @@ jobs:
         run: python -m pytest tests/test_uncertainty_likelihoods.py -q
       - name: Test isolated dataset-level likelihood composition
         run: python -m pytest tests/test_dataset_likelihood.py -q
+      - name: Test H0-dependent noise and selection-conditioned dataset inference
+        run: python -m pytest tests/test_selection_conditioned_h0_dependent_noise.py -q
+      - name: Test reproducible paired analysis of selection-misspecification artifacts
+        run: python -m pytest tests/test_analyze_selection_misspecification_pairs.py -q
       - name: Test empirical toy detection-efficiency calibration
         run: python -m pytest tests/test_detection_efficiency_empirical.py -q
       - name: Test low-redshift selection-aware toy likelihood
