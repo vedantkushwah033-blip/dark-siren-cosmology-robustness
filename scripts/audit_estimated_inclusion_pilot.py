@@ -56,7 +56,8 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
     if not set(frame["status"]).issubset({"success", "failed"}):
         raise AssertionError("unknown fit status in replicate table")
     success = frame["status"].eq("success")
-    if not frame.loc[~success, "error"].fillna("").str.len().gt(0).all():
+    failed_errors = frame.loc[~success, "error"].fillna("").astype(str)
+    if not failed_errors.str.len().gt(0).all():
         raise AssertionError("failed rows must preserve a nonempty error reason")
     numeric = [
         "posterior_mean", "ci68_low", "ci68_high", "ci68_width",
