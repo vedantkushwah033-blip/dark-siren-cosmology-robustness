@@ -122,7 +122,7 @@ def run_selection_misspecification(
     merger = 1.0 + 1.5 * (z - z[0]) / (z[-1] - z[0])
     target_density = _normalized(latent_galaxy_intensity(z) * merger, z)
     # Configurable true catalogue-selection law; the correct-weighting arm receives these exact values.
-    true_selection = {"floor": 0.10, "midpoint": 0.22, "width": 0.05}
+    true_selection = {"floor": float(catalogue_floor), "midpoint": float(catalogue_midpoint), "width": float(catalogue_width)}
     analyst_models: dict[str, dict | str | None] = {
         # Analytic target is a diagnostic control: it removes finite-parent KDE
         # noise and isolates bias from the event likelihood / selection model.
@@ -130,8 +130,8 @@ def run_selection_misspecification(
         "oracle": None,
         "catalogue_only": None,
         "correct_weighting": true_selection,
-        "shifted_transition": {"floor": 0.10, "midpoint": 0.27, "width": 0.05},
-        "shallow_slope": {"floor": 0.10, "midpoint": 0.22, "width": 0.075},
+        "shifted_transition": {"floor": float(catalogue_floor), "midpoint": float(catalogue_midpoint + 0.05), "width": float(catalogue_width)},
+        "shallow_slope": {"floor": float(catalogue_floor), "midpoint": float(catalogue_midpoint), "width": float(catalogue_width * 1.5)},
     }
     records: list[dict] = []
     for rep in range(n_replicates):
@@ -141,6 +141,9 @@ def run_selection_misspecification(
             h0_true=h0_true, sigma_mpc=sigma_mpc,
             detection_threshold_mpc=detection_threshold_mpc,
             z_min=float(z[0]), z_max=float(z[-1]),
+            catalogue_floor=catalogue_floor,
+            catalogue_midpoint=catalogue_midpoint,
+            catalogue_width=catalogue_width,
         )
         parent_z = sim["parent_truth"]["redshift"].to_numpy(dtype=float)
         observed_z = sim["catalogue_observed"]["redshift"].to_numpy(dtype=float)
