@@ -29,13 +29,15 @@ def test_logistic_inclusion_fit_recovers_declared_synthetic_curve():
     assert np.mean(np.abs(predicted - truth)) < 0.025
 
 
-def test_logistic_inclusion_fit_is_deterministic():
+def test_logistic_inclusion_fit_is_deterministic_with_separation():
     z = np.linspace(0.01, 0.40, 100)
     included = (z < 0.23).astype(int)
-    # This deliberately has separation; the bounded optimizer must still
-    # return a finite, reproducible fit or raise a documented RuntimeError.
-    with pytest.raises(RuntimeError):
-        fit_logistic_inclusion_model(z, included, z_min=0.01, z_max=0.40)
+    first = fit_logistic_inclusion_model(z, included, z_min=0.01, z_max=0.40)
+    second = fit_logistic_inclusion_model(z, included, z_min=0.01, z_max=0.40)
+    assert first == second
+    assert np.isfinite(first["intercept"])
+    assert np.isfinite(first["slope"])
+    assert abs(first["slope"]) <= 50.0
 
 
 @pytest.mark.parametrize(
