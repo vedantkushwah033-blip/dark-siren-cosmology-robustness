@@ -107,7 +107,7 @@ def run_selection_misspecification(
     ):
         raise ValueError("bandwidth_factor must be finite and positive when supplied")
 
-    z = np.linspace(0.01, 0.40, z_points)
+    if not np.isfinite(catalogue_floor) or not 0 < catalogue_floor <= 1:\n        raise ValueError("catalogue_floor must be in (0, 1]")\n    if not np.isfinite(catalogue_midpoint) or catalogue_midpoint <= 0:\n        raise ValueError("catalogue_midpoint must be finite and positive")\n    if not np.isfinite(catalogue_width) or catalogue_width <= 0:\n        raise ValueError("catalogue_width must be finite and positive")\n\n    z = np.linspace(0.01, 0.40, z_points)
     h0 = np.linspace(h0_min, h0_max, h0_points)
     merger = 1.0 + 1.5 * (z - z[0]) / (z[-1] - z[0])
     target_density = _normalized(latent_galaxy_intensity(z) * merger, z)
