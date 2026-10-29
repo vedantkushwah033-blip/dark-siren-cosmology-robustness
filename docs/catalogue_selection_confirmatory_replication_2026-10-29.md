@@ -23,7 +23,7 @@ Positive values mean the correct-weighting arm has smaller absolute posterior-me
 | Floor 0.25, midpoint 0.22, width 0.05 | −4.717 | 5.898 | 95/250 (38.0%) | +0.938 | 4.056 | 174/250 (69.6%) | +2.246 | [1.711, 2.764] |
 | Floor 0.10, midpoint 0.22, width 0.08 | −4.994 | 6.153 | 84/250 (33.6%) | +1.304 | 4.154 | 177/250 (70.8%) | +2.354 | [1.779, 2.923] |
 
-The primary paired interval excludes zero in all three tested conditions. The absolute-error reduction varies materially by inclusion regime: the low-floor case has the largest catalogue-only bias and the largest weighting benefit, while the high-floor case has a smaller but still positive contrast. This supports the limited conclusion that, under these declared synthetic conditions, omitting the known inclusion correction can substantially distort inference and the effect depends on the inclusion curve.
+The three condition seed ranges overlap (low/high: 150 shared seed values; high/broad: 150; low/broad: 50). Thus these are separate condition-specific paired analyses, not three statistically independent replications; see the confirmatory protocol for exact ranges and interpretation. The primary paired interval excludes zero in all three tested conditions. The absolute-error reduction varies materially by inclusion regime: the low-floor case has the largest catalogue-only bias and the largest weighting benefit, while the high-floor case has a smaller but still positive contrast. This supports the limited conclusion that, under these declared synthetic conditions, omitting the known inclusion correction can substantially distort inference and the effect depends on the inclusion curve.
 
 ## Context from the control arms
 
