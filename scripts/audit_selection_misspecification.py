@@ -17,7 +17,6 @@ REQUIRED = {
     "weight_ess_fraction", "max_normalized_weight", "q95_normalized_weight",
     "min_assumed_inclusion_probability", "n_parent", "n_catalogue_observed",
     "n_detected", "min_detection_efficiency", "assumed_selection_model",
-    "true_catalogue_floor", "true_catalogue_midpoint", "true_catalogue_width",
 }
 
 
@@ -150,6 +149,15 @@ def audit_artifacts(output_dir: str | Path) -> dict:
     true_width = _num(true_selection["width"], "true catalogue width")
     if not 0 < true_floor <= 1 or true_midpoint <= 0 or true_width <= 0:
         raise ValueError("invalid true catalogue-selection parameters")
+    # Legacy locked artifacts predate the per-row truth-parameter columns.
+    # When those columns are absent, cross-check against the run manifest if
+    # it records the generation parameters; never silently infer from a fit arm.
+    config = manifest.get("configuration", {})
+    for field, expected in (("catalogue_floor", true_floor),
+                            ("catalogue_midpoint", true_midpoint),
+                            ("catalogue_width", true_width)):
+        if field in config:
+            _close(config[field], expected, f"manifest {field}")
     if not float(h0_min) <= h0_true <= float(h0_max):
         raise ValueError("true H0 outside grid")
     with raw_path.open(newline="", encoding="utf-8") as handle:
@@ -174,9 +182,13 @@ def audit_artifacts(output_dir: str | Path) -> dict:
         if seed != int(summary["seed_start"]) + rep:
             raise ValueError(f"seed mismatch at {key}")
         _close(row["h0_true"], h0_true, "row true H0")
-        _close(row["true_catalogue_floor"], true_floor, "row true catalogue floor")
-        _close(row["true_catalogue_midpoint"], true_midpoint, "row true catalogue midpoint")
-        _close(row["true_catalogue_width"], true_width, "row true catalogue width")
+        for column, expected, label in (
+            ("true_catalogue_floor", true_floor, "row true catalogue floor"),
+            ("true_catalogue_midpoint", true_midpoint, "row true catalogue midpoint"),
+            ("true_catalogue_width", true_width, "row true catalogue width"),
+        ):
+            if column in row and row[column] != "":
+                _close(row[column], expected, label)
         try:
             assumed_model = json.loads(row["assumed_selection_model"])
         except (KeyError, TypeError, json.JSONDecodeError) as exc:
