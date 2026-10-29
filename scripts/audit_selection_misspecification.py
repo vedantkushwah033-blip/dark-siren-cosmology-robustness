@@ -142,6 +142,14 @@ def audit_artifacts(output_dir: str | Path) -> dict:
     grid = [float(h0_min) + i * (float(h0_max) - float(h0_min)) / (int(h0_points) - 1)
             for i in range(int(h0_points))]
     h0_true = _num(summary["h0_true_km_s_mpc"], "true H0")
+    true_selection = summary.get("true_catalogue_selection")
+    if not isinstance(true_selection, dict) or set(true_selection) != {"floor", "midpoint", "width"}:
+        raise ValueError("true catalogue-selection parameters missing from summary")
+    true_floor = _num(true_selection["floor"], "true catalogue floor")
+    true_midpoint = _num(true_selection["midpoint"], "true catalogue midpoint")
+    true_width = _num(true_selection["width"], "true catalogue width")
+    if not 0 < true_floor <= 1 or true_midpoint <= 0 or true_width <= 0:
+        raise ValueError("invalid true catalogue-selection parameters")
     if not float(h0_min) <= h0_true <= float(h0_max):
         raise ValueError("true H0 outside grid")
     with raw_path.open(newline="", encoding="utf-8") as handle:
@@ -166,6 +174,15 @@ def audit_artifacts(output_dir: str | Path) -> dict:
         if seed != int(summary["seed_start"]) + rep:
             raise ValueError(f"seed mismatch at {key}")
         _close(row["h0_true"], h0_true, "row true H0")
+        _close(row["true_catalogue_floor"], true_floor, "row true catalogue floor")
+        _close(row["true_catalogue_midpoint"], true_midpoint, "row true catalogue midpoint")
+        _close(row["true_catalogue_width"], true_width, "row true catalogue width")
+        try:
+            assumed_model = json.loads(row["assumed_selection_model"])
+        except (KeyError, TypeError, json.JSONDecodeError) as exc:
+            raise ValueError(f"invalid assumed selection model at {key}") from exc
+        if arm == "correct_weighting" and assumed_model != true_selection:
+            raise ValueError("correct-weighting arm does not use the recorded true selection law")
         n_parent = int(row["n_parent"])
         n_catalogue = int(row["n_catalogue_observed"])
         n_detected = int(row["n_detected"])
