@@ -229,12 +229,37 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         _close(stored.get("normal_95_low"), low, f"{arm}.contrast.low")
         _close(stored.get("normal_95_high"), high, f"{arm}.contrast.high")
 
+    boundary_success = np.array([
+        _strict_bool(v, "fit_boundary_limited")
+        for v in frame.loc[success, "fit_boundary_limited"]
+    ], dtype=bool)
+    per_arm_counts = {}
+    for arm in sorted(arms_in_rows):
+        arm_rows = frame.loc[frame["arm"] == arm]
+        arm_success = arm_rows["status"].eq("success")
+        per_arm_counts[arm] = {
+            "n_attempted": int(len(arm_rows)),
+            "n_success": int(arm_success.sum()),
+            "n_failed": int((~arm_success).sum()),
+            "failure_fraction": float((~arm_success).mean()),
+            "status": "evaluable" if arm_success.any() else "non_evaluable_no_successful_fits",
+        }
+    n_boundary = int(boundary_success.sum())
     return {
         "status": "PASS",
         "n_rows": int(len(frame)),
         "n_success": int(success.sum()),
         "n_failed": int((~success).sum()),
         "n_arms": int(len(arms_in_rows)),
+        "n_replicates_expected": int(requested_replicates),
+        "n_replicate_arm_pairs_expected": int(len(expected_pairs)),
+        "n_replicate_arm_pairs_observed": int(len(observed_pairs)),
+        "failure_fraction": float((~success).mean()),
+        "n_boundary_limited_successful_fits": n_boundary,
+        "boundary_limited_fraction_of_successful_fits": (
+            None if not success.any() else float(n_boundary / int(success.sum()))
+        ),
+        "per_arm_counts": per_arm_counts,
         "audit_scope": "persisted-table integrity and independent summary reconstruction only",
     }
 
