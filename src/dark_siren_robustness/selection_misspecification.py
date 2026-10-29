@@ -144,6 +144,9 @@ def run_selection_misspecification(
             catalogue_floor=catalogue_floor,
             catalogue_midpoint=catalogue_midpoint,
             catalogue_width=catalogue_width,
+            catalogue_floor=catalogue_floor,
+            catalogue_midpoint=catalogue_midpoint,
+            catalogue_width=catalogue_width,
         )
         parent_z = sim["parent_truth"]["redshift"].to_numpy(dtype=float)
         observed_z = sim["catalogue_observed"]["redshift"].to_numpy(dtype=float)
