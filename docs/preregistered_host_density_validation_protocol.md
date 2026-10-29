@@ -1,6 +1,6 @@
 # Preregistered validation protocol: corrected host-density and selection pilot
 
-**Status:** protocol proposal, not evidence that any experiment has run.  
+**Status:** protocol and staged validation record. Stage A and the locked Stage B synthetic campaigns have completed with independent artifact audits; the sensitivity and broader-model gates below remain outstanding.  
 **Scope:** synthetic methodological study only. This is not an LVK analysis, detector validation, or measurement of the real Hubble constant.
 
 ## 1. Research question
@@ -119,7 +119,7 @@ Publish, at minimum:
 - Deviations from this protocol, including failed runs.
 - A concise statement of what the toy experiment cannot establish.
 
-**Current status note:** this protocol is a prespecification proposal. It must be reviewed and locked before the confirmatory seed set is generated. It does not imply that the pilot or confirmation has run.
+**Historical status note (superseded by Section 9):** at the time this protocol was first drafted, it was a prespecification proposal and did not imply that a pilot or confirmation had run. Section 9 records the subsequent locked design and its completed Stage B run. The result remains scoped to the fixed-H0 synthetic model.
 
 ## 9. Stage A calibration and locked Stage B design (2026-10-29)
 
@@ -132,3 +132,8 @@ The minimum therefore governs: **Stage B is locked at 500 paired replicates**, w
 Locked Stage B configuration: 4,000 parent galaxies per replicate; 30 detected events; fixed true H0 = 70 km s^-1 Mpc^-1; 81-point H0 grid over [50, 90]; 401-point redshift grid over [0.01, 0.40]; same selection law and six arms; corrected Scott bandwidth default. The primary result is mean D with a percentile-bootstrap 95% interval using 10,000 resamples; also report paired SE and normal interval. Deterministic bootstrap seed is `seed_start + 104729`.
 
 This is prospective planning, not evidence of favorable confirmatory results. Do not change the seed range, replicate count, primary contrast, or interval method after observing Stage B output. Code changes affecting the estimand/audit invalidate this run and require a new locked commit and disjoint seed stream.
+
+
+## 10. Current release gate (2026-10-29)
+
+The locked Stage B primary result is complete and independently audited as documented in `selection_misspecification_stage_b_report_2026-10-29.md`. Do not rerun or relabel it as a fresh confirmation. The next scientific gate is a new, explicitly versioned robustness campaign over multiple fixed H0 values, event counts, completeness strengths, and host-population shapes, with grid/bandwidth sensitivity and independent artifact reconstruction. Any changes to the likelihood, estimator, primary endpoint, or simulation design require a new preregistration and disjoint seeds. The latest repository-head test workflow must also reach a terminal passing state before release; as of the current check, its run is pending. CHIMERA v2.2 remains NO-GO until the pinned, version-compatible input bundle is independently verified.
