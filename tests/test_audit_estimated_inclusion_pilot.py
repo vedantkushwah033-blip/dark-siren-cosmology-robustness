@@ -165,3 +165,20 @@ def test_independent_auditor_accepts_explicit_all_failed_artifact_without_fit_co
         arm["status"] == "non_evaluable_no_successful_fits"
         for arm in report["per_arm_counts"].values()
     )
+
+
+
+def test_integer_column_parser_rejects_fractional_replicate_ids():
+    import pandas as pd
+    from scripts.audit_estimated_inclusion_pilot import _integer_values
+
+    with pytest.raises(AssertionError, match="integer-valued"):
+        _integer_values(pd.Series([0, 1.5]), "replicate")
+
+
+def test_integer_column_parser_rejects_fractional_validation_sizes():
+    import pandas as pd
+    from scripts.audit_estimated_inclusion_pilot import _integer_values
+
+    with pytest.raises(AssertionError, match="integer-valued"):
+        _integer_values(pd.Series([100, 100.5]), "estimated_100.validation_size")
