@@ -182,3 +182,26 @@ def test_integer_column_parser_rejects_fractional_validation_sizes():
 
     with pytest.raises(AssertionError, match="integer-valued"):
         _integer_values(pd.Series([100, 100.5]), "estimated_100.validation_size")
+
+
+
+def test_independent_auditor_rejects_interval_width_inconsistent_with_endpoints(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261045)
+    successful = frame.index[frame["status"] == "success"]
+    assert len(successful) > 0
+    frame.loc[successful[0], "ci68_width"] += 1.0
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="ci68_width disagrees"):
+        audit_pilot_artifacts(tmp_path)
+
+
+def test_independent_auditor_rejects_absolute_error_inconsistent_with_posterior_mean(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261046)
+    successful = frame.index[frame["status"] == "success"]
+    assert len(successful) > 0
+    frame.loc[successful[0], "absolute_error"] += 1.0
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="absolute_error disagrees"):
+        audit_pilot_artifacts(tmp_path)
