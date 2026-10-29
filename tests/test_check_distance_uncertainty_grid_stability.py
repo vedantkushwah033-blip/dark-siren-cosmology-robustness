@@ -190,6 +190,8 @@ def test_multi_resolution_sweep_reports_adjacent_grid_changes(tmp_path):
     assert report["release_comparison_count"] == 2
     assert all(item["meets_configured_thresholds"] for item in report["comparisons"][1:])
     assert all(item["coverage_flip_count"] == 0 for item in report["comparisons"][1:])
+    assert all(item["successive_maximum_summary_change_shrinks"] for item in report["comparisons"][1:])
+    assert report["status"] == "PASS"
     width_changes = [
         item["maximum_endpoint_change_over_fine_95_width"]
         for item in report["comparisons"]
