@@ -1,4 +1,4 @@
-# Selection-Function and Catalogue-Incompleteness Audits for Dark-Siren H0 Inference: Controlled Synthetic Benchmarks and Reproducible Validation
+# When Do Simplified Dark-Siren H0 Inference Methods Remain Calibrated? A Reproducible Synthetic Study of Hidden-Host and Selection-Function Misspecification
 
 **Draft manuscript v0.3 — 29 October 2026**  
 **Status:** internal research draft; not submitted or peer reviewed.
