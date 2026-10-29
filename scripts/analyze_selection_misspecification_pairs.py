@@ -28,7 +28,7 @@ PAIRS = (
 )
 REQUIRED = {
     "replicate", "seed", "arm", "h0_true", "posterior_mean",
-    "ci68_width", "covered_68", "density_ise",
+    "ci68_width", "covered_68", "density_ise", "n_parent", "n_catalogue_observed", "n_detected",
 }
 
 
@@ -91,7 +91,11 @@ def _bootstrap_stats(values, *, seed, n_boot):
         "standard_deviation": sd,
         "standard_error": se,
         "normal_95_interval": None if normal_low is None else [normal_low, normal_high],
+        "normal_95_low": normal_low,
+        "normal_95_high": normal_high,
         "bootstrap_95_interval": [low, high],
+        "bootstrap_95_low": low,
+        "bootstrap_95_high": high,
         "bootstrap_resamples": int(n_boot),
         "analysis_seed": int(seed),
     }
@@ -120,8 +124,9 @@ def analyze_records(rows, *, n_replicates, seed_start, h0_true, n_boot=10_000,
             raise ValueError(f"seed mismatch at {key}")
         if not math.isclose(_num(row["h0_true"], "h0_true"), h0_true, rel_tol=0, abs_tol=1e-10):
             raise ValueError(f"true H0 mismatch at {key}")
-        for column in ("posterior_mean", "ci68_width", "density_ise"):
-            if _num(row[column], column) < 0 and column in {"ci68_width", "density_ise"}:
+        _num(row["posterior_mean"], "posterior_mean")
+        for column in ("ci68_width", "density_ise"):
+            if _num(row[column], column) < 0:
                 raise ValueError(f"{column} must be non-negative at {key}")
         if _num(row["ci68_width"], "ci68_width") <= 0:
             raise ValueError(f"ci68_width must be positive at {key}")
