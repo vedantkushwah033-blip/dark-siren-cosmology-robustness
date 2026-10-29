@@ -1,0 +1,70 @@
+name: catalogue-selection-confirmatory-replication
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/audit-posterior-grid-integrity
+    paths:
+      - ".github/workflows/catalogue-selection-confirmatory-replication.yml"
+      - "docs/catalogue_selection_confirmatory_protocol_2026-10-29.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catalogue-selection-confirmatory-replication-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  confirmatory-replication:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: low-inclusion-floor
+            floor: 0.05
+            midpoint: 0.22
+            width: 0.05
+            seed: 20271000
+          - name: high-inclusion-floor
+            floor: 0.25
+            midpoint: 0.22
+            width: 0.05
+            seed: 20271100
+          - name: broad-transition
+            floor: 0.10
+            midpoint: 0.22
+            width: 0.08
+            seed: 20271200
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run fixed-seed 250-replicate condition
+        run: >-
+          python scripts/run_selection_misspecification.py
+          --replicates 250
+          --n-parent 4000
+          --n-detected 30
+          --seed ${{ matrix.seed }}
+          --h0-points 81
+          --z-points 401
+          --catalogue-floor ${{ matrix.floor }}
+          --catalogue-midpoint ${{ matrix.midpoint }}
+          --catalogue-width ${{ matrix.width }}
+          --output-dir artifacts/catalogue_selection_confirmatory/${{ matrix.name }}
+      - name: Independently audit raw rows and posterior grids
+        run: python scripts/audit_selection_misspecification.py artifacts/catalogue_selection_confirmatory/${{ matrix.name }}
+      - name: Upload audited replication artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalogue-selection-confirmatory-${{ matrix.name }}-${{ github.sha }}
+          path: artifacts/catalogue_selection_confirmatory/${{ matrix.name }}/
+          if-no-files-found: error
+          retention-days: 90
