@@ -36,6 +36,31 @@ def _close(actual: object, expected: object, label: str, *, atol: float = 1e-9) 
         raise AssertionError(f"{label}: stored={actual!r}, reconstructed={expected!r}")
 
 
+
+def _strict_bool(value: object, label: str) -> bool:
+    """Parse persisted Boolean values without Python's truthiness trap."""
+    if isinstance(value, (bool, np.bool_)):
+        return bool(value)
+    if isinstance(value, (int, np.integer)) and value in (0, 1):
+        return bool(value)
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "1"}:
+            return True
+        if normalized in {"false", "0"}:
+            return False
+    raise AssertionError(f"{label}: expected an explicit Boolean/0/1 value, got {value!r}")
+
+
+def _required_finite_number(value: object, label: str) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise AssertionError(f"{label}: expected a finite number") from exc
+    if not np.isfinite(number):
+        raise AssertionError(f"{label}: expected a finite number")
+    return number
+
 def audit_pilot_artifacts(output_dir: str | Path) -> dict:
     root = Path(output_dir)
     csv_path, json_path = root / "replicates.csv", root / "summary.json"
@@ -46,7 +71,9 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
     required = {
         "replicate", "replicate_seed", "catalogue_seed", "audit_seed", "arm",
         "validation_size", "status", "error", "fit_status", "fit_boundary_limited",
-        "n_catalogue", "n_detected",
+        "n_catalogue", "n_detected", "covered_68", "inclusion_probability_mae",
+        "posterior_mean", "ci68_low", "ci68_high", "ci68_width", "absolute_error",
+        "density_ise", "weight_ess", "weight_ess_fraction", "max_inverse_weight",
     }
     missing = required - set(frame.columns)
     if missing:
@@ -74,12 +101,44 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         raise AssertionError("credible interval endpoints are reversed")
     if (frame.loc[success, "absolute_error"] < 0).any():
         raise AssertionError("absolute posterior-mean errors cannot be negative")
-    boundary_flags = frame.loc[success, "fit_boundary_limited"].astype(bool)
-    boundary_status = frame.loc[success, "fit_status"].eq("boundary_limited")
-    if not boundary_flags.equals(boundary_status):
+    boundary_flags = np.array([_strict_bool(v, "fit_boundary_limited") for v in frame.loc[success, "fit_boundary_limited"]], dtype=bool)
+    boundary_status = frame.loc[success, "fit_status"].eq("boundary_limited").to_numpy(dtype=bool)
+    if not np.array_equal(boundary_flags, boundary_status):
         raise AssertionError("fit boundary flags disagree with fit_status")
 
+    h0_true = _required_finite_number(summary.get("h0_true"), "summary.h0_true")
+    requested_replicates = summary.get("n_replicates_requested")
+    if isinstance(requested_replicates, bool) or not isinstance(requested_replicates, int) or requested_replicates < 1:
+        raise AssertionError("summary.n_replicates_requested must be a positive integer")
+    validation_sizes = summary.get("validation_sizes")
+    if not isinstance(validation_sizes, list) or not validation_sizes:
+        raise AssertionError("summary.validation_sizes must be a nonempty list")
+    if any(isinstance(v, bool) or not isinstance(v, int) or v < 1 for v in validation_sizes):
+        raise AssertionError("summary.validation_sizes must contain positive integers")
+    expected_arms = {"catalogue_only", "oracle"} | {f"estimated_{v}" for v in validation_sizes}
     arms_in_rows = set(frame["arm"])
+    if arms_in_rows != expected_arms:
+        raise AssertionError(f"replicate arm set differs from declared design: expected={sorted(expected_arms)}, observed={sorted(arms_in_rows)}")
+    expected_replicates = set(range(requested_replicates))
+    observed_replicates = set(pd.to_numeric(frame["replicate"], errors="raise").astype(int).unique())
+    if observed_replicates != expected_replicates:
+        raise AssertionError(f"replicate IDs differ from declared design: expected={sorted(expected_replicates)}, observed={sorted(observed_replicates)}")
+    expected_pairs = {(replicate, arm) for replicate in expected_replicates for arm in expected_arms}
+    observed_pairs = set(zip(frame["replicate"].astype(int), frame["arm"]))
+    if observed_pairs != expected_pairs:
+        missing_pairs = sorted(expected_pairs - observed_pairs)[:5]
+        extra_pairs = sorted(observed_pairs - expected_pairs)[:5]
+        raise AssertionError(f"incomplete replicate-arm matrix; missing={missing_pairs}, extra={extra_pairs}")
+    expected_validation_size = {"catalogue_only": 0, "oracle": 0, **{f"estimated_{v}": v for v in validation_sizes}}
+    for arm, expected_size in expected_validation_size.items():
+        sizes = set(pd.to_numeric(frame.loc[frame["arm"] == arm, "validation_size"], errors="raise").astype(int))
+        if sizes != {expected_size}:
+            raise AssertionError(f"{arm}: validation_size does not match declared design")
+    if not isinstance(summary.get("arm_summaries"), list):
+        raise AssertionError("summary.arm_summaries must be a list")
+    arms_in_summary = {item.get("arm") for item in summary["arm_summaries"] if isinstance(item, dict)}
+    if arms_in_rows != arms_in_summary:
+        raise AssertionError("summary arm set does not match replicate table")
     arms_in_summary = {item["arm"] for item in summary.get("arm_summaries", [])}
     if arms_in_rows != arms_in_summary:
         raise AssertionError("summary arm set does not match replicate table")
@@ -99,10 +158,16 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         _close(stored["n_success"], len(group), f"{arm}.n_success")
         _close(stored["n_failed"], len(all_rows) - len(group), f"{arm}.n_failed")
         if group.empty:
+            if stored.get("status") != "no_successful_fits":
+                raise AssertionError(f"{arm}: zero-success arm must be marked no_successful_fits")
             continue
-        h0_true = float(summary.get("h0_true", 70.0))
+        if stored.get("status") == "no_successful_fits":
+            raise AssertionError(f"{arm}: summary marks an arm non-evaluable despite successful rows")
         error = group["posterior_mean"].to_numpy(dtype=float) - h0_true
-        covered = group["covered_68"].astype(bool).to_numpy()
+        covered = np.array([_strict_bool(v, f"{arm}.covered_68") for v in group["covered_68"]], dtype=bool)
+        reconstructed_coverage = ((group["ci68_low"].to_numpy(dtype=float) <= h0_true) & (h0_true <= group["ci68_high"].to_numpy(dtype=float)))
+        if not np.array_equal(covered, reconstructed_coverage):
+            raise AssertionError(f"{arm}: covered_68 flags disagree with interval endpoints and h0_true")
         successes, trials = int(np.sum(covered)), int(len(covered))
         low, high = _wilson(successes, trials)
         reconstructed = {
