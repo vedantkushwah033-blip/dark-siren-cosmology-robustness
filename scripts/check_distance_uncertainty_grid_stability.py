@@ -205,16 +205,134 @@ def check_grid_stability(raw_csv: Path, fine_grid_points: int = 3201,
     }
 
 
+
+def compare_grid_resolutions(
+    raw_csv: Path,
+    grid_points: tuple[int, ...] = (801, 1601, 3201, 6401),
+    median_abs_tolerance: float = 0.02,
+    median_relative_tolerance: float = 5e-4,
+    interval_relative_tolerance: float = 1e-3,
+) -> dict:
+    """Compare independently reconstructed posterior summaries across grid resolutions.
+
+    Tolerances are reporting thresholds, not universal scientific guarantees. The
+    report preserves all adjacent-resolution comparisons so users can assess
+    whether apparent convergence is monotone and whether interval membership flips.
+    """
+    points = tuple(int(n) for n in grid_points)
+    if len(points) < 2 or any(n < 3 or n % 2 == 0 for n in points):
+        raise ValueError("grid_points must contain at least two odd integers >= 3")
+    if tuple(sorted(set(points))) != points:
+        raise ValueError("grid_points must be strictly increasing and unique")
+    tolerances = (median_abs_tolerance, median_relative_tolerance, interval_relative_tolerance)
+    if any(not math.isfinite(x) or x <= 0 for x in tolerances):
+        raise ValueError("all convergence tolerances must be finite and positive")
+
+    grids = {n: np.linspace(50.0, 90.0, n) for n in points}
+    summaries = {n: [] for n in points}
+    row_metadata = []
+    required = {
+        "true_h0", "arm", "replicate", "fractional_error",
+        "host_redshift", "observed_distance_mpc", "generated_sigma_mpc",
+        "median", "lower_68", "upper_68", "lower_95", "upper_95",
+    }
+    with raw_csv.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        missing = sorted(required - set(reader.fieldnames or []))
+        if missing:
+            raise ValueError(f"raw CSV missing columns: {missing}")
+        for row in reader:
+            truth = float(row["true_h0"])
+            if not math.isfinite(truth):
+                raise ValueError("true_h0 contains a non-finite value")
+            row_metadata.append({
+                "truth": truth,
+                "arm": row["arm"],
+                "key": (truth, float(row["fractional_error"]), int(row["replicate"]), row["arm"]),
+            })
+            for n in points:
+                summaries[n].append(_posterior_quantiles(row, grids[n]))
+    if not row_metadata:
+        raise ValueError("raw CSV is empty")
+
+    comparisons = []
+    summary_columns = ("median", "lower_68", "upper_68", "lower_95", "upper_95")
+    for coarse_n, fine_n in zip(points[:-1], points[1:]):
+        by_summary = {}
+        for column in summary_columns:
+            absolute = np.asarray([
+                abs(a[column] - b[column])
+                for a, b in zip(summaries[coarse_n], summaries[fine_n])
+            ], dtype=float)
+            relative = absolute / np.maximum(
+                np.asarray([abs(b[column]) for b in summaries[fine_n]], dtype=float),
+                np.finfo(float).eps,
+            )
+            by_summary[column] = {
+                "median_absolute_change": float(np.median(absolute)),
+                "p95_absolute_change": float(np.quantile(absolute, 0.95)),
+                "maximum_absolute_change": float(np.max(absolute)),
+                "median_relative_change": float(np.median(relative)),
+                "p95_relative_change": float(np.quantile(relative, 0.95)),
+                "maximum_relative_change": float(np.max(relative)),
+            }
+        flips = {}
+        for arm in sorted({m["arm"] for m in row_metadata}):
+            indices = [i for i, m in enumerate(row_metadata) if m["arm"] == arm]
+            changed = sum(
+                (summaries[coarse_n][i]["lower_68"] <= row_metadata[i]["truth"] <= summaries[coarse_n][i]["upper_68"])
+                != (summaries[fine_n][i]["lower_68"] <= row_metadata[i]["truth"] <= summaries[fine_n][i]["upper_68"])
+                for i in indices
+            )
+            flips[arm] = {"changed_68_coverage_classifications": int(changed), "n": len(indices)}
+        median_abs = by_summary["median"]["maximum_absolute_change"]
+        median_rel = by_summary["median"]["maximum_relative_change"]
+        interval_rel = max(
+            by_summary["lower_68"]["maximum_relative_change"],
+            by_summary["upper_68"]["maximum_relative_change"],
+            by_summary["lower_95"]["maximum_relative_change"],
+            by_summary["upper_95"]["maximum_relative_change"],
+        )
+        comparisons.append({
+            "coarse_grid_points": coarse_n,
+            "fine_grid_points": fine_n,
+            "summary_changes": by_summary,
+            "coverage_classification_changes_by_arm": flips,
+            "meets_configured_thresholds": bool(
+                median_abs <= median_abs_tolerance
+                and median_rel <= median_relative_tolerance
+                and interval_rel <= interval_relative_tolerance
+            ),
+            "thresholds": {
+                "maximum_absolute_median_change": median_abs_tolerance,
+                "maximum_relative_median_change": median_relative_tolerance,
+                "maximum_relative_interval_endpoint_change": interval_relative_tolerance,
+            },
+        })
+    return {
+        "status": "PASS" if comparisons[-1]["meets_configured_thresholds"] else "REVIEW",
+        "interpretation": "The final adjacent-grid comparison meets the configured numerical thresholds; this is not evidence of model adequacy or universal convergence.",
+        "scope": "synthetic known-host low-redshift sensitivity diagnostic only",
+        "raw_record_count": len(row_metadata),
+        "grid_points": list(points),
+        "support": [50.0, 90.0],
+        "comparisons": comparisons,
+        "method": "independent Gaussian-likelihood and trapezoidal-grid reconstruction from raw CSV",
+    }
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("replicates_csv", type=Path)
     parser.add_argument("--fine-grid-points", type=int, default=3201)
     parser.add_argument("--max-allowed-change", type=float, default=1e-3)
+    parser.add_argument("--resolution-sweep", action="store_true", help="also compare 801/1601/3201/6401-point grids")
     parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()
     report = check_grid_stability(
         args.replicates_csv, args.fine_grid_points, args.max_allowed_change
     )
+    if args.resolution_sweep:
+        report["multi_resolution_convergence"] = compare_grid_resolutions(args.replicates_csv)
     output = args.output or args.replicates_csv.with_name("grid_stability_report.json")
     output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(report, indent=2, sort_keys=True))
