@@ -94,11 +94,6 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         _close(stored["n_failed"], len(all_rows) - len(group), f"{arm}.n_failed")
         if group.empty:
             continue
-        error = group["posterior_mean"].to_numpy(dtype=float) - float(
-            summary.get("h0_true", 70.0)
-        )
-        # Current pilot summary uses the fixed declared default truth of 70.
-        # If the summary later records a different truth, it must be read there.
         h0_true = float(summary.get("h0_true", 70.0))
         error = group["posterior_mean"].to_numpy(dtype=float) - h0_true
         covered = group["covered_68"].astype(bool).to_numpy()

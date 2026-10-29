@@ -54,8 +54,6 @@ jobs:
         run: python -m pytest tests/test_estimated_inclusion_study.py -q
       - name: Test independent estimated-inclusion artifact auditor
         run: python -m pytest tests/test_audit_estimated_inclusion_pilot.py -q
-      - name: Independently audit estimated-inclusion pilot smoke artifacts
-        run: python scripts/audit_estimated_inclusion_pilot.py artifacts/estimated_inclusion_pilot_smoke
       - name: Run non-confirmatory estimated-inclusion pilot smoke experiment
         run: python scripts/run_estimated_inclusion_pilot.py --replicates 2 --n-parent 1200 --n-detected 8 --validation-sizes 100,300 --seed 20261030 --h0-points 41 --z-points 201 --output-dir artifacts/estimated_inclusion_pilot_smoke
       - name: Check estimated-inclusion pilot smoke outputs
@@ -69,6 +67,8 @@ jobs:
           assert (p / 'replicates.csv').stat().st_size > 0
           print("Validated {} arm summaries.".format(len(summary['arm_summaries'])))
           PY
+      - name: Independently audit estimated-inclusion pilot smoke artifacts
+        run: python scripts/audit_estimated_inclusion_pilot.py artifacts/estimated_inclusion_pilot_smoke
       - name: Test host-density-to-H0 benchmark
         run: python -m pytest tests/test_host_density_benchmark.py -q
       - name: Test corrected physical KDE bandwidth semantics

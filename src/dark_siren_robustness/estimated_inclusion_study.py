@@ -288,6 +288,11 @@ def run_estimated_inclusion_pilot(
         "status": "NON_CONFIRMATORY_SYNTHETIC_PILOT",
         "seed": int(seed), "n_replicates_requested": int(n_replicates),
         "n_parent": int(n_parent), "n_detected": int(n_detected),
+        "h0_true": float(h0_true), "sigma_mpc": float(sigma_mpc),
+        "detection_threshold_mpc": float(detection_threshold_mpc),
+        "h0_grid": [float(h0_min), float(h0_max), int(h0_points)],
+        "redshift_grid": [float(z_min), float(z_max), int(z_points)],
+        "bandwidth_factor": None if bandwidth_factor is None else float(bandwidth_factor),
         "validation_sizes": list(sizes),
         "true_inclusion_model": {
             "family": "logistic",
