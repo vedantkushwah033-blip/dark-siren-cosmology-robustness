@@ -82,13 +82,17 @@ def run_estimated_inclusion_pilot(
     default replicate count is for runtime/variance planning, not confirmatory
     scientific claims.
     """
-    sizes = tuple(sorted(set(int(m) for m in validation_sizes)))
+    raw_sizes = tuple(validation_sizes)
+    if any(
+        isinstance(m, (bool, np.bool_)) or not isinstance(m, (int, np.integer))
+        for m in raw_sizes
+    ):
+        raise ValueError("validation sizes must be integer counts, not booleans or floats")
+    sizes = tuple(sorted(set(int(m) for m in raw_sizes)))
     if n_replicates < 1 or n_parent < 100 or n_detected < 1:
         raise ValueError("n_replicates/n_detected must be positive and n_parent >= 100")
     if not sizes or any(m < 10 for m in sizes) or max(sizes) > n_parent:
         raise ValueError("validation_sizes must contain integers in [10, n_parent]")
-    if any(isinstance(m, bool) for m in validation_sizes):
-        raise ValueError("validation sizes must be integer counts, not booleans")
     if h0_points < 31 or z_points < 101 or not (0 < h0_min < h0_max):
         raise ValueError("invalid H0 or redshift grid settings")
     if not np.isfinite(h0_true) or not h0_min < h0_true < h0_max:
