@@ -11,6 +11,8 @@ on:
       - "scripts/run_host_density_benchmark.py"
       - "scripts/analyze_host_density_campaign.py"
       - "scripts/audit_host_density_independent.py"
+      - "scripts/audit_host_density_campaign.py"
+      - "tests/test_audit_host_density_campaign.py"
       - "scripts/diagnose_oracle_bias.py"
       - "scripts/audit_oracle_bias.py"
       - "tests/test_audit_oracle_bias.py"
@@ -50,8 +52,11 @@ jobs:
           manifest = json.loads((root/"campaign_manifest.json").read_text())
           for name, record in manifest["files"].items():
               assert hashlib.sha256((root/name).read_bytes()).hexdigest() == record["sha256"], name
-          print(f"Verified {len(manifest['files'])} campaign file hashes.")
+              assert (root/name).stat().st_size == record["bytes"], name
+          print(f"Verified {len(manifest['files'])} campaign file hashes and byte counts.")
           PY
+      - name: Independently regenerate every campaign replicate and reconstruct all posteriors
+        run: python scripts/audit_host_density_campaign.py artifacts/host_density_campaign --audit-z-points 401 --audit-h0-points 81 --report artifacts/host_density_campaign_full_audit.json
       - name: Upload raw campaign tables and independent-audit data
         uses: actions/upload-artifact@v4
         with:
@@ -59,6 +64,7 @@ jobs:
           path: |
             artifacts/host_density_campaign/
             artifacts/host_density_independent_audit/
+            artifacts/host_density_campaign_full_audit.json
           if-no-files-found: error
           retention-days: 90
 

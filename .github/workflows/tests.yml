@@ -54,6 +54,8 @@ jobs:
         run: python -m pytest tests/test_kde_bandwidth_definition.py -q
       - name: Test independent host-density re-simulation audit
         run: python -m pytest tests/test_audit_host_density_independent.py -q
+      - name: Test full host-density campaign auditor primitives
+        run: python -m pytest tests/test_audit_host_density_campaign.py -q
       - name: Test prior-averaged oracle calibration and negative control
         run: python -m pytest tests/test_oracle_prior_averaged_calibration.py -q
       - name: Test independent exact-density oracle data and posterior audit
