@@ -8,10 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from dark_siren_robustness.selection_conditioned_h0_dependent_noise import (
-    # Importing the runner function is intentional: the test fixture creates an
-    # authentic artifact schema, while the auditor must independently reconstruct it.
-)
+# Import the runner only to create a schema-valid fixture; the auditor uses separate code.
 from scripts.run_h0_dependent_noise_sbc import run_experiment
 from scripts.audit_h0_dependent_noise_sbc import audit
 
