@@ -115,11 +115,19 @@ def audit(path: Path) -> dict:
 
     if not parsed:
         raise ValueError(f"no {ARM_A} records found")
+    # Keep prior-edge truths separate from the prespecified interior stratum.
+    # H0=55 and 85 remain in the broad 55--85 stratum for backward compatibility,
+    # but are also reported as near-boundary stress points below.
     groups = {
         "all_arm_a_records": parsed,
         "interior_truths_55_to_85": [r for r in parsed if 55 <= r["true_h0"] <= 85],
+        "prior_boundary_truths_50_or_90": [r for r in parsed if r["true_h0"] in (50.0, 90.0)],
+        "near_boundary_truths_55_or_85": [r for r in parsed if r["true_h0"] in (55.0, 85.0)],
         "central_truth_h0_70": [r for r in parsed if r["true_h0"] == 70],
     }
+    # Some small fixture files intentionally contain only one truth value.
+    # Omit empty strata rather than fabricating a coverage estimate for n=0.
+    groups = {name: rows for name, rows in groups.items() if rows}
     by_truth = {
         str(int(truth)): _summarize([r for r in parsed if r["true_h0"] == truth], 68)
         for truth in sorted({r["true_h0"] for r in parsed})
