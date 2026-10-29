@@ -35,7 +35,7 @@ The full factorial is 81 scenarios and is likely too expensive as a first pass. 
 
 ### Stage R2: catalogue-selection stress test
 
-The current generator hard-codes the true inclusion curve (floor 0.10, midpoint 0.22, width 0.05), and the runner's analyst arms are defined relative to it. Before this stage, extend the generator and runner to accept the true selection parameters explicitly, ensure the assumed correct-weighting arm uses exactly those parameters, and update the independent auditor to validate recorded configuration and arm definitions. Do not merely edit the report to imply this capability already exists.
+The generator, runner, CLI, and independent auditor have now been extended to accept and record the true inclusion curve (floor, midpoint, width), ensure the correct-weighting arm uses the exact truth parameters, and reject inconsistent truth-parameter records during audit. The new `catalogue-selection-stress-screen.yml` workflow prespecifies three 50-replicate screening conditions with non-overlapping seed ranges. These runs are not considered complete until GitHub Actions artifacts and independent audits are available.
 
 Use a predeclared grid such as: floor 0.05, 0.10, 0.25; midpoint 0.18, 0.22, 0.26; width 0.03, 0.05, 0.08. Start with 100 paired replicates per condition. After validating the generalization and auditor, expand to 300–500 replicates for a small number of predeclared representative stress conditions.
 
