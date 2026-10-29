@@ -50,3 +50,35 @@ def test_selection_misspecification_is_paired_and_reproducible():
 def test_selection_misspecification_rejects_invalid_grids():
     with pytest.raises(ValueError, match="grid"):
         run_selection_misspecification(n_replicates=1, h0_points=10)
+
+
+def test_custom_true_catalogue_selection_is_recorded_and_correctly_weighted():
+    frame, summary = run_selection_misspecification(
+        n_replicates=1, n_parent=1200, n_detected=8, seed=77129,
+        h0_points=51, z_points=201,
+        catalogue_floor=0.25, catalogue_midpoint=0.18, catalogue_width=0.03,
+    )
+    assert summary["true_catalogue_selection"] == {
+        "floor": 0.25, "midpoint": 0.18, "width": 0.03,
+    }
+    assert summary["assumed_models"]["correct_weighting"] == summary["true_catalogue_selection"]
+    assert summary["assumed_models"]["shifted_transition"]["midpoint"] == pytest.approx(0.23)
+    assert summary["assumed_models"]["shallow_slope"]["width"] == pytest.approx(0.045)
+    assert set(frame["true_catalogue_floor"]) == {0.25}
+    assert set(frame["true_catalogue_midpoint"]) == {0.18}
+    assert set(frame["true_catalogue_width"]) == {0.03}
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"catalogue_floor": 0.0},
+        {"catalogue_floor": 1.1},
+        {"catalogue_midpoint": 0.0},
+        {"catalogue_width": 0.0},
+        {"catalogue_width": float("nan")},
+    ],
+)
+def test_custom_true_catalogue_selection_rejects_invalid_parameters(kwargs):
+    with pytest.raises(ValueError):
+        run_selection_misspecification(n_replicates=1, **kwargs)
