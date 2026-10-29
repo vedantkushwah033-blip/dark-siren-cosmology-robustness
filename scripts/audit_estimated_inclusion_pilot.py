@@ -98,10 +98,11 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
             values = frame.loc[success, column].to_numpy(dtype=float)
             if values.size and not np.all(np.isfinite(values)):
                 raise AssertionError(f"successful rows contain non-finite values in {column}")
-    if (frame.loc[success, "ci68_low"] > frame.loc[success, "ci68_high"]).any():
-        raise AssertionError("credible interval endpoints are reversed")
-    if (frame.loc[success, "absolute_error"] < 0).any():
-        raise AssertionError("absolute posterior-mean errors cannot be negative")
+    if success.any():
+        if (frame.loc[success, "ci68_low"] > frame.loc[success, "ci68_high"]).any():
+            raise AssertionError("credible interval endpoints are reversed")
+        if (frame.loc[success, "absolute_error"] < 0).any():
+            raise AssertionError("absolute posterior-mean errors cannot be negative")
     boundary_flags = np.array([_strict_bool(v, "fit_boundary_limited") for v in frame.loc[success, "fit_boundary_limited"]], dtype=bool)
     boundary_status = frame.loc[success, "fit_status"].eq("boundary_limited").to_numpy(dtype=bool)
     if not np.array_equal(boundary_flags, boundary_status):
@@ -245,6 +246,23 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
             "status": "evaluable" if arm_success.any() else "non_evaluable_no_successful_fits",
         }
     n_boundary = int(boundary_success.sum())
+    comparison_diagnostics = {}
+    for arm in sorted(arms_in_rows - {"catalogue_only"}):
+        baseline_all = frame.loc[frame["arm"] == "catalogue_only"].set_index("replicate")
+        comparison_all = frame.loc[frame["arm"] == arm].set_index("replicate")
+        paired_status = baseline_all[["status"]].join(
+            comparison_all[["status"]], how="inner", lsuffix="_baseline", rsuffix="_comparison"
+        )
+        baseline_ok = paired_status["status_baseline"].eq("success")
+        comparison_ok = paired_status["status_comparison"].eq("success")
+        comparison_diagnostics[arm] = {
+            "n_attempted_common_replicates": int(len(paired_status)),
+            "n_paired_successful_replicates": int((baseline_ok & comparison_ok).sum()),
+            "n_baseline_success_comparison_failure": int((baseline_ok & ~comparison_ok).sum()),
+            "n_baseline_failure_comparison_success": int((~baseline_ok & comparison_ok).sum()),
+            "n_both_failed": int((~baseline_ok & ~comparison_ok).sum()),
+            "successful_pair_contrast_conditions_on_fit_success": True,
+        }
     return {
         "status": "PASS",
         "n_rows": int(len(frame)),
@@ -260,6 +278,7 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
             None if not success.any() else float(n_boundary / int(success.sum()))
         ),
         "per_arm_counts": per_arm_counts,
+        "comparison_diagnostics": comparison_diagnostics,
         "audit_scope": "persisted-table integrity and independent summary reconstruction only",
     }
 
