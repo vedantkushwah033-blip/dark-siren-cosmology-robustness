@@ -228,7 +228,6 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
                f"{arm}.mean_inclusion_probability_mae")
 
     successful = frame.loc[success]
-    baseline = successful.loc[successful["arm"] == "catalogue_only"].set_index("replicate")
     raw_contrasts = summary.get("contrasts", [])
     if not isinstance(raw_contrasts, list):
         raise AssertionError("summary.contrasts must be a list")
@@ -242,7 +241,15 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
     unexpected_contrasts = set(stored_contrasts) - set(expected_comparisons)
     if unexpected_contrasts:
         raise AssertionError(f"unexpected stored contrasts: {sorted(unexpected_contrasts)}")
+    if successful.empty and stored_contrasts:
+        raise AssertionError("all-failed artifact must not contain paired contrasts")
+    baseline = (
+        successful.loc[successful["arm"] == "catalogue_only"].set_index("replicate")
+        if not successful.empty else None
+    )
     for arm in expected_comparisons:
+        if successful.empty:
+            continue
         comparison = successful.loc[successful["arm"] == arm].set_index("replicate")
         paired = baseline[["absolute_error"]].join(
             comparison[["absolute_error"]], how="inner", lsuffix="_baseline", rsuffix="_comparison"
