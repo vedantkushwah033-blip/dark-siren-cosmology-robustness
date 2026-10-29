@@ -7,7 +7,7 @@ The 200-replicate Stage A pilot and all three predeclared stress-screen conditio
 - Stage A pilot workflow: [run #40811157211](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40811157211); artifact ID `12869859795`.
 - Three-condition stress screen: [run #40811159599](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40811159599).
 - Low-inclusion-floor artifact ID `12870297736`; summary SHA-256 `3b60f6151ab2d34a3cc8fbb18c5fcc4cd72664bb49bed944962f349c5c297b0f`.
-- High-inclusion-floor artifact ID `12870541126`; summary SHA-256 `[recorded in artifact manifest]`.
+- High-inclusion-floor artifact ID `12870541126`; summary SHA-256 `7e431de0980ecb4744091db71542ff9ba63c263ed634d4bccc709f74d8c566b3`.
 - Broad-transition artifact ID `12870855101`; summary SHA-256 `ec2856409994a36a33a2698e851c511ae530d36f9cb4de68e54fd6cd6841638c`.
 
 These are controlled synthetic, low-redshift Euclidean toy experiments. They are not real LVK observations, not a real Hubble-constant measurement, and not evidence that the method is validated for detector data.
