@@ -27,7 +27,7 @@ Four parameterized cases cover:
 - a spanning grid missing exact prior endpoints; and
 - a grid with neither exact endpoint represented.
 
-Existing endpoint-aligned cases in the hardened-inference test suite remain the compatibility baseline. The new test suite and full CI are pending at the time of this audit note; no pass is claimed until the workflow completes.
+Existing endpoint-aligned cases in the hardened-inference test suite remain the compatibility baseline. The targeted hardened-inference and prior-support grid-guard tests completed successfully in all three CI environments (Python 3.10, 3.11, and 3.12). The full `tests` workflow also completed successfully on commit `c8a56e4f662dc60b74a564620c958f4801322c28` (run 40900854372). This confirms the repository's configured workflow passed; it does not independently establish scientific validity or real-data performance. See [the workflow run](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40900854372).
 
 ## Scope and limitations
 
@@ -39,4 +39,6 @@ The separate selection-conditioned implementation already constructs an endpoint
 
 - Code commit: `e03de64df538713ab9411d7be27a9b17a686b5ef`
 - Regression-test commit: `160afd5b0488039f419598b21acad4a5d0ca1caf`
+- CI workflow update: `c8a56e4f662dc60b74a564620c958f4801322c28`
+- Verified CI run: [40900854372](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40900854372), successful on Python 3.10, 3.11, and 3.12
 - Branch: `research/audit-posterior-grid-integrity`
