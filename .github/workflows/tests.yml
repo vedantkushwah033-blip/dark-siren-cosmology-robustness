@@ -50,6 +50,21 @@ jobs:
         run: python -m pytest tests/test_catalogue_density.py -q
       - name: Test estimated catalogue inclusion from external validation data
         run: python -m pytest tests/test_estimated_inclusion.py -q
+      - name: Test estimated-inclusion pilot runner
+        run: python -m pytest tests/test_estimated_inclusion_study.py -q
+      - name: Run non-confirmatory estimated-inclusion pilot smoke experiment
+        run: python scripts/run_estimated_inclusion_pilot.py --replicates 2 --n-parent 1200 --n-detected 8 --validation-sizes 100,300 --seed 20261030 --h0-points 41 --z-points 201 --output-dir artifacts/estimated_inclusion_pilot_smoke
+      - name: Check estimated-inclusion pilot smoke outputs
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('artifacts/estimated_inclusion_pilot_smoke')
+          summary = json.loads((p / 'summary.json').read_text())
+          assert summary['status'] == 'NON_CONFIRMATORY_SYNTHETIC_PILOT'
+          assert (p / 'replicates.csv').stat().st_size > 0
+          print(f\"Validated {len(summary['arm_summaries'])} arm summaries.\")
+          PY
       - name: Test host-density-to-H0 benchmark
         run: python -m pytest tests/test_host_density_benchmark.py -q
       - name: Test corrected physical KDE bandwidth semantics
@@ -184,5 +199,6 @@ jobs:
             artifacts/calibration_grid_sensitivity/
             artifacts/multiseed_grid_sensitivity/
             artifacts/catalogue_thinning/
+            artifacts/estimated_inclusion_pilot_smoke/
           if-no-files-found: error
 

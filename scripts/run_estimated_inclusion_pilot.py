@@ -32,7 +32,7 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     frame.to_csv(args.output_dir / "replicates.csv", index=False)
     (args.output_dir / "summary.json").write_text(
-        json.dumps(summary, indent=2, sort_keys=True) + "\\n", encoding="utf-8"
+        json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     print(json.dumps({
         "output_dir": str(args.output_dir),
