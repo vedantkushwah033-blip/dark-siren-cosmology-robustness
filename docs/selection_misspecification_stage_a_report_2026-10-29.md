@@ -55,7 +55,7 @@ The downloaded artifact was checked for:
 - 1,200 rows = 200 replicates × 6 arms, with one common seed and true $H_0$ per replicate;
 - exactly one row per replicate/arm, all six arms present for every replicate;
 - finite posterior summaries, unit posterior integrals, and consistency of interval widths with endpoints;
-- posterior-mean reconstruction from the persisted posterior density grids (median absolute reconstruction difference below $10^{-6}$; maximum difference about 0.0093 in $H_0$ units due to discretized integration conventions).
+- direct reconstruction of posterior means and equal-tail quantiles from all 1,200 persisted posterior-density grids using trapezoidal integration and CDF interpolation. The maximum absolute discrepancy for the posterior mean, median, and either 68% endpoint was approximately $7.1\times10^{-15}$ in $H_0$ units. This supersedes an earlier draft's incorrect 0.0093 maximum-discrepancy statement.
 
 The workflow's independent audit step also completed successfully. These checks support artifact integrity and calculation reproducibility; they do not validate realism of the scientific model.
 
@@ -78,6 +78,6 @@ The preregistered primary contrast is positive when correct weighting reduces ab
 
 `D_r = |posterior_mean_catalogue_only - H0_true| - |posterior_mean_correct_weighting - H0_true|`.
 
-Reconstructed from the 200 paired Stage A rows: mean D = **6.535691 km s^-1 Mpc^-1**, sample SD = **4.321762**, and SE = **0.305595**. The 95% half-width target of 0.5 gives N = ceil((1.96 × 4.321762 / 0.5)^2) = **288**; the prespecified minimum raises Stage B to **500 paired replicates**. The implied planning half-width is approximately **0.379 km s^-1 Mpc^-1**. Stage B seeds **20262030–20262529** do not overlap Stage A seeds **20261030–20261229**.
+Reconstructed from the 200 paired Stage A rows: mean D = **6.535691 km s^-1 Mpc^-1**, sample SD = **4.321762**, and SE = **0.305595**. The 95% half-width target of 0.5 gives N = ceil((1.96 × 4.321762 / 0.5)^2) = **288**; the prespecified minimum raises Stage B to **500 paired replicates**. The implied planning half-width is approximately **0.379 km s^-1 Mpc^-1**. The matched sensitivity subset is assigned seeds **20262000–20262029**; Stage B seeds **20262030–20262529** do not overlap either the sensitivity subset or Stage A seeds **20261030–20261229**.
 
 This sizing uses the pilot's estimated paired variance and may miss the target if that estimate is unstable. Stage B must report its actual paired-bootstrap interval and must not stop early based on significance or direction.
