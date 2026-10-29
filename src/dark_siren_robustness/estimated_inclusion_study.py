@@ -105,7 +105,7 @@ def run_estimated_inclusion_pilot(
     z_min, z_max = float(z_grid[0]), float(z_grid[-1])
     z_mid, z_half = (z_min + z_max) / 2.0, (z_max - z_min) / 2.0
     standardized_grid = (z_grid - z_mid) / z_half
-    merger_rate = 1.0 + 1.5 * standardized_grid
+    merger_rate = 1.0 + 1.5 * (z_grid - z_min) / (z_max - z_min)
     target_density = latent_galaxy_intensity(z_grid) * merger_rate
     target_density = target_density / trapezoid(target_density, z_grid)
 
