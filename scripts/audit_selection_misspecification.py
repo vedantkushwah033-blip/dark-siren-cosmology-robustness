@@ -16,7 +16,8 @@ REQUIRED = {
     "posterior_density_grid_json", "covered_68", "density_ise", "weight_ess",
     "weight_ess_fraction", "max_normalized_weight", "q95_normalized_weight",
     "min_assumed_inclusion_probability", "n_parent", "n_catalogue_observed",
-    "n_detected", "min_detection_efficiency",\n    "true_catalogue_floor", "true_catalogue_midpoint", "true_catalogue_width",
+    "n_detected", "min_detection_efficiency",
+    "true_catalogue_floor", "true_catalogue_midpoint", "true_catalogue_width",
 }
 
 
