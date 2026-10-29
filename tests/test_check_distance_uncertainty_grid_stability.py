@@ -136,6 +136,32 @@ def test_posterior_quantile_reconstruction_flags_boundary_mass():
     assert summary["boundary_mass_within_one_coarse_spacing"] > 0.05
 
 
+def test_boundary_mass_uses_fixed_h0_width_across_grid_resolutions():
+    import numpy as np
+
+    from scripts.check_distance_uncertainty_grid_stability import _posterior_quantiles
+
+    c = 299_792.458
+    z = 0.02
+    distance = c * z / 50.0
+    row = {
+        "host_redshift": str(z),
+        "observed_distance_mpc": str(distance),
+        "fractional_error": "0.004",
+        "generated_sigma_mpc": str(0.004 * distance),
+        "arm": "A_fixed_realized_sigma",
+    }
+    masses = [
+        _posterior_quantiles(row, np.linspace(50.0, 90.0, n))[
+            "boundary_mass_within_one_coarse_spacing"
+        ]
+        for n in (801, 1601, 3201, 6401)
+    ]
+
+    assert min(masses) > 0.05
+    assert max(masses) - min(masses) < 0.01
+
+
 def test_multi_resolution_sweep_reports_adjacent_grid_changes(tmp_path):
     from scripts.check_distance_uncertainty_grid_stability import compare_grid_resolutions
 
@@ -160,6 +186,15 @@ def test_multi_resolution_sweep_reports_adjacent_grid_changes(tmp_path):
         "median", "lower_68", "upper_68", "lower_95", "upper_95"
     }
     assert "changed_68_coverage_classifications" in report["comparisons"][0]["coverage_classification_changes_by_arm"]["A_fixed_realized_sigma"]
+    assert report["production_min_coarse_grid"] == 1601
+    assert report["release_comparison_count"] == 2
+    assert all(item["meets_configured_thresholds"] for item in report["comparisons"][1:])
+    assert all(item["coverage_flip_count"] == 0 for item in report["comparisons"][1:])
+    width_changes = [
+        item["maximum_endpoint_change_over_fine_95_width"]
+        for item in report["comparisons"]
+    ]
+    assert width_changes[2] < width_changes[1] < width_changes[0]
 
 
 def test_multi_resolution_sweep_rejects_unsorted_or_even_grids(tmp_path):
