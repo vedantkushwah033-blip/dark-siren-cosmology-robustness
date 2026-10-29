@@ -74,6 +74,16 @@ def posterior_h0(
     prior_hi = _finite_scalar(prior_max, "prior_max")
     if prior_lo >= prior_hi:
         raise ValueError("prior_min must be less than prior_max.")
+    if grid[0] > prior_lo or grid[-1] < prior_hi:
+        raise ValueError("H0_grid must span the full prior interval [prior_min, prior_max].")
+    # This API returns density only at H0_grid nodes. To avoid silently
+    # truncating prior mass or misnormalizing a prior whose endpoints fall
+    # between nodes, require the exact support endpoints to be represented.
+    if not np.any(grid == prior_lo) or not np.any(grid == prior_hi):
+        raise ValueError(
+            "H0_grid must contain prior_min and prior_max exactly; "
+            "use an endpoint-inclusive grid for correct prior normalization."
+        )
 
     catalog_weights = np.ones(z.size) if weights is None else _vector(weights, "weights", nonnegative=True)
     if catalog_weights.size != z.size or not np.any(catalog_weights > 0):

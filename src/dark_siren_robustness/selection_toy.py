@@ -93,8 +93,8 @@ def selection_aware_toy_likelihood(
         raise ValueError("distances must be a nonempty one-dimensional array of positive finite values.")
     if not np.isfinite(sigma) or sigma <= 0:
         raise ValueError("sigma must be finite and positive.")
-    if not np.isfinite(threshold):
-        raise ValueError("detection_threshold must be finite.")
+    if not np.isfinite(threshold) or threshold <= 0:
+        raise ValueError("detection_threshold must be finite and positive.")
     if np.any(d < threshold):
         raise ValueError("Every supplied event must satisfy d >= detection_threshold.")
     quad = _trapezoid_weights(z)

@@ -70,6 +70,17 @@ def test_selected_events_below_threshold_are_rejected():
         )
 
 
+def test_nonpositive_detection_threshold_is_rejected():
+    z = np.linspace(0.01, 0.15, 101)
+    density = normalized_host_density(z, np.ones_like(z))
+    for threshold in (0.0, -1.0, np.nan, np.inf):
+        with pytest.raises(ValueError, match="detection_threshold"):
+            selection_aware_toy_likelihood(
+                z, density, [70.0, 75.0], [700.0], sigma=100.0,
+                detection_threshold=threshold,
+            )
+
+
 def test_invalid_density_and_noise_scale_are_rejected():
     z = np.linspace(0.01, 0.15, 101)
     density = normalized_host_density(z, np.ones_like(z))

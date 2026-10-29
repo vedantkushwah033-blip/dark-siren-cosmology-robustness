@@ -94,6 +94,32 @@ def test_gaussian_distance_estimator_can_be_non_positive():
 
 def test_posterior_rejects_bad_weights_and_distance_shapes():
     with pytest.raises(ValueError, match="host_weights"):
-        posterior_h0_from_distance_grid([50, 70, 90], np.ones((3, 2)), 100, 10, host_weights=[0, 0])
+        posterior_h0_from_distance_grid([50, 70, 90], np.ones((3, 2)), 100, 10, host_weights=[0, 0], prior_min=50, prior_max=90)
     with pytest.raises(ValueError, match="shape"):
-        posterior_h0_from_distance_grid([50, 70, 90], np.ones(3), 100, 10)
+        posterior_h0_from_distance_grid([50, 70, 90], np.ones(3), 100, 10, prior_min=50, prior_max=90)
+
+
+@pytest.mark.parametrize(
+    ("grid", "prior_min", "prior_max", "message"),
+    [
+        ([60.0, 70.0, 80.0], 50.0, 90.0, "span the full prior interval"),
+        ([50.0, 60.0, 80.0], 50.0, 90.0, "span the full prior interval"),
+        ([49.0, 60.0, 89.0, 91.0], 50.0, 90.0, "contain prior_min and prior_max exactly"),
+    ],
+)
+def test_distance_grid_posterior_rejects_incomplete_prior_grid(grid, prior_min, prior_max, message):
+    distances = np.column_stack((3000.0 / np.asarray(grid), 5200.0 / np.asarray(grid)))
+    with pytest.raises(ValueError, match=message):
+        posterior_h0_from_distance_grid(
+            grid, distances, 100.0, 10.0,
+            prior_min=prior_min, prior_max=prior_max,
+        )
+
+
+def test_distance_grid_posterior_rejects_nonpositive_h0_grid():
+    grid = np.array([-1.0, 50.0, 90.0])
+    distances = np.ones((3, 1))
+    with pytest.raises(ValueError, match="positive"):
+        posterior_h0_from_distance_grid(
+            grid, distances, 100.0, 10.0, prior_min=50.0, prior_max=90.0
+        )

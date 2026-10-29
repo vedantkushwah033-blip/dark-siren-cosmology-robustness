@@ -8,7 +8,6 @@ from __future__ import annotations
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 from scipy.integrate import trapezoid
-from scipy.stats import gaussian_kde
 
 
 def estimate_host_density(
@@ -26,6 +25,14 @@ def estimate_host_density(
     positive: zero-probability regions cannot be recovered by inverse weights.
     Reflection reduces, but does not eliminate, KDE boundary bias. The final
     density is truncated and renormalized on the specified finite domain.
+
+    Bandwidth convention:
+    - None: weighted Scott rule, h = weighted_SD(sample) * n_eff**(-1/5).
+    - A positive factor: h = factor * weighted_SD(sample).
+
+    The spread is computed from the original observed sample before reflection.
+    This is a physical bandwidth convention, not SciPy gaussian_kde's
+    bw_method-float covariance-factor convention.
     """
     grid = np.asarray(redshift_grid, dtype=float)
     sample = np.asarray(observed_redshift, dtype=float)
@@ -54,14 +61,45 @@ def estimate_host_density(
     ):
         raise ValueError("bandwidth_factor must be finite and positive when supplied")
 
+    # Normalize weights before moments/ESS calculations to avoid overflow
+    # when valid inverse-inclusion weights have a large common scale.
+    scaled_weights = weights / np.max(weights)
+    if not np.all(np.isfinite(scaled_weights)) or np.any(scaled_weights <= 0):
+        raise ValueError("inverse-inclusion weights must remain finite and positive")
+    effective_n = float(np.sum(scaled_weights) ** 2 / np.sum(scaled_weights ** 2))
+    weighted_mean = float(np.average(sample, weights=scaled_weights))
+    weighted_variance = float(np.average((sample - weighted_mean) ** 2, weights=scaled_weights))
+    if not np.isfinite(weighted_variance) or weighted_variance <= 0:
+        raise ValueError("weighted sample spread must be finite and positive")
+
+    # SciPy's gaussian_kde bw_method float is a covariance multiplier for the
+    # *augmented* reflected sample, not a physical bandwidth. Using it directly
+    # made the bandwidth depend on the spread of the reflected/tripled sample.
+    # Define h against the original observed sample instead: Scott's rule by
+    # default, or an explicit multiplier of the original weighted SD.
+    factor = effective_n ** (-1.0 / 5.0) if bandwidth_factor is None else float(bandwidth_factor)
+    bandwidth = factor * np.sqrt(weighted_variance)
+    if not np.isfinite(bandwidth) or bandwidth <= 0:
+        raise ValueError("computed KDE bandwidth must be finite and positive")
+
     left = 2.0 * grid[0] - sample
     right = 2.0 * grid[-1] - sample
     augmented_sample = np.concatenate((sample, left, right))
-    augmented_weights = np.tile(weights / 3.0, 3)
-    kde = gaussian_kde(
-        augmented_sample, weights=augmented_weights, bw_method=bandwidth_factor
-    )
-    galaxy_density = np.asarray(kde(grid), dtype=float)
+    normalized_weights = scaled_weights / np.sum(scaled_weights)
+    augmented_weights = np.tile(normalized_weights / 3.0, 3)
+
+    # Evaluate the weighted Gaussian kernel sum in chunks to keep peak memory
+    # bounded for larger catalogues/grids. This is deliberately explicit so a
+    # regression test can compare it with an independent direct calculation.
+    galaxy_density = np.empty_like(grid)
+    kernel_normalization = 1.0 / (np.sqrt(2.0 * np.pi) * bandwidth)
+    chunk_size = 256
+    for start in range(0, grid.size, chunk_size):
+        stop = min(start + chunk_size, grid.size)
+        standardized = (grid[start:stop, None] - augmented_sample[None, :]) / bandwidth
+        galaxy_density[start:stop] = (
+            np.exp(-0.5 * standardized ** 2) @ augmented_weights
+        ) * kernel_normalization
 
     if merger_weight is None:
         rate = np.ones_like(grid)

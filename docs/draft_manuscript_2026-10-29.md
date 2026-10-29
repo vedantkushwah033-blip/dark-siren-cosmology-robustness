@@ -1,0 +1,222 @@
+# When Do Simplified Dark-Siren H0 Inference Methods Remain Calibrated? A Reproducible Synthetic Study of Hidden-Host and Selection-Function Misspecification
+
+**Draft manuscript v0.3 — 29 October 2026**  
+**Status:** internal research draft; not submitted or peer reviewed.
+
+## Abstract
+
+Dark-siren cosmology infers cosmological parameters from gravitational-wave distance information without requiring a uniquely identified electromagnetic counterpart, and its performance can depend on how the potential host-galaxy population and observational selection are represented. We report three connected but distinct controlled synthetic studies. A 500-replicate host-density experiment found that ignoring the declared catalogue selection produced mean posterior-mean bias −8.85 km s⁻¹ Mpc⁻¹ and nominal 68% interval coverage 9.6%, whereas inverse-inclusion weighting under the exactly known toy selection produced bias +1.02 km s⁻¹ Mpc⁻¹ and coverage 69.6%; the prespecified paired reduction in absolute posterior-mean error was 5.95 km s⁻¹ Mpc⁻¹ (percentile-bootstrap 95% interval 5.54–6.36). A second experiment introduced H0-dependent distance noise and selection normalization; across 1,200 synthetic datasets, an independent audit replayed seeds and reconstructed saved distances and posterior summaries, while conditional fixed-truth runs exposed remaining calibration limitations. A third selection-function study used a 200-replicate baseline pilot, three 50-replicate exploratory conditions, and a prespecified 250-replicate-per-condition replication. In the larger replication, the paired reduction in absolute error from catalogue-only to correct weighting was 7.44 [bootstrap 95% interval 6.80–8.05], 2.25 [1.71–2.76], and 2.35 [1.78–2.92] km s⁻¹ Mpc⁻¹ for low-inclusion-floor, high-inclusion-floor, and broad-transition settings, respectively. For all three conditions, independent audits verified artifact checksums and reconstructed posterior summaries and aggregate metrics from the exported replicate-level records; these audits did not independently regenerate the selection-study simulations from their random seeds. All studies are simplified low-redshift synthetic benchmarks, not real LVK analyses or measurements of the real Hubble constant.
+
+**Keywords:** dark sirens; Hubble constant; catalogue incompleteness; selection function; inverse-inclusion weighting; posterior calibration; reproducible simulation.
+
+## 1. Introduction
+
+Gravitational-wave standard sirens provide luminosity-distance information that can be combined with redshift information to constrain the cosmic expansion rate. For dark sirens, where no unique electromagnetic host is identified, an inference procedure can marginalize over a population of candidate host galaxies. The resulting likelihood is affected by the representation of that population and by how the detection process and catalogue selection are modeled.
+
+Catalogue incompleteness and selection-aware host-population reconstruction are established topics, not new problems introduced by this work. Recent research has considered Gaussian-process reconstruction of incomplete galaxy catalogues, spatial-correlation models for missing galaxies, clustering-preserving catalogue completion, robust catalogue-completeness tests in practical dark-siren pipelines, and inference for populations of gravitational-wave-hosting galaxies. Our goal is narrower: to construct controlled simulations where individual statistical and numerical assumptions can be changed independently, with provenance and validation appropriate to each study. Some study auditors replay simulations from seeds; the Study C selection-condition audit instead reconstructs posterior summaries and aggregates from the saved replicate-level records and verifies artifact integrity.
+
+This manuscript reports three related but technically distinct studies. Study A tests host-density estimation under catalogue incompleteness and includes a 500-replicate benchmark plus an exploratory bandwidth screen. Study B tests a discrete-host likelihood whose distance-noise scale depends on H0 and whose detection efficiency uses that same heteroscedastic noise model. Study C tests sensitivity to a configurable catalogue-inclusion curve in a 200-replicate baseline pilot and three predeclared stress conditions. Results are not pooled because the experiments have different generative assumptions and estimands.
+
+The contribution is primarily methodological and reproducibility-focused. We report a corrected physical bandwidth convention for a reflected weighted KDE, paired estimands, raw replicate tables, checksum manifests, and independent auditors that reconstruct derived quantities rather than simply comparing an aggregate with its own saved summary.
+
+## 2. Scope and scientific claims
+
+The work is an exploratory synthetic-methodology study. All quantities labelled H0 are parameters within the defined toy models. No LVK event data, GWTC host catalogue, or real detector-response likelihood is analyzed here. The study does not resolve the Hubble tension, estimate a new real-world H0, or demonstrate that inverse-probability weighting is universally reliable.
+
+The three studies have different purposes:
+
+- **Study A:** quantify the effect of a known toy catalogue-inclusion mechanism and a small set of assumed-selection misspecifications on host-density and posterior summaries.
+- **Study B:** verify that event likelihoods, H0-dependent measurement uncertainty, the detection-efficiency normalization, synthetic data generation, and posterior summaries are numerically consistent within a discrete-host toy model.
+- **Study C:** quantify how a deliberately incomplete catalogue and misspecified assumed inclusion curve affect H0 summaries across three true selection settings, with raw outputs and independent artifact audits.
+
+The scope boundary is important. Software agreement and calibration in a deliberately specified synthetic model are necessary checks, but they do not establish physical realism or validity for real gravitational-wave data.
+
+## 3. Study A: host-density and catalogue-selection benchmark
+
+### 3.1 Generative setup
+
+The primary Stage B experiment uses 500 paired replicate datasets. Each replicate begins with 4,000 parent galaxies and yields 30 detected events. The true parameter is H0 = 70 km s⁻¹ Mpc⁻¹. The inference grid contains 81 equally spaced H0 values over [50, 90] km s⁻¹ Mpc⁻¹, and the redshift grid contains 401 points over [0.01, 0.40]. The toy distance model uses a fixed Gaussian noise scale of 140 Mpc and a detection threshold of 250 Mpc.
+
+The catalogue inclusion probability follows a declared logistic transition with floor 0.1, true midpoint 0.22, and true width 0.05. Catalogue selection is applied to the simulated parent population. The event-host density includes the declared merger-weight component. The study therefore treats the toy parent/host law and the inclusion law as known generative quantities, even though some inference arms deliberately receive only the incomplete catalogue or an incorrect inclusion curve.
+
+### 3.2 Compared arms
+
+Six arms are paired within every replicate:
+
+1. **Analytic truth:** direct use of the declared normalized target density on the redshift grid; an inaccessible diagnostic control, not an estimator available in a real analysis.
+2. **Oracle KDE:** reflected KDE estimated from the complete simulated parent population.
+3. **Catalogue only:** reflected KDE estimated from the incomplete catalogue without inclusion correction.
+4. **Correct weighting:** inverse-inclusion weighting with the exactly known toy inclusion probabilities.
+5. **Shifted transition:** the inclusion midpoint supplied to inference is 0.27 rather than the true 0.22.
+6. **Shallow transition:** the supplied transition width is 0.075 rather than the true 0.05.
+
+The corrected estimator uses weighted Scott bandwidth by default, h = weighted SD × neff^(−1/5). An explicit factor f means physical bandwidth h = f × weighted SD of the original sample. This differs from passing a value directly as SciPy’s gaussian_kde covariance-factor setting, especially after reflected-sample augmentation. A direct kernel-sum regression test was added to guard this distinction.
+
+### 3.3 Primary estimand and uncertainty
+
+For replicate r, define
+
+Dᵣ = |posterior mean H0 from catalogue-onlyᵣ − H0,true| − |posterior mean H0 from correct-weightingᵣ − H0,true|.
+
+Positive D means correct weighting reduced absolute posterior-mean error. This is the prespecified primary paired contrast. Its uncertainty is reported using a 10,000-resample percentile bootstrap; the paired standard error and normal-approximation interval are diagnostics. Per-arm coverage uncertainty is summarized with Wilson 95% intervals. The raw records and saved posterior grids are checked by a separate auditor.
+
+Stage A used 200 paired replicates to estimate the primary contrast’s standard deviation. Its observed mean was 6.536 km s⁻¹ Mpc⁻¹ and sample standard deviation 4.322. The prespecified target half-width of 0.5 implies N = ceil[(1.96 × 4.322 / 0.5)²] = 288; the protocol’s minimum set the confirmation at 500 replicates. Stage B used the disjoint seeds 20262030–20262529, so the confirmatory run did not reuse Stage A replicate seeds.
+
+### 3.4 Stage B results
+
+**Table 1. Fixed-H0 Stage B posterior summaries.** Bias is mean posterior mean minus truth. Coverage is for nominal 68% equal-tail intervals; coverage intervals are Wilson 95% intervals.
+
+| Arm | Bias ± Monte Carlo SE (km s⁻¹ Mpc⁻¹) | RMSE | 68% coverage | Wilson 95% interval | Mean interval width | Mean density ISE |
+|---|---:|---:|---:|---:|---:|---:|
+| Analytic truth | +0.612 ± 0.161 | 3.647 | 72.0% | 67.9–75.8% | 7.351 | 0.0000 |
+| Oracle KDE | +0.918 ± 0.160 | 3.695 | 72.8% | 68.7–76.5% | 7.376 | 0.0200 |
+| Catalogue only | −8.847 ± 0.138 | 9.369 | 9.6% | 7.3–12.5% | 8.745 | 0.8624 |
+| Correct weighting | +1.017 ± 0.163 | 3.787 | 69.6% | 65.4–73.5% | 7.382 | 0.0386 |
+| Shifted transition | +0.253 ± 0.161 | 3.615 | 72.4% | 68.3–76.1% | 7.761 | 0.1280 |
+| Shallow slope | −1.177 ± 0.157 | 3.709 | 70.4% | 66.3–74.2% | 7.843 | 0.0992 |
+
+The primary paired error reduction was 5.9519 km s⁻¹ Mpc⁻¹ (paired SD 4.6784; standard error 0.2092; normal 95% interval 5.5418–6.3620; percentile-bootstrap 95% interval 5.5410–6.3573). Correct weighting produced lower absolute error than catalogue-only in 442 of 500 replicates (88.4%; Wilson 95% interval 85.3–90.9%).
+
+The dominant finding is specific and straightforward: in this toy setup, ignoring the declared catalogue incompleteness strongly distorts the inferred host density and substantially degrades H0 error and interval coverage. Inverse-inclusion weighting under the exactly known inclusion law substantially reduces that particular error. This does not demonstrate that the selection law would be known in an actual survey, nor that weighting is generally robust under low inclusion probabilities or misspecified host populations.
+
+The misspecified arms deserve cautious interpretation. The shifted midpoint arm had slightly lower absolute posterior-mean error than correct weighting in this particular experiment, which can arise from bias compensation and is not evidence that a misspecified selection law is safer. The shallow-width contrast versus correct weighting had a bootstrap interval spanning zero in Stage B, so the apparent larger degradation in Stage A did not become a robust finding. The paper therefore does not claim a general penalty for all selection-curve misspecification.
+
+### 3.5 Stage B integrity audit
+
+The simulation, independent posterior-grid auditor and supplementary raw-table analysis completed successfully for the locked Stage B artifact. The saved artifact contains 3,000 rows (500 replicates × six arms), with paired seeds and one true H0 per replicate. Checksums were verified, and arm metrics and the primary contrast were independently recomputed from the raw CSV. The workflow and artifact provenance are documented in the repository’s Stage B report.
+
+
+### 3.6 Follow-up host-density sensitivity screen
+
+A separate follow-up campaign evaluated 13 configurations with 40 paired replicates per setting, 6,000 parent galaxies and 40 detected events per replicate. It varied the physical KDE bandwidth factor, integration-grid resolution, and supplied selection-curve midpoint or width. Because this was an expedited 40-replicate screen, its coverage estimates are imprecise and it is not a confirmatory replacement for Stage B.
+
+At the weighted-Scott baseline, the complete-parent oracle KDE had RMSE 3.936 km s⁻¹ Mpc⁻¹, known-completeness weighting had RMSE 3.896, and catalogue-only inference had RMSE 9.165. The paired known-completeness versus oracle absolute-error contrast was −0.057 with a 95% bootstrap interval [−0.199, +0.083], which is inconclusive for a difference between those two arms. Coarse (81 × 401) and fine (201 × 1001) integration grids gave negligible posterior-mean differences at the tested settings. Bandwidth choices were not invariant: factor 1.2 increased known-completeness RMSE to 5.330, while catalogue-only RMSE decreased to 4.238. That apparent catalogue-only improvement is consistent with bias compensation under oversmoothing, not reliable recovery of the true host density. Selection-curve misspecification also changed bias and coverage.
+
+The campaign-wide independent auditor in `scripts/audit_host_density_campaign.py` replays seeds, independently reconstructs the generator, reflected KDE, selected likelihood and posterior, checks manifest hashes, and reaggregates headline statistics. All 13 configurations passed 40-replicate-per-setting local audits (1,560 fit rows total). The unified clean reproduction and one-shot audit passed in [run #40802415000](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40802415000): all 1,560 saved fits were independently reconstructed, all 403 aggregate fields were recomputed with zero discrepancy, and 14 manifest-listed files passed checksum/byte-count checks. One binary 68% coverage flag differed only for oracle arm, factor 0.5, replicate 25: the independent endpoint was just 9.37×10⁻⁵ from the truth, below the prespecified 0.10 endpoint tolerance. The audit recorded this as a boundary-sensitive disagreement, not a posterior-reconstruction failure. The screen remains exploratory, not a powered confirmation. Full tables and provenance are in [the screening report](host_density_sensitivity_screening_results_2026-10-29.md).
+
+### 3.7 Continuous-density oracle calibration control
+
+A separate diagnostic removes finite-parent catalogue sampling and KDE estimation by using the analytically declared normalized toy host density. For each of four truth regimes—H₀ drawn from Uniform(50,90), and fixed H₀=60, 70, and 80—the experiment simulated 300 independent datasets with 40 detected distances, fixed Gaussian noise σ=140 Mpc, and threshold 250 Mpc, then fit the selected likelihood on a 401-point redshift grid and an 81-point H₀ grid. It isolates calibration behavior of the simplified fixed-noise likelihood when the host density is known exactly; it is distinct from Study B's separate 12-host heteroscedastic-noise experiment.
+
+The latest workflow [#40802415000](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40802415000) produced a manifest-tracked artifact (ID `12867070639`). The oracle job completed successfully and the independent audit passed for all 1,200 replicates: truth/distance vectors were replayed, all posteriors reconstructed, aggregates recomputed, and manifest hashes/byte counts checked. Maximum absolute posterior-summary error was below 1.9×10⁻¹³; rank error was below 1.9×10⁻¹⁴.
+
+| Truth regime | Replicates | Posterior-mean bias ± MC SE (km s⁻¹ Mpc⁻¹) | RMSE | 68% coverage | 90% coverage | Mean posterior-CDF rank |
+|---|---:|---:|---:|---:|---:|---:|
+| Prior-drawn H₀~Uniform(50,90) | 300 | −0.221 ± 0.168 | 2.909 | 70.0% | 91.0% | 0.524 |
+| Fixed H₀=60 | 300 | +0.375 ± 0.151 | 2.639 | 72.0% | 89.3% | 0.480 |
+| Fixed H₀=70 | 300 | +0.154 ± 0.189 | 3.271 | 68.7% | 88.0% | 0.505 |
+| Fixed H₀=80 | 300 | +0.305 ± 0.191 | 3.314 | 67.0% | 92.7% | 0.474 |
+
+The prior-drawn run is broadly compatible with rank calibration at this Monte Carlo resolution (ten-bin descriptive chi-square p=0.105). Fixed-truth coverage and ranks are conditional diagnostics and must not be assessed using the same criterion as prior-predictive SBC. This continuous-target control isolates host-density estimation error from finite-parent/KDE error, but not finite-event information or other limitations of the toy likelihood. It does not validate a realistic GW selection model.
+
+
+### 3.8 Configurable selection-function stress screen and larger replication (Study C)
+
+A follow-up study generalized the true catalogue-inclusion curve. The baseline used 200 paired replicates, the initial stress screen used three predeclared conditions with 50 paired replicates each, and a prespecified follow-up used 250 paired replicates in each condition. Every condition used 4,000 parent galaxies, 30 detected events, true H0 = 70 km s⁻¹ Mpc⁻¹, an 81-point H0 grid over [50, 90], and a 401-point redshift grid. The baseline true selection parameters were floor 0.10, midpoint 0.22, width 0.05. Stress settings changed the floor to 0.05, changed it to 0.25, or broadened the transition width to 0.08. Each condition compared six arms: analytic truth, oracle KDE, catalogue-only, correct inverse-inclusion weighting, shifted transition, and shallow-slope misspecification.
+
+In the 200-replicate baseline pilot, catalogue-only inference had bias −9.468 km s⁻¹ Mpc⁻¹, RMSE 9.984, and nominal 68% interval coverage 15/200 = 7.5%. Correct weighting had bias +0.351, RMSE 3.785, and coverage 142/200 = 71.0%. The paired absolute-error reduction was 6.536 km s⁻¹ Mpc⁻¹ (10,000-resample bootstrap 95% interval [5.920, 7.119]).
+
+The larger replication retained all six arms and completed independent posterior-grid/aggregate audits and artifact uploads for all three conditions in [workflow run #40819870231](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40819870231). **Seed-overlap qualification:** the three condition seed ranges are not mutually disjoint: low-floor and high-floor share 150 integer seeds, high-floor and broad-transition share 150, and low-floor and broad-transition share 50. Each condition's primary contrast is paired within that condition, so this overlap does not invalidate its within-condition paired estimate. It does mean the conditions must not be described as independent replications; any cross-condition comparison must account for the shared seed labels and the possibility of dependence. The protocol only required separation from the pilot and first stress screen, not mutual separation among these three conditions. For the primary paired absolute-error reduction (catalogue-only minus correct weighting), the estimates were 7.436 km s⁻¹ Mpc⁻¹ (bootstrap 95% interval [6.798, 8.053]) at inclusion floor 0.05; 2.246 [1.711, 2.764] at floor 0.25; and 2.354 [1.779, 2.923] for transition width 0.08. Catalogue-only bias remained negative in each condition (−10.617, −4.717, and −4.994 km s⁻¹ Mpc⁻¹). Correct weighting reduced the magnitude of this bias to +1.185, +0.938, and +1.304, respectively, and yielded nominal 68% coverage of 65.6%, 69.6%, and 70.8%.
+
+The larger replication strengthens the within-model evidence that ignoring catalogue inclusion can degrade H0 estimation, with the largest effect at the low inclusion floor. It does not establish universal dominance of the correct-weighting arm: the shallow-slope misspecified arm had lower RMSE than correct weighting in the high-floor and broad-transition conditions, consistent with finite-sample bias compensation. These outcomes illustrate why the estimand is restricted to the prespecified catalogue-only versus correct-weighting comparison and why other metrics and model regimes must remain visible. The initial 50-replicate screen remains exploratory; its coverage proportions were imprecise. Bootstrap intervals quantify replicate variation conditional on this simulator, not model-form uncertainty. Full tables, checksums, artifact identifiers, and limitations are reported in [the initial audited stress-screen report](catalogue_selection_stress_screen_2026-10-29.md) and [the larger 250-replicate confirmatory report](catalogue_selection_confirmatory_replication_2026-10-29.md). These runs do not include realistic detector response, event-rate marginalization, peculiar velocities, redshift uncertainty, or real catalogue data.
+
+## 4. Study B: H0-dependent noise and selection-conditioned likelihood
+
+### 4.1 Model
+
+Study B is a separate distance-only discrete-host model. For a host at redshift z and candidate H0,
+
+μ(z,H0) = c z/H0,  
+σ(z,H0) = sqrt(σfloor² + [fσ μ(z,H0)]²),
+
+with fractional noise fσ = 0.12 and distance-noise floor σfloor = 8 Mpc. Event likelihoods marginalize over 12 discrete candidate redshifts with positive normalized weights. The population detection probability is computed from the same H0-dependent noise law for threshold dmin = 300 Mpc. For a fixed number Ndet of detected events,
+
+log Lselected(H0) = Σᵢ log Lᵢ(H0) − Ndet log β(H0).
+
+The likelihood conditions on the observed count; it does not infer an event rate or the distribution of the number of detections. Each dataset contains three detected events. Inference uses a uniform prior over [50, 90] km s⁻¹ Mpc⁻¹ and 161 H0-grid points.
+
+### 4.2 Simulation and audit
+
+The experiment used 300 replicate datasets for each of four truth regimes: H0 drawn from the uniform prior, and fixed H0 = 60, 70, 80. It preserves each seed, true value and detected-distance vector. The independent auditor replays the generator and independently recomputes the host-mixture likelihood, H0-dependent detection efficiency, selected likelihood and posterior summaries.
+
+The latest successful artifact is from source commit `e9a512d46aeeb7070649ac8f851c1d86103f4379`, [GitHub Actions run #40797963979](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40797963979), artifact ID `12864343125`. It contains 1,200 records (300 per truth regime). The raw CSV is 278,551 bytes, SHA-256 `e239b18f452084790b9fa8aee2c8305f0d5dfef79c4555358f197f096626576d`; the summary is 5,464 bytes, SHA-256 `ba32c697119365a37b8dc55da648fddab235e8a85280cdc022a39ab02dfff38d`. The strengthened independent audit passed with `summary_aggregates_reconstructed: true`, replaying all 1,200 seeds and detected distances and independently recomputing posterior summaries and headline aggregate statistics. Maximum absolute posterior-mean reconstruction error was 4.3×10⁻¹⁴; medians and interval endpoints differed by at most 2.9×10⁻¹⁴; CDF ranks differed by 3.4×10⁻¹⁶. The raw CSV is identical to the prior artifact because the seeded simulation is unchanged; the summary hash changed because the recorded source commit changed.
+
+### 4.3 Calibration results
+
+**Table 2. H0-dependent-noise toy calibration.** Bias is posterior mean minus truth. Monte Carlo SE refers to the estimated mean bias. Coverage is compared with nominal equal-tail posterior intervals.
+
+| Truth regime | Bias ± SE (km s⁻¹ Mpc⁻¹) | RMSE | 68% coverage (Wilson 95% interval) | 90% coverage (Wilson 95% interval) | Mean posterior-CDF rank |
+|---|---:|---:|---:|---:|---:|
+| Prior-drawn H0~Uniform(50,90) | −0.664 ± 0.442 | 7.678 | 72.7% (67.4–77.4%) | 93.3% (89.9–95.6%) | 0.514 ± 0.016 |
+| Fixed H0=60 | +4.901 ± 0.420 | 8.758 | 67.3% (61.8–72.4%) | 92.3% (88.8–94.8%) | 0.391 ± 0.016 |
+| Fixed H0=70 | +0.949 ± 0.364 | 6.366 | 74.3% (69.1–78.9%) | 96.3% (93.6–97.9%) | 0.470 ± 0.015 |
+| Fixed H0=80 | −4.368 ± 0.223 | 5.829 | 88.3% (84.2–91.5%) | 97.0% (94.4–98.4%) | 0.604 ± 0.010 |
+
+For the prior-drawn mode, the ten rank-decile counts were [18,31,36,30,27,35,33,34,31,25]; a descriptive chi-square statistic was 8.87 on nine degrees of freedom (p=0.450). The mean rank was 0.514. These results are broadly compatible with prior-predictive rank calibration at this Monte Carlo resolution, although empirical interval coverage is somewhat above nominal.
+
+At fixed H0, the posterior mean shows shrinkage toward the center of the uniform prior: it tends to be high at H0=60 and low at H0=80. That conditional pattern is not inconsistent with prior-predictive calibration. With only three events, posterior estimates remain prior-sensitive. Fixed-truth rank distributions are not expected to satisfy the same uniformity diagnostic as ranks pooled over a parameter drawn from the prior; these fixed-truth ranks are reported descriptively rather than used as a prior-predictive SBC pass/fail test.
+
+## 5. Numerical and software validation
+
+The KDE correction was motivated by a concrete interpretation issue: SciPy’s gaussian_kde bw_method is a covariance-factor convention, not a direct physical bandwidth multiplier. Reflection augments the sample, so directly using that factor can cause bandwidth behavior different from the intended rule based on the original catalogue. The revised estimator directly sums reflected weighted Gaussian kernels, defines the default Scott rule using weighted effective sample size, and normalizes on the declared finite redshift grid.
+
+For the two completed studies, the validation record includes:
+- direct-sum regression tests for the corrected KDE bandwidth semantics;
+- finite-domain density normalization;
+- endpoint-aware posterior normalization tests;
+- input-domain checks for H0 grids, distances, thresholds and noise parameters;
+- posterior-grid reconstruction and rehashed-tamper negative controls;
+- SHA-256 manifests for raw replicate records and summaries;
+- seed-level data-generation replay and independently coded likelihood/posterior reconstruction.
+
+These checks establish reproducible software behavior for the declared models. They are not a substitute for external code validation, expert review, or physical validation against a realistic data/selection pipeline.
+
+An additional deterministic single-host stress test compared a 1,601-point H0 grid (spacing 0.025 km s⁻¹ Mpc⁻¹) with a 400,001-point reference grid for progressively narrower distance-noise scales. The grids agreed within the prespecified 0.001 H0-unit quantile tolerance only at σ_d = 2.0 Mpc; the four narrower cases (σ_d = 0.2, 0.05, 0.02 and 0.01 Mpc) were flagged as underresolved, with maximum quantile differences ranging from about 0.0032 to 0.0174 km s⁻¹ Mpc⁻¹. At σ_d = 0.01 Mpc, the coarse-grid posterior standard deviation was about 1.6×10⁻⁸, versus 0.00327 on the fine grid. This is a deliberately extreme numerical stress test, not evidence that the main experiment's parameter settings were underresolved; it does show that grid adequacy must be checked against likelihood width rather than assumed from the number of grid points alone. The generated audit artifact is `extreme_grid_resolution_audit.json` in the numerical-diagnostics workflow artifact.
+
+## 6. Relationship to existing research
+
+Recent work has used Gaussian-process reconstruction of incomplete galaxy catalogues, spatial-correlation models to infer missing galaxies, and clustering-preserving catalogue completion motivated by dark-siren inference and GW–galaxy cross-correlations. Other studies have proposed robust catalogue-completeness tests in practical gwcosmo workflows and broader inference of gravitational-wave-hosting galaxy populations. These results establish catalogue completeness, large-scale structure, and host-population modeling as active research areas.
+
+The project should therefore be positioned as a reproducible, controlled robustness benchmark, not as the first treatment of catalogue incompleteness or as a replacement for full hierarchical inference. Its value is the ability to compare isolated assumptions on matched synthetic data with explicit estimands, independently reconstructed artifacts and transparent failure modes.
+
+The closest work differs from this project in both method and evidential scope:
+
+| Work | Approach and evidence scope | Difference from this project | What this project does **not** claim |
+|---|---|---|---|
+| Barbieri et al. (2026), *Not all those missing are lost: leveraging galaxy clustering in incomplete catalogs to unleash dark sirens cosmology*, [arXiv:2608.30599](https://arxiv.org/abs/2608.30599) | Adds missing galaxies using a spatial correlation-function model and sky pixels; mock studies report 2–4× tighter posteriors in selected 1–10% completeness cases. | This project has no angular information or spatial galaxy-clustering model; it tests inverse-inclusion weighting and KDE under a known one-dimensional logistic selection law. Models and estimands are not matched. | No claim that weighting/KDE replaces clustering-based reconstruction or outperforms it. |
+| Ghosh & More (2026), *Recovering Large-Scale Clustering of Missing Galaxies for Galaxy–Gravitational-Wave Cross-correlations*, [arXiv:2609.07348](https://arxiv.org/abs/2609.07348) | Proposes a simulated-catalogue completion framework that restores missing galaxies while preserving large-scale clustering, motivated in part by GW–galaxy cross-correlations and dark-siren cosmology. | The present toy benchmark does not model angular clustering, reconstruct a complete galaxy catalogue, or target GW–galaxy cross-correlations; it studies a one-dimensional inclusion law and host-density/selection sensitivity. | No claim to introduce clustering-aware completion or to outperform this or other reconstruction methods. |
+| Leyde, Baker & Enzi (2026), *Cosmic cartography. Part II. Completing galaxy catalogs for gravitational-wave cosmology*, JCAP 01 (2026) 013, [DOI 10.1088/1475-7516/2026/01/013](https://doi.org/10.1088/1475-7516/2026/01/013) | Reconstructs the true galaxy field with large-scale spatial correlations and infers the magnitude distribution jointly, validated on Millennium-simulation data. | Our estimator is one-dimensional and does not reconstruct angular clustering, the 3D galaxy field, or galaxy magnitudes. | No claim to replace or outperform LIGHT or spatially correlated reconstruction. |
+| Dalang, Fiorini & Baker (2026), *Large scale structure prior knowledge in the dark siren method*, JCAP 01 (2026) 034, [DOI 10.1088/1475-7516/2026/01/034](https://doi.org/10.1088/1475-7516/2026/01/034) | Develops variance completion using large-scale-structure information relative to homogeneous completion and demonstrates it with GLADE+ and `gwcosmo`, including GW190814 and O3 analyses. | This project tests known-probability inverse weighting in a toy simulation; it does not use GLADE+, compute variance completion, or analyze observed GW data. | No claim to introduce LSS-informed completion or validate real-catalogue inference. |
+| Kalomenopoulos et al. (2026), *Clustering effects on the dark siren determination of H₀: a simulation study*, MNRAS 552(1), stag1662, [DOI 10.1093/mnras/stag1662](https://doi.org/10.1093/mnras/stag1662) | Uses high-resolution cosmological simulations with realistic clustering to study posterior convergence, event counts, and catalogue completeness in near-future detector scenarios. | The current study explicitly omits angular information, spatial galaxy clustering, and realistic detector response, isolating one-dimensional selection/KDE effects instead. | No effect-size comparison across unmatched models and no claim that this toy model captures clustering-driven gains. |
+| Tagliazucchi et al. (2026), *Enhancing dark siren cosmology via Gaussian process reconstruction of incomplete galaxy catalogs*, [Phys. Rev. D 114, 083523](https://doi.org/10.1103/vmzf-1wxq), [arXiv:2608.24992](https://arxiv.org/abs/2608.24992) | Gaussian-process reconstruction of a line-of-sight galaxy-redshift distribution in a selection-aware hierarchical dark-siren likelihood; mock studies compare reconstructed distributions against homogeneous completion. | Here the controlled contrast is KDE bandwidth, inverse-inclusion weighting under a declared selection law, deliberate inclusion-curve changes, and artifact auditability. The estimands and models are not matched for a direct performance ranking. | No claim to be the first to reconstruct incomplete galaxy populations or to outperform GP reconstruction. |
+| Datrier & Hendry (2026), *Implementing a robust test of galaxy catalogue completeness for dark siren measurements of the Hubble constant*, [MNRAS 549, stag828](https://academic.oup.com/mnras/article/549/1/stag828/8666390) | An apparent-magnitude completeness-limit diagnostic integrated into the practical `gwcosmo` workflow and applied to GWTC catalogues. | This project stipulates a known logistic inclusion probability and tests applying/misspecifying that law; it does not implement their magnitude-limit method or analyze GWTC data. | No claim to validate their completeness test or establish real-catalogue performance. |
+| Gray, Williams & Papadopoulos (2026), *Expanding the scope of dark siren cosmology: Inferring the population properties of gravitational wave-hosting galaxies*, [arXiv:2609.04991](https://arxiv.org/abs/2609.04991) | A broader host-population inference approach intended to model host-population properties jointly with cosmological parameters in a practical dark-siren framework. | This project uses a small declared synthetic host law, fixed toy H0 designs, and a known-inclusion control; it does not fit a flexible host population jointly with cosmology. | No claim that this simplified benchmark competes with or replaces joint host-population inference. |
+| CHIMERA v2.2, [tagged release](https://github.com/CosmoStatGW/CHIMERA/releases/tag/v2.2) | Public reference software relevant to hierarchical dark-siren and incomplete-catalogue workflows. Reproduction requires a compatible pinned code and data version. | The exact v2.2 mock-event and derived completeness products required by the relevant notebook have not been verified here. | No external CHIMERA replication or validation claim. |
+
+This is a focused positioning exercise, not a systematic review. The defensible contribution is the controlled benchmark, corrected physical KDE-bandwidth convention, paired estimands and reproducible auditing—not superiority over these existing analyses.
+
+CHIMERA v2.2 is a relevant potential external benchmark, but the exact previously requested large mock input and completeness products have not been verified in this work. A real external benchmark remains pending. It would require the exact version, data files, compatible interface, command, environment and output artifacts to be pinned and audited. A different-version data file must not be substituted silently.
+
+## 7. Limitations
+
+The experiments have intentionally simplified assumptions. They use toy redshift populations, fixed event counts, simple distance likelihoods and declared selection functions. Study C's initial stress screen used 50 replicates per condition, and a subsequent prespecified replication used 250 per condition. The larger replication narrows Monte Carlo uncertainty but remains conditional on the same simplified simulator. They omit realistic detector response and network selection, waveform and calibration uncertainty, sky position and inclination marginalization, event-rate marginalization, peculiar velocities, redshift uncertainty, realistic cosmological distance-redshift relations and survey-level hierarchical galaxy-population inference. Study A’s correct-weighting arm assumes exactly known inclusion probabilities; this is a strong control rarely available in a real survey. Study B’s independent audit proves agreement between independently coded calculations of its own toy specification, not realism of that specification.
+
+The expanded host-density screen contains 13 configurations × 40 paired replicates. The subsequent unified clean reproduction and full independent audit completed in GitHub Actions run [#40802415000](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40802415000): all 1,560 saved fits were independently reconstructed, all 403 aggregate fields were rederived with zero discrepancy, and 14 manifest-listed files passed checksum and byte-count checks. One binary 68% coverage flag differed only for the oracle arm at bandwidth factor 0.5, replicate 25, because the independently reconstructed interval endpoint was 9.37×10⁻⁵ from the truth, below the prespecified 0.10 endpoint tolerance; this boundary-sensitive disagreement is disclosed and was not a posterior-reconstruction failure. The screen indicates negligible H0-grid changes over tested resolutions but material bandwidth sensitivity. At large bandwidth, catalogue-only H0 bias sometimes appears smaller through bias compensation despite poor host-density estimation; this is not evidence that oversmoothing solves catalogue selection. The campaign remains exploratory, with imprecise coverage estimates. See the dedicated [screening report](host_density_sensitivity_screening_results_2026-10-29.md).
+
+## 8. Conclusions
+
+In a declared fixed-H0 synthetic experiment, ignoring catalogue incompleteness caused a large downward bias and poor nominal 68% interval coverage; inverse-inclusion weighting with the exactly known toy inclusion law substantially reduced the error. The prespecified paired contrast was positive with a bootstrap interval excluding zero. A separate H0-dependent-noise selection-conditioned likelihood also passed seed-replay and posterior-reconstruction audits, while exposing expected conditional shrinkage under a weakly informative three-event experiment.
+
+These results demonstrate the value of explicit controls and independently auditable simulation artifacts. Follow-up screens indicate grid stability under tested settings but material sensitivity to KDE bandwidth and selection-law assumptions. The configurable-selection study and its larger replication show that the size of the weighting benefit varies across the tested inclusion regimes. Misspecified transition curves can degrade performance, but may also appear to improve RMSE in some settings through bias compensation; the conclusions therefore remain tied to the prespecified estimand and toy model. Conditional calibration also remains imperfect in the H0-dependent-noise model despite broadly compatible prior-predictive ranks. These studies do not establish a real-data method, a new H0 measurement, or universal robustness to catalogue incompleteness. Broader claims require independent subject-matter review and an exact, validated external benchmark.
+
+## References
+
+1. Tagliazucchi, Gair, Barbieri & Moresco, “Enhancing dark siren cosmology via Gaussian process reconstruction of incomplete galaxy catalogs,” Physical Review D 114, 083523 (2026). [DOI: 10.1103/vmzf-1wxq](https://doi.org/10.1103/vmzf-1wxq); [arXiv:2608.24992](https://arxiv.org/abs/2608.24992).
+2. Barbieri, Kalomenopoulos, Tagliazucchi, Gair & Khochfar, “Not all those missing are lost: leveraging galaxy clustering in incomplete catalogs to unleash dark sirens cosmology” (2026). [arXiv:2608.30599](https://arxiv.org/abs/2608.30599).
+3. Ghosh & More, “Recovering Large-Scale Clustering of Missing Galaxies for Galaxy–Gravitational-Wave Cross-correlations” (2026). [arXiv:2609.07348](https://arxiv.org/abs/2609.07348).
+4. Leyde, Baker & Enzi, “Cosmic cartography. Part II. Completing galaxy catalogs for gravitational-wave cosmology,” JCAP 01 (2026) 013. [DOI: 10.1088/1475-7516/2026/01/013](https://doi.org/10.1088/1475-7516/2026/01/013).
+5. Dalang, Fiorini & Baker, “Large scale structure prior knowledge in the dark siren method,” JCAP 01 (2026) 034. [DOI: 10.1088/1475-7516/2026/01/034](https://doi.org/10.1088/1475-7516/2026/01/034).
+6. Kalomenopoulos, Barbieri, Khochfar, Gair & McGibbon, “Clustering effects on the dark siren determination of H₀: a simulation study,” MNRAS 552(1) (2026), stag1662. [DOI: 10.1093/mnras/stag1662](https://doi.org/10.1093/mnras/stag1662).
+7. Datrier & Hendry, “Implementing a robust test of galaxy catalogue completeness for dark siren measurements of the Hubble constant,” Monthly Notices of the Royal Astronomical Society 549(1), stag828 (2026). [Publisher article](https://academic.oup.com/mnras/article/549/1/stag828/8666390).
+8. Gray, Williams & Papadopoulos, “Expanding the scope of dark siren cosmology: Inferring the population properties of gravitational wave-hosting galaxies” (2026). [arXiv:2609.04991](https://arxiv.org/abs/2609.04991).
+9. CHIMERA v2.2 software release (9 June 2026). [GitHub release and versioned source](https://github.com/CosmoStatGW/CHIMERA/releases/tag/v2.2).

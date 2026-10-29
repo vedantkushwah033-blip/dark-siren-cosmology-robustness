@@ -27,7 +27,10 @@ def test_independent_audit_reconstructs_paired_rows_and_aggregates(tmp_path):
     assert report["status"] == "PASS"
     assert report["raw_record_count"] == 6
     assert report["replicates_verified"] == 2
-    assert report["posterior_normalizations_verified"] == 6
+    assert report["posterior_normalizations_reconstructed"] == 6
+    assert report["posterior_summaries_reconstructed"] == 6
+    assert report["posterior_grid_independently_reconstructed"] is True
+    assert "independently integrated" in report["audit_boundary"]
     assert report["aggregate_metrics_reconstructed"] == 3
     assert len(report["replicate_metrics_sha256"]) == 64
 
@@ -72,4 +75,38 @@ def test_independent_audit_rejects_missing_paired_arm(tmp_path):
         writer.writeheader()
         writer.writerows(rows)
     with pytest.raises(ValueError, match="raw record count"):
+        audit_artifacts(folder)
+def test_independent_audit_rejects_tampered_posterior_grid(tmp_path):
+    folder = tmp_path / "benchmark"
+    _write_artifacts(folder)
+    path = folder / "replicate_metrics.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+        columns = list(rows[0])
+    # Alter the grid while preserving all summary columns: a scalar-only audit
+    # would miss this inconsistency.
+    density = json.loads(rows[0]["posterior_density_grid_json"])
+    density[len(density) // 2] *= 1.25
+    rows[0]["posterior_density_grid_json"] = json.dumps(density, separators=(",", ":"))
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=columns)
+        writer.writeheader()
+        writer.writerows(rows)
+    with pytest.raises(ValueError, match="reconstructed"):
+        audit_artifacts(folder)
+
+
+def test_independent_audit_rejects_wrong_posterior_grid_length(tmp_path):
+    folder = tmp_path / "benchmark"
+    _write_artifacts(folder)
+    path = folder / "replicate_metrics.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+        columns = list(rows[0])
+    rows[0]["posterior_density_grid_json"] = json.dumps([0.0, 1.0])
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=columns)
+        writer.writeheader()
+        writer.writerows(rows)
+    with pytest.raises(ValueError, match="grid length"):
         audit_artifacts(folder)

@@ -1,0 +1,73 @@
+name: catalogue-selection-stress-screen
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/audit-posterior-grid-integrity
+    paths:
+      - "src/dark_siren_robustness/generative_selection.py"
+      - "src/dark_siren_robustness/selection_misspecification.py"
+      - "scripts/run_selection_misspecification.py"
+      - "scripts/audit_selection_misspecification.py"
+      - ".github/workflows/catalogue-selection-stress-screen.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catalogue-selection-stress-screen-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  stress-screen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: low-inclusion-floor
+            floor: 0.05
+            midpoint: 0.22
+            width: 0.05
+            seed: 20270000
+          - name: high-inclusion-floor
+            floor: 0.25
+            midpoint: 0.22
+            width: 0.05
+            seed: 20270100
+          - name: broad-transition
+            floor: 0.10
+            midpoint: 0.22
+            width: 0.08
+            seed: 20270200
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run predeclared selection stress condition
+        run: >-
+          python scripts/run_selection_misspecification.py
+          --replicates 50
+          --n-parent 4000
+          --n-detected 30
+          --seed ${{ matrix.seed }}
+          --h0-points 81
+          --z-points 401
+          --catalogue-floor ${{ matrix.floor }}
+          --catalogue-midpoint ${{ matrix.midpoint }}
+          --catalogue-width ${{ matrix.width }}
+          --output-dir artifacts/catalogue_selection_stress/${{ matrix.name }}
+      - name: Independently audit raw rows and posterior grids
+        run: python scripts/audit_selection_misspecification.py artifacts/catalogue_selection_stress/${{ matrix.name }}
+      - name: Upload audited condition artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalogue-selection-stress-${{ matrix.name }}-${{ github.sha }}
+          path: artifacts/catalogue_selection_stress/${{ matrix.name }}/
+          if-no-files-found: error
+          retention-days: 90

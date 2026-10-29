@@ -51,8 +51,11 @@ def test_grid_stability_rejects_material_coarse_quantile_error(tmp_path):
     raw_path = tmp_path / "replicates.csv"
     _write_raw_csv(raw_path, raw)
 
-    with pytest.raises(ValueError, match="exceeds tolerance"):
-        check_grid_stability(raw_path, fine_grid_points=3201)
+    report = check_grid_stability(raw_path, fine_grid_points=3201)
+
+    assert report["status"] == "FAIL"
+    assert report["grid_violation_count"] >= 1
+    assert any(item["summary"] == "median" for item in report["grid_violations"])
 
 
 
@@ -110,3 +113,96 @@ def test_grid_stability_rejects_missing_raw_columns(tmp_path):
 
     with pytest.raises(ValueError, match="raw CSV missing columns"):
         check_grid_stability(raw_path, fine_grid_points=3201)
+
+
+
+def test_posterior_quantile_reconstruction_flags_boundary_mass():
+    import numpy as np
+
+    from scripts.check_distance_uncertainty_grid_stability import _posterior_quantiles
+
+    c = 299_792.458
+    z = 0.02
+    truth_at_boundary_distance = c * z / 50.0
+    row = {
+        "host_redshift": str(z),
+        "observed_distance_mpc": str(truth_at_boundary_distance),
+        "fractional_error": "0.004",
+        "generated_sigma_mpc": str(0.004 * truth_at_boundary_distance),
+        "arm": "A_fixed_realized_sigma",
+    }
+    summary = _posterior_quantiles(row, np.linspace(50.0, 90.0, 3201))
+
+    assert summary["boundary_mass_within_one_coarse_spacing"] > 0.05
+
+
+def test_boundary_mass_uses_fixed_h0_width_across_grid_resolutions():
+    import numpy as np
+
+    from scripts.check_distance_uncertainty_grid_stability import _posterior_quantiles
+
+    c = 299_792.458
+    z = 0.02
+    distance = c * z / 50.0
+    row = {
+        "host_redshift": str(z),
+        "observed_distance_mpc": str(distance),
+        "fractional_error": "0.004",
+        "generated_sigma_mpc": str(0.004 * distance),
+        "arm": "A_fixed_realized_sigma",
+    }
+    masses = [
+        _posterior_quantiles(row, np.linspace(50.0, 90.0, n))[
+            "boundary_mass_within_one_coarse_spacing"
+        ]
+        for n in (801, 1601, 3201, 6401)
+    ]
+
+    assert min(masses) > 0.05
+    assert max(masses) - min(masses) < 0.01
+
+
+def test_multi_resolution_sweep_reports_adjacent_grid_changes(tmp_path):
+    from scripts.check_distance_uncertainty_grid_stability import compare_grid_resolutions
+
+    raw, _ = run_experiment(
+        replicates=2,
+        seed=736,
+        grid_points=1601,
+        truths=(55.0, 70.0, 85.0),
+        fractional_errors=(0.05,),
+    )
+    raw_path = tmp_path / "replicates.csv"
+    _write_raw_csv(raw_path, raw)
+
+    report = compare_grid_resolutions(raw_path, grid_points=(801, 1601, 3201, 6401))
+
+    assert report["raw_record_count"] == 18
+    assert report["grid_points"] == [801, 1601, 3201, 6401]
+    assert len(report["comparisons"]) == 3
+    assert report["comparisons"][-1]["coarse_grid_points"] == 3201
+    assert report["comparisons"][-1]["fine_grid_points"] == 6401
+    assert set(report["comparisons"][0]["summary_changes"]) == {
+        "median", "lower_68", "upper_68", "lower_95", "upper_95"
+    }
+    assert "changed_68_coverage_classifications" in report["comparisons"][0]["coverage_classification_changes_by_arm"]["A_fixed_realized_sigma"]
+    assert report["production_min_coarse_grid"] == 1601
+    assert report["release_comparison_count"] == 2
+    assert all(item["meets_configured_thresholds"] for item in report["comparisons"][1:])
+    assert all(item["coverage_flip_count"] == 0 for item in report["comparisons"][1:])
+    assert all(item["successive_maximum_summary_change_shrinks"] for item in report["comparisons"][1:])
+    assert report["status"] == "PASS"
+    width_changes = [
+        item["maximum_endpoint_change_over_fine_95_width"]
+        for item in report["comparisons"]
+    ]
+    assert width_changes[2] < width_changes[1] < width_changes[0]
+
+
+def test_multi_resolution_sweep_rejects_unsorted_or_even_grids(tmp_path):
+    from scripts.check_distance_uncertainty_grid_stability import compare_grid_resolutions
+
+    with pytest.raises(ValueError, match="strictly increasing"):
+        compare_grid_resolutions(tmp_path / "missing.csv", grid_points=(1601, 801))
+    with pytest.raises(ValueError, match="odd integers"):
+        compare_grid_resolutions(tmp_path / "missing.csv", grid_points=(801, 1600))

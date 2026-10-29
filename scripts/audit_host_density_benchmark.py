@@ -1,4 +1,10 @@
-"""Independent consistency audit for host-density-to-H0 benchmark artifacts."""
+"""Consistency audit for host-density-to-H0 benchmark summary artifacts.
+
+The auditor independently integrates each saved posterior density vector and
+reconstructs its mean, equal-tail quantiles, interval width, and aggregate
+metrics. This is artifact-consistency validation, not a reimplementation of
+the scientific likelihood or KDE.
+"""
 from __future__ import annotations
 
 import argparse
@@ -12,7 +18,8 @@ ARMS = ("oracle", "catalogue_only", "known_completeness")
 REQUIRED_COLUMNS = {
     "replicate", "seed", "arm", "h0_true", "n_parent", "n_catalogue_observed",
     "n_detected", "min_detection_efficiency", "posterior_mean", "posterior_median",
-    "ci68_low", "ci68_high", "ci68_width", "posterior_integral", "covered_68",
+    "ci68_low", "ci68_high", "ci68_width", "posterior_integral",
+    "posterior_density_grid_json", "covered_68",
 }
 
 
@@ -38,6 +45,47 @@ def _bool(value, label):
     if normalized in {"false", "0"}:
         return False
     raise ValueError(f"{label} must be a boolean")
+
+
+def _integrate_trapezoid(values, grid):
+    """Independent pure-Python composite trapezoid rule."""
+    return sum(0.5 * (values[i] + values[i + 1]) * (grid[i + 1] - grid[i])
+               for i in range(len(grid) - 1))
+
+
+def _linear_quantile(grid, cdf, probability):
+    for i in range(1, len(cdf)):
+        if cdf[i] >= probability:
+            delta = cdf[i] - cdf[i - 1]
+            if delta <= 0:
+                return grid[i]
+            return grid[i - 1] + (probability - cdf[i - 1]) / delta * (grid[i] - grid[i - 1])
+    return grid[-1]
+
+
+def _reconstruct_posterior(row, h0_min, h0_max, h0_points):
+    try:
+        density = json.loads(row["posterior_density_grid_json"])
+    except (TypeError, json.JSONDecodeError) as exc:
+        raise ValueError("posterior density grid must be valid JSON") from exc
+    if not isinstance(density, list) or len(density) != h0_points:
+        raise ValueError("posterior density grid length disagrees with H0 grid metadata")
+    density = [_number(v, "posterior density grid value") for v in density]
+    if any(v < 0 for v in density):
+        raise ValueError("posterior density grid cannot contain negative values")
+    grid = [h0_min + i * (h0_max - h0_min) / (h0_points - 1) for i in range(h0_points)]
+    area = _integrate_trapezoid(density, grid)
+    if not math.isfinite(area) or area <= 0:
+        raise ValueError("posterior density grid has invalid normalization")
+    normalized = [v / area for v in density]
+    mean = _integrate_trapezoid([x * p for x, p in zip(grid, normalized)], grid)
+    cdf = [0.0]
+    for i in range(len(grid) - 1):
+        cdf.append(cdf[-1] + 0.5 * (normalized[i] + normalized[i + 1]) * (grid[i + 1] - grid[i]))
+    cdf = [v / cdf[-1] for v in cdf]
+    q16, q50, q84 = (_linear_quantile(grid, cdf, q) for q in (0.16, 0.50, 0.84))
+    return {"posterior_integral": area, "posterior_mean": mean, "posterior_median": q50,
+            "ci68_low": q16, "ci68_high": q84, "ci68_width": q84 - q16}
 
 
 def audit_artifacts(output_dir: str | Path) -> dict:
@@ -109,7 +157,10 @@ def audit_artifacts(output_dir: str | Path) -> dict:
         if width <= 0:
             raise ValueError(f"non-positive interval width: {key}")
         _close(width, high - low, "68% interval width")
-        _close(integral, 1.0, "posterior integral", atol=1e-6)
+        reconstructed = _reconstruct_posterior(row, float(h0_min), float(h0_max), int(h0_points))
+        for metric, reconstructed_value in reconstructed.items():
+            _close(row[metric], reconstructed_value, f"reconstructed {metric}", atol=1e-6)
+        _close(integral, 1.0, "reconstructed posterior integral", atol=1e-6)
         covered = _bool(row["covered_68"], "covered_68")
         expected_covered = low <= h0_true <= high
         if covered != expected_covered:
@@ -152,11 +203,14 @@ def audit_artifacts(output_dir: str | Path) -> dict:
         "raw_record_count": len(rows),
         "replicates_verified": n_replicates,
         "paired_arm_groups_verified": n_replicates,
-        "posterior_normalizations_verified": len(rows),
+        "posterior_normalizations_reconstructed": len(rows),
+        "posterior_summaries_reconstructed": len(rows),
+        "posterior_grid_independently_reconstructed": True,
         "aggregate_metrics_reconstructed": len(ARMS),
         "replicate_metrics_sha256": hashlib.sha256(raw_bytes).hexdigest(),
         "summary_json_sha256": hashlib.sha256(summary_bytes).hexdigest(),
         "scope": "synthetic toy benchmark only; not a real H0 measurement",
+        "audit_boundary": "posterior density grid is independently integrated and summaries reconstructed; scientific model validity remains outside this artifact audit",
     }
 
 

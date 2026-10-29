@@ -57,3 +57,25 @@ def test_prior_excludes_grid_points_outside_bounds():
         prior_min=60.0, prior_max=80.0,
     )
     assert np.all(posterior[(grid < 60.0) | (grid > 80.0)] == 0.0)
+
+
+@pytest.mark.parametrize(
+    ("grid", "prior_min", "prior_max", "message"),
+    [
+        ([60.0, 70.0, 80.0], 50.0, 90.0, "span the full prior interval"),
+        ([50.0, 60.0, 80.0], 50.0, 90.0, "span the full prior interval"),
+        ([49.0, 60.0, 89.0, 91.0], 50.0, 90.0, "contain prior_min and prior_max exactly"),
+    ],
+)
+def test_low_z_posterior_rejects_incomplete_prior_grid(grid, prior_min, prior_max, message):
+    with pytest.raises(ValueError, match=message):
+        posterior_h0_low_z(
+            grid, [0.02], 100.0, 10.0,
+            prior_min=prior_min, prior_max=prior_max,
+        )
+
+
+def test_low_z_posterior_rejects_nonpositive_h0_grid():
+    with pytest.raises(ValueError, match="positive"):
+        posterior_h0_low_z([-1.0, 50.0, 90.0], [0.02], 100.0, 10.0,
+                           prior_min=50.0, prior_max=90.0)

@@ -40,6 +40,14 @@ def test_detected_events_obey_threshold_and_truth_ids_match_parent() -> None:
     np.testing.assert_allclose(truth["latent_mean_distance_mpc"], expected)
     assert len(result["catalogue_observed"]) < len(parent)
 
+def test_generator_rejects_nonpositive_detection_threshold() -> None:
+    for threshold in (0.0, -1.0, np.nan, np.inf):
+        with pytest.raises(ValueError, match="detection_threshold_mpc"):
+            generate_synthetic_population(
+                seed=71, n_parent=1200, n_detected=10,
+                detection_threshold_mpc=threshold,
+            )
+
 def test_invalid_configuration_is_rejected() -> None:
     with pytest.raises(ValueError):
         generate_synthetic_population(seed=-1)

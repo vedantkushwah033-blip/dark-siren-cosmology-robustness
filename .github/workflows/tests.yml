@@ -26,8 +26,18 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
       - name: Test explicit distance-uncertainty likelihood models
         run: python -m pytest tests/test_uncertainty_likelihoods.py -q
+      - name: Test hardened posterior inference and prior-support grid guards
+        run: python -m pytest tests/test_hardened_inference.py tests/test_hardened_inference_equivalence.py -q
+      - name: Test low-z and cosmology-aware posterior support validation
+        run: python -m pytest tests/test_inference.py tests/test_cosmological_inference.py -q
       - name: Test isolated dataset-level likelihood composition
         run: python -m pytest tests/test_dataset_likelihood.py -q
+      - name: Test H0-dependent noise and selection-conditioned dataset inference
+        run: python -m pytest tests/test_selection_conditioned_h0_dependent_noise.py -q
+      - name: Test independent H0-dependent-noise SBC artifact auditor
+        run: python -m pytest tests/test_audit_h0_dependent_noise_sbc.py -q
+      - name: Test reproducible paired analysis of selection-misspecification artifacts
+        run: python -m pytest tests/test_analyze_selection_misspecification_pairs.py -q
       - name: Test empirical toy detection-efficiency calibration
         run: python -m pytest tests/test_detection_efficiency_empirical.py -q
       - name: Test low-redshift selection-aware toy likelihood
@@ -42,14 +52,45 @@ jobs:
         run: python scripts/run_synthetic_selection_experiment.py --seed 20261028 --n-parent 1200 --n-detected 25 --output-dir artifacts/synthetic_selection_smoke
       - name: Test bounded KDE host-density estimation and selection-weight correction
         run: python -m pytest tests/test_catalogue_density.py -q
+      - name: Test estimated catalogue inclusion from external validation data
+        run: python -m pytest tests/test_estimated_inclusion.py -q
       - name: Test host-density-to-H0 benchmark
         run: python -m pytest tests/test_host_density_benchmark.py -q
+      - name: Test corrected physical KDE bandwidth semantics
+        run: python -m pytest tests/test_kde_bandwidth_definition.py -q
+      - name: Test independent host-density re-simulation audit
+        run: python -m pytest tests/test_audit_host_density_independent.py -q
+      - name: Test full host-density campaign auditor primitives
+        run: python -m pytest tests/test_audit_host_density_campaign.py -q
+      - name: Test prior-averaged oracle calibration and negative control
+        run: python -m pytest tests/test_oracle_prior_averaged_calibration.py -q
+      - name: Test independent exact-density oracle data and posterior audit
+        run: python -m pytest tests/test_audit_oracle_bias.py -q
       - name: Run small host-density-to-H0 benchmark smoke experiment
         run: python scripts/run_host_density_benchmark.py --replicates 1 --n-parent 1200 --n-detected 8 --h0-points 51 --z-points 201 --output-dir artifacts/host_density_benchmark_smoke
+      - name: Check host-density smoke manifest and checksums
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          p = Path('artifacts/host_density_benchmark_smoke')
+          m = json.loads((p/'manifest.json').read_text())
+          assert all(hashlib.sha256((p/name).read_bytes()).hexdigest() == row['sha256']
+                     for name, row in m['files'].items())
+          print(f"Verified {len(m['files'])} manifest entries.")
+          PY
       - name: Test independent host-density benchmark artifact audit
         run: python -m pytest tests/test_audit_host_density_benchmark.py -q
       - name: Independently audit host-density benchmark smoke artifacts
         run: python scripts/audit_host_density_benchmark.py artifacts/host_density_benchmark_smoke
+      - name: Test selection-function misspecification experiment
+        run: python -m pytest tests/test_selection_misspecification.py -q
+      - name: Run paired selection-function misspecification smoke experiment
+        run: python scripts/run_selection_misspecification.py --replicates 2 --n-parent 1200 --n-detected 8 --seed 55129 --h0-points 51 --z-points 201 --output-dir artifacts/selection_misspecification_smoke
+      - name: Test independent selection-misspecification artifact audit
+        run: python -m pytest tests/test_audit_selection_misspecification.py -q
+      - name: Independently audit selection-misspecification smoke artifacts
+        run: python scripts/audit_selection_misspecification.py artifacts/selection_misspecification_smoke
       - name: Test paired distance-uncertainty sensitivity experiment
         run: python -m pytest tests/test_uncertainty_sensitivity.py -q
       - name: Run paired distance-uncertainty sensitivity smoke experiment

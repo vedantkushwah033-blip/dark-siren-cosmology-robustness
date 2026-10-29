@@ -39,7 +39,7 @@ def _sample_from_density(n: int, rng: np.random.Generator, *, z_min: float, z_ma
     cdf /= cdf[-1]
     return np.interp(rng.random(n), cdf, grid)
 
-def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000, n_detected: int = 250, h0_true: float = 70.0, sigma_mpc: float = 140.0, detection_threshold_mpc: float = 250.0, z_min: float = 0.01, z_max: float = 0.40) -> dict[str, object]:
+def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000, n_detected: int = 250, h0_true: float = 70.0, sigma_mpc: float = 140.0, detection_threshold_mpc: float = 250.0, z_min: float = 0.01, z_max: float = 0.40, catalogue_floor: float = 0.10, catalogue_midpoint: float = 0.22, catalogue_width: float = 0.05) -> dict[str, object]:
     """Generate parent galaxies, an incomplete catalogue, and detected GW distances.
 
     catalogue_observed and gw_events_observed are observable tables. parent_truth
@@ -54,13 +54,13 @@ def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000
         raise ValueError("h0_true must be finite and positive")
     if not np.isfinite(sigma_mpc) or sigma_mpc <= 0:
         raise ValueError("sigma_mpc must be finite and positive")
-    if not np.isfinite(detection_threshold_mpc):
-        raise ValueError("detection_threshold_mpc must be finite")
+    if not np.isfinite(detection_threshold_mpc) or detection_threshold_mpc <= 0:
+        raise ValueError("detection_threshold_mpc must be finite and positive")
     if not (0 < z_min < z_max):
         raise ValueError("redshift bounds must satisfy 0 < z_min < z_max")
     rng = np.random.default_rng(int(seed))
     z_parent = _sample_from_density(n_parent, rng, z_min=z_min, z_max=z_max)
-    p_catalogue = catalogue_inclusion_probability(z_parent)
+    p_catalogue = catalogue_inclusion_probability(z_parent, floor=catalogue_floor, midpoint=catalogue_midpoint, width=catalogue_width)
     retained = rng.random(n_parent) < p_catalogue
     parent_truth = pd.DataFrame({
         "object_id": np.arange(n_parent, dtype=np.int64),
@@ -116,7 +116,7 @@ def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000
         "h0_true_km_s_mpc": float(h0_true), "sigma_mpc": float(sigma_mpc),
         "detection_threshold_mpc": float(detection_threshold_mpc),
         "redshift_domain": [float(z_min), float(z_max)],
-        "catalogue_selection": {"formula": "floor + (1-floor)/(1+exp((z-midpoint)/width))", "floor": 0.10, "midpoint": 0.22, "width": 0.05},
+        "catalogue_selection": {"formula": "floor + (1-floor)/(1+exp((z-midpoint)/width))", "floor": float(catalogue_floor), "midpoint": float(catalogue_midpoint), "width": float(catalogue_width)},
         "merger_weight": "1 + 1.5*(z-z_min)/(z_max-z_min)",
         "distance_model": "d_obs ~ Normal(c*z/H0_true, sigma_mpc^2); detected iff d_obs >= threshold",
         "observable_files": ["observable/catalogue_observed.csv", "observable/gw_events_observed.csv"],
