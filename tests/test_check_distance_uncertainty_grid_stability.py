@@ -51,8 +51,11 @@ def test_grid_stability_rejects_material_coarse_quantile_error(tmp_path):
     raw_path = tmp_path / "replicates.csv"
     _write_raw_csv(raw_path, raw)
 
-    with pytest.raises(ValueError, match="exceeds tolerance"):
-        check_grid_stability(raw_path, fine_grid_points=3201)
+    report = check_grid_stability(raw_path, fine_grid_points=3201)
+
+    assert report["status"] == "FAIL"
+    assert report["grid_violation_count"] >= 1
+    assert any(item["summary"] == "median" for item in report["grid_violations"])
 
 
 

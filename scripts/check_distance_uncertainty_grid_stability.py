@@ -66,6 +66,8 @@ def check_grid_stability(raw_csv: Path, fine_grid_points: int = 3201,
     changes = {column: [] for column in SUMMARY_COLUMNS}
     boundary_masses = []
     boundary_mass_threshold = 0.05
+    grid_violations = []
+    coverage_changes = []
     coverage = {}
     seen_keys = set()
     boundary_flags = []
@@ -117,10 +119,18 @@ def check_grid_stability(raw_csv: Path, fine_grid_points: int = 3201,
                 delta = abs(coarse - fine[column])
                 changes[column].append(delta)
                 if delta > max_allowed_change:
-                    raise ValueError(
-                        f"grid change {delta} exceeds tolerance {max_allowed_change} "
-                        f"for row {row_count}, column {column}"
-                    )
+                    grid_violations.append({
+                        "row_number": row_count,
+                        "record_key": {
+                            "true_h0": truth,
+                            "fractional_error": fractional_error,
+                            "replicate": replicate,
+                            "arm": arm,
+                        },
+                        "summary": column,
+                        "absolute_change": delta,
+                        "tolerance": max_allowed_change,
+                    })
             coarse_covered = float(row["lower_68"]) <= truth <= float(row["upper_68"])
             fine_covered = fine["lower_68"] <= truth <= fine["upper_68"]
             coverage[arm]["coarse_successes"] += int(coarse_covered)
@@ -152,7 +162,12 @@ def check_grid_stability(raw_csv: Path, fine_grid_points: int = 3201,
         item["fine_coverage_68"] = item["fine_successes"] / item["n"]
         item["coverage_unchanged"] = item["coarse_successes"] == item["fine_successes"]
         if not item["coverage_unchanged"]:
-            raise ValueError(f"68% coverage changed under grid refinement for arm {arm}")
+            coverage_changes.append({
+                "arm": arm,
+                "coarse_successes": item["coarse_successes"],
+                "fine_successes": item["fine_successes"],
+                "n": item["n"],
+            })
     quantile_changes = {}
     for column, values in changes.items():
         arr = np.asarray(values, dtype=float)
@@ -162,7 +177,7 @@ def check_grid_stability(raw_csv: Path, fine_grid_points: int = 3201,
             "maximum_absolute_change": float(np.max(arr)),
         }
     return {
-        "status": "PASS",
+        "status": "FAIL" if grid_violations or coverage_changes else "PASS",
         "scope": "synthetic known-host low-redshift sensitivity diagnostic only",
         "raw_record_count": row_count,
         "unique_record_key_count": len(seen_keys),
@@ -170,6 +185,9 @@ def check_grid_stability(raw_csv: Path, fine_grid_points: int = 3201,
         "fine_grid_support": [50.0, 90.0],
         "max_allowed_quantile_change": max_allowed_change,
         "quantile_changes": quantile_changes,
+        "grid_violation_count": len(grid_violations),
+        "grid_violations": grid_violations,
+        "coverage_changed_arms": coverage_changes,
         "boundary_mass_diagnostic": {
             "definition": "posterior probability within one 1,601-point-grid spacing (0.025 H0 units) of either endpoint",
             "threshold": boundary_mass_threshold,
