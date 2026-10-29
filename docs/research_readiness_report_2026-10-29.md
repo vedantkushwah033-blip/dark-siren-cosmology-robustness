@@ -2,7 +2,7 @@
 
 ## Decision
 
-**Current disposition: GO for a carefully scoped synthetic-methodology manuscript draft; NO-GO for claims about real GW catalogues, real H0, or external-method superiority.** PR #7 remains a draft and is not merged.
+**Current disposition: GO for a carefully scoped synthetic-methodology manuscript draft and independent review; NO-GO for claims about real GW catalogues, real H0, or external-method superiority.** PR #7 is open and ready for independent review, not merged; PR #8 remains a separate draft.
 
 ## Completed and artifact-verified
 
@@ -17,14 +17,14 @@
 ## Still open
 
 - The expanded host-density screen contains 13 configurations × 40 paired replicates. All 13 configurations passed local per-configuration independent replay/posterior reconstruction (1,560 fit rows), and their summary statistics were reaggregated independently. The combined clean campaign and one-shot full audit passed at [#40802415000](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40802415000). Artifact `12866753211` (ZIP digest `sha256:0ec51d1c96e9f86d7f1ef2a6dbcb9e57a0c67fa5be2459617fcf51ccbc5565fe`) independently reconstructed all 1,560 rows, reaggregated 403 summary fields with zero discrepancy, and verified 14 manifest-listed files. One interval-coverage flag disagreement was boundary-sensitive (endpoint 9.37×10⁻⁵ from truth) and is disclosed in the audit; it did not fail the audit. The screen remains exploratory with imprecise coverage.
-- **Exact-head test matrix:** an earlier full Python 3.10/3.11/3.12 matrix passed at [run #40820422116](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40820422116), but several later documentation commits followed. Always inspect GitHub Actions for the exact commit being reviewed or distributed; a green run on an older SHA does not certify the latest head. The latest exact-head matrix is a release gate and must reach a terminal success state before the branch is described as fully green. The unified host-density campaign and all-row independent audit passed in [run #40802415000](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40802415000). The specialized H0-dependent-noise SBC workflow also passed on source commit `9c662b657c4472b9614bf013625af8647e1a2d5d`, with 1,200 rows and an independent auditor reconstructing saved per-replicate posteriors and summary aggregates.
+- **Exact-head test matrix:** the pre-cleanup PR #7 head `b25cea2d13c8aa75c20f309c7b7f5e3b505507cf` passed the full Python 3.10/3.11/3.12 matrix in [run #40822714311](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40822714311). This report/README cleanup creates a new documentation commit; inspect the new commit's own Actions checks before claiming that new SHA is green. The unified host-density campaign and all-row independent audit passed in [run #40802415000](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40802415000). The specialized H0-dependent-noise SBC workflow also passed on source commit `9c662b657c4472b9614bf013625af8647e1a2d5d`, with 1,200 rows and an independent auditor reconstructing saved per-replicate posteriors and summary aggregates.
 - The CHIMERA v2.2 external benchmark is not complete. The exact expected input dataset(s), compatibility with the tagged release, and execution output have not been verified. Do not substitute files from an older release.
 - A focused comparison table is now included in the manuscript and literature audit for Gaussian-process reconstruction, spatial-correlation completion, clustering-preserving reconstruction (LIGHT/Ghosh–More), variance completion, realistic clustering simulations, the practical `gwcosmo` completeness test, host-population inference and CHIMERA. A systematic review and expert assessment of assumptions remain outstanding.
 - No expert review, arXiv submission, peer review, or publication claim is made.
 
 ## Required gates before release
 
-1. **Exact-head CI:** inspect the Actions run associated with the exact commit under release review. Earlier full matrices passed, but successive documentation updates trigger new runs; do not treat any older successful SHA as evidence that the newest branch head has passed.
+1. **Exact-head CI:** the last checked PR #7 head `b25cea2d13c8aa75c20f309c7b7f5e3b505507cf` passed Python 3.10/3.11/3.12 in [run #40822714311](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40822714311). This documentation cleanup creates a new SHA, so use the triggered checks for that exact new commit before distribution.
 2. The 13-configuration host-density screen and full independent reconstruction are complete: 1,560/1,560 row fits reconstructed, 403 aggregate fields rederived with zero discrepancy, 14 manifest files checked. The canonical report records one borderline coverage flag and remains explicitly exploratory.
 3. The focused comparison table is now included in the manuscript and literature-positioning audit. A systematic literature review and external expert assessment remain outstanding.
 4. **CHIMERA v2.2 external benchmark: NO-GO pending data.** The pinned release and official examples were inspected, but the exact compatible SNR-25 mock, completeness products and `pcat_incomplete.h5` were not verified as available. Do not substitute v2.0 inputs; reopen this gate only when exact, provenance-traceable inputs are obtained.
@@ -39,7 +39,7 @@ Unacceptable: “Solved the Hubble tension,” “measured a new H0,” “first
 ## Current follow-up documentation
 
 - The host-density campaign's authoritative full results are in [host-density sensitivity screening results](host_density_sensitivity_screening_results_2026-10-29.md); the supplemental [follow-up validation note](followup_validation_host_density_and_sbc_2026-10-29.md) summarizes the result and cross-checks the baseline numbers.
-- Draft PR #8 contains paired grid/bandwidth sensitivity validation and remains separate from the main draft PR. Neither PR should be merged automatically; scientific review and the external-pipeline/data gate remain outstanding. The exact-head matrix passed at revision `16401f59`, but this report update and the manuscript correction require a fresh CI run before the latest branch head can be called green.
+- PR #8 remains a separate draft for paired grid/bandwidth sensitivity validation. PR #7 is now open and ready for independent review but is not merged; scientific review and the external-pipeline/data gate remain outstanding. The pre-cleanup PR #7 head passed its exact-head Python matrix in run #40822714311; this documentation cleanup must pass the checks triggered on its new SHA.
 
 ## Final project scope
 
