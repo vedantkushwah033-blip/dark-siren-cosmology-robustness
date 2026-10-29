@@ -134,3 +134,38 @@ def test_posterior_quantile_reconstruction_flags_boundary_mass():
     summary = _posterior_quantiles(row, np.linspace(50.0, 90.0, 3201))
 
     assert summary["boundary_mass_within_one_coarse_spacing"] > 0.05
+
+
+def test_multi_resolution_sweep_reports_adjacent_grid_changes(tmp_path):
+    from scripts.check_distance_uncertainty_grid_stability import compare_grid_resolutions
+
+    raw, _ = run_experiment(
+        replicates=2,
+        seed=736,
+        grid_points=1601,
+        truths=(55.0, 70.0, 85.0),
+        fractional_errors=(0.05,),
+    )
+    raw_path = tmp_path / "replicates.csv"
+    _write_raw_csv(raw_path, raw)
+
+    report = compare_grid_resolutions(raw_path, grid_points=(801, 1601, 3201, 6401))
+
+    assert report["raw_record_count"] == 18
+    assert report["grid_points"] == [801, 1601, 3201, 6401]
+    assert len(report["comparisons"]) == 3
+    assert report["comparisons"][-1]["coarse_grid_points"] == 3201
+    assert report["comparisons"][-1]["fine_grid_points"] == 6401
+    assert set(report["comparisons"][0]["summary_changes"]) == {
+        "median", "lower_68", "upper_68", "lower_95", "upper_95"
+    }
+    assert "changed_68_coverage_classifications" in report["comparisons"][0]["coverage_classification_changes_by_arm"]["A_fixed_realized_sigma"]
+
+
+def test_multi_resolution_sweep_rejects_unsorted_or_even_grids(tmp_path):
+    from scripts.check_distance_uncertainty_grid_stability import compare_grid_resolutions
+
+    with pytest.raises(ValueError, match="strictly increasing"):
+        compare_grid_resolutions(tmp_path / "missing.csv", grid_points=(1601, 801))
+    with pytest.raises(ValueError, match="odd integers"):
+        compare_grid_resolutions(tmp_path / "missing.csv", grid_points=(801, 1600))
