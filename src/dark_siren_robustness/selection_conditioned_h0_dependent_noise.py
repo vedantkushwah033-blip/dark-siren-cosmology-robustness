@@ -210,3 +210,84 @@ def dataset_posterior_h0_selection_conditioned(
             "normalization_grid": norm_grid, "normalization_density": norm_density,
             "selected_log_likelihood": selected, "prior_min": lo, "prior_max": hi,
             "posterior_integral": float(trapezoid(norm_density, norm_grid))}
+
+def simulate_detected_distance_events(
+    *,
+    rng: np.random.Generator,
+    n_events: int,
+    population_redshifts,
+    population_weights=None,
+    H0_true: float,
+    detection_distance_min: float,
+    fractional_sigma: float,
+    sigma_floor_mpc: float = 0.0,
+    positive_truncated: bool = False,
+    max_proposals: int | None = None,
+):
+    """Generate a fixed count of detected distances from the declared discrete population.
+
+    Each event's candidate-host mixture is the same discrete population used in
+    the selection efficiency. This is intentionally a distance-only toy model:
+    it exposes no true host redshift to the likelihood. Candidates are sampled
+    from the population, distances follow the H0-dependent Gaussian noise law,
+    and proposals are retained only for d >= detection_distance_min. If the
+    optional per-host measurement model is truncated at d>0, nonpositive
+    draws are resampled at the same host before applying the detection cut.
+
+    The returned event mappings can be passed directly to
+    selection_conditioned_dataset_log_likelihood. The function is intended for
+    simulation-based calibration, not realistic GW event generation.
+    """
+    if not isinstance(rng, np.random.Generator):
+        raise ValueError("rng must be a numpy.random.Generator.")
+    if isinstance(n_events, (bool, np.bool_)) or not isinstance(n_events, (int, np.integer)) or n_events < 1:
+        raise ValueError("n_events must be a positive integer.")
+    h0 = float(H0_true)
+    if not np.isfinite(h0) or h0 <= 0:
+        raise ValueError("H0_true must be finite and positive.")
+    threshold = float(detection_distance_min)
+    if not np.isfinite(threshold) or threshold <= 0:
+        raise ValueError("detection_distance_min must be finite and positive.")
+    z = _vector(population_redshifts, "population_redshifts", min_size=1, positive=True)
+    weights = _normalized_weights(population_weights, z.size, "population_weights")
+    frac, floor = _noise_parameters(fractional_sigma, sigma_floor_mpc)
+    means = C_KM_S * z / h0
+    sigmas = np.hypot(floor, frac * means)
+    if not np.all(np.isfinite(means)) or not np.all(np.isfinite(sigmas)) or np.any(sigmas <= 0):
+        raise ValueError("generated means and distance-noise scales must be finite and positive.")
+    if max_proposals is None:
+        max_proposals = max(100_000, int(n_events) * 20_000)
+    if isinstance(max_proposals, (bool, np.bool_)) or not isinstance(max_proposals, (int, np.integer)) or max_proposals < n_events:
+        raise ValueError("max_proposals must be an integer at least n_events.")
+
+    accepted: list[float] = []
+    proposals = 0
+    while len(accepted) < int(n_events) and proposals < int(max_proposals):
+        remaining = int(n_events) - len(accepted)
+        batch_size = min(max(256, 2 * remaining), int(max_proposals) - proposals)
+        host_index = rng.choice(z.size, size=batch_size, replace=True, p=weights)
+        draw_mean = means[host_index]
+        draw_sigma = sigmas[host_index]
+        distances = rng.normal(draw_mean, draw_sigma)
+        if positive_truncated:
+            nonpositive = distances <= 0
+            for _ in range(10_000):
+                if not np.any(nonpositive):
+                    break
+                distances[nonpositive] = rng.normal(draw_mean[nonpositive], draw_sigma[nonpositive])
+                nonpositive = distances <= 0
+            if np.any(nonpositive):
+                raise RuntimeError("Could not draw positive-truncated measurement noise after 10000 retries.")
+        detected = distances >= threshold
+        if np.any(detected):
+            accepted.extend(float(value) for value in distances[detected][:remaining])
+        proposals += batch_size
+    if len(accepted) != int(n_events):
+        raise RuntimeError(
+            f"Only generated {len(accepted)}/{n_events} detected events within {max_proposals} proposals."
+        )
+    return [
+        {"redshifts": z.copy(), "weights": weights.copy(), "gw_distance": distance}
+        for distance in accepted
+    ]
+
