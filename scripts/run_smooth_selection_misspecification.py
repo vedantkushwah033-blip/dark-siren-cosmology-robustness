@@ -80,8 +80,11 @@ def generate_selected_dataset(z, gc, gm, *, h0, f, sigma, d50, width, n_events, 
     for i in range(n_events):
         missing = bool(rng.random() < p_missing_detected)
         density = gm if missing else gc
+        # Draw z from its selected marginal, then draw d conditional on
+        # acceptance at that fixed z. Redrawing z after a failed distance draw
+        # would apply the selection weight twice and distort the population.
+        z_true = selected_z_sample(z, density, h0, sigma, d50, width, rng)
         while True:
-            z_true = selected_z_sample(z, density, h0, sigma, d50, width, rng)
             distance = float(rng.normal(C_KM_S * z_true / h0, sigma))
             p_accept = float(smooth_selection_probability(
                 distance, d50_mpc=d50, width_mpc=width
