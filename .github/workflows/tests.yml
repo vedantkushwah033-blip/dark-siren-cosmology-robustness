@@ -30,6 +30,8 @@ jobs:
         run: python -m pytest tests/test_dataset_likelihood.py -q
       - name: Test H0-dependent noise and selection-conditioned dataset inference
         run: python -m pytest tests/test_selection_conditioned_h0_dependent_noise.py -q
+      - name: Test independent H0-dependent-noise SBC artifact auditor
+        run: python -m pytest tests/test_audit_h0_dependent_noise_sbc.py -q
       - name: Test reproducible paired analysis of selection-misspecification artifacts
         run: python -m pytest tests/test_analyze_selection_misspecification_pairs.py -q
       - name: Test empirical toy detection-efficiency calibration
