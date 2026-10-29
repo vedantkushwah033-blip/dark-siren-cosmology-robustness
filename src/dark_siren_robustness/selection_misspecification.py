@@ -121,7 +121,7 @@ def run_selection_misspecification(
     h0 = np.linspace(h0_min, h0_max, h0_points)
     merger = 1.0 + 1.5 * (z - z[0]) / (z[-1] - z[0])
     target_density = _normalized(latent_galaxy_intensity(z) * merger, z)
-    # Fixed truth law used by the generator: floor=.10, midpoint=.22, width=.05.
+    # Configurable true catalogue-selection law; the correct-weighting arm receives these exact values.
     true_selection = {"floor": 0.10, "midpoint": 0.22, "width": 0.05}
     analyst_models: dict[str, dict | str | None] = {
         # Analytic target is a diagnostic control: it removes finite-parent KDE
