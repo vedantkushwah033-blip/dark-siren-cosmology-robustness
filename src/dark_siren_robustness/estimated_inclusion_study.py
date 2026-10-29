@@ -49,7 +49,7 @@ def _contrast_summary(values: np.ndarray) -> dict[str, float | int | None]:
         "standard_error": se,
         "normal_95_low": low,
         "normal_95_high": high,
-        "positive_favors_estimated_arm": True,
+        "positive_favors_comparison_arm": True,
     }
 
 
@@ -147,6 +147,7 @@ def run_estimated_inclusion_pilot(
                     "catalogue_seed": catalogue_seed, "audit_seed": audit_seed,
                     "arm": arm, "validation_size": 0 if arm in ("catalogue_only", "oracle") else int(arm.split("_")[1]),
                     "status": "failed", "error": "too few retained catalogue objects",
+                    "fit_status": "failed", "fit_boundary_limited": False,
                     "n_catalogue": int(observed_z.size), "n_detected": int(distances.size),
                 })
             continue
@@ -165,6 +166,8 @@ def run_estimated_inclusion_pilot(
         arm_specs.extend((f"estimated_{m}", m, m) for m in sizes)
         for arm, audit_size, spec in arm_specs:
             try:
+                fit_status = "not_applicable"
+                fit_boundary_limited = False
                 if arm == "catalogue_only":
                     density = estimate_host_density(
                         z_grid, observed_z, merger_weight=merger_rate,
@@ -174,6 +177,7 @@ def run_estimated_inclusion_pilot(
                     weight_ess = float(observed_z.size)
                     max_inverse_weight = 1.0
                 elif arm == "oracle":
+                    fit_status = "oracle"
                     observed_p = true_probability[retained]
                     density = estimate_host_density(
                         z_grid, observed_z, inclusion_probability=observed_p,
@@ -192,6 +196,8 @@ def run_estimated_inclusion_pilot(
                         merger_weight=merger_rate, bandwidth_factor=bandwidth_factor,
                     )
                     density = result["density"]
+                    fit_status = str(result["model"]["fit_status"])
+                    fit_boundary_limited = bool(result["model"]["coefficient_bound_hit"])
                     weight_ess = float(result["inverse_weight_effective_sample_size"])
                     max_inverse_weight = float(result["inverse_weight_maximum"])
                     probability_mae = float(np.mean(np.abs(
@@ -208,6 +214,7 @@ def run_estimated_inclusion_pilot(
                     "catalogue_seed": catalogue_seed, "audit_seed": audit_seed,
                     "arm": arm, "validation_size": int(audit_size),
                     "status": "success", "error": "",
+                    "fit_status": fit_status, "fit_boundary_limited": fit_boundary_limited,
                     "n_catalogue": int(observed_z.size), "n_detected": int(distances.size),
                     "posterior_mean": post["posterior_mean"],
                     "posterior_median": post["posterior_median"],
@@ -227,6 +234,7 @@ def run_estimated_inclusion_pilot(
                     "catalogue_seed": catalogue_seed, "audit_seed": audit_seed,
                     "arm": arm, "validation_size": int(audit_size),
                     "status": "failed", "error": f"{type(exc).__name__}: {exc}",
+                    "fit_status": "failed", "fit_boundary_limited": False,
                     "n_catalogue": int(observed_z.size), "n_detected": int(distances.size),
                 })
 

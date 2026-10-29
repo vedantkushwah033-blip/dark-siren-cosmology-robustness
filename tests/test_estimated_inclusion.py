@@ -22,6 +22,8 @@ def test_logistic_inclusion_fit_recovers_declared_synthetic_curve():
     truth = expit(0.35 - 1.8 * ((grid - (z_min + z_max) / 2) / ((z_max - z_min) / 2)))
 
     assert model["model"] == "logistic_inclusion_v1"
+    assert model["fit_status"] == "converged"
+    assert model["coefficient_bound_hit"] is False
     assert model["n_validation"] == len(z)
     assert model["n_included"] + model["n_not_included"] == len(z)
     assert np.all(np.isfinite(predicted))
@@ -38,6 +40,8 @@ def test_logistic_inclusion_fit_is_deterministic_with_separation():
     assert np.isfinite(first["intercept"])
     assert np.isfinite(first["slope"])
     assert abs(first["slope"]) <= 50.0
+    assert first["fit_status"] == "boundary_limited"
+    assert first["coefficient_bound_hit"] is True
 
 
 @pytest.mark.parametrize(

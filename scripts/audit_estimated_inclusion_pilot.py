@@ -45,7 +45,8 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
     summary = json.loads(json_path.read_text(encoding="utf-8"))
     required = {
         "replicate", "replicate_seed", "catalogue_seed", "audit_seed", "arm",
-        "validation_size", "status", "error", "n_catalogue", "n_detected",
+        "validation_size", "status", "error", "fit_status", "fit_boundary_limited",
+        "n_catalogue", "n_detected",
     }
     missing = required - set(frame.columns)
     if missing:
@@ -72,6 +73,10 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         raise AssertionError("credible interval endpoints are reversed")
     if (frame.loc[success, "absolute_error"] < 0).any():
         raise AssertionError("absolute posterior-mean errors cannot be negative")
+    boundary_flags = frame.loc[success, "fit_boundary_limited"].astype(bool)
+    boundary_status = frame.loc[success, "fit_status"].eq("boundary_limited")
+    if not boundary_flags.equals(boundary_status):
+        raise AssertionError("fit boundary flags disagree with fit_status")
 
     arms_in_rows = set(frame["arm"])
     arms_in_summary = {item["arm"] for item in summary.get("arm_summaries", [])}
