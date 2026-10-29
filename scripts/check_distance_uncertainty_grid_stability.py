@@ -307,7 +307,20 @@ def compare_grid_resolutions(
                 for col in endpoint_columns
             )
         max_width_ratio = float(max(width_ratios))
+        max_all_summary_change = max(
+            item["maximum_absolute_change"] for item in by_summary.values()
+        )
         coverage_flip_count = sum(v["changed_68_coverage_classifications"] for v in flips.values())
+        is_release_pair = coarse_n >= production_min_coarse_grid
+        previous_release_pair = next(
+            (item for item in reversed(comparisons)
+             if item["coarse_grid_points"] >= production_min_coarse_grid),
+            None,
+        )
+        changes_shrink = (
+            previous_release_pair is None
+            or max_all_summary_change < previous_release_pair["maximum_absolute_summary_change"]
+        )
         meets = bool(
             median_abs <= median_abs_tolerance
             and median_rel <= median_relative_tolerance
@@ -315,16 +328,19 @@ def compare_grid_resolutions(
             and endpoint_abs <= endpoint_absolute_tolerance
             and max_width_ratio <= endpoint_change_over_95_width_tolerance
             and coverage_flip_count == 0
+            and (not is_release_pair or changes_shrink)
         )
         comparisons.append({
             "coarse_grid_points": coarse_n,
             "fine_grid_points": fine_n,
             "summary_changes": by_summary,
-            "maximum_endpoint_absolute_change": endpoint_abs,
+            "maximum_absolute_endpoint_change": endpoint_abs,
+            "maximum_absolute_summary_change": max_all_summary_change,
+            "successive_maximum_summary_change_shrinks": changes_shrink,
             "maximum_endpoint_change_over_fine_95_width": max_width_ratio,
             "coverage_classification_changes_by_arm": flips,
             "coverage_flip_count": int(coverage_flip_count),
-            "is_at_or_above_production_resolution": coarse_n >= production_min_coarse_grid,
+            "is_at_or_above_production_resolution": is_release_pair,
             "meets_configured_thresholds": meets,
             "thresholds": {
                 "maximum_absolute_median_change": median_abs_tolerance,
@@ -332,6 +348,7 @@ def compare_grid_resolutions(
                 "maximum_relative_interval_endpoint_change": interval_relative_tolerance,
                 "maximum_absolute_interval_endpoint_change": endpoint_absolute_tolerance,
                 "maximum_endpoint_change_as_fraction_of_95_width": endpoint_change_over_95_width_tolerance,
+                "successive_maximum_summary_change_must_shrink": true,
                 "maximum_coverage_classification_flips": 0,
                 "production_min_coarse_grid": production_min_coarse_grid,
             },
