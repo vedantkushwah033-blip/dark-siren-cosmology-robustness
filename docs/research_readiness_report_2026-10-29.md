@@ -22,8 +22,8 @@
 
 ## Required gates before release
 
-1. Obtain a passing exact-head Python 3.10/3.11/3.12 test matrix and preserve its run URL.
-2. Finish the host-density campaign, inspect raw tables and manifest, and require independent reconstruction checks to pass. Update the local-snapshot report using the regenerated artifact rather than mixing results across code versions.
+1. Obtain a passing exact-head Python 3.10/3.11/3.12 test matrix and preserve its run URL. A new full matrix was started after the latest documentation commits; check its conclusion before release.
+2. The 13-configuration host-density screen is now complete and its canonical artifact/report are checked. The full 40-replicate-per-setting campaign has not been reconstructed row-by-row by an independent posterior implementation; the independent posterior smoke audit covers two replicates only. Treat the screen as exploratory and do not claim full independent replay.
 3. Add a concise comparison table distinguishing assumptions in this project, the 2026 GP reconstruction study, the 2026 gwcosmo completeness test, and the host-population inference preprint.
 4. Inspect CHIMERA v2.2 data availability and run feasibility from the pinned release; document a no-go if exact inputs are unavailable.
 5. Re-read the manuscript tables against artifacts, have a knowledgeable researcher review the model assumptions, and retain all toy-model limitations in any abstract or outreach.
@@ -33,6 +33,11 @@
 Acceptable: “A reproducible controlled synthetic benchmark quantifies the effect of a known catalogue-inclusion mechanism and several selection-law assumptions on a simplified dark-siren inference model.”
 
 Unacceptable: “Solved the Hubble tension,” “measured a new H0,” “first method for incomplete galaxy catalogues,” “validated LVK performance,” or “inverse weighting universally fixes incompleteness.”
+
+## Current follow-up documentation
+
+- The host-density campaign's authoritative full results are in [host-density sensitivity screening results](host_density_sensitivity_screening_results_2026-10-29.md); the supplemental [follow-up validation note](followup_validation_host_density_and_sbc_2026-10-29.md) summarizes the result and cross-checks the baseline numbers.
+- Draft PR #8 contains paired grid/bandwidth sensitivity validation and remains separate from the main draft PR. Neither PR should be merged automatically; scientific review and the current-head test matrix remain gates.
 
 ## Final project scope
 
