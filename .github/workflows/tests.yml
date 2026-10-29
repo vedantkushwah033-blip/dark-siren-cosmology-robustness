@@ -52,6 +52,10 @@ jobs:
         run: python -m pytest tests/test_estimated_inclusion.py -q
       - name: Test estimated-inclusion pilot runner
         run: python -m pytest tests/test_estimated_inclusion_study.py -q
+      - name: Test independent estimated-inclusion artifact auditor
+        run: python -m pytest tests/test_audit_estimated_inclusion_pilot.py -q
+      - name: Independently audit estimated-inclusion pilot smoke artifacts
+        run: python scripts/audit_estimated_inclusion_pilot.py artifacts/estimated_inclusion_pilot_smoke
       - name: Run non-confirmatory estimated-inclusion pilot smoke experiment
         run: python scripts/run_estimated_inclusion_pilot.py --replicates 2 --n-parent 1200 --n-detected 8 --validation-sizes 100,300 --seed 20261030 --h0-points 41 --z-points 201 --output-dir artifacts/estimated_inclusion_pilot_smoke
       - name: Check estimated-inclusion pilot smoke outputs
