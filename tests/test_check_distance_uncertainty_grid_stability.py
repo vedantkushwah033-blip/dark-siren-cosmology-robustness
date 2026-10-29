@@ -110,3 +110,24 @@ def test_grid_stability_rejects_missing_raw_columns(tmp_path):
 
     with pytest.raises(ValueError, match="raw CSV missing columns"):
         check_grid_stability(raw_path, fine_grid_points=3201)
+
+
+
+def test_posterior_quantile_reconstruction_flags_boundary_mass():
+    import numpy as np
+
+    from scripts.check_distance_uncertainty_grid_stability import _posterior_quantiles
+
+    c = 299_792.458
+    z = 0.02
+    truth_at_boundary_distance = c * z / 50.0
+    row = {
+        "host_redshift": str(z),
+        "observed_distance_mpc": str(truth_at_boundary_distance),
+        "fractional_error": "0.004",
+        "generated_sigma_mpc": str(0.004 * truth_at_boundary_distance),
+        "arm": "A_fixed_realized_sigma",
+    }
+    summary = _posterior_quantiles(row, np.linspace(50.0, 90.0, 3201))
+
+    assert summary["boundary_mass_within_one_coarse_spacing"] > 0.05
