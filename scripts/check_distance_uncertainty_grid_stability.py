@@ -45,8 +45,12 @@ def _posterior_quantiles(row: dict[str, str], grid: np.ndarray) -> dict[str, flo
     # Flag probability near either edge using one spacing of the reference 1,601-point grid.
     # This is a diagnostic only: it does not fail the audit by itself.
     coarse_spacing = 40.0 / 1600.0
-    edge_mask = (grid <= grid[0] + coarse_spacing) | (grid >= grid[-1] - coarse_spacing)
-    boundary_mass = float(np.trapezoid(density[edge_mask], grid[edge_mask]))
+    left_mask = grid <= grid[0] + coarse_spacing
+    right_mask = grid >= grid[-1] - coarse_spacing
+    boundary_mass = float(
+        np.trapezoid(density[left_mask], grid[left_mask])
+        + np.trapezoid(density[right_mask], grid[right_mask])
+    )
     result = dict(zip(SUMMARY_COLUMNS, values))
     result["boundary_mass_within_one_coarse_spacing"] = boundary_mass
     return result
