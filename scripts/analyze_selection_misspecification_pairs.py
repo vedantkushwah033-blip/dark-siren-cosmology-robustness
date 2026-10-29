@@ -194,7 +194,7 @@ def analyze_records(rows, *, n_replicates, seed_start, h0_true, n_boot=10_000,
             indices = rng.integers(0, n_replicates, size=(stop - start, n_replicates))
             boot[start:stop] = np.mean(difference[indices], axis=1)
         lower, upper = (float(v) for v in np.quantile(boot, [0.025, 0.975]))
-        wins = int(np.sum(np.abs(errors[first]) < np.abs(errors[second]))))
+        wins = int(np.sum(np.abs(errors[first]) < np.abs(errors[second])))
         contrasts.append({
             "first_arm": first,
             "second_arm": second,
