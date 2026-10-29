@@ -23,3 +23,18 @@ def test_estimated_inclusion_pilot_is_reproducible_and_retains_failures():
     assert {"catalogue_only", "oracle", "estimated_100", "estimated_200"} == set(first["arm"])
     assert all(first["status"].isin(["success", "failed"]))
     assert len(summary["contrasts"]) <= 3
+
+
+def test_estimated_inclusion_pilot_rejects_non_integer_validation_sizes():
+    import pytest
+
+    for invalid_sizes in ((100.5,), (100.0,), (True,), ("100",)):
+        with pytest.raises(ValueError, match="integer counts"):
+            run_estimated_inclusion_pilot(
+                n_replicates=1,
+                n_parent=1000,
+                n_detected=5,
+                validation_sizes=invalid_sizes,
+                h0_points=31,
+                z_points=101,
+            )
