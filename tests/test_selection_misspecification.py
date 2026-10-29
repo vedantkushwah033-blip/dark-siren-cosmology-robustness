@@ -35,6 +35,15 @@ def test_selection_misspecification_is_paired_and_reproducible():
     assert all(0 <= item["coverage_wilson_95_low"] <= item["coverage_wilson_95_high"] <= 1
                for item in summary["aggregate_metrics"])
     assert len(summary["paired_contrasts_vs_catalogue_only"]) == 5
+    primary = summary["primary_estimand"]
+    catalogue_error = abs(first.loc[first.arm == "catalogue_only", "posterior_mean"].iloc[0] - 70.0)
+    weighted_error = abs(first.loc[first.arm == "correct_weighting", "posterior_mean"].iloc[0] - 70.0)
+    assert primary["mean"] == pytest.approx(catalogue_error - weighted_error)
+    assert primary["positive_favors"] == "correct_weighting"
+    assert primary["n_replicates"] == 1
+    assert primary["bootstrap_resamples"] == 10_000
+    assert primary["bootstrap_95_low"] == pytest.approx(primary["mean"])
+    assert primary["bootstrap_95_high"] == pytest.approx(primary["mean"])
     assert summary["paired_contrasts_vs_catalogue_only"][0]["squared_error_difference"]["standard_error"] is None
 
 

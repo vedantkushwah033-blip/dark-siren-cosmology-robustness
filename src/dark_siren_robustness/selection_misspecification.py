@@ -49,6 +49,32 @@ def _paired_mean_contrast(values: np.ndarray) -> dict:
             "normal_95_high": mean + 1.96 * standard_error}
 
 
+def _paired_bootstrap_summary(values: np.ndarray, *, seed: int, n_boot: int = 10_000) -> dict:
+    """Summarize paired replicate contrasts with a deterministic percentile bootstrap."""
+    values = np.asarray(values, dtype=float)
+    if values.ndim != 1 or values.size < 1 or not np.all(np.isfinite(values)):
+        raise ValueError("paired contrast values must be a nonempty finite vector")
+    if isinstance(n_boot, bool) or not isinstance(n_boot, int) or n_boot < 1000:
+        raise ValueError("n_boot must be an integer of at least 1000")
+    mean = float(np.mean(values))
+    if values.size < 2:
+        standard_error = normal_low = normal_high = None
+    else:
+        standard_error = float(np.std(values, ddof=1) / np.sqrt(values.size))
+        normal_low, normal_high = mean - 1.96 * standard_error, mean + 1.96 * standard_error
+    rng = np.random.default_rng(seed)
+    bootstrap_means = np.empty(n_boot, dtype=float)
+    for start in range(0, n_boot, 500):
+        stop = min(start + 500, n_boot)
+        indices = rng.integers(0, values.size, size=(stop - start, values.size))
+        bootstrap_means[start:stop] = np.mean(values[indices], axis=1)
+    low, high = (float(x) for x in np.quantile(bootstrap_means, [0.025, 0.975]))
+    return {"mean": mean, "standard_error": standard_error,
+            "normal_95_low": normal_low, "normal_95_high": normal_high,
+            "bootstrap_95_low": low, "bootstrap_95_high": high,
+            "bootstrap_resamples": int(n_boot), "analysis_seed": int(seed)}
+
+
 def run_selection_misspecification(
     *,
     n_replicates: int = 30,
@@ -200,6 +226,23 @@ def run_selection_misspecification(
             "squared_error_difference": _paired_mean_contrast(squared_error_difference),
             "density_ise_difference": _paired_mean_contrast(density_ise_difference),
         })
+    catalogue_errors = (
+        frame.loc[frame["arm"] == "catalogue_only"].set_index("replicate")["posterior_mean"] - h0_true
+    )
+    weighted_errors = (
+        frame.loc[frame["arm"] == "correct_weighting"].set_index("replicate")["posterior_mean"] - h0_true
+    )
+    # Positive D means inverse-inclusion weighting reduced absolute posterior-mean error.
+    primary_values = np.abs(catalogue_errors.to_numpy()) - np.abs(weighted_errors.to_numpy())
+    analysis_seed = int(seed) + 104729
+    primary_estimand = _paired_bootstrap_summary(primary_values, seed=analysis_seed, n_boot=10_000)
+    primary_estimand.update({
+        "name": "paired_absolute_error_reduction_catalogue_only_minus_correct_weighting",
+        "definition": "abs(posterior_mean_catalogue_only - H0_true) - abs(posterior_mean_correct_weighting - H0_true)",
+        "reference_arm": "catalogue_only", "comparison_arm": "correct_weighting",
+        "positive_favors": "correct_weighting", "n_replicates": int(len(primary_values)),
+    })
+
     summary = {
         "status": "synthetic_selection_misspecification_pilot_not_real_H0_measurement",
         "experiment": "selection_function_misspecification_v1",
@@ -216,6 +259,7 @@ def run_selection_misspecification(
         "density_target": "normalized latent_galaxy_intensity(z) times declared linear merger weight",
         "arms": list(analyst_models),
         "aggregate_metrics": aggregate,
+        "primary_estimand": primary_estimand,
         "paired_contrasts_vs_catalogue_only": paired_contrasts,
         "paired_contrast_interval_note": "Normal-approximation intervals use the replicate-level paired-difference standard error; for one replicate only, uncertainty bounds are null. Use more replicates for research claims.",
         "limitations": [

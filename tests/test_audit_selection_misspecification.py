@@ -86,6 +86,21 @@ def test_audit_rejects_missing_arm_even_when_manifest_is_rehashed(tmp_path):
 
 
 
+def test_audit_rejects_tampered_primary_estimand_even_if_summary_is_rehashed(tmp_path):
+    folder = tmp_path / "pilot"
+    _run_smoke(folder)
+    summary_path = folder / "summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["primary_estimand"]["mean"] += 1.0
+    summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + chr(10), encoding="utf-8")
+    manifest_path = folder / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["files"]["summary.json"]["sha256"] = hashlib.sha256(summary_path.read_bytes()).hexdigest()
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + chr(10), encoding="utf-8")
+    with pytest.raises(ValueError, match="primary estimand mean mismatch"):
+        audit_artifacts(folder)
+
+
 def test_audit_rejects_impossible_weight_ess_even_if_manifest_is_rehashed(tmp_path):
     folder = tmp_path / "pilot"
     _run_smoke(folder)

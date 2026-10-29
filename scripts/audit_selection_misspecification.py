@@ -6,6 +6,7 @@ import csv
 import hashlib
 import json
 import math
+import numpy as np
 from pathlib import Path
 
 ARMS = ("analytic_truth", "oracle", "catalogue_only", "correct_weighting", "shifted_transition", "shallow_slope")
@@ -89,6 +90,30 @@ def _paired_summary(values):
     se = math.sqrt(variance / len(values))
     return {"mean": mean, "standard_error": se,
             "normal_95_low": mean - 1.96 * se, "normal_95_high": mean + 1.96 * se}
+
+
+def _bootstrap_mean_interval(values, *, seed, n_boot=10_000):
+    """Recompute the preregistered paired-bootstrap interval from replicate rows."""
+    array = np.asarray(values, dtype=float)
+    if array.ndim != 1 or array.size < 1 or not np.all(np.isfinite(array)):
+        raise ValueError("primary estimand values must be a nonempty finite vector")
+    mean = float(np.mean(array))
+    if array.size < 2:
+        standard_error = normal_low = normal_high = None
+    else:
+        standard_error = float(np.std(array, ddof=1) / math.sqrt(array.size))
+        normal_low, normal_high = mean - 1.96 * standard_error, mean + 1.96 * standard_error
+    rng = np.random.default_rng(seed)
+    samples = np.empty(n_boot, dtype=float)
+    for start in range(0, n_boot, 500):
+        stop = min(start + 500, n_boot)
+        indices = rng.integers(0, array.size, size=(stop - start, array.size))
+        samples[start:stop] = array[indices].mean(axis=1)
+    low, high = (float(x) for x in np.quantile(samples, [0.025, 0.975]))
+    return {"mean": mean, "standard_error": standard_error,
+            "normal_95_low": normal_low, "normal_95_high": normal_high,
+            "bootstrap_95_low": low, "bootstrap_95_high": high,
+            "bootstrap_resamples": int(n_boot), "analysis_seed": int(seed)}
 
 
 def audit_artifacts(output_dir: str | Path) -> dict:
@@ -248,6 +273,35 @@ def audit_artifacts(output_dir: str | Path) -> dict:
                         raise ValueError(f"{arm} paired {metric} {field} should be null for one replicate")
                 else:
                     _close(saved.get(field), value, f"{arm} paired {metric} {field}", atol=1e-7)
+    # Independent calculation of the preregistered primary paired absolute-error reduction.
+    primary_values = []
+    for rep in range(n_replicates):
+        cat_error = _num(by_key[(rep, "catalogue_only")]["posterior_mean"], "catalogue-only posterior mean") - h0_true
+        weighted_error = _num(by_key[(rep, "correct_weighting")]["posterior_mean"], "weighted posterior mean") - h0_true
+        primary_values.append(abs(cat_error) - abs(weighted_error))
+    expected_primary = _bootstrap_mean_interval(
+        primary_values, seed=int(summary["seed_start"]) + 104729, n_boot=10_000
+    )
+    saved_primary = summary.get("primary_estimand")
+    if not isinstance(saved_primary, dict):
+        raise ValueError("primary estimand missing from summary")
+    identity = {
+        "name": "paired_absolute_error_reduction_catalogue_only_minus_correct_weighting",
+        "definition": "abs(posterior_mean_catalogue_only - H0_true) - abs(posterior_mean_correct_weighting - H0_true)",
+        "reference_arm": "catalogue_only", "comparison_arm": "correct_weighting",
+        "positive_favors": "correct_weighting", "n_replicates": n_replicates,
+    }
+    for key, value in identity.items():
+        if saved_primary.get(key) != value:
+            raise ValueError(f"primary estimand {key} mismatch")
+    for key, value in expected_primary.items():
+        actual = saved_primary.get(key)
+        if value is None:
+            if actual is not None:
+                raise ValueError(f"primary estimand {key} should be null for one replicate")
+        else:
+            _close(actual, value, f"primary estimand {key}", atol=1e-7)
+
     return {"status": "PASS", "raw_records": len(rows), "replicates": n_replicates,
             "posterior_grids_reconstructed": len(rows), "aggregate_arms_reconstructed": len(ARMS),
             "replicate_metrics_sha256": hashlib.sha256(raw_path.read_bytes()).hexdigest(),

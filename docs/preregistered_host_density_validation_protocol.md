@@ -120,3 +120,15 @@ Publish, at minimum:
 - A concise statement of what the toy experiment cannot establish.
 
 **Current status note:** this protocol is a prespecification proposal. It must be reviewed and locked before the confirmatory seed set is generated. It does not imply that the pilot or confirmation has run.
+
+## 9. Stage A calibration and locked Stage B design (2026-10-29)
+
+Stage A completed with 200 paired replicates. See [the audited Stage A report](selection_misspecification_stage_a_report_2026-10-29.md) and [workflow run #1](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40793766654).
+
+For the primary paired estimand define `D_r = |posterior_mean(catalogue_only,r)-H0_true| - |posterior_mean(correct_weighting,r)-H0_true|`. Stage A gives mean D = 6.535691 km s^-1 Mpc^-1, sample SD = 4.321762, and SE = 0.305595 (n=200). The precision formula gives `N = ceil((1.96 * 4.321762 / 0.5)^2) = 288`.
+
+The minimum therefore governs: **Stage B is locked at 500 paired replicates**, with planning half-width 1.96 × 4.321762 / sqrt(500) ≈ 0.379 km s^-1 Mpc^-1, conditional on the Stage A SD being useful for planning. Confirmatory seeds are fixed at **20262030–20262529**, disjoint from Stage A seeds **20261030–20261229**.
+
+Locked Stage B configuration: 4,000 parent galaxies per replicate; 30 detected events; fixed true H0 = 70 km s^-1 Mpc^-1; 81-point H0 grid over [50, 90]; 401-point redshift grid over [0.01, 0.40]; same selection law and six arms; corrected Scott bandwidth default. The primary result is mean D with a percentile-bootstrap 95% interval using 10,000 resamples; also report paired SE and normal interval. Deterministic bootstrap seed is `seed_start + 104729`.
+
+This is prospective planning, not evidence of favorable confirmatory results. Do not change the seed range, replicate count, primary contrast, or interval method after observing Stage B output. Code changes affecting the estimand/audit invalidate this run and require a new locked commit and disjoint seed stream.

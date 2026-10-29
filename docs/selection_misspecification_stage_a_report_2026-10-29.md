@@ -71,3 +71,13 @@ Still outstanding before any confirmatory claim:
 5. literature comparison and a final scientific review of model assumptions.
 
 Do not combine this result with older KDE-based runs produced under the previous SciPy bandwidth semantics.
+
+## Prospective precision calculation and confirmation gate
+
+The preregistered primary contrast is positive when correct weighting reduces absolute posterior-mean error:
+
+`D_r = |posterior_mean_catalogue_only - H0_true| - |posterior_mean_correct_weighting - H0_true|`.
+
+Reconstructed from the 200 paired Stage A rows: mean D = **6.535691 km s^-1 Mpc^-1**, sample SD = **4.321762**, and SE = **0.305595**. The 95% half-width target of 0.5 gives N = ceil((1.96 × 4.321762 / 0.5)^2) = **288**; the prespecified minimum raises Stage B to **500 paired replicates**. The implied planning half-width is approximately **0.379 km s^-1 Mpc^-1**. Stage B seeds **20262030–20262529** do not overlap Stage A seeds **20261030–20261229**.
+
+This sizing uses the pilot's estimated paired variance and may miss the target if that estimate is unstable. Stage B must report its actual paired-bootstrap interval and must not stop early based on significance or direction.

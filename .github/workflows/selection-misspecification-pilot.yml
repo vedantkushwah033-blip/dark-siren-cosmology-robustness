@@ -4,6 +4,16 @@ on:
   push:
     branches:
       - research/audit-posterior-grid-integrity
+    paths:
+      - "src/dark_siren_robustness/selection_misspecification.py"
+      - "src/dark_siren_robustness/catalogue_density.py"
+      - "src/dark_siren_robustness/selection_toy.py"
+      - "src/dark_siren_robustness/generative_selection.py"
+      - "src/dark_siren_robustness/host_density_benchmark.py"
+      - "scripts/run_selection_misspecification.py"
+      - "scripts/audit_selection_misspecification.py"
+      - "tests/test_selection_misspecification.py"
+      - "tests/test_audit_selection_misspecification.py"
   pull_request:
     branches:
       - main
