@@ -38,3 +38,31 @@ def test_estimated_inclusion_pilot_rejects_non_integer_validation_sizes():
                 h0_points=31,
                 z_points=101,
             )
+
+
+def test_inclusion_probability_mae_is_scored_on_full_parent_population(monkeypatch):
+    import dark_siren_robustness.estimated_inclusion_study as study
+
+    original = study.predict_inclusion_probability
+    scored_sizes = []
+
+    def tracking_predict(redshift, model):
+        scored_sizes.append(len(redshift))
+        return original(redshift, model)
+
+    monkeypatch.setattr(study, "predict_inclusion_probability", tracking_predict)
+    frame, _summary = study.run_estimated_inclusion_pilot(
+        n_replicates=1,
+        n_parent=1000,
+        n_detected=5,
+        validation_sizes=(100,),
+        seed=20261043,
+        h0_points=41,
+        z_points=201,
+    )
+    estimated_successes = frame.loc[
+        frame["arm"].eq("estimated_100") & frame["status"].eq("success")
+    ]
+    assert not estimated_successes.empty
+    assert scored_sizes == [1000]
+    assert estimated_successes["inclusion_probability_mae"].notna().all()
