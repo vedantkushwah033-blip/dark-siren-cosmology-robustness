@@ -22,6 +22,10 @@ def test_independent_pilot_auditor_reconstructs_output(tmp_path):
     report = audit_pilot_artifacts(tmp_path)
     assert report["status"] == "PASS"
     assert report["n_rows"] == 4
+    assert report["n_replicate_arm_pairs_expected"] == 4
+    assert report["n_replicate_arm_pairs_observed"] == 4
+    assert set(report["per_arm_counts"]) == {"catalogue_only", "oracle", "estimated_100", "estimated_200"}
+    assert "n_boundary_limited_successful_fits" in report
 
 
 def test_independent_pilot_auditor_detects_corrupted_summary(tmp_path):
