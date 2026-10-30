@@ -435,9 +435,9 @@ def run_estimated_inclusion_pilot(
         baseline = successful.loc[successful["arm"] == "catalogue_only"].set_index("replicate")
         for arm in ["oracle"] + [f"estimated_{m}" for m in sizes]:
             comparison = successful.loc[successful["arm"] == arm].set_index("replicate")
-            paired = baseline[["absolute_error"]].join(
-                comparison[["absolute_error"]], how="inner",
-                lsuffix="_baseline", rsuffix="_comparison"
+            paired = baseline[["absolute_error"]].merge(
+                comparison[["absolute_error"]], left_index=True, right_index=True,
+                how="inner", suffixes=("_baseline", "_comparison")
             )
             values = (
                 paired["absolute_error_baseline"] - paired["absolute_error_comparison"]
