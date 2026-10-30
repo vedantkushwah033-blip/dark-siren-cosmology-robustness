@@ -204,6 +204,10 @@ def bootstrap_validation_h0_posterior(
     return {
         "schema": "validation_h0_posterior_resampling_v1",
         "method": method,
+        "design_aware_method_status": (
+            "exploratory_pseudopopulation_resampling_not_studentized_inference"
+            if method == "design_aware_srswor" else "ordinary_paired_record_bootstrap"
+        ),
         "seed": int(seed),
         "n_attempted": int(n_bootstrap),
         "n_successful": int(np.sum(success)),
@@ -232,7 +236,10 @@ def bootstrap_validation_h0_posterior(
         "posterior_mean_percentile_interval_95": percentile,
         "uncertainty_interpretation": (
             "Intervals summarize resampling variability of posterior means, not H0 posterior credible intervals. "
-            "FPC-adjusted SE is a diagnostic comparator only; no validity theorem is claimed for this nonlinear "
-            "logistic/KDE/selection-aware posterior pipeline. The observed catalogue and GW distances are fixed."
+            "The design-aware branch is an exploratory multinomial-pseudo-population/SRSWOR resampling "
+            "construction; it does not implement the studentized finite-population-mean interval procedure "
+            "or establish its validity for this nonlinear posterior functional. Its percentile summaries are "
+            "descriptive resampling quantiles only. FPC-adjusted SE is diagnostic only. The observed "
+            "catalogue and GW distances are fixed."
         ),
     }
