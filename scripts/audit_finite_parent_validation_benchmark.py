@@ -1,8 +1,7 @@
-"""Independent structural audit for finite-parent SRSWOR benchmark outputs.
+"""Independent numerical audit for finite-parent SRSWOR benchmark outputs.
 
-This audit verifies design bookkeeping and replay of validation samples. It does
-not independently reconstruct the statistical estimator; that is a separate
-validation requirement before confirmatory claims.
+Regenerates synthetic inputs, replays exact validation samples, reconstructs
+successful estimator outputs and posterior summaries, and re-derives aggregates.
 """
 from __future__ import annotations
 
@@ -293,13 +292,13 @@ def audit(artifact_dir: Path) -> dict:
                 _close(metric.get(name, np.nan), value, f"summary {size}/{name}")
 
     return {
-        "status": "STRUCTURAL_AUDIT_PASS",
+        "status": "INDEPENDENT_NUMERICAL_AUDIT_PASS",
         "n_attempted": attempted,
         "n_successful": successful,
         "n_failed": failed,
         "n_scenarios": n_scenarios,
         "validation_sizes": sizes,
-        "scope": "independent synthetic-input regeneration, SRSWOR bookkeeping, provenance, and seed replay; not estimator reconstruction",
+        "scope": "independent input regeneration, SRSWOR replay, logistic/KDE/likelihood/posterior reconstruction, and aggregate re-derivation for successful records",
     }
 
 
