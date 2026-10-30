@@ -219,3 +219,18 @@ This classification does not make failures ignorable. Every failure remains
 in the attempted-run denominator, and category-specific failure rates must be
 reported. The broad `unexpected_exception` category is a warning signal,
 not a successful numerical outcome.
+
+
+## Inferential status of the current posterior-level pseudo-population branch
+
+The current `design_aware_srswor` posterior wrapper is an **exploratory resampling implementation**, not a completed implementation of a design-based confidence-interval procedure. It generates a multinomial pseudo-population of size (N), draws an SRSWOR sample of size (n), refits the nonlinear inclusion/KDE/selection-aware posterior pipeline, and retains the pseudo-population posterior mean as a replicate-specific reference.
+
+That construction alone does not implement the studentized finite-population-mean interval procedure described by Wang, Peng & Kim (2022). In particular, the current wrapper does not construct and calibrate the appropriate studentized statistic for the nonlinear posterior-mean functional. Its percentile summaries are descriptive resampling quantiles only. The finite-population-mean theory cannot be transferred automatically to the logistic/KDE/selection-normalized posterior functional.
+
+Accordingly:
+- do not label the current design-aware percentile output a calibrated 95% confidence interval;
+- do not interpret its raw bootstrap standard error or the scalar FPC-adjusted diagnostic as validated uncertainty;
+- retain the replicate-specific pseudo-population reference means for future studentization research;
+- require a separately specified statistic, centering rule, variance estimator, and independent coverage study before making a design-based calibration claim.
+
+The producer now records a machine-readable `design_aware_method_status`, and the independent auditor rejects artifacts that misstate this inferential scope.
