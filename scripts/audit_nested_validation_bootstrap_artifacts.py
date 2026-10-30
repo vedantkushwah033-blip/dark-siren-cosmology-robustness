@@ -213,12 +213,12 @@ def audit(directory: Path) -> dict:
                 & records.method.eq("paired_bootstrap")
             ].iloc[0]
             fpc_se = float(paired_record.bootstrap_se) * expected_fpc
-            _require(_same_number(float(row.bootstrap_se_record), fpc_se),
+            _require(_same_number(float(row.bootstrap_se), fpc_se),
                      "FPC standard error does not match paired SE times FPC")
-            center = float(row.outer_posterior_mean_record)
-            _require(_same_number(float(row.interval_low_record), center-1.96*fpc_se),
+            center = float(row.outer_posterior_mean)
+            _require(_same_number(float(row.interval_low), center-1.96*fpc_se),
                      "FPC lower endpoint mismatch")
-            _require(_same_number(float(row.interval_high_record), center+1.96*fpc_se),
+            _require(_same_number(float(row.interval_high), center+1.96*fpc_se),
                      "FPC upper endpoint mismatch")
 
     rebuilt_scenario, rebuilt_aggregate = _independent_summaries(records)
