@@ -165,6 +165,13 @@ def test_preposterior_diagnostics_are_observable_only_and_reconstruct_weight_met
     assert result["n_validation_included"] == 100
     assert result["inverse_weight_ess"] == pytest.approx(expected_ess)
     assert result["inverse_weight_ess_fraction"] == pytest.approx(expected_ess / 80)
+    normalized = weights / weights.sum()
+    entropy_fraction = np.exp(-np.sum(normalized * np.log(normalized))) / len(weights)
+    assert result["inverse_weight_entropy_ess_fraction"] == pytest.approx(entropy_fraction)
+    assert result["inverse_weight_max_share"] == pytest.approx(normalized.max())
+    assert result["inverse_weight_top_1pct_mass"] >= result["inverse_weight_max_share"]
+    assert result["inverse_weight_top_5pct_mass"] >= result["inverse_weight_top_1pct_mass"]
+    assert 0 <= result["catalogue_near_validation_boundary_fraction"] <= 1
     assert result["catalogue_outside_validation_range_fraction"] == 0.0
     assert not any("true_" in key or "posterior" in key or "coverage" in key for key in result)
 
