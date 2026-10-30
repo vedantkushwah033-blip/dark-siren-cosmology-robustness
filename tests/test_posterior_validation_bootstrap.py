@@ -64,6 +64,15 @@ def test_posterior_validation_bootstrap_replays_full_toy_pipeline(method):
     assert audit["status"] == "PASS"
     assert audit["independently_reconstructed_posteriors"] == first["n_successful"]
 
+    tampered_scope = dict(first)
+    tampered_scope["design_aware_method_status"] = "validated_studentized_finite_population_bootstrap"
+    with pytest.raises(AssertionError, match="design-aware method status"):
+        audit_posterior_validation_bootstrap(
+            tampered_scope, z_grid, h0_grid, observed_z, validation_z, validation_y, distances,
+            sigma_mpc=140.0, detection_threshold_mpc=250.0,
+            parent_population_size=180, merger_weight=merger,
+        )
+
     if method == "paired_bootstrap":
         assert first["pseudo_population_indices"] == []
         assert np.isfinite(first["fixed_full_validation_reference_mean"])
