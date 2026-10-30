@@ -87,6 +87,56 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         raise AssertionError("replicate table is empty or has duplicate replicate/arm rows")
     if not set(frame["status"]).issubset({"success", "failed"}):
         raise AssertionError("unknown fit status in replicate table")
+
+    # Reconstruct the per-replicate positivity/overlap diagnostics independently.
+    positivity_columns = [
+        "true_probability_min", "true_probability_max", "true_probability_p01",
+        "true_probability_p05", "true_probability_below_005",
+        "true_probability_below_010", "true_max_inverse_probability",
+        "true_retention_rate", "audit_included_count",
+    ]
+    missing_positivity = set(positivity_columns) - set(frame.columns)
+    if missing_positivity:
+        raise AssertionError(f"replicate table missing positivity diagnostics: {sorted(missing_positivity)}")
+    pmin = pd.to_numeric(frame["true_probability_min"], errors="raise").to_numpy(dtype=float)
+    pmax = pd.to_numeric(frame["true_probability_max"], errors="raise").to_numpy(dtype=float)
+    p01 = pd.to_numeric(frame["true_probability_p01"], errors="raise").to_numpy(dtype=float)
+    p05 = pd.to_numeric(frame["true_probability_p05"], errors="raise").to_numpy(dtype=float)
+    below05 = pd.to_numeric(frame["true_probability_below_005"], errors="raise").to_numpy(dtype=float)
+    below10 = pd.to_numeric(frame["true_probability_below_010"], errors="raise").to_numpy(dtype=float)
+    retention = pd.to_numeric(frame["true_retention_rate"], errors="raise").to_numpy(dtype=float)
+    max_inverse = pd.to_numeric(frame["true_max_inverse_probability"], errors="raise").to_numpy(dtype=float)
+    for label, values in (("true_probability_min", pmin), ("true_probability_max", pmax),
+                          ("true_probability_p01", p01), ("true_probability_p05", p05),
+                          ("true_probability_below_005", below05),
+                          ("true_probability_below_010", below10),
+                          ("true_retention_rate", retention),
+                          ("true_max_inverse_probability", max_inverse)):
+        if not np.all(np.isfinite(values)):
+            raise AssertionError(f"{label} must be finite on every replicate row")
+    if np.any((pmin <= 0) | (pmax >= 1) | (pmin > p01) | (p01 > p05) | (p05 > pmax)):
+        raise AssertionError("true inclusion-probability extrema/quantiles are invalid")
+    if np.any((below05 < 0) | (below05 > 1) | (below10 < 0) | (below10 > 1)
+              | (retention < 0) | (retention > 1) | (below05 > below10)):
+        raise AssertionError("positivity fractions or retention rates are outside valid bounds")
+    if not np.allclose(max_inverse, 1.0 / pmin, rtol=1e-9, atol=1e-9):
+        raise AssertionError("true_max_inverse_probability disagrees with true_probability_min")
+    for replicate, group in frame.groupby("replicate"):
+        for column in positivity_columns[:-1]:
+            values = pd.to_numeric(group[column], errors="raise").to_numpy(dtype=float)
+            if not np.allclose(values, values[0], rtol=1e-9, atol=1e-9):
+                raise AssertionError(f"{column} varies across arms in replicate {replicate}")
+        for _, row in group.iterrows():
+            arm = str(row["arm"])
+            count = row["audit_included_count"]
+            if arm.startswith("estimated_"):
+                m = int(arm.split("_")[1])
+                if pd.isna(count) or float(count) != int(float(count)) or not 0 <= int(float(count)) <= m:
+                    raise AssertionError(f"{arm}: invalid audit_included_count")
+                if int(float(row["validation_size"])) != m:
+                    raise AssertionError(f"{arm}: audit sample size differs from arm definition")
+            elif not pd.isna(count):
+                raise AssertionError(f"{arm}: non-estimated arm must not store an audit_included_count")
     success = frame["status"].eq("success")
     failed_errors = frame.loc[~success, "error"].fillna("").astype(str)
     if not failed_errors.str.len().gt(0).all():
