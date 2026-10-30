@@ -15,6 +15,7 @@ from scipy.special import expit
 
 from dark_siren_robustness.catalogue_density import estimate_host_density
 from dark_siren_robustness.estimated_inclusion import (
+    bootstrap_validation_inclusion_density,
     estimate_host_density_from_validation,
     predict_inclusion_probability,
 )
@@ -477,3 +478,99 @@ def run_estimated_inclusion_pilot(
         ),
     }
     return frame, summary
+
+
+def run_validation_bootstrap_posterior_sensitivity(
+    *,
+    redshift_grid: np.ndarray,
+    observed_redshift: np.ndarray,
+    validation_redshift: np.ndarray,
+    validation_included: np.ndarray,
+    h0_grid: np.ndarray,
+    observed_gw_distances_mpc: np.ndarray,
+    sigma_mpc: float,
+    detection_threshold_mpc: float,
+    n_bootstrap: int = 200,
+    seed: int = 20261030,
+    merger_weight: np.ndarray | None = None,
+    bandwidth_factor: float | None = None,
+) -> dict:
+    """Propagate validation-record bootstrap draws through the fixed toy GW likelihood.
+
+    The observed catalogue and GW-event distances remain fixed. Each successful
+    validation bootstrap refits inclusion probabilities, rebuilds the host
+    density, and recomputes the selection-conditioned H0 posterior. Percentile
+    ranges across posterior summaries quantify validation-sample sensitivity;
+    they are not posterior credible intervals.
+    """
+    z_grid = np.asarray(redshift_grid, dtype=float)
+    h0_values = np.asarray(h0_grid, dtype=float)
+    distances = np.asarray(observed_gw_distances_mpc, dtype=float)
+    if (
+        h0_values.ndim != 1 or h0_values.size < 31
+        or not np.all(np.isfinite(h0_values)) or np.any(np.diff(h0_values) <= 0)
+        or np.any(h0_values <= 0)
+    ):
+        raise ValueError("h0_grid must be finite, positive, strictly increasing, and have >=31 points")
+    if (
+        distances.ndim != 1 or distances.size < 1
+        or not np.all(np.isfinite(distances)) or np.any(distances <= 0)
+    ):
+        raise ValueError("observed_gw_distances_mpc must be finite and positive")
+    if not np.isfinite(sigma_mpc) or sigma_mpc <= 0:
+        raise ValueError("sigma_mpc must be finite and positive")
+    if not np.isfinite(detection_threshold_mpc) or detection_threshold_mpc <= 0:
+        raise ValueError("detection_threshold_mpc must be finite and positive")
+    if np.any(distances < detection_threshold_mpc):
+        raise ValueError("all supplied GW distances must satisfy the detection threshold")
+
+    bootstrap = bootstrap_validation_inclusion_density(
+        z_grid, observed_redshift, validation_redshift, validation_included,
+        n_bootstrap=n_bootstrap, seed=seed,
+        merger_weight=merger_weight, bandwidth_factor=bandwidth_factor,
+    )
+    posterior_means: list[float] = []
+    posterior_medians: list[float] = []
+    credible_lows: list[float] = []
+    credible_highs: list[float] = []
+    for density in bootstrap["density_draws"]:
+        likelihood = selection_aware_toy_likelihood(
+            z_grid, density, h0_values, distances,
+            sigma=float(sigma_mpc),
+            detection_threshold=float(detection_threshold_mpc),
+        )
+        posterior = posterior_summary(h0_values, likelihood["selected_log_likelihood"])
+        posterior_means.append(float(posterior["posterior_mean"]))
+        posterior_medians.append(float(posterior["posterior_median"]))
+        credible_lows.append(float(posterior["ci68_low"]))
+        credible_highs.append(float(posterior["ci68_high"]))
+
+    means = np.asarray(posterior_means, dtype=float)
+    if means.size >= 2:
+        mean_interval = np.quantile(means, [0.025, 0.975]).tolist()
+    else:
+        mean_interval = None
+    return {
+        "schema": "validation_bootstrap_posterior_sensitivity_v1",
+        "seed": int(seed),
+        "n_attempted": int(bootstrap["n_attempted"]),
+        "n_successful": int(bootstrap["n_successful"]),
+        "n_failed": int(bootstrap["n_failed"]),
+        "posterior_mean_draws": means,
+        "posterior_median_draws": np.asarray(posterior_medians, dtype=float),
+        "posterior_ci68_low_draws": np.asarray(credible_lows, dtype=float),
+        "posterior_ci68_high_draws": np.asarray(credible_highs, dtype=float),
+        "posterior_mean_bootstrap_percentile_95": mean_interval,
+        "density_draws": bootstrap["density_draws"],
+        "intercept_draws": bootstrap["intercept_draws"],
+        "slope_draws": bootstrap["slope_draws"],
+        "coefficient_boundary_limited_draws": bootstrap[
+            "coefficient_boundary_limited_draws"
+        ],
+        "failure_reasons": bootstrap["failure_reasons"],
+        "interpretation": (
+            "validation-bootstrap sensitivity of posterior summaries conditional on "
+            "the fixed catalogue and GW distances; percentile range is not an H0 "
+            "posterior credible interval or a full uncertainty interval"
+        ),
+    }
