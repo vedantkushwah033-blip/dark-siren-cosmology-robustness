@@ -111,9 +111,10 @@ def summarize_bootstrap_calibration(records: pd.DataFrame) -> tuple[pd.DataFrame
     if (outer_consistency["target_count"] > 1).any():
         raise ValueError("finite-parent target must be fixed within each outer draw")
 
-    # The finite-frame target must also be fixed over all draws in a scenario.
-    if frame.groupby(["scenario", "validation_size"])["finite_parent_target"].nunique(dropna=True).gt(1).any():
-        raise ValueError("finite_parent_target must be fixed within each scenario and validation size")
+    # The finite-frame target is computed from the full parent frame and
+    # therefore cannot depend on validation sample size or outer draw.
+    if frame.groupby("scenario")["finite_parent_target"].nunique(dropna=True).gt(1).any():
+        raise ValueError("finite_parent_target must be fixed within each scenario across validation sizes")
 
     # Deduplicate outer draws before computing empirical SRSWOR variability.
     outer = frame.drop_duplicates(["scenario", "validation_size", "outer_draw"])
