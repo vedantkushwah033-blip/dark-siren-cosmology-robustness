@@ -90,3 +90,9 @@ If any criterion fails, fix the pipeline and rerun the relevant smoke/pilot stag
 ## 7. Claim boundary
 
 The experiment is a controlled synthetic, low-redshift Euclidean toy study. It is not an analysis of LVK/GWTC observations, not a new observational H0 result, and not evidence that the method corrects real galaxy-catalogue incompleteness. Any generalization to real dark-siren analyses requires a separate observational likelihood, realistic selection modeling, and validation against appropriate external benchmarks.
+
+## 8. Scenario-level uncertainty intervals in the summary artifact
+
+The calibration summarizer now reports nominal 95% Student-t intervals across independent parent scenarios for scenario-balanced mean SE/outer-SD ratio, finite-frame target coverage, interval width, and outer/inner failure fractions. The number of scenarios contributing to each interval is reported separately. Outer draws and inner replicates are not used as independent degrees of freedom.
+
+These intervals are descriptive small-sample intervals under an independent, approximately well-behaved scenario-level sampling distribution. They are not exact binomial intervals for coverage and do not correct a poorly designed simulation. Confirmatory precision planning must still use pilot-estimated scenario-level variability, assess skewness/outliers, and may require a scenario bootstrap or other justified hierarchical method. If fewer than two independent scenarios contribute, interval endpoints are unavailable rather than fabricated.
