@@ -37,3 +37,8 @@ All attempted outer draws remain in the denominator for outer failure fractions.
 `dark_siren_robustness.bootstrap_calibration.summarize_bootstrap_calibration` implements scenario-level and scenario-balanced summaries. It requires one row per scenario × validation size × outer draw × method, validates duplicate grain, fixed finite-parent targets, status values, successful metric finiteness, nonnegative standard errors, and ordered intervals.
 
 This is a post-processing component only. The persisted nested outer-SRSWOR/inner-bootstrap runner, independent artifact replay for the combined experiment, pilot, and confirmatory study remain to be implemented. No calibration claim or empirical result is made by the presence of this summary function.
+
+
+## Why the two failure layers are distinct
+
+A failed outer inclusion-model/posterior fit means there is no outer posterior mean and no inner bootstrap should be run (`bootstrap_status=not_run`). If the outer fit succeeds but one inner bootstrap method fails, the outer estimate remains part of the empirical repeated-SRSWOR distribution; only that method's bootstrap SE/interval is unavailable (`bootstrap_status=failed`). This prevents method-specific inner failures from changing the empirical reference SD against which methods are compared.
