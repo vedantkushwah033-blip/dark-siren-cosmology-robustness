@@ -1,6 +1,6 @@
 # Validation bridge: finite-population means to dark-siren posterior functionals
 
-**Status:** design note. The linear benchmark is implemented, but its pilot and independent artifact audit are awaiting exact-head CI. This note reports no new numerical result.
+**Status:** design note. The v1 linear pilot completed and its outer artifact audit passed on the recorded source commit. The audit boundary and required v2 inner-attempt accounting are documented separately. This note does not claim confirmatory evidence.
 
 ## Why a validation bridge is needed
 
@@ -70,4 +70,4 @@ A credible interval's nominal posterior probability is not the same quantity as 
 
 ## Current stop/go gate
 
-The new CI workflow invokes the linear-bootstrap primitive tests, benchmark/auditor tests, pilot runner, and independent artifact auditor. Its latest run is pending. Until it completes successfully and the audit report is inspected, the linear pilot remains unverified. The nonlinear dark-siren claims remain bounded by their own synthetic-model assumptions and the separate external-data benchmark gate.
+The v1 PR-triggered workflow passed on Python 3.10, 3.11, and 3.12, and its Python 3.12 artifact audit reported PASS for three frames, 1,800 outer method attempts, and 18 summary cells. The v1 artifact does not serialize an independently checkable inner-bootstrap failure histogram; see the v2 remediation protocol. A later workflow on commit `9b26b23c29e26ce5bcdd1f729749072fd5ac5329` passed Python 3.10 and 3.11 while Python 3.12 continued through the separate catalogue-thinning calibration. The nonlinear dark-siren claims remain bounded by their own synthetic-model assumptions and the separate external-data benchmark gate.
