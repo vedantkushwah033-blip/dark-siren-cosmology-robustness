@@ -83,6 +83,17 @@ def summarize_bootstrap_calibration(records: pd.DataFrame) -> tuple[pd.DataFrame
     if (frame.loc[outer_ok, "bootstrap_status"] == "not_run").any():
         raise ValueError("bootstrap status must be success or failed after a successful outer fit")
 
+    # Every scenario/size cell must contain the same declared method set
+    # on every outer draw. Otherwise method-specific missing rows could silently
+    # change the empirical comparison population.
+    for (scenario, size), cell in frame.groupby(["scenario", "validation_size"], sort=True):
+        expected_methods = set(cell["method"].astype(str))
+        method_sets = cell.groupby("outer_draw")["method"].apply(lambda values: set(values.astype(str)))
+        if any(method_set != expected_methods for method_set in method_sets):
+            raise ValueError(
+                f"every outer draw must contain the complete method set for scenario={scenario}, size={size}"
+            )
+
     # Every method must report the same outer result/status for a given draw.
     outer_consistency = frame.groupby(
         ["scenario", "validation_size", "outer_draw"], dropna=False
