@@ -214,3 +214,23 @@ def test_linear_auditor_preserves_v1_artifact_compatibility(tmp_path, monkeypatc
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     report = audit_artifact(tmp_path)
     assert report["status"] == "PASS"
+
+
+def test_linear_auditor_rejects_tampered_unconditional_coverage_even_with_updated_checksum(tmp_path, monkeypatch):
+    import csv
+
+    _write_small_linear_artifact(tmp_path, monkeypatch)
+    path = tmp_path / "linear_finite_population_bootstrap_summary.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        fields, rows = reader.fieldnames, list(reader)
+    rows[0]["coverage_unconditional_success_and_cover"] = str(
+        float(rows[0]["coverage_unconditional_success_and_cover"]) + 0.1
+    )
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+    _refresh_manifest_checksum(tmp_path, "summary_csv_sha256", "linear_finite_population_bootstrap_summary.csv")
+    with pytest.raises(ValueError, match="summary unconditional success-and-coverage mismatch"):
+        audit_artifact(tmp_path)
