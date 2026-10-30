@@ -73,22 +73,54 @@ def _independent_summaries(records: pd.DataFrame) -> tuple[pd.DataFrame, pd.Data
             "n_intervals_evaluated": int(len(boot)),
         })
     scenario = pd.DataFrame(scenario_rows)
+    from scipy.stats import t as student_t
+
+    def interval(values):
+        x = pd.to_numeric(values, errors="coerce").to_numpy(dtype=float)
+        x = x[np.isfinite(x)]
+        n = int(x.size)
+        if n == 0:
+            return np.nan, np.nan, np.nan, 0
+        mean = float(np.mean(x))
+        if n < 2:
+            return mean, np.nan, np.nan, n
+        se = float(np.std(x, ddof=1) / np.sqrt(n))
+        crit = float(student_t.ppf(0.975, df=n - 1))
+        return mean, mean - crit * se, mean + crit * se, n
+
     aggregate_rows = []
     for (size, method), group in scenario.groupby(["validation_size", "method"], sort=True):
         ratio = group.mean_se_to_empirical_sd_ratio.dropna()
         coverage = group.finite_parent_target_interval_coverage.dropna()
         widths = group.mean_interval_width.dropna()
+        ratio_mean, ratio_low, ratio_high, ratio_n = interval(ratio)
+        coverage_mean, coverage_low, coverage_high, coverage_n = interval(coverage)
+        width_mean, width_low, width_high, width_n = interval(widths)
+        outer_mean, outer_low, outer_high, _ = interval(group.outer_failure_fraction)
+        inner_mean, inner_low, inner_high, _ = interval(group.bootstrap_failure_fraction)
         aggregate_rows.append({
             "validation_size": int(size), "method": str(method),
             "n_scenarios": int(group.scenario.nunique()),
-            "n_scenarios_with_estimable_sd_ratio": int(len(ratio)),
-            "scenario_balanced_mean_se_ratio": float(ratio.mean()) if len(ratio) else np.nan,
+            "n_scenarios_with_estimable_sd_ratio": int(ratio_n),
+            "scenario_balanced_mean_se_ratio": ratio_mean,
+            "scenario_balanced_mean_se_ratio_ci95_low": ratio_low,
+            "scenario_balanced_mean_se_ratio_ci95_high": ratio_high,
             "scenario_balanced_sd_se_ratio": float(ratio.std(ddof=1)) if len(ratio) > 1 else np.nan,
-            "scenario_balanced_mean_coverage": float(coverage.mean()) if len(coverage) else np.nan,
+            "scenario_balanced_mean_coverage": coverage_mean,
+            "scenario_balanced_mean_coverage_ci95_low": coverage_low,
+            "scenario_balanced_mean_coverage_ci95_high": coverage_high,
+            "n_scenarios_with_coverage": int(coverage_n),
             "scenario_balanced_sd_coverage": float(coverage.std(ddof=1)) if len(coverage) > 1 else np.nan,
-            "scenario_balanced_mean_interval_width": float(widths.mean()) if len(widths) else np.nan,
-            "scenario_balanced_outer_failure_fraction": float(group.outer_failure_fraction.mean()),
-            "scenario_balanced_bootstrap_failure_fraction": float(group.bootstrap_failure_fraction.mean()),
+            "scenario_balanced_mean_interval_width": width_mean,
+            "scenario_balanced_mean_interval_width_ci95_low": width_low,
+            "scenario_balanced_mean_interval_width_ci95_high": width_high,
+            "n_scenarios_with_interval_width": int(width_n),
+            "scenario_balanced_outer_failure_fraction": outer_mean,
+            "scenario_balanced_outer_failure_fraction_ci95_low": outer_low,
+            "scenario_balanced_outer_failure_fraction_ci95_high": outer_high,
+            "scenario_balanced_bootstrap_failure_fraction": inner_mean,
+            "scenario_balanced_bootstrap_failure_fraction_ci95_low": inner_low,
+            "scenario_balanced_bootstrap_failure_fraction_ci95_high": inner_high,
         })
     return scenario, pd.DataFrame(aggregate_rows)
 
