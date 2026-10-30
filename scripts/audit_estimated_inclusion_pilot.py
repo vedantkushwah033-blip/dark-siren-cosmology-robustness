@@ -176,7 +176,7 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
         else:
             kkt_residual = float("inf")
         if (not np.all(np.isfinite(refit.x)) or not np.isfinite(refit.fun)
-                or (not refit.success and kkt_residual > 1e-5)):
+                or kkt_residual > 1e-5):
             raise AssertionError(
                 "independent logistic inclusion refit did not converge "
                 f"(status={refit.message}; projected_gradient={kkt_residual:.3g})"
