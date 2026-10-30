@@ -152,6 +152,15 @@ def audit(directory: Path) -> dict:
     manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
     records = pd.read_csv(directory / "calibration_records.csv")
     attempts = pd.read_json(directory / "attempt_audit.jsonl", lines=True)
+    # Status lives in the calibration table; join it explicitly rather than
+    # assuming the attempt-level trace duplicates the row-level outcome.
+    key = ["scenario", "validation_size", "outer_draw", "method"]
+    attempts = attempts.merge(
+        records[key + ["bootstrap_status", "outer_status"]],
+        on=key, how="left", validate="one_to_one",
+    )
+    _require(attempts["bootstrap_status"].notna().all(),
+             "attempt trace is missing calibration status rows")
     params = manifest["model_parameters"]
     n_parent = int(manifest["parent_size"])
     n_detected = int(manifest["detected_event_count"])
