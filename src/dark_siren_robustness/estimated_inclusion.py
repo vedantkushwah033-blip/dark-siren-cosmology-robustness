@@ -300,7 +300,13 @@ def bootstrap_validation_inclusion_density(
                 bandwidth_factor=bandwidth_factor,
             )
         except (ValueError, RuntimeError, ArithmeticError, FloatingPointError) as exc:
-            failure_reasons.append(f"{type(exc).__name__}: {exc}")
+            reason = f"{type(exc).__name__}: {exc}"
+            failure_reasons.append(reason)
+            failure_records.append({
+                "bootstrap_index": int(bootstrap_index),
+                "exception_type": type(exc).__name__,
+                "reason": reason,
+            })
             continue
         success_mask[bootstrap_index] = True
         model = result["model"]
@@ -441,6 +447,7 @@ def bootstrap_validation_inclusion_density_design_aware(
     bootstrap_sample_indices: list[NDArray[np.int64]] = []
     selected_pseudo_population_positions: list[NDArray[np.int64]] = []
     failure_reasons: list[str] = []
+    failure_records: list[dict[str, object]] = []
     success_mask = np.zeros(int(n_bootstrap), dtype=bool)
 
     for bootstrap_index in range(int(n_bootstrap)):
@@ -517,6 +524,7 @@ def bootstrap_validation_inclusion_density_design_aware(
         "inverse_weight_maximum_draws": np.asarray(max_weight_draws, dtype=float),
         "inverse_weight_p99_draws": np.asarray(p99_weight_draws, dtype=float),
         "failure_reasons": failure_reasons,
+        "failure_records": failure_records,
         "bootstrap_method": (
             "multinomial pseudo-population of size N followed by SRSWOR of size n"
         ),
