@@ -104,6 +104,7 @@ def test_quadratic_selection_coefficient_must_be_finite():
 
 
 def test_positivity_and_validation_diagnostics_are_retained_for_each_arm():
+    import pytest
     frame, _summary = run_estimated_inclusion_pilot(
         n_replicates=1,
         n_parent=1200,
