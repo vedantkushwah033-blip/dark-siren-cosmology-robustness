@@ -61,18 +61,24 @@ def studentized_pseudopopulation_srswor_bootstrap(
     replicate_means = np.full(int(n_bootstrap), np.nan, dtype=float)
     replicate_ses = np.full(int(n_bootstrap), np.nan, dtype=float)
     success = np.zeros(int(n_bootstrap), dtype=bool)
+    failure_codes = np.full(int(n_bootstrap), "", dtype=object)
+    pseudo_population_counts = np.zeros((int(n_bootstrap), n), dtype=np.int64)
+    selected_positions = np.zeros((int(n_bootstrap), n), dtype=np.int64)
 
     probabilities = np.full(n, 1.0 / n, dtype=float)
     for b in range(int(n_bootstrap)):
         counts = rng.multinomial(N, probabilities)
+        pseudo_population_counts[b] = counts
         pseudo_population = np.repeat(x, counts)
         positions = rng.choice(N, size=n, replace=False)
+        selected_positions[b] = positions
         bootstrap_sample = pseudo_population[positions]
         pseudo_mean = float(np.mean(pseudo_population))
         bootstrap_mean = float(np.mean(bootstrap_sample))
         bootstrap_variance = float(np.var(bootstrap_sample, ddof=1))
         bootstrap_se = float(np.sqrt(fpc_variance * bootstrap_variance / n))
         if not np.isfinite(bootstrap_se) or bootstrap_se <= 0.0:
+            failure_codes[b] = "zero_or_nonfinite_bootstrap_variance"
             continue
         t_statistics[b] = (bootstrap_mean - pseudo_mean) / bootstrap_se
         pseudo_means[b] = pseudo_mean
@@ -116,4 +122,7 @@ def studentized_pseudopopulation_srswor_bootstrap(
         "bootstrap_sample_means": replicate_means,
         "bootstrap_design_ses": replicate_ses,
         "success_mask": success,
+        "failure_codes": failure_codes,
+        "bootstrap_pseudopopulation_counts": pseudo_population_counts,
+        "bootstrap_selected_positions": selected_positions,
     }
