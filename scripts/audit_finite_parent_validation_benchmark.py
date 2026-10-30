@@ -13,7 +13,81 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy.special import expit
+from scipy.integrate import cumulative_trapezoid, trapezoid
+from scipy.optimize import minimize
+from scipy.special import expit, log_expit, logsumexp
+from scipy.stats import norm
+
+C_KM_S = 299_792.458
+
+
+def _quad_weights(grid: np.ndarray) -> np.ndarray:
+    delta = np.diff(grid)
+    weights = np.empty_like(grid)
+    weights[0], weights[-1] = delta[0] / 2.0, delta[-1] / 2.0
+    weights[1:-1] = (delta[:-1] + delta[1:]) / 2.0
+    return weights
+
+
+def _independent_density_and_fit(grid, observed, validation_z, validation_y, rate):
+    """Reconstruct bounded logistic fit, IP weights, and reflected weighted KDE."""
+    midpoint = 0.5 * (grid[0] + grid[-1])
+    half_range = 0.5 * (grid[-1] - grid[0])
+    x = (validation_z - midpoint) / half_range
+    y = validation_y.astype(float)
+
+    def objective(theta):
+        eta = theta[0] + theta[1] * x
+        return float(-np.sum(y * log_expit(eta) + (1.0-y) * log_expit(-eta)))
+
+    fit = minimize(objective, np.zeros(2), method="L-BFGS-B",
+                   bounds=((-25.0, 25.0), (-50.0, 50.0)),
+                   options={"maxiter": 2000, "ftol": 1e-12, "gtol": 1e-8})
+    if not fit.success or not np.all(np.isfinite(fit.x)):
+        raise RuntimeError("independent logistic refit failed")
+    intercept, slope = map(float, fit.x)
+    p = expit(intercept + slope * ((observed-midpoint)/half_range))
+    inverse = 1.0/p
+    scaled = inverse/np.max(inverse)
+    ess = float(np.sum(scaled)**2/np.sum(scaled**2))
+    mean = float(np.average(observed, weights=scaled))
+    variance = float(np.average((observed-mean)**2, weights=scaled))
+    if variance <= 0 or not np.isfinite(variance):
+        raise ArithmeticError("independent weighted variance invalid")
+    bandwidth = ess**(-0.2)*np.sqrt(variance)
+    reflected = np.concatenate((observed, 2*grid[0]-observed, 2*grid[-1]-observed))
+    kernel_weights = np.tile((scaled/np.sum(scaled))/3.0, 3)
+    kernels = np.exp(-0.5*((grid[:,None]-reflected[None,:])/bandwidth)**2)
+    raw_density = (kernels @ kernel_weights)/(np.sqrt(2*np.pi)*bandwidth)
+    raw_density *= rate
+    density = raw_density/trapezoid(raw_density, grid)
+    boundary = bool(np.isclose(abs(intercept),25.0,atol=1e-5,rtol=0) or
+                    np.isclose(abs(slope),50.0,atol=1e-5,rtol=0))
+    return density, intercept, slope, ess, float(np.max(inverse)), float(np.quantile(inverse,0.99)), boundary
+
+
+def _independent_posterior(z, density, h0, distances, sigma, threshold):
+    q = _quad_weights(z)
+    valid = (density > 0) & (q > 0)
+    log_mass = np.log(density[valid]) + np.log(q[valid])
+    means = C_KM_S*z[valid][None,:]/h0[:,None]
+    terms = norm.logpdf(distances[None,:,None],loc=means[:,None,:],scale=sigma) + log_mass[None,None,:]
+    joint = np.sum(logsumexp(terms,axis=2),axis=1)
+    detect = norm.cdf((C_KM_S*z[None,:]/h0[:,None]-threshold)/sigma)
+    beta = np.sum(density[None,:]*q[None,:]*detect,axis=1)
+    selected = joint-distances.size*np.log(beta)
+    post = np.exp(selected-np.max(selected))
+    post /= trapezoid(post,h0)
+    cdf = np.r_[0.0,cumulative_trapezoid(post,h0)]
+    cdf /= cdf[-1]
+    low, median, high = (float(np.interp(qv,cdf,h0)) for qv in (0.16,0.50,0.84))
+    mean = float(trapezoid(h0*post,h0))
+    return mean, median, low, high
+
+
+def _close(actual, expected, label, *, rtol=3e-6, atol=3e-7):
+    if not np.isclose(float(actual),float(expected),rtol=rtol,atol=atol):
+        raise AssertionError(f"{label} fails independent numerical reconstruction: {actual} != {expected}")
 
 from dark_siren_robustness.generative_selection import generate_synthetic_population
 
@@ -45,6 +119,17 @@ def audit(artifact_dir: Path) -> dict:
     if not records["status"].isin(["success", "failed"]).all():
         raise AssertionError("unknown attempt status")
 
+    if not {"h0_points", "z_points", "h0_grid_bounds", "redshift_grid_bounds"}.issubset(summary):
+        raise AssertionError("summary omits inference grid specification")
+    z_bounds = summary["redshift_grid_bounds"]
+    h_bounds = summary["h0_grid_bounds"]
+    z_grid = np.linspace(float(z_bounds[0]), float(z_bounds[1]), int(summary["z_points"]))
+    h0_grid = np.linspace(float(h_bounds[0]), float(h_bounds[1]), int(summary["h0_points"]))
+    zmin, zmax = float(z_grid[0]), float(z_grid[-1])
+    rate = 1.0 + 1.5*(z_grid-zmin)/(zmax-zmin)
+    target = 1.0 + 2.2*np.exp(-0.5*((z_grid-0.105)/0.025)**2) + 1.6*np.exp(-0.5*((z_grid-0.275)/0.040)**2)
+    target *= rate
+    target /= trapezoid(target,z_grid)
     sizes = [int(v) for v in summary["validation_sizes"]]
     n_scenarios = int(summary["scenarios"])
     draws = int(summary["draws_per_scenario_and_size"])
@@ -127,6 +212,39 @@ def audit(artifact_dir: Path) -> dict:
                         raise AssertionError("nested validation sample does not replay from declared seed")
                     if int(row["n_validation_included"]) != int(np.sum(retained[indices])):
                         raise AssertionError("validation inclusion count does not match regenerated parent frame")
+                    if row["status"] == "success":
+                        if np.unique(retained[indices]).size != 2:
+                            raise AssertionError("successful logistic fit lacks both validation classes")
+                        rebuilt = _independent_density_and_fit(
+                            z_grid, observed_z, parent_z[indices], retained[indices].astype(int), rate
+                        )
+                        density, intercept, slope, ess, max_weight, p99, boundary = rebuilt
+                        _close(row["fit_status"] == "boundary_limited", boundary, "fit status")
+                        _close(row["fit_boundary_limited"], boundary, "fit boundary flag")
+                        _close(row["weight_ess"], ess, "inverse-weight ESS")
+                        _close(row["max_inverse_weight"], max_weight, "maximum inverse weight")
+                        _close(row["p99_inverse_weight"], p99, "99th percentile inverse weight")
+                        x_all = (parent_z-0.205)/0.195
+                        p_true = expit(float(row["true_intercept"]) + float(row["true_slope"])*x_all +
+                                       float(row["true_quadratic"])*(x_all*x_all-1.0/3.0))
+                        p_fit = expit(intercept+slope*((observed_z-0.205)/0.195))
+                        _close(row["inclusion_probability_mae"], np.mean(np.abs(p_fit-p_true[retained])),
+                               "inclusion-probability MAE")
+                        density_ise = trapezoid((density-target)**2,z_grid)
+                        _close(row["density_ise"],density_ise,"host-density ISE")
+                        post = _independent_posterior(
+                            z_grid,density,h0_grid,distances,float(row["sigma_mpc"]),
+                            float(row["detection_threshold_mpc"])
+                        )
+                        for column,value,label in zip(
+                            ("posterior_mean","posterior_median","ci68_low","ci68_high"),
+                            post,("posterior mean","posterior median","68% lower endpoint","68% upper endpoint")
+                        ):
+                            _close(row[column],value,label)
+                        _close(row["ci68_width"],post[3]-post[2],"68% interval width")
+                        _close(row["absolute_error"],abs(post[0]-float(row["h0_true"])),"absolute posterior-mean error")
+                        if bool(row["covered_68"]) != (post[2] <= float(row["h0_true"]) <= post[3]):
+                            raise AssertionError("68% coverage indicator fails independent posterior reconstruction")
     return {
         "status": "STRUCTURAL_AUDIT_PASS",
         "n_attempted": attempted,
