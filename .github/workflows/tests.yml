@@ -124,6 +124,8 @@ jobs:
           assert records.groupby(['scenario', 'validation_size', 'outer_draw'])['finite_parent_target'].nunique().max() == 1
           print('Validated integrated smoke rows:', len(records))
           PY
+      - name: Independently audit nested validation-bootstrap smoke artifacts
+        run: python scripts/audit_nested_validation_bootstrap_artifacts.py artifacts/nested_validation_bootstrap_smoke
       - name: Run finite-parent validation-sampling smoke benchmark
         run: python scripts/run_finite_parent_validation_benchmark.py --scenarios 2 --draws 3 --n-parent 1200 --n-detected 8 --validation-sizes 100,300 --seed 20261032 --output-dir artifacts/finite_parent_validation_smoke
       - name: Check finite-parent smoke artifact accounting
