@@ -267,3 +267,82 @@ def test_preposterior_diagnostics_reject_probabilities_not_generated_by_fitted_m
         build_preposterior_diagnostics(
             model, validation_z, validation_y, catalogue_z, np.full(80, 0.5)
         )
+
+
+
+def test_validation_bootstrap_reconstructs_density_and_is_reproducible():
+    from scipy.integrate import trapezoid
+    from dark_siren_robustness.estimated_inclusion import bootstrap_validation_inclusion_density
+
+    rng = np.random.default_rng(20261070)
+    grid = np.linspace(0.01, 0.40, 151)
+    parent_z = rng.uniform(grid[0], grid[-1], 3000)
+    x = (parent_z - (grid[0] + grid[-1]) / 2) / ((grid[-1] - grid[0]) / 2)
+    probability = expit(0.15 - 0.9 * x)
+    retained = rng.random(parent_z.size) < probability
+    observed = parent_z[retained]
+    audit_idx = rng.choice(parent_z.size, size=400, replace=False)
+
+    kwargs = dict(
+        redshift_grid=grid,
+        observed_redshift=observed,
+        validation_redshift=parent_z[audit_idx],
+        validation_included=retained[audit_idx].astype(int),
+        n_bootstrap=24,
+        seed=20261071,
+    )
+    first = bootstrap_validation_inclusion_density(**kwargs)
+    second = bootstrap_validation_inclusion_density(**kwargs)
+
+    assert first["schema"] == "validation_inclusion_density_bootstrap_v1"
+    assert first["n_attempted"] == 24
+    assert first["n_successful"] + first["n_failed"] == 24
+    assert first["n_successful"] >= 2
+    assert first["density_draws"].shape == (first["n_successful"], grid.size)
+    assert first["intercept_draws"].shape == (first["n_successful"],)
+    assert first["slope_draws"].shape == (first["n_successful"],)
+    assert np.all(np.isfinite(first["density_draws"]))
+    assert np.all(first["density_draws"] >= 0)
+    assert np.allclose(
+        trapezoid(first["density_draws"], grid, axis=1), 1.0, atol=1e-9
+    )
+    assert np.array_equal(first["density_draws"], second["density_draws"])
+    assert np.array_equal(first["intercept_draws"], second["intercept_draws"])
+    assert np.array_equal(first["slope_draws"], second["slope_draws"])
+    assert "not Bayesian" in first["uncertainty_scope"]
+
+
+def test_validation_bootstrap_records_degenerate_resamples_instead_of_replacing_them():
+    from dark_siren_robustness.estimated_inclusion import bootstrap_validation_inclusion_density
+
+    grid = np.linspace(0.01, 0.40, 101)
+    validation_z = np.linspace(0.01, 0.40, 10)
+    validation_y = np.array([1] + [0] * 9)
+    observed = np.linspace(0.03, 0.38, 25)
+    result = bootstrap_validation_inclusion_density(
+        grid, observed, validation_z, validation_y,
+        n_bootstrap=80, seed=20261072,
+    )
+    assert result["n_attempted"] == 80
+    assert result["n_failed"] > 0
+    assert result["n_successful"] + result["n_failed"] == 80
+    assert all("ValueError" in reason for reason in result["failure_reasons"])
+
+
+def test_validation_bootstrap_rejects_invalid_replicate_count_and_seed():
+    import pytest
+    from dark_siren_robustness.estimated_inclusion import bootstrap_validation_inclusion_density
+
+    grid = np.linspace(0.01, 0.40, 101)
+    validation_z = np.linspace(0.01, 0.40, 40)
+    validation_y = np.tile([0, 1], 20)
+    observed = np.linspace(0.02, 0.39, 30)
+    for count in (1, 2.5, True):
+        with pytest.raises(ValueError, match="n_bootstrap"):
+            bootstrap_validation_inclusion_density(
+                grid, observed, validation_z, validation_y, n_bootstrap=count
+            )
+    with pytest.raises(ValueError, match="seed"):
+        bootstrap_validation_inclusion_density(
+            grid, observed, validation_z, validation_y, seed=-1
+        )
