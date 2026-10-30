@@ -220,6 +220,7 @@ def run_estimated_inclusion_pilot(
                 fit_status = "not_applicable"
                 fit_boundary_limited = False
                 preposterior_features: dict[str, object] = {}
+                density_inclusion_probability = np.ones(observed_z.size, dtype=float)
                 weight_ess = float("nan")
                 max_inverse_weight = float("nan")
                 if arm == "catalogue_only":
@@ -233,6 +234,7 @@ def run_estimated_inclusion_pilot(
                 elif arm == "oracle":
                     fit_status = "oracle"
                     observed_p = true_probability[retained]
+                    density_inclusion_probability = observed_p
                     density = estimate_host_density(
                         z_grid, observed_z, inclusion_probability=observed_p,
                         merger_weight=merger_rate, bandwidth_factor=bandwidth_factor,
@@ -250,6 +252,9 @@ def run_estimated_inclusion_pilot(
                         merger_weight=merger_rate, bandwidth_factor=bandwidth_factor,
                     )
                     density = result["density"]
+                    density_inclusion_probability = np.asarray(
+                        result["observed_inclusion_probability"], dtype=float
+                    )
                     fit_status = str(result["model"]["fit_status"])
                     fit_boundary_limited = bool(result["model"]["coefficient_bound_hit"])
                     weight_ess = float(result["inverse_weight_effective_sample_size"])
@@ -311,6 +316,12 @@ def run_estimated_inclusion_pilot(
                         "redshift_grid": z_grid.tolist(),
                         "host_density": np.asarray(density, dtype=float).tolist(),
                         "target_density_for_ise": target_density.tolist(),
+                        "catalogue_redshift": observed_z.tolist(),
+                        "density_inclusion_probability": density_inclusion_probability.tolist(),
+                        "merger_weight_grid": merger_rate.tolist(),
+                        "bandwidth_factor": (
+                            None if bandwidth_factor is None else float(bandwidth_factor)
+                        ),
                         "h0_grid": h0_grid.tolist(),
                         "observed_distances_mpc": distances.tolist(),
                         "sigma_mpc": float(sigma_mpc),
