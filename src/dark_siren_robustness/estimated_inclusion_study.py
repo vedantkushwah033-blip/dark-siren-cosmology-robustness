@@ -205,6 +205,8 @@ def run_estimated_inclusion_pilot(
                 fit_status = "not_applicable"
                 fit_boundary_limited = False
                 preposterior_features: dict[str, object] = {}
+                weight_ess = float("nan")
+                max_inverse_weight = float("nan")
                 if arm == "catalogue_only":
                     density = estimate_host_density(
                         z_grid, observed_z, merger_weight=merger_rate,
@@ -310,6 +312,11 @@ def run_estimated_inclusion_pilot(
                         int(np.sum(audit_records["included"][:audit_size]))
                         if audit_size else None
                     ),
+                    "weight_ess": weight_ess,
+                    "weight_ess_fraction": (
+                        weight_ess / observed_z.size if np.isfinite(weight_ess) else np.nan
+                    ),
+                    "max_inverse_weight": max_inverse_weight,
                     **preposterior_features,
                 })
 
