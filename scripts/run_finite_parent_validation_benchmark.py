@@ -48,7 +48,9 @@ def main() -> None:
             "Synthetic conditional design only; not real LVK data or a new H0 measurement.",
             "Catalogue and GW distances are fixed within each parent scenario.",
             "Validation draws are nested within parent scenarios and are not independent top-level units; scenario-balanced summaries are reported alongside pooled descriptive summaries.",
-            "This initial runner estimates SRSWOR repeated-sampling behavior; bootstrap comparison is a subsequent stage.",
+            "The finite-parent target is the posterior mean obtained by fitting the declared estimated-inclusion pipeline to all N actual paired parent records; it is not the generating H0 truth.",
+            "The finite-parent target is scenario-specific and fixed across validation draws; its error is a separate estimand from error relative to generating H0.",
+            "This runner estimates SRSWOR repeated-sampling behavior; paired-bootstrap versus design-aware bootstrap calibration is a subsequent stage.",
         ],
     }
     for size in sizes:
