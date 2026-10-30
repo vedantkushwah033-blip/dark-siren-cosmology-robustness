@@ -43,7 +43,7 @@ def main() -> None:
         "limitations": [
             "Synthetic conditional design only; not real LVK data or a new H0 measurement.",
             "Catalogue and GW distances are fixed within each parent scenario.",
-            "Validation draws are nested within parent scenarios and are not independent top-level units.",
+            "Validation draws are nested within parent scenarios and are not independent top-level units; scenario-balanced summaries are reported alongside pooled descriptive summaries.",
             "This initial runner estimates SRSWOR repeated-sampling behavior; bootstrap comparison is a subsequent stage.",
         ],
     }
@@ -60,6 +60,24 @@ def main() -> None:
                 "mean_weight_ess": float(group["weight_ess"].mean()),
                 "mean_max_inverse_weight": float(group["max_inverse_weight"].mean()),
                 "boundary_limited_fraction": float(group["fit_boundary_limited"].mean()),
+                # Repeated validation draws are nested within parent scenarios.
+                # Report scenario-balanced summaries so scenarios, not draws,
+                # are the top-level units for uncertainty interpretation.
+                "n_scenarios_with_successes": int(group["scenario"].nunique()),
+                "scenario_balanced_bias_mean": float(
+                    group.assign(error=group["posterior_mean"]-group["h0_true"])
+                    .groupby("scenario")["error"].mean().mean()
+                ),
+                "scenario_balanced_rmse_mean": float(
+                    group.assign(squared_error=(group["posterior_mean"]-group["h0_true"])**2)
+                    .groupby("scenario")["squared_error"].mean().pow(0.5).mean()
+                ),
+                "scenario_balanced_coverage_mean": float(
+                    group.groupby("scenario")["covered_68"].mean().mean()
+                ),
+                "scenario_coverage_sd": float(
+                    group.groupby("scenario")["covered_68"].mean().std(ddof=1)
+                ) if group["scenario"].nunique() > 1 else None,
             }
     (args.output_dir / "summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
