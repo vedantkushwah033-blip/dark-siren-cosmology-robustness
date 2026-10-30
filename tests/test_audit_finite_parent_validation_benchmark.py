@@ -63,3 +63,22 @@ def test_finite_parent_auditor_rejects_provenance_mismatch(tmp_path):
     frame.to_csv(tmp_path / "records.csv", index=False)
     with pytest.raises(AssertionError, match="inconsistent"):
         audit(tmp_path)
+
+
+def test_finite_parent_auditor_rejects_tampered_posterior_metric(tmp_path):
+    frame = _artifact(tmp_path)
+    successful = frame.index[frame["status"].eq("success")]
+    assert len(successful) > 0
+    frame.loc[successful[0], "posterior_mean"] += 0.5
+    frame.to_csv(tmp_path / "records.csv", index=False)
+    with pytest.raises(AssertionError, match="posterior mean"):
+        audit(tmp_path)
+
+
+def test_finite_parent_auditor_requires_grid_manifest(tmp_path):
+    _artifact(tmp_path)
+    manifest = json.loads((tmp_path / "summary.json").read_text(encoding="utf-8"))
+    del manifest["h0_points"]
+    (tmp_path / "summary.json").write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(AssertionError, match="grid specification"):
+        audit(tmp_path)
