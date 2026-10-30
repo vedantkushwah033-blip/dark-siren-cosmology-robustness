@@ -374,6 +374,21 @@ def test_independent_auditor_rejects_corrupted_scoring_only_probability_mae(tmp_
         audit_pilot_artifacts(tmp_path)
 
 
+
+def test_independent_auditor_rejects_corrupted_scoring_only_target_density(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261064)
+    successful = frame.index[frame["status"] == "success"]
+    assert len(successful) > 0
+    index = successful[0]
+    scoring = json.loads(frame.loc[index, "scoring_audit_payload_json"])
+    scoring["target_density_for_ise"][len(scoring["target_density_for_ise"]) // 2] *= 1.2
+    frame.loc[index, "scoring_audit_payload_json"] = json.dumps(scoring)
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="independent_inference.density_ise"):
+        audit_pilot_artifacts(tmp_path)
+
+
 def test_independent_auditor_rejects_truth_leakage_into_inference_payload(tmp_path):
     frame, summary = _write_small_pilot(tmp_path, seed=20261063)
     successful = frame.index[frame["status"] == "success"]
