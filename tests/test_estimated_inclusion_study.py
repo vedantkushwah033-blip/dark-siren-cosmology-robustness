@@ -160,4 +160,10 @@ def test_pilot_records_preposterior_features_before_posterior_outputs():
     assert row["n_validation"] == 150
     assert 0 < row["inverse_weight_ess"] <= row["n_catalogue"]
     assert 0 < row["inverse_weight_ess_fraction"] <= 1
+    assert row["inverse_weight_entropy_ess_fraction"] >= row["inverse_weight_ess_fraction"]
+    assert 0 < row["inverse_weight_max_share"] <= row["inverse_weight_top_1pct_mass"]
+    assert row["inverse_weight_top_1pct_mass"] <= row["inverse_weight_top_5pct_mass"] <= 1
+    assert row["inverse_weight_ess"] == pytest.approx(
+        row["inverse_weight_sum"] ** 2 / row["inverse_weight_sum_squares"]
+    )
     assert not any("true_" in key or "posterior" in key or "coverage" in key for key in required)
