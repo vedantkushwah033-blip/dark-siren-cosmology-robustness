@@ -118,8 +118,8 @@ def audit_artifact(output_dir: Path) -> dict[str, object]:
         raise ValueError("manifest bootstrap replicate count is invalid")
     if tuple(manifest.get("methods", ())) != tuple(sorted(METHODS)):
         raise ValueError("manifest method set differs from the prespecified method set")
-    if manifest.get("schema") != "linear_finite_population_bootstrap_benchmark_v2":
-        raise ValueError("auditor requires the v2 inner-attempt provenance schema")
+    # v1 artifacts remain auditable using their historical fields. The v2-only
+    # inner-attempt and unconditional-coverage checks are gated below by schema.
 
     frame_path = output_dir / "finite_population_frames.csv"
     replicate_path = output_dir / "linear_finite_population_bootstrap_replicates.csv"
