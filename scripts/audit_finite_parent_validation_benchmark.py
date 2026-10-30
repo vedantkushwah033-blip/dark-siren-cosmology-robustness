@@ -88,6 +88,17 @@ def _close(actual, expected, label, *, rtol=3e-6, atol=3e-7):
     if not np.isclose(float(actual),float(expected),rtol=rtol,atol=atol):
         raise AssertionError(f"{label} fails independent numerical reconstruction: {actual} != {expected}")
 
+
+def _assert_failure_reason_matches(recorded_reason: str, exc: Exception) -> None:
+    """Require the persisted failure class and message to match independent replay."""
+    reconstructed = f"{type(exc).__name__}: {exc}"
+    if str(recorded_reason) != reconstructed:
+        raise AssertionError(
+            "stored failure reason does not match independently reconstructed "
+            f"exception: {recorded_reason!r} != {reconstructed!r}"
+        )
+
+
 from dark_siren_robustness.generative_selection import generate_synthetic_population
 
 
@@ -286,8 +297,8 @@ def audit(artifact_dir: Path) -> dict:
                                 z_grid, failed_density, h0_grid, distances,
                                 float(row["sigma_mpc"]), float(row["detection_threshold_mpc"])
                             )
-                        except (ValueError, RuntimeError, ArithmeticError, FloatingPointError):
-                            pass
+                        except Exception as exc:
+                            _assert_failure_reason_matches(str(row["failure_reason"]), exc)
                         else:
                             raise AssertionError(
                                 "failed attempt is independently reproducible as a successful fit and posterior"
