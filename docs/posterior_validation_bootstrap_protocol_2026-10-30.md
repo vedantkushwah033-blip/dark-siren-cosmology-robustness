@@ -59,3 +59,23 @@ The pilot and confirmatory runs must be separated. No numerical conclusion, desi
 ## Reproducibility test coverage
 
 `posterior_validation_bootstrap_audit.py` independently replays the random index generation, refits the bounded logistic model, reconstructs the reflected weighted KDE and selection-aware posterior without calling the producer estimators, and checks posterior grids, summaries, diagnostics, FPC arithmetic, and failure labels. `tests/test_posterior_validation_bootstrap.py` checks deterministic replay for both methods, posterior normalization, paired-record mappings, independent reconstruction, and rejection of a tampered posterior mean. CI runs this test module on Python 3.10, 3.11 and 3.12.
+
+
+## Independent failure-classification audit (30 October 2026)
+
+The posterior-level auditor now reconstructs the exception class and exact
+message for every failed resampling attempt, then compares both fields with
+the persisted failure record. A failure label is therefore not accepted
+merely because the independently replayed attempt also failed for some
+possibly unrelated reason. The independent reconstruction also enforces the
+same two-retention-class precondition as the producer's logistic inclusion
+fit; this prevents a one-class resample from being misclassified as a
+successful bounded logistic fit by the auditor.
+
+Adversarial regression tests deliberately create one-class bootstrap
+resamples, verify that the valid artifact audits, and then require the auditor
+to reject a tampered exception class and a tampered failure message. Exact
+exception messages can be sensitive to numerical-library versions, so these
+checks are strongest when producer and auditor run in the same pinned
+environment; a future artifact schema should consider stable structured
+failure codes in addition to diagnostic messages.
