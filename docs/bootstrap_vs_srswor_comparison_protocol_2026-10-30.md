@@ -131,3 +131,43 @@ Required arms for the revised comparison:
 Do not label arm 3 as valid for the nonlinear logistic/KDE/posterior estimator merely because it is valid in a related survey setting. Its behaviour must be measured. If the published method's assumptions do not transfer to the estimator or validation design, document the mismatch and treat the method as an exploratory comparator rather than a valid default.
 
 This addition changes the experiment's scope and compute budget. The pilot must compare all three resampling arms, quantify each arm's Monte Carlo error, and estimate runtime before freezing confirmatory sample sizes. Update the protocol, auditor schema, and paper's related-work section before running confirmatory experiments. The candidate contribution remains a comparative calibration study, not invention of a new bootstrap method.
+
+
+## 11. Implemented exploratory pseudo-population resampling primitive (30 October 2026)
+
+The repository now contains `design_aware_srswor_bootstrap_indices` in
+`src/dark_siren_robustness/design_aware_srswor_bootstrap.py`. It follows the
+SRSWOR construction in Wang, Peng & Kim (2022):
+
+1. Given n observed paired validation records, draw multinomial replication
+   counts `Multinomial(N; 1/n, ..., 1/n)`.
+2. Expand those counts into a size-N pseudo-population of indices into the
+   original paired records.
+3. Draw n positions without replacement from the pseudo-population.
+4. Map those positions back to the original paired-record indices.
+
+The function returns both pseudo-population indices and sample indices so
+redshift and catalogue-retention indicators can be resampled together and
+both sampling layers can be replayed.
+
+The new
+`bootstrap_validation_inclusion_density_design_aware` function in
+`estimated_inclusion.py` applies this construction to the validation-based
+logistic inclusion model and weighted host-density estimator. For each
+replicate it stores:
+- the complete pseudo-population index vector;
+- the SRSWOR sample indices mapped to the original paired records;
+- the full pseudo-population fitted density and logistic coefficients, which
+  provide a finite-pseudo-population plug-in reference;
+- the bootstrap-sample fitted density and diagnostics;
+- the success mask and failure reasons.
+
+**Scope limitation:** this is an exploratory implementation of the
+pseudo-population resampling construction at the host-density-estimation
+layer. The published second-order accuracy result in Wang, Peng & Kim (2022)
+is for finite-population mean inference under stated regularity conditions.
+It does not establish validity for our nonlinear bounded-logistic,
+inverse-weighted KDE, or downstream Bayesian posterior mean. No posterior
+bootstrap interval or calibration result is produced by this function yet.
+The full posterior-level comparator, studentization/interval construction,
+independent auditor, and finite-population-mean benchmark remain required.
