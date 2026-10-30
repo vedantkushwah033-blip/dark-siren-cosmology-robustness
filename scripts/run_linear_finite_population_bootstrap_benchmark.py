@@ -150,6 +150,12 @@ def run_benchmark(
                     "failed_intervals": method_failures[method],
                     "coverage": coverage,
                     "coverage_mcse_conditional_on_success": mcse,
+                    "interval_success_rate": successful / repetitions,
+                    "coverage_unconditional_success_and_cover": float(np.sum(covered)) / repetitions,
+                    "coverage_mcse_unconditional": float(np.sqrt(
+                        (float(np.sum(covered)) / repetitions)
+                        * (1.0 - float(np.sum(covered)) / repetitions) / repetitions
+                    )),
                     "mean_interval_width": float(np.mean(method_widths[method])) if method_widths[method] else float("nan"),
                 })
     return rows, replicate_rows, frame_rows
