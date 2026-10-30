@@ -100,3 +100,38 @@ def test_quadratic_selection_coefficient_must_be_finite():
             validation_sizes=(100,), true_quadratic=float("nan"),
             h0_points=31, z_points=101,
         )
+
+
+
+def test_positivity_and_validation_diagnostics_are_retained_for_each_arm():
+    frame, _summary = run_estimated_inclusion_pilot(
+        n_replicates=1,
+        n_parent=1200,
+        n_detected=6,
+        validation_sizes=(100, 300),
+        seed=20261048,
+        h0_points=41,
+        z_points=201,
+        true_quadratic=1.5,
+    )
+    diagnostics = [
+        "true_probability_min", "true_probability_max", "true_probability_p01",
+        "true_probability_p05", "true_probability_below_005",
+        "true_probability_below_010", "true_max_inverse_probability",
+        "true_retention_rate",
+    ]
+    assert set(diagnostics + ["audit_included_count"]).issubset(frame.columns)
+    for column in diagnostics:
+        assert frame[column].nunique(dropna=False) == 1
+    assert frame["true_probability_min"].between(0, 1, inclusive="neither").all()
+    assert frame["true_probability_max"].between(0, 1, inclusive="neither").all()
+    assert frame["true_probability_below_005"].between(0, 1).all()
+    assert frame["true_probability_below_010"].between(0, 1).all()
+    assert (frame["true_probability_below_005"] <= frame["true_probability_below_010"]).all()
+    assert (frame["true_max_inverse_probability"] == pytest.approx(
+        1.0 / frame["true_probability_min"].iloc[0]
+    ))
+    for arm, size in (("estimated_100", 100), ("estimated_300", 300)):
+        count = frame.loc[frame["arm"] == arm, "audit_included_count"].iloc[0]
+        assert 0 <= count <= size
+    assert frame.loc[frame["arm"] == "catalogue_only", "audit_included_count"].isna().all()
