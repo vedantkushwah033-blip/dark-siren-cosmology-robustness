@@ -55,3 +55,16 @@ This experiment validates only the execution and empirical behavior of interval 
 ## 6. Reproducibility
 
 The raw CSVs, manifest, and independent audit report are retained in the workflow artifact `numerical-diagnostics-py3.12` from run 41126411371. The pilot can be reproduced using the workflow command and parameters recorded in the manifest and repository workflow.
+
+
+## 7. Artifact fingerprints and audit boundary
+
+The Python 3.12 workflow artifact manifest records these SHA-256 fingerprints:
+
+- finite-frame CSV: `4dd68eb0c45565130d431910d75443a96503b7a32d4020025e08950de8c95e15`;
+- replicate CSV: `792119eaa9cfcd7012066d19b13c893caea5c1873527e0380b9d866ff095097e`;
+- summary CSV: `4249e3d37d2d66271741e6a6d36b5c42eaecdf4aaa60cdccbcb5ff44103ebc8e`.
+
+The audit report independently records 3 verified frames, 1,800 reconstructed outer method attempts, 18 verified summary cells, and PASS for design completeness and frame-seed reconstruction.
+
+**Important audit limitation:** the v1 replicate artifact does not serialize the studentized method's internal bootstrap-attempt counts and failure-code histogram. The primitive retains these in memory, and the auditor replays the final interval, but the artifact-level audit does not yet independently compare a stored row-level accounting of every inner attempt. Thus “zero failed intervals” must not be read as “zero inner bootstrap failures.” This gap is explicitly documented in [the v2 remediation protocol](inner_bootstrap_attempt_audit_gap_and_v2_protocol_2026-10-31.md). The v1 pilot remains a valid historical pilot for the outer interval results, but a v2 attempt-level audit is required before claiming complete internal failure accounting.
