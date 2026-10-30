@@ -36,7 +36,7 @@ def _artifact(tmp_path):
 def test_finite_parent_auditor_replays_srswor_and_provenance(tmp_path):
     frame = _artifact(tmp_path)
     result = audit(tmp_path)
-    assert result["status"] == "STRUCTURAL_AUDIT_PASS"
+    assert result["status"] == "INDEPENDENT_NUMERICAL_AUDIT_PASS"
     assert result["n_attempted"] == 4
     for draw in range(2):
         small = frame.loc[(frame["draw"] == draw) & (frame["validation_size"] == 100)].iloc[0]
