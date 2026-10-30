@@ -301,6 +301,11 @@ def test_validation_bootstrap_reconstructs_density_and_is_reproducible():
     assert first["density_draws"].shape == (first["n_successful"], grid.size)
     assert first["intercept_draws"].shape == (first["n_successful"],)
     assert first["slope_draws"].shape == (first["n_successful"],)
+    assert first["inverse_weight_ess_draws"].shape == (first["n_successful"],)
+    assert first["inverse_weight_maximum_draws"].shape == (first["n_successful"],)
+    assert first["inverse_weight_p99_draws"].shape == (first["n_successful"],)
+    assert np.all(first["inverse_weight_ess_draws"] > 0)
+    assert np.all(first["inverse_weight_maximum_draws"] >= 1)
     assert np.all(np.isfinite(first["density_draws"]))
     assert np.all(first["density_draws"] >= 0)
     assert np.allclose(
