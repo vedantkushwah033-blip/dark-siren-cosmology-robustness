@@ -221,6 +221,14 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         if not diagnostic_rows.empty:
             if not diagnostic_rows["diagnostic_schema"].eq("preposterior_weight_stability_v1").all():
                 raise AssertionError("unknown pre-posterior diagnostic schema")
+            if diagnostic_rows["fit_status"].isna().any():
+                raise AssertionError("pre-posterior fit status contains missing values")
+            if not diagnostic_rows["fit_status"].eq(frame.loc[diagnostic_rows.index, "fit_status"]).all():
+                raise AssertionError("pre-posterior fit status disagrees with replicate record")
+            if not np.array_equal(diagnostic_rows["fit_boundary_limited"].astype(bool).to_numpy(), frame.loc[diagnostic_rows.index, "fit_boundary_limited"].astype(bool).to_numpy()):
+                raise AssertionError("pre-posterior boundary flag disagrees with replicate record")
+            if not np.array_equal(diagnostic_rows["n_catalogue"].to_numpy(dtype=int), frame.loc[diagnostic_rows.index, "n_catalogue"].to_numpy(dtype=int)):
+                raise AssertionError("pre-posterior catalogue count disagrees with replicate record")
             numeric_features = ["validation_inclusion_fraction", "catalogue_outside_validation_range_fraction", "catalogue_near_validation_boundary_fraction", "fitted_probability_min", "fitted_probability_p01", "fitted_probability_p05", "fitted_probability_median", "fitted_probability_max", "inverse_weight_ess", "inverse_weight_sum", "inverse_weight_sum_squares", "inverse_weight_ess_fraction", "inverse_weight_entropy_ess_fraction", "inverse_weight_max_share", "inverse_weight_top_1pct_mass", "inverse_weight_top_5pct_mass", "inverse_weight_max", "inverse_weight_p95", "inverse_weight_p99"]
             for column in numeric_features:
                 values = pd.to_numeric(diagnostic_rows[column], errors="coerce").to_numpy(dtype=float)
