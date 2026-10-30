@@ -36,7 +36,7 @@ def test_posterior_validation_bootstrap_replays_full_toy_pipeline(method):
         parent_population_size=180, method=method, n_bootstrap=4,
         seed=9127, merger_weight=merger,
     )
-    assert first["schema"] == "validation_h0_posterior_resampling_v1"
+    assert first["schema"] == "validation_h0_posterior_resampling_v2"
     assert set(first["input_fingerprints"]) == {
         "redshift_grid", "h0_grid", "observed_redshift",
         "validation_redshift", "validation_included",
