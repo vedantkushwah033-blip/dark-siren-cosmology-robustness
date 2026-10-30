@@ -89,9 +89,11 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
         raise AssertionError("successful row lacks inference_audit_payload_json")
     try:
         payload = json.loads(raw)
+        scoring_raw = row.get("scoring_audit_payload_json")
+        scoring = json.loads(scoring_raw) if isinstance(scoring_raw, str) and scoring_raw else {}
         z = np.asarray(payload["redshift_grid"], dtype=float)
         density = np.asarray(payload["host_density"], dtype=float)
-        target = np.asarray(payload["target_density_for_ise"], dtype=float)
+        target = np.asarray(scoring["target_density_for_ise"], dtype=float)
         h0 = np.asarray(payload["h0_grid"], dtype=float)
         distances = np.asarray(payload["observed_distances_mpc"], dtype=float)
         sigma = float(payload["sigma_mpc"])
@@ -179,14 +181,16 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
     # Enforce a strict boundary between inference inputs and scoring truth.
     forbidden_truth_keys = {
         "true_inclusion_probability", "parent_redshift", "hidden_parent_redshift",
-        "true_probability", "parent_catalogue",
+        "true_probability", "parent_catalogue", "target_density_for_ise",
     }
     if forbidden_truth_keys.intersection(payload):
         raise AssertionError("inference audit payload contains scoring-only or hidden-parent truth")
-    scoring_raw = row.get("scoring_audit_payload_json", "")
+    if scoring.get("schema") != "inclusion_probability_scoring_only_v1":
+        raise AssertionError("successful row lacks supported scoring-only payload schema")
+    if target.shape != z.shape or not np.all(np.isfinite(target)) or np.any(target <= 0):
+        raise AssertionError("scoring-only target density is malformed")
     if arm_name.startswith("estimated_"):
         try:
-            scoring = json.loads(scoring_raw) if isinstance(scoring_raw, str) else {}
             parent_z = np.asarray(scoring["parent_redshift"], dtype=float)
             true_parent_p = np.asarray(scoring["true_inclusion_probability"], dtype=float)
             estimated_parent_p = np.asarray(scoring["estimated_inclusion_probability"], dtype=float)
@@ -206,8 +210,10 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
         reconstructed_mae = float(np.mean(np.abs(estimated_parent_p - true_parent_p)))
         _close(row.get("inclusion_probability_mae"), reconstructed_mae,
                "independent_scoring.inclusion_probability_mae", atol=2e-10)
-    elif isinstance(scoring_raw, str) and scoring_raw.strip():
-        raise AssertionError("non-estimated arm unexpectedly contains scoring-only truth")
+    elif any(key in scoring for key in (
+        "parent_redshift", "true_inclusion_probability", "estimated_inclusion_probability"
+    )):
+        raise AssertionError("non-estimated arm unexpectedly contains parent-probability scoring truth")
 
     # Reconstruct the reflected, inverse-inclusion-weighted KDE from its
     # primitive inputs. This deliberately does not call estimate_host_density.
