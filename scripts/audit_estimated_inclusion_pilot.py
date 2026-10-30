@@ -153,13 +153,34 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
             residual = expit(eta) - validation_y
             return np.array([np.sum(residual), np.dot(residual, x_validation)])
 
+        bounds = ((-25.0, 25.0), (-50.0, 50.0))
         refit = minimize(
             independent_nll, np.zeros(2), jac=independent_gradient,
-            method="L-BFGS-B", bounds=((-25.0, 25.0), (-50.0, 50.0)),
-            options={"maxiter": 4000, "ftol": 1e-13, "gtol": 1e-9},
+            method="L-BFGS-B", bounds=bounds,
+            options={"maxiter": 10000, "maxfun": 50000, "maxls": 100,
+                     "ftol": 1e-15, "gtol": 1e-8},
         )
-        if not refit.success or not np.all(np.isfinite(refit.x)):
-            raise AssertionError("independent logistic inclusion refit did not converge")
+        # L-BFGS-B can report an abnormal line-search termination for a
+        # nearly separated sample even when it has reached the constrained
+        # optimum. Independently verify the box-constrained KKT condition
+        # rather than accepting a failed status or blindly relaxing tolerances.
+        if np.all(np.isfinite(refit.x)):
+            gradient = independent_gradient(refit.x)
+            projected_gradient = gradient.copy()
+            for j, (lower, upper) in enumerate(bounds):
+                if refit.x[j] <= lower + 1e-7 and gradient[j] > 0:
+                    projected_gradient[j] = 0.0
+                elif refit.x[j] >= upper - 1e-7 and gradient[j] < 0:
+                    projected_gradient[j] = 0.0
+            kkt_residual = float(np.max(np.abs(projected_gradient)))
+        else:
+            kkt_residual = float("inf")
+        if (not np.all(np.isfinite(refit.x)) or not np.isfinite(refit.fun)
+                or (not refit.success and kkt_residual > 1e-5)):
+            raise AssertionError(
+                "independent logistic inclusion refit did not converge "
+                f"(status={refit.message}; projected_gradient={kkt_residual:.3g})"
+            )
         stored_intercept = _required_finite_number(stored_model.get("intercept"), "fitted intercept")
         stored_slope = _required_finite_number(stored_model.get("slope"), "fitted slope")
         if not np.allclose(refit.x, [stored_intercept, stored_slope], rtol=2e-5, atol=2e-5):
