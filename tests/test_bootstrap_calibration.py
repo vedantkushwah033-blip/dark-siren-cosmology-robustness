@@ -67,6 +67,11 @@ def test_scenario_balanced_calibration_separates_outer_and_inner_failures():
     ])
     assert paired["scenario_balanced_mean_se_ratio"] == pytest.approx(expected)
     assert paired["n_scenarios"] == 2
+    assert paired["scenario_balanced_mean_se_ratio_ci95_low"] <= expected
+    assert paired["scenario_balanced_mean_se_ratio_ci95_high"] >= expected
+    assert paired["scenario_balanced_mean_coverage_ci95_low"] <= paired["scenario_balanced_mean_coverage"]
+    assert paired["scenario_balanced_mean_coverage_ci95_high"] >= paired["scenario_balanced_mean_coverage"]
+    assert paired["n_scenarios_with_coverage"] == 2
 
 
 def test_calibration_rejects_duplicate_grain_and_changing_finite_parent_target():
