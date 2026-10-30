@@ -264,7 +264,7 @@ def test_independent_auditor_rejects_corrupted_preposterior_ess(tmp_path):
     frame.loc[mask, "inverse_weight_ess"] *= 0.5
     frame.to_csv(tmp_path / "replicates.csv", index=False)
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
-    with pytest.raises(AssertionError, match="ESS disagrees"):
+    with pytest.raises(AssertionError, match="ESS fraction is inconsistent"):
         audit_pilot_artifacts(tmp_path)
 
 
