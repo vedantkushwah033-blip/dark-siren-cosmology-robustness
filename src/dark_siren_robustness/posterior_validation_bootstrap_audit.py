@@ -137,7 +137,7 @@ def audit_posterior_validation_bootstrap(
     distances = np.asarray(observed_distances_mpc, dtype=float)
     rate = np.ones_like(z) if merger_weight is None else np.asarray(merger_weight, dtype=float)
     method = result.get("method")
-    if result.get("schema") != "validation_h0_posterior_resampling_v1":
+    if result.get("schema") != "validation_h0_posterior_resampling_v2":
         raise AssertionError("unsupported posterior-bootstrap artifact schema")
     if method not in {"paired_bootstrap", "design_aware_srswor"}:
         raise AssertionError("unknown resampling method")
