@@ -34,14 +34,18 @@ def summarize_bootstrap_calibration(records: pd.DataFrame) -> tuple[pd.DataFrame
     key = ["scenario", "validation_size", "outer_draw", "method"]
     if frame[key].isna().any().any():
         raise ValueError("design identifiers and method must be nonmissing")
-    if (pd.to_numeric(frame["validation_size"], errors="coerce").isna().any()
-            or (pd.to_numeric(frame["validation_size"], errors="coerce") < 1).any()):
-        raise ValueError("validation_size must be positive and numeric")
+    size_values = pd.to_numeric(frame["validation_size"], errors="coerce")
+    if (
+        size_values.isna().any() or (size_values < 1).any()
+        or not np.equal(size_values, np.floor(size_values)).all()
+    ):
+        raise ValueError("validation_size must contain positive integer values")
+    frame["validation_size"] = size_values.astype(int)
     draw_values = pd.to_numeric(frame["outer_draw"], errors="coerce")
     if draw_values.isna().any() or (draw_values < 0).any() or not np.equal(draw_values, np.floor(draw_values)).all():
         raise ValueError("outer_draw must contain nonnegative integer identifiers")
-    if frame["method"].astype(str).str.len().eq(0).any():
-        raise ValueError("method labels must be nonempty")
+    if frame["method"].astype(str).str.strip().str.len().eq(0).any():
+        raise ValueError("method labels must be nonempty or whitespace-only")
     if frame.duplicated(key).any():
         raise ValueError("records must be unique at scenario/size/draw/method grain")
     if not frame["outer_status"].isin(["success", "failed"]).all():
