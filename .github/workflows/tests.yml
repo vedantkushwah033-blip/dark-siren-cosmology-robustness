@@ -8,7 +8,7 @@ on:
 # Serialize duplicate push/pull_request validations on a branch without killing
 # an active full matrix run. GitHub may emit both events for the same PR update.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -69,6 +69,85 @@ jobs:
           PY
       - name: Independently audit estimated-inclusion pilot smoke artifacts
         run: python scripts/audit_estimated_inclusion_pilot.py artifacts/estimated_inclusion_pilot_smoke
+      - name: Test persisted validation-bootstrap artifact generation and independent refit audit
+        run: python -m pytest tests/test_validation_bootstrap_artifacts.py -q
+      - name: Run and independently audit persisted validation-bootstrap sensitivity (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          frame = pd.read_csv('artifacts/estimated_inclusion_pilot_smoke/replicates.csv')
+          rows = frame.loc[
+              frame['arm'].str.startswith('estimated_') & frame['status'].eq('success')
+          ].sort_values(['replicate', 'validation_size'])
+          if rows.empty:
+              raise SystemExit('No successful estimated-inclusion arm available for bootstrap smoke audit')
+          row = rows.iloc[0]
+          print(f"Selected replicate={int(row['replicate'])}, validation_size={int(row['validation_size'])}")
+          with open('artifacts/bootstrap_selection.txt', 'w') as handle:
+              handle.write(f"{int(row['replicate'])},{int(row['validation_size'])}\n")
+          PY
+          read REPLICATE VALIDATION_SIZE < <(tr ',' ' ' < artifacts/bootstrap_selection.txt)
+          python scripts/run_validation_bootstrap_sensitivity.py --pilot-csv artifacts/estimated_inclusion_pilot_smoke/replicates.csv --replicate "$REPLICATE" --validation-size "$VALIDATION_SIZE" --n-bootstrap 100 --seed 20261031 --output-dir artifacts/validation_bootstrap_smoke
+          python scripts/audit_validation_bootstrap_sensitivity.py --artifact-dir artifacts/validation_bootstrap_smoke --pilot-csv artifacts/estimated_inclusion_pilot_smoke/replicates.csv
+      - name: Test finite-parent SRSWOR validation benchmark
+        run: python -m pytest tests/test_finite_parent_sampling.py -q
+      - name: Test finite-parent bootstrap uncertainty primitives
+        run: python -m pytest tests/test_finite_parent_uncertainty.py -q
+      - name: Test design-aware pseudo-population SRSWOR bootstrap indices
+        run: python -m pytest tests/test_design_aware_srswor_bootstrap.py -q
+      - name: Test design-aware validation bootstrap and pseudo-population references
+        run: python -m pytest tests/test_design_aware_validation_bootstrap.py -q
+      - name: Test posterior-level validation bootstrap through H0 inference
+        run: python -m pytest tests/test_posterior_validation_bootstrap.py -q
+      - name: Test scenario-balanced bootstrap calibration estimands
+        run: python -m pytest tests/test_bootstrap_calibration.py -q
+      - name: Test independent nested validation-bootstrap artifact auditor and tamper detection
+        run: python -m pytest tests/test_audit_nested_validation_bootstrap_artifacts.py -q
+      - name: Run integrated nested validation-bootstrap comparison smoke experiment
+        run: python scripts/run_nested_validation_bootstrap_comparison.py --scenarios 1 --draws 2 --n-parent 1200 --n-detected 8 --validation-sizes 100 --bootstrap-replicates 3 --seed 20261030 --output-dir artifacts/nested_validation_bootstrap_smoke
+      - name: Check integrated nested comparison smoke artifacts
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          p = Path('artifacts/nested_validation_bootstrap_smoke')
+          manifest = json.loads((p / 'manifest.json').read_text())
+          assert manifest['status'] == 'SMOKE_ONLY_NOT_CONFIRMATORY'
+          records = pd.read_csv(p / 'calibration_records.csv')
+          attempts = pd.read_json(p / 'attempt_audit.jsonl', lines=True)
+          scenario = pd.read_csv(p / 'scenario_summary.csv')
+          aggregate = pd.read_csv(p / 'scenario_balanced_summary.csv')
+          assert len(records) == 6
+          assert set(records['method']) == {'paired_bootstrap', 'paired_bootstrap_fpc', 'design_aware_srswor'}
+          assert len(attempts) == 6
+          assert not scenario.empty and not aggregate.empty
+          assert records.groupby(['scenario', 'validation_size', 'outer_draw'])['finite_parent_target'].nunique().max() == 1
+          print('Validated integrated smoke rows:', len(records))
+          PY
+      - name: Independently audit nested validation-bootstrap smoke artifacts
+        run: python scripts/audit_nested_validation_bootstrap_artifacts.py artifacts/nested_validation_bootstrap_smoke
+      - name: Independently replay nested bootstrap scenario and posterior artifacts
+        run: python scripts/audit_nested_validation_bootstrap_replay.py artifacts/nested_validation_bootstrap_smoke
+      - name: Run finite-parent validation-sampling smoke benchmark
+        run: python scripts/run_finite_parent_validation_benchmark.py --scenarios 2 --draws 3 --n-parent 1200 --n-detected 8 --validation-sizes 100,300 --seed 20261032 --output-dir artifacts/finite_parent_validation_smoke
+      - name: Check finite-parent smoke artifact accounting
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('artifacts/finite_parent_validation_smoke')
+          s = json.loads((p / 'summary.json').read_text())
+          assert s['status'] == 'SMOKE_ONLY_NOT_CONFIRMATORY'
+          assert s['n_attempted'] == s['n_successful'] + s['n_failed']
+          assert (p / 'records.csv').stat().st_size > 0
+          print('Validated finite-parent smoke accounting:', s['n_attempted'])
+          PY
+      - name: Test independent finite-parent SRSWOR artifact audit
+        run: python -m pytest tests/test_audit_finite_parent_validation_benchmark.py -q
+      - name: Independently audit finite-parent validation smoke artifacts
+        run: python scripts/audit_finite_parent_validation_benchmark.py artifacts/finite_parent_validation_smoke
       - name: Test host-density-to-H0 benchmark
         run: python -m pytest tests/test_host_density_benchmark.py -q
       - name: Test corrected physical KDE bandwidth semantics
@@ -204,5 +283,8 @@ jobs:
             artifacts/multiseed_grid_sensitivity/
             artifacts/catalogue_thinning/
             artifacts/estimated_inclusion_pilot_smoke/
+            artifacts/validation_bootstrap_smoke/
+            artifacts/bootstrap_selection.txt
+            artifacts/nested_validation_bootstrap_smoke/
           if-no-files-found: error
 

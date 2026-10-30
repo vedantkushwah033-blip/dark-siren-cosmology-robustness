@@ -14,6 +14,11 @@ from numpy.typing import ArrayLike, NDArray
 from scipy.optimize import minimize
 from scipy.special import expit, log_expit
 
+from dark_siren_robustness.finite_parent_uncertainty import paired_bootstrap_indices
+from dark_siren_robustness.design_aware_srswor_bootstrap import (
+    design_aware_srswor_bootstrap_indices,
+)
+
 
 def fit_logistic_inclusion_model(
     validation_redshift: ArrayLike,
@@ -269,6 +274,9 @@ def bootstrap_validation_inclusion_density(
         raise ValueError("bandwidth_factor must be finite and positive")
     rng = np.random.default_rng(int(seed))
     density_draws: list[NDArray[np.float64]] = []
+    pseudo_population_density_draws: list[NDArray[np.float64]] = []
+    pseudo_population_intercepts: list[float] = []
+    pseudo_population_slopes: list[float] = []
     intercept_draws: list[float] = []
     slope_draws: list[float] = []
     boundary_flags: list[bool] = []
@@ -276,9 +284,13 @@ def bootstrap_validation_inclusion_density(
     max_weight_draws: list[float] = []
     p99_weight_draws: list[float] = []
     failure_reasons: list[str] = []
+    failure_records: list[dict[str, object]] = []
+    resample_indices: list[NDArray[np.int64]] = []
+    success_mask = np.zeros(int(n_bootstrap), dtype=bool)
 
-    for _ in range(int(n_bootstrap)):
-        indices = rng.integers(0, validation_z.size, size=validation_z.size)
+    for bootstrap_index in range(int(n_bootstrap)):
+        indices = paired_bootstrap_indices(rng, validation_z.size)
+        resample_indices.append(indices.astype(np.int64, copy=True))
         try:
             result = estimate_host_density_from_validation(
                 grid,
@@ -289,8 +301,15 @@ def bootstrap_validation_inclusion_density(
                 bandwidth_factor=bandwidth_factor,
             )
         except (ValueError, RuntimeError, ArithmeticError, FloatingPointError) as exc:
-            failure_reasons.append(f"{type(exc).__name__}: {exc}")
+            reason = f"{type(exc).__name__}: {exc}"
+            failure_reasons.append(reason)
+            failure_records.append({
+                "bootstrap_index": int(bootstrap_index),
+                "exception_type": type(exc).__name__,
+                "reason": reason,
+            })
             continue
+        success_mask[bootstrap_index] = True
         model = result["model"]
         density_draws.append(np.asarray(result["density"], dtype=float))
         intercept_draws.append(float(model["intercept"]))
@@ -313,6 +332,8 @@ def bootstrap_validation_inclusion_density(
         "n_failed": int(len(failure_reasons)),
         "success_fraction": float(len(density_draws) / n_bootstrap),
         "density_draws": density_array,
+        "resample_indices": np.stack(resample_indices, axis=0),
+        "success_mask": success_mask,
         "intercept_draws": np.asarray(intercept_draws, dtype=float),
         "slope_draws": np.asarray(slope_draws, dtype=float),
         "coefficient_boundary_limited_draws": np.asarray(boundary_flags, dtype=bool),
@@ -320,11 +341,205 @@ def bootstrap_validation_inclusion_density(
         "inverse_weight_maximum_draws": np.asarray(max_weight_draws, dtype=float),
         "inverse_weight_p99_draws": np.asarray(p99_weight_draws, dtype=float),
         "failure_reasons": failure_reasons,
+        "failure_records": failure_records,
         "bootstrap_method": "paired validation-record resampling with replacement",
         "finite_population_correction_applied": False,
         "uncertainty_scope": (
             "approximate iid validation-sample bootstrap; observed catalogue fixed; "
             "finite-population correction not applied; logistic selection family assumed; "
             "not Bayesian or full GW uncertainty"
+        ),
+    }
+
+
+def bootstrap_validation_inclusion_density_design_aware(
+    redshift_grid: ArrayLike,
+    observed_redshift: ArrayLike,
+    validation_redshift: ArrayLike,
+    validation_included: ArrayLike,
+    *,
+    parent_population_size: int,
+    n_bootstrap: int = 200,
+    seed: int = 20261030,
+    merger_weight: ArrayLike | None = None,
+    bandwidth_factor: float | None = None,
+) -> dict[str, object]:
+    """Exploratory pseudo-population bootstrap for SRSWOR validation records.
+
+    Each replicate first generates a size-N pseudo-population by multinomial
+    replication of the observed paired validation records, then draws a
+    size-n SRSWOR sample from that pseudo-population. The same indices are
+    applied to redshift and retention labels. This follows the SRSWOR
+    pseudo-population construction of Wang, Peng & Kim (2022) for finite-
+    population mean inference, but its theoretical guarantees do not
+    automatically transfer to this nonlinear logistic/KDE estimator.
+
+    The observed catalogue remains fixed. The returned distribution is an
+    empirical comparator only; no design-consistency claim is made here.
+    """
+    if (
+        isinstance(parent_population_size, (bool, np.bool_))
+        or not isinstance(parent_population_size, (int, np.integer))
+        or parent_population_size < 10
+    ):
+        raise ValueError("parent_population_size must be an integer of at least 10")
+    if (
+        isinstance(n_bootstrap, (bool, np.bool_))
+        or not isinstance(n_bootstrap, (int, np.integer))
+        or n_bootstrap < 2
+    ):
+        raise ValueError("n_bootstrap must be an integer of at least 2")
+    if (
+        isinstance(seed, (bool, np.bool_))
+        or not isinstance(seed, (int, np.integer))
+        or seed < 0
+    ):
+        raise ValueError("seed must be a nonnegative integer")
+    validation_z = np.asarray(validation_redshift, dtype=float)
+    validation_y = np.asarray(validation_included)
+    if (
+        validation_z.ndim != 1 or validation_z.size < 10
+        or not np.all(np.isfinite(validation_z))
+        or validation_y.shape != validation_z.shape or validation_y.ndim != 1
+        or not np.all(np.isin(validation_y, [0, 1, False, True]))
+    ):
+        raise ValueError("validation records must be matching finite redshifts and binary outcomes")
+    validation_y = validation_y.astype(int)
+    if np.unique(validation_y).size != 2:
+        raise ValueError("original validation sample must contain both retention classes")
+    if parent_population_size < validation_z.size:
+        raise ValueError("parent_population_size must be >= validation sample size")
+
+    grid = np.asarray(redshift_grid, dtype=float)
+    observed = np.asarray(observed_redshift, dtype=float)
+    if (
+        grid.ndim != 1 or grid.size < 21 or not np.all(np.isfinite(grid))
+        or np.any(np.diff(grid) <= 0) or grid[0] <= 0
+    ):
+        raise ValueError("redshift_grid must be finite, positive, and strictly increasing")
+    if (
+        observed.ndim != 1 or observed.size < 5 or not np.all(np.isfinite(observed))
+        or np.any((observed < grid[0]) | (observed > grid[-1]))
+        or np.unique(observed).size < 3
+    ):
+        raise ValueError("observed_redshift must be inside grid and contain >=3 distinct values")
+    if np.any((validation_z < grid[0]) | (validation_z > grid[-1])):
+        raise ValueError("validation redshifts must lie inside redshift_grid bounds")
+    if merger_weight is not None:
+        rate = np.asarray(merger_weight, dtype=float)
+        if rate.shape != grid.shape or not np.all(np.isfinite(rate)) or np.any(rate <= 0):
+            raise ValueError("merger_weight must be finite, positive, and match redshift_grid")
+    if bandwidth_factor is not None and (
+        not np.isfinite(bandwidth_factor) or bandwidth_factor <= 0
+    ):
+        raise ValueError("bandwidth_factor must be finite and positive")
+
+    rng = np.random.default_rng(int(seed))
+    density_draws: list[NDArray[np.float64]] = []
+    pseudo_population_density_draws: list[NDArray[np.float64]] = []
+    pseudo_population_intercepts: list[float] = []
+    pseudo_population_slopes: list[float] = []
+    intercept_draws: list[float] = []
+    slope_draws: list[float] = []
+    boundary_flags: list[bool] = []
+    ess_draws: list[float] = []
+    max_weight_draws: list[float] = []
+    p99_weight_draws: list[float] = []
+    pseudo_population_indices: list[NDArray[np.int64]] = []
+    bootstrap_sample_indices: list[NDArray[np.int64]] = []
+    selected_pseudo_population_positions: list[NDArray[np.int64]] = []
+    failure_reasons: list[str] = []
+    failure_records: list[dict[str, object]] = []
+    success_mask = np.zeros(int(n_bootstrap), dtype=bool)
+
+    for bootstrap_index in range(int(n_bootstrap)):
+        pseudo_idx, sample_idx, selected_positions = design_aware_srswor_bootstrap_indices(
+            rng, validation_z.size, int(parent_population_size), validation_z.size
+        )
+        pseudo_population_indices.append(pseudo_idx)
+        bootstrap_sample_indices.append(sample_idx)
+        selected_pseudo_population_positions.append(selected_positions)
+        try:
+            # Reconstruct the full pseudo-population plug-in reference first.
+            # This is distinct from the sample estimator and from true H0.
+            pseudo_result = estimate_host_density_from_validation(
+                grid, observed, validation_z[pseudo_idx], validation_y[pseudo_idx],
+                merger_weight=merger_weight, bandwidth_factor=bandwidth_factor,
+            )
+            result = estimate_host_density_from_validation(
+                grid, observed, validation_z[sample_idx], validation_y[sample_idx],
+                merger_weight=merger_weight, bandwidth_factor=bandwidth_factor,
+            )
+        except (ValueError, RuntimeError, ArithmeticError, FloatingPointError) as exc:
+            reason = f"{type(exc).__name__}: {exc}"
+            failure_reasons.append(reason)
+            failure_records.append({
+                "bootstrap_index": int(bootstrap_index),
+                "exception_type": type(exc).__name__,
+                "reason": reason,
+            })
+            continue
+        success_mask[bootstrap_index] = True
+        pseudo_model = pseudo_result["model"]
+        pseudo_population_density_draws.append(
+            np.asarray(pseudo_result["density"], dtype=float)
+        )
+        pseudo_population_intercepts.append(float(pseudo_model["intercept"]))
+        pseudo_population_slopes.append(float(pseudo_model["slope"]))
+        model = result["model"]
+        density_draws.append(np.asarray(result["density"], dtype=float))
+        intercept_draws.append(float(model["intercept"]))
+        slope_draws.append(float(model["slope"]))
+        boundary_flags.append(bool(model["coefficient_bound_hit"]))
+        ess_draws.append(float(result["inverse_weight_effective_sample_size"]))
+        max_weight_draws.append(float(result["inverse_weight_maximum"]))
+        p99_weight_draws.append(float(result["inverse_weight_p99"]))
+
+    return {
+        "schema": "validation_inclusion_density_pseudopop_srswor_bootstrap_v1",
+        "seed": int(seed),
+        "parent_population_size": int(parent_population_size),
+        "observed_validation_size": int(validation_z.size),
+        "n_attempted": int(n_bootstrap),
+        "n_successful": int(len(density_draws)),
+        "n_failed": int(len(failure_reasons)),
+        "success_fraction": float(len(density_draws) / n_bootstrap),
+        "density_draws": (
+            np.stack(density_draws) if density_draws
+            else np.empty((0, grid.size), dtype=float)
+        ),
+        "pseudo_population_density_draws": (
+            np.stack(pseudo_population_density_draws)
+            if pseudo_population_density_draws
+            else np.empty((0, grid.size), dtype=float)
+        ),
+        "pseudo_population_intercept_draws": np.asarray(
+            pseudo_population_intercepts, dtype=float
+        ),
+        "pseudo_population_slope_draws": np.asarray(
+            pseudo_population_slopes, dtype=float
+        ),
+        "pseudo_population_indices": np.stack(pseudo_population_indices),
+        "bootstrap_sample_indices": np.stack(bootstrap_sample_indices),
+        "selected_pseudo_population_positions": np.stack(
+            selected_pseudo_population_positions
+        ),
+        "success_mask": success_mask,
+        "intercept_draws": np.asarray(intercept_draws, dtype=float),
+        "slope_draws": np.asarray(slope_draws, dtype=float),
+        "coefficient_boundary_limited_draws": np.asarray(boundary_flags, dtype=bool),
+        "inverse_weight_ess_draws": np.asarray(ess_draws, dtype=float),
+        "inverse_weight_maximum_draws": np.asarray(max_weight_draws, dtype=float),
+        "inverse_weight_p99_draws": np.asarray(p99_weight_draws, dtype=float),
+        "failure_reasons": failure_reasons,
+        "failure_records": failure_records,
+        "bootstrap_method": (
+            "multinomial pseudo-population of size N followed by SRSWOR of size n"
+        ),
+        "finite_population_correction_applied": False,
+        "uncertainty_scope": (
+            "exploratory design-aware pseudo-population bootstrap for SRSWOR validation; "
+            "observed catalogue fixed; nonlinear-estimator validity not established; "
+            "not a Bayesian posterior or full GW uncertainty"
         ),
     }

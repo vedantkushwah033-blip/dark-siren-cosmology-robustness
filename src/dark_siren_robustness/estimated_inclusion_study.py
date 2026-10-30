@@ -562,6 +562,8 @@ def run_validation_bootstrap_posterior_sensitivity(
         "posterior_ci68_high_draws": np.asarray(credible_highs, dtype=float),
         "posterior_mean_bootstrap_percentile_95": mean_interval,
         "density_draws": bootstrap["density_draws"],
+        "resample_indices": bootstrap["resample_indices"],
+        "success_mask": bootstrap["success_mask"],
         "intercept_draws": bootstrap["intercept_draws"],
         "slope_draws": bootstrap["slope_draws"],
         "coefficient_boundary_limited_draws": bootstrap[
