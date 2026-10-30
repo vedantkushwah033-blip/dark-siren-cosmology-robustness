@@ -7,6 +7,7 @@ likelihood and not a proof of bootstrap validity.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import numpy as np
 from scipy.integrate import trapezoid
@@ -19,6 +20,15 @@ from dark_siren_robustness.finite_parent_uncertainty import (
 )
 from dark_siren_robustness.host_density_benchmark import posterior_summary
 from dark_siren_robustness.selection_toy import selection_aware_toy_likelihood
+
+
+def _array_sha256(values: ArrayLike) -> str:
+    """Hash canonical shape and float64 bytes for an experiment input array."""
+    array = np.ascontiguousarray(np.asarray(values, dtype=np.float64))
+    digest = hashlib.sha256()
+    digest.update(np.asarray(array.shape, dtype=np.int64).tobytes())
+    digest.update(array.tobytes())
+    return digest.hexdigest()
 
 
 def _failure_code(exc: Exception) -> str:
@@ -217,6 +227,15 @@ def bootstrap_validation_h0_posterior(
 
     return {
         "schema": "validation_h0_posterior_resampling_v1",
+        "input_fingerprints": {
+            "redshift_grid": _array_sha256(z),
+            "h0_grid": _array_sha256(h0),
+            "observed_redshift": _array_sha256(observed),
+            "validation_redshift": _array_sha256(vz),
+            "validation_included": _array_sha256(vy),
+            "observed_distances_mpc": _array_sha256(distances),
+            "merger_weight": _array_sha256(np.ones_like(z) if rate is None else rate),
+        },
         "method": method,
         "design_aware_method_status": (
             "exploratory_pseudopopulation_resampling_not_studentized_inference"
