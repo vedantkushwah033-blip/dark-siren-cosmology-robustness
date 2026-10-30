@@ -37,6 +37,13 @@ def test_posterior_validation_bootstrap_replays_full_toy_pipeline(method):
     )
     assert first["schema"] == "validation_h0_posterior_resampling_v1"
     assert first["n_attempted"] == 4
+    if method == "design_aware_srswor":
+        assert first["design_aware_method_status"] == (
+            "exploratory_pseudopopulation_resampling_not_studentized_inference"
+        )
+        assert "descriptive resampling quantiles only" in first["uncertainty_interpretation"]
+    else:
+        assert first["design_aware_method_status"] == "ordinary_paired_record_bootstrap"
     assert first["n_successful"] + first["n_failed"] == 4
     assert first["posterior_density_draws"].shape == (first["n_successful"], h0_grid.size)
     assert first["attempt_posterior_mean"].shape == (4,)
