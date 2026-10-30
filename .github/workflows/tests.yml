@@ -92,6 +92,12 @@ jobs:
           python scripts/audit_validation_bootstrap_sensitivity.py --artifact-dir artifacts/validation_bootstrap_smoke --pilot-csv artifacts/estimated_inclusion_pilot_smoke/replicates.csv
       - name: Test finite-parent SRSWOR validation benchmark
         run: python -m pytest tests/test_finite_parent_sampling.py -q
+      - name: Test finite-parent bootstrap uncertainty primitives
+        run: python -m pytest tests/test_finite_parent_uncertainty.py -q
+      - name: Test design-aware pseudo-population SRSWOR bootstrap indices
+        run: python -m pytest tests/test_design_aware_srswor_bootstrap.py -q
+      - name: Test design-aware validation bootstrap and pseudo-population references
+        run: python -m pytest tests/test_design_aware_validation_bootstrap.py -q
       - name: Run finite-parent validation-sampling smoke benchmark
         run: python scripts/run_finite_parent_validation_benchmark.py --scenarios 2 --draws 3 --n-parent 1200 --n-detected 8 --validation-sizes 100,300 --seed 20261032 --output-dir artifacts/finite_parent_validation_smoke
       - name: Check finite-parent smoke artifact accounting
