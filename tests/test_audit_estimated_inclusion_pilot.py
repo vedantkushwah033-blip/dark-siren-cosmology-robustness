@@ -300,3 +300,29 @@ def test_independent_auditor_rejects_entropy_ess_below_quadratic_ess(tmp_path):
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(AssertionError, match="entropy ESS fraction is below"):
         audit_pilot_artifacts(tmp_path)
+
+
+
+def test_independent_auditor_rejects_corrupted_persisted_kde_density(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261058)
+    successful = frame.index[frame["status"] == "success"]
+    assert len(successful) > 0
+    index = successful[0]
+    payload = json.loads(frame.loc[index, "inference_audit_payload_json"])
+    payload["host_density"][len(payload["host_density"]) // 2] *= 1.25
+    frame.loc[index, "inference_audit_payload_json"] = json.dumps(payload)
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="independent reflected-KDE reconstruction"):
+        audit_pilot_artifacts(tmp_path)
+
+
+def test_independent_auditor_rejects_missing_inference_reconstruction_payload(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261059)
+    successful = frame.index[frame["status"] == "success"]
+    assert len(successful) > 0
+    frame.loc[successful[0], "inference_audit_payload_json"] = ""
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="lacks inference_audit_payload_json"):
+        audit_pilot_artifacts(tmp_path)
