@@ -436,15 +436,17 @@ def bootstrap_validation_inclusion_density_design_aware(
     p99_weight_draws: list[float] = []
     pseudo_population_indices: list[NDArray[np.int64]] = []
     bootstrap_sample_indices: list[NDArray[np.int64]] = []
+    selected_pseudo_population_positions: list[NDArray[np.int64]] = []
     failure_reasons: list[str] = []
     success_mask = np.zeros(int(n_bootstrap), dtype=bool)
 
     for bootstrap_index in range(int(n_bootstrap)):
-        pseudo_idx, sample_idx = design_aware_srswor_bootstrap_indices(
+        pseudo_idx, sample_idx, selected_positions = design_aware_srswor_bootstrap_indices(
             rng, validation_z.size, int(parent_population_size), validation_z.size
         )
         pseudo_population_indices.append(pseudo_idx)
         bootstrap_sample_indices.append(sample_idx)
+        selected_pseudo_population_positions.append(selected_positions)
         try:
             # Reconstruct the full pseudo-population plug-in reference first.
             # This is distinct from the sample estimator and from true H0.
@@ -501,6 +503,9 @@ def bootstrap_validation_inclusion_density_design_aware(
         ),
         "pseudo_population_indices": np.stack(pseudo_population_indices),
         "bootstrap_sample_indices": np.stack(bootstrap_sample_indices),
+        "selected_pseudo_population_positions": np.stack(
+            selected_pseudo_population_positions
+        ),
         "success_mask": success_mask,
         "intercept_draws": np.asarray(intercept_draws, dtype=float),
         "slope_draws": np.asarray(slope_draws, dtype=float),
