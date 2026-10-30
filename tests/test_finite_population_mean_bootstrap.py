@@ -19,11 +19,15 @@ def test_studentized_srswor_bootstrap_is_deterministic_and_accounted():
     for key in (
         "bootstrap_t_statistics", "bootstrap_pseudopopulation_means",
         "bootstrap_sample_means", "bootstrap_design_ses", "success_mask",
+        "failure_codes", "bootstrap_pseudopopulation_counts",
+        "bootstrap_selected_positions",
     ):
         np.testing.assert_array_equal(first[key], second[key])
     assert first["schema"] == "studentized_finite_population_mean_srswor_v1"
     assert first["n_attempted"] == 300
     assert first["n_successful"] + first["n_failed"] == 300
+    np.testing.assert_array_equal(first["bootstrap_pseudopopulation_counts"].sum(axis=1), 80)
+    assert first["bootstrap_selected_positions"].shape == (300, 8)
     assert first["status"] == "ok"
     assert first["finite_population_correction_variance"] == pytest.approx(0.9)
 
