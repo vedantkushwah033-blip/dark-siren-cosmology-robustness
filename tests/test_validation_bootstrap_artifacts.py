@@ -50,3 +50,39 @@ def test_persisted_validation_bootstrap_artifact_round_trips_and_audits(tmp_path
     )
     assert audit.returncode == 0, audit.stdout + audit.stderr
     assert json.loads(audit.stdout)["status"] == "PASS"
+
+    # Adversarial check 1: a saved resample index must be replay-verifiable.
+    draws_path = artifact_dir / "bootstrap_draws.npz"
+    original_bytes = draws_path.read_bytes()
+    with np.load(draws_path, allow_pickle=False) as saved:
+        arrays = {key: saved[key].copy() for key in saved.files}
+    assert arrays["resample_indices"].size > 0
+    arrays["resample_indices"][0, 0] = (
+        int(arrays["resample_indices"][0, 0]) + 1
+    ) % int(summary["n_validation"])
+    np.savez_compressed(draws_path, **arrays)
+    tampered_index_audit = subprocess.run(
+        [
+            sys.executable, "scripts/audit_validation_bootstrap_sensitivity.py",
+            "--artifact-dir", str(artifact_dir), "--pilot-csv", str(pilot_csv),
+        ],
+        check=False, capture_output=True, text=True,
+    )
+    assert tampered_index_audit.returncode != 0
+
+    # Adversarial check 2: restore the valid artifact, then alter a density
+    # value. The independent refit/density reconstruction must reject it.
+    draws_path.write_bytes(original_bytes)
+    with np.load(draws_path, allow_pickle=False) as saved:
+        arrays = {key: saved[key].copy() for key in saved.files}
+    assert arrays["density_draws"].size > 0
+    arrays["density_draws"][0, arrays["density_draws"].shape[1] // 2] += 1e-3
+    np.savez_compressed(draws_path, **arrays)
+    tampered_density_audit = subprocess.run(
+        [
+            sys.executable, "scripts/audit_validation_bootstrap_sensitivity.py",
+            "--artifact-dir", str(artifact_dir), "--pilot-csv", str(pilot_csv),
+        ],
+        check=False, capture_output=True, text=True,
+    )
+    assert tampered_density_audit.returncode != 0
