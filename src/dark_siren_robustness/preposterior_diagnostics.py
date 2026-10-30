@@ -43,11 +43,27 @@ def build_preposterior_diagnostics(model: Mapping[str, object], validation_redsh
         raise ValueError("fitted model coefficients must be present and finite")
 
     weights = 1.0 / probability
+    normalized_weights = weights / np.sum(weights)
     scaled = weights / np.max(weights)
     ess = float(np.sum(scaled) ** 2 / np.sum(scaled**2))
+    # Tail mass and entropy expose concentration beyond the maximum weight.
+    descending_mass = np.sort(normalized_weights)[::-1]
+    top_1pct_n = max(1, int(np.ceil(0.01 * descending_mass.size)))
+    top_5pct_n = max(1, int(np.ceil(0.05 * descending_mass.size)))
+    top_1pct_mass = float(np.sum(descending_mass[:top_1pct_n]))
+    top_5pct_mass = float(np.sum(descending_mass[:top_5pct_n]))
+    entropy = float(-np.sum(normalized_weights * np.log(normalized_weights)))
+    entropy_ess_fraction = float(np.exp(entropy) / normalized_weights.size)
     validation_y = included_raw.astype(int)
     validation_min, validation_max = float(np.min(validation_z)), float(np.max(validation_z))
+    validation_span = validation_max - validation_min
     support_gap = float(np.mean((catalogue_z < validation_min) | (catalogue_z > validation_max)))
+    near_margin = 0.05 * validation_span
+    support_edge = float(np.mean(
+        (catalogue_z >= validation_min) & (catalogue_z <= validation_max)
+        & ((catalogue_z - validation_min <= near_margin)
+           | (validation_max - catalogue_z <= near_margin))
+    ))
     return {
         "diagnostic_schema": "preposterior_weight_stability_v1",
         "n_validation": int(validation_z.size),
@@ -57,6 +73,7 @@ def build_preposterior_diagnostics(model: Mapping[str, object], validation_redsh
         "validation_redshift_max": validation_max,
         "validation_redshift_span": float(validation_max - validation_min),
         "catalogue_outside_validation_range_fraction": support_gap,
+        "catalogue_near_validation_boundary_fraction": support_edge,
         "n_catalogue": int(catalogue_z.size),
         "fit_status": str(model.get("fit_status", "unknown")),
         "fit_boundary_limited": bool(model.get("coefficient_bound_hit", False)),
@@ -69,6 +86,10 @@ def build_preposterior_diagnostics(model: Mapping[str, object], validation_redsh
         "fitted_probability_max": float(np.max(probability)),
         "inverse_weight_ess": ess,
         "inverse_weight_ess_fraction": float(ess / catalogue_z.size),
+        "inverse_weight_entropy_ess_fraction": entropy_ess_fraction,
+        "inverse_weight_max_share": float(np.max(normalized_weights)),
+        "inverse_weight_top_1pct_mass": top_1pct_mass,
+        "inverse_weight_top_5pct_mass": top_5pct_mass,
         "inverse_weight_max": float(np.max(weights)),
         "inverse_weight_p95": float(np.quantile(weights, 0.95)),
         "inverse_weight_p99": float(np.quantile(weights, 0.99)),
