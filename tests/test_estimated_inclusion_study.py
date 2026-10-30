@@ -168,3 +168,22 @@ def test_pilot_records_preposterior_features_before_posterior_outputs():
         row["inverse_weight_sum"] ** 2 / row["inverse_weight_sum_squares"]
     )
     assert not any("true_" in key or "posterior" in key or "coverage" in key for key in required)
+
+def test_too_few_retained_catalogue_objects_are_recorded_without_unbound_features():
+    frame, summary = run_estimated_inclusion_pilot(
+        n_replicates=1,
+        n_parent=100,
+        n_detected=1,
+        validation_sizes=(20,),
+        seed=20261056,
+        true_intercept=-30.0,
+        true_slope=0.0,
+        h0_points=31,
+        z_points=101,
+    )
+    assert set(frame["arm"]) == {"catalogue_only", "oracle", "estimated_20"}
+    assert frame["status"].eq("failed").all()
+    assert frame["fit_status"].eq("not_attempted").all()
+    assert frame["fit_boundary_limited"].eq(False).all()
+    assert frame["error"].eq("too few retained catalogue objects").all()
+    assert summary["status"] == "NON_CONFIRMATORY_SYNTHETIC_PILOT"
