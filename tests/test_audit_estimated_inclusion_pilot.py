@@ -370,7 +370,7 @@ def test_independent_auditor_rejects_corrupted_scoring_only_probability_mae(tmp_
     frame.loc[index, "scoring_audit_payload_json"] = json.dumps(scoring)
     frame.to_csv(tmp_path / "replicates.csv", index=False)
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
-    with pytest.raises(AssertionError, match="independent_scoring.inclusion_probability_mae"):
+    with pytest.raises(AssertionError, match="scoring-only estimated probabilities disagree with independent logistic refit|independent_scoring.inclusion_probability_mae"):
         audit_pilot_artifacts(tmp_path)
 
 
