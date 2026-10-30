@@ -24,6 +24,9 @@ def test_design_aware_validation_bootstrap_records_both_sampling_layers():
     assert result["schema"] == "validation_inclusion_density_pseudopop_srswor_bootstrap_v1"
     assert result["pseudo_population_indices"].shape == (4, 60)
     assert result["bootstrap_sample_indices"].shape == (4, 30)
+    assert result["pseudo_population_density_draws"].shape[1:] == (grid.size,)
+    assert result["pseudo_population_intercept_draws"].shape == (result["n_successful"],)
+    assert result["pseudo_population_slope_draws"].shape == (result["n_successful"],)
     assert result["success_mask"].shape == (4,)
     assert result["n_attempted"] == 4
     assert result["n_successful"] + result["n_failed"] == 4
