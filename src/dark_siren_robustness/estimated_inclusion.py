@@ -261,6 +261,9 @@ def bootstrap_validation_inclusion_density(
     intercept_draws: list[float] = []
     slope_draws: list[float] = []
     boundary_flags: list[bool] = []
+    ess_draws: list[float] = []
+    max_weight_draws: list[float] = []
+    p99_weight_draws: list[float] = []
     failure_reasons: list[str] = []
 
     for _ in range(int(n_bootstrap)):
@@ -282,6 +285,9 @@ def bootstrap_validation_inclusion_density(
         intercept_draws.append(float(model["intercept"]))
         slope_draws.append(float(model["slope"]))
         boundary_flags.append(bool(model["coefficient_bound_hit"]))
+        ess_draws.append(float(result["inverse_weight_effective_sample_size"]))
+        max_weight_draws.append(float(result["inverse_weight_maximum"]))
+        p99_weight_draws.append(float(result["inverse_weight_p99"]))
 
     density_array = (
         np.stack(density_draws, axis=0)
@@ -299,6 +305,9 @@ def bootstrap_validation_inclusion_density(
         "intercept_draws": np.asarray(intercept_draws, dtype=float),
         "slope_draws": np.asarray(slope_draws, dtype=float),
         "coefficient_boundary_limited_draws": np.asarray(boundary_flags, dtype=bool),
+        "inverse_weight_ess_draws": np.asarray(ess_draws, dtype=float),
+        "inverse_weight_maximum_draws": np.asarray(max_weight_draws, dtype=float),
+        "inverse_weight_p99_draws": np.asarray(p99_weight_draws, dtype=float),
         "failure_reasons": failure_reasons,
         "bootstrap_method": "paired validation-record resampling with replacement",
         "finite_population_correction_applied": False,
