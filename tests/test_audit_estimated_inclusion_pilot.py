@@ -229,7 +229,8 @@ def test_independent_pilot_auditor_rejects_duplicate_contrast_entries(tmp_path):
 
 def test_independent_auditor_rejects_retention_rate_inconsistent_with_catalogue_count(tmp_path):
     frame, summary = _write_small_pilot(tmp_path, seed=20261049)
-    frame.loc[0, "true_retention_rate"] += 0.01
+    replicate_mask = frame["replicate"].eq(frame.loc[0, "replicate"])
+    frame.loc[replicate_mask, "true_retention_rate"] += 0.01
     frame.to_csv(tmp_path / "replicates.csv", index=False)
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(AssertionError, match="true_retention_rate disagrees"):
