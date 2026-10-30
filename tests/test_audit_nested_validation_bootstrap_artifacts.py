@@ -70,3 +70,15 @@ def test_independent_nested_artifact_auditor_rejects_wrong_bootstrap_seed(nested
     frame.to_json(path, orient="records", lines=True)
     with pytest.raises(ValueError, match="bootstrap seed mismatch"):
         audit(nested_artifact)
+
+
+def test_independent_nested_artifact_auditor_rejects_corrupt_pseudopopulation_mapping(nested_artifact):
+    path = nested_artifact / "attempt_audit.jsonl"
+    frame = pd.read_json(path, lines=True)
+    row = frame.index[(frame["method"] == "design_aware_srswor")][0]
+    frame.at[row, "bootstrap_sample_indices"][0] = (
+        int(frame.at[row, "bootstrap_sample_indices"][0][0]) + 1
+    ) % 100
+    frame.to_json(path, orient="records", lines=True)
+    with pytest.raises(ValueError, match="selected pseudo-population positions do not map"):
+        audit(nested_artifact)
