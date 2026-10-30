@@ -34,3 +34,9 @@ def test_finite_parent_benchmark_is_reproducible_and_accounts_for_attempts():
         assert successful["covered_68"].isin([True, False]).all()
         assert np.isfinite(successful["density_ise"]).all()
         assert np.isfinite(successful["weight_ess"]).all()
+        assert np.isfinite(successful["finite_parent_target_posterior_mean"]).all()
+        expected_error = (
+            successful["posterior_mean"]
+            - successful["finite_parent_target_posterior_mean"]
+        )
+        assert np.allclose(successful["error_vs_finite_parent_target"], expected_error)
