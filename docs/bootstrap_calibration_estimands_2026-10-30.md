@@ -42,3 +42,8 @@ This is a post-processing component only. The persisted nested outer-SRSWOR/inne
 ## Why the two failure layers are distinct
 
 A failed outer inclusion-model/posterior fit means there is no outer posterior mean and no inner bootstrap should be run (`bootstrap_status=not_run`). If the outer fit succeeds but one inner bootstrap method fails, the outer estimate remains part of the empirical repeated-SRSWOR distribution; only that method's bootstrap SE/interval is unavailable (`bootstrap_status=failed`). This prevents method-specific inner failures from changing the empirical reference SD against which methods are compared.
+
+
+## Complete method-grid requirement
+
+For each scenario and validation size, every outer draw must have one record for every declared resampling method. The summary rejects a missing method-specific outer-draw row rather than allowing different methods to be compared on different outer-draw subsets. This complements the unique-grain and cross-method outer-estimate consistency checks.
