@@ -226,7 +226,7 @@ def bootstrap_validation_h0_posterior(
         percentile = [float("nan"), float("nan")]
 
     return {
-        "schema": "validation_h0_posterior_resampling_v1",
+        "schema": "validation_h0_posterior_resampling_v2",
         "input_fingerprints": {
             "redshift_grid": _array_sha256(z),
             "h0_grid": _array_sha256(h0),
