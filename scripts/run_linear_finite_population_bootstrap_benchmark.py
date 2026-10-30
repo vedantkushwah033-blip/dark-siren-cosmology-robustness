@@ -58,6 +58,7 @@ def run_benchmark(
     root = np.random.SeedSequence(seed)
     scenario_seeds = root.spawn(scenarios)
     rows: list[dict[str, object]] = []
+    replicate_rows: list[dict[str, object]] = []
 
     for s, child in enumerate(scenario_seeds):
         kind = kinds[s % len(kinds)]
@@ -89,6 +90,7 @@ def run_benchmark(
                 wald = (estimate - z * design_se, estimate + z * design_se)
                 method_stats["wald_srswor"].append(wald[0] <= target <= wald[1])
                 method_widths["wald_srswor"].append(wald[1] - wald[0])
+                replicate_rows.append({"scenario": s, "population_kind": kind, "population_size": population_size, "sample_size": n, "repetition": r, "method": "wald_srswor", "target": target, "estimate": estimate, "interval_lower": wald[0], "interval_upper": wald[1], "covered": int(wald[0] <= target <= wald[1]), "failure_code": "", "sample_indices": json.dumps(indices.tolist()), "frame_sha256": frame_hash})
 
                 # Ordinary with-replacement percentile bootstrap: diagnostic comparator.
                 brng = np.random.default_rng(np.random.SeedSequence(
@@ -101,6 +103,7 @@ def run_benchmark(
                     bool(lo <= target <= hi)
                 )
                 method_widths["ordinary_percentile_bootstrap"].append(float(hi - lo))
+                replicate_rows.append({"scenario": s, "population_kind": kind, "population_size": population_size, "sample_size": n, "repetition": r, "method": "ordinary_percentile_bootstrap", "target": target, "estimate": estimate, "interval_lower": float(lo), "interval_upper": float(hi), "covered": int(lo <= target <= hi), "failure_code": "", "sample_indices": json.dumps(indices.tolist()), "frame_sha256": frame_hash})
 
                 # Studentized pseudo-population bootstrap, with deterministic per-draw seed.
                 try:
@@ -118,8 +121,10 @@ def run_benchmark(
                     method_widths["studentized_pseudopop_srswor"].append(
                         float(interval[1] - interval[0])
                     )
-                except (ValueError, ArithmeticError, FloatingPointError):
+                    replicate_rows.append({"scenario": s, "population_kind": kind, "population_size": population_size, "sample_size": n, "repetition": r, "method": "studentized_pseudopop_srswor", "target": target, "estimate": estimate, "interval_lower": float(interval[0]), "interval_upper": float(interval[1]), "covered": int(interval[0] <= target <= interval[1]), "failure_code": "", "sample_indices": json.dumps(indices.tolist()), "frame_sha256": frame_hash})
+                except (ValueError, ArithmeticError, FloatingPointError) as exc:
                     method_failures["studentized_pseudopop_srswor"] += 1
+                    replicate_rows.append({"scenario": s, "population_kind": kind, "population_size": population_size, "sample_size": n, "repetition": r, "method": "studentized_pseudopop_srswor", "target": target, "estimate": estimate, "interval_lower": float("nan"), "interval_upper": float("nan"), "covered": "", "failure_code": type(exc).__name__ + ":" + str(exc), "sample_indices": json.dumps(indices.tolist()), "frame_sha256": frame_hash})
 
             for method, covered in method_stats.items():
                 successful = len(covered)
@@ -142,7 +147,7 @@ def run_benchmark(
                     "coverage_mcse_conditional_on_success": mcse,
                     "mean_interval_width": float(np.mean(method_widths[method])) if method_widths[method] else float("nan"),
                 })
-    return rows
+    return rows, replicate_rows
 
 
 def main() -> None:
@@ -169,6 +174,11 @@ def main() -> None:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
         writer.writeheader()
         writer.writerows(rows)
+    replicate_path = args.output_dir / "linear_finite_population_bootstrap_replicates.csv"
+    with replicate_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(replicate_rows[0]))
+        writer.writeheader()
+        writer.writerows(replicate_rows)
     manifest = {
         "schema": "linear_finite_population_bootstrap_benchmark_v1",
         "status": "PILOT_NOT_CONFIRMATORY",
@@ -181,7 +191,9 @@ def main() -> None:
         "methods": sorted({str(row["method"]) for row in rows}),
         "rows": len(rows),
         "interpretation": "Coverage is conditional on successful interval construction; failures are reported separately. Scenarios are distinct fixed finite frames. No result validates a nonlinear posterior functional.",
-        "csv_sha256": hashlib.sha256(csv_path.read_bytes()).hexdigest(),
+        "summary_csv_sha256": hashlib.sha256(csv_path.read_bytes()).hexdigest(),
+        "replicate_csv_sha256": hashlib.sha256(replicate_path.read_bytes()).hexdigest(),
+        "replicate_rows": len(replicate_rows),
     }
     (args.output_dir / "manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
