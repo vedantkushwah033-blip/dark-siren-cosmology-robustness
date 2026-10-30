@@ -42,6 +42,8 @@ def build_preposterior_diagnostics(model: Mapping[str, object], validation_redsh
         raise ValueError("fitted model coefficients must be present and finite") from exc
     if not np.all(np.isfinite([intercept, slope])):
         raise ValueError("fitted model coefficients must be present and finite")
+    if abs(intercept) > 25.0 or abs(slope) > 50.0:
+        raise ValueError("fitted model coefficients exceed the bounded logistic-fit domain")
     try:
         z_min, z_max = float(model["z_min"]), float(model["z_max"])
         raw_model_n = model["n_validation"]
