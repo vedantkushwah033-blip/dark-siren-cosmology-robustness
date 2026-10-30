@@ -242,7 +242,7 @@ def audit_artifact(output_dir: Path) -> dict[str, object]:
                 z = 1.959963984540054
                 lower, upper = estimate - z * se, estimate + z * se
             elif method == "ordinary_percentile_bootstrap":
-                if any(row.get(k) != "NA" for k in ("inner_attempts", "inner_successes", "inner_failures", "inner_failure_code_counts")):
+                if has_inner_attempt_audit and any(row.get(k) != "NA" for k in ("inner_attempts", "inner_successes", "inner_failures", "inner_failure_code_counts")):
                     raise ValueError("non-studentized method must mark inner attempt fields NA")
                 if int(row["ordinary_bootstrap_seed"]) != expected_ordinary_seed:
                     raise ValueError("ordinary bootstrap seed mismatch")
