@@ -274,7 +274,7 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
             weight_sum_squares = diagnostic_rows["inverse_weight_sum_squares"].to_numpy(dtype=float)
             if np.any((weight_sum <= 0.0) | (weight_sum_squares <= 0.0)):
                 raise AssertionError("pre-posterior inverse-weight aggregates must be positive")
-            reconstructed_ess = weight_sum**2 / weight_sum_squares
+            reconstructed_ess = (weight_sum / np.sqrt(weight_sum_squares)) ** 2
             if not np.allclose(ess, reconstructed_ess, rtol=1e-8, atol=1e-8):
                 raise AssertionError("pre-posterior ESS does not reconstruct from weight aggregates")
             expected_max_share = diagnostic_rows["inverse_weight_max"].to_numpy(dtype=float) / weight_sum
