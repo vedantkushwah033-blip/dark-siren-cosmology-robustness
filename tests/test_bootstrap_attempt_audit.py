@@ -54,3 +54,25 @@ def test_canonical_inner_attempt_record_rejects_inconsistent_attempt_ledgers(cha
     result.update(changes)
     with pytest.raises(ValueError):
         canonical_inner_attempt_record(result)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("success_mask", [1, 0, True, False, True]),
+        ("success_mask", ["false", "true", "true", "false", "true"]),
+        ("failure_codes", ["", None, "", "zero_variance", ""]),
+        ("failure_codes", ["", 7, "", "zero_variance", ""]),
+    ],
+)
+def test_canonical_inner_attempt_record_rejects_coerced_noncanonical_types(field, value):
+    result = {
+        "n_attempted": 5,
+        "n_successful": 3,
+        "n_failed": 2,
+        "success_mask": [True, False, True, False, True],
+        "failure_codes": ["", "zero_variance", "", "zero_variance", ""],
+    }
+    result[field] = value
+    with pytest.raises(ValueError):
+        canonical_inner_attempt_record(result)
