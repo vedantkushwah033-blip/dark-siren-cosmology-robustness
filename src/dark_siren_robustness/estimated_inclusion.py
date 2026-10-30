@@ -300,8 +300,11 @@ def bootstrap_validation_inclusion_density(
         "slope_draws": np.asarray(slope_draws, dtype=float),
         "coefficient_boundary_limited_draws": np.asarray(boundary_flags, dtype=bool),
         "failure_reasons": failure_reasons,
+        "bootstrap_method": "paired validation-record resampling with replacement",
+        "finite_population_correction_applied": False,
         "uncertainty_scope": (
-            "conditional validation-sample bootstrap; observed catalogue fixed; "
-            "logistic selection family assumed; not Bayesian or full GW uncertainty"
+            "approximate iid validation-sample bootstrap; observed catalogue fixed; "
+            "finite-population correction not applied; logistic selection family assumed; "
+            "not Bayesian or full GW uncertainty"
         ),
     }
