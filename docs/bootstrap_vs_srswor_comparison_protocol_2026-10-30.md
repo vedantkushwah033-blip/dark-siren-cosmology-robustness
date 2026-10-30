@@ -191,3 +191,31 @@ and unique positive integer sample sizes, and the upper bound imposed by N.
 Tests check exact seeded replay, uniqueness, index bounds, nesting, and
 rejection of malformed design declarations. This is an implementation and
 sampling-design integrity check, not a bootstrap calibration result.
+
+## 13. Stable failure-code schema for finite-parent records (30 October 2026)
+
+Finite-parent SRSWOR records now carry both a machine-readable `failure_code`
+and a detailed `failure_reason`. Successful records must have both fields
+empty. Failed records must have both fields populated. The current categories
+are:
+
+| Code | Meaning |
+|---|---|
+| `catalogue_size_gate` | The regenerated observed catalogue fails the prespecified minimum-size / redshift-diversity gate. |
+| `floating_point_failure` | A replayed floating-point exception. |
+| `arithmetic_failure` | Another arithmetic exception. |
+| `invalid_validation_sample` | A value/precondition failure during the validation fit or posterior reconstruction. |
+| `model_fit_failure` | A runtime failure during model fitting or posterior evaluation. |
+| `unexpected_exception` | Any other caught exception; this category must be investigated rather than treated as benign. |
+
+The independent auditor does not trust the persisted code: it replays the
+failed calculation, derives the category from the independently observed
+exception class, and compares the result with the stored code. It also
+independently verifies the explicit catalogue-size gate. The full exception
+class and message remain recorded for diagnosis, but stable codes are the
+preferred aggregation key across Python and numerical-library versions.
+
+This classification does not make failures ignorable. Every failure remains
+in the attempted-run denominator, and category-specific failure rates must be
+reported. The broad `unexpected_exception` category is a warning signal,
+not a successful numerical outcome.
