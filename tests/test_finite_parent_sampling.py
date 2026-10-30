@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from dark_siren_robustness.finite_parent_sampling import run_finite_parent_benchmark
 
@@ -41,9 +42,6 @@ def test_finite_parent_benchmark_is_reproducible_and_accounts_for_attempts():
         )
         assert np.allclose(successful["error_vs_finite_parent_target"], expected_error)
 
-
-
-import pytest
 
 
 @pytest.mark.parametrize(
