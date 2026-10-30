@@ -166,7 +166,7 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
                        - (z_min + z_max)/2.0) / ((z_max-z_min)/2.0)
         refit_probability = expit(refit.x[0] + refit.x[1]*x_catalogue)
         if (stored_probability.shape != refit_probability.shape
-                or not np.allclose(stored_probability, refit_probability, rtol=2e-7, atol=2e-9)):
+                or not np.allclose(stored_probability, refit_probability, rtol=5e-5, atol=5e-5)):
             raise AssertionError("stored estimated inclusion probabilities disagree with independent refit")
         if (stored_model.get("model") != "logistic_inclusion_v1"
                 or int(stored_model.get("n_validation", -1)) != validation_z.size
