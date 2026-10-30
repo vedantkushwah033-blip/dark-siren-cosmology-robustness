@@ -39,15 +39,18 @@ Its core question is whether an ordinary paired-record bootstrap adequately esti
    - Validation draws are exact samples without replacement.
    - Nested sample sizes use prefixes of one random permutation per draw, allowing paired comparisons across validation sizes.
    - Seeds, validation indices, hashes, estimator diagnostics, and failed attempts are persisted.
-   - The first-stage independent auditor regenerates parent/GW inputs and thinning, checks provenance hashes, and replays nested SRSWOR indices.
-   - It does not yet independently reconstruct the fitted inclusion model, KDE density, likelihood, posterior summaries, or aggregate metrics.
+   - The independent auditor regenerates parent/GW inputs and thinning, checks provenance hashes, and replays nested SRSWOR indices.
+   - A second-stage independent reconstruction has now been implemented for successful records: bounded logistic fit, inverse-weight ESS/extremes, reflected weighted KDE, density ISE, selected toy likelihood, posterior mean/median/68% endpoints, interval width, absolute error, and coverage indicator.
+   - The auditor also independently re-derives pooled and scenario-balanced summary fields and has adversarial tests for tampered posterior metrics and missing grid metadata.
+   - These latest auditor changes are committed but not yet confirmed by a green exact-head CI run.
 
 ## Current verification state
 
 - The last completed workflow run inspected for the pre-fix branch head was not green. It failed in the persisted-bootstrap artifact test because the summary manifest omitted the n_validation field, which the adversarial resample-index test required.
 - The bootstrap runner now writes n_validation to its summary manifest.
-- Two defects in the new finite-parent tests were also corrected: the test now checks each stored sample against its own requested size, and the auditor test retains the generated fixture frame for its nested-sample assertion.
-- These fixes are committed to the active branch, but a new exact-head green CI run has not yet been observed. Do not call the latest branch fully validated until that run passes on all configured Python versions and the finite-parent smoke artifact audit succeeds.
+- The finite-parent test assertions and fixture handling were corrected.
+- An earlier exact-head run, #41036271780, completed successfully on Python 3.10, 3.11, and 3.12 for the initial finite-parent structural-audit implementation.
+- The expanded numerical reconstruction auditor was added after that run. The subsequent workflow attempt was cancelled while additional commits were pushed; a green run for the expanded auditor has not yet been observed. Do not call the latest branch fully validated until all configured Python versions and the smoke artifact audit pass.
 
 ## What remains before the focused paper can be considered complete
 
@@ -72,8 +75,9 @@ Its core question is whether an ordinary paired-record bootstrap adequately esti
 ## Completion estimate (engineering judgement, not a measured metric)
 
 - **Repository-wide software and exploratory simulation foundation:** approximately 70–80% implemented.
-- **Focused finite-parent/bootstrap research question:** approximately 30–40% complete.
-- **Focused manuscript as a scientifically defensible, independently audited paper:** approximately 35–45% complete.
+- **Focused finite-parent benchmark implementation:** approximately 55–65% implemented, pending exact-head CI validation of the expanded numerical auditor.
+- **Bootstrap-versus-SRSWOR experiment:** approximately 10–15% complete (a detailed prespecified protocol exists; implementation and results remain outstanding).
+- **Focused manuscript as a scientifically defensible, independently audited paper:** approximately 40–50% complete.
 - **Real-data/CHIMERA v2.2 validation:** 0% complete for this focused paper; the required exact benchmark data and end-to-end reproduction have not been established.
 
 These percentages describe task completion, not scientific quality, publication probability, or admissions value. The remaining work is disproportionately important: independent estimator reconstruction, bootstrap-vs-SRSWOR calibration, confirmatory simulation, and external review can change the scientific conclusion.
@@ -81,3 +85,8 @@ These percentages describe task completion, not scientific quality, publication 
 ## Claim discipline
 
 Do not claim a new H0 measurement, real LVK validation, superiority over established dark-siren pipelines, or broad methodological novelty. Catalogue incompleteness, host weighting, selection normalization, and population misspecification are established topics. The candidate contribution is narrower: a reproducible finite-parent validation-sampling and uncertainty-calibration benchmark under explicit synthetic assumptions.
+
+
+## Update after expanded auditor work
+
+The current branch adds an independent numerical reconstruction of successful finite-parent records and an independent re-derivation of summary metrics. It also adds the protocol document `docs/bootstrap_vs_srswor_comparison_protocol_2026-10-30.md`, defining the finite-frame target, ordinary paired bootstrap, FPC-adjusted comparison, primary calibration ratios, hierarchical design, staged pilot/confirmatory plan, and audit requirements. This protocol is not an implemented experiment and contains no numerical finding. Latest recorded code/document commits include `ce4532a`, `9cb2667`, and `d621490`; the latest exact-head CI outcome is not yet confirmed.
