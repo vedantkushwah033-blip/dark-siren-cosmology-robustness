@@ -43,15 +43,30 @@ def build_preposterior_diagnostics(model: Mapping[str, object], validation_redsh
         raise ValueError("fitted model coefficients must be present and finite")
     try:
         z_min, z_max = float(model["z_min"]), float(model["z_max"])
-        model_n, model_included = int(model["n_validation"]), int(model["n_included"])
+        raw_model_n = model["n_validation"]
+        raw_model_included = model["n_included"]
+        raw_model_excluded = model["n_not_included"]
     except (KeyError, TypeError, ValueError) as exc:
         raise ValueError("fitted model is missing validation counts or domain bounds") from exc
+    count_values = (raw_model_n, raw_model_included, raw_model_excluded)
+    if any(
+        isinstance(value, (bool, np.bool_))
+        or not isinstance(value, (int, np.integer))
+        for value in count_values
+    ):
+        raise ValueError("fitted model validation counts must be integer values")
+    model_n, model_included, model_excluded = (int(value) for value in count_values)
     if not np.isfinite(z_min) or not np.isfinite(z_max) or z_min >= z_max:
         raise ValueError("fitted model domain bounds must be finite and increasing")
     if np.any((validation_z < z_min) | (validation_z > z_max)) or np.any((catalogue_z < z_min) | (catalogue_z > z_max)):
         raise ValueError("validation and catalogue redshifts must lie inside fitted model domain")
     observed_included = int(np.sum(included_raw.astype(int)))
-    if model_n != validation_z.size or model_included != observed_included:
+    if (
+        model_n != validation_z.size
+        or model_included != observed_included
+        or model_excluded != validation_z.size - observed_included
+        or model_n < 10
+    ):
         raise ValueError("fitted model validation counts disagree with supplied validation data")
     if model.get("fit_status") not in {"converged", "boundary_limited"}:
         raise ValueError("fitted model has an unrecognized fit status")
