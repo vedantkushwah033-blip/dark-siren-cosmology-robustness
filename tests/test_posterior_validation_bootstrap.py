@@ -171,6 +171,16 @@ def test_posterior_bootstrap_auditor_checks_exact_failure_reason():
             tampered, z_grid, h0_grid, observed_z, validation_z, validation_y,
             distances, **audit_kwargs,
         )
+    assert all(row["failure_code"] for row in result["failure_records"])
+    tampered_code = dict(result)
+    tampered_code["failure_records"] = [dict(row) for row in result["failure_records"]]
+    tampered_code["failure_records"][0]["failure_code"] = "unexpected_exception"
+    with pytest.raises(AssertionError, match="failure code mismatch"):
+        audit_posterior_validation_bootstrap(
+            tampered_code, z_grid, h0_grid, observed_z, validation_z,
+            validation_y, distances, **audit_kwargs,
+        )
+
     tampered_class = dict(result)
     tampered_class["failure_records"] = [dict(row) for row in result["failure_records"]]
     tampered_class["failure_records"][0]["exception_type"] = "RuntimeError"
