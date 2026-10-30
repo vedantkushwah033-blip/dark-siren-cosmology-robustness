@@ -91,3 +91,62 @@ def test_linear_benchmark_auditor_rejects_tampered_interval_even_with_updated_ch
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(ValueError, match="endpoint does not reconstruct"):
         audit_artifact(Path(tmp_path))
+
+
+
+def _write_small_linear_artifact(tmp_path, monkeypatch):
+    monkeypatch.setattr(sys, "argv", [
+        "run_linear_finite_population_bootstrap_benchmark.py",
+        "--scenarios", "1", "--repetitions", "2", "--population-size", "40",
+        "--sample-sizes", "8", "--bootstrap-replicates", "20",
+        "--seed", "20261031", "--output-dir", str(tmp_path),
+    ])
+    main()
+
+
+def _refresh_manifest_checksum(tmp_path, key, filename):
+    import hashlib
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest[key] = hashlib.sha256((tmp_path / filename).read_bytes()).hexdigest()
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+
+def test_linear_auditor_rejects_missing_attempt_even_if_checksum_is_updated(tmp_path, monkeypatch):
+    import csv
+
+    _write_small_linear_artifact(tmp_path, monkeypatch)
+    path = tmp_path / "linear_finite_population_bootstrap_replicates.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        fields, rows = reader.fieldnames, list(reader)
+    rows.pop()
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+    _refresh_manifest_checksum(
+        tmp_path, "replicate_csv_sha256", "linear_finite_population_bootstrap_replicates.csv"
+    )
+    with pytest.raises(ValueError, match="attempt grid is incomplete"):
+        audit_artifact(tmp_path)
+
+
+def test_linear_auditor_rejects_modified_sample_seed_even_if_checksum_is_updated(tmp_path, monkeypatch):
+    import csv
+
+    _write_small_linear_artifact(tmp_path, monkeypatch)
+    path = tmp_path / "linear_finite_population_bootstrap_replicates.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        fields, rows = reader.fieldnames, list(reader)
+    rows[0]["sample_seed"] = str(int(rows[0]["sample_seed"]) + 1)
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+    _refresh_manifest_checksum(
+        tmp_path, "replicate_csv_sha256", "linear_finite_population_bootstrap_replicates.csv"
+    )
+    with pytest.raises(ValueError, match="sample seed does not match"):
+        audit_artifact(tmp_path)
