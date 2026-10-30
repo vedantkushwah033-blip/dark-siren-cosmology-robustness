@@ -88,6 +88,7 @@ def main() -> None:
         "replicate": int(args.replicate),
         "arm": arm,
         "validation_size": int(args.validation_size),
+        "n_validation": int(len(payload["validation_redshift"])),
         "n_attempted": int(result["n_attempted"]),
         "n_successful": int(result["n_successful"]),
         "n_failed": int(result["n_failed"]),
