@@ -22,6 +22,7 @@ from dark_siren_robustness.generative_selection import (
     latent_galaxy_intensity,
 )
 from dark_siren_robustness.host_density_benchmark import posterior_summary
+from dark_siren_robustness.preposterior_diagnostics import build_preposterior_diagnostics
 from dark_siren_robustness.selection_toy import selection_aware_toy_likelihood
 
 
@@ -203,6 +204,7 @@ def run_estimated_inclusion_pilot(
             try:
                 fit_status = "not_applicable"
                 fit_boundary_limited = False
+                preposterior_features: dict[str, object] = {}
                 if arm == "catalogue_only":
                     density = estimate_host_density(
                         z_grid, observed_z, merger_weight=merger_rate,
@@ -244,6 +246,12 @@ def run_estimated_inclusion_pilot(
                     probability_mae = float(np.mean(np.abs(
                         estimated_parent_probability - true_probability
                     )))
+                    # Freeze observable-only warning features before constructing
+                    # the GW likelihood or inspecting any posterior outcome.
+                    preposterior_features = build_preposterior_diagnostics(
+                        result["model"], validation_z, validation_included,
+                        observed_z, result["observed_inclusion_probability"],
+                    )
 
                 likelihood = selection_aware_toy_likelihood(
                     z_grid, density, h0_grid, distances, sigma=sigma_mpc,
@@ -280,6 +288,7 @@ def run_estimated_inclusion_pilot(
                     "weight_ess_fraction": weight_ess / observed_z.size,
                     "max_inverse_weight": max_inverse_weight,
                     "inclusion_probability_mae": probability_mae,
+                    **preposterior_features,
                 })
             except Exception as exc:  # failed fits are retained as explicit records
                 rows.append({
