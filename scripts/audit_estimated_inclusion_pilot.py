@@ -250,8 +250,8 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
                 raise AssertionError("pre-posterior weight concentration metrics are outside [0, 1]")
             if np.any(concentration[:, 1] > concentration[:, 2] + 1e-10) or np.any(concentration[:, 2] > concentration[:, 3] + 1e-10):
                 raise AssertionError("pre-posterior top-tail weight mass is not nested")
-            if np.any(concentration[:, 0] > diagnostic_rows["inverse_weight_ess_fraction"].to_numpy(dtype=float) + 1e-10):
-                raise AssertionError("entropy ESS fraction exceeds quadratic ESS fraction")
+            if np.any(concentration[:, 0] + 1e-10 < diagnostic_rows["inverse_weight_ess_fraction"].to_numpy(dtype=float)):
+                raise AssertionError("entropy ESS fraction is below quadratic ESS fraction")
             ess = diagnostic_rows["inverse_weight_ess"].to_numpy(dtype=float)
             ess_fraction = diagnostic_rows["inverse_weight_ess_fraction"].to_numpy(dtype=float)
             catalogue_size = diagnostic_rows["n_catalogue"].to_numpy(dtype=float)
