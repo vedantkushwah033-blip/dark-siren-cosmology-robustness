@@ -129,9 +129,9 @@ def test_positivity_and_validation_diagnostics_are_retained_for_each_arm():
     assert frame["true_probability_below_005"].between(0, 1).all()
     assert frame["true_probability_below_010"].between(0, 1).all()
     assert (frame["true_probability_below_005"] <= frame["true_probability_below_010"]).all()
-    assert (frame["true_max_inverse_probability"] == pytest.approx(
+    assert frame["true_max_inverse_probability"].to_numpy() == pytest.approx(
         1.0 / frame["true_probability_min"].iloc[0]
-    ))
+    )
     for arm, size in (("estimated_100", 100), ("estimated_300", 300)):
         count = frame.loc[frame["arm"] == arm, "audit_included_count"].iloc[0]
         assert 0 <= count <= size
