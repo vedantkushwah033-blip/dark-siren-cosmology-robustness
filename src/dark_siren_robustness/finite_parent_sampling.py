@@ -34,6 +34,19 @@ def _require_integer(name: str, value: object, minimum: int) -> int:
     return result
 
 
+def _failure_code(exc: Exception) -> str:
+    """Return a stable broad category alongside the diagnostic exception text."""
+    if isinstance(exc, FloatingPointError):
+        return "floating_point_failure"
+    if isinstance(exc, ArithmeticError):
+        return "arithmetic_failure"
+    if isinstance(exc, ValueError):
+        return "invalid_validation_sample"
+    if isinstance(exc, RuntimeError):
+        return "model_fit_failure"
+    return "unexpected_exception"
+
+
 def nested_srswor_sample_indices(
     rng: np.random.Generator,
     parent_size: int,
@@ -153,6 +166,7 @@ def run_finite_parent_benchmark(
                 for draw in range(n_validation_draws):
                     rows.append({"scenario": scenario, "draw": draw,
                                  "validation_size": size, "status": "failed",
+                                 "failure_code": "catalogue_size_gate",
                                  "failure_reason": "catalogue_minimum_size_gate",
                                  "validation_seed": validation_seed,
                                  "simulation_seed": sim_seed, "thinning_seed": thin_seed,
@@ -228,6 +242,7 @@ def run_finite_parent_benchmark(
                     rows.append({
                         "scenario": scenario, "draw": draw,
                         "validation_size": size, "status": "success",
+                        "failure_code": "",
                         "failure_reason": "",
                         "validation_seed": validation_seed,
                         "simulation_seed": sim_seed, "thinning_seed": thin_seed,
@@ -276,6 +291,7 @@ def run_finite_parent_benchmark(
                     rows.append({
                         "scenario": scenario, "draw": draw,
                         "validation_size": size, "status": "failed",
+                        "failure_code": _failure_code(exc),
                         "failure_reason": f"{type(exc).__name__}: {exc}",
                         "validation_seed": validation_seed,
                         "simulation_seed": sim_seed, "thinning_seed": thin_seed,
