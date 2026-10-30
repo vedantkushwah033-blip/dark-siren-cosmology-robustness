@@ -58,4 +58,4 @@ The pilot and confirmatory runs must be separated. No numerical conclusion, desi
 
 ## Reproducibility test coverage
 
-`tests/test_posterior_validation_bootstrap.py` checks deterministic replay for both resampling methods, posterior normalization, preservation of paired-record mappings in the design-aware method, and rejection of invalid methods and below-threshold distance samples. CI runs this test module on Python 3.10, 3.11 and 3.12.
+`posterior_validation_bootstrap_audit.py` independently replays the random index generation, refits the bounded logistic model, reconstructs the reflected weighted KDE and selection-aware posterior without calling the producer estimators, and checks posterior grids, summaries, diagnostics, FPC arithmetic, and failure labels. `tests/test_posterior_validation_bootstrap.py` checks deterministic replay for both methods, posterior normalization, paired-record mappings, independent reconstruction, and rejection of a tampered posterior mean. CI runs this test module on Python 3.10, 3.11 and 3.12.
