@@ -16,10 +16,10 @@ def test_finite_parent_benchmark_is_reproducible_and_accounts_for_attempts():
     assert len(first) == 4
     assert first["status"].tolist() == second["status"].tolist()
     assert first["validation_indices"].tolist() == second["validation_indices"].tolist()
-    for encoded in first["validation_indices"]:
-        indices = np.fromstring(encoded, sep=",", dtype=int)
-        assert indices.size == int(first.loc[first['validation_indices'].eq(encoded), 'validation_size'].iloc[0])
-        assert np.unique(indices).size == 200
+    for _, row in first.iterrows():
+        indices = np.fromstring(row["validation_indices"], sep=",", dtype=int)
+        assert indices.size == int(row["validation_size"])
+        assert np.unique(indices).size == int(row["validation_size"])
         assert np.all((indices >= 0) & (indices < 1200))
     assert (first["status"] == "success").sum() + (first["status"] == "failed").sum() == 4
     for draw in range(2):
