@@ -163,3 +163,20 @@ This is an implementation and provenance improvement, not a scientific result. T
 
 
 The v2 auditor also retains a versioned compatibility path for historical v1 artifacts. A regression test converts a generated test artifact to the v1 schema (removing the v2-only columns and refreshing its checksum) and verifies that the legacy audit still succeeds. This preserves the distinction between historical v1 evidence and future v2 attempt-audited evidence; it does not upgrade any v1 artifact to v2.
+
+
+## 12. Separating conditional coverage from unconditional operational performance
+
+The v2 summary schema adds two quantities alongside the historical conditional coverage estimate. Let (S=1) denote successful interval construction and (C=1) denote that the constructed interval covers the finite-frame target. The existing coverage field estimates
+[
+P(C=1mid S=1),
+]
+which describes coverage among successfully constructed intervals. The new interval-success rate estimates (P(S=1)), while `coverage_unconditional_success_and_cover` estimates
+[
+P(S=1,C=1),
+]
+counting an interval-construction failure as not delivering a covering interval. The corresponding Monte Carlo standard error is calculated over all prespecified outer repetitions, not only successful intervals.
+
+These are different estimands and should not be conflated. The unconditional success-and-cover probability is an operational performance measure, not a replacement for conditional coverage or a claim that failures are ordinary noncoverage events in every inferential framework. Both quantities and their denominators must be reported together, with failure counts and reasons.
+
+The independent auditor reconstructs these summary quantities from the replicate-level records and checks the stored values. This is a v2 schema addition; historical v1 summaries remain interpreted using their original conditional-coverage fields. No numerical v2 result is claimed until the exact-head workflow passes and a v2 artifact is generated and independently audited.
