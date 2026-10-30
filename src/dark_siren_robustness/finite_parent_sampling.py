@@ -124,6 +124,21 @@ def run_finite_parent_benchmark(
                 detection_threshold=detection_threshold_mpc,
             )["selected_log_likelihood"],
         )
+
+        # The finite-parent reference is the same estimated-inclusion pipeline
+        # applied to every paired record in this scenario's actual N-record
+        # validation frame. It is distinct from the generating H0 truth and
+        # from any pseudo-population reference used by a bootstrap.
+        finite_parent_result = estimate_host_density_from_validation(
+            z_grid, observed_z, parent_z, retained.astype(int),
+            merger_weight=rate,
+        )
+        finite_parent_post = posterior_summary(
+            h0_grid, selection_aware_toy_likelihood(
+                z_grid, finite_parent_result["density"], h0_grid, distances,
+                sigma=sigma_mpc, detection_threshold=detection_threshold_mpc,
+            )["selected_log_likelihood"],
+        )
         rng = np.random.default_rng(validation_seed)
         # One random permutation per draw creates nested validation samples:
         # every smaller-size sample is a prefix/subset of the larger-size sample.
@@ -177,6 +192,13 @@ def run_finite_parent_benchmark(
                         "absolute_error": float(abs(post["posterior_mean"]-h0_true)),
                         "oracle_posterior_mean": float(oracle_post["posterior_mean"]),
                         "catalogue_only_posterior_mean": float(cat_post["posterior_mean"]),
+                        "finite_parent_target_posterior_mean": float(finite_parent_post["posterior_mean"]),
+                        "finite_parent_target_posterior_median": float(finite_parent_post["posterior_median"]),
+                        "finite_parent_target_ci68_low": float(finite_parent_post["ci68_low"]),
+                        "finite_parent_target_ci68_high": float(finite_parent_post["ci68_high"]),
+                        "error_vs_finite_parent_target": float(
+                            post["posterior_mean"] - finite_parent_post["posterior_mean"]
+                        ),
                         "h0_true": float(h0_true),
                         "n_catalogue": int(observed_z.size),
                         "n_detected": int(distances.size),
