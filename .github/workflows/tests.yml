@@ -90,6 +90,22 @@ jobs:
           read REPLICATE VALIDATION_SIZE < <(tr ',' ' ' < artifacts/bootstrap_selection.txt)
           python scripts/run_validation_bootstrap_sensitivity.py --pilot-csv artifacts/estimated_inclusion_pilot_smoke/replicates.csv --replicate "$REPLICATE" --validation-size "$VALIDATION_SIZE" --n-bootstrap 100 --seed 20261031 --output-dir artifacts/validation_bootstrap_smoke
           python scripts/audit_validation_bootstrap_sensitivity.py --artifact-dir artifacts/validation_bootstrap_smoke --pilot-csv artifacts/estimated_inclusion_pilot_smoke/replicates.csv
+      - name: Test finite-parent SRSWOR validation benchmark
+        run: python -m pytest tests/test_finite_parent_sampling.py -q
+      - name: Run finite-parent validation-sampling smoke benchmark
+        run: python scripts/run_finite_parent_validation_benchmark.py --scenarios 2 --draws 3 --n-parent 1200 --n-detected 8 --validation-sizes 100,300 --seed 20261032 --output-dir artifacts/finite_parent_validation_smoke
+      - name: Check finite-parent smoke artifact accounting
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('artifacts/finite_parent_validation_smoke')
+          s = json.loads((p / 'summary.json').read_text())
+          assert s['status'] == 'SMOKE_ONLY_NOT_CONFIRMATORY'
+          assert s['n_attempted'] == s['n_successful'] + s['n_failed']
+          assert (p / 'records.csv').stat().st_size > 0
+          print('Validated finite-parent smoke accounting:', s['n_attempted'])
+          PY
       - name: Test host-density-to-H0 benchmark
         run: python -m pytest tests/test_host_density_benchmark.py -q
       - name: Test corrected physical KDE bandwidth semantics
