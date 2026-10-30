@@ -12,6 +12,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.integrate import cumulative_trapezoid, trapezoid
+from scipy.stats import norm
 
 
 def _wilson(successes: int, trials: int) -> tuple[float, float]:
@@ -67,6 +69,94 @@ def _integer_values(values: pd.Series, label: str) -> np.ndarray:
     if not np.all(np.isfinite(numeric)) or not np.all(numeric == np.floor(numeric)):
         raise AssertionError(f"{label}: expected finite integer-valued entries")
     return numeric.astype(np.int64)
+
+
+
+def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
+    """Reconstruct the toy selected-event posterior from persisted numerical inputs.
+
+    This intentionally does not import the production likelihood or posterior
+    helpers. It uses direct event-by-event quadrature as an independent
+    numerical reference and also reconstructs the reported density ISE.
+    """
+    schema = row.get("inference_audit_schema")
+    if schema != "toy_selection_posterior_reconstruction_v1":
+        raise AssertionError("successful row lacks the supported inference-audit schema")
+    raw = row.get("inference_audit_payload_json")
+    if not isinstance(raw, str) or not raw:
+        raise AssertionError("successful row lacks inference_audit_payload_json")
+    try:
+        payload = json.loads(raw)
+        z = np.asarray(payload["redshift_grid"], dtype=float)
+        density = np.asarray(payload["host_density"], dtype=float)
+        target = np.asarray(payload["target_density_for_ise"], dtype=float)
+        h0 = np.asarray(payload["h0_grid"], dtype=float)
+        distances = np.asarray(payload["observed_distances_mpc"], dtype=float)
+        sigma = float(payload["sigma_mpc"])
+        threshold = float(payload["detection_threshold_mpc"])
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise AssertionError("inference audit payload is malformed") from exc
+
+    if (z.ndim != 1 or z.size < 21 or density.shape != z.shape
+            or target.shape != z.shape or h0.ndim != 1 or h0.size < 31
+            or distances.ndim != 1 or distances.size < 1):
+        raise AssertionError("inference audit payload arrays have invalid shapes")
+    if (not all(np.all(np.isfinite(x)) for x in (z, density, target, h0, distances))
+            or np.any(np.diff(z) <= 0) or np.any(np.diff(h0) <= 0)
+            or np.any(density < 0) or np.any(target <= 0)
+            or np.any(distances < threshold) or sigma <= 0 or threshold <= 0):
+        raise AssertionError("inference audit payload contains invalid numerical inputs")
+    if not np.isclose(trapezoid(density, z), 1.0, rtol=1e-7, atol=1e-9):
+        raise AssertionError("persisted host density does not integrate to one")
+
+    # Independent direct quadrature: integrate each event's Gaussian mixture
+    # separately, then apply the fixed-N detection-conditioning correction.
+    event_log_terms = []
+    beta_values = []
+    for candidate in h0:
+        means = 299792.458 * z / candidate
+        event_integrals = [
+            trapezoid(density * norm.pdf(distance, loc=means, scale=sigma), z)
+            for distance in distances
+        ]
+        if np.any(np.asarray(event_integrals) <= 0):
+            raise AssertionError("independent event likelihood integral is nonpositive")
+        event_log_terms.append(float(np.sum(np.log(event_integrals))))
+        beta = trapezoid(
+            density * norm.cdf((means - threshold) / sigma), z
+        )
+        if not np.isfinite(beta) or beta <= 0 or beta > 1.0 + 1e-12:
+            raise AssertionError("independent detection efficiency is invalid")
+        beta_values.append(float(beta))
+
+    selected_loglike = np.asarray(event_log_terms) - distances.size * np.log(beta_values)
+    posterior = np.exp(selected_loglike - np.max(selected_loglike))
+    posterior_area = trapezoid(posterior, h0)
+    if not np.isfinite(posterior_area) or posterior_area <= 0:
+        raise AssertionError("independent posterior normalization failed")
+    posterior /= posterior_area
+    cdf = np.r_[0.0, cumulative_trapezoid(posterior, h0)]
+    cdf /= cdf[-1]
+    q16, q50, q84 = (
+        float(np.interp(q, cdf, h0)) for q in (0.16, 0.50, 0.84)
+    )
+    reconstructed = {
+        "posterior_mean": float(trapezoid(h0 * posterior, h0)),
+        "posterior_median": q50,
+        "ci68_low": q16,
+        "ci68_high": q84,
+        "ci68_width": q84 - q16,
+        "density_ise": float(trapezoid((density - target) ** 2, z)),
+        "covered_68": bool(q16 <= h0_true <= q84),
+        "absolute_error": abs(float(trapezoid(h0 * posterior, h0)) - h0_true),
+    }
+    for key, expected in reconstructed.items():
+        actual = row.get(key)
+        if isinstance(expected, bool):
+            if _strict_bool(actual, key) is not expected:
+                raise AssertionError(f"{key} disagrees with independent inference reconstruction")
+        else:
+            _close(actual, expected, f"independent_inference.{key}", atol=2e-8)
 
 def audit_pilot_artifacts(output_dir: str | Path) -> dict:
     root = Path(output_dir)
@@ -335,6 +425,8 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
             if stored.get("status") != "no_successful_fits":
                 raise AssertionError(f"{arm}: zero-success arm must be marked no_successful_fits")
             continue
+        for _, inference_row in group.iterrows():
+            _audit_inference_payload(inference_row, h0_true)
         if stored.get("status") == "no_successful_fits":
             raise AssertionError(f"{arm}: summary marks an arm non-evaluable despite successful rows")
         posterior_mean = group["posterior_mean"].to_numpy(dtype=float)
@@ -489,7 +581,7 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         ),
         "per_arm_counts": per_arm_counts,
         "comparison_diagnostics": comparison_diagnostics,
-        "audit_scope": "persisted-table integrity and independent summary reconstruction only",
+        "audit_scope": "persisted-table integrity, independent direct-quadrature posterior reconstruction, density-ISE reconstruction, and summary reconstruction",
     }
 
 
