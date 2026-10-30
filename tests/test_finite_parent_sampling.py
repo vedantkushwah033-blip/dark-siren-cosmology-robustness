@@ -40,3 +40,41 @@ def test_finite_parent_benchmark_is_reproducible_and_accounts_for_attempts():
             - successful["finite_parent_target_posterior_mean"]
         )
         assert np.allclose(successful["error_vs_finite_parent_target"], expected_error)
+
+
+
+import pytest
+
+
+@pytest.mark.parametrize(
+    "override,error",
+    [
+        ({"n_scenarios": 1.5}, TypeError),
+        ({"n_validation_draws": True}, TypeError),
+        ({"n_parent": 1200.0}, TypeError),
+        ({"n_detected": 0}, ValueError),
+        ({"seed": -1}, ValueError),
+        ({"h0_points": 40.5}, TypeError),
+        ({"z_points": 100}, ValueError),
+        ({"validation_sizes": (100, 100)}, ValueError),
+        ({"validation_sizes": (100.9,)}, TypeError),
+        ({"h0_true": float("nan")}, ValueError),
+        ({"sigma_mpc": float("inf")}, ValueError),
+        ({"detection_threshold_mpc": 0.0}, ValueError),
+        ({"true_slope": float("nan")}, ValueError),
+    ],
+)
+def test_finite_parent_benchmark_rejects_malformed_experiment_design(override, error):
+    kwargs = dict(
+        n_scenarios=1,
+        n_validation_draws=2,
+        n_parent=1200,
+        n_detected=6,
+        validation_sizes=(100, 200),
+        seed=20261033,
+        h0_points=41,
+        z_points=201,
+    )
+    kwargs.update(override)
+    with pytest.raises(error):
+        run_finite_parent_benchmark(**kwargs)
