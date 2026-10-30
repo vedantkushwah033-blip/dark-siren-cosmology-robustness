@@ -136,3 +136,25 @@ def test_positivity_and_validation_diagnostics_are_retained_for_each_arm():
         count = frame.loc[frame["arm"] == arm, "audit_included_count"].iloc[0]
         assert 0 <= count <= size
     assert frame.loc[frame["arm"] == "catalogue_only", "audit_included_count"].isna().all()
+
+
+def test_pilot_records_preposterior_features_before_posterior_outputs():
+    frame, _summary = run_estimated_inclusion_pilot(
+        n_replicates=1, n_parent=1200, n_detected=6, validation_sizes=(150,),
+        seed=20261051, h0_points=41, z_points=201,
+    )
+    estimated = frame.loc[frame["arm"].eq("estimated_150") & frame["status"].eq("success")]
+    assert len(estimated) == 1, frame[["arm", "status", "error"]].to_dict("records")
+    required = {
+        "diagnostic_schema", "n_validation", "validation_inclusion_fraction",
+        "catalogue_outside_validation_range_fraction", "fitted_probability_p05",
+        "inverse_weight_ess", "inverse_weight_ess_fraction", "inverse_weight_max",
+        "inverse_weight_p95", "inverse_weight_p99",
+    }
+    assert required.issubset(estimated.columns)
+    row = estimated.iloc[0]
+    assert row["diagnostic_schema"] == "preposterior_weight_stability_v1"
+    assert row["n_validation"] == 150
+    assert 0 < row["inverse_weight_ess"] <= row["n_catalogue"]
+    assert 0 < row["inverse_weight_ess_fraction"] <= 1
+    assert not any("true_" in key or "posterior" in key or "coverage" in key for key in required)
