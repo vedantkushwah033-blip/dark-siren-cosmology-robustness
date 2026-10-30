@@ -54,14 +54,32 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                    bootstrap_replicates: int, seed: int,
                    h0_true: float = 70.0, sigma_mpc: float = 140.0,
                    threshold_mpc: float = 250.0) -> tuple[pd.DataFrame, pd.DataFrame]:
+    integer_parameters = {
+        "scenarios": scenarios, "draws": draws, "n_parent": n_parent,
+        "n_detected": n_detected, "bootstrap_replicates": bootstrap_replicates,
+        "seed": seed,
+    }
+    for name, value in integer_parameters.items():
+        if isinstance(value, (bool, np.bool_)) or not isinstance(value, (int, np.integer)):
+            raise TypeError(f"{name} must be an integer")
     if scenarios < 1 or draws < 2 or n_parent < 100 or n_detected < 1:
         raise ValueError("invalid scenario, draw, parent, or detected-event count")
     if bootstrap_replicates < 2 or seed < 0:
         raise ValueError("bootstrap_replicates must be >=2 and seed nonnegative")
-    sizes = tuple(sorted(set(int(n) for n in validation_sizes)))
+    if not np.isfinite(h0_true) or h0_true <= 0:
+        raise ValueError("h0_true must be finite and positive")
+    if not np.isfinite(sigma_mpc) or sigma_mpc <= 0:
+        raise ValueError("sigma_mpc must be finite and positive")
+    if not np.isfinite(threshold_mpc) or threshold_mpc <= 0:
+        raise ValueError("threshold_mpc must be finite and positive")
+    raw_sizes = tuple(validation_sizes)
+    for value in raw_sizes:
+        if isinstance(value, (bool, np.bool_)) or not isinstance(value, (int, np.integer)):
+            raise TypeError("validation sizes must be integers")
+    sizes = tuple(sorted(set(int(n) for n in raw_sizes)))
     if not sizes or min(sizes) < 10 or max(sizes) > n_parent:
         raise ValueError("validation sizes must be unique integers in [10, n_parent]")
-    if len(sizes) != len(validation_sizes):
+    if len(sizes) != len(raw_sizes):
         raise ValueError("validation sizes must not contain duplicates")
 
     z_grid = np.linspace(0.01, 0.40, 401)
@@ -91,13 +109,19 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
         observed_z = parent_z[retained]
         parent_hash, catalogue_hash, gw_hash = _sha(parent_z), _sha(observed_z), _sha(distances)
 
-        target = np.nan
-        if observed_z.size >= 5 and np.unique(observed_z).size >= 3 and np.unique(retained).size == 2:
-            _, full = _posterior(
-                z_grid, h0_grid, observed_z, parent_z, retained.astype(int),
-                distances, rate, sigma_mpc, threshold_mpc,
+        if observed_z.size < 5 or np.unique(observed_z).size < 3 or np.unique(retained).size != 2:
+            raise RuntimeError(
+                f"scenario {scenario} cannot define the prespecified finite-parent target: "
+                f"catalogue_size={observed_z.size}, unique_catalogue_redshifts={np.unique(observed_z).size}, "
+                f"retention_classes={np.unique(retained).size}"
             )
-            target = float(full["posterior_mean"])
+        _, full = _posterior(
+            z_grid, h0_grid, observed_z, parent_z, retained.astype(int),
+            distances, rate, sigma_mpc, threshold_mpc,
+        )
+        target = float(full["posterior_mean"])
+        if not np.isfinite(target):
+            raise ArithmeticError(f"scenario {scenario} produced a nonfinite finite-parent target")
 
         # One independent permutation per outer draw; its prefixes create
         # paired nested SRSWOR samples across the declared validation sizes.
@@ -151,6 +175,13 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                                 "bootstrap_seed": method_seed,
                                 "failure_records": result["failure_records"],
                                 "fpc_factor": float(result["fpc_factor"]),
+                                "input_fingerprints": result["input_fingerprints"],
+                                "success_mask": np.asarray(result["success_mask"], dtype=bool).tolist(),
+                                "attempt_posterior_mean": np.asarray(result["attempt_posterior_mean"], dtype=float).tolist(),
+                                "reference_posterior_mean_by_attempt": np.asarray(result["reference_posterior_mean_by_attempt"], dtype=float).tolist(),
+                                "sample_indices": [np.asarray(v, dtype=np.int64).tolist() for v in result["sample_indices"]],
+                                "pseudo_population_indices": [np.asarray(v, dtype=np.int64).tolist() for v in result["pseudo_population_indices"]],
+                                "selected_pseudo_population_positions": [np.asarray(v, dtype=np.int64).tolist() for v in result["selected_pseudo_population_positions"]],
                             }
                         except Exception as exc:
                             method_results[method] = {
@@ -203,6 +234,13 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                         "bootstrap_seed": result["bootstrap_seed"],
                         "outer_failure": outer_failure,
                         "bootstrap_failure_records": result["failure_records"],
+                        "bootstrap_input_fingerprints": result.get("input_fingerprints"),
+                        "bootstrap_success_mask": result.get("success_mask"),
+                        "bootstrap_attempt_posterior_mean": result.get("attempt_posterior_mean"),
+                        "bootstrap_reference_posterior_mean_by_attempt": result.get("reference_posterior_mean_by_attempt"),
+                        "bootstrap_sample_indices": result.get("sample_indices"),
+                        "bootstrap_pseudo_population_indices": result.get("pseudo_population_indices"),
+                        "bootstrap_selected_pseudo_population_positions": result.get("selected_pseudo_population_positions"),
                         "n_bootstrap_attempted": result["n_bootstrap_attempted"],
                         "n_bootstrap_successful": result["n_bootstrap_successful"],
                         "fpc_factor": result["fpc_factor"],
@@ -242,6 +280,15 @@ def main() -> None:
         "status": "SMOKE_ONLY_NOT_CONFIRMATORY",
         "seed": args.seed, "scenarios": args.scenarios, "outer_draws": args.draws,
         "parent_size": args.n_parent, "validation_sizes": list(sizes),
+        "model_parameters": {
+            "h0_true_km_s_mpc": 70.0,
+            "distance_noise_sigma_mpc": 140.0,
+            "detection_threshold_mpc": 250.0,
+            "redshift_grid": {"start": 0.01, "stop": 0.40, "points": 401},
+            "h0_grid": {"start": 50.0, "stop": 90.0, "points": 81},
+            "merger_weight": "linear from 1.0 at z=0.01 to 2.5 at z=0.40",
+            "catalogue_retention_probability": "expit(0.25 - 1.2*x), x=(z-0.205)/0.195",
+        },
         "bootstrap_replicates_per_method_per_outer_draw": args.bootstrap_replicates,
         "methods": ["paired_bootstrap", "paired_bootstrap_fpc", "design_aware_srswor"],
         "outer_design": "nested_simple_random_sampling_without_replacement",
