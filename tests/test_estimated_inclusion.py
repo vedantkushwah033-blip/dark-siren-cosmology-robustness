@@ -154,7 +154,7 @@ def test_preposterior_diagnostics_are_observable_only_and_reconstruct_weight_met
     model = {
         "model": "logistic_inclusion_v1", "fit_status": "converged",
         "coefficient_bound_hit": False, "intercept": 0.2, "slope": -1.1,
-        "z_min": 0.01, "z_max": 0.40, "n_validation": 200, "n_included": 100,
+        "z_min": 0.01, "z_max": 0.40, "n_validation": 200, "n_included": 100, "n_not_included": 100,
     }
     result = build_preposterior_diagnostics(
         model, validation_z, validation_y, catalogue_z, probability
@@ -183,7 +183,7 @@ def test_preposterior_diagnostics_flag_catalogue_outside_validation_support():
     validation_z = np.linspace(0.10, 0.30, 100)
     catalogue_z = np.array([0.02, 0.15, 0.25, 0.39])
     probability = np.array([0.2, 0.4, 0.5, 0.3])
-    model = {"model": "logistic_inclusion_v1", "fit_status": "converged", "coefficient_bound_hit": False, "intercept": 0.0, "slope": 0.0, "z_min": 0.01, "z_max": 0.40, "n_validation": 100, "n_included": 50}
+    model = {"model": "logistic_inclusion_v1", "fit_status": "converged", "coefficient_bound_hit": False, "intercept": 0.0, "slope": 0.0, "z_min": 0.01, "z_max": 0.40, "n_validation": 100, "n_included": 50, "n_not_included": 50}
     result = build_preposterior_diagnostics(
         model, validation_z, np.tile([0, 1], 50), catalogue_z, probability
     )
@@ -201,3 +201,30 @@ def test_preposterior_diagnostics_reject_invalid_probabilities_and_mismatched_ar
         build_preposterior_diagnostics(model, validation_z, validation_y, catalogue_z, np.zeros(10))
     with pytest.raises(ValueError, match="match catalogue"):
         build_preposterior_diagnostics(model, validation_z, validation_y, catalogue_z, np.full(9, 0.5))
+
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("n_validation", 200.5),
+        ("n_included", True),
+        ("n_not_included", 99),
+    ],
+)
+def test_preposterior_diagnostics_reject_noninteger_or_inconsistent_model_counts(field, value):
+    from dark_siren_robustness.preposterior_diagnostics import build_preposterior_diagnostics
+
+    validation_z = np.linspace(0.02, 0.39, 200)
+    validation_y = np.tile([0, 1], 100)
+    catalogue_z = np.linspace(0.03, 0.38, 80)
+    probability = np.full(80, 0.5)
+    model = {
+        "model": "logistic_inclusion_v1", "fit_status": "converged",
+        "coefficient_bound_hit": False, "intercept": 0.0, "slope": 0.0,
+        "z_min": 0.01, "z_max": 0.40, "n_validation": 200,
+        "n_included": 100, "n_not_included": 100,
+    }
+    model[field] = value
+    with pytest.raises(ValueError, match="validation counts"):
+        build_preposterior_diagnostics(
+            model, validation_z, validation_y, catalogue_z, probability
+        )
