@@ -163,3 +163,13 @@ def test_posterior_bootstrap_auditor_checks_exact_failure_reason():
             tampered_class, z_grid, h0_grid, observed_z, validation_z, validation_y,
             distances, **audit_kwargs,
         )
+    tampered_failed_metric = dict(result)
+    failed_means = np.asarray(result["attempt_posterior_mean"]).copy()
+    failed_index = int(np.flatnonzero(~np.asarray(result["success_mask"], dtype=bool))[0])
+    failed_means[failed_index] = 70.0
+    tampered_failed_metric["attempt_posterior_mean"] = failed_means
+    with pytest.raises(AssertionError, match="failed attempts must have NaN posterior mean"):
+        audit_posterior_validation_bootstrap(
+            tampered_failed_metric, z_grid, h0_grid, observed_z, validation_z,
+            validation_y, distances, **audit_kwargs,
+        )
