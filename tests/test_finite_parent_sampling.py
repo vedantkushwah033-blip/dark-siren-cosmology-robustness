@@ -22,6 +22,9 @@ def test_finite_parent_benchmark_is_reproducible_and_accounts_for_attempts():
         assert np.unique(indices).size == 200
         assert np.all((indices >= 0) & (indices < 1200))
     assert (first["status"] == "success").sum() + (first["status"] == "failed").sum() == 2
+    for hash_column in ("parent_frame_sha256", "catalogue_sha256", "gw_distance_sha256"):
+        assert first[hash_column].nunique(dropna=True) == 1
+        assert first[hash_column].str.fullmatch(r"[0-9a-f]{64}").all()
     successful = first.loc[first["status"].eq("success")]
     if len(successful):
         assert successful["covered_68"].isin([True, False]).all()
