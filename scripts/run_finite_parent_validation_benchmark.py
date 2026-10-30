@@ -57,6 +57,10 @@ def main() -> None:
             summary["metrics_by_validation_size"][str(size)] = {
                 "posterior_mean_bias": float((group["posterior_mean"]-group["h0_true"]).mean()),
                 "posterior_mean_rmse": float((group["absolute_error"]**2).mean()**0.5),
+                "finite_parent_target_bias": float(group["error_vs_finite_parent_target"].mean()),
+                "finite_parent_target_rmse": float(
+                    (group["error_vs_finite_parent_target"]**2).mean()**0.5
+                ),
                 "coverage_68": float(group["covered_68"].mean()),
                 "mean_ci68_width": float(group["ci68_width"].mean()),
                 "mean_density_ise": float(group["density_ise"].mean()),
