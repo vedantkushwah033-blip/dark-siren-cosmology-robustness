@@ -279,5 +279,6 @@ jobs:
             artifacts/estimated_inclusion_pilot_smoke/
             artifacts/validation_bootstrap_smoke/
             artifacts/bootstrap_selection.txt
+            artifacts/nested_validation_bootstrap_smoke/
           if-no-files-found: error
 
