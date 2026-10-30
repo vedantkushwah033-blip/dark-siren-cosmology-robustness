@@ -92,3 +92,25 @@ def test_independent_nested_replay_reconstructs_smoke_scenario_and_posteriors(ne
     assert result["scenarios_reconstructed"] == 1
     assert result["outer_fits_reconstructed"] == 2
     assert result["successful_bootstrap_methods_replayed"] >= 2
+
+
+def test_independent_nested_replay_rejects_tampered_parent_fingerprint(nested_artifact):
+    path = nested_artifact / "attempt_audit.jsonl"
+    frame = pd.read_json(path, lines=True)
+    frame.loc[:, "parent_frame_sha256"] = "0" * 64
+    frame.to_json(path, orient="records", lines=True)
+    with pytest.raises(AssertionError, match="parent-frame fingerprint mismatch"):
+        audit_replay(nested_artifact)
+
+
+def test_independent_nested_replay_rejects_tampered_bootstrap_posterior_mean(nested_artifact):
+    path = nested_artifact / "attempt_audit.jsonl"
+    frame = pd.read_json(path, lines=True)
+    row = frame.index[
+        (frame["method"] == "paired_bootstrap")
+        & (frame["bootstrap_status"] == "success")
+    ][0]
+    frame.at[row, "bootstrap_attempt_posterior_mean"][0] += 0.5
+    frame.to_json(path, orient="records", lines=True)
+    with pytest.raises(AssertionError, match="posterior mean"):
+        audit_replay(nested_artifact)
