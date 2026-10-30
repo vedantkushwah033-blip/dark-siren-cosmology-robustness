@@ -265,6 +265,18 @@ jobs:
         run: |
           python scripts/run_catalogue_thinning_audit.py --n-parent 40000 --seed 20261028 --output-dir artifacts/catalogue_thinning
           python scripts/audit_catalogue_thinning_audit.py artifacts/catalogue_thinning
+      - name: Test studentized finite-population mean bootstrap primitive
+        run: python -m pytest tests/test_finite_population_mean_bootstrap.py -q
+      - name: Test linear finite-population benchmark and independent auditor
+        run: python -m pytest tests/test_linear_finite_population_bootstrap_benchmark.py -q
+      - name: Run linear finite-population bootstrap pilot (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python scripts/run_linear_finite_population_bootstrap_benchmark.py --scenarios 3 --repetitions 100 --population-size 1000 --sample-sizes 100 400 --bootstrap-replicates 199 --seed 20261031 --output-dir artifacts/linear_finite_population_bootstrap_pilot
+      - name: Independently audit linear finite-population bootstrap pilot (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python scripts/audit_linear_finite_population_bootstrap_benchmark.py --output-dir artifacts/linear_finite_population_bootstrap_pilot --report artifacts/linear_finite_population_bootstrap_pilot/audit_report.json
       - name: Upload numerical diagnostic results
         uses: actions/upload-artifact@v4
         with:
@@ -286,5 +298,6 @@ jobs:
             artifacts/validation_bootstrap_smoke/
             artifacts/bootstrap_selection.txt
             artifacts/nested_validation_bootstrap_smoke/
+            artifacts/linear_finite_population_bootstrap_pilot/
           if-no-files-found: error
 
