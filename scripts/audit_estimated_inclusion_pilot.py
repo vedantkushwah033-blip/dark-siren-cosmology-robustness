@@ -210,7 +210,7 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
     # Independently validate observable-only pre-posterior feature records.
     estimated_success = success & frame["arm"].str.startswith("estimated_")
     if estimated_success.any():
-        required_features = ["diagnostic_schema", "n_validation", "n_validation_included", "validation_inclusion_fraction", "catalogue_outside_validation_range_fraction", "fitted_probability_min", "fitted_probability_p01", "fitted_probability_p05", "fitted_probability_median", "fitted_probability_max", "inverse_weight_ess", "inverse_weight_ess_fraction", "inverse_weight_max", "inverse_weight_p95", "inverse_weight_p99"]
+        required_features = ["diagnostic_schema", "n_validation", "n_validation_included", "validation_inclusion_fraction", "catalogue_outside_validation_range_fraction", "catalogue_near_validation_boundary_fraction", "fitted_probability_min", "fitted_probability_p01", "fitted_probability_p05", "fitted_probability_median", "fitted_probability_max", "inverse_weight_ess", "inverse_weight_ess_fraction", "inverse_weight_entropy_ess_fraction", "inverse_weight_max_share", "inverse_weight_top_1pct_mass", "inverse_weight_top_5pct_mass", "inverse_weight_max", "inverse_weight_p95", "inverse_weight_p99"]
         missing_features = [name for name in required_features if name not in frame.columns]
         if missing_features:
             raise AssertionError(f"replicate table missing pre-posterior features: {missing_features}")
@@ -242,6 +242,16 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
             support_gap = diagnostic_rows["catalogue_outside_validation_range_fraction"].to_numpy(dtype=float)
             if np.any((support_gap < 0.0) | (support_gap > 1.0)):
                 raise AssertionError("pre-posterior catalogue support-gap fraction is outside [0, 1]")
+            support_edge = diagnostic_rows["catalogue_near_validation_boundary_fraction"].to_numpy(dtype=float)
+            if np.any((support_edge < 0.0) | (support_edge > 1.0)):
+                raise AssertionError("pre-posterior validation-boundary fraction is outside [0, 1]")
+            concentration = diagnostic_rows[["inverse_weight_entropy_ess_fraction", "inverse_weight_max_share", "inverse_weight_top_1pct_mass", "inverse_weight_top_5pct_mass"]].to_numpy(dtype=float)
+            if np.any((concentration < 0.0) | (concentration > 1.0 + 1e-10)):
+                raise AssertionError("pre-posterior weight concentration metrics are outside [0, 1]")
+            if np.any(concentration[:, 1] > concentration[:, 2] + 1e-10) or np.any(concentration[:, 2] > concentration[:, 3] + 1e-10):
+                raise AssertionError("pre-posterior top-tail weight mass is not nested")
+            if np.any(concentration[:, 0] > diagnostic_rows["inverse_weight_ess_fraction"].to_numpy(dtype=float) + 1e-10):
+                raise AssertionError("entropy ESS fraction exceeds quadratic ESS fraction")
             ess = diagnostic_rows["inverse_weight_ess"].to_numpy(dtype=float)
             ess_fraction = diagnostic_rows["inverse_weight_ess_fraction"].to_numpy(dtype=float)
             catalogue_size = diagnostic_rows["n_catalogue"].to_numpy(dtype=float)
