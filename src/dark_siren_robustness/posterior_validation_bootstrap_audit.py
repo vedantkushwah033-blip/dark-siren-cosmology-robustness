@@ -130,6 +130,23 @@ def audit_posterior_validation_bootstrap(
     references = np.asarray(result["reference_posterior_mean_by_attempt"], dtype=float)
     if means.shape != (attempted,) or references.shape != (attempted,):
         raise AssertionError("attempt-aligned posterior arrays have incorrect shape")
+    attempt_aligned = {
+        "posterior median": np.asarray(result["posterior_median_draws_by_attempt"], dtype=float),
+        "68% lower endpoint": np.asarray(result["ci68_low_draws_by_attempt"], dtype=float),
+        "68% upper endpoint": np.asarray(result["ci68_high_draws_by_attempt"], dtype=float),
+        "inverse-weight ESS": np.asarray(result["inverse_weight_ess_by_attempt"], dtype=float),
+        "maximum inverse weight": np.asarray(result["inverse_weight_maximum_by_attempt"], dtype=float),
+    }
+    if any(values.shape != (attempted,) for values in attempt_aligned.values()):
+        raise AssertionError("attempt-aligned diagnostic arrays have incorrect shape")
+    failed_mask = ~success
+    for label, values in {
+        "posterior mean": means,
+        "reference posterior mean": references,
+        **attempt_aligned,
+    }.items():
+        if np.any(~np.isnan(values[failed_mask])):
+            raise AssertionError(f"failed attempts must have NaN {label} diagnostics")
     samples = result["sample_indices"]
     pseudo = result["pseudo_population_indices"]
     positions = result["selected_pseudo_population_positions"]
