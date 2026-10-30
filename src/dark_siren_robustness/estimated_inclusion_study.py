@@ -221,6 +221,9 @@ def run_estimated_inclusion_pilot(
                 fit_boundary_limited = False
                 preposterior_features: dict[str, object] = {}
                 density_inclusion_probability = np.ones(observed_z.size, dtype=float)
+                audit_validation_redshift = np.array([], dtype=float)
+                audit_validation_included = np.array([], dtype=int)
+                fitted_inclusion_model = None
                 weight_ess = float("nan")
                 max_inverse_weight = float("nan")
                 if arm == "catalogue_only":
@@ -247,6 +250,8 @@ def run_estimated_inclusion_pilot(
                     m = int(spec)
                     validation_z = audit_records["redshift"][:m]
                     validation_included = audit_records["included"][:m]
+                    audit_validation_redshift = np.asarray(validation_z, dtype=float)
+                    audit_validation_included = np.asarray(validation_included, dtype=int)
                     result = estimate_host_density_from_validation(
                         z_grid, observed_z, validation_z, validation_included,
                         merger_weight=merger_rate, bandwidth_factor=bandwidth_factor,
@@ -255,6 +260,7 @@ def run_estimated_inclusion_pilot(
                     density_inclusion_probability = np.asarray(
                         result["observed_inclusion_probability"], dtype=float
                     )
+                    fitted_inclusion_model = dict(result["model"])
                     fit_status = str(result["model"]["fit_status"])
                     fit_boundary_limited = bool(result["model"]["coefficient_bound_hit"])
                     weight_ess = float(result["inverse_weight_effective_sample_size"])
@@ -322,6 +328,9 @@ def run_estimated_inclusion_pilot(
                         "bandwidth_factor": (
                             None if bandwidth_factor is None else float(bandwidth_factor)
                         ),
+                        "validation_redshift": audit_validation_redshift.tolist(),
+                        "validation_included": audit_validation_included.tolist(),
+                        "fitted_inclusion_model": fitted_inclusion_model,
                         "h0_grid": h0_grid.tolist(),
                         "observed_distances_mpc": distances.tolist(),
                         "sigma_mpc": float(sigma_mpc),
