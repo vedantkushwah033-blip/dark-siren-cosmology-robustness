@@ -79,3 +79,15 @@ exception messages can be sensitive to numerical-library versions, so these
 checks are strongest when producer and auditor run in the same pinned
 environment; a future artifact schema should consider stable structured
 failure codes in addition to diagnostic messages.
+
+
+## Failed-attempt missingness invariants (30 October 2026)
+
+The independent posterior-bootstrap audit now also checks that attempt-aligned
+posterior means, pseudo-population/reference means, credible endpoints, and
+inverse-weight diagnostics remain NaN for failed attempts. This prevents a
+failed replicate from carrying plausible-looking numerical values that could
+be accidentally included in downstream summaries. A regression test tampers
+with a failed attempt's posterior mean and requires the audit to reject the
+artifact. The producer already initializes these fields as NaN; this change
+makes that missingness contract independently enforceable.
