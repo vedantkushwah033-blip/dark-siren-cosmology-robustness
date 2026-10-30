@@ -245,6 +245,53 @@ def audit(artifact_dir: Path) -> dict:
                         _close(row["absolute_error"],abs(post[0]-float(row["h0_true"])),"absolute posterior-mean error")
                         if bool(row["covered_68"]) != (post[2] <= float(row["h0_true"]) <= post[3]):
                             raise AssertionError("68% coverage indicator fails independent posterior reconstruction")
+    # Re-derive every reported validation-size summary from audited raw records.
+    successful_records = records.loc[records["status"].eq("success")]
+    reported = summary.get("metrics_by_validation_size", {})
+    for size in sizes:
+        group = successful_records.loc[successful_records["validation_size"].eq(size)]
+        if not len(group):
+            if str(size) in reported:
+                raise AssertionError("summary reports metrics for a validation size with no successes")
+            continue
+        if str(size) not in reported:
+            raise AssertionError("summary omits a validation-size metric block")
+        metric = reported[str(size)]
+        errors = group["posterior_mean"].to_numpy(dtype=float)-group["h0_true"].to_numpy(dtype=float)
+        derived = {
+            "posterior_mean_bias": float(np.mean(errors)),
+            "posterior_mean_rmse": float(np.sqrt(np.mean(errors**2))),
+            "coverage_68": float(group["covered_68"].astype(float).mean()),
+            "mean_ci68_width": float(group["ci68_width"].mean()),
+            "mean_density_ise": float(group["density_ise"].mean()),
+            "mean_inclusion_probability_mae": float(group["inclusion_probability_mae"].mean()),
+            "mean_weight_ess": float(group["weight_ess"].mean()),
+            "mean_max_inverse_weight": float(group["max_inverse_weight"].mean()),
+            "boundary_limited_fraction": float(group["fit_boundary_limited"].astype(float).mean()),
+            "n_scenarios_with_successes": int(group["scenario"].nunique()),
+            "scenario_balanced_bias_mean": float(
+                group.assign(error=errors).groupby("scenario")["error"].mean().mean()
+            ),
+            "scenario_balanced_rmse_mean": float(
+                group.assign(squared_error=errors**2).groupby("scenario")["squared_error"].mean().pow(0.5).mean()
+            ),
+            "scenario_balanced_coverage_mean": float(
+                group.groupby("scenario")["covered_68"].mean().mean()
+            ),
+        }
+        if group["scenario"].nunique() > 1:
+            derived["scenario_coverage_sd"] = float(
+                group.groupby("scenario")["covered_68"].mean().std(ddof=1)
+            )
+        else:
+            derived["scenario_coverage_sd"] = None
+        for name, value in derived.items():
+            if value is None:
+                if metric.get(name) is not None:
+                    raise AssertionError(f"summary field {name} should be null for one scenario")
+            else:
+                _close(metric.get(name, np.nan), value, f"summary {size}/{name}")
+
     return {
         "status": "STRUCTURAL_AUDIT_PASS",
         "n_attempted": attempted,
