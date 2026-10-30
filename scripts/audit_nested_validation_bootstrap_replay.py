@@ -14,6 +14,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.special import expit
 
 from dark_siren_robustness.posterior_validation_bootstrap_audit import (
     _independent_posterior,
@@ -190,7 +191,7 @@ def audit(directory: Path) -> dict:
             sim_seed, n_parent, n_detected, h0_true, sigma, threshold, z_min, z_max
         )
         x = (parent_z-midpoint)/half_range
-        p_true = 1.0/(1.0+np.exp(-(0.25-1.2*x)))
+        p_true = expit(0.25-1.2*x)
         retained = np.random.default_rng(thin_seed).random(n_parent) < p_true
         observed_z = parent_z[retained]
         _require(_sha_float64(parent_z) == first.parent_frame_sha256,
