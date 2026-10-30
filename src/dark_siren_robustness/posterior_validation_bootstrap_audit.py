@@ -6,6 +6,7 @@ pipeline's estimator or likelihood functions.
 """
 from __future__ import annotations
 
+import hashlib
 import numpy as np
 from scipy.integrate import cumulative_trapezoid, trapezoid
 from scipy.optimize import minimize
@@ -87,6 +88,15 @@ def _independent_posterior(z, h0, observed, validation_z, validation_y, distance
     return posterior, summary, diagnostics
 
 
+def _independent_array_fingerprint(values) -> str:
+    """Recompute canonical input provenance without using the producer helper."""
+    canonical = np.ascontiguousarray(np.asarray(values, dtype=np.float64))
+    hasher = hashlib.sha256()
+    hasher.update(np.asarray(canonical.shape, dtype=np.int64).tobytes())
+    hasher.update(canonical.tobytes())
+    return hasher.hexdigest()
+
+
 def _independent_failure_code(exception_type: str) -> str:
     """Derive the stable failure category from the independently replayed class."""
     mapping = {
@@ -137,6 +147,17 @@ def audit_posterior_validation_bootstrap(
     )
     if result.get("design_aware_method_status") != expected_method_status:
         raise AssertionError("design-aware method status does not match its declared inferential scope")
+    expected_fingerprints = {
+        "redshift_grid": _independent_array_fingerprint(z),
+        "h0_grid": _independent_array_fingerprint(h0),
+        "observed_redshift": _independent_array_fingerprint(observed),
+        "validation_redshift": _independent_array_fingerprint(vz),
+        "validation_included": _independent_array_fingerprint(vy),
+        "observed_distances_mpc": _independent_array_fingerprint(distances),
+        "merger_weight": _independent_array_fingerprint(rate),
+    }
+    if result.get("input_fingerprints") != expected_fingerprints:
+        raise AssertionError("input fingerprints do not match independently supplied experiment inputs")
     attempted = int(result["n_attempted"])
     success = np.asarray(result["success_mask"], dtype=bool)
     if success.shape != (attempted,):
