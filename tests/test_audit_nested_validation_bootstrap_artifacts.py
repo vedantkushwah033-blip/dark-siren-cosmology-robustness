@@ -90,7 +90,7 @@ def test_independent_nested_artifact_auditor_rejects_corrupt_pseudopopulation_ma
     row["bootstrap_sample_indices"][0][0] = (
         int(row["bootstrap_sample_indices"][0][0]) + 1
     ) % 100
-    path.write_text("\\n".join(json.dumps(item) for item in rows) + "\\n")
+    path.write_text("\n".join(json.dumps(item) for item in rows) + "\n")
     with pytest.raises(ValueError, match="selected pseudo-population positions do not map"):
         audit(nested_artifact)
 
@@ -119,7 +119,7 @@ def test_independent_nested_replay_rejects_tampered_bootstrap_posterior_mean(nes
     assert row["bootstrap_success_mask"] and any(row["bootstrap_success_mask"])
     first_success = row["bootstrap_success_mask"].index(True)
     row["bootstrap_attempt_posterior_mean"][first_success] += 0.5
-    path.write_text("\\n".join(json.dumps(item) for item in rows) + "\\n")
+    path.write_text("\n".join(json.dumps(item) for item in rows) + "\n")
     with pytest.raises(AssertionError, match="posterior mean"):
         audit_replay(nested_artifact)
 
