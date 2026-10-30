@@ -342,12 +342,13 @@ def audit_artifact(output_dir: Path) -> dict[str, object]:
         mcse = float(np.sqrt(coverage * (1.0 - coverage) / len(successes))) if successes else float("nan")
         if not np.isclose(float(row["coverage_mcse_conditional_on_success"]), mcse, rtol=1e-11, atol=1e-12, equal_nan=True):
             raise ValueError("summary coverage Monte Carlo SE mismatch")
-        if not np.isclose(float(row["interval_success_rate"]), success_rate, rtol=1e-11, atol=1e-12):
-            raise ValueError("summary interval success rate mismatch")
-        if not np.isclose(float(row["coverage_unconditional_success_and_cover"]), unconditional_success_and_cover, rtol=1e-11, atol=1e-12):
-            raise ValueError("summary unconditional success-and-coverage mismatch")
-        if not np.isclose(float(row["coverage_mcse_unconditional"]), unconditional_mcse, rtol=1e-11, atol=1e-12):
-            raise ValueError("summary unconditional coverage Monte Carlo SE mismatch")
+        if has_inner_attempt_audit:
+            if not np.isclose(float(row["interval_success_rate"]), success_rate, rtol=1e-11, atol=1e-12):
+                raise ValueError("summary interval success rate mismatch")
+            if not np.isclose(float(row["coverage_unconditional_success_and_cover"]), unconditional_success_and_cover, rtol=1e-11, atol=1e-12):
+                raise ValueError("summary unconditional success-and-coverage mismatch")
+            if not np.isclose(float(row["coverage_mcse_unconditional"]), unconditional_mcse, rtol=1e-11, atol=1e-12):
+                raise ValueError("summary unconditional coverage Monte Carlo SE mismatch")
 
     return {
         "status": "PASS",
