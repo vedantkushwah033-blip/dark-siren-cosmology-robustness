@@ -271,3 +271,14 @@ inner resampling layers, and independently reconstructs all successful
 posterior calculations and calibration summaries, (iii) add tamper tests,
 (iv) verify exact-head CI, and only then (v) profile a pilot and freeze a
 precision-based confirmatory design.
+
+
+## Integrated runner auditability hardening (30 October 2026)
+
+- The integrated runner now rejects booleans and non-integer design counts, fractional validation sizes, and nonfinite/nonpositive physical scales before simulation begins.
+- A scenario that cannot define the prespecified all-parent finite-frame target now fails explicitly instead of writing a nonfinite target into a calibration table that is contractually required to contain a finite fixed target.
+- The manifest records the fixed generating values and grid specifications (true H0, distance-noise scale, detection threshold, redshift/H0 grids, merger-weight form, and catalogue-retention mechanism).
+- Attempt-level JSONL records now retain bootstrap input fingerprints, success masks, attempt-indexed posterior means/reference means, and the resampling index traces returned by the posterior-bootstrap engine. These traces are intended to support a later independent end-to-end replay audit; their presence alone is not an audit pass.
+- Added parameterized tests for malformed design counts, fractional/boolean validation sizes, and invalid physical parameters.
+- Commits: `21fced1` (runner hardening) and `f7cd331` (tests).
+- The integrated runner still has not been executed in this session. No smoke artifact, independent replay result, or calibration conclusion is claimed. Exact-head CI must pass before the runner is treated as verified.
