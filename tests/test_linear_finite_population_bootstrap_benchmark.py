@@ -191,3 +191,26 @@ def test_linear_auditor_requires_explicit_na_for_nonstudentized_attempt_fields(t
     )
     with pytest.raises(ValueError, match="non-studentized method must mark inner attempt fields NA"):
         audit_artifact(tmp_path)
+
+
+def test_linear_auditor_preserves_v1_artifact_compatibility(tmp_path, monkeypatch):
+    import csv
+    import hashlib
+
+    _write_small_linear_artifact(tmp_path, monkeypatch)
+    replicate_path = tmp_path / "linear_finite_population_bootstrap_replicates.csv"
+    with replicate_path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        fields, rows = reader.fieldnames, list(reader)
+    legacy_fields = [field for field in fields if not field.startswith("inner_")]
+    with replicate_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=legacy_fields)
+        writer.writeheader()
+        writer.writerows([{key: row[key] for key in legacy_fields} for row in rows])
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["schema"] = "linear_finite_population_bootstrap_benchmark_v1"
+    manifest["replicate_csv_sha256"] = hashlib.sha256(replicate_path.read_bytes()).hexdigest()
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    report = audit_artifact(tmp_path)
+    assert report["status"] == "PASS"
