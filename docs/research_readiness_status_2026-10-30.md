@@ -90,3 +90,10 @@ Do not claim a new H0 measurement, real LVK validation, superiority over establi
 ## Update after expanded auditor work
 
 The current branch adds an independent numerical reconstruction of successful finite-parent records and an independent re-derivation of summary metrics. It also adds the protocol document `docs/bootstrap_vs_srswor_comparison_protocol_2026-10-30.md`, defining the finite-frame target, ordinary paired bootstrap, FPC-adjusted comparison, primary calibration ratios, hierarchical design, staged pilot/confirmatory plan, and audit requirements. This protocol is not an implemented experiment and contains no numerical finding. Latest recorded code/document commits include `ce4532a`, `9cb2667`, and `d621490`; the latest exact-head CI outcome is not yet confirmed.
+
+
+## Update: related-work and novelty-boundary audit
+
+A targeted literature-positioning document was added at `docs/related_work_and_novelty_boundary_audit_2026-10-30.md`. It records established work on catalogue incompleteness, host weighting, GP reconstruction, and population inference, and narrows the candidate contribution to design-based calibration of validation-sample uncertainty under finite-parent SRSWOR. This is not a systematic review and does not establish priority or a first-of-its-kind claim. The literature audit does not change the completion estimate: the bootstrap-vs-SRSWOR experiment and confirmatory evidence remain outstanding.
+
+The latest CI run for the expanded auditor and literature audit is run **41040303109**, head commit **7e6e166140600b932a7402fd946b9a2419de1a15**. At the time of this update it is still running; no green exact-head result is claimed.
