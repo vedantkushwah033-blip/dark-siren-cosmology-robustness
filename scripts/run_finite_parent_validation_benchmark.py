@@ -39,6 +39,10 @@ def main() -> None:
         "scenarios": int(args.scenarios),
         "draws_per_scenario_and_size": int(args.draws),
         "seed": int(args.seed),
+        "h0_points": 81,
+        "z_points": 401,
+        "h0_grid_bounds": [50.0, 90.0],
+        "redshift_grid_bounds": [0.01, 0.40],
         "metrics_by_validation_size": {},
         "limitations": [
             "Synthetic conditional design only; not real LVK data or a new H0 measurement.",
