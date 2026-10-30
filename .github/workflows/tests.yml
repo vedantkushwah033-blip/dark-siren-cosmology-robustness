@@ -102,6 +102,8 @@ jobs:
         run: python -m pytest tests/test_posterior_validation_bootstrap.py -q
       - name: Test scenario-balanced bootstrap calibration estimands
         run: python -m pytest tests/test_bootstrap_calibration.py -q
+      - name: Test independent nested validation-bootstrap artifact auditor and tamper detection
+        run: python -m pytest tests/test_audit_nested_validation_bootstrap_artifacts.py -q
       - name: Run integrated nested validation-bootstrap comparison smoke experiment
         run: python scripts/run_nested_validation_bootstrap_comparison.py --scenarios 1 --draws 2 --n-parent 1200 --n-detected 8 --validation-sizes 100 --bootstrap-replicates 3 --seed 20261030 --output-dir artifacts/nested_validation_bootstrap_smoke
       - name: Check integrated nested comparison smoke artifacts
