@@ -87,6 +87,17 @@ def _independent_posterior(z, h0, observed, validation_z, validation_y, distance
     return posterior, summary, diagnostics
 
 
+def _independent_failure_code(exception_type: str) -> str:
+    """Derive the stable failure category from the independently replayed class."""
+    mapping = {
+        "FloatingPointError": "floating_point_failure",
+        "ArithmeticError": "arithmetic_failure",
+        "ValueError": "invalid_validation_sample",
+        "RuntimeError": "model_fit_failure",
+    }
+    return mapping.get(exception_type, "unexpected_exception")
+
+
 def _assert_close(actual, expected, label, *, atol=5e-7, rtol=5e-6):
     if not np.isclose(float(actual), float(expected), atol=atol, rtol=rtol):
         raise AssertionError(f"{label} mismatch: stored={actual}, rebuilt={expected}")
@@ -271,6 +282,9 @@ def audit_posterior_validation_bootstrap(
         rebuilt = independently_replayed_failures[index]
         if str(row.get("exception_type", "")) != rebuilt["exception_type"]:
             raise AssertionError(f"failure exception class mismatch at attempt {index}")
+        expected_code = _independent_failure_code(rebuilt["exception_type"])
+        if str(row.get("failure_code", "")) != expected_code:
+            raise AssertionError(f"failure code mismatch at attempt {index}")
         if str(row.get("reason", "")) != rebuilt["reason"]:
             raise AssertionError(f"failure reason mismatch at attempt {index}")
     if int(result["n_attempted"]) != int(result["n_successful"]) + len(records):
