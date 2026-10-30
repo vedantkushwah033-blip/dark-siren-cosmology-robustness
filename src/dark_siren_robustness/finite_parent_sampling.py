@@ -89,6 +89,9 @@ def run_finite_parent_benchmark(
                     rows.append({"scenario": scenario, "draw": draw,
                                  "validation_size": size, "status": "failed",
                                  "failure_reason": "catalogue_minimum_size_gate",
+                                 "parent_frame_sha256": parent_hash,
+                                 "catalogue_sha256": catalogue_hash,
+                                 "gw_distance_sha256": gw_hash,
                                  "covered_68": None})
             continue
 
@@ -159,6 +162,9 @@ def run_finite_parent_benchmark(
                         "n_catalogue": int(observed_z.size),
                         "n_detected": int(distances.size),
                         "parent_size": int(n_parent),
+                        "parent_frame_sha256": parent_hash,
+                        "catalogue_sha256": catalogue_hash,
+                        "gw_distance_sha256": gw_hash,
                     })
                 except Exception as exc:
                     rows.append({
@@ -171,5 +177,8 @@ def run_finite_parent_benchmark(
                         "covered_68": None, "h0_true": float(h0_true),
                         "n_catalogue": int(observed_z.size),
                         "n_detected": int(distances.size), "parent_size": int(n_parent),
+                        "parent_frame_sha256": parent_hash,
+                        "catalogue_sha256": catalogue_hash,
+                        "gw_distance_sha256": gw_hash,
                     })
     return pd.DataFrame(rows)
