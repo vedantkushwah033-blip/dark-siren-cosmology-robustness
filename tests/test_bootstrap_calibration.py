@@ -126,3 +126,14 @@ def test_calibration_rejects_method_specific_missing_outer_draw():
     ]
     with pytest.raises(ValueError, match="complete method set"):
         summarize_bootstrap_calibration(frame)
+
+
+def test_calibration_rejects_fractional_validation_size_and_blank_method():
+    frame = _fixture()
+    frame["validation_size"] = 100.5
+    with pytest.raises(ValueError, match="positive integer"):
+        summarize_bootstrap_calibration(frame)
+    frame = _fixture()
+    frame.loc[0, "method"] = "   "
+    with pytest.raises(ValueError, match="method labels"):
+        summarize_bootstrap_calibration(frame)
