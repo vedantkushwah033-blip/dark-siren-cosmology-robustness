@@ -251,14 +251,19 @@ def audit_artifact(output_dir: Path) -> dict[str, object]:
                 means = np.mean(sample[indices_b], axis=1)
                 lower, upper = map(float, np.quantile(means, [0.025, 0.975]))
             elif method == "studentized_pseudopop_srswor":
-                expected_inner = _independent_inner_attempt_accounting(sample, pop.size, bootstrap_replicates, expected_studentized_seed)
-                for field, expected_value in expected_inner.items():
-                    if row.get(field) != str(expected_value) if field != "inner_failure_code_counts" else row.get(field) != expected_value:
-                        raise ValueError(f"inner attempt provenance mismatch: {field}")
                 if int(row["studentized_bootstrap_seed"]) != expected_studentized_seed:
                     raise ValueError("studentized bootstrap seed mismatch")
                 if int(row["ordinary_bootstrap_seed"]) != expected_ordinary_seed:
-                    raise ValueError("studentized row's paired ordinary seed mismatch")
+                    raise ValueError("studentized row paired ordinary seed mismatch")
+                # A degenerate observed sample fails before inner draws; the runner records NA.
+                observed_variance = float(np.var(sample, ddof=1))
+                if not np.isfinite(observed_variance) or observed_variance <= 0.0:
+                    expected_inner = {"inner_attempts": "NA", "inner_successes": "NA", "inner_failures": "NA", "inner_failure_code_counts": "NA"}
+                else:
+                    expected_inner = _independent_inner_attempt_accounting(sample, pop.size, bootstrap_replicates, expected_studentized_seed)
+                for field, expected_value in expected_inner.items():
+                    if row.get(field) != str(expected_value):
+                        raise ValueError(f"inner attempt provenance mismatch: {field}")
                 try:
                     lower, upper = _studentized_interval_independent(
                         sample, pop.size, bootstrap_replicates, expected_studentized_seed
