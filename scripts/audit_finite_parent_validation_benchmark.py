@@ -89,6 +89,19 @@ def _close(actual, expected, label, *, rtol=3e-6, atol=3e-7):
         raise AssertionError(f"{label} fails independent numerical reconstruction: {actual} != {expected}")
 
 
+def _independent_failure_code(exc: Exception) -> str:
+    """Re-derive the producer's stable broad failure category."""
+    if isinstance(exc, FloatingPointError):
+        return "floating_point_failure"
+    if isinstance(exc, ArithmeticError):
+        return "arithmetic_failure"
+    if isinstance(exc, ValueError):
+        return "invalid_validation_sample"
+    if isinstance(exc, RuntimeError):
+        return "model_fit_failure"
+    return "unexpected_exception"
+
+
 def _assert_failure_reason_matches(recorded_reason: str, exc: Exception) -> None:
     """Require the persisted failure class and message to match independent replay."""
     reconstructed = f"{type(exc).__name__}: {exc}"
@@ -109,7 +122,7 @@ def audit(artifact_dir: Path) -> dict:
         "scenario", "draw", "validation_size", "status", "validation_seed",
         "simulation_seed", "thinning_seed", "true_intercept", "true_slope",
         "true_quadratic", "sigma_mpc", "detection_threshold_mpc",
-        "validation_indices", "failure_reason", "parent_size", "parent_frame_sha256",
+        "validation_indices", "failure_code", "failure_reason", "parent_size", "parent_frame_sha256",
         "catalogue_sha256", "gw_distance_sha256",
     }
     missing = required.difference(records.columns)
@@ -134,6 +147,12 @@ def audit(artifact_dir: Path) -> dict:
     failed_reasons = records.loc[~success_rows, "failure_reason"].fillna("").astype(str).str.strip()
     if failed_reasons.eq("").any():
         raise AssertionError("failed attempt is missing its failure reason")
+    successful_codes = records.loc[success_rows, "failure_code"].fillna("").astype(str)
+    if successful_codes.ne("").any():
+        raise AssertionError("successful attempt carries a failure code")
+    failed_codes = records.loc[~success_rows, "failure_code"].fillna("").astype(str).str.strip()
+    if failed_codes.eq("").any():
+        raise AssertionError("failed attempt is missing its stable failure code")
 
     if not {"h0_points", "z_points", "h0_grid_bounds", "redshift_grid_bounds"}.issubset(summary):
         raise AssertionError("summary omits inference grid specification")
@@ -231,6 +250,8 @@ def audit(artifact_dir: Path) -> dict:
                             raise AssertionError("successful attempt is missing sample indices")
                         if row["failure_reason"] != "catalogue_minimum_size_gate":
                             raise AssertionError("sample-less failure is not the declared catalogue-size gate")
+                        if row["failure_code"] != "catalogue_size_gate":
+                            raise AssertionError("sample-less failure has an incorrect stable failure code")
                         if observed_z.size >= 5 and np.unique(observed_z).size >= 3:
                             raise AssertionError("catalogue-size failure is not supported by regenerated catalogue")
                         continue
@@ -299,6 +320,8 @@ def audit(artifact_dir: Path) -> dict:
                             )
                         except Exception as exc:
                             _assert_failure_reason_matches(str(row["failure_reason"]), exc)
+                            if str(row["failure_code"]) != _independent_failure_code(exc):
+                                raise AssertionError("stored stable failure code disagrees with independent replay")
                         else:
                             raise AssertionError(
                                 "failed attempt is independently reproducible as a successful fit and posterior"
