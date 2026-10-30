@@ -190,6 +190,18 @@ def audit(artifact_dir: Path) -> dict:
         for col, digest in hashes.items():
             if str(first[col]) != digest:
                 raise AssertionError(f"independent regeneration does not match {col}")
+
+        # Independently construct the finite-frame target from all N actual
+        # paired records, not from a resampled or multinomial pseudo-population.
+        finite_target_mean = None
+        if observed_z.size >= 5 and np.unique(observed_z).size >= 3:
+            target_density, *_ = _independent_density_and_fit(
+                z_grid, observed_z, parent_z, retained.astype(int), rate
+            )
+            finite_target_mean = _independent_posterior(
+                z_grid, target_density, h0_grid, distances,
+                float(first["sigma_mpc"]), float(first["detection_threshold_mpc"])
+            )[0]
         has_samples = group["validation_indices"].fillna("").astype(str).str.len().gt(0).any()
         if has_samples:
             rng = np.random.default_rng(int(seed_values[0]))
@@ -222,6 +234,13 @@ def audit(artifact_dir: Path) -> dict:
                     if int(row["n_validation_included"]) != int(np.sum(retained[indices])):
                         raise AssertionError("validation inclusion count does not match regenerated parent frame")
                     if row["status"] == "success":
+                        if finite_target_mean is None:
+                            raise AssertionError("successful row has no reconstructible finite-parent target")
+                        _close(
+                            row["finite_parent_target_posterior_mean"],
+                            finite_target_mean,
+                            "finite-parent target posterior mean",
+                        )
                         if np.unique(retained[indices]).size != 2:
                             raise AssertionError("successful logistic fit lacks both validation classes")
                         rebuilt = _independent_density_and_fit(
