@@ -35,6 +35,8 @@ def test_design_aware_validation_bootstrap_records_both_sampling_layers():
     assert result["success_mask"].shape == (4,)
     assert result["n_attempted"] == 4
     assert result["n_successful"] + result["n_failed"] == 4
+    assert len(result["failure_records"]) == result["n_failed"]
+    assert result["failure_records"] == []
     for pseudo, sample in zip(
         result["pseudo_population_indices"], result["bootstrap_sample_indices"]
     ):
