@@ -109,6 +109,67 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
     if not np.isclose(trapezoid(density, z), 1.0, rtol=1e-7, atol=1e-9):
         raise AssertionError("persisted host density does not integrate to one")
 
+    # Reconstruct the reflected, inverse-inclusion-weighted KDE from its
+    # primitive inputs. This deliberately does not call estimate_host_density.
+    try:
+        catalogue_z = np.asarray(payload["catalogue_redshift"], dtype=float)
+        inclusion_p = np.asarray(payload["density_inclusion_probability"], dtype=float)
+        merger_rate = np.asarray(payload["merger_weight_grid"], dtype=float)
+        raw_bandwidth_factor = payload["bandwidth_factor"]
+    except (KeyError, TypeError, ValueError) as exc:
+        raise AssertionError("KDE reconstruction inputs are missing or malformed") from exc
+    if (catalogue_z.ndim != 1 or catalogue_z.size < 5
+            or inclusion_p.shape != catalogue_z.shape
+            or merger_rate.shape != z.shape):
+        raise AssertionError("KDE reconstruction arrays have invalid shapes")
+    if (not all(np.all(np.isfinite(x)) for x in (catalogue_z, inclusion_p, merger_rate))
+            or np.any((catalogue_z < z[0]) | (catalogue_z > z[-1]))
+            or np.unique(catalogue_z).size < 3
+            or np.any((inclusion_p <= 0) | (inclusion_p > 1))
+            or np.any(merger_rate <= 0)):
+        raise AssertionError("KDE reconstruction inputs contain invalid values")
+    if raw_bandwidth_factor is None:
+        bandwidth_factor = None
+    else:
+        bandwidth_factor = _required_finite_number(raw_bandwidth_factor, "bandwidth_factor")
+        if bandwidth_factor <= 0:
+            raise AssertionError("KDE bandwidth factor must be positive")
+    raw_weights = 1.0 / inclusion_p
+    scaled_weights = raw_weights / np.max(raw_weights)
+    weight_sum = float(np.sum(scaled_weights))
+    effective_n = weight_sum**2 / float(np.sum(scaled_weights**2))
+    weighted_mean = float(np.average(catalogue_z, weights=scaled_weights))
+    weighted_variance = float(np.average(
+        (catalogue_z - weighted_mean)**2, weights=scaled_weights
+    ))
+    if not np.isfinite(weighted_variance) or weighted_variance <= 0:
+        raise AssertionError("KDE weighted sample variance is invalid")
+    factor = effective_n**(-1.0 / 5.0) if bandwidth_factor is None else bandwidth_factor
+    bandwidth = factor * np.sqrt(weighted_variance)
+    reflected = np.concatenate((
+        catalogue_z, 2.0*z[0] - catalogue_z, 2.0*z[-1] - catalogue_z
+    ))
+    reflected_weights = np.tile((scaled_weights / weight_sum) / 3.0, 3)
+    kernel_norm = 1.0 / (np.sqrt(2.0*np.pi) * bandwidth)
+    reconstructed_galaxy_density = np.empty_like(z)
+    for start in range(0, z.size, 256):
+        stop = min(start + 256, z.size)
+        standardized = (z[start:stop, None] - reflected[None, :]) / bandwidth
+        reconstructed_galaxy_density[start:stop] = (
+            np.exp(-0.5*standardized**2) @ reflected_weights
+        ) * kernel_norm
+    unnormalized_density = reconstructed_galaxy_density * merger_rate
+    kde_area = float(trapezoid(unnormalized_density, z))
+    if not np.isfinite(kde_area) or kde_area <= 0:
+        raise AssertionError("independent KDE normalization failed")
+    reconstructed_density = unnormalized_density / kde_area
+    if not np.allclose(density, reconstructed_density, rtol=2e-8, atol=2e-10):
+        max_difference = float(np.max(np.abs(density - reconstructed_density)))
+        raise AssertionError(
+            "persisted host density disagrees with independent reflected-KDE reconstruction "
+            f"(max_abs_difference={max_difference:.3g})"
+        )
+
     # Independent direct quadrature: integrate each event's Gaussian mixture
     # separately, then apply the fixed-N detection-conditioning correction.
     event_log_terms = []
