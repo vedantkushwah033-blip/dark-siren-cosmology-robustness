@@ -196,7 +196,10 @@ def audit(directory: Path) -> dict:
                 samples = row.bootstrap_sample_indices
                 _require(isinstance(samples, list) and len(samples) == b,
                          "paired-bootstrap index trace has wrong attempt count")
-                _require(not row.bootstrap_pseudo_population_indices,
+                pseudo_trace = row.bootstrap_pseudo_population_indices
+                _require(pseudo_trace is None
+                         or (isinstance(pseudo_trace, float) and np.isnan(pseudo_trace))
+                         or (isinstance(pseudo_trace, list) and len(pseudo_trace) == 0),
                          "paired bootstrap must not contain pseudo-population indices")
                 for sample in samples:
                     ix = np.asarray(sample)
