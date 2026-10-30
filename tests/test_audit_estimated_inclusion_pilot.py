@@ -255,3 +255,25 @@ def test_independent_auditor_rejects_nonmonotone_nested_validation_counts(tmp_pa
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(AssertionError, match="nested validation inclusion counts decrease"):
         audit_pilot_artifacts(tmp_path)
+
+
+def test_independent_auditor_rejects_corrupted_preposterior_ess(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261052)
+    mask = frame["arm"].eq("estimated_100") & frame["diagnostic_schema"].eq("preposterior_weight_stability_v1")
+    assert mask.any(), frame[["arm", "status", "error"]].to_dict("records")
+    frame.loc[mask, "inverse_weight_ess"] *= 0.5
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="ESS disagrees"):
+        audit_pilot_artifacts(tmp_path)
+
+
+def test_independent_auditor_rejects_corrupted_preposterior_validation_count(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261053)
+    mask = frame["arm"].eq("estimated_100") & frame["diagnostic_schema"].eq("preposterior_weight_stability_v1")
+    assert mask.any(), frame[["arm", "status", "error"]].to_dict("records")
+    frame.loc[mask, "n_validation_included"] += 1
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="inclusion count disagrees"):
+        audit_pilot_artifacts(tmp_path)
