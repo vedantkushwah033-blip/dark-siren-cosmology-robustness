@@ -154,6 +154,7 @@ def test_preposterior_diagnostics_are_observable_only_and_reconstruct_weight_met
     model = {
         "model": "logistic_inclusion_v1", "fit_status": "converged",
         "coefficient_bound_hit": False, "intercept": 0.2, "slope": -1.1,
+        "z_min": 0.01, "z_max": 0.40, "n_validation": 200, "n_included": 100,
     }
     result = build_preposterior_diagnostics(
         model, validation_z, validation_y, catalogue_z, probability
@@ -182,7 +183,7 @@ def test_preposterior_diagnostics_flag_catalogue_outside_validation_support():
     validation_z = np.linspace(0.10, 0.30, 100)
     catalogue_z = np.array([0.02, 0.15, 0.25, 0.39])
     probability = np.array([0.2, 0.4, 0.5, 0.3])
-    model = {"model": "logistic_inclusion_v1", "intercept": 0.0, "slope": 0.0}
+    model = {"model": "logistic_inclusion_v1", "fit_status": "converged", "coefficient_bound_hit": False, "intercept": 0.0, "slope": 0.0, "z_min": 0.01, "z_max": 0.40, "n_validation": 100, "n_included": 50}
     result = build_preposterior_diagnostics(
         model, validation_z, np.tile([0, 1], 50), catalogue_z, probability
     )
