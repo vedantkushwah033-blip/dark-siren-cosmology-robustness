@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import numpy as np
+from scipy.integrate import trapezoid
 from numpy.typing import ArrayLike
 
 from dark_siren_robustness.estimated_inclusion import estimate_host_density_from_validation
@@ -169,7 +170,6 @@ def bootstrap_validation_h0_posterior(
                 or np.any(posterior_density < 0)
             ):
                 raise ArithmeticError("posterior density grid is malformed")
-            from scipy.integrate import trapezoid
             if not np.isclose(trapezoid(posterior_density, h0), 1.0, rtol=1e-8, atol=1e-8):
                 raise ArithmeticError("posterior density grid is not normalized")
             posterior_draws.append(posterior_density)
