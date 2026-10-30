@@ -37,6 +37,11 @@ def test_posterior_validation_bootstrap_replays_full_toy_pipeline(method):
         seed=9127, merger_weight=merger,
     )
     assert first["schema"] == "validation_h0_posterior_resampling_v1"
+    assert set(first["input_fingerprints"]) == {
+        "redshift_grid", "h0_grid", "observed_redshift",
+        "validation_redshift", "validation_included",
+        "observed_distances_mpc", "merger_weight",
+    }
     assert first["n_attempted"] == 4
     if method == "design_aware_srswor":
         assert first["design_aware_method_status"] == (
@@ -64,6 +69,17 @@ def test_posterior_validation_bootstrap_replays_full_toy_pipeline(method):
     )
     assert audit["status"] == "PASS"
     assert audit["independently_reconstructed_posteriors"] == first["n_successful"]
+
+    tampered_fingerprint = dict(first)
+    tampered_fingerprint["input_fingerprints"] = dict(first["input_fingerprints"])
+    tampered_fingerprint["input_fingerprints"]["observed_redshift"] = "0" * 64
+    with pytest.raises(AssertionError, match="input fingerprints"):
+        audit_posterior_validation_bootstrap(
+            tampered_fingerprint, z_grid, h0_grid, observed_z, validation_z,
+            validation_y, distances, sigma_mpc=140.0,
+            detection_threshold_mpc=250.0, parent_population_size=180,
+            merger_weight=merger,
+        )
 
     tampered_scope = dict(first)
     tampered_scope["design_aware_method_status"] = "validated_studentized_finite_population_bootstrap"
