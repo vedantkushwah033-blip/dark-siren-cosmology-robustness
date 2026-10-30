@@ -61,3 +61,33 @@ def test_linear_benchmark_artifact_passes_independent_replay_audit(tmp_path, mon
     assert report["status"] == "PASS"
     assert report["replicates_independently_reconstructed"] == 6
     assert report["finite_frames_verified"] == 1
+
+
+def test_linear_benchmark_auditor_rejects_tampered_interval_even_with_updated_checksum(tmp_path, monkeypatch):
+    from pathlib import Path
+    import csv
+    import hashlib
+
+    monkeypatch.setattr(sys, "argv", [
+        "run_linear_finite_population_bootstrap_benchmark.py",
+        "--scenarios", "1", "--repetitions", "2", "--population-size", "40",
+        "--sample-sizes", "8", "--bootstrap-replicates", "20",
+        "--seed", "20261031", "--output-dir", str(tmp_path),
+    ])
+    main()
+    replicate_path = tmp_path / "linear_finite_population_bootstrap_replicates.csv"
+    with replicate_path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        fieldnames = reader.fieldnames
+        rows = list(reader)
+    rows[0]["interval_lower"] = str(float(rows[0]["interval_lower"]) + 0.25)
+    with replicate_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["replicate_csv_sha256"] = hashlib.sha256(replicate_path.read_bytes()).hexdigest()
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(ValueError, match="endpoint does not reconstruct"):
+        audit_artifact(Path(tmp_path))
