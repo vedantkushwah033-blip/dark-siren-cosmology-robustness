@@ -228,3 +228,20 @@ def test_preposterior_diagnostics_reject_noninteger_or_inconsistent_model_counts
         build_preposterior_diagnostics(
             model, validation_z, validation_y, catalogue_z, probability
         )
+
+def test_preposterior_diagnostics_reject_probabilities_not_generated_by_fitted_model():
+    from dark_siren_robustness.preposterior_diagnostics import build_preposterior_diagnostics
+
+    validation_z = np.linspace(0.02, 0.39, 200)
+    validation_y = np.tile([0, 1], 100)
+    catalogue_z = np.linspace(0.03, 0.38, 80)
+    model = {
+        "model": "logistic_inclusion_v1", "fit_status": "converged",
+        "coefficient_bound_hit": False, "intercept": 0.2, "slope": -1.1,
+        "z_min": 0.01, "z_max": 0.40, "n_validation": 200,
+        "n_included": 100, "n_not_included": 100,
+    }
+    with pytest.raises(ValueError, match="disagree with fitted model"):
+        build_preposterior_diagnostics(
+            model, validation_z, validation_y, catalogue_z, np.full(80, 0.5)
+        )
