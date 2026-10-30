@@ -210,7 +210,7 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
     # Independently validate observable-only pre-posterior feature records.
     estimated_success = success & frame["arm"].str.startswith("estimated_")
     if estimated_success.any():
-        required_features = ["diagnostic_schema", "n_validation", "n_validation_included", "validation_inclusion_fraction", "catalogue_outside_validation_range_fraction", "catalogue_near_validation_boundary_fraction", "fitted_probability_min", "fitted_probability_p01", "fitted_probability_p05", "fitted_probability_median", "fitted_probability_max", "inverse_weight_ess", "inverse_weight_ess_fraction", "inverse_weight_entropy_ess_fraction", "inverse_weight_max_share", "inverse_weight_top_1pct_mass", "inverse_weight_top_5pct_mass", "inverse_weight_max", "inverse_weight_p95", "inverse_weight_p99"]
+        required_features = ["diagnostic_schema", "n_validation", "n_validation_included", "validation_inclusion_fraction", "catalogue_outside_validation_range_fraction", "catalogue_near_validation_boundary_fraction", "fitted_probability_min", "fitted_probability_p01", "fitted_probability_p05", "fitted_probability_median", "fitted_probability_max", "inverse_weight_ess", "inverse_weight_sum", "inverse_weight_sum_squares", "inverse_weight_ess_fraction", "inverse_weight_entropy_ess_fraction", "inverse_weight_max_share", "inverse_weight_top_1pct_mass", "inverse_weight_top_5pct_mass", "inverse_weight_max", "inverse_weight_p95", "inverse_weight_p99"]
         missing_features = [name for name in required_features if name not in frame.columns]
         if missing_features:
             raise AssertionError(f"replicate table missing pre-posterior features: {missing_features}")
@@ -261,6 +261,16 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
                 raise AssertionError("pre-posterior ESS fraction is inconsistent")
             if not np.allclose(ess, diagnostic_rows["weight_ess"], rtol=1e-8, atol=1e-8):
                 raise AssertionError("pre-posterior ESS disagrees with saved estimator diagnostic")
+            weight_sum = diagnostic_rows["inverse_weight_sum"].to_numpy(dtype=float)
+            weight_sum_squares = diagnostic_rows["inverse_weight_sum_squares"].to_numpy(dtype=float)
+            if np.any((weight_sum <= 0.0) | (weight_sum_squares <= 0.0)):
+                raise AssertionError("pre-posterior inverse-weight aggregates must be positive")
+            reconstructed_ess = weight_sum**2 / weight_sum_squares
+            if not np.allclose(ess, reconstructed_ess, rtol=1e-8, atol=1e-8):
+                raise AssertionError("pre-posterior ESS does not reconstruct from weight aggregates")
+            expected_max_share = diagnostic_rows["inverse_weight_max"].to_numpy(dtype=float) / weight_sum
+            if not np.allclose(diagnostic_rows["inverse_weight_max_share"], expected_max_share, rtol=1e-8, atol=1e-10):
+                raise AssertionError("pre-posterior maximum normalized weight share is inconsistent")
             if not np.allclose(diagnostic_rows["inverse_weight_max"], diagnostic_rows["max_inverse_weight"], rtol=1e-8, atol=1e-8):
                 raise AssertionError("pre-posterior maximum weight disagrees with saved estimator diagnostic")
             weight_quantiles = diagnostic_rows[["inverse_weight_max", "inverse_weight_p95", "inverse_weight_p99"]].to_numpy(dtype=float)
