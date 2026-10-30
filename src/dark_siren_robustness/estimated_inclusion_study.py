@@ -310,6 +310,7 @@ def run_estimated_inclusion_pilot(
                         int(np.sum(audit_records["included"][:audit_size]))
                         if audit_size else None
                     ),
+                    **preposterior_features,
                 })
 
     frame = pd.DataFrame(rows)
