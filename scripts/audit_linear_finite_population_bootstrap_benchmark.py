@@ -62,6 +62,37 @@ def _studentized_interval_independent(
     return float(estimate - qhi * observed_se), float(estimate - qlo * observed_se)
 
 
+
+def _independent_inner_attempt_accounting(
+    sample: np.ndarray, population_size: int, n_bootstrap: int, seed: int
+) -> dict[str, object]:
+    """Replay inner multinomial and SRSWOR attempts without trusting artifact fields."""
+    n = int(sample.size)
+    rng = np.random.default_rng(int(seed))
+    success_count = 0
+    failures: dict[str, int] = {}
+    probabilities = np.full(n, 1.0 / n, dtype=float)
+    fpc_variance = 1.0 - n / population_size
+    for _ in range(n_bootstrap):
+        counts = rng.multinomial(population_size, probabilities)
+        pseudo_population = np.repeat(sample, counts)
+        positions = rng.choice(population_size, size=n, replace=False)
+        bootstrap_sample = pseudo_population[positions]
+        bootstrap_variance = float(np.var(bootstrap_sample, ddof=1))
+        bootstrap_se = float(np.sqrt(fpc_variance * bootstrap_variance / n))
+        if not np.isfinite(bootstrap_se) or bootstrap_se <= 0.0:
+            code = "zero_or_nonfinite_bootstrap_variance"
+            failures[code] = failures.get(code, 0) + 1
+        else:
+            success_count += 1
+    return {
+        "inner_attempts": n_bootstrap,
+        "inner_successes": success_count,
+        "inner_failures": n_bootstrap - success_count,
+        "inner_failure_code_counts": json.dumps(dict(sorted(failures.items())), sort_keys=True, separators=(",", ":")),
+    }
+
+
 def audit_artifact(output_dir: Path) -> dict[str, object]:
     manifest = json.loads((output_dir / "manifest.json").read_text(encoding="utf-8"))
     if manifest.get("schema") != "linear_finite_population_bootstrap_benchmark_v1":
@@ -85,6 +116,8 @@ def audit_artifact(output_dir: Path) -> dict[str, object]:
         raise ValueError("manifest bootstrap replicate count is invalid")
     if tuple(manifest.get("methods", ())) != tuple(sorted(METHODS)):
         raise ValueError("manifest method set differs from the prespecified method set")
+    if manifest.get("schema") != "linear_finite_population_bootstrap_benchmark_v2":
+        raise ValueError("auditor requires the v2 inner-attempt provenance schema")
 
     frame_path = output_dir / "finite_population_frames.csv"
     replicate_path = output_dir / "linear_finite_population_bootstrap_replicates.csv"
@@ -199,12 +232,16 @@ def audit_artifact(output_dir: Path) -> dict[str, object]:
                 np.random.SeedSequence([root_seed, s, n, repetition, 41032]).generate_state(1)[0]
             )
             if method == "wald_srswor":
+                if any(row.get(k) != "NA" for k in ("inner_attempts", "inner_successes", "inner_failures", "inner_failure_code_counts")):
+                    raise ValueError("non-studentized method must mark inner attempt fields NA")
                 if row["ordinary_bootstrap_seed"] or row["studentized_bootstrap_seed"]:
                     raise ValueError("Wald method contains an unexpected bootstrap seed")
                 se = float(np.sqrt((1.0 - n / pop.size) * np.var(sample, ddof=1) / n))
                 z = 1.959963984540054
                 lower, upper = estimate - z * se, estimate + z * se
             elif method == "ordinary_percentile_bootstrap":
+                if any(row.get(k) != "NA" for k in ("inner_attempts", "inner_successes", "inner_failures", "inner_failure_code_counts")):
+                    raise ValueError("non-studentized method must mark inner attempt fields NA")
                 if int(row["ordinary_bootstrap_seed"]) != expected_ordinary_seed:
                     raise ValueError("ordinary bootstrap seed mismatch")
                 if row["studentized_bootstrap_seed"]:
@@ -214,6 +251,10 @@ def audit_artifact(output_dir: Path) -> dict[str, object]:
                 means = np.mean(sample[indices_b], axis=1)
                 lower, upper = map(float, np.quantile(means, [0.025, 0.975]))
             elif method == "studentized_pseudopop_srswor":
+                expected_inner = _independent_inner_attempt_accounting(sample, pop.size, bootstrap_replicates, expected_studentized_seed)
+                for field, expected_value in expected_inner.items():
+                    if row.get(field) != str(expected_value) if field != "inner_failure_code_counts" else row.get(field) != expected_value:
+                        raise ValueError(f"inner attempt provenance mismatch: {field}")
                 if int(row["studentized_bootstrap_seed"]) != expected_studentized_seed:
                     raise ValueError("studentized bootstrap seed mismatch")
                 if int(row["ordinary_bootstrap_seed"]) != expected_ordinary_seed:
