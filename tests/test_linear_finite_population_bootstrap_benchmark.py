@@ -150,3 +150,44 @@ def test_linear_auditor_rejects_modified_sample_seed_even_if_checksum_is_updated
     )
     with pytest.raises(ValueError, match="sample seed does not match"):
         audit_artifact(tmp_path)
+
+
+def test_linear_auditor_rejects_tampered_inner_attempt_accounting_even_with_updated_checksum(tmp_path, monkeypatch):
+    import csv
+
+    _write_small_linear_artifact(tmp_path, monkeypatch)
+    path = tmp_path / "linear_finite_population_bootstrap_replicates.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        fields, rows = reader.fieldnames, list(reader)
+    studentized = next(row for row in rows if row["method"] == "studentized_pseudopop_srswor")
+    studentized["inner_failures"] = str(int(studentized["inner_failures"]) + 1)
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+    _refresh_manifest_checksum(
+        tmp_path, "replicate_csv_sha256", "linear_finite_population_bootstrap_replicates.csv"
+    )
+    with pytest.raises(ValueError, match="inner attempt provenance mismatch"):
+        audit_artifact(tmp_path)
+
+
+def test_linear_auditor_requires_explicit_na_for_nonstudentized_attempt_fields(tmp_path, monkeypatch):
+    import csv
+
+    _write_small_linear_artifact(tmp_path, monkeypatch)
+    path = tmp_path / "linear_finite_population_bootstrap_replicates.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        fields, rows = reader.fieldnames, list(reader)
+    rows[0]["inner_attempts"] = "0"
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+    _refresh_manifest_checksum(
+        tmp_path, "replicate_csv_sha256", "linear_finite_population_bootstrap_replicates.csv"
+    )
+    with pytest.raises(ValueError, match="non-studentized method must mark inner attempt fields NA"):
+        audit_artifact(tmp_path)
