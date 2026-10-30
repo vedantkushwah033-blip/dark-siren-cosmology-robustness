@@ -187,3 +187,19 @@ def test_too_few_retained_catalogue_objects_are_recorded_without_unbound_feature
     assert frame["fit_boundary_limited"].eq(False).all()
     assert frame["error"].eq("too few retained catalogue objects").all()
     assert summary["status"] == "NON_CONFIRMATORY_SYNTHETIC_PILOT"
+
+def test_pilot_rejects_numerically_saturated_true_inclusion_probabilities():
+    import pytest
+
+    with pytest.raises(ValueError, match="numerically saturated"):
+        run_estimated_inclusion_pilot(
+            n_replicates=1,
+            n_parent=1000,
+            n_detected=5,
+            validation_sizes=(100,),
+            seed=20261057,
+            true_intercept=-1000.0,
+            true_slope=0.0,
+            h0_points=31,
+            z_points=101,
+        )
