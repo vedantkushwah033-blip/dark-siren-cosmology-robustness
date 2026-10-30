@@ -176,6 +176,39 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
     elif payload.get("fitted_inclusion_model") is not None:
         raise AssertionError("non-estimated arm unexpectedly contains a fitted inclusion model")
 
+    # Enforce a strict boundary between inference inputs and scoring truth.
+    forbidden_truth_keys = {
+        "true_inclusion_probability", "parent_redshift", "hidden_parent_redshift",
+        "true_probability", "parent_catalogue",
+    }
+    if forbidden_truth_keys.intersection(payload):
+        raise AssertionError("inference audit payload contains scoring-only or hidden-parent truth")
+    scoring_raw = row.get("scoring_audit_payload_json", "")
+    if arm_name.startswith("estimated_"):
+        try:
+            scoring = json.loads(scoring_raw) if isinstance(scoring_raw, str) else {}
+            parent_z = np.asarray(scoring["parent_redshift"], dtype=float)
+            true_parent_p = np.asarray(scoring["true_inclusion_probability"], dtype=float)
+            estimated_parent_p = np.asarray(scoring["estimated_inclusion_probability"], dtype=float)
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise AssertionError("estimated-arm scoring-only payload is missing or malformed") from exc
+        if (scoring.get("schema") != "inclusion_probability_scoring_only_v1"
+                or parent_z.ndim != 1 or parent_z.size < 1
+                or true_parent_p.shape != parent_z.shape
+                or estimated_parent_p.shape != parent_z.shape):
+            raise AssertionError("scoring-only payload arrays or schema are invalid")
+        if (not all(np.all(np.isfinite(x)) for x in (parent_z, true_parent_p, estimated_parent_p))
+                or np.any((true_parent_p <= 0) | (true_parent_p > 1))
+                or np.any((estimated_parent_p <= 0) | (estimated_parent_p > 1))):
+            raise AssertionError("scoring-only inclusion probabilities are outside (0, 1]")
+        if np.any((parent_z < z[0]) | (parent_z > z[-1])):
+            raise AssertionError("scoring parent redshifts fall outside the simulation domain")
+        reconstructed_mae = float(np.mean(np.abs(estimated_parent_p - true_parent_p)))
+        _close(row.get("inclusion_probability_mae"), reconstructed_mae,
+               "independent_scoring.inclusion_probability_mae", atol=2e-10)
+    elif isinstance(scoring_raw, str) and scoring_raw.strip():
+        raise AssertionError("non-estimated arm unexpectedly contains scoring-only truth")
+
     # Reconstruct the reflected, inverse-inclusion-weighted KDE from its
     # primitive inputs. This deliberately does not call estimate_host_density.
     try:
@@ -709,7 +742,7 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         ),
         "per_arm_counts": per_arm_counts,
         "comparison_diagnostics": comparison_diagnostics,
-        "audit_scope": "persisted-table integrity, independent validation-logistic refit, reflected weighted-KDE reconstruction, direct-quadrature posterior reconstruction, density-ISE reconstruction, and summary reconstruction",
+        "audit_scope": "persisted-table integrity, truth-separated inclusion scoring, independent validation-logistic refit, reflected weighted-KDE reconstruction, direct-quadrature posterior reconstruction, density-ISE reconstruction, and summary reconstruction",
     }
 
 
