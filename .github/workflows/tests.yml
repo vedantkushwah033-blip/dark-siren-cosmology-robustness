@@ -98,6 +98,8 @@ jobs:
         run: python -m pytest tests/test_design_aware_srswor_bootstrap.py -q
       - name: Test design-aware validation bootstrap and pseudo-population references
         run: python -m pytest tests/test_design_aware_validation_bootstrap.py -q
+      - name: Test posterior-level validation bootstrap through H0 inference
+        run: python -m pytest tests/test_posterior_validation_bootstrap.py -q
       - name: Run finite-parent validation-sampling smoke benchmark
         run: python scripts/run_finite_parent_validation_benchmark.py --scenarios 2 --draws 3 --n-parent 1200 --n-detected 8 --validation-sizes 100,300 --seed 20261032 --output-dir artifacts/finite_parent_validation_smoke
       - name: Check finite-parent smoke artifact accounting
