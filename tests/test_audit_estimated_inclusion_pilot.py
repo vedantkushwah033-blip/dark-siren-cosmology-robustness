@@ -355,3 +355,34 @@ def test_independent_auditor_rejects_corrupted_validation_labels(tmp_path):
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(AssertionError, match="coefficients disagree with independent refit"):
         audit_pilot_artifacts(tmp_path)
+
+
+
+def test_independent_auditor_rejects_corrupted_scoring_only_probability_mae(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261062)
+    mask = frame["arm"].eq("estimated_100") & frame["status"].eq("success")
+    assert mask.any(), frame[["arm", "status", "error"]].to_dict("records")
+    index = frame.index[mask][0]
+    scoring = json.loads(frame.loc[index, "scoring_audit_payload_json"])
+    scoring["estimated_inclusion_probability"][0] = min(
+        1.0, scoring["estimated_inclusion_probability"][0] + 0.1
+    )
+    frame.loc[index, "scoring_audit_payload_json"] = json.dumps(scoring)
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="independent_scoring.inclusion_probability_mae"):
+        audit_pilot_artifacts(tmp_path)
+
+
+def test_independent_auditor_rejects_truth_leakage_into_inference_payload(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261063)
+    successful = frame.index[frame["status"] == "success"]
+    assert len(successful) > 0
+    index = successful[0]
+    payload = json.loads(frame.loc[index, "inference_audit_payload_json"])
+    payload["true_inclusion_probability"] = [0.5]
+    frame.loc[index, "inference_audit_payload_json"] = json.dumps(payload)
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="contains scoring-only or hidden-parent truth"):
+        audit_pilot_artifacts(tmp_path)
