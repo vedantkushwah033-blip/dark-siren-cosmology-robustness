@@ -60,4 +60,8 @@ def design_aware_srswor_bootstrap_indices(
         raise RuntimeError("multinomial pseudo-population has incorrect size")
     positions = rng.choice(N, size=m, replace=False)
     bootstrap_sample = pseudo_population[positions]
-    return (\n        pseudo_population,\n        np.asarray(bootstrap_sample, dtype=np.int64),\n        np.asarray(positions, dtype=np.int64),\n    )
+    return (
+        pseudo_population,
+        np.asarray(bootstrap_sample, dtype=np.int64),
+        np.asarray(positions, dtype=np.int64),
+    )
