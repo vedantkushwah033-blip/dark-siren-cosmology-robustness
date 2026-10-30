@@ -401,3 +401,34 @@ def test_independent_auditor_rejects_truth_leakage_into_inference_payload(tmp_pa
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(AssertionError, match="contains scoring-only or hidden-parent truth"):
         audit_pilot_artifacts(tmp_path)
+
+
+
+def test_independent_auditor_rejects_success_status_with_nonoptimal_logistic_refit(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    import numpy as np
+    import scripts.audit_estimated_inclusion_pilot as auditor
+
+    frame, summary = _write_small_pilot(tmp_path, seed=20261065)
+    mask = frame["arm"].eq("estimated_100") & frame["status"].eq("success")
+    assert mask.any(), frame[["arm", "status", "error"]].to_dict("records")
+    index = frame.index[mask][0]
+    payload = json.loads(frame.loc[index, "inference_audit_payload_json"])
+    labels = [1] * (len(payload["validation_included"]) - 1) + [0]
+    payload["validation_included"] = labels
+    frame.loc[index, "inference_audit_payload_json"] = json.dumps(payload)
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+
+    # Simulate an optimizer that reports success at a deliberately nonstationary
+    # interior point. The independent KKT check must reject it before comparing
+    # the saved coefficients or probabilities.
+    monkeypatch.setattr(
+        auditor,
+        "minimize",
+        lambda *args, **kwargs: SimpleNamespace(
+            x=np.zeros(2), fun=1.0, success=True, message="CONVERGENCE: fake status"
+        ),
+    )
+    with pytest.raises(AssertionError, match="independent logistic inclusion refit did not converge"):
+        audit_pilot_artifacts(tmp_path)
