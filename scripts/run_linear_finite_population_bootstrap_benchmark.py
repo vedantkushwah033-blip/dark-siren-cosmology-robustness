@@ -39,7 +39,7 @@ def run_benchmark(
     sample_sizes: tuple[int, ...] = (100, 400),
     bootstrap_replicates: int = 199,
     seed: int = 20261031,
-) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+) -> tuple[list[dict[str, object]], list[dict[str, object]], list[dict[str, object]]]:
     for name, value, minimum in (
         ("scenarios", scenarios, 1),
         ("repetitions", repetitions, 2),
