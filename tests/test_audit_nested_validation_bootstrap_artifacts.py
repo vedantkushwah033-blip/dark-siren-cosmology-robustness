@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 
 from scripts.audit_nested_validation_bootstrap_artifacts import audit
+from scripts.audit_nested_validation_bootstrap_replay import audit as audit_replay
 from scripts.run_nested_validation_bootstrap_comparison import run_comparison
 from dark_siren_robustness.bootstrap_calibration import summarize_bootstrap_calibration
 
@@ -28,6 +29,7 @@ def nested_artifact(tmp_path):
         "scenarios": 1,
         "outer_draws": 2,
         "parent_size": 1200,
+        "detected_event_count": 8,
         "validation_sizes": [100],
         "bootstrap_replicates_per_method_per_outer_draw": 3,
         "methods": ["paired_bootstrap", "paired_bootstrap_fpc", "design_aware_srswor"],
@@ -82,3 +84,11 @@ def test_independent_nested_artifact_auditor_rejects_corrupt_pseudopopulation_ma
     frame.to_json(path, orient="records", lines=True)
     with pytest.raises(ValueError, match="selected pseudo-population positions do not map"):
         audit(nested_artifact)
+
+
+def test_independent_nested_replay_reconstructs_smoke_scenario_and_posteriors(nested_artifact):
+    result = audit_replay(nested_artifact)
+    assert result["status"] == "INDEPENDENT_SCENARIO_AND_POSTERIOR_REPLAY_PASS"
+    assert result["scenarios_reconstructed"] == 1
+    assert result["outer_fits_reconstructed"] == 2
+    assert result["successful_bootstrap_methods_replayed"] >= 2
