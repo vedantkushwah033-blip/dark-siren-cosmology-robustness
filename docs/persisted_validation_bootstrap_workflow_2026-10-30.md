@@ -1,6 +1,6 @@
 # Persisted validation-bootstrap sensitivity workflow
 
-**Status:** implementation added on a dedicated research branch; execution and CI are pending.
+**Status:** implementation and Python 3.12 CI smoke step added on a dedicated research branch; the first end-to-end CI attempt exposed and is correcting a shell handoff issue.
 
 The reusable bootstrap helpers previously existed only as library functions. This workflow makes one selected successful estimated-inclusion pilot replicate reproducible as a persisted artifact:
 
@@ -28,7 +28,7 @@ The chosen replicate and arm must exist and be successful; the runner fails clos
 
 ## Audit boundary
 
-The auditor independently reconstructs posterior means, medians, and 68% interval endpoints from the persisted density draws. It does **not** independently regenerate the bootstrap resamples or refit every logistic model. Its PASS therefore certifies the integrity of persisted posterior propagation and artifact provenance, not the full bootstrap generator. The summary states this explicitly.
+The auditor independently replays the declared seed to reconstruct every validation-resample index vector, refits the bounded logistic model with a separate implementation, reconstructs inverse-weight diagnostics and reflected weighted KDE densities, and recomputes posterior means, medians, and 68% interval endpoints by direct quadrature. Its PASS therefore covers the persisted resampling/refit/density/posterior chain subject to numerical tolerances; it is still an internal independent implementation, not external scientific validation. The summary states this explicitly.
 
 The bootstrap is an approximate paired-record nonparametric bootstrap with replacement. The actual synthetic validation sample is drawn without replacement from a finite parent frame, but no finite-population correction is applied. The observed catalogue and GW distances are held fixed. The logistic model family and KDE construction are held fixed. The percentile range across posterior means is a validation-sample sensitivity distribution, not an H0 posterior credible interval, not a coverage guarantee, and not a full uncertainty interval.
 
