@@ -106,6 +106,10 @@ jobs:
           assert (p / 'records.csv').stat().st_size > 0
           print('Validated finite-parent smoke accounting:', s['n_attempted'])
           PY
+      - name: Test independent finite-parent SRSWOR artifact audit
+        run: python -m pytest tests/test_audit_finite_parent_validation_benchmark.py -q
+      - name: Independently audit finite-parent validation smoke artifacts
+        run: python scripts/audit_finite_parent_validation_benchmark.py artifacts/finite_parent_validation_smoke
       - name: Test host-density-to-H0 benchmark
         run: python -m pytest tests/test_host_density_benchmark.py -q
       - name: Test corrected physical KDE bandwidth semantics
