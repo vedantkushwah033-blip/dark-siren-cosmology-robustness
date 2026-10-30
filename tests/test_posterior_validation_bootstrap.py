@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+from scipy.integrate import trapezoid
 
 from dark_siren_robustness.posterior_validation_bootstrap import (
     bootstrap_validation_h0_posterior,
@@ -43,7 +44,7 @@ def test_posterior_validation_bootstrap_replays_full_toy_pipeline(method):
         equal_nan=True,
     )
     for density in first["posterior_density_draws"]:
-        assert np.trapezoid(density, h0_grid) == pytest.approx(1.0, abs=1e-8)
+        assert trapezoid(density, h0_grid) == pytest.approx(1.0, abs=1e-8)
     assert "not H0 posterior credible intervals" in first["uncertainty_interpretation"]
 
     if method == "paired_bootstrap":
@@ -54,11 +55,16 @@ def test_posterior_validation_bootstrap_replays_full_toy_pipeline(method):
     else:
         assert len(first["pseudo_population_indices"]) == 4
         assert len(first["selected_pseudo_population_positions"]) == 4
-        for indices, positions in zip(
-            first["sample_indices"], first["selected_pseudo_population_positions"]
+        for pseudo, indices, positions in zip(
+            first["pseudo_population_indices"],
+            first["sample_indices"],
+            first["selected_pseudo_population_positions"],
         ):
+            assert pseudo.shape == (180,)
+            assert indices.shape == (validation_z.size,)
+            assert positions.shape == (validation_z.size,)
             assert np.unique(positions).size == validation_z.size
-            assert np.unique(indices).size <= validation_z.size
+            np.testing.assert_array_equal(indices, pseudo[positions])
         assert np.all(np.isfinite(first["reference_posterior_mean_by_attempt"][first["success_mask"]]))
 
 
