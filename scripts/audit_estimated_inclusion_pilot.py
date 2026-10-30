@@ -207,6 +207,55 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
                 raise AssertionError(
                     f"nested validation inclusion counts decrease with sample size in replicate {replicate}"
                 )
+    # Independently validate observable-only pre-posterior feature records.
+    estimated_success = success & frame["arm"].str.startswith("estimated_")
+    if estimated_success.any():
+        required_features = ["diagnostic_schema", "n_validation", "n_validation_included", "validation_inclusion_fraction", "catalogue_outside_validation_range_fraction", "fitted_probability_min", "fitted_probability_p01", "fitted_probability_p05", "fitted_probability_median", "fitted_probability_max", "inverse_weight_ess", "inverse_weight_ess_fraction", "inverse_weight_max", "inverse_weight_p95", "inverse_weight_p99"]
+        missing_features = [name for name in required_features if name not in frame.columns]
+        if missing_features:
+            raise AssertionError(f"replicate table missing pre-posterior features: {missing_features}")
+    if "diagnostic_schema" in frame.columns:
+        if frame.loc[~frame["arm"].str.startswith("estimated_"), "diagnostic_schema"].notna().any():
+            raise AssertionError("non-estimated arms must not contain pre-posterior diagnostic records")
+        diagnostic_rows = frame.loc[frame["diagnostic_schema"].notna()].copy()
+        if not diagnostic_rows.empty:
+            if not diagnostic_rows["diagnostic_schema"].eq("preposterior_weight_stability_v1").all():
+                raise AssertionError("unknown pre-posterior diagnostic schema")
+            numeric_features = ["validation_inclusion_fraction", "catalogue_outside_validation_range_fraction", "fitted_probability_min", "fitted_probability_p01", "fitted_probability_p05", "fitted_probability_median", "fitted_probability_max", "inverse_weight_ess", "inverse_weight_ess_fraction", "inverse_weight_max", "inverse_weight_p95", "inverse_weight_p99"]
+            for column in numeric_features:
+                values = pd.to_numeric(diagnostic_rows[column], errors="coerce").to_numpy(dtype=float)
+                if not np.all(np.isfinite(values)):
+                    raise AssertionError(f"pre-posterior feature {column} contains non-finite values")
+            n_validation_feature = _integer_values(diagnostic_rows["n_validation"], "n_validation")
+            n_included_feature = _integer_values(diagnostic_rows["n_validation_included"], "n_validation_included")
+            if not np.array_equal(n_validation_feature, diagnostic_rows["validation_size"].to_numpy(dtype=int)):
+                raise AssertionError("pre-posterior validation size disagrees with arm design")
+            if not np.array_equal(n_included_feature, diagnostic_rows["audit_included_count"].to_numpy(dtype=int)):
+                raise AssertionError("pre-posterior validation inclusion count disagrees with audit count")
+            expected_fraction = n_included_feature / n_validation_feature
+            if not np.allclose(diagnostic_rows["validation_inclusion_fraction"], expected_fraction, rtol=1e-9, atol=1e-9):
+                raise AssertionError("pre-posterior validation inclusion fraction is inconsistent")
+            probability_columns = ["fitted_probability_min", "fitted_probability_p01", "fitted_probability_p05", "fitted_probability_median", "fitted_probability_max"]
+            probability_matrix = diagnostic_rows[probability_columns].to_numpy(dtype=float)
+            if np.any((probability_matrix <= 0.0) | (probability_matrix >= 1.0)) or np.any(np.diff(probability_matrix, axis=1) < -1e-12):
+                raise AssertionError("pre-posterior fitted probability quantiles are invalid or unordered")
+            support_gap = diagnostic_rows["catalogue_outside_validation_range_fraction"].to_numpy(dtype=float)
+            if np.any((support_gap < 0.0) | (support_gap > 1.0)):
+                raise AssertionError("pre-posterior catalogue support-gap fraction is outside [0, 1]")
+            ess = diagnostic_rows["inverse_weight_ess"].to_numpy(dtype=float)
+            ess_fraction = diagnostic_rows["inverse_weight_ess_fraction"].to_numpy(dtype=float)
+            catalogue_size = diagnostic_rows["n_catalogue"].to_numpy(dtype=float)
+            if np.any((ess <= 0.0) | (ess > catalogue_size + 1e-9)):
+                raise AssertionError("pre-posterior inverse-weight ESS is outside valid bounds")
+            if not np.allclose(ess_fraction, ess / catalogue_size, rtol=1e-8, atol=1e-10):
+                raise AssertionError("pre-posterior ESS fraction is inconsistent")
+            if not np.allclose(ess, diagnostic_rows["weight_ess"], rtol=1e-8, atol=1e-8):
+                raise AssertionError("pre-posterior ESS disagrees with saved estimator diagnostic")
+            if not np.allclose(diagnostic_rows["inverse_weight_max"], diagnostic_rows["max_inverse_weight"], rtol=1e-8, atol=1e-8):
+                raise AssertionError("pre-posterior maximum weight disagrees with saved estimator diagnostic")
+            weight_quantiles = diagnostic_rows[["inverse_weight_max", "inverse_weight_p95", "inverse_weight_p99"]].to_numpy(dtype=float)
+            if np.any(np.diff(weight_quantiles[:, 1:], axis=1) < -1e-12) or np.any(weight_quantiles[:, 1:] > weight_quantiles[:, :1] + 1e-9):
+                raise AssertionError("pre-posterior inverse-weight quantiles are inconsistent")
     expected_arms = {"catalogue_only", "oracle"} | {f"estimated_{v}" for v in validation_sizes}
     arms_in_rows = set(frame["arm"])
     if arms_in_rows != expected_arms:
