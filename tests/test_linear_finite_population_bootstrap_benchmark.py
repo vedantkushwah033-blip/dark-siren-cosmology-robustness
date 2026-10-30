@@ -7,7 +7,7 @@ from scripts.run_linear_finite_population_bootstrap_benchmark import run_benchma
 
 
 def test_linear_benchmark_records_all_methods_and_exact_sample_indices():
-    summaries, replicates = run_benchmark(
+    summaries, replicates, frames = run_benchmark(
         scenarios=1,
         repetitions=2,
         population_size=40,
