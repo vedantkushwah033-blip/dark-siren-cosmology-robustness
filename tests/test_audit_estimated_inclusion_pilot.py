@@ -100,7 +100,7 @@ def test_independent_pilot_auditor_rejects_coverage_flag_inconsistent_with_endpo
     frame.loc[index, "covered_68"] = not bool(frame.loc[index, "covered_68"])
     frame.to_csv(tmp_path / "replicates.csv", index=False)
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
-    with pytest.raises(AssertionError, match="covered_68 flags disagree"):
+    with pytest.raises(AssertionError, match="covered_68 disagrees with independent inference reconstruction"):
         audit_pilot_artifacts(tmp_path)
 
 
@@ -200,7 +200,7 @@ def test_independent_auditor_rejects_interval_width_inconsistent_with_endpoints(
     frame.loc[successful[0], "ci68_width"] += 1.0
     frame.to_csv(tmp_path / "replicates.csv", index=False)
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
-    with pytest.raises(AssertionError, match="ci68_width disagrees"):
+    with pytest.raises(AssertionError, match="independent_inference.ci68_width"):
         audit_pilot_artifacts(tmp_path)
 
 
@@ -211,7 +211,7 @@ def test_independent_auditor_rejects_absolute_error_inconsistent_with_posterior_
     frame.loc[successful[0], "absolute_error"] += 1.0
     frame.to_csv(tmp_path / "replicates.csv", index=False)
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
-    with pytest.raises(AssertionError, match="absolute_error disagrees"):
+    with pytest.raises(AssertionError, match="independent_inference.absolute_error"):
         audit_pilot_artifacts(tmp_path)
 
 
@@ -313,7 +313,7 @@ def test_independent_auditor_rejects_corrupted_persisted_kde_density(tmp_path):
     frame.loc[index, "inference_audit_payload_json"] = json.dumps(payload)
     frame.to_csv(tmp_path / "replicates.csv", index=False)
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
-    with pytest.raises(AssertionError, match="independent reflected-KDE reconstruction"):
+    with pytest.raises(AssertionError, match="persisted host density does not integrate to one|independent reflected-KDE reconstruction"):
         audit_pilot_artifacts(tmp_path)
 
 
