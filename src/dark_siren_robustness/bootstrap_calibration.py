@@ -34,6 +34,14 @@ def summarize_bootstrap_calibration(records: pd.DataFrame) -> tuple[pd.DataFrame
     key = ["scenario", "validation_size", "outer_draw", "method"]
     if frame[key].isna().any().any():
         raise ValueError("design identifiers and method must be nonmissing")
+    if (pd.to_numeric(frame["validation_size"], errors="coerce").isna().any()
+            or (pd.to_numeric(frame["validation_size"], errors="coerce") < 1).any()):
+        raise ValueError("validation_size must be positive and numeric")
+    draw_values = pd.to_numeric(frame["outer_draw"], errors="coerce")
+    if draw_values.isna().any() or (draw_values < 0).any() or not np.equal(draw_values, np.floor(draw_values)).all():
+        raise ValueError("outer_draw must contain nonnegative integer identifiers")
+    if frame["method"].astype(str).str.len().eq(0).any():
+        raise ValueError("method labels must be nonempty")
     if frame.duplicated(key).any():
         raise ValueError("records must be unique at scenario/size/draw/method grain")
     if not frame["outer_status"].isin(["success", "failed"]).all():
@@ -47,6 +55,10 @@ def summarize_bootstrap_calibration(records: pd.DataFrame) -> tuple[pd.DataFrame
     ]
     for column in numeric:
         frame[column] = pd.to_numeric(frame[column], errors="coerce")
+    if frame["finite_parent_target"].isna().any() or not np.isfinite(
+        frame["finite_parent_target"].to_numpy(dtype=float)
+    ).all():
+        raise ValueError("finite_parent_target must be finite for every attempted outer draw")
     outer_ok = frame["outer_status"].eq("success")
     boot_ok = frame["bootstrap_status"].eq("success")
     if frame.loc[outer_ok, ["outer_posterior_mean", "finite_parent_target"]].isna().any().any():
