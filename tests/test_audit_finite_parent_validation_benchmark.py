@@ -152,3 +152,13 @@ def test_finite_parent_auditor_rejects_failed_attempt_without_reason(tmp_path):
     with pytest.raises(AssertionError, match="missing its failure reason"):
         audit(tmp_path)
 
+
+
+def test_finite_parent_auditor_rejects_tampered_finite_frame_target(tmp_path):
+    frame = _artifact(tmp_path)
+    successful = frame.index[frame["status"].eq("success")]
+    assert len(successful) > 0
+    frame.loc[successful[0], "finite_parent_target_posterior_mean"] += 0.25
+    frame.to_csv(tmp_path / "records.csv", index=False)
+    with pytest.raises(AssertionError, match="finite-parent target posterior mean"):
+        audit(tmp_path)
