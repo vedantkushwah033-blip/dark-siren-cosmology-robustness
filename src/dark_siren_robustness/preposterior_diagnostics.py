@@ -43,7 +43,13 @@ def build_preposterior_diagnostics(model: Mapping[str, object], validation_redsh
         raise ValueError("fitted model coefficients must be present and finite")
 
     weights = 1.0 / probability
-    normalized_weights = weights / np.sum(weights)
+    if not np.all(np.isfinite(weights)) or np.any(weights <= 0.0):
+        raise ValueError("inverse inclusion weights must be finite and strictly positive")
+    weight_sum = float(np.sum(weights))
+    weight_sum_squares = float(np.sum(weights**2))
+    if not np.isfinite(weight_sum) or not np.isfinite(weight_sum_squares):
+        raise ValueError("inverse inclusion weight aggregates overflowed")
+    normalized_weights = weights / weight_sum
     scaled = weights / np.max(weights)
     ess = float(np.sum(scaled) ** 2 / np.sum(scaled**2))
     # Tail mass and entropy expose concentration beyond the maximum weight.
@@ -85,6 +91,8 @@ def build_preposterior_diagnostics(model: Mapping[str, object], validation_redsh
         "fitted_probability_median": float(np.median(probability)),
         "fitted_probability_max": float(np.max(probability)),
         "inverse_weight_ess": ess,
+        "inverse_weight_sum": weight_sum,
+        "inverse_weight_sum_squares": weight_sum_squares,
         "inverse_weight_ess_fraction": float(ess / catalogue_z.size),
         "inverse_weight_entropy_ess_fraction": entropy_ess_fraction,
         "inverse_weight_max_share": float(np.max(normalized_weights)),
