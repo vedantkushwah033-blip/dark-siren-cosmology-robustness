@@ -206,6 +206,20 @@ def audit(directory: Path) -> dict:
             expected_fpc = float(np.sqrt(max(0.0, 1.0-row.validation_size/parent_n)))
             _require(_same_number(float(row.fpc_factor), expected_fpc), "FPC factor mismatch")
             _require(row.bootstrap_seed == paired.bootstrap_seed, "FPC comparator seed mismatch")
+            paired_record = records.loc[
+                records.scenario.eq(row.scenario)
+                & records.validation_size.eq(row.validation_size)
+                & records.outer_draw.eq(row.outer_draw)
+                & records.method.eq("paired_bootstrap")
+            ].iloc[0]
+            fpc_se = float(paired_record.bootstrap_se) * expected_fpc
+            _require(_same_number(float(row.bootstrap_se_record), fpc_se),
+                     "FPC standard error does not match paired SE times FPC")
+            center = float(row.outer_posterior_mean_record)
+            _require(_same_number(float(row.interval_low_record), center-1.96*fpc_se),
+                     "FPC lower endpoint mismatch")
+            _require(_same_number(float(row.interval_high_record), center+1.96*fpc_se),
+                     "FPC upper endpoint mismatch")
 
     rebuilt_scenario, rebuilt_aggregate = _independent_summaries(records)
     for filename, rebuilt in [
