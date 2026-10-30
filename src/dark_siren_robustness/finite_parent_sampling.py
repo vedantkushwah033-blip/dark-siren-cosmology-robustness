@@ -34,6 +34,35 @@ def _require_integer(name: str, value: object, minimum: int) -> int:
     return result
 
 
+def nested_srswor_sample_indices(
+    rng: np.random.Generator,
+    parent_size: int,
+    sample_sizes: Sequence[int],
+) -> dict[int, np.ndarray]:
+    """Draw nested exact-SRSWOR samples from one random permutation.
+
+    Each requested sample is a prefix of the same uniformly random
+    permutation. Consequently every individual sample is an SRSWOR sample,
+    and smaller samples are nested in larger ones for paired comparisons.
+    """
+    if not isinstance(rng, np.random.Generator):
+        raise TypeError("rng must be a numpy.random.Generator")
+    parent_size = _require_integer("parent_size", parent_size, 1)
+    sizes_raw = tuple(sample_sizes)
+    if not sizes_raw:
+        raise ValueError("sample_sizes must not be empty")
+    sizes = tuple(
+        _require_integer(f"sample_sizes[{i}]", value, 1)
+        for i, value in enumerate(sizes_raw)
+    )
+    if len(set(sizes)) != len(sizes):
+        raise ValueError("sample_sizes must not contain duplicates")
+    if max(sizes) > parent_size:
+        raise ValueError("sample sizes cannot exceed parent_size")
+    permutation = rng.permutation(parent_size)
+    return {size: permutation[:size].copy() for size in sorted(sizes)}
+
+
 def run_finite_parent_benchmark(
     *,
     n_scenarios: int = 10,
@@ -180,9 +209,9 @@ def run_finite_parent_benchmark(
         # every smaller-size sample is a prefix/subset of the larger-size sample.
         # This enables paired, higher-precision comparisons across validation sizes.
         for draw in range(n_validation_draws):
-            permutation = rng.permutation(n_parent)
+            nested_samples = nested_srswor_sample_indices(rng, n_parent, sizes)
             for size in sizes:
-                indices = permutation[:size].copy()
+                indices = nested_samples[size]
                 if np.unique(indices).size != size:
                     raise RuntimeError("SRSWOR generator returned duplicate indices")
                 try:
