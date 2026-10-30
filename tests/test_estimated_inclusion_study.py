@@ -148,8 +148,11 @@ def test_pilot_records_preposterior_features_before_posterior_outputs():
     required = {
         "diagnostic_schema", "n_validation", "validation_inclusion_fraction",
         "catalogue_outside_validation_range_fraction", "fitted_probability_p05",
-        "inverse_weight_ess", "inverse_weight_ess_fraction", "inverse_weight_max",
-        "inverse_weight_p95", "inverse_weight_p99",
+        "inverse_weight_ess", "inverse_weight_ess_fraction",
+        "inverse_weight_entropy_ess_fraction", "inverse_weight_max_share",
+        "inverse_weight_top_1pct_mass", "inverse_weight_top_5pct_mass",
+        "inverse_weight_max", "inverse_weight_p95", "inverse_weight_p99",
+        "catalogue_near_validation_boundary_fraction",
     }
     assert required.issubset(estimated.columns)
     row = estimated.iloc[0]
