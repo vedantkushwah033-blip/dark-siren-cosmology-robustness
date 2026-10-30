@@ -103,3 +103,10 @@ Every failed posterior-resampling attempt now stores both its exact exception cl
 - `unexpected_exception`
 
 The independent auditor replays the attempt, derives the category from the independently reconstructed exception class, and requires an exact code match as well as the existing exact class/message match. The code is intended for stable aggregation across Python/library versions; the detailed reason remains the diagnostic record. Failed attempts remain in the attempted-run denominator.
+
+
+## Input provenance fingerprints (30 October 2026)
+
+Posterior-level resampling artifacts now include SHA-256 fingerprints for the canonical float64 representations (including array shape) of the redshift grid, H0 grid, observed catalogue redshifts, validation redshifts, binary validation outcomes, observed GW distances, and merger-weight array. When no merger-weight array is supplied, the fingerprint is computed from the explicit all-ones array used by the auditor.
+
+The independent auditor reconstructs these fingerprints from its separately supplied inputs and rejects a mismatch before replaying RNG draws. This binds a result artifact to the exact numerical inputs used in the audit; it is a provenance/integrity check, not a cryptographic signature or a substitute for independently preserving the source data and code revision.
