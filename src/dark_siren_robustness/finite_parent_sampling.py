@@ -7,6 +7,7 @@ without replacement. This is not a real LVK or survey analysis.
 from __future__ import annotations
 
 from collections.abc import Sequence
+import hashlib
 
 import numpy as np
 import pandas as pd
@@ -79,6 +80,9 @@ def run_finite_parent_benchmark(
         thin_rng = np.random.default_rng(thin_seed)
         retained = thin_rng.random(n_parent) < p_true
         observed_z = parent_z[retained]
+        parent_hash = hashlib.sha256(np.ascontiguousarray(parent_z).view(np.uint8)).hexdigest()
+        catalogue_hash = hashlib.sha256(np.ascontiguousarray(observed_z).view(np.uint8)).hexdigest()
+        gw_hash = hashlib.sha256(np.ascontiguousarray(distances).view(np.uint8)).hexdigest()
         if observed_z.size < 5 or np.unique(observed_z).size < 3:
             for size in sizes:
                 for draw in range(n_validation_draws):
