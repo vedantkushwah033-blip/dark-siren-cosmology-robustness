@@ -71,6 +71,8 @@ def test_predict_rejects_unknown_model_and_out_of_domain_values():
         predict_inclusion_probability([0.1], {**model, "model": "other"})
     with pytest.raises(ValueError, match="inside"):
         predict_inclusion_probability([0.5], model)
+    with pytest.raises(ValueError, match="coefficients exceed"):
+        predict_inclusion_probability([0.1], {**model, "slope": 50.01})
 
 
 
@@ -203,6 +205,24 @@ def test_preposterior_diagnostics_reject_invalid_probabilities_and_mismatched_ar
         build_preposterior_diagnostics(model, validation_z, validation_y, catalogue_z, np.zeros(10))
     with pytest.raises(ValueError, match="match catalogue"):
         build_preposterior_diagnostics(model, validation_z, validation_y, catalogue_z, np.full(9, 0.5))
+
+
+def test_preposterior_diagnostics_reject_coefficients_outside_fit_bounds():
+    from dark_siren_robustness.preposterior_diagnostics import build_preposterior_diagnostics
+
+    validation_z = np.linspace(0.02, 0.39, 200)
+    validation_y = np.tile([0, 1], 100)
+    catalogue_z = np.linspace(0.03, 0.38, 80)
+    model = {
+        "model": "logistic_inclusion_v1", "fit_status": "boundary_limited",
+        "coefficient_bound_hit": True, "intercept": 0.0, "slope": 50.01,
+        "z_min": 0.01, "z_max": 0.40, "n_validation": 200,
+        "n_included": 100, "n_not_included": 100,
+    }
+    with pytest.raises(ValueError, match="coefficients exceed"):
+        build_preposterior_diagnostics(
+            model, validation_z, validation_y, catalogue_z, np.full(80, 0.5)
+        )
 
 @pytest.mark.parametrize(
     "field, value",
