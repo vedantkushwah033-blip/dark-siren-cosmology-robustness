@@ -20,6 +20,9 @@ from dark_siren_robustness.posterior_validation_bootstrap_audit import (
     _independent_posterior,
     audit_posterior_validation_bootstrap,
 )
+from dark_siren_robustness.posterior_validation_bootstrap import (
+    bootstrap_validation_h0_posterior,
+)
 
 C_KM_S = 299_792.458
 
@@ -183,6 +186,7 @@ def audit(directory: Path) -> dict:
     b = int(manifest["bootstrap_replicates_per_method_per_outer_draw"])
     audited_outer = 0
     audited_bootstrap = 0
+    audited_wrapper_failures = 0
 
     for scenario in range(scenarios):
         scenario_rows = attempts.loc[attempts.scenario.eq(scenario)]
@@ -270,8 +274,39 @@ def audit(directory: Path) -> dict:
                                           1 if method == "paired_bootstrap" else 2)
                     _require(int(row.bootstrap_seed) == expected_seed,
                              f"bootstrap seed mismatch for {method}, scenario={scenario}, draw={draw}")
+                    if str(row.bootstrap_status) == "failed":
+                        # Re-run the full wrapper with the same input arrays and
+                        # deterministic seed, then compare the exact failure.
+                        observed_class = str(row.bootstrap_wrapper_failure_class)
+                        observed_message = str(row.bootstrap_wrapper_failure_message)
+                        try:
+                            replayed = bootstrap_validation_h0_posterior(
+                                z_grid, h0_grid, observed_z, vz, vy, distances,
+                                sigma_mpc=sigma,
+                                detection_threshold_mpc=threshold,
+                                parent_population_size=n_parent,
+                                method=method, n_bootstrap=b,
+                                seed=expected_seed, merger_weight=rate,
+                            )
+                            if int(replayed["n_successful"]) < 2:
+                                raise RuntimeError(
+                                    "fewer than two successful bootstrap replicates "
+                                    f"({int(replayed['n_successful'])}/{b})"
+                                )
+                        except Exception as exc:
+                            _require(type(exc).__name__ == observed_class,
+                                     f"wrapper failure class mismatch for {method}: "
+                                     f"{type(exc).__name__} != {observed_class}")
+                            _require(str(exc) == observed_message,
+                                     f"wrapper failure message mismatch for {method}")
+                            audited_wrapper_failures += 1
+                        else:
+                            raise AssertionError(
+                                f"recorded wrapper failure did not reproduce for {method}, "
+                                f"scenario={scenario}, draw={draw}"
+                            )
+                        continue
                     if str(row.bootstrap_status) != "success":
-                        # The first-stage audit verifies accounting for wrapper-level failures.
                         continue
                     payload = _reconstruct_result(row, method, n_parent, b)
                     audit_posterior_validation_bootstrap(
@@ -287,8 +322,9 @@ def audit(directory: Path) -> dict:
         "scenarios_reconstructed": scenarios,
         "outer_fits_reconstructed": audited_outer,
         "successful_bootstrap_methods_replayed": audited_bootstrap,
+        "wrapper_level_bootstrap_failures_replayed": audited_wrapper_failures,
         "scope": "synthetic parent/GW generation, catalogue thinning, finite-parent target, outer SRSWOR, successful inner posterior resampling",
-        "limitations": "wrapper-level bootstrap failures are accounted for structurally but not fully replayed; confirmatory-scale run not established",
+        "limitations": "confirmatory-scale run not established; unexpected non-determinism remains possible across dependency/platform versions",
     }
 
 
