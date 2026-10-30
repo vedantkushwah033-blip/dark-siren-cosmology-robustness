@@ -143,7 +143,7 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                         )
                         outer_mean = float(outer_post["posterior_mean"])
                         outer_status = "success"
-                    except Exception as exc:
+                    except (ValueError, RuntimeError, ArithmeticError, FloatingPointError) as exc:
                         outer_failure = f"{type(exc).__name__}: {exc}"
 
                 method_results: dict[str, dict] = {}
@@ -193,7 +193,7 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                                 "pseudo_population_indices": [np.asarray(v, dtype=np.int64).tolist() for v in result["pseudo_population_indices"]],
                                 "selected_pseudo_population_positions": [np.asarray(v, dtype=np.int64).tolist() for v in result["selected_pseudo_population_positions"]],
                             }
-                        except Exception as exc:
+                        except (ValueError, RuntimeError, ArithmeticError, FloatingPointError) as exc:
                             method_results[method] = {
                                 "bootstrap_status": "failed", "bootstrap_se": np.nan,
                                 "interval_low": np.nan, "interval_high": np.nan,
