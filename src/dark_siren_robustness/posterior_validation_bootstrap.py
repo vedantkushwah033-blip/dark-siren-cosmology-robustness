@@ -21,6 +21,19 @@ from dark_siren_robustness.host_density_benchmark import posterior_summary
 from dark_siren_robustness.selection_toy import selection_aware_toy_likelihood
 
 
+def _failure_code(exc: Exception) -> str:
+    """Stable broad category for an independently replayable failed attempt."""
+    if isinstance(exc, FloatingPointError):
+        return "floating_point_failure"
+    if isinstance(exc, ArithmeticError):
+        return "arithmetic_failure"
+    if isinstance(exc, ValueError):
+        return "invalid_validation_sample"
+    if isinstance(exc, RuntimeError):
+        return "model_fit_failure"
+    return "unexpected_exception"
+
+
 def _posterior_from_validation(z, h0, observed, validation_z, validation_y, distances,
                                *, sigma_mpc, detection_threshold_mpc, merger_weight,
                                bandwidth_factor):
@@ -186,6 +199,7 @@ def bootstrap_validation_h0_posterior(
             failures.append({
                 "bootstrap_index": int(b),
                 "exception_type": type(exc).__name__,
+                "failure_code": _failure_code(exc),
                 "reason": f"{type(exc).__name__}: {exc}",
             })
             if method == "paired_bootstrap" and len(sample_indices) <= b:
