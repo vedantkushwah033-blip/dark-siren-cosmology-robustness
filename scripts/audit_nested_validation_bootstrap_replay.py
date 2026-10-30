@@ -156,7 +156,7 @@ def audit(directory: Path) -> dict:
     # assuming the attempt-level trace duplicates the row-level outcome.
     key = ["scenario", "validation_size", "outer_draw", "method"]
     attempts = attempts.merge(
-        records[key + ["bootstrap_status", "outer_status"]],
+        records[key + ["bootstrap_status"]],
         on=key, how="left", validate="one_to_one",
     )
     _require(attempts["bootstrap_status"].notna().all(),
