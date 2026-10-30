@@ -150,7 +150,7 @@ def run_benchmark(
                     "coverage_mcse_conditional_on_success": mcse,
                     "mean_interval_width": float(np.mean(method_widths[method])) if method_widths[method] else float("nan"),
                 })
-    return rows, replicate_rows
+    return rows, replicate_rows, frame_rows
 
 
 def main() -> None:
@@ -163,7 +163,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=20261031)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
-    rows = run_benchmark(
+    rows, replicate_rows, frame_rows = run_benchmark(
         scenarios=args.scenarios,
         repetitions=args.repetitions,
         population_size=args.population_size,
