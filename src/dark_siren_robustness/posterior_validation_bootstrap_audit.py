@@ -19,6 +19,10 @@ def _independent_posterior(z, h0, observed, validation_z, validation_y, distance
     half = 0.5 * (z[-1] - z[0])
     x = (validation_z - midpoint) / half
     y = validation_y.astype(float)
+    if np.unique(y).size != 2:
+        raise ValueError(
+            "validation sample must contain both included and not-included outcomes"
+        )
 
     def objective(theta):
         eta = theta[0] + theta[1] * x
