@@ -227,8 +227,8 @@ def audit(artifact_dir: Path) -> dict:
                         x_all = (parent_z-0.205)/0.195
                         p_true = expit(float(row["true_intercept"]) + float(row["true_slope"])*x_all +
                                        float(row["true_quadratic"])*(x_all*x_all-1.0/3.0))
-                        p_fit = expit(intercept+slope*((observed_z-0.205)/0.195))
-                        _close(row["inclusion_probability_mae"], np.mean(np.abs(p_fit-p_true[retained])),
+                        p_fit = expit(intercept+slope*x_all)
+                        _close(row["inclusion_probability_mae"], np.mean(np.abs(p_fit-p_true)),
                                "inclusion-probability MAE")
                         density_ise = trapezoid((density-target)**2,z_grid)
                         _close(row["density_ise"],density_ise,"host-density ISE")
