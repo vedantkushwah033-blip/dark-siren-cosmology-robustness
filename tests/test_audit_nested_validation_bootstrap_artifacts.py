@@ -1,0 +1,72 @@
+from __future__ import annotations
+
+import json
+
+import pandas as pd
+import pytest
+
+from scripts.audit_nested_validation_bootstrap_artifacts import audit
+from scripts.run_nested_validation_bootstrap_comparison import run_comparison
+from dark_siren_robustness.bootstrap_calibration import summarize_bootstrap_calibration
+
+
+@pytest.fixture
+def nested_artifact(tmp_path):
+    records, attempts = run_comparison(
+        scenarios=1, draws=2, n_parent=1200, n_detected=8,
+        validation_sizes=(100,), bootstrap_replicates=3, seed=20261030,
+    )
+    scenario, aggregate = summarize_bootstrap_calibration(records)
+    records.to_csv(tmp_path / "calibration_records.csv", index=False)
+    attempts.to_json(tmp_path / "attempt_audit.jsonl", orient="records", lines=True)
+    scenario.to_csv(tmp_path / "scenario_summary.csv", index=False)
+    aggregate.to_csv(tmp_path / "scenario_balanced_summary.csv", index=False)
+    manifest = {
+        "schema": "nested_validation_bootstrap_comparison_smoke_v1",
+        "status": "SMOKE_ONLY_NOT_CONFIRMATORY",
+        "seed": 20261030,
+        "scenarios": 1,
+        "outer_draws": 2,
+        "parent_size": 1200,
+        "validation_sizes": [100],
+        "bootstrap_replicates_per_method_per_outer_draw": 3,
+        "methods": ["paired_bootstrap", "paired_bootstrap_fpc", "design_aware_srswor"],
+    }
+    (tmp_path / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    return tmp_path
+
+
+def test_independent_nested_artifact_auditor_accepts_runner_output(nested_artifact):
+    result = audit(nested_artifact)
+    assert result["status"] == "STRUCTURAL_AND_SUMMARY_AUDIT_PASS"
+    assert result["calibration_rows"] == 6
+    assert result["attempt_rows"] == 6
+
+
+def test_independent_nested_artifact_auditor_rejects_tampered_summary(nested_artifact):
+    path = nested_artifact / "scenario_summary.csv"
+    frame = pd.read_csv(path)
+    frame.loc[0, "mean_interval_width"] += 0.25
+    frame.to_csv(path, index=False)
+    with pytest.raises(ValueError, match="independently reconstructed mean_interval_width differs"):
+        audit(nested_artifact)
+
+
+def test_independent_nested_artifact_auditor_rejects_non_nested_outer_sample(nested_artifact):
+    path = nested_artifact / "attempt_audit.jsonl"
+    frame = pd.read_json(path, lines=True)
+    row = frame.index[(frame["method"] == "paired_bootstrap")][0]
+    frame.at[row, "validation_indices"] = frame.at[row, "validation_indices"][:-1]
+    frame.to_json(path, orient="records", lines=True)
+    with pytest.raises(ValueError, match="outer validation index length mismatch"):
+        audit(nested_artifact)
+
+
+def test_independent_nested_artifact_auditor_rejects_wrong_bootstrap_seed(nested_artifact):
+    path = nested_artifact / "attempt_audit.jsonl"
+    frame = pd.read_json(path, lines=True)
+    row = frame.index[(frame["method"] == "paired_bootstrap")][0]
+    frame.at[row, "bootstrap_seed"] = int(frame.at[row, "bootstrap_seed"]) + 1
+    frame.to_json(path, orient="records", lines=True)
+    with pytest.raises(ValueError, match="bootstrap seed mismatch"):
+        audit(nested_artifact)
