@@ -293,7 +293,7 @@ def audit(directory: Path) -> dict:
                                     "fewer than two successful bootstrap replicates "
                                     f"({int(replayed['n_successful'])}/{b})"
                                 )
-                        except Exception as exc:
+                        except (ValueError, RuntimeError, ArithmeticError, FloatingPointError) as exc:
                             _require(type(exc).__name__ == observed_class,
                                      f"wrapper failure class mismatch for {method}: "
                                      f"{type(exc).__name__} != {observed_class}")
