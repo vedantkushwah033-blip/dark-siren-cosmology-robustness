@@ -214,6 +214,9 @@ def test_linear_auditor_preserves_v1_artifact_compatibility(tmp_path, monkeypatc
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     report = audit_artifact(tmp_path)
     assert report["status"] == "PASS"
+    assert report["artifact_schema"] == "linear_finite_population_bootstrap_benchmark_v1"
+    assert report["inner_attempt_accounting"] == "NOT_AVAILABLE_IN_HISTORICAL_V1"
+    assert report["summary_estimands"] == ["conditional_coverage", "conditional_mcse"]
 
 
 def test_linear_auditor_rejects_tampered_unconditional_coverage_even_with_updated_checksum(tmp_path, monkeypatch):
