@@ -93,7 +93,7 @@ def run_benchmark(
                 wald = (estimate - z * design_se, estimate + z * design_se)
                 method_stats["wald_srswor"].append(wald[0] <= target <= wald[1])
                 method_widths["wald_srswor"].append(wald[1] - wald[0])
-                replicate_rows.append({"scenario": s, "population_kind": kind, "population_size": population_size, "sample_size": n, "repetition": r, "method": "wald_srswor", "target": target, "estimate": estimate, "interval_lower": wald[0], "interval_upper": wald[1], "covered": int(wald[0] <= target <= wald[1]), "failure_code": "", "sample_indices": json.dumps(indices.tolist()), "sample_seed": sample_seed, "ordinary_bootstrap_seed": ordinary_bootstrap_seed, "studentized_bootstrap_seed": studentized_bootstrap_seed, "frame_sha256": frame_hash})
+                replicate_rows.append({"scenario": s, "population_kind": kind, "population_size": population_size, "sample_size": n, "repetition": r, "method": "wald_srswor", "target": target, "estimate": estimate, "interval_lower": wald[0], "interval_upper": wald[1], "covered": int(wald[0] <= target <= wald[1]), "failure_code": "", "sample_indices": json.dumps(indices.tolist()), "sample_seed": sample_seed, "ordinary_bootstrap_seed": "", "studentized_bootstrap_seed": "", "frame_sha256": frame_hash})
 
                 # Ordinary with-replacement percentile bootstrap: diagnostic comparator.
                 ordinary_bootstrap_seed = int(np.random.SeedSequence([seed, s, n, r, 41031]).generate_state(1)[0])
@@ -105,7 +105,7 @@ def run_benchmark(
                     bool(lo <= target <= hi)
                 )
                 method_widths["ordinary_percentile_bootstrap"].append(float(hi - lo))
-                replicate_rows.append({"scenario": s, "population_kind": kind, "population_size": population_size, "sample_size": n, "repetition": r, "method": "ordinary_percentile_bootstrap", "target": target, "estimate": estimate, "interval_lower": float(lo), "interval_upper": float(hi), "covered": int(lo <= target <= hi), "failure_code": "", "sample_indices": json.dumps(indices.tolist()), "frame_sha256": frame_hash})
+                replicate_rows.append({"scenario": s, "population_kind": kind, "population_size": population_size, "sample_size": n, "repetition": r, "method": "ordinary_percentile_bootstrap", "target": target, "estimate": estimate, "interval_lower": float(lo), "interval_upper": float(hi), "covered": int(lo <= target <= hi), "failure_code": "", "sample_indices": json.dumps(indices.tolist()), "sample_seed": sample_seed, "ordinary_bootstrap_seed": ordinary_bootstrap_seed, "studentized_bootstrap_seed": "", "frame_sha256": frame_hash})
 
                 # Studentized pseudo-population bootstrap, with deterministic per-draw seed.
                 studentized_bootstrap_seed = int(np.random.SeedSequence([seed, s, n, r, 41032]).generate_state(1)[0])
@@ -124,10 +124,10 @@ def run_benchmark(
                     method_widths["studentized_pseudopop_srswor"].append(
                         float(interval[1] - interval[0])
                     )
-                    replicate_rows.append({"scenario": s, "population_kind": kind, "population_size": population_size, "sample_size": n, "repetition": r, "method": "studentized_pseudopop_srswor", "target": target, "estimate": estimate, "interval_lower": float(interval[0]), "interval_upper": float(interval[1]), "covered": int(interval[0] <= target <= interval[1]), "failure_code": "", "sample_indices": json.dumps(indices.tolist()), "frame_sha256": frame_hash})
+                    replicate_rows.append({"scenario": s, "population_kind": kind, "population_size": population_size, "sample_size": n, "repetition": r, "method": "studentized_pseudopop_srswor", "target": target, "estimate": estimate, "interval_lower": float(interval[0]), "interval_upper": float(interval[1]), "covered": int(interval[0] <= target <= interval[1]), "failure_code": "", "sample_indices": json.dumps(indices.tolist()), "sample_seed": sample_seed, "ordinary_bootstrap_seed": ordinary_bootstrap_seed, "studentized_bootstrap_seed": studentized_bootstrap_seed, "frame_sha256": frame_hash})
                 except (ValueError, ArithmeticError, FloatingPointError) as exc:
                     method_failures["studentized_pseudopop_srswor"] += 1
-                    replicate_rows.append({"scenario": s, "population_kind": kind, "population_size": population_size, "sample_size": n, "repetition": r, "method": "studentized_pseudopop_srswor", "target": target, "estimate": estimate, "interval_lower": float("nan"), "interval_upper": float("nan"), "covered": "", "failure_code": type(exc).__name__ + ":" + str(exc), "sample_indices": json.dumps(indices.tolist()), "frame_sha256": frame_hash})
+                    replicate_rows.append({"scenario": s, "population_kind": kind, "population_size": population_size, "sample_size": n, "repetition": r, "method": "studentized_pseudopop_srswor", "target": target, "estimate": estimate, "interval_lower": float("nan"), "interval_upper": float("nan"), "covered": "", "failure_code": type(exc).__name__ + ":" + str(exc), "sample_indices": json.dumps(indices.tolist()), "sample_seed": sample_seed, "ordinary_bootstrap_seed": ordinary_bootstrap_seed, "studentized_bootstrap_seed": studentized_bootstrap_seed, "frame_sha256": frame_hash})
 
             for method, covered in method_stats.items():
                 successful = len(covered)
