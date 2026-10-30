@@ -98,7 +98,7 @@ def audit(artifact_dir: Path) -> dict:
         "scenario", "draw", "validation_size", "status", "validation_seed",
         "simulation_seed", "thinning_seed", "true_intercept", "true_slope",
         "true_quadratic", "sigma_mpc", "detection_threshold_mpc",
-        "validation_indices", "parent_size", "parent_frame_sha256",
+        "validation_indices", "failure_reason", "parent_size", "parent_frame_sha256",
         "catalogue_sha256", "gw_distance_sha256",
     }
     missing = required.difference(records.columns)
@@ -200,6 +200,10 @@ def audit(artifact_dir: Path) -> dict:
                     if not encoded:
                         if row["status"] == "success":
                             raise AssertionError("successful attempt is missing sample indices")
+                        if row["failure_reason"] != "catalogue_minimum_size_gate":
+                            raise AssertionError("sample-less failure is not the declared catalogue-size gate")
+                        if observed_z.size >= 5 and np.unique(observed_z).size >= 3:
+                            raise AssertionError("catalogue-size failure is not supported by regenerated catalogue")
                         continue
                     indices = np.fromstring(encoded, sep=",", dtype=int)
                     expected_indices = permutation[:size]
@@ -244,6 +248,25 @@ def audit(artifact_dir: Path) -> dict:
                         _close(row["absolute_error"],abs(post[0]-float(row["h0_true"])),"absolute posterior-mean error")
                         if bool(row["covered_68"]) != (post[2] <= float(row["h0_true"]) <= post[3]):
                             raise AssertionError("68% coverage indicator fails independent posterior reconstruction")
+                    else:
+                        # Failed attempts remain in the denominator. Independently
+                        # replay their estimator path so a producer cannot hide
+                        # difficult but reproducibly successful draws as failures.
+                        try:
+                            failed_density = _independent_density_and_fit(
+                                z_grid, observed_z, parent_z[indices],
+                                retained[indices].astype(int), rate
+                            )[0]
+                            _independent_posterior(
+                                z_grid, failed_density, h0_grid, distances,
+                                float(row["sigma_mpc"]), float(row["detection_threshold_mpc"])
+                            )
+                        except (ValueError, RuntimeError, ArithmeticError, FloatingPointError):
+                            pass
+                        else:
+                            raise AssertionError(
+                                "failed attempt is independently reproducible as a successful fit and posterior"
+                            )
     # Re-derive every reported validation-size summary from audited raw records.
     successful_records = records.loc[records["status"].eq("success")]
     reported = summary.get("metrics_by_validation_size", {})
