@@ -18,6 +18,8 @@ Candidate predictors may include:
 - validation sample size and observed inclusion count;
 - fitted-model convergence status and coefficient-boundary flags;
 - fitted inclusion-probability quantiles among retained catalogue objects;
+- inverse-weight entropy effective sample size, maximum normalized weight share, and the fraction of total weight carried by the largest 1% and 5% of catalogue objects;
+- the fraction of catalogue redshifts near the observed validation-frame support boundaries;
 - inverse-weight ESS and ESS fraction;
 - maximum, 95th and 99th percentile estimated inverse weights;
 - bootstrap variability of fitted coefficients and predicted inclusion probabilities, if computed using only the validation sample;
@@ -25,7 +27,7 @@ Candidate predictors may include:
 
 Do **not** use true inclusion probabilities, true selection coefficients, posterior means, posterior intervals, coverage, absolute H0 error, or any other downstream outcome as predictors. True probabilities may be retained separately for simulation-only explanation and oracle scoring, never as inputs to the warning rule.
 
-The existing pilot currently records several oracle diagnostics. Those must be labelled as simulation truth and kept out of any operational prediction model.
+The pilot now records observable-only fitted-weight and validation-support diagnostics before posterior construction. It also records oracle population diagnostics separately for simulation explanation. Oracle quantities must remain excluded from any operational prediction model. The added concentration features are descriptive predictors, not universal warning thresholds.
 
 ## 3. Outcomes
 
@@ -90,4 +92,4 @@ Do not describe a warning rule as predicting H0 coverage or posterior failure un
 
 A model can only flag risk patterns represented in its simulated design. This protocol does not establish universal ESS thresholds, guarantee coverage, solve positivity violations, or validate the estimator on LVK or a real galaxy survey. The independent parent-frame validation assumption remains strong and must be relaxed in separate studies (for example, validation nonresponse, covariate shift, redshift error, and spatially structured missingness).
 
-**Current status:** protocol only. No predictive model or held-out performance result is claimed.
+**Current status:** observable-only feature extraction is implemented in `src/dark_siren_robustness/preposterior_diagnostics.py` and integrated into the pilot. Independent artifact checks are being extended. The replicate-level predictive evaluation remains unimplemented; no predictive performance or held-out result is claimed.
