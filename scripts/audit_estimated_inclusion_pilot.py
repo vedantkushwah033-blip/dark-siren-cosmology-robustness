@@ -642,7 +642,7 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         ),
         "per_arm_counts": per_arm_counts,
         "comparison_diagnostics": comparison_diagnostics,
-        "audit_scope": "persisted-table integrity, independent direct-quadrature posterior reconstruction, density-ISE reconstruction, and summary reconstruction",
+        "audit_scope": "persisted-table integrity, independent reflected weighted-KDE reconstruction, direct-quadrature posterior reconstruction, density-ISE reconstruction, and summary reconstruction",
     }
 
 
