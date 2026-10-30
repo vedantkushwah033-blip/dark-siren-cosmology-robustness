@@ -100,24 +100,33 @@ def audit(artifact_dir: Path) -> dict:
         for col, digest in hashes.items():
             if str(first[col]) != digest:
                 raise AssertionError(f"independent regeneration does not match {col}")
-        rng = np.random.default_rng(int(seed_values[0]))
-        ordered = group.sort_values(["validation_size", "draw"])
-        for row in ordered.itertuples(index=False):
-            if row.validation_indices is None or pd.isna(row.validation_indices) or not str(row.validation_indices):
-                if row.status == "success":
-                    raise AssertionError("successful attempt is missing sample indices")
-                continue
-            indices = np.fromstring(str(row.validation_indices), sep=",", dtype=int)
-            size = int(row.validation_size)
-            if indices.size != size or np.unique(indices).size != size:
-                raise AssertionError("stored validation sample is not exact SRSWOR")
-            if np.any((indices < 0) | (indices >= int(row.parent_size))):
-                raise AssertionError("validation index outside parent frame")
-            expected_indices = rng.choice(int(row.parent_size), size=size, replace=False)
-            if not np.array_equal(indices, expected_indices):
-                raise AssertionError("validation sample does not replay from declared seed")
-            if int(row.n_validation_included) != int(np.sum(retained[indices])):
-                raise AssertionError("validation inclusion count does not match regenerated parent frame")
+        has_samples = group["validation_indices"].fillna("").astype(str).str.len().gt(0).any()
+        if has_samples:
+            rng = np.random.default_rng(int(seed_values[0]))
+            for draw in range(draws):
+                permutation = rng.permutation(int(first["parent_size"]))
+                for size in sizes:
+                    selected = group.loc[
+                        group["draw"].eq(draw) & group["validation_size"].eq(size)
+                    ]
+                    if len(selected) != 1:
+                        raise AssertionError("missing or duplicate scenario/draw/size record")
+                    row = selected.iloc[0]
+                    encoded = "" if pd.isna(row["validation_indices"]) else str(row["validation_indices"])
+                    if not encoded:
+                        if row["status"] == "success":
+                            raise AssertionError("successful attempt is missing sample indices")
+                        continue
+                    indices = np.fromstring(encoded, sep=",", dtype=int)
+                    expected_indices = permutation[:size]
+                    if indices.size != size or np.unique(indices).size != size:
+                        raise AssertionError("stored validation sample is not exact SRSWOR")
+                    if np.any((indices < 0) | (indices >= int(row["parent_size"]))):
+                        raise AssertionError("validation index outside parent frame")
+                    if not np.array_equal(indices, expected_indices):
+                        raise AssertionError("nested validation sample does not replay from declared seed")
+                    if int(row["n_validation_included"]) != int(np.sum(retained[indices])):
+                        raise AssertionError("validation inclusion count does not match regenerated parent frame")
     return {
         "status": "STRUCTURAL_AUDIT_PASS",
         "n_attempted": attempted,
