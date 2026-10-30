@@ -122,3 +122,44 @@ def test_independent_posterior_bootstrap_auditor_rejects_tampered_posterior_mean
             sigma_mpc=140.0, detection_threshold_mpc=250.0,
             parent_population_size=180,
         )
+
+
+
+def test_posterior_bootstrap_auditor_checks_exact_failure_reason():
+    z_grid = np.linspace(0.01, 0.40, 101)
+    h0_grid = np.linspace(50.0, 90.0, 61)
+    observed_z = np.linspace(0.025, 0.385, 45)
+    validation_z = np.linspace(0.01, 0.40, 20)
+    validation_y = np.array([1] + [0] * 19, dtype=int)
+    distances = np.array([280.0, 330.0, 410.0, 520.0, 610.0])
+    result = bootstrap_validation_h0_posterior(
+        z_grid, h0_grid, observed_z, validation_z, validation_y, distances,
+        sigma_mpc=140.0, detection_threshold_mpc=250.0,
+        parent_population_size=80, method="paired_bootstrap",
+        n_bootstrap=20, seed=0,
+    )
+    assert result["n_failed"] > 0
+    audit_kwargs = dict(
+        sigma_mpc=140.0, detection_threshold_mpc=250.0,
+        parent_population_size=80,
+    )
+    audit_posterior_validation_bootstrap(
+        result, z_grid, h0_grid, observed_z, validation_z, validation_y,
+        distances, **audit_kwargs,
+    )
+    tampered = dict(result)
+    tampered["failure_records"] = [dict(row) for row in result["failure_records"]]
+    tampered["failure_records"][0]["reason"] = "ValueError: unrelated failure"
+    with pytest.raises(AssertionError, match="failure reason mismatch"):
+        audit_posterior_validation_bootstrap(
+            tampered, z_grid, h0_grid, observed_z, validation_z, validation_y,
+            distances, **audit_kwargs,
+        )
+    tampered_class = dict(result)
+    tampered_class["failure_records"] = [dict(row) for row in result["failure_records"]]
+    tampered_class["failure_records"][0]["exception_type"] = "RuntimeError"
+    with pytest.raises(AssertionError, match="failure exception class mismatch"):
+        audit_posterior_validation_bootstrap(
+            tampered_class, z_grid, h0_grid, observed_z, validation_z, validation_y,
+            distances, **audit_kwargs,
+        )
