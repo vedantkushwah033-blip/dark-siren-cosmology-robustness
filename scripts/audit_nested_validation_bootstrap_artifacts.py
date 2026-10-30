@@ -190,6 +190,45 @@ def audit(directory: Path) -> dict:
                      "failed attempts must have NaN posterior means")
             _require(len(row.bootstrap_failure_records) == int((~mask).sum()),
                      "failure-record count disagrees with failure mask")
+            _require(int(row.n_bootstrap_attempted) == b,
+                     "bootstrap attempt count differs from manifest")
+            if row.method == "paired_bootstrap":
+                samples = row.bootstrap_sample_indices
+                _require(isinstance(samples, list) and len(samples) == b,
+                         "paired-bootstrap index trace has wrong attempt count")
+                _require(not row.bootstrap_pseudo_population_indices,
+                         "paired bootstrap must not contain pseudo-population indices")
+                for sample in samples:
+                    ix = np.asarray(sample)
+                    _require(ix.shape == (int(row.validation_size),)
+                             and np.issubdtype(ix.dtype, np.integer)
+                             and np.all((ix >= 0) & (ix < int(row.validation_size))),
+                             "paired-bootstrap sample indices are malformed")
+            elif row.method == "design_aware_srswor":
+                pseudo = row.bootstrap_pseudo_population_indices
+                samples = row.bootstrap_sample_indices
+                positions = row.bootstrap_selected_pseudo_population_positions
+                _require(all(isinstance(v, list) for v in (pseudo, samples, positions))
+                         and len(pseudo) == len(samples) == len(positions) == b,
+                         "pseudo-population index traces have wrong attempt count")
+                for pidx, sidx, pos in zip(pseudo, samples, positions):
+                    p = np.asarray(pidx)
+                    s = np.asarray(sidx)
+                    q = np.asarray(pos)
+                    _require(p.shape == (parent_n,) and s.shape == (int(row.validation_size),)
+                             and q.shape == (int(row.validation_size),),
+                             "pseudo-population resampling index dimensions are malformed")
+                    _require(np.issubdtype(p.dtype, np.integer)
+                             and np.issubdtype(s.dtype, np.integer)
+                             and np.issubdtype(q.dtype, np.integer),
+                             "pseudo-population resampling indices must be integers")
+                    _require(np.all((p >= 0) & (p < int(row.validation_size)))
+                             and np.all((s >= 0) & (s < int(row.validation_size)))
+                             and np.all((q >= 0) & (q < parent_n))
+                             and len(np.unique(q)) == len(q),
+                             "pseudo-population resampling indices violate their bounds/design")
+                    _require(np.array_equal(s, p[q]),
+                             "selected pseudo-population positions do not map to saved sample indices")
         elif row.bootstrap_status == "success":
             _require(pd.isna(row.bootstrap_success_mask),
                      "FPC diagnostic should not duplicate bootstrap attempt arrays")
