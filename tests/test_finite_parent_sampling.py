@@ -3,7 +3,10 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from dark_siren_robustness.finite_parent_sampling import (\n    nested_srswor_sample_indices,\n    run_finite_parent_benchmark,\n)
+from dark_siren_robustness.finite_parent_sampling import (
+    nested_srswor_sample_indices,
+    run_finite_parent_benchmark,
+)
 
 
 def test_finite_parent_benchmark_is_reproducible_and_accounts_for_attempts():
