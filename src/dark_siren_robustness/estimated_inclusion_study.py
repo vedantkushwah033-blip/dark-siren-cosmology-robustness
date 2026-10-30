@@ -6,6 +6,7 @@ or gravitational-wave observations and is not an H0 measurement.
 from __future__ import annotations
 
 from collections.abc import Sequence
+import json
 
 import numpy as np
 import pandas as pd
@@ -306,7 +307,7 @@ def run_estimated_inclusion_pilot(
                     # probabilities; target_density is included only to audit
                     # the reported density ISE.
                     "inference_audit_schema": "toy_selection_posterior_reconstruction_v1",
-                    "inference_audit_payload_json": __import__("json").dumps({
+                    "inference_audit_payload_json": json.dumps({
                         "redshift_grid": z_grid.tolist(),
                         "host_density": np.asarray(density, dtype=float).tolist(),
                         "target_density_for_ise": target_density.tolist(),
