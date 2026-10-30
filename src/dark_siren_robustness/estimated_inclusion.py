@@ -107,6 +107,11 @@ def predict_inclusion_probability(
         raise ValueError("model is missing valid coefficients or domain bounds") from exc
     if not all(np.isfinite(value) for value in (intercept, slope, z_min, z_max)) or z_min >= z_max:
         raise ValueError("model coefficients and domain bounds must be finite and valid")
+    # These are the fitting bounds in fit_logistic_inclusion_model. Enforcing
+    # the same model contract here prevents externally supplied coefficients
+    # from producing subnormal probabilities and overflowing inverse weights.
+    if abs(intercept) > 25.0 or abs(slope) > 50.0:
+        raise ValueError("model coefficients exceed the bounded logistic-fit domain")
     z = np.asarray(redshift, dtype=float)
     if z.ndim != 1 or not np.all(np.isfinite(z)):
         raise ValueError("redshift must be a finite one-dimensional array")
