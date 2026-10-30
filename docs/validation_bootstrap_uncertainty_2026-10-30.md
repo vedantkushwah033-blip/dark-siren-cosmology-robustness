@@ -12,6 +12,8 @@ The new `bootstrap_validation_inclusion_density` function resamples the paired v
 
 ## What the bootstrap estimates
 
+The output approximates repeated-validation-sample variability using an ordinary paired-record bootstrap with replacement. The simulated validation design samples without replacement from a finite parent frame; this implementation does **not** apply a finite-population correction. Its uncertainty estimate is therefore an iid-bootstrap approximation, not an exact design-based variance estimator. This distinction matters when the validation fraction is large. A future design-based replicate-weight method would be needed for calibrated finite-population uncertainty.
+
 The output approximates the repeated-validation-sample variability of:
 - the fitted logistic intercept and slope;
 - the inverse-inclusion-weighted host-redshift density;
@@ -23,7 +25,7 @@ Every attempted resample is accounted for. A resample with only one retention cl
 
 ## Interpretation limits
 
-This is a **nonparametric frequentist bootstrap conditional on the observed catalogue**, the original validation sample, the assumed logistic selection family, the redshift domain, and the KDE construction. It is not:
+This is an **approximate nonparametric frequentist bootstrap conditional on the observed catalogue**,  the original validation sample, the assumed logistic selection family, the redshift domain, and the KDE construction. It does not apply a finite-population correction. It is not:
 - a Bayesian posterior for the inclusion coefficients;
 - a correction for logistic-model misspecification;
 - uncertainty from a newly sampled galaxy catalogue or GW-event realization;
