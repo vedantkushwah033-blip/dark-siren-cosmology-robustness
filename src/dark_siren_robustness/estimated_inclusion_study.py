@@ -144,8 +144,11 @@ def run_estimated_inclusion_pilot(
         # table is deliberately ignored; this experiment uses its own thinning.
         standardized_parent = (parent_z - z_mid) / z_half
         # A nonzero quadratic term creates a deliberately misspecified stress
-        # condition for the linear-logit validation estimator. Center x^2 so
-        # the intercept remains interpretable near the domain midpoint.
+        # condition for the linear-logit validation estimator. Subtracting 1/3
+        # centers x^2 under a *uniform reference measure* on [-1, 1] in logit
+        # space. It does not make the intercept the midpoint log-odds (at x=0,
+        # eta = intercept - quadratic/3), nor does it generally center under
+        # the non-uniform simulated parent-redshift distribution.
         true_probability = expit(
             true_intercept + true_slope * standardized_parent
             + true_quadratic * (standardized_parent**2 - 1.0 / 3.0)
@@ -412,6 +415,10 @@ def run_estimated_inclusion_pilot(
             "intercept": float(true_intercept), "slope": float(true_slope),
             "quadratic": float(true_quadratic),
             "standardization": "(z - domain_midpoint) / domain_half_range",
+            "quadratic_centering": (
+                "x^2 - 1/3; centered in logit space under uniform x on [-1, 1] "
+                "only, not necessarily under the simulated parent distribution"
+            ),
         },
         "primary_contrast": "abs_error_catalogue_only - abs_error_comparison_arm",
         "contrasts": contrasts, "arm_summaries": summaries,
