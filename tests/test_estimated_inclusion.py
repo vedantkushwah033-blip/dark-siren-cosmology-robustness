@@ -351,3 +351,23 @@ def test_validation_bootstrap_rejects_invalid_replicate_count_and_seed():
         bootstrap_validation_inclusion_density(
             grid, observed, validation_z, validation_y, seed=-1
         )
+
+
+def test_validation_bootstrap_rejects_invalid_density_controls_before_attempting_resamples():
+    import pytest
+    from dark_siren_robustness.estimated_inclusion import bootstrap_validation_inclusion_density
+
+    grid = np.linspace(0.01, 0.40, 101)
+    validation_z = np.linspace(0.01, 0.40, 100)
+    validation_y = np.tile([0, 1], 50)
+    observed = np.linspace(0.02, 0.39, 30)
+    with pytest.raises(ValueError, match="merger_weight"):
+        bootstrap_validation_inclusion_density(
+            grid, observed, validation_z, validation_y,
+            merger_weight=np.ones(10), n_bootstrap=10,
+        )
+    with pytest.raises(ValueError, match="bandwidth_factor"):
+        bootstrap_validation_inclusion_density(
+            grid, observed, validation_z, validation_y,
+            bandwidth_factor=0.0, n_bootstrap=10,
+        )
