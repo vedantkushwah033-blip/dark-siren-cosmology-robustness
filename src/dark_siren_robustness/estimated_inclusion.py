@@ -274,6 +274,9 @@ def bootstrap_validation_inclusion_density(
         raise ValueError("bandwidth_factor must be finite and positive")
     rng = np.random.default_rng(int(seed))
     density_draws: list[NDArray[np.float64]] = []
+    pseudo_population_density_draws: list[NDArray[np.float64]] = []
+    pseudo_population_intercepts: list[float] = []
+    pseudo_population_slopes: list[float] = []
     intercept_draws: list[float] = []
     slope_draws: list[float] = []
     boundary_flags: list[bool] = []
@@ -443,6 +446,12 @@ def bootstrap_validation_inclusion_density_design_aware(
         pseudo_population_indices.append(pseudo_idx)
         bootstrap_sample_indices.append(sample_idx)
         try:
+            # Reconstruct the full pseudo-population plug-in reference first.
+            # This is distinct from the sample estimator and from true H0.
+            pseudo_result = estimate_host_density_from_validation(
+                grid, observed, validation_z[pseudo_idx], validation_y[pseudo_idx],
+                merger_weight=merger_weight, bandwidth_factor=bandwidth_factor,
+            )
             result = estimate_host_density_from_validation(
                 grid, observed, validation_z[sample_idx], validation_y[sample_idx],
                 merger_weight=merger_weight, bandwidth_factor=bandwidth_factor,
@@ -451,6 +460,12 @@ def bootstrap_validation_inclusion_density_design_aware(
             failure_reasons.append(f"{type(exc).__name__}: {exc}")
             continue
         success_mask[bootstrap_index] = True
+        pseudo_model = pseudo_result["model"]
+        pseudo_population_density_draws.append(
+            np.asarray(pseudo_result["density"], dtype=float)
+        )
+        pseudo_population_intercepts.append(float(pseudo_model["intercept"]))
+        pseudo_population_slopes.append(float(pseudo_model["slope"]))
         model = result["model"]
         density_draws.append(np.asarray(result["density"], dtype=float))
         intercept_draws.append(float(model["intercept"]))
@@ -472,6 +487,17 @@ def bootstrap_validation_inclusion_density_design_aware(
         "density_draws": (
             np.stack(density_draws) if density_draws
             else np.empty((0, grid.size), dtype=float)
+        ),
+        "pseudo_population_density_draws": (
+            np.stack(pseudo_population_density_draws)
+            if pseudo_population_density_draws
+            else np.empty((0, grid.size), dtype=float)
+        ),
+        "pseudo_population_intercept_draws": np.asarray(
+            pseudo_population_intercepts, dtype=float
+        ),
+        "pseudo_population_slope_draws": np.asarray(
+            pseudo_population_slopes, dtype=float
         ),
         "pseudo_population_indices": np.stack(pseudo_population_indices),
         "bootstrap_sample_indices": np.stack(bootstrap_sample_indices),
