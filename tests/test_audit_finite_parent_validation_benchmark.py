@@ -15,11 +15,38 @@ def _artifact(tmp_path):
         h0_points=41, z_points=201,
     )
     frame.to_csv(tmp_path / "records.csv", index=False)
+    successful = frame.loc[frame["status"].eq("success")]
+    metrics_by_size = {}
+    for size in (100, 200):
+        group = successful.loc[successful["validation_size"].eq(size)]
+        if group.empty:
+            continue
+        errors = group["posterior_mean"].to_numpy(dtype=float) - group["h0_true"].to_numpy(dtype=float)
+        by_scenario = group.assign(error=errors).groupby("scenario")
+        scenario_coverage = group.groupby("scenario")["covered_68"].mean()
+        metrics_by_size[str(size)] = {
+            "posterior_mean_bias": float(errors.mean()),
+            "posterior_mean_rmse": float((errors**2).mean()**0.5),
+            "coverage_68": float(group["covered_68"].astype(float).mean()),
+            "mean_ci68_width": float(group["ci68_width"].mean()),
+            "mean_density_ise": float(group["density_ise"].mean()),
+            "mean_inclusion_probability_mae": float(group["inclusion_probability_mae"].mean()),
+            "mean_weight_ess": float(group["weight_ess"].mean()),
+            "mean_max_inverse_weight": float(group["max_inverse_weight"].mean()),
+            "boundary_limited_fraction": float(group["fit_boundary_limited"].astype(float).mean()),
+            "n_scenarios_with_successes": int(group["scenario"].nunique()),
+            "scenario_balanced_bias_mean": float(by_scenario["error"].mean().mean()),
+            "scenario_balanced_rmse_mean": float(
+                group.assign(squared_error=errors**2).groupby("scenario")["squared_error"].mean().pow(0.5).mean()
+            ),
+            "scenario_balanced_coverage_mean": float(scenario_coverage.mean()),
+            "scenario_coverage_sd": float(scenario_coverage.std(ddof=1)) if len(scenario_coverage) > 1 else None,
+        }
     summary = {
         "schema": "finite_parent_srswor_smoke_v1",
         "status": "SMOKE_ONLY_NOT_CONFIRMATORY",
         "n_attempted": len(frame),
-        "n_successful": int(frame["status"].eq("success").sum()),
+        "n_successful": int(successful.shape[0]),
         "n_failed": int(frame["status"].eq("failed").sum()),
         "validation_sizes": [100, 200],
         "scenarios": 1,
@@ -28,6 +55,7 @@ def _artifact(tmp_path):
         "z_points": 201,
         "h0_grid_bounds": [50.0, 90.0],
         "redshift_grid_bounds": [0.01, 0.40],
+        "metrics_by_validation_size": metrics_by_size,
     }
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     return frame
