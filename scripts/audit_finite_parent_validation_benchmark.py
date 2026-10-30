@@ -7,11 +7,15 @@ validation requirement before confirmatory claims.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.special import expit
+
+from dark_siren_robustness.generative_selection import generate_synthetic_population
 
 
 def audit(artifact_dir: Path) -> dict:
@@ -19,6 +23,8 @@ def audit(artifact_dir: Path) -> dict:
     summary = json.loads((artifact_dir / "summary.json").read_text(encoding="utf-8"))
     required = {
         "scenario", "draw", "validation_size", "status", "validation_seed",
+        "simulation_seed", "thinning_seed", "true_intercept", "true_slope",
+        "true_quadratic", "sigma_mpc", "detection_threshold_mpc",
         "validation_indices", "parent_size", "parent_frame_sha256",
         "catalogue_sha256", "gw_distance_sha256",
     }
@@ -65,6 +71,35 @@ def audit(artifact_dir: Path) -> dict:
         seed_values = group["validation_seed"].dropna().unique()
         if len(seed_values) != 1:
             raise AssertionError("missing validation seed")
+        first = group.iloc[0]
+        simulation = generate_synthetic_population(
+            seed=int(first["simulation_seed"]),
+            n_parent=int(first["parent_size"]),
+            n_detected=int(first["n_detected"]),
+            h0_true=float(first["h0_true"]),
+            sigma_mpc=float(first["sigma_mpc"]),
+            detection_threshold_mpc=float(first["detection_threshold_mpc"]),
+            z_min=0.01, z_max=0.40,
+        )
+        parent_z = simulation["parent_truth"]["redshift"].to_numpy(dtype=float)
+        distances = simulation["gw_events_observed"]["distance_mpc"].to_numpy(dtype=float)
+        midpoint, half_range = 0.205, 0.195
+        x_parent = (parent_z - midpoint) / half_range
+        p_inclusion = expit(
+            float(first["true_intercept"])
+            + float(first["true_slope"]) * x_parent
+            + float(first["true_quadratic"]) * (x_parent*x_parent - 1.0/3.0)
+        )
+        retained = np.random.default_rng(int(first["thinning_seed"])).random(len(parent_z)) < p_inclusion
+        observed_z = parent_z[retained]
+        hashes = {
+            "parent_frame_sha256": hashlib.sha256(np.ascontiguousarray(parent_z).view(np.uint8)).hexdigest(),
+            "catalogue_sha256": hashlib.sha256(np.ascontiguousarray(observed_z).view(np.uint8)).hexdigest(),
+            "gw_distance_sha256": hashlib.sha256(np.ascontiguousarray(distances).view(np.uint8)).hexdigest(),
+        }
+        for col, digest in hashes.items():
+            if str(first[col]) != digest:
+                raise AssertionError(f"independent regeneration does not match {col}")
         rng = np.random.default_rng(int(seed_values[0]))
         ordered = group.sort_values(["validation_size", "draw"])
         for row in ordered.itertuples(index=False):
@@ -81,6 +116,8 @@ def audit(artifact_dir: Path) -> dict:
             expected_indices = rng.choice(int(row.parent_size), size=size, replace=False)
             if not np.array_equal(indices, expected_indices):
                 raise AssertionError("validation sample does not replay from declared seed")
+            if int(row.n_validation_included) != int(np.sum(retained[indices])):
+                raise AssertionError("validation inclusion count does not match regenerated parent frame")
     return {
         "status": "STRUCTURAL_AUDIT_PASS",
         "n_attempted": attempted,
@@ -88,7 +125,7 @@ def audit(artifact_dir: Path) -> dict:
         "n_failed": failed,
         "n_scenarios": n_scenarios,
         "validation_sizes": sizes,
-        "scope": "SRSWOR bookkeeping, provenance consistency, and seed replay only; not estimator reconstruction",
+        "scope": "independent synthetic-input regeneration, SRSWOR bookkeeping, provenance, and seed replay; not estimator reconstruction",
     }
 
 
