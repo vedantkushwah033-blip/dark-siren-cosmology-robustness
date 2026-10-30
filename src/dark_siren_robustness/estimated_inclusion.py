@@ -243,6 +243,19 @@ def bootstrap_validation_inclusion_density(
         raise ValueError("original validation sample must contain both retention classes")
 
     grid = np.asarray(redshift_grid, dtype=float)
+    observed = np.asarray(observed_redshift, dtype=float)
+    if (
+        grid.ndim != 1 or grid.size < 21 or not np.all(np.isfinite(grid))
+        or np.any(np.diff(grid) <= 0) or grid[0] <= 0
+    ):
+        raise ValueError("redshift_grid must be finite, positive, and strictly increasing")
+    if (
+        observed.ndim != 1 or observed.size < 5 or not np.all(np.isfinite(observed))
+        or np.any((observed < grid[0]) | (observed > grid[-1]))
+    ):
+        raise ValueError("observed_redshift must be finite and inside redshift_grid bounds")
+    if np.any((validation_z < grid[0]) | (validation_z > grid[-1])):
+        raise ValueError("validation redshifts must lie inside redshift_grid bounds")
     rng = np.random.default_rng(int(seed))
     density_draws: list[NDArray[np.float64]] = []
     intercept_draws: list[float] = []
