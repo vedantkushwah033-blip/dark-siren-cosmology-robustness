@@ -24,6 +24,8 @@ def _studentized_interval_independent(
     n = sample.size
     fpc = 1.0 - n / population_size
     observed_se = float(np.sqrt(fpc * np.var(sample, ddof=1) / n))
+    if not np.isfinite(observed_se) or observed_se <= 0:
+        raise ValueError("observed sample must have positive finite variance")
     rng = np.random.default_rng(seed)
     t_values = []
     probabilities = np.full(n, 1.0 / n)
@@ -36,7 +38,7 @@ def _studentized_interval_independent(
         if np.isfinite(draw_se) and draw_se > 0:
             t_values.append((float(np.mean(draw)) - float(np.mean(pseudo))) / draw_se)
     if len(t_values) < 2 or observed_se <= 0 or not np.isfinite(observed_se):
-        raise ArithmeticError("insufficient valid studentized replicates")
+        raise ArithmeticError("studentized bootstrap did not yield a finite interval")
     qlo, qhi = np.quantile(np.asarray(t_values), [0.025, 0.975])
     estimate = float(np.mean(sample))
     return float(estimate - qhi * observed_se), float(estimate - qlo * observed_se)
@@ -82,10 +84,15 @@ def audit_artifact(output_dir: Path) -> dict[str, object]:
 
     grouped: dict[tuple[int, int, str], list[dict[str, object]]] = defaultdict(list)
     checked = 0
+    seen_attempts: set[tuple[int, int, int, str]] = set()
     with replicate_path.open(newline="", encoding="utf-8") as handle:
         for row in csv.DictReader(handle):
             s, n, repetition = int(row["scenario"]), int(row["sample_size"]), int(row["repetition"])
             method = row["method"]
+            attempt_key = (s, n, repetition, method)
+            if attempt_key in seen_attempts:
+                raise ValueError("duplicate replicate/method attempt")
+            seen_attempts.add(attempt_key)
             pop = populations[s]
             if int(row["population_size"]) != pop.size or row["frame_sha256"] != frame_hashes[s]:
                 raise ValueError("replicate finite-frame provenance mismatch")
@@ -161,6 +168,9 @@ def audit_artifact(output_dir: Path) -> dict[str, object]:
             raise ValueError("summary coverage mismatch")
         if not np.isclose(float(row["mean_interval_width"]), width, rtol=1e-11, atol=1e-12, equal_nan=True):
             raise ValueError("summary interval-width mismatch")
+        mcse = float(np.sqrt(coverage * (1.0 - coverage) / len(successes))) if successes else float("nan")
+        if not np.isclose(float(row["coverage_mcse_conditional_on_success"]), mcse, rtol=1e-11, atol=1e-12, equal_nan=True):
+            raise ValueError("summary coverage Monte Carlo SE mismatch")
 
     if checked != int(manifest["replicate_rows"]):
         raise ValueError("replicate row count mismatch")
