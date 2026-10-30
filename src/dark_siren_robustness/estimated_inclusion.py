@@ -186,3 +186,109 @@ def estimate_host_density_from_validation(
         "n_observed_catalogue": int(observed.size),
         "n_validation": int(model["n_validation"]),
     }
+
+
+
+def bootstrap_validation_inclusion_density(
+    redshift_grid: ArrayLike,
+    observed_redshift: ArrayLike,
+    validation_redshift: ArrayLike,
+    validation_included: ArrayLike,
+    *,
+    n_bootstrap: int = 200,
+    seed: int = 20261030,
+    merger_weight: ArrayLike | None = None,
+    bandwidth_factor: float | None = None,
+) -> dict[str, object]:
+    """Bootstrap validation-sample uncertainty in fitted inclusion and host density.
+
+    The observed catalogue is held fixed. Each draw resamples the paired
+    (validation redshift, retention indicator) records with replacement,
+    refits the logistic inclusion model, and rebuilds the weighted host
+    density. Thus the returned distribution captures finite-validation-sample
+    variability conditional on this catalogue, the assumed logistic model,
+    the declared validation sampling design, and the KDE bandwidth rule.
+
+    This is a frequentist nonparametric bootstrap diagnostic, not a Bayesian
+    posterior over the selection function and not a full uncertainty
+    propagation for a real GW analysis. Resamples with only one retention
+    class or otherwise invalid fits are recorded as failures, never silently
+    replaced. A fixed seed makes the resampling reproducible.
+    """
+    if (
+        isinstance(n_bootstrap, (bool, np.bool_))
+        or not isinstance(n_bootstrap, (int, np.integer))
+        or n_bootstrap < 2
+    ):
+        raise ValueError("n_bootstrap must be an integer of at least 2")
+    if (
+        isinstance(seed, (bool, np.bool_))
+        or not isinstance(seed, (int, np.integer))
+        or seed < 0
+    ):
+        raise ValueError("seed must be a nonnegative integer")
+    validation_z = np.asarray(validation_redshift, dtype=float)
+    validation_y = np.asarray(validation_included)
+    if (
+        validation_z.ndim != 1
+        or validation_z.size < 10
+        or not np.all(np.isfinite(validation_z))
+        or validation_y.shape != validation_z.shape
+        or validation_y.ndim != 1
+        or not np.all(np.isin(validation_y, [0, 1, False, True]))
+    ):
+        raise ValueError("validation records must be matching finite redshifts and binary outcomes")
+    validation_y = validation_y.astype(int)
+    if np.unique(validation_y).size != 2:
+        raise ValueError("original validation sample must contain both retention classes")
+
+    grid = np.asarray(redshift_grid, dtype=float)
+    rng = np.random.default_rng(int(seed))
+    density_draws: list[NDArray[np.float64]] = []
+    intercept_draws: list[float] = []
+    slope_draws: list[float] = []
+    boundary_flags: list[bool] = []
+    failure_reasons: list[str] = []
+
+    for _ in range(int(n_bootstrap)):
+        indices = rng.integers(0, validation_z.size, size=validation_z.size)
+        try:
+            result = estimate_host_density_from_validation(
+                grid,
+                observed_redshift,
+                validation_z[indices],
+                validation_y[indices],
+                merger_weight=merger_weight,
+                bandwidth_factor=bandwidth_factor,
+            )
+        except (ValueError, RuntimeError, ArithmeticError, FloatingPointError) as exc:
+            failure_reasons.append(f"{type(exc).__name__}: {exc}")
+            continue
+        model = result["model"]
+        density_draws.append(np.asarray(result["density"], dtype=float))
+        intercept_draws.append(float(model["intercept"]))
+        slope_draws.append(float(model["slope"]))
+        boundary_flags.append(bool(model["coefficient_bound_hit"]))
+
+    density_array = (
+        np.stack(density_draws, axis=0)
+        if density_draws
+        else np.empty((0, grid.size), dtype=float)
+    )
+    return {
+        "schema": "validation_inclusion_density_bootstrap_v1",
+        "seed": int(seed),
+        "n_attempted": int(n_bootstrap),
+        "n_successful": int(len(density_draws)),
+        "n_failed": int(len(failure_reasons)),
+        "success_fraction": float(len(density_draws) / n_bootstrap),
+        "density_draws": density_array,
+        "intercept_draws": np.asarray(intercept_draws, dtype=float),
+        "slope_draws": np.asarray(slope_draws, dtype=float),
+        "coefficient_boundary_limited_draws": np.asarray(boundary_flags, dtype=bool),
+        "failure_reasons": failure_reasons,
+        "uncertainty_scope": (
+            "conditional validation-sample bootstrap; observed catalogue fixed; "
+            "logistic selection family assumed; not Bayesian or full GW uncertainty"
+        ),
+    }
