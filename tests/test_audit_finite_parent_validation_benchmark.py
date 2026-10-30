@@ -24,6 +24,10 @@ def _artifact(tmp_path):
         "validation_sizes": [100, 200],
         "scenarios": 1,
         "draws_per_scenario_and_size": 2,
+        "h0_points": 41,
+        "z_points": 201,
+        "h0_grid_bounds": [50.0, 90.0],
+        "redshift_grid_bounds": [0.01, 0.40],
     }
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     return frame
