@@ -428,6 +428,9 @@ def bootstrap_validation_inclusion_density_design_aware(
 
     rng = np.random.default_rng(int(seed))
     density_draws: list[NDArray[np.float64]] = []
+    pseudo_population_density_draws: list[NDArray[np.float64]] = []
+    pseudo_population_intercepts: list[float] = []
+    pseudo_population_slopes: list[float] = []
     intercept_draws: list[float] = []
     slope_draws: list[float] = []
     boundary_flags: list[bool] = []
