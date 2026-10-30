@@ -160,7 +160,19 @@ def bootstrap_validation_h0_posterior(
                 sigma_mpc=float(sigma_mpc), detection_threshold_mpc=float(detection_threshold_mpc),
                 merger_weight=rate, bandwidth_factor=bandwidth_factor,
             )
-            success[b] = True
+            posterior_density = np.asarray(
+                json.loads(str(summary["posterior_density_grid_json"])), dtype=float
+            )
+            if (
+                posterior_density.shape != h0.shape
+                or not np.all(np.isfinite(posterior_density))
+                or np.any(posterior_density < 0)
+            ):
+                raise ArithmeticError("posterior density grid is malformed")
+            from scipy.integrate import trapezoid
+            if not np.isclose(trapezoid(posterior_density, h0), 1.0, rtol=1e-8, atol=1e-8):
+                raise ArithmeticError("posterior density grid is not normalized")
+            posterior_draws.append(posterior_density)
             attempt_means[b] = float(summary["posterior_mean"])
             reference_means[b] = reference_mean
             medians[b] = float(summary["posterior_median"])
@@ -169,12 +181,7 @@ def bootstrap_validation_h0_posterior(
             ess[b] = float(density_result["inverse_weight_effective_sample_size"])
             max_inverse[b] = float(density_result["inverse_weight_maximum"])
             boundary[b] = bool(density_result["model"]["coefficient_bound_hit"])
-            posterior_density = np.asarray(
-                json.loads(str(summary["posterior_density_grid_json"])), dtype=float
-            )
-            if posterior_density.shape != h0.shape or not np.all(np.isfinite(posterior_density)):
-                raise ArithmeticError("posterior density grid is malformed")
-            posterior_draws.append(posterior_density)
+            success[b] = True
         except (ValueError, RuntimeError, ArithmeticError, FloatingPointError) as exc:
             failures.append({
                 "bootstrap_index": int(b),
