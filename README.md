@@ -380,3 +380,7 @@ The [dataset-level likelihood grid and scope audit](docs/dataset_likelihood_grid
 A focused literature audit now reviews recent work on GP reconstruction of incomplete line-of-sight catalogues, spatial/magnitude-aware catalogue completion, empirical completeness testing, joint host-population inference, and large-scale-structure methods. See [the literature and novelty audit](docs/literature_and_novelty_audit_2026-10-30.md).
 
 The audit concludes that catalogue incompleteness, host weighting, and flexible reconstruction are not novel topics. The defensible scope of this repository is a controlled statistical benchmark of external parent-frame validation, estimated inverse-inclusion weighting, finite validation-sample sensitivity, positivity diagnostics, and selection-model misspecification. It does not establish a new astrophysical estimator or superiority to GP/LIGHT, variance-completion, CHIMERA, or gwcosmo methods.
+
+### Pilot manuscript note
+
+- **Linear finite-population bootstrap pilot manuscript:** [reproducible methods, audited pilot results, interpretation, and limitations](manuscript/linear_finite_population_bootstrap_pilot_note.md). This is an exploratory simulation note, not a confirmatory or submission-ready paper. Its audit qualification and v2 requirements are stated explicitly.
