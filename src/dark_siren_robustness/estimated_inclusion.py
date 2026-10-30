@@ -252,10 +252,21 @@ def bootstrap_validation_inclusion_density(
     if (
         observed.ndim != 1 or observed.size < 5 or not np.all(np.isfinite(observed))
         or np.any((observed < grid[0]) | (observed > grid[-1]))
+        or np.unique(observed).size < 3
     ):
-        raise ValueError("observed_redshift must be finite and inside redshift_grid bounds")
+        raise ValueError(
+            "observed_redshift must be finite, inside grid bounds, and contain >=3 distinct values"
+        )
     if np.any((validation_z < grid[0]) | (validation_z > grid[-1])):
         raise ValueError("validation redshifts must lie inside redshift_grid bounds")
+    if merger_weight is not None:
+        rate = np.asarray(merger_weight, dtype=float)
+        if rate.shape != grid.shape or not np.all(np.isfinite(rate)) or np.any(rate <= 0):
+            raise ValueError("merger_weight must be finite, positive, and match redshift_grid")
+    if bandwidth_factor is not None and (
+        not np.isfinite(bandwidth_factor) or bandwidth_factor <= 0
+    ):
+        raise ValueError("bandwidth_factor must be finite and positive")
     rng = np.random.default_rng(int(seed))
     density_draws: list[NDArray[np.float64]] = []
     intercept_draws: list[float] = []
