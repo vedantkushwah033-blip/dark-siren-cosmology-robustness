@@ -17,8 +17,8 @@ def design_aware_srswor_bootstrap_indices(
     observed_sample_size: int,
     population_size: int,
     bootstrap_sample_size: int | None = None,
-) -> tuple[NDArray[np.int64], NDArray[np.int64]]:
-    """Return (pseudo-population indices, SRSWOR sample indices).
+) -> tuple[NDArray[np.int64], NDArray[np.int64], NDArray[np.int64]]:
+    """Return (pseudo-population indices, mapped sample indices, selected positions).
 
     Both arrays index the original observed paired-record sample. The first
     array has length population_size and represents a pseudo-population
@@ -60,4 +60,4 @@ def design_aware_srswor_bootstrap_indices(
         raise RuntimeError("multinomial pseudo-population has incorrect size")
     positions = rng.choice(N, size=m, replace=False)
     bootstrap_sample = pseudo_population[positions]
-    return pseudo_population, np.asarray(bootstrap_sample, dtype=np.int64)
+    return (\n        pseudo_population,\n        np.asarray(bootstrap_sample, dtype=np.int64),\n        np.asarray(positions, dtype=np.int64),\n    )
