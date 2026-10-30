@@ -150,6 +150,14 @@ def run_estimated_inclusion_pilot(
             true_intercept + true_slope * standardized_parent
             + true_quadratic * (standardized_parent**2 - 1.0 / 3.0)
         )
+        if (
+            not np.all(np.isfinite(true_probability))
+            or np.any((true_probability <= 0.0) | (true_probability >= 1.0))
+        ):
+            raise ValueError(
+                "true inclusion probabilities numerically saturated at 0 or 1; "
+                "use less extreme true selection coefficients"
+            )
         catalogue_rng = np.random.default_rng(catalogue_seed)
         retained = catalogue_rng.random(n_parent) < true_probability
         observed_z = parent_z[retained]
