@@ -5,6 +5,7 @@ import pytest
 from scipy.integrate import trapezoid
 
 from dark_siren_robustness.posterior_validation_bootstrap import (
+    _failure_code,
     bootstrap_validation_h0_posterior,
 )
 from dark_siren_robustness.posterior_validation_bootstrap_audit import (
@@ -199,3 +200,17 @@ def test_posterior_bootstrap_auditor_checks_exact_failure_reason():
             tampered_failed_metric, z_grid, h0_grid, observed_z, validation_z,
             validation_y, distances, **audit_kwargs,
         )
+
+
+@pytest.mark.parametrize(
+    ("exception", "expected"),
+    [
+        (FloatingPointError("overflow"), "floating_point_failure"),
+        (ArithmeticError("bad arithmetic"), "arithmetic_failure"),
+        (ValueError("one class"), "invalid_validation_sample"),
+        (RuntimeError("optimizer"), "model_fit_failure"),
+        (LookupError("unexpected"), "unexpected_exception"),
+    ],
+)
+def test_posterior_bootstrap_failure_codes_are_stable(exception, expected):
+    assert _failure_code(exception) == expected
