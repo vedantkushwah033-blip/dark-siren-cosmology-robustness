@@ -34,7 +34,19 @@ def canonical_inner_attempt_record(result: dict[str, Any]) -> dict[str, object]:
         raise ValueError("inner attempt counts do not reconcile")
 
     success_mask = list(result["success_mask"])
-    failure_codes = [str(code) for code in result["failure_codes"]]
+    # Accept Python bool and NumPy bool scalars without importing NumPy into
+    # this lightweight serialization/validation module.
+    def is_boolean(value: object) -> bool:
+        return isinstance(value, bool) or (
+            type(value).__name__ == "bool_" and type(value).__module__.startswith("numpy")
+        )
+
+    if any(not is_boolean(value) for value in success_mask):
+        raise ValueError("success_mask entries must be boolean scalars")
+    raw_failure_codes = list(result["failure_codes"])
+    if any(not isinstance(code, str) for code in raw_failure_codes):
+        raise ValueError("failure_codes entries must be strings")
+    failure_codes = raw_failure_codes
     if len(success_mask) != attempted or len(failure_codes) != attempted:
         raise ValueError("inner per-attempt arrays differ from n_attempted")
 
