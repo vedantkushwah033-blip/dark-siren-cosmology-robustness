@@ -151,3 +151,12 @@ Wang, Z., Peng, L., & Kim, J. K. (2022). Bootstrap inference for the finite popu
 - Audit status: PASS for the outer artifact checks described above.
 - Artifact fingerprints and exact audit scope: `docs/audited_linear_finite_population_bootstrap_pilot_results_2026-10-31.md`.
 - Required follow-up: `docs/inner_bootstrap_attempt_audit_gap_and_v2_protocol_2026-10-31.md`.
+
+
+## 11. Subsequent v2 audit-engineering update (not a new result)
+
+After the v1 pilot described above, the benchmark runner and independent auditor were extended to a v2 artifact contract. For each studentized outer attempt, the runner now serializes the number of inner pseudo-population draws attempted, successful, and failed, together with a canonical sorted failure-code histogram. Methods without an inner bootstrap carry the explicit value `NA`; an outer studentized failure retains the inner accounting when the primitive returned a result.
+
+The auditor independently replays the multinomial pseudo-population counts and SRSWOR selections from the recorded deterministic seed, recomputes the replicate variance/standard-error success classification, and compares the reconstructed counts and failure histogram with the CSV fields. The benchmark test suite also includes checksum-refreshed tampering tests for altered inner counts and non-`NA` fields on non-studentized methods.
+
+This is an implementation and provenance improvement, not a scientific result. The v1 pilot artifact and numerical table above remain unchanged and must not be described as a v2 run. The v2 workflow associated with the latest code revision is still pending at the time of this manuscript update. No v2 artifact audit pass, confirmatory coverage estimate, or multi-frame result is claimed. The next release gate is a successful exact-head test workflow followed by generation and independent audit of a separately labelled v2 pilot artifact.
