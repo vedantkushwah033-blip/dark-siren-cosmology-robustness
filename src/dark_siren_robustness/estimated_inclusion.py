@@ -14,6 +14,8 @@ from numpy.typing import ArrayLike, NDArray
 from scipy.optimize import minimize
 from scipy.special import expit, log_expit
 
+from dark_siren_robustness.finite_parent_uncertainty import paired_bootstrap_indices
+
 
 def fit_logistic_inclusion_model(
     validation_redshift: ArrayLike,
@@ -280,7 +282,7 @@ def bootstrap_validation_inclusion_density(
     success_mask = np.zeros(int(n_bootstrap), dtype=bool)
 
     for bootstrap_index in range(int(n_bootstrap)):
-        indices = rng.integers(0, validation_z.size, size=validation_z.size)
+        indices = paired_bootstrap_indices(rng, validation_z.size)
         resample_indices.append(indices.astype(np.int64, copy=True))
         try:
             result = estimate_host_density_from_validation(
