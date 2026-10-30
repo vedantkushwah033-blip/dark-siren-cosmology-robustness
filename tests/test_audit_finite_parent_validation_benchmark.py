@@ -162,3 +162,19 @@ def test_finite_parent_auditor_rejects_tampered_finite_frame_target(tmp_path):
     frame.to_csv(tmp_path / "records.csv", index=False)
     with pytest.raises(AssertionError, match="finite-parent target posterior mean"):
         audit(tmp_path)
+
+
+
+def test_failure_reason_audit_requires_exact_replayed_exception():
+    from scripts.audit_finite_parent_validation_benchmark import (
+        _assert_failure_reason_matches,
+    )
+
+    error = RuntimeError("independent weighted variance invalid")
+    _assert_failure_reason_matches(
+        "RuntimeError: independent weighted variance invalid", error
+    )
+    with pytest.raises(AssertionError, match="does not match independently reconstructed"):
+        _assert_failure_reason_matches("RuntimeError: unrelated failure", error)
+    with pytest.raises(AssertionError, match="does not match independently reconstructed"):
+        _assert_failure_reason_matches("ValueError: independent weighted variance invalid", error)
