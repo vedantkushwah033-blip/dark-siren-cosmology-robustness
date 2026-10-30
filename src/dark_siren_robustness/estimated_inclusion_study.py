@@ -224,6 +224,7 @@ def run_estimated_inclusion_pilot(
                 audit_validation_redshift = np.array([], dtype=float)
                 audit_validation_included = np.array([], dtype=int)
                 fitted_inclusion_model = None
+                scoring_audit_payload: dict[str, object] | None = None
                 weight_ess = float("nan")
                 max_inverse_weight = float("nan")
                 if arm == "catalogue_only":
@@ -274,6 +275,14 @@ def run_estimated_inclusion_pilot(
                     probability_mae = float(np.mean(np.abs(
                         estimated_parent_probability - true_probability
                     )))
+                    # Keep scoring truth in a distinct, explicitly scoring-only
+                    # payload. It is never passed to the estimator or posterior.
+                    scoring_audit_payload = {
+                        "schema": "inclusion_probability_scoring_only_v1",
+                        "parent_redshift": parent_z.tolist(),
+                        "true_inclusion_probability": true_probability.tolist(),
+                        "estimated_inclusion_probability": estimated_parent_probability.tolist(),
+                    }
                     # Freeze observable-only warning features before constructing
                     # the GW likelihood or inspecting any posterior outcome.
                     preposterior_features = build_preposterior_diagnostics(
@@ -336,6 +345,11 @@ def run_estimated_inclusion_pilot(
                         "sigma_mpc": float(sigma_mpc),
                         "detection_threshold_mpc": float(detection_threshold_mpc),
                     }, separators=(",", ":")),
+                    "scoring_audit_payload_json": (
+                        "" if scoring_audit_payload is None else json.dumps(
+                            scoring_audit_payload, separators=(",", ":")
+                        )
+                    ),
                     "weight_ess": weight_ess,
                     "weight_ess_fraction": weight_ess / observed_z.size,
                     "max_inverse_weight": max_inverse_weight,
