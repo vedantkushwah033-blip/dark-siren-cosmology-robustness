@@ -153,6 +153,7 @@ def audit_posterior_validation_bootstrap(
         raise AssertionError("posterior-density draw matrix has incorrect shape")
     success_cursor = 0
     failure_indices = []
+    independently_replayed_failures = {}
     for b in range(attempted):
         if method == "paired_bootstrap":
             expected = rng.integers(0, vz.size, size=vz.size, dtype=np.int64)
@@ -180,9 +181,13 @@ def audit_posterior_validation_bootstrap(
                 )
                 reference = pseudo_summary["posterior_mean"]
                 reference_valid = True
-            except (ValueError, RuntimeError, ArithmeticError, FloatingPointError):
+            except (ValueError, RuntimeError, ArithmeticError, FloatingPointError) as exc:
                 reference = float("nan")
                 reference_valid = False
+                independently_replayed_failures[b] = {
+                    "exception_type": type(exc).__name__,
+                    "reason": f"{type(exc).__name__}: {exc}",
+                }
 
         if method == "paired_bootstrap" or reference_valid:
             try:
@@ -191,11 +196,15 @@ def audit_posterior_validation_bootstrap(
                     detection_threshold_mpc, rate, bandwidth_factor,
                 )
                 independently_successful = True
-            except (ValueError, RuntimeError, ArithmeticError, FloatingPointError):
+            except (ValueError, RuntimeError, ArithmeticError, FloatingPointError) as exc:
                 independently_successful = False
                 posterior = None
                 summary = {}
                 diagnostics = {}
+                independently_replayed_failures[b] = {
+                    "exception_type": type(exc).__name__,
+                    "reason": f"{type(exc).__name__}: {exc}",
+                }
         else:
             independently_successful = False
             posterior = None
@@ -228,6 +237,15 @@ def audit_posterior_validation_bootstrap(
     records = result.get("failure_records", [])
     if [int(row["bootstrap_index"]) for row in records] != failure_indices:
         raise AssertionError("failure records do not exactly match failed attempt indices")
+    for row in records:
+        index = int(row["bootstrap_index"])
+        if index not in independently_replayed_failures:
+            raise AssertionError(f"failed attempt {index} has no independently reconstructed exception")
+        rebuilt = independently_replayed_failures[index]
+        if str(row.get("exception_type", "")) != rebuilt["exception_type"]:
+            raise AssertionError(f"failure exception class mismatch at attempt {index}")
+        if str(row.get("reason", "")) != rebuilt["reason"]:
+            raise AssertionError(f"failure reason mismatch at attempt {index}")
     if int(result["n_attempted"]) != int(result["n_successful"]) + len(records):
         raise AssertionError("failure records do not reconcile with attempt counts")
     expected_fpc = float(np.sqrt(1.0 - vz.size / parent_population_size))
