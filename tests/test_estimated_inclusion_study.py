@@ -66,3 +66,37 @@ def test_inclusion_probability_mae_is_scored_on_full_parent_population(monkeypat
     assert not estimated_successes.empty
     assert scored_sizes == [1000]
     assert estimated_successes["inclusion_probability_mae"].notna().all()
+
+
+def test_quadratic_selection_stress_is_recorded_and_reproducible():
+    import pytest
+
+    kwargs = dict(
+        n_replicates=2,
+        n_parent=1200,
+        n_detected=6,
+        validation_sizes=(150,),
+        seed=20261044,
+        h0_points=41,
+        z_points=201,
+        true_quadratic=1.8,
+    )
+    first, summary = run_estimated_inclusion_pilot(**kwargs)
+    second, _ = run_estimated_inclusion_pilot(**kwargs)
+    assert summary["true_inclusion_model"]["family"] == "quadratic_logistic"
+    assert summary["true_inclusion_model"]["quadratic"] == pytest.approx(1.8)
+    assert first[["replicate", "arm", "status"]].equals(
+        second[["replicate", "arm", "status"]]
+    )
+    assert set(first["arm"]) == {"catalogue_only", "oracle", "estimated_150"}
+
+
+def test_quadratic_selection_coefficient_must_be_finite():
+    import pytest
+
+    with pytest.raises(ValueError, match="coefficients must be finite"):
+        run_estimated_inclusion_pilot(
+            n_replicates=1, n_parent=1000, n_detected=5,
+            validation_sizes=(100,), true_quadratic=float("nan"),
+            h0_points=31, z_points=101,
+        )
