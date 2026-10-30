@@ -373,3 +373,10 @@ These audits are included in PR #7, which is open and ready for independent revi
 ### Dataset-level likelihood scope audit
 
 The [dataset-level likelihood grid and scope audit](docs/dataset_likelihood_grid_and_scope_audit_2026-10-28.md) reviews the new independent-event composition prototype. It highlights that the code does not require the numerical grid to include the declared prior boundaries, and that shared completeness/nuisance parameters and selection conditioning remain outside its scope. These are source-review findings and recommendations, not evidence of a runtime failure. Resolve the prior-grid convention and add convergence tests before using this prototype for confirmatory calibration.
+
+
+### Current literature and novelty boundary (30 October 2026)
+
+A focused literature audit now reviews recent work on GP reconstruction of incomplete line-of-sight catalogues, spatial/magnitude-aware catalogue completion, empirical completeness testing, joint host-population inference, and large-scale-structure methods. See [the literature and novelty audit](docs/literature_and_novelty_audit_2026-10-30.md).
+
+The audit concludes that catalogue incompleteness, host weighting, and flexible reconstruction are not novel topics. The defensible scope of this repository is a controlled statistical benchmark of external parent-frame validation, estimated inverse-inclusion weighting, finite validation-sample sensitivity, positivity diagnostics, and selection-model misspecification. It does not establish a new astrophysical estimator or superiority to GP/LIGHT, variance-completion, CHIMERA, or gwcosmo methods.
