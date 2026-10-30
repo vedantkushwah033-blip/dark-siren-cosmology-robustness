@@ -87,7 +87,7 @@ def test_independent_nested_artifact_auditor_rejects_corrupt_pseudopopulation_ma
     path = nested_artifact / "attempt_audit.jsonl"
     frame = pd.read_json(path, lines=True)
     row = frame.index[(frame["method"] == "design_aware_srswor")][0]
-    frame.at[row, "bootstrap_sample_indices"][0] = (
+    frame.at[row, "bootstrap_sample_indices"][0][0] = (
         int(frame.at[row, "bootstrap_sample_indices"][0][0]) + 1
     ) % 100
     frame.to_json(path, orient="records", lines=True)
@@ -115,10 +115,20 @@ def test_independent_nested_replay_rejects_tampered_parent_fingerprint(nested_ar
 def test_independent_nested_replay_rejects_tampered_bootstrap_posterior_mean(nested_artifact):
     path = nested_artifact / "attempt_audit.jsonl"
     frame = pd.read_json(path, lines=True)
-    row = frame.index[
-        (frame["method"] == "paired_bootstrap")
-        & (frame["bootstrap_status"] == "success")
-    ][0]
+    records = pd.read_csv(nested_artifact / "calibration_records.csv")
+    successful = records.loc[
+        records["method"].eq("paired_bootstrap")
+        & records["bootstrap_status"].eq("success")
+    ]
+    assert not successful.empty
+    key = successful.iloc[0][["scenario", "validation_size", "outer_draw", "method"]]
+    mask = (
+        frame["scenario"].eq(key["scenario"])
+        & frame["validation_size"].eq(key["validation_size"])
+        & frame["outer_draw"].eq(key["outer_draw"])
+        & frame["method"].eq(key["method"])
+    )
+    row = frame.index[mask][0]
     frame.at[row, "bootstrap_attempt_posterior_mean"][0] += 0.5
     frame.to_json(path, orient="records", lines=True)
     with pytest.raises(AssertionError, match="posterior mean"):
