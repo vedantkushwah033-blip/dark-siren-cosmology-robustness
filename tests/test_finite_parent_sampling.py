@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from dark_siren_robustness.finite_parent_sampling import run_finite_parent_benchmark
+from dark_siren_robustness.finite_parent_sampling import (\n    nested_srswor_sample_indices,\n    run_finite_parent_benchmark,\n)
 
 
 def test_finite_parent_benchmark_is_reproducible_and_accounts_for_attempts():
@@ -76,3 +76,39 @@ def test_finite_parent_benchmark_rejects_malformed_experiment_design(override, e
     kwargs.update(override)
     with pytest.raises(error):
         run_finite_parent_benchmark(**kwargs)
+
+
+
+def test_nested_srswor_primitive_is_reproducible_unique_and_paired():
+    first = nested_srswor_sample_indices(
+        np.random.default_rng(20261030), 1000, (100, 300, 700)
+    )
+    second = nested_srswor_sample_indices(
+        np.random.default_rng(20261030), 1000, (100, 300, 700)
+    )
+    assert tuple(first) == (100, 300, 700)
+    for size in first:
+        np.testing.assert_array_equal(first[size], second[size])
+        assert first[size].shape == (size,)
+        assert np.unique(first[size]).size == size
+        assert np.all((first[size] >= 0) & (first[size] < 1000))
+    np.testing.assert_array_equal(first[100], first[300][:100])
+    np.testing.assert_array_equal(first[300], first[700][:300])
+
+
+@pytest.mark.parametrize(
+    "parent_size,sizes,error",
+    [
+        (0, (10,), ValueError),
+        (20, (), ValueError),
+        (20, (10, 10), ValueError),
+        (20, (21,), ValueError),
+        (20, (10.5,), TypeError),
+        (20, (True,), TypeError),
+    ],
+)
+def test_nested_srswor_primitive_rejects_invalid_design(parent_size, sizes, error):
+    with pytest.raises(error):
+        nested_srswor_sample_indices(
+            np.random.default_rng(3), parent_size, sizes
+        )
