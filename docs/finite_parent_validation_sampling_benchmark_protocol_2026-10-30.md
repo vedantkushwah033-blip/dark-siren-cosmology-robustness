@@ -14,7 +14,7 @@ For each independently generated parent-frame scenario:
 
 1. Generate and freeze a finite parent frame with redshift and binary catalogue-retention indicator. Preserve the full parent frame in the *simulation truth* artifact only.
 2. Generate and freeze the observed incomplete catalogue and GW-distance data once. These must not change across validation draws within that scenario.
-3. Draw validation records by exact SRSWOR from the parent frame at prespecified sizes (initial development: 100, 300, 1,000; confirmatory sizes must be justified by parent size and class counts). Do not resample with replacement in the design reference.
+3. Draw one independent random permutation of the parent-frame indices per validation replicate. Use prefixes of that permutation for all prespecified sample sizes. This creates nested, paired SRSWOR samples across sizes while preserving the correct SRSWOR marginal design at each size. Initial development sizes are 100 and 300; confirmatory sizes must be justified by parent size and class counts. Do not resample with replacement in the design reference.
 4. For each validation draw, fit the same prespecified bounded logistic inclusion model, compute inverse-inclusion weights on the fixed observed catalogue, construct the same reflected weighted KDE, and propagate the density through the same fixed toy likelihood.
 5. Record every attempted draw, including fit failures, one-class samples, boundary-limited fits, extreme weights, and numerical failures. Never discard failures from denominators.
 6. Separately, for each validation draw, run the ordinary paired-record bootstrap with a prespecified number of replicates and seed. The bootstrap is nested within a design draw and is an uncertainty estimator, not another independent parent-frame sample.
@@ -42,7 +42,7 @@ The bootstrap's interval for the distribution of posterior means must not be cal
 
 ## Monte Carlo precision and staged execution
 
-- **Stage 0 (unit tests):** exact SRSWOR uniqueness and range; deterministic seed replay; no parent-truth leakage into inference inputs; fixed catalogue/GW data hashes across draws; explicit failure accounting.
+- **Stage 0 (unit tests):** exact SRSWOR uniqueness and range; deterministic nested-permutation replay; subset relation across sample sizes; no parent-truth leakage into inference inputs; fixed catalogue/GW data hashes across draws; explicit failure accounting.
 - **Stage 1 (smoke):** at least 20 parent scenarios × 20 validation draws per scenario for pipeline and artifact validation only. No scientific claims.
 - **Stage 2 (pilot):** at least 100 parent scenarios × 100 validation draws per scenario, profiling runtime and failure rates. Revise the confirmatory design only before examining confirmatory outcome contrasts.
 - **Stage 3 (confirmatory):** choose the number of parent scenarios and draws by a Monte Carlo precision calculation for coverage and paired contrasts; target Wilson half-width no larger than 0.02 for key coverage estimates where computationally feasible. Report actual intervals and failures, not only nominal target. Freeze seeds, code commit, scenario grid, outcomes, and analysis before execution.
@@ -64,7 +64,7 @@ Persist:
 - all fitted coefficients, convergence/boundary status, probabilities, weights, ESS, density draws, posterior arrays, and failure reasons;
 - raw scenario-level records and machine-readable summaries.
 
-The auditor must independently regenerate SRSWOR index sets from declared seeds, verify uniqueness and exact replay, verify no parent-truth fields appear in inference payloads, reconstruct selected model/density/posterior quantities independently, recompute all aggregate summaries from raw records, and test tamper detection. A PASS means artifact integrity and numerical reconstruction under the stated implementation; it is not external scientific validation.
+The auditor must independently regenerate parent/GW inputs and catalogue thinning from declared seeds, regenerate nested SRSWOR index sets from declared seeds, verify uniqueness, exact replay and cross-size subset relations, verify no parent-truth fields appear in inference payloads, reconstruct selected model/density/posterior quantities independently, recompute all aggregate summaries from raw records, and test tamper detection. The current first-stage auditor covers input regeneration, thinning, sample-index replay, provenance hashes, and validation class counts; it does not yet reconstruct KDE/posterior outputs or independently recompute the full summary. A PASS means artifact integrity and numerical reconstruction under the stated implementation; it is not external scientific validation.
 
 ## Decision rules and interpretation
 
