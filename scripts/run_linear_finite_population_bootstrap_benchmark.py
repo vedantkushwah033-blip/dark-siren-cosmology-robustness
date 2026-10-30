@@ -59,6 +59,7 @@ def run_benchmark(
     scenario_seeds = root.spawn(scenarios)
     rows: list[dict[str, object]] = []
     replicate_rows: list[dict[str, object]] = []
+    frame_rows: list[dict[str, object]] = []
 
     for s, child in enumerate(scenario_seeds):
         kind = kinds[s % len(kinds)]
@@ -66,6 +67,7 @@ def run_benchmark(
         population = _population(rng, kind, population_size)
         target = float(np.mean(population))
         frame_hash = _sha256_array(population)
+        frame_rows.extend({"scenario": s, "unit": i, "value": float(value), "frame_sha256": frame_hash} for i, value in enumerate(population))
         sample_seeds = child.spawn(repetitions * len(sample_sizes))
         seed_index = 0
         for n in sample_sizes:
@@ -77,8 +79,9 @@ def run_benchmark(
             method_widths = {key: [] for key in method_stats}
             method_failures = {key: 0 for key in method_stats}
             for r in range(repetitions):
-                srng = np.random.default_rng(sample_seeds[seed_index])
+                sample_seed = int(sample_seeds[seed_index].generate_state(1)[0])
                 seed_index += 1
+                srng = np.random.default_rng(sample_seed)
                 indices = srng.choice(population_size, size=n, replace=False)
                 sample = population[indices]
                 estimate = float(np.mean(sample))
@@ -90,12 +93,11 @@ def run_benchmark(
                 wald = (estimate - z * design_se, estimate + z * design_se)
                 method_stats["wald_srswor"].append(wald[0] <= target <= wald[1])
                 method_widths["wald_srswor"].append(wald[1] - wald[0])
-                replicate_rows.append({"scenario": s, "population_kind": kind, "population_size": population_size, "sample_size": n, "repetition": r, "method": "wald_srswor", "target": target, "estimate": estimate, "interval_lower": wald[0], "interval_upper": wald[1], "covered": int(wald[0] <= target <= wald[1]), "failure_code": "", "sample_indices": json.dumps(indices.tolist()), "frame_sha256": frame_hash})
+                replicate_rows.append({"scenario": s, "population_kind": kind, "population_size": population_size, "sample_size": n, "repetition": r, "method": "wald_srswor", "target": target, "estimate": estimate, "interval_lower": wald[0], "interval_upper": wald[1], "covered": int(wald[0] <= target <= wald[1]), "failure_code": "", "sample_indices": json.dumps(indices.tolist()), "sample_seed": sample_seed, "ordinary_bootstrap_seed": ordinary_bootstrap_seed, "studentized_bootstrap_seed": studentized_bootstrap_seed, "frame_sha256": frame_hash})
 
                 # Ordinary with-replacement percentile bootstrap: diagnostic comparator.
-                brng = np.random.default_rng(np.random.SeedSequence(
-                    [seed, s, n, r, 41031]
-                ))
+                ordinary_bootstrap_seed = int(np.random.SeedSequence([seed, s, n, r, 41031]).generate_state(1)[0])
+                brng = np.random.default_rng(ordinary_bootstrap_seed)
                 draws = brng.integers(0, n, size=(bootstrap_replicates, n))
                 means = np.mean(sample[draws], axis=1)
                 lo, hi = np.quantile(means, [0.025, 0.975])
@@ -106,11 +108,12 @@ def run_benchmark(
                 replicate_rows.append({"scenario": s, "population_kind": kind, "population_size": population_size, "sample_size": n, "repetition": r, "method": "ordinary_percentile_bootstrap", "target": target, "estimate": estimate, "interval_lower": float(lo), "interval_upper": float(hi), "covered": int(lo <= target <= hi), "failure_code": "", "sample_indices": json.dumps(indices.tolist()), "frame_sha256": frame_hash})
 
                 # Studentized pseudo-population bootstrap, with deterministic per-draw seed.
+                studentized_bootstrap_seed = int(np.random.SeedSequence([seed, s, n, r, 41032]).generate_state(1)[0])
                 try:
                     result = studentized_pseudopopulation_srswor_bootstrap(
                         sample, population_size,
                         n_bootstrap=bootstrap_replicates,
-                        seed=int(np.random.SeedSequence([seed, s, n, r, 41032]).generate_state(1)[0]),
+                        seed=studentized_bootstrap_seed,
                     )
                     interval = result["interval"]
                     if result["status"] != "ok" or not np.all(np.isfinite(interval)):
@@ -174,6 +177,11 @@ def main() -> None:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
         writer.writeheader()
         writer.writerows(rows)
+    frame_path = args.output_dir / "finite_population_frames.csv"
+    with frame_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(frame_rows[0]))
+        writer.writeheader()
+        writer.writerows(frame_rows)
     replicate_path = args.output_dir / "linear_finite_population_bootstrap_replicates.csv"
     with replicate_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(replicate_rows[0]))
@@ -193,6 +201,8 @@ def main() -> None:
         "interpretation": "Coverage is conditional on successful interval construction; failures are reported separately. Scenarios are distinct fixed finite frames. No result validates a nonlinear posterior functional.",
         "summary_csv_sha256": hashlib.sha256(csv_path.read_bytes()).hexdigest(),
         "replicate_csv_sha256": hashlib.sha256(replicate_path.read_bytes()).hexdigest(),
+        "frame_csv_sha256": hashlib.sha256(frame_path.read_bytes()).hexdigest(),
+        "frame_rows": len(frame_rows),
         "replicate_rows": len(replicate_rows),
     }
     (args.output_dir / "manifest.json").write_text(
