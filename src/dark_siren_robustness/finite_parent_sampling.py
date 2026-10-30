@@ -89,6 +89,7 @@ def run_finite_parent_benchmark(
                     rows.append({"scenario": scenario, "draw": draw,
                                  "validation_size": size, "status": "failed",
                                  "failure_reason": "catalogue_minimum_size_gate",
+                                 "validation_seed": validation_seed,
                                  "parent_frame_sha256": parent_hash,
                                  "catalogue_sha256": catalogue_hash,
                                  "gw_distance_sha256": gw_hash,
