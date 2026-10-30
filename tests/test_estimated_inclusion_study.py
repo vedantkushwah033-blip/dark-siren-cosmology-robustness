@@ -241,6 +241,10 @@ def test_validation_bootstrap_propagates_into_fixed_toy_h0_posterior():
     assert result["n_successful"] >= 2
     assert result["posterior_mean_draws"].shape == (result["n_successful"],)
     assert result["posterior_median_draws"].shape == (result["n_successful"],)
+    assert result["inverse_weight_ess_draws"].shape == (result["n_successful"],)
+    assert result["inverse_weight_maximum_draws"].shape == (result["n_successful"],)
+    assert result["inverse_weight_p99_draws"].shape == (result["n_successful"],)
+    assert np.all(result["inverse_weight_ess_draws"] > 0)
     assert result["posterior_ci68_low_draws"].shape == (result["n_successful"],)
     assert result["posterior_ci68_high_draws"].shape == (result["n_successful"],)
     assert np.all(
