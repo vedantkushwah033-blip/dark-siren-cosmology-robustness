@@ -61,7 +61,8 @@ def main() -> None:
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     array_names = (
-        "density_draws", "intercept_draws", "slope_draws",
+        "density_draws", "resample_indices", "success_mask",
+        "intercept_draws", "slope_draws",
         "coefficient_boundary_limited_draws", "inverse_weight_ess_draws",
         "inverse_weight_maximum_draws", "inverse_weight_p99_draws",
         "posterior_mean_draws", "posterior_median_draws",

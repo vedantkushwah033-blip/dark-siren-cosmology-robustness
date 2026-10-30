@@ -8,7 +8,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.integrate import cumulative_trapezoid, trapezoid
-from scipy.special import logsumexp
+from scipy.optimize import minimize
+from scipy.special import expit, log_expit, logsumexp
 from scipy.stats import norm
 
 C_KM_S = 299_792.458
@@ -51,6 +52,59 @@ def _posterior_from_density(
     low, median, high = (float(np.interp(p, cdf, h0)) for p in (0.16, 0.50, 0.84))
     mean = float(trapezoid(h0 * posterior, h0))
     return mean, median, low, high
+
+
+def _independent_refit_density(
+    grid: np.ndarray, observed: np.ndarray, validation_z: np.ndarray,
+    validation_y: np.ndarray, merger_rate: np.ndarray,
+    bandwidth_factor: float | None,
+) -> tuple[np.ndarray, float, float, float, float, float, bool]:
+    """Reconstruct the bounded-logit fit and reflected weighted KDE independently."""
+    midpoint = 0.5 * (float(grid[0]) + float(grid[-1]))
+    half_range = 0.5 * (float(grid[-1]) - float(grid[0]))
+    x = (validation_z - midpoint) / half_range
+    y = validation_y.astype(float)
+
+    def objective(theta: np.ndarray) -> float:
+        eta = theta[0] + theta[1] * x
+        return float(-np.sum(y * log_expit(eta) + (1.0 - y) * log_expit(-eta)))
+
+    fit = minimize(
+        objective, np.zeros(2), method="L-BFGS-B",
+        bounds=((-25.0, 25.0), (-50.0, 50.0)),
+        options={"maxiter": 2000, "ftol": 1e-12, "gtol": 1e-8},
+    )
+    if not fit.success or not np.all(np.isfinite(fit.x)):
+        raise RuntimeError("independent logistic fit failed")
+    intercept, slope = (float(v) for v in fit.x)
+    probability = expit(intercept + slope * ((observed - midpoint) / half_range))
+    inverse = 1.0 / probability
+    scaled = inverse / np.max(inverse)
+    ess = float(np.sum(scaled) ** 2 / np.sum(scaled ** 2))
+    maximum = float(np.max(inverse))
+    p99 = float(np.quantile(inverse, 0.99))
+
+    weighted_mean = float(np.average(observed, weights=scaled))
+    weighted_variance = float(np.average((observed - weighted_mean) ** 2, weights=scaled))
+    if not np.isfinite(weighted_variance) or weighted_variance <= 0:
+        raise ArithmeticError("independent weighted variance is invalid")
+    factor = ess ** (-0.2) if bandwidth_factor is None else float(bandwidth_factor)
+    bandwidth = factor * np.sqrt(weighted_variance)
+    if not np.isfinite(bandwidth) or bandwidth <= 0:
+        raise ArithmeticError("independent KDE bandwidth is invalid")
+    reflected = np.concatenate((observed, 2.0 * grid[0] - observed, 2.0 * grid[-1] - observed))
+    weights = np.tile((scaled / np.sum(scaled)) / 3.0, 3)
+    kernel = np.exp(
+        -0.5 * ((grid[:, None] - reflected[None, :]) / bandwidth) ** 2
+    ) @ weights
+    galaxy_density = kernel / (np.sqrt(2.0 * np.pi) * bandwidth)
+    raw = galaxy_density * merger_rate
+    density = raw / trapezoid(raw, grid)
+    boundary = bool(
+        np.isclose(abs(intercept), 25.0, rtol=0.0, atol=1e-5)
+        or np.isclose(abs(slope), 50.0, rtol=0.0, atol=1e-5)
+    )
+    return density, intercept, slope, ess, maximum, p99, boundary
 
 
 def _assert_close(actual: np.ndarray, expected: np.ndarray, label: str) -> None:
@@ -96,7 +150,8 @@ def main() -> None:
     with np.load(args.artifact_dir / "bootstrap_draws.npz", allow_pickle=False) as data:
         arrays = {name: np.asarray(data[name]) for name in data.files}
     required = {
-        "density_draws", "intercept_draws", "slope_draws",
+        "density_draws", "resample_indices", "success_mask",
+        "intercept_draws", "slope_draws",
         "coefficient_boundary_limited_draws", "inverse_weight_ess_draws",
         "inverse_weight_maximum_draws", "inverse_weight_p99_draws",
         "posterior_mean_draws", "posterior_median_draws",
@@ -117,8 +172,54 @@ def main() -> None:
     z = np.asarray(payload["redshift_grid"], dtype=float)
     h0 = np.asarray(payload["h0_grid"], dtype=float)
     density_draws = arrays["density_draws"]
+    resample_indices = arrays["resample_indices"]
+    success_mask = arrays["success_mask"]
+    validation_z = np.asarray(payload["validation_redshift"], dtype=float)
+    validation_y = np.asarray(payload["validation_included"], dtype=int)
+    merger_rate = np.asarray(payload["merger_weight_grid"], dtype=float)
+    if resample_indices.shape != (n_attempted, validation_z.size):
+        raise AssertionError("resample-index matrix has incorrect dimensions")
+    if success_mask.shape != (n_attempted,) or int(np.sum(success_mask)) != n_successful:
+        raise AssertionError("bootstrap success mask does not reconcile with counts")
+    if np.any((resample_indices < 0) | (resample_indices >= validation_z.size)):
+        raise AssertionError("bootstrap resample index lies outside validation records")
     if density_draws.shape != (n_successful, z.size):
         raise AssertionError("density draw dimensions disagree with declared success count")
+    # Refit every attempted resample with a separate implementation. Failed
+    # resamples must align exactly with the persisted success mask.
+    reconstructed_density = []
+    reconstructed_scalars = []
+    bandwidth_factor = payload.get("bandwidth_factor")
+    for attempt, indices in enumerate(resample_indices):
+        try:
+            rebuilt = _independent_refit_density(
+                z, np.asarray(payload["catalogue_redshift"], dtype=float),
+                validation_z[indices], validation_y[indices], merger_rate,
+                bandwidth_factor,
+            )
+            if not success_mask[attempt]:
+                raise AssertionError("stored failure mask marks a reproducibly successful refit as failed")
+            reconstructed_density.append(rebuilt[0])
+            reconstructed_scalars.append(rebuilt[1:])
+        except (ValueError, RuntimeError, ArithmeticError, FloatingPointError):
+            if success_mask[attempt]:
+                raise AssertionError("stored success mask marks an independently failed refit as successful")
+    if len(reconstructed_density) != n_successful:
+        raise AssertionError("independent refit count disagrees with successful draw count")
+    if n_successful:
+        _assert_close(density_draws, np.stack(reconstructed_density), "bootstrap host densities")
+        scalars = np.asarray(reconstructed_scalars, dtype=float)
+        for name, column in (
+            ("intercept_draws", 0), ("slope_draws", 1),
+            ("inverse_weight_ess_draws", 2), ("inverse_weight_maximum_draws", 3),
+            ("inverse_weight_p99_draws", 4),
+        ):
+            _assert_close(arrays[name], scalars[:, column], name)
+        if not np.array_equal(
+            arrays["coefficient_boundary_limited_draws"].astype(bool),
+            scalars[:, 5].astype(bool),
+        ):
+            raise AssertionError("coefficient boundary flags do not match independent refits")
     if not np.all(np.isfinite(density_draws)) or np.any(density_draws < 0):
         raise AssertionError("density draws contain invalid values")
     if n_successful and not np.allclose(
@@ -181,7 +282,7 @@ def main() -> None:
         "n_successful": n_successful,
         "n_failed": n_failed,
         "posterior_draws_independently_reconstructed": n_successful,
-        "scope": "posterior propagation audit only; bootstrap refit generation is not independently rerun",
+        "scope": "independent validation-resample refit, weighted-KDE, and posterior-propagation reconstruction",
     }, indent=2))
 
 

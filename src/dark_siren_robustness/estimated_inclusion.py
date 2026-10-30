@@ -276,9 +276,12 @@ def bootstrap_validation_inclusion_density(
     max_weight_draws: list[float] = []
     p99_weight_draws: list[float] = []
     failure_reasons: list[str] = []
+    resample_indices: list[NDArray[np.int64]] = []
+    success_mask = np.zeros(int(n_bootstrap), dtype=bool)
 
-    for _ in range(int(n_bootstrap)):
+    for bootstrap_index in range(int(n_bootstrap)):
         indices = rng.integers(0, validation_z.size, size=validation_z.size)
+        resample_indices.append(indices.astype(np.int64, copy=True))
         try:
             result = estimate_host_density_from_validation(
                 grid,
@@ -291,6 +294,7 @@ def bootstrap_validation_inclusion_density(
         except (ValueError, RuntimeError, ArithmeticError, FloatingPointError) as exc:
             failure_reasons.append(f"{type(exc).__name__}: {exc}")
             continue
+        success_mask[bootstrap_index] = True
         model = result["model"]
         density_draws.append(np.asarray(result["density"], dtype=float))
         intercept_draws.append(float(model["intercept"]))
@@ -313,6 +317,8 @@ def bootstrap_validation_inclusion_density(
         "n_failed": int(len(failure_reasons)),
         "success_fraction": float(len(density_draws) / n_bootstrap),
         "density_draws": density_array,
+        "resample_indices": np.stack(resample_indices, axis=0),
+        "success_mask": success_mask,
         "intercept_draws": np.asarray(intercept_draws, dtype=float),
         "slope_draws": np.asarray(slope_draws, dtype=float),
         "coefficient_boundary_limited_draws": np.asarray(boundary_flags, dtype=bool),
