@@ -146,9 +146,11 @@ SRSWOR construction in Wang, Peng & Kim (2022):
 3. Draw n positions without replacement from the pseudo-population.
 4. Map those positions back to the original paired-record indices.
 
-The function returns both pseudo-population indices and sample indices so
-redshift and catalogue-retention indicators can be resampled together and
-both sampling layers can be replayed.
+The function returns pseudo-population indices, mapped bootstrap-sample
+indices, and the selected positions within the pseudo-population. Persisting
+all three makes the multinomial construction and the without-replacement draw
+exactly replayable; redshift and catalogue-retention indicators always use the
+same mapped record indices.
 
 The new
 `bootstrap_validation_inclusion_density_design_aware` function in
