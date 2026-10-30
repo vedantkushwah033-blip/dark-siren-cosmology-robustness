@@ -308,6 +308,10 @@ def audit(artifact_dir: Path) -> dict:
         derived = {
             "posterior_mean_bias": float(np.mean(errors)),
             "posterior_mean_rmse": float(np.sqrt(np.mean(errors**2))),
+            "finite_parent_target_bias": float(group["error_vs_finite_parent_target"].mean()),
+            "finite_parent_target_rmse": float(
+                np.sqrt(np.mean(group["error_vs_finite_parent_target"].to_numpy(dtype=float)**2))
+            ),
             "coverage_68": float(group["covered_68"].astype(float).mean()),
             "mean_ci68_width": float(group["ci68_width"].mean()),
             "mean_density_ise": float(group["density_ise"].mean()),
