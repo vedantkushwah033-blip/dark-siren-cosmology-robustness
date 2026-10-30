@@ -85,7 +85,7 @@ jobs:
           row = rows.iloc[0]
           print(f"Selected replicate={int(row['replicate'])}, validation_size={int(row['validation_size'])}")
           with open('artifacts/bootstrap_selection.txt', 'w') as handle:
-              handle.write(f"{int(row['replicate'])},{int(row['validation_size'])}\\n")
+              handle.write(f"{int(row['replicate'])},{int(row['validation_size'])}\n")
           PY
           read REPLICATE VALIDATION_SIZE < <(tr ',' ' ' < artifacts/bootstrap_selection.txt)
           python scripts/run_validation_bootstrap_sensitivity.py --pilot-csv artifacts/estimated_inclusion_pilot_smoke/replicates.csv --replicate "$REPLICATE" --validation-size "$VALIDATION_SIZE" --n-bootstrap 100 --seed 20261031 --output-dir artifacts/validation_bootstrap_smoke
