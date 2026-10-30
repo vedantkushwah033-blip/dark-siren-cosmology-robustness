@@ -203,3 +203,72 @@ def test_pilot_rejects_numerically_saturated_true_inclusion_probabilities():
             h0_points=31,
             z_points=101,
         )
+
+
+def test_validation_bootstrap_propagates_into_fixed_toy_h0_posterior():
+    import numpy as np
+    from scipy.special import expit
+    from scipy.integrate import trapezoid
+    from dark_siren_robustness.estimated_inclusion_study import (
+        run_validation_bootstrap_posterior_sensitivity,
+    )
+
+    rng = np.random.default_rng(20261073)
+    z_grid = np.linspace(0.01, 0.40, 101)
+    parent_z = rng.uniform(z_grid[0], z_grid[-1], 2500)
+    x = (parent_z - (z_grid[0] + z_grid[-1]) / 2) / ((z_grid[-1] - z_grid[0]) / 2)
+    true_p = expit(0.15 - 0.8 * x)
+    retained = rng.random(parent_z.size) < true_p
+    observed = parent_z[retained]
+    validation_idx = rng.choice(parent_z.size, 350, replace=False)
+
+    result = run_validation_bootstrap_posterior_sensitivity(
+        redshift_grid=z_grid,
+        observed_redshift=observed,
+        validation_redshift=parent_z[validation_idx],
+        validation_included=retained[validation_idx].astype(int),
+        h0_grid=np.linspace(50, 90, 51),
+        observed_gw_distances_mpc=np.array([300.0, 360.0, 420.0]),
+        sigma_mpc=140.0,
+        detection_threshold_mpc=250.0,
+        n_bootstrap=20,
+        seed=20261074,
+    )
+
+    assert result["schema"] == "validation_bootstrap_posterior_sensitivity_v1"
+    assert result["n_attempted"] == 20
+    assert result["n_successful"] + result["n_failed"] == 20
+    assert result["n_successful"] >= 2
+    assert result["posterior_mean_draws"].shape == (result["n_successful"],)
+    assert result["posterior_median_draws"].shape == (result["n_successful"],)
+    assert result["posterior_ci68_low_draws"].shape == (result["n_successful"],)
+    assert result["posterior_ci68_high_draws"].shape == (result["n_successful"],)
+    assert np.all(
+        result["posterior_ci68_low_draws"] < result["posterior_ci68_high_draws"]
+    )
+    assert result["posterior_mean_bootstrap_percentile_95"] is not None
+    assert "not an H0" in result["interpretation"]
+    assert np.allclose(
+        trapezoid(result["density_draws"], z_grid, axis=1), 1.0, atol=1e-8
+    )
+
+
+def test_validation_bootstrap_posterior_rejects_events_below_detection_threshold():
+    import numpy as np
+    import pytest
+    from dark_siren_robustness.estimated_inclusion_study import (
+        run_validation_bootstrap_posterior_sensitivity,
+    )
+
+    with pytest.raises(ValueError, match="satisfy the detection threshold"):
+        run_validation_bootstrap_posterior_sensitivity(
+            redshift_grid=np.linspace(0.01, 0.40, 101),
+            observed_redshift=np.linspace(0.02, 0.39, 30),
+            validation_redshift=np.linspace(0.01, 0.40, 100),
+            validation_included=np.tile([0, 1], 50),
+            h0_grid=np.linspace(50, 90, 51),
+            observed_gw_distances_mpc=np.array([200.0]),
+            sigma_mpc=140.0,
+            detection_threshold_mpc=250.0,
+            n_bootstrap=5,
+        )
