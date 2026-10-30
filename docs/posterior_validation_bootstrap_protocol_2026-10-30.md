@@ -110,3 +110,6 @@ The independent auditor replays the attempt, derives the category from the indep
 Posterior-level resampling artifacts now include SHA-256 fingerprints for the canonical float64 representations (including array shape) of the redshift grid, H0 grid, observed catalogue redshifts, validation redshifts, binary validation outcomes, observed GW distances, and merger-weight array. When no merger-weight array is supplied, the fingerprint is computed from the explicit all-ones array used by the auditor.
 
 The independent auditor reconstructs these fingerprints from its separately supplied inputs and rejects a mismatch before replaying RNG draws. This binds a result artifact to the exact numerical inputs used in the audit; it is a provenance/integrity check, not a cryptographic signature or a substitute for independently preserving the source data and code revision.
+
+
+The addition of mandatory input fingerprints is recorded as artifact schema `validation_h0_posterior_resampling_v2`; schema-v1 artifacts do not satisfy the new provenance contract and must not be silently treated as v2.
