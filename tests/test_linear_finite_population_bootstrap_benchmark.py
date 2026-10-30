@@ -237,3 +237,17 @@ def test_linear_auditor_rejects_tampered_unconditional_coverage_even_with_update
     _refresh_manifest_checksum(tmp_path, "summary_csv_sha256", "linear_finite_population_bootstrap_summary.csv")
     with pytest.raises(ValueError, match="summary unconditional success-and-coverage mismatch"):
         audit_artifact(tmp_path)
+
+
+def test_v2_audit_report_declares_verified_estimands(tmp_path, monkeypatch):
+    _write_small_linear_artifact(tmp_path, monkeypatch)
+    report = audit_artifact(tmp_path)
+    assert report["status"] == "PASS"
+    assert report["artifact_schema"] == "linear_finite_population_bootstrap_benchmark_v2"
+    assert report["inner_attempt_accounting"] == "PASS"
+    assert report["summary_estimands"] == [
+        "conditional_coverage",
+        "interval_success_rate",
+        "unconditional_success_and_cover",
+        "conditional_and_unconditional_mcse",
+    ]
