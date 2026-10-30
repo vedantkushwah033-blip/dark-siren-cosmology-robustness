@@ -277,3 +277,26 @@ def test_independent_auditor_rejects_corrupted_preposterior_validation_count(tmp
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(AssertionError, match="inclusion count disagrees"):
         audit_pilot_artifacts(tmp_path)
+
+
+def test_independent_auditor_rejects_invalid_weight_concentration_order(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261054)
+    mask = frame["arm"].eq("estimated_100") & frame["diagnostic_schema"].eq("preposterior_weight_stability_v1")
+    assert mask.any(), frame[["arm", "status", "error"]].to_dict("records")
+    frame.loc[mask, "inverse_weight_top_1pct_mass"] = 0.01
+    frame.loc[mask, "inverse_weight_max_share"] = 0.02
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="top-tail weight mass is not nested"):
+        audit_pilot_artifacts(tmp_path)
+
+
+def test_independent_auditor_rejects_entropy_ess_below_quadratic_ess(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261055)
+    mask = frame["arm"].eq("estimated_100") & frame["diagnostic_schema"].eq("preposterior_weight_stability_v1")
+    assert mask.any(), frame[["arm", "status", "error"]].to_dict("records")
+    frame.loc[mask, "inverse_weight_entropy_ess_fraction"] = 0.0
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="entropy ESS fraction is below"):
+        audit_pilot_artifacts(tmp_path)
