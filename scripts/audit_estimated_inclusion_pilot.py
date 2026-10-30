@@ -13,6 +13,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.integrate import cumulative_trapezoid, trapezoid
+from scipy.optimize import minimize
+from scipy.special import expit, log_expit
 from scipy.stats import norm
 
 
@@ -108,6 +110,71 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
         raise AssertionError("inference audit payload contains invalid numerical inputs")
     if not np.isclose(trapezoid(density, z), 1.0, rtol=1e-7, atol=1e-9):
         raise AssertionError("persisted host density does not integrate to one")
+
+    # Refit the estimated logistic inclusion model from the saved independent
+    # validation records. This is a separate optimization implementation and
+    # never reads hidden parent truth or the scoring-only probability MAE.
+    arm_name = str(row.get("arm", ""))
+    if arm_name.startswith("estimated_"):
+        try:
+            validation_z = np.asarray(payload["validation_redshift"], dtype=float)
+            validation_y_raw = np.asarray(payload["validation_included"])
+            stored_model = payload["fitted_inclusion_model"]
+            stored_probability = np.asarray(payload["density_inclusion_probability"], dtype=float)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise AssertionError("estimated-arm validation audit inputs are malformed") from exc
+        if (validation_z.ndim != 1 or validation_z.size < 10
+                or validation_y_raw.shape != validation_z.shape
+                or not isinstance(stored_model, dict)
+                or stored_probability.ndim != 1):
+            raise AssertionError("estimated-arm validation audit arrays have invalid shapes")
+        if (not np.all(np.isfinite(validation_z))
+                or not np.all(np.isin(validation_y_raw, [0, 1, False, True]))
+                or np.unique(validation_y_raw).size != 2):
+            raise AssertionError("estimated-arm validation records are invalid")
+        validation_y = validation_y_raw.astype(float)
+        z_min, z_max = float(z[0]), float(z[-1])
+        if np.any((validation_z < z_min) | (validation_z > z_max)):
+            raise AssertionError("validation redshifts fall outside the declared fitting domain")
+        if validation_z.size != int(row.get("validation_size")):
+            raise AssertionError("validation record count disagrees with arm validation_size")
+        x_validation = (validation_z - (z_min + z_max)/2.0) / ((z_max-z_min)/2.0)
+
+        def independent_nll(theta):
+            eta = theta[0] + theta[1]*x_validation
+            return float(-np.sum(
+                validation_y*log_expit(eta) + (1.0-validation_y)*log_expit(-eta)
+            ))
+
+        def independent_gradient(theta):
+            eta = theta[0] + theta[1]*x_validation
+            residual = expit(eta) - validation_y
+            return np.array([np.sum(residual), np.dot(residual, x_validation)])
+
+        refit = minimize(
+            independent_nll, np.zeros(2), jac=independent_gradient,
+            method="L-BFGS-B", bounds=((-25.0, 25.0), (-50.0, 50.0)),
+            options={"maxiter": 4000, "ftol": 1e-13, "gtol": 1e-9},
+        )
+        if not refit.success or not np.all(np.isfinite(refit.x)):
+            raise AssertionError("independent logistic inclusion refit did not converge")
+        stored_intercept = _required_finite_number(stored_model.get("intercept"), "fitted intercept")
+        stored_slope = _required_finite_number(stored_model.get("slope"), "fitted slope")
+        if not np.allclose(refit.x, [stored_intercept, stored_slope], rtol=2e-5, atol=2e-5):
+            raise AssertionError("stored fitted inclusion coefficients disagree with independent refit")
+        x_catalogue = (np.asarray(payload["catalogue_redshift"], dtype=float)
+                       - (z_min + z_max)/2.0) / ((z_max-z_min)/2.0)
+        refit_probability = expit(refit.x[0] + refit.x[1]*x_catalogue)
+        if (stored_probability.shape != refit_probability.shape
+                or not np.allclose(stored_probability, refit_probability, rtol=2e-7, atol=2e-9)):
+            raise AssertionError("stored estimated inclusion probabilities disagree with independent refit")
+        if (stored_model.get("model") != "logistic_inclusion_v1"
+                or int(stored_model.get("n_validation", -1)) != validation_z.size
+                or int(stored_model.get("n_included", -1)) != int(validation_y.sum())
+                or int(stored_model.get("n_not_included", -1)) != int(validation_y.size-validation_y.sum())):
+            raise AssertionError("stored inclusion-model metadata disagrees with validation records")
+    elif payload.get("fitted_inclusion_model") is not None:
+        raise AssertionError("non-estimated arm unexpectedly contains a fitted inclusion model")
 
     # Reconstruct the reflected, inverse-inclusion-weighted KDE from its
     # primitive inputs. This deliberately does not call estimate_host_density.
@@ -642,7 +709,7 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         ),
         "per_arm_counts": per_arm_counts,
         "comparison_diagnostics": comparison_diagnostics,
-        "audit_scope": "persisted-table integrity, independent reflected weighted-KDE reconstruction, direct-quadrature posterior reconstruction, density-ISE reconstruction, and summary reconstruction",
+        "audit_scope": "persisted-table integrity, independent validation-logistic refit, reflected weighted-KDE reconstruction, direct-quadrature posterior reconstruction, density-ISE reconstruction, and summary reconstruction",
     }
 
 
