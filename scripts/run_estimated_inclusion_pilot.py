@@ -14,6 +14,8 @@ def main() -> None:
     parser.add_argument("--n-detected", type=int, default=30)
     parser.add_argument("--validation-sizes", default="100,300,1000")
     parser.add_argument("--seed", type=int, default=20261030)
+    parser.add_argument("--true-quadratic", type=float, default=0.0,
+                        help="Quadratic logit coefficient for nonlinear selection stress; zero preserves linear selection.")
     parser.add_argument("--h0-points", type=int, default=81)
     parser.add_argument("--z-points", type=int, default=401)
     parser.add_argument("--output-dir", type=Path, required=True)
@@ -26,6 +28,7 @@ def main() -> None:
         n_detected=args.n_detected,
         validation_sizes=sizes,
         seed=args.seed,
+        true_quadratic=args.true_quadratic,
         h0_points=args.h0_points,
         z_points=args.z_points,
     )
