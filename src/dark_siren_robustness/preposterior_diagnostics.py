@@ -41,6 +41,22 @@ def build_preposterior_diagnostics(model: Mapping[str, object], validation_redsh
         raise ValueError("fitted model coefficients must be present and finite") from exc
     if not np.all(np.isfinite([intercept, slope])):
         raise ValueError("fitted model coefficients must be present and finite")
+    try:
+        z_min, z_max = float(model["z_min"]), float(model["z_max"])
+        model_n, model_included = int(model["n_validation"]), int(model["n_included"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("fitted model is missing validation counts or domain bounds") from exc
+    if not np.isfinite(z_min) or not np.isfinite(z_max) or z_min >= z_max:
+        raise ValueError("fitted model domain bounds must be finite and increasing")
+    if np.any((validation_z < z_min) | (validation_z > z_max)) or np.any((catalogue_z < z_min) | (catalogue_z > z_max)):
+        raise ValueError("validation and catalogue redshifts must lie inside fitted model domain")
+    observed_included = int(np.sum(included_raw.astype(int)))
+    if model_n != validation_z.size or model_included != observed_included:
+        raise ValueError("fitted model validation counts disagree with supplied validation data")
+    if model.get("fit_status") not in {"converged", "boundary_limited"}:
+        raise ValueError("fitted model has an unrecognized fit status")
+    if bool(model.get("coefficient_bound_hit", False)) != (model.get("fit_status") == "boundary_limited"):
+        raise ValueError("fitted model boundary flag disagrees with fit status")
 
     weights = 1.0 / probability
     if not np.all(np.isfinite(weights)) or np.any(weights <= 0.0):
