@@ -183,6 +183,13 @@ def main() -> None:
         raise AssertionError("bootstrap success mask does not reconcile with counts")
     if np.any((resample_indices < 0) | (resample_indices >= validation_z.size)):
         raise AssertionError("bootstrap resample index lies outside validation records")
+    replay_rng = np.random.default_rng(int(summary["seed"]))
+    expected_indices = np.stack([
+        replay_rng.integers(0, validation_z.size, size=validation_z.size)
+        for _ in range(n_attempted)
+    ], axis=0)
+    if not np.array_equal(resample_indices, expected_indices):
+        raise AssertionError("stored resample indices do not reproduce from the declared seed")
     if density_draws.shape != (n_successful, z.size):
         raise AssertionError("density draw dimensions disagree with declared success count")
     # Refit every attempted resample with a separate implementation. Failed
