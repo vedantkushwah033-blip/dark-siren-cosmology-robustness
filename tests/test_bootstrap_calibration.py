@@ -137,3 +137,13 @@ def test_calibration_rejects_fractional_validation_size_and_blank_method():
     frame.loc[0, "method"] = "   "
     with pytest.raises(ValueError, match="method labels"):
         summarize_bootstrap_calibration(frame)
+
+
+def test_calibration_requires_one_finite_parent_target_across_validation_sizes():
+    frame = _fixture()
+    second_size = frame.copy()
+    second_size["validation_size"] = 200
+    second_size["finite_parent_target"] = 70.25
+    combined = pd.concat([frame, second_size], ignore_index=True)
+    with pytest.raises(ValueError, match="across validation sizes"):
+        summarize_bootstrap_calibration(combined)
