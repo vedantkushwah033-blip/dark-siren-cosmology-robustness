@@ -15,7 +15,9 @@ from scipy.optimize import minimize
 from scipy.special import expit, log_expit
 
 from dark_siren_robustness.finite_parent_uncertainty import paired_bootstrap_indices
-from dark_siren_robustness.design_aware_srswor_bootstrap import (\n    design_aware_srswor_bootstrap_indices,\n)
+from dark_siren_robustness.design_aware_srswor_bootstrap import (
+    design_aware_srswor_bootstrap_indices,
+)
 
 
 def fit_logistic_inclusion_model(
