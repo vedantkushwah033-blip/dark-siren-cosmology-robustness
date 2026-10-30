@@ -11,22 +11,23 @@ from dark_siren_robustness.design_aware_srswor_bootstrap import (
 def test_design_bootstrap_replays_and_resamples_without_replacement_from_pseudopop():
     a = design_aware_srswor_bootstrap_indices(np.random.default_rng(441), 40, 400)
     b = design_aware_srswor_bootstrap_indices(np.random.default_rng(441), 40, 400)
-    np.testing.assert_array_equal(a[0], b[0])
-    np.testing.assert_array_equal(a[1], b[1])
-    pseudo, sample = a
+    for first, second in zip(a, b):
+        np.testing.assert_array_equal(first, second)
+    pseudo, sample, positions = a
     assert pseudo.shape == (400,)
-    assert sample.shape == (40,)
+    assert sample.shape == positions.shape == (40,)
     assert np.all((pseudo >= 0) & (pseudo < 40))
     assert np.all((sample >= 0) & (sample < 40))
-    # Sample positions are unique in the pseudo-population; mapped records may
-    # repeat because a pseudo-population can contain replicated source units.
-    assert np.all(np.isin(sample, pseudo))
+    assert np.all((positions >= 0) & (positions < 400))
+    assert np.unique(positions).size == positions.size
+    np.testing.assert_array_equal(sample, pseudo[positions])
+    # Mapped records may repeat because the pseudo-population contains copies.
 
 
 def test_design_bootstrap_preserves_paired_record_fields():
     z = np.linspace(0.01, 0.4, 40)
     retained = (np.arange(40) % 4 == 0).astype(int)
-    _, idx = design_aware_srswor_bootstrap_indices(np.random.default_rng(12), 40, 400)
+    _, idx, _ = design_aware_srswor_bootstrap_indices(np.random.default_rng(12), 40, 400)
     sampled_z, sampled_retained = z[idx], retained[idx]
     recovered = np.rint((sampled_z - 0.01) / 0.39 * 39).astype(int)
     np.testing.assert_array_equal(sampled_retained, (recovered % 4 == 0).astype(int))
@@ -42,7 +43,8 @@ def test_design_bootstrap_rejects_invalid_sizes(args):
 
 
 def test_design_bootstrap_accepts_sample_size_equal_to_population():
-    pseudo, sample = design_aware_srswor_bootstrap_indices(
+    pseudo, sample, positions = design_aware_srswor_bootstrap_indices(
         np.random.default_rng(8), 10, 10, 10
     )
-    assert pseudo.shape == sample.shape == (10,)
+    assert pseudo.shape == sample.shape == positions.shape == (10,)
+    assert np.unique(positions).size == 10
