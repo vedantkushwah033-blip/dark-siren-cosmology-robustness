@@ -207,6 +207,14 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
             raise AssertionError("scoring-only inclusion probabilities are outside (0, 1]")
         if np.any((parent_z < z[0]) | (parent_z > z[-1])):
             raise AssertionError("scoring parent redshifts fall outside the simulation domain")
+        x_parent = (parent_z - (z_min + z_max)/2.0) / ((z_max-z_min)/2.0)
+        refit_parent_probability = expit(refit.x[0] + refit.x[1]*x_parent)
+        if not np.allclose(
+            estimated_parent_p, refit_parent_probability, rtol=5e-5, atol=5e-5
+        ):
+            raise AssertionError(
+                "scoring-only estimated probabilities disagree with independent logistic refit"
+            )
         reconstructed_mae = float(np.mean(np.abs(estimated_parent_p - true_parent_p)))
         _close(row.get("inclusion_probability_mae"), reconstructed_mae,
                "independent_scoring.inclusion_probability_mae", atol=2e-10)
