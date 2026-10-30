@@ -174,6 +174,39 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         raise AssertionError("summary.validation_sizes must be a nonempty list")
     if any(isinstance(v, bool) or not isinstance(v, int) or v < 1 for v in validation_sizes):
         raise AssertionError("summary.validation_sizes must contain positive integers")
+
+    # Cross-check saved population counts against the declared simulation design.
+    n_parent = summary.get("n_parent")
+    n_detected_declared = summary.get("n_detected")
+    if isinstance(n_parent, bool) or not isinstance(n_parent, int) or n_parent < 100:
+        raise AssertionError("summary.n_parent must be an integer >= 100")
+    if isinstance(n_detected_declared, bool) or not isinstance(n_detected_declared, int) or n_detected_declared < 1:
+        raise AssertionError("summary.n_detected must be a positive integer")
+    catalogue_counts = _integer_values(frame["n_catalogue"], "n_catalogue")
+    detected_counts = _integer_values(frame["n_detected"], "n_detected")
+    if np.any((catalogue_counts < 0) | (catalogue_counts > n_parent)):
+        raise AssertionError("n_catalogue must lie within the declared parent population")
+    if not np.all(detected_counts == n_detected_declared):
+        raise AssertionError("n_detected disagrees with the declared simulation design")
+    if not np.allclose(retention, catalogue_counts / n_parent, rtol=1e-9, atol=1e-9):
+        raise AssertionError("true_retention_rate disagrees with n_catalogue / n_parent")
+    validation_counts = pd.to_numeric(frame["audit_included_count"], errors="coerce")
+    if validation_counts.loc[frame["arm"].str.startswith("estimated_")].isna().any():
+        raise AssertionError("estimated arms must preserve their validation inclusion count")
+    estimated = frame.loc[frame["arm"].str.startswith("estimated_")].copy()
+    if not estimated.empty:
+        parsed_counts = _integer_values(
+            estimated["audit_included_count"], "audit_included_count"
+        )
+        if np.any((parsed_counts < 0) | (parsed_counts > estimated["validation_size"].to_numpy(dtype=int))):
+            raise AssertionError("audit_included_count must lie within its validation sample")
+        estimated["_audit_count"] = parsed_counts
+        for replicate, group in estimated.groupby("replicate"):
+            ordered = group.sort_values("validation_size")
+            if np.any(np.diff(ordered["_audit_count"].to_numpy(dtype=int)) < 0):
+                raise AssertionError(
+                    f"nested validation inclusion counts decrease with sample size in replicate {replicate}"
+                )
     expected_arms = {"catalogue_only", "oracle"} | {f"estimated_{v}" for v in validation_sizes}
     arms_in_rows = set(frame["arm"])
     if arms_in_rows != expected_arms:
