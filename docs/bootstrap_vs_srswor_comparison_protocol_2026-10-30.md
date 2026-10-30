@@ -173,3 +173,21 @@ inverse-weighted KDE, or downstream Bayesian posterior mean. No posterior
 bootstrap interval or calibration result is produced by this function yet.
 The full posterior-level comparator, studentization/interval construction,
 independent auditor, and finite-population-mean benchmark remain required.
+
+
+## 12. Nested SRSWOR sampling implementation hardening (30 October 2026)
+
+The outer repeated-sampling runner now uses the separately testable
+`nested_srswor_sample_indices` primitive in
+`src/dark_siren_robustness/finite_parent_sampling.py`. Given one random
+permutation of the fixed N-record frame, the requested validation samples are
+its prefixes. Each prefix is an exact SRSWOR sample; the construction also
+makes the smaller sample a subset of every larger sample from the same outer
+draw. This supports paired comparisons across validation sizes without
+pretending the nested sample sizes are independent.
+
+The primitive validates the RNG type, positive integer parent size, nonempty
+and unique positive integer sample sizes, and the upper bound imposed by N.
+Tests check exact seeded replay, uniqueness, index bounds, nesting, and
+rejection of malformed design declarations. This is an implementation and
+sampling-design integrity check, not a bootstrap calibration result.
