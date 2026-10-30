@@ -567,6 +567,9 @@ def run_validation_bootstrap_posterior_sensitivity(
         "coefficient_boundary_limited_draws": bootstrap[
             "coefficient_boundary_limited_draws"
         ],
+        "inverse_weight_ess_draws": bootstrap["inverse_weight_ess_draws"],
+        "inverse_weight_maximum_draws": bootstrap["inverse_weight_maximum_draws"],
+        "inverse_weight_p99_draws": bootstrap["inverse_weight_p99_draws"],
         "failure_reasons": bootstrap["failure_reasons"],
         "interpretation": (
             "validation-bootstrap sensitivity of posterior summaries conditional on "
