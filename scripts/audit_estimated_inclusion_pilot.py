@@ -701,8 +701,9 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         if successful.empty:
             continue
         comparison = successful.loc[successful["arm"] == arm].set_index("replicate")
-        paired = baseline[["absolute_error"]].join(
-            comparison[["absolute_error"]], how="inner", lsuffix="_baseline", rsuffix="_comparison"
+        paired = baseline[["absolute_error"]].merge(
+            comparison[["absolute_error"]], left_index=True, right_index=True,
+            how="inner", suffixes=("_baseline", "_comparison")
         )
         if paired.empty:
             if arm in stored_contrasts:
@@ -748,8 +749,9 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
     for arm in sorted(arms_in_rows - {"catalogue_only"}):
         baseline_all = frame.loc[frame["arm"] == "catalogue_only"].set_index("replicate")
         comparison_all = frame.loc[frame["arm"] == arm].set_index("replicate")
-        paired_status = baseline_all[["status"]].join(
-            comparison_all[["status"]], how="inner", lsuffix="_baseline", rsuffix="_comparison"
+        paired_status = baseline_all[["status"]].merge(
+            comparison_all[["status"]], left_index=True, right_index=True,
+            how="inner", suffixes=("_baseline", "_comparison")
         )
         baseline_ok = paired_status["status_baseline"].eq("success")
         comparison_ok = paired_status["status_comparison"].eq("success")
