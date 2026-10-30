@@ -9,6 +9,32 @@ def test_posterior_summary_normalizes_and_recovers_symmetric_peak():
     assert result["posterior_mean"] == pytest.approx(70.0, abs=1e-3)
     assert result["ci68_low"] < 70 < result["ci68_high"]
 
+
+def test_posterior_summary_matches_independent_trapezoidal_reconstruction():
+    import json
+    from scipy.integrate import cumulative_trapezoid, trapezoid
+
+    # An asymmetric log-likelihood on a nonuniform grid exercises normalization,
+    # posterior mean, and equal-tailed quantiles independently of the helper.
+    grid = np.array([50.0, 51.0, 53.5, 57.0, 62.0, 68.0, 73.0, 79.0, 85.0, 90.0])
+    loglike = -0.5 * ((grid - 69.0) / 5.5) ** 2 + 0.012 * (grid - 69.0)
+
+    result = posterior_summary(grid, loglike)
+    density = np.exp(loglike - np.max(loglike))
+    density /= trapezoid(density, grid)
+    cdf = np.r_[0.0, cumulative_trapezoid(density, grid)]
+    cdf /= cdf[-1]
+    expected_quantiles = [np.interp(q, cdf, grid) for q in (0.16, 0.50, 0.84)]
+    stored_density = np.asarray(json.loads(result["posterior_density_grid_json"]))
+
+    assert stored_density == pytest.approx(density, rel=1e-12, abs=1e-14)
+    assert trapezoid(stored_density, grid) == pytest.approx(1.0, abs=1e-12)
+    assert result["posterior_mean"] == pytest.approx(trapezoid(grid * density, grid), abs=1e-12)
+    assert result["ci68_low"] == pytest.approx(expected_quantiles[0], abs=1e-12)
+    assert result["posterior_median"] == pytest.approx(expected_quantiles[1], abs=1e-12)
+    assert result["ci68_high"] == pytest.approx(expected_quantiles[2], abs=1e-12)
+    assert result["ci68_width"] == pytest.approx(expected_quantiles[2] - expected_quantiles[0], abs=1e-12)
+
 def test_three_arms_share_each_replicate_and_return_valid_posteriors():
     rows, summary = run_benchmark(n_replicates=1, n_parent=1200, n_detected=8,
                                   seed=55123, h0_points=51, z_points=201)
