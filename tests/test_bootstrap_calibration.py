@@ -116,3 +116,13 @@ def test_calibration_rejects_invalid_design_keys_and_missing_finite_frame_target
     frame.loc[0, "finite_parent_target"] = np.nan
     with pytest.raises(ValueError, match="finite_parent_target"):
         summarize_bootstrap_calibration(frame)
+
+
+def test_calibration_rejects_method_specific_missing_outer_draw():
+    frame = _fixture()
+    frame = frame.loc[
+        ~((frame["scenario"] == 0) & (frame["outer_draw"] == 1)
+          & (frame["method"] == "design_aware_srswor"))
+    ]
+    with pytest.raises(ValueError, match="complete method set"):
+        summarize_bootstrap_calibration(frame)
