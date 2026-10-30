@@ -121,6 +121,7 @@ def test_finite_parent_auditor_rejects_reproducibly_successful_attempt_marked_fa
     assert len(successful) > 0
     index = successful[0]
     frame.loc[index, "status"] = "failed"
+    frame.loc[index, "failure_code"] = "unexpected_exception"
     frame.loc[index, "failure_reason"] = "injected false failure"
     frame.to_csv(tmp_path / "records.csv", index=False)
 
@@ -140,6 +141,7 @@ def test_finite_parent_auditor_rejects_failed_attempt_without_reason(tmp_path):
     assert len(successful) > 0
     index = successful[0]
     frame.loc[index, "status"] = "failed"
+    frame.loc[index, "failure_code"] = "unexpected_exception"
     frame.loc[index, "failure_reason"] = ""
     frame.to_csv(tmp_path / "records.csv", index=False)
 
@@ -178,3 +180,12 @@ def test_failure_reason_audit_requires_exact_replayed_exception():
         _assert_failure_reason_matches("RuntimeError: unrelated failure", error)
     with pytest.raises(AssertionError, match="does not match independently reconstructed"):
         _assert_failure_reason_matches("ValueError: independent weighted variance invalid", error)
+
+def test_failure_code_categories_are_stable_and_ordered_by_exception_specificity():
+    from scripts.audit_finite_parent_validation_benchmark import _independent_failure_code
+
+    assert _independent_failure_code(FloatingPointError("overflow")) == "floating_point_failure"
+    assert _independent_failure_code(ArithmeticError("invalid")) == "arithmetic_failure"
+    assert _independent_failure_code(ValueError("one class")) == "invalid_validation_sample"
+    assert _independent_failure_code(RuntimeError("fit failed")) == "model_fit_failure"
+    assert _independent_failure_code(KeyError("unexpected")) == "unexpected_exception"
