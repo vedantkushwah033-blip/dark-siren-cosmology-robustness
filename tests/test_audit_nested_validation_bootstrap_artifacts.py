@@ -133,3 +133,16 @@ def test_independent_nested_replay_rejects_tampered_bootstrap_posterior_mean(nes
     frame.to_json(path, orient="records", lines=True)
     with pytest.raises(AssertionError, match="posterior mean"):
         audit_replay(nested_artifact)
+
+
+def test_independent_replay_rejects_fabricated_wrapper_failure(nested_artifact):
+    records_path = nested_artifact / "calibration_records.csv"
+    records = pd.read_csv(records_path)
+    selected = records.index[
+        records["method"].eq("paired_bootstrap")
+        & records["bootstrap_status"].eq("success")
+    ][0]
+    records.at[selected, "bootstrap_status"] = "failed"
+    records.to_csv(records_path, index=False)
+    with pytest.raises(AssertionError, match="wrapper failure|did not reproduce"):
+        audit_replay(nested_artifact)
