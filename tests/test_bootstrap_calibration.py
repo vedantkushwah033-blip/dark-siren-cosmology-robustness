@@ -100,3 +100,18 @@ def test_calibration_requires_complete_attempt_records_and_consistent_outer_resu
     frame.loc[0, "outer_status"] = "maybe"
     with pytest.raises(ValueError, match="outer_status"):
         summarize_bootstrap_calibration(frame)
+
+
+def test_calibration_rejects_invalid_design_keys_and_missing_finite_frame_target():
+    frame = _fixture()
+    frame.loc[0, "validation_size"] = 0
+    with pytest.raises(ValueError, match="validation_size"):
+        summarize_bootstrap_calibration(frame)
+    frame = _fixture()
+    frame.loc[0, "outer_draw"] = -1
+    with pytest.raises(ValueError, match="outer_draw"):
+        summarize_bootstrap_calibration(frame)
+    frame = _fixture()
+    frame.loc[0, "finite_parent_target"] = np.nan
+    with pytest.raises(ValueError, match="finite_parent_target"):
+        summarize_bootstrap_calibration(frame)
