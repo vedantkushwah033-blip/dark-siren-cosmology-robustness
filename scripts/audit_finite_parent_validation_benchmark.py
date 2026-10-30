@@ -142,15 +142,16 @@ def audit(artifact_dir: Path) -> dict:
     if not records["status"].isin(["success", "failed"]).all():
         raise AssertionError("unknown attempt status")
     success_rows = records["status"].eq("success")
-    if records.loc[success_rows, "failure_reason"].fillna("").astype(str).str.len().gt(0).any():
+    success_reasons = records.loc[success_rows, "failure_reason"].astype("string").fillna("")
+    if success_reasons.str.len().gt(0).any():
         raise AssertionError("successful attempt carries a failure reason")
-    failed_reasons = records.loc[~success_rows, "failure_reason"].fillna("").astype(str).str.strip()
+    failed_reasons = records.loc[~success_rows, "failure_reason"].astype("string").fillna("").str.strip()
     if failed_reasons.eq("").any():
         raise AssertionError("failed attempt is missing its failure reason")
-    successful_codes = records.loc[success_rows, "failure_code"].fillna("").astype(str)
+    successful_codes = records.loc[success_rows, "failure_code"].astype("string").fillna("")
     if successful_codes.ne("").any():
         raise AssertionError("successful attempt carries a failure code")
-    failed_codes = records.loc[~success_rows, "failure_code"].fillna("").astype(str).str.strip()
+    failed_codes = records.loc[~success_rows, "failure_code"].astype("string").fillna("").str.strip()
     if failed_codes.eq("").any():
         raise AssertionError("failed attempt is missing its stable failure code")
 
