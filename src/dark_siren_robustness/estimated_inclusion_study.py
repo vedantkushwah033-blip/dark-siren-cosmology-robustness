@@ -72,6 +72,7 @@ def run_estimated_inclusion_pilot(
     z_points: int = 401,
     true_intercept: float = 0.25,
     true_slope: float = -1.2,
+    true_quadratic: float = 0.0,
     bandwidth_factor: float | None = None,
 ) -> tuple[pd.DataFrame, dict]:
     """Compare catalogue-only, oracle, and audit-estimated inclusion weighting.
@@ -100,8 +101,8 @@ def run_estimated_inclusion_pilot(
         raise ValueError("invalid H0 or redshift grid settings")
     if not np.isfinite(h0_true) or not h0_min < h0_true < h0_max:
         raise ValueError("h0_true must be finite and inside the H0 grid")
-    if not np.isfinite(true_intercept) or not np.isfinite(true_slope):
-        raise ValueError("true logistic coefficients must be finite")
+    if not all(np.isfinite(value) for value in (true_intercept, true_slope, true_quadratic)):
+        raise ValueError("true inclusion-model coefficients must be finite")
     if bandwidth_factor is not None and (
         not np.isfinite(bandwidth_factor) or bandwidth_factor <= 0
     ):
@@ -141,7 +142,13 @@ def run_estimated_inclusion_pilot(
         # specified in the primary arms. The generator's default catalogue
         # table is deliberately ignored; this experiment uses its own thinning.
         standardized_parent = (parent_z - z_mid) / z_half
-        true_probability = expit(true_intercept + true_slope * standardized_parent)
+        # A nonzero quadratic term creates a deliberately misspecified stress
+        # condition for the linear-logit validation estimator. Center x^2 so
+        # the intercept remains interpretable near the domain midpoint.
+        true_probability = expit(
+            true_intercept + true_slope * standardized_parent
+            + true_quadratic * (standardized_parent**2 - 1.0 / 3.0)
+        )
         catalogue_rng = np.random.default_rng(catalogue_seed)
         retained = catalogue_rng.random(n_parent) < true_probability
         observed_z = parent_z[retained]
@@ -327,9 +334,10 @@ def run_estimated_inclusion_pilot(
         "bandwidth_factor": None if bandwidth_factor is None else float(bandwidth_factor),
         "validation_sizes": list(sizes),
         "true_inclusion_model": {
-            "family": "logistic",
-            "logit_probability": "intercept + slope * standardized_redshift",
+            "family": "quadratic_logistic" if true_quadratic != 0.0 else "linear_logistic",
+            "logit_probability": "intercept + slope*x + quadratic*(x^2 - 1/3)",
             "intercept": float(true_intercept), "slope": float(true_slope),
+            "quadratic": float(true_quadratic),
             "standardization": "(z - domain_midpoint) / domain_half_range",
         },
         "primary_contrast": "abs_error_catalogue_only - abs_error_comparison_arm",
