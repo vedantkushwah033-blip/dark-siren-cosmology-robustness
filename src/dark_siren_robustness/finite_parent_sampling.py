@@ -24,6 +24,16 @@ from dark_siren_robustness.host_density_benchmark import posterior_summary
 from dark_siren_robustness.selection_toy import selection_aware_toy_likelihood
 
 
+def _require_integer(name: str, value: object, minimum: int) -> int:
+    """Validate an experiment-design integer without silently truncating inputs."""
+    if isinstance(value, (bool, np.bool_)) or not isinstance(value, (int, np.integer)):
+        raise TypeError(f"{name} must be an integer")
+    result = int(value)
+    if result < minimum:
+        raise ValueError(f"{name} must be >= {minimum}")
+    return result
+
+
 def run_finite_parent_benchmark(
     *,
     n_scenarios: int = 10,
@@ -42,13 +52,39 @@ def run_finite_parent_benchmark(
     true_quadratic: float = 0.0,
 ) -> pd.DataFrame:
     """Run a nested exact-SRSWOR benchmark and preserve every failed attempt."""
-    sizes = tuple(sorted(set(int(x) for x in validation_sizes)))
-    if n_scenarios < 1 or n_validation_draws < 2 or n_parent < 100:
-        raise ValueError("invalid scenario, draw, or parent counts")
-    if not sizes or min(sizes) < 10 or max(sizes) > n_parent:
+    n_scenarios = _require_integer("n_scenarios", n_scenarios, 1)
+    n_validation_draws = _require_integer("n_validation_draws", n_validation_draws, 2)
+    n_parent = _require_integer("n_parent", n_parent, 100)
+    n_detected = _require_integer("n_detected", n_detected, 1)
+    seed = _require_integer("seed", seed, 0)
+    h0_points = _require_integer("h0_points", h0_points, 31)
+    z_points = _require_integer("z_points", z_points, 101)
+    raw_sizes = tuple(validation_sizes)
+    if not raw_sizes:
+        raise ValueError("validation_sizes must contain at least one size")
+    checked_sizes = tuple(
+        _require_integer(f"validation_sizes[{index}]", value, 10)
+        for index, value in enumerate(raw_sizes)
+    )
+    if len(set(checked_sizes)) != len(checked_sizes):
+        raise ValueError("validation_sizes must not contain duplicates")
+    sizes = tuple(sorted(checked_sizes))
+    if max(sizes) > n_parent:
         raise ValueError("validation sizes must lie in [10, n_parent]")
-    if h0_points < 31 or z_points < 101:
-        raise ValueError("grids are too small for the declared benchmark")
+    for name, value, minimum in (
+        ("h0_true", h0_true, 0.0),
+        ("sigma_mpc", sigma_mpc, 0.0),
+        ("detection_threshold_mpc", detection_threshold_mpc, 0.0),
+    ):
+        if not np.isfinite(value) or value <= minimum:
+            raise ValueError(f"{name} must be finite and positive")
+    for name, value in (
+        ("true_intercept", true_intercept),
+        ("true_slope", true_slope),
+        ("true_quadratic", true_quadratic),
+    ):
+        if not np.isfinite(value):
+            raise ValueError(f"{name} must be finite")
 
     z_grid = np.linspace(0.01, 0.40, z_points)
     h0_grid = np.linspace(50.0, 90.0, h0_points)
