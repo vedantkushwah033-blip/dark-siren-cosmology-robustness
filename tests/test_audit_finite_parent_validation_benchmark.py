@@ -110,3 +110,22 @@ def test_finite_parent_auditor_requires_grid_manifest(tmp_path):
     (tmp_path / "summary.json").write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(AssertionError, match="grid specification"):
         audit(tmp_path)
+
+def test_finite_parent_auditor_rejects_reproducibly_successful_attempt_marked_failed(tmp_path):
+    frame = _artifact(tmp_path)
+    successful = frame.index[frame["status"].eq("success")]
+    assert len(successful) > 0
+    index = successful[0]
+    frame.loc[index, "status"] = "failed"
+    frame.loc[index, "failure_reason"] = "injected false failure"
+    frame.to_csv(tmp_path / "records.csv", index=False)
+
+    summary_path = tmp_path / "summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["n_successful"] -= 1
+    summary["n_failed"] += 1
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+    with pytest.raises(AssertionError, match="independently reproducible as a successful"):
+        audit(tmp_path)
+
