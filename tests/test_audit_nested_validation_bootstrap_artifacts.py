@@ -85,12 +85,12 @@ def test_independent_nested_artifact_auditor_rejects_wrong_bootstrap_seed(nested
 
 def test_independent_nested_artifact_auditor_rejects_corrupt_pseudopopulation_mapping(nested_artifact):
     path = nested_artifact / "attempt_audit.jsonl"
-    frame = pd.read_json(path, lines=True)
-    row = frame.index[(frame["method"] == "design_aware_srswor")][0]
-    frame.at[row, "bootstrap_sample_indices"][0][0] = (
-        int(frame.at[row, "bootstrap_sample_indices"][0][0]) + 1
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    row = next(item for item in rows if item["method"] == "design_aware_srswor")
+    row["bootstrap_sample_indices"][0][0] = (
+        int(row["bootstrap_sample_indices"][0][0]) + 1
     ) % 100
-    frame.to_json(path, orient="records", lines=True)
+    path.write_text("\\n".join(json.dumps(item) for item in rows) + "\\n")
     with pytest.raises(ValueError, match="selected pseudo-population positions do not map"):
         audit(nested_artifact)
 
@@ -114,23 +114,12 @@ def test_independent_nested_replay_rejects_tampered_parent_fingerprint(nested_ar
 
 def test_independent_nested_replay_rejects_tampered_bootstrap_posterior_mean(nested_artifact):
     path = nested_artifact / "attempt_audit.jsonl"
-    frame = pd.read_json(path, lines=True)
-    records = pd.read_csv(nested_artifact / "calibration_records.csv")
-    successful = records.loc[
-        records["method"].eq("paired_bootstrap")
-        & records["bootstrap_status"].eq("success")
-    ]
-    assert not successful.empty
-    key = successful.iloc[0][["scenario", "validation_size", "outer_draw", "method"]]
-    mask = (
-        frame["scenario"].eq(key["scenario"])
-        & frame["validation_size"].eq(key["validation_size"])
-        & frame["outer_draw"].eq(key["outer_draw"])
-        & frame["method"].eq(key["method"])
-    )
-    row = frame.index[mask][0]
-    frame.at[row, "bootstrap_attempt_posterior_mean"][0] += 0.5
-    frame.to_json(path, orient="records", lines=True)
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    row = next(item for item in rows if item["method"] == "paired_bootstrap")
+    assert row["bootstrap_success_mask"] and any(row["bootstrap_success_mask"])
+    first_success = row["bootstrap_success_mask"].index(True)
+    row["bootstrap_attempt_posterior_mean"][first_success] += 0.5
+    path.write_text("\\n".join(json.dumps(item) for item in rows) + "\\n")
     with pytest.raises(AssertionError, match="posterior mean"):
         audit_replay(nested_artifact)
 
