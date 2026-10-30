@@ -352,11 +352,18 @@ def audit_artifact(output_dir: Path) -> dict[str, object]:
 
     return {
         "status": "PASS",
+        "artifact_schema": schema,
         "replicates_independently_reconstructed": checked,
         "finite_frames_verified": len(populations),
         "summary_cells_verified": len(summaries),
         "design_completeness": "PASS",
         "frame_seed_reconstruction": "PASS",
+        "inner_attempt_accounting": "PASS" if has_inner_attempt_audit else "NOT_AVAILABLE_IN_HISTORICAL_V1",
+        "summary_estimands": (
+            ["conditional_coverage", "interval_success_rate",
+             "unconditional_success_and_cover", "conditional_and_unconditional_mcse"]
+            if has_inner_attempt_audit else ["conditional_coverage", "conditional_mcse"]
+        ),
         "scientific_scope": "linear finite-population mean pilot only; no transfer to nonlinear dark-siren posterior",
     }
 
