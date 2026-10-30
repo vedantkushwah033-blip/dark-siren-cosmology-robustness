@@ -133,6 +133,36 @@ def audit(directory: Path) -> dict:
         _require(cell.finite_parent_target.nunique(dropna=False) == 1,
                  f"finite-parent target changes within scenario {scenario}")
 
+    # Scenario-level hashes and deterministic seed declarations must be invariant.
+    for scenario, cell in attempts.groupby("scenario"):
+        for col in ["parent_frame_sha256", "catalogue_sha256", "gw_distance_sha256"]:
+            _require(cell[col].nunique(dropna=False) == 1, f"{col} changes within scenario {scenario}")
+        ss = np.random.SeedSequence([int(manifest["seed"]), int(scenario)])
+        outer_seed = int(ss.spawn(3)[2].generate_state(1, dtype=np.uint32)[0])
+        _require((cell.outer_seed.astype(int) == outer_seed).all(),
+                 f"outer seed does not match deterministic scenario seed for {scenario}")
+    for row in attempts.itertuples(index=False):
+        if row.bootstrap_seed is not None and not pd.isna(row.bootstrap_seed):
+            method_key = 1 if row.method == "paired_bootstrap" else 2 if row.method == "design_aware_srswor" else None
+            if method_key is not None:
+                expected_seed = int(np.random.SeedSequence([
+                    int(manifest["seed"]), int(row.scenario), int(row.outer_draw),
+                    int(row.validation_size), method_key
+                ]).generate_state(1, dtype=np.uint32)[0])
+                _require(int(row.bootstrap_seed) == expected_seed,
+                         f"bootstrap seed mismatch for {row.method} / {row.scenario}")
+
+    # Prefix construction must make outer samples nested across validation sizes.
+    for (scenario, draw), cell in attempts.groupby(["scenario", "outer_draw"]):
+        by_size = sorted(
+            ((int(r.validation_size), set(r.validation_indices))
+             for r in cell.drop_duplicates("validation_size").itertuples(index=False)),
+            key=lambda pair: pair[0],
+        )
+        for (n0, a), (n1, z) in zip(by_size, by_size[1:]):
+            _require(n0 < n1 and a.issubset(z),
+                     f"outer SRSWOR samples are not nested for scenario={scenario}, draw={draw}")
+
     merged = attempts.merge(records[KEY + ["outer_status", "bootstrap_status",
         "outer_posterior_mean", "bootstrap_se", "interval_low", "interval_high",
         "finite_parent_target"]], on=KEY, suffixes=("_audit", "_record"), validate="one_to_one")
