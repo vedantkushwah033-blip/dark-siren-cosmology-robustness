@@ -102,6 +102,28 @@ jobs:
         run: python -m pytest tests/test_posterior_validation_bootstrap.py -q
       - name: Test scenario-balanced bootstrap calibration estimands
         run: python -m pytest tests/test_bootstrap_calibration.py -q
+      - name: Run integrated nested validation-bootstrap comparison smoke experiment
+        run: python scripts/run_nested_validation_bootstrap_comparison.py --scenarios 1 --draws 2 --n-parent 1200 --n-detected 8 --validation-sizes 100 --bootstrap-replicates 3 --seed 20261030 --output-dir artifacts/nested_validation_bootstrap_smoke
+      - name: Check integrated nested comparison smoke artifacts
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          p = Path('artifacts/nested_validation_bootstrap_smoke')
+          manifest = json.loads((p / 'manifest.json').read_text())
+          assert manifest['status'] == 'SMOKE_ONLY_NOT_CONFIRMATORY'
+          records = pd.read_csv(p / 'calibration_records.csv')
+          attempts = pd.read_json(p / 'attempt_audit.jsonl', lines=True)
+          scenario = pd.read_csv(p / 'scenario_summary.csv')
+          aggregate = pd.read_csv(p / 'scenario_balanced_summary.csv')
+          assert len(records) == 6
+          assert set(records['method']) == {'paired_bootstrap', 'paired_bootstrap_fpc', 'design_aware_srswor'}
+          assert len(attempts) == 6
+          assert not scenario.empty and not aggregate.empty
+          assert records.groupby(['scenario', 'validation_size', 'outer_draw'])['finite_parent_target'].nunique().max() == 1
+          print('Validated integrated smoke rows:', len(records))
+          PY
       - name: Run finite-parent validation-sampling smoke benchmark
         run: python scripts/run_finite_parent_validation_benchmark.py --scenarios 2 --draws 3 --n-parent 1200 --n-detected 8 --validation-sizes 100,300 --seed 20261032 --output-dir artifacts/finite_parent_validation_smoke
       - name: Check finite-parent smoke artifact accounting
