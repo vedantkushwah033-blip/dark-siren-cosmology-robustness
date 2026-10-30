@@ -91,3 +91,15 @@ be accidentally included in downstream summaries. A regression test tampers
 with a failed attempt's posterior mean and requires the audit to reject the
 artifact. The producer already initializes these fields as NaN; this change
 makes that missingness contract independently enforceable.
+
+
+## Failure record schema hardening (30 October 2026)
+
+Every failed posterior-resampling attempt now stores both its exact exception class/message and a stable broad `failure_code`:
+- `floating_point_failure`
+- `arithmetic_failure`
+- `invalid_validation_sample`
+- `model_fit_failure`
+- `unexpected_exception`
+
+The independent auditor replays the attempt, derives the category from the independently reconstructed exception class, and requires an exact code match as well as the existing exact class/message match. The code is intended for stable aggregation across Python/library versions; the detailed reason remains the diagnostic record. Failed attempts remain in the attempted-run denominator.
