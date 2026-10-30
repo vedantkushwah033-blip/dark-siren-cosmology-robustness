@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+from scipy.stats import t as student_t
 
 
 _REQUIRED = {
@@ -15,6 +16,21 @@ _REQUIRED = {
     "outer_status", "bootstrap_status", "outer_posterior_mean",
     "bootstrap_se", "interval_low", "interval_high", "finite_parent_target",
 }
+
+
+def _scenario_mean_t_interval(values: pd.Series, confidence: float = 0.95) -> tuple[float, float, float, int]:
+    """Student-t interval across independent parent scenarios, never pooled draws."""
+    x = pd.to_numeric(values, errors="coerce").to_numpy(dtype=float)
+    x = x[np.isfinite(x)]
+    n = int(x.size)
+    if n == 0:
+        return float("nan"), float("nan"), float("nan"), 0
+    mean = float(np.mean(x))
+    if n < 2:
+        return mean, float("nan"), float("nan"), n
+    se = float(np.std(x, ddof=1) / np.sqrt(n))
+    critical = float(student_t.ppf(0.5 + confidence / 2.0, df=n - 1))
+    return mean, mean - critical * se, mean + critical * se, n
 
 
 def summarize_bootstrap_calibration(records: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -173,17 +189,38 @@ def summarize_bootstrap_calibration(records: pd.DataFrame) -> tuple[pd.DataFrame
         ratio = group["mean_se_to_empirical_sd_ratio"].dropna()
         coverage = group["finite_parent_target_interval_coverage"].dropna()
         widths = group["mean_interval_width"].dropna()
+        ratio_mean, ratio_low, ratio_high, ratio_n = _scenario_mean_t_interval(ratio)
+        coverage_mean, coverage_low, coverage_high, coverage_n = _scenario_mean_t_interval(coverage)
+        width_mean, width_low, width_high, width_n = _scenario_mean_t_interval(widths)
+        outer_fail_mean, outer_fail_low, outer_fail_high, outer_fail_n = _scenario_mean_t_interval(
+            group["outer_failure_fraction"]
+        )
+        inner_fail_mean, inner_fail_low, inner_fail_high, inner_fail_n = _scenario_mean_t_interval(
+            group["bootstrap_failure_fraction"]
+        )
         aggregate_rows.append({
             "validation_size": int(size),
             "method": str(method),
             "n_scenarios": int(group["scenario"].nunique()),
-            "n_scenarios_with_estimable_sd_ratio": int(ratio.size),
-            "scenario_balanced_mean_se_ratio": float(ratio.mean()) if ratio.size else float("nan"),
+            "n_scenarios_with_estimable_sd_ratio": int(ratio_n),
+            "scenario_balanced_mean_se_ratio": ratio_mean,
+            "scenario_balanced_mean_se_ratio_ci95_low": ratio_low,
+            "scenario_balanced_mean_se_ratio_ci95_high": ratio_high,
             "scenario_balanced_sd_se_ratio": float(ratio.std(ddof=1)) if ratio.size > 1 else float("nan"),
-            "scenario_balanced_mean_coverage": float(coverage.mean()) if coverage.size else float("nan"),
+            "scenario_balanced_mean_coverage": coverage_mean,
+            "scenario_balanced_mean_coverage_ci95_low": coverage_low,
+            "scenario_balanced_mean_coverage_ci95_high": coverage_high,
+            "n_scenarios_with_coverage": int(coverage_n),
             "scenario_balanced_sd_coverage": float(coverage.std(ddof=1)) if coverage.size > 1 else float("nan"),
-            "scenario_balanced_mean_interval_width": float(widths.mean()) if widths.size else float("nan"),
-            "scenario_balanced_outer_failure_fraction": float(group["outer_failure_fraction"].mean()),
-            "scenario_balanced_bootstrap_failure_fraction": float(group["bootstrap_failure_fraction"].mean()),
+            "scenario_balanced_mean_interval_width": width_mean,
+            "scenario_balanced_mean_interval_width_ci95_low": width_low,
+            "scenario_balanced_mean_interval_width_ci95_high": width_high,
+            "n_scenarios_with_interval_width": int(width_n),
+            "scenario_balanced_outer_failure_fraction": outer_fail_mean,
+            "scenario_balanced_outer_failure_fraction_ci95_low": outer_fail_low,
+            "scenario_balanced_outer_failure_fraction_ci95_high": outer_fail_high,
+            "scenario_balanced_bootstrap_failure_fraction": inner_fail_mean,
+            "scenario_balanced_bootstrap_failure_fraction_ci95_low": inner_fail_low,
+            "scenario_balanced_bootstrap_failure_fraction_ci95_high": inner_fail_high,
         })
     return scenario_level, pd.DataFrame(aggregate_rows)
