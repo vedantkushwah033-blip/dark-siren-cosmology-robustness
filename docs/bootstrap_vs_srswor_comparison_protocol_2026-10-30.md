@@ -114,3 +114,20 @@ Do not start the confirmatory run until:
 5. the exact-head CI matrix is green on all supported Python versions.
 
 This protocol is a research design, not a result or a claim of novelty.
+
+
+## 10. Literature-informed design-bootstrap comparator (required before confirmatory work)
+
+A literature check on 30 October 2026 identified established survey-sampling bootstrap methods specifically designed for finite-population sampling. In particular, the 2022 JRSSB paper *Bootstrap Inference for the Finite Population Mean under Complex Sampling Designs* treats SRSWOR among several designs and describes generating bootstrap finite populations, applying the original sampling design to those populations, and studentizing. This means the current ordinary paired-record bootstrap plus scalar FPC comparison is not a sufficient survey-methods benchmark by itself.
+
+Before confirmatory runs, add a design-aware resampling comparator suitable for the stated SRSWOR validation design. Candidate family: a pseudo-population/design-bootstrap approach that represents finite-population uncertainty and reapplies SRSWOR within each bootstrap population. The exact algorithm, finite-population construction, studentization, and any calibration must be selected from the published method and its assumptions—not improvised from the scalar FPC—and implemented as a separately named arm. The implementation must be checked against the source method's conditions and a simple finite-population mean benchmark where the expected design variance is known.
+
+Required arms for the revised comparison:
+1. Ordinary paired-record with-replacement bootstrap (naive baseline).
+2. Ordinary bootstrap SE multiplied by the first-order FPC (simple correction baseline).
+3. A literature-grounded design-aware finite-population bootstrap appropriate to SRSWOR (primary methodological comparator, subject to its assumptions).
+4. Empirical repeated-SRSWOR distribution (simulation reference).
+
+Do not label arm 3 as valid for the nonlinear logistic/KDE/posterior estimator merely because it is valid in a related survey setting. Its behaviour must be measured. If the published method's assumptions do not transfer to the estimator or validation design, document the mismatch and treat the method as an exploratory comparator rather than a valid default.
+
+This addition changes the experiment's scope and compute budget. The pilot must compare all three resampling arms, quantify each arm's Monte Carlo error, and estimate runtime before freezing confirmatory sample sizes. Update the protocol, auditor schema, and paper's related-work section before running confirmatory experiments. The candidate contribution remains a comparative calibration study, not invention of a new bootstrap method.
