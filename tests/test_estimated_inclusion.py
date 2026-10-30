@@ -142,3 +142,54 @@ def test_validation_estimator_passes_grid_level_merger_weight():
     assert trapezoid(grid * result["density"], grid) > trapezoid(
         grid * baseline["density"], grid
     )
+
+
+def test_preposterior_diagnostics_are_observable_only_and_reconstruct_weight_metrics():
+    from dark_siren_robustness.preposterior_diagnostics import build_preposterior_diagnostics
+
+    validation_z = np.linspace(0.02, 0.39, 200)
+    validation_y = np.tile([0, 1], 100)
+    catalogue_z = np.linspace(0.03, 0.38, 80)
+    probability = expit(0.2 - 1.1 * ((catalogue_z - 0.205) / 0.195))
+    model = {
+        "model": "logistic_inclusion_v1", "fit_status": "converged",
+        "coefficient_bound_hit": False, "intercept": 0.2, "slope": -1.1,
+    }
+    result = build_preposterior_diagnostics(
+        model, validation_z, validation_y, catalogue_z, probability
+    )
+    weights = 1.0 / probability
+    expected_ess = np.sum(weights) ** 2 / np.sum(weights**2)
+    assert result["diagnostic_schema"] == "preposterior_weight_stability_v1"
+    assert result["n_validation"] == 200
+    assert result["n_validation_included"] == 100
+    assert result["inverse_weight_ess"] == pytest.approx(expected_ess)
+    assert result["inverse_weight_ess_fraction"] == pytest.approx(expected_ess / 80)
+    assert result["catalogue_outside_validation_range_fraction"] == 0.0
+    assert not any("true_" in key or "posterior" in key or "coverage" in key for key in result)
+
+
+def test_preposterior_diagnostics_flag_catalogue_outside_validation_support():
+    from dark_siren_robustness.preposterior_diagnostics import build_preposterior_diagnostics
+
+    validation_z = np.linspace(0.10, 0.30, 100)
+    catalogue_z = np.array([0.02, 0.15, 0.25, 0.39])
+    probability = np.array([0.2, 0.4, 0.5, 0.3])
+    model = {"model": "logistic_inclusion_v1", "intercept": 0.0, "slope": 0.0}
+    result = build_preposterior_diagnostics(
+        model, validation_z, np.tile([0, 1], 50), catalogue_z, probability
+    )
+    assert result["catalogue_outside_validation_range_fraction"] == pytest.approx(0.5)
+
+
+def test_preposterior_diagnostics_reject_invalid_probabilities_and_mismatched_arrays():
+    from dark_siren_robustness.preposterior_diagnostics import build_preposterior_diagnostics
+
+    validation_z = np.linspace(0.01, 0.40, 20)
+    validation_y = np.tile([0, 1], 10)
+    catalogue_z = np.linspace(0.02, 0.39, 10)
+    model = {"model": "logistic_inclusion_v1", "intercept": 0.0, "slope": 0.0}
+    with pytest.raises(ValueError, match="strictly inside"):
+        build_preposterior_diagnostics(model, validation_z, validation_y, catalogue_z, np.zeros(10))
+    with pytest.raises(ValueError, match="match catalogue"):
+        build_preposterior_diagnostics(model, validation_z, validation_y, catalogue_z, np.full(9, 0.5))
