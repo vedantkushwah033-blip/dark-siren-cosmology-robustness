@@ -78,7 +78,7 @@ The primary coverage outcome is whether the method-specific interval contains (T
 
 ### 2.4 Hierarchical unit of replication
 
-The generated parent scenario is the top-level independent simulation unit. Outer validation draws are nested within scenarios; inner bootstrap replicates are nested within outer draws. They must not be treated as independent parent scenarios. Scenario-balanced summaries give each scenario equal weight.
+The generated parent scenario is the top-level independent simulation unit. Outer validation draws are nested within scenarios; inner bootstrap replicates are nested within outer draws. They must not be treated as independent parent scenarios. Scenario-balanced summaries give each scenario equal weight. The current analysis code also reports nominal 95% Student-t intervals across independent scenario-level summaries for the calibration ratio, target coverage, interval width, and failure fractions. These intervals use parent scenarios—not outer draws or inner replicates—as the independent units. Their small-sample and distributional assumptions will be assessed in the pilot; they are descriptive uncertainty summaries, not exact coverage intervals.
 
 ## 3. Synthetic data-generating process
 
