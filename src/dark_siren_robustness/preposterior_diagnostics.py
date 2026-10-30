@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import numpy as np
+from scipy.special import expit
 from numpy.typing import ArrayLike
 
 
@@ -73,6 +74,11 @@ def build_preposterior_diagnostics(model: Mapping[str, object], validation_redsh
     if bool(model.get("coefficient_bound_hit", False)) != (model.get("fit_status") == "boundary_limited"):
         raise ValueError("fitted model boundary flag disagrees with fit status")
 
+    expected_probability = expit(
+        intercept + slope * ((catalogue_z - (z_min + z_max) / 2.0) / ((z_max - z_min) / 2.0))
+    )
+    if not np.allclose(probability, expected_probability, rtol=1e-10, atol=1e-12):
+        raise ValueError("supplied probabilities disagree with fitted model")
     weights = 1.0 / probability
     if not np.all(np.isfinite(weights)) or np.any(weights <= 0.0):
         raise ValueError("inverse inclusion weights must be finite and strictly positive")
