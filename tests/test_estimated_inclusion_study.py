@@ -139,6 +139,7 @@ def test_positivity_and_validation_diagnostics_are_retained_for_each_arm():
 
 
 def test_pilot_records_preposterior_features_before_posterior_outputs():
+    import pytest
     frame, _summary = run_estimated_inclusion_pilot(
         n_replicates=1, n_parent=1200, n_detected=6, validation_sizes=(150,),
         seed=20261051, h0_points=41, z_points=201,
