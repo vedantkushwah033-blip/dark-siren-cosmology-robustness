@@ -93,6 +93,9 @@ def audit_artifact(output_dir: Path) -> dict[str, object]:
             if not np.isclose(float(row["target"]), target, rtol=0, atol=1e-12):
                 raise ValueError("replicate target differs from exact finite-frame mean")
             indices = np.asarray(json.loads(row["sample_indices"]), dtype=int)
+            replay_indices = np.random.default_rng(int(row["sample_seed"])).choice(pop.size, size=n, replace=False)
+            if not np.array_equal(indices, replay_indices):
+                raise ValueError("stored SRSWOR indices do not replay from the recorded seed")
             if indices.shape != (n,) or np.any(indices < 0) or np.any(indices >= pop.size):
                 raise ValueError("invalid sample index vector")
             if np.unique(indices).size != n:
