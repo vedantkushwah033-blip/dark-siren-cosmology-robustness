@@ -117,6 +117,12 @@ def audit(artifact_dir: Path) -> dict:
         raise AssertionError("failed-attempt accounting does not reconcile")
     if not records["status"].isin(["success", "failed"]).all():
         raise AssertionError("unknown attempt status")
+    success_rows = records["status"].eq("success")
+    if records.loc[success_rows, "failure_reason"].fillna("").astype(str).str.len().gt(0).any():
+        raise AssertionError("successful attempt carries a failure reason")
+    failed_reasons = records.loc[~success_rows, "failure_reason"].fillna("").astype(str).str.strip()
+    if failed_reasons.eq("").any():
+        raise AssertionError("failed attempt is missing its failure reason")
 
     if not {"h0_points", "z_points", "h0_grid_bounds", "redshift_grid_bounds"}.issubset(summary):
         raise AssertionError("summary omits inference grid specification")
@@ -321,7 +327,7 @@ def audit(artifact_dir: Path) -> dict:
         "n_failed": failed,
         "n_scenarios": n_scenarios,
         "validation_sizes": sizes,
-        "scope": "independent input regeneration, SRSWOR replay, logistic/KDE/likelihood/posterior reconstruction, and aggregate re-derivation for successful records",
+        "scope": "independent input regeneration, SRSWOR replay, successful-record logistic/KDE/likelihood/posterior reconstruction, failed-record reproducibility checks, and aggregate re-derivation",
     }
 
 
