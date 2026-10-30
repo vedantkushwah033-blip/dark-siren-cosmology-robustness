@@ -152,6 +152,22 @@ def run_estimated_inclusion_pilot(
         catalogue_rng = np.random.default_rng(catalogue_seed)
         retained = catalogue_rng.random(n_parent) < true_probability
         observed_z = parent_z[retained]
+        # Record overlap/positivity diagnostics for every replicate, including
+        # those that fail before any posterior can be constructed.
+        true_probability_min = float(np.min(true_probability))
+        true_probability_max = float(np.max(true_probability))
+        true_probability_p01 = float(np.quantile(true_probability, 0.01))
+        true_probability_p05 = float(np.quantile(true_probability, 0.05))
+        true_probability_below_005 = float(np.mean(true_probability < 0.05))
+        true_probability_below_010 = float(np.mean(true_probability < 0.10))
+        true_max_inverse_probability = float(1.0 / true_probability_min)
+        true_retention_rate = float(np.mean(retained))
+        audit_rng = np.random.default_rng(audit_seed)
+        audit_order = audit_rng.permutation(n_parent)
+        audit_records = {
+            "redshift": parent_z[audit_order],
+            "included": retained[audit_order].astype(int),
+        }
         if observed_z.size < 5 or np.unique(observed_z).size < 3:
             # Preserve the replicate failure explicitly for all arms.
             arms = ["catalogue_only", "oracle"] + [f"estimated_{m}" for m in sizes]
@@ -163,15 +179,20 @@ def run_estimated_inclusion_pilot(
                     "status": "failed", "error": "too few retained catalogue objects",
                     "fit_status": "failed", "fit_boundary_limited": False,
                     "n_catalogue": int(observed_z.size), "n_detected": int(distances.size),
+                    "true_probability_min": true_probability_min,
+                    "true_probability_max": true_probability_max,
+                    "true_probability_p01": true_probability_p01,
+                    "true_probability_p05": true_probability_p05,
+                    "true_probability_below_005": true_probability_below_005,
+                    "true_probability_below_010": true_probability_below_010,
+                    "true_max_inverse_probability": true_max_inverse_probability,
+                    "true_retention_rate": true_retention_rate,
+                    "audit_included_count": (
+                        int(np.sum(audit_records["included"][:int(arm.split("_")[1])]))
+                        if arm.startswith("estimated_") else None
+                    ),
                 })
             continue
-
-        audit_rng = np.random.default_rng(audit_seed)
-        audit_order = audit_rng.permutation(n_parent)
-        audit_records = {
-            "redshift": parent_z[audit_order],
-            "included": retained[audit_order].astype(int),
-        }
 
         arm_specs: list[tuple[str, int, object]] = [
             ("catalogue_only", 0, None),
@@ -236,6 +257,18 @@ def run_estimated_inclusion_pilot(
                     "status": "success", "error": "",
                     "fit_status": fit_status, "fit_boundary_limited": fit_boundary_limited,
                     "n_catalogue": int(observed_z.size), "n_detected": int(distances.size),
+                    "true_probability_min": true_probability_min,
+                    "true_probability_max": true_probability_max,
+                    "true_probability_p01": true_probability_p01,
+                    "true_probability_p05": true_probability_p05,
+                    "true_probability_below_005": true_probability_below_005,
+                    "true_probability_below_010": true_probability_below_010,
+                    "true_max_inverse_probability": true_max_inverse_probability,
+                    "true_retention_rate": true_retention_rate,
+                    "audit_included_count": (
+                        int(np.sum(audit_records["included"][:audit_size]))
+                        if audit_size else None
+                    ),
                     "posterior_mean": post["posterior_mean"],
                     "posterior_median": post["posterior_median"],
                     "ci68_low": post["ci68_low"], "ci68_high": post["ci68_high"],
@@ -256,6 +289,18 @@ def run_estimated_inclusion_pilot(
                     "status": "failed", "error": f"{type(exc).__name__}: {exc}",
                     "fit_status": "failed", "fit_boundary_limited": False,
                     "n_catalogue": int(observed_z.size), "n_detected": int(distances.size),
+                    "true_probability_min": true_probability_min,
+                    "true_probability_max": true_probability_max,
+                    "true_probability_p01": true_probability_p01,
+                    "true_probability_p05": true_probability_p05,
+                    "true_probability_below_005": true_probability_below_005,
+                    "true_probability_below_010": true_probability_below_010,
+                    "true_max_inverse_probability": true_max_inverse_probability,
+                    "true_retention_rate": true_retention_rate,
+                    "audit_included_count": (
+                        int(np.sum(audit_records["included"][:audit_size]))
+                        if audit_size else None
+                    ),
                 })
 
     frame = pd.DataFrame(rows)
