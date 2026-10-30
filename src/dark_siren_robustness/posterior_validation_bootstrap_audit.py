@@ -179,16 +179,24 @@ def audit_posterior_validation_bootstrap(
                     detection_threshold_mpc, rate, bandwidth_factor,
                 )
                 reference = pseudo_summary["posterior_mean"]
+                reference_valid = True
             except (ValueError, RuntimeError, ArithmeticError, FloatingPointError):
                 reference = float("nan")
+                reference_valid = False
 
-        try:
-            posterior, summary, diagnostics = _independent_posterior(
-                z, h0, observed, sample_z, sample_y, distances, sigma_mpc,
-                detection_threshold_mpc, rate, bandwidth_factor,
-            )
-            independently_successful = True
-        except (ValueError, RuntimeError, ArithmeticError, FloatingPointError):
+        if method == "paired_bootstrap" or reference_valid:
+            try:
+                posterior, summary, diagnostics = _independent_posterior(
+                    z, h0, observed, sample_z, sample_y, distances, sigma_mpc,
+                    detection_threshold_mpc, rate, bandwidth_factor,
+                )
+                independently_successful = True
+            except (ValueError, RuntimeError, ArithmeticError, FloatingPointError):
+                independently_successful = False
+                posterior = None
+                summary = {}
+                diagnostics = {}
+        else:
             independently_successful = False
             posterior = None
             summary = {}
@@ -222,10 +230,17 @@ def audit_posterior_validation_bootstrap(
         raise AssertionError("failure records do not exactly match failed attempt indices")
     if int(result["n_attempted"]) != int(result["n_successful"]) + len(records):
         raise AssertionError("failure records do not reconcile with attempt counts")
+    expected_fpc = float(np.sqrt(1.0 - vz.size / parent_population_size))
+    _assert_close(result["fpc_factor"], expected_fpc, "FPC factor")
     if int(result["n_successful"]) >= 2:
         successful_means = means[success]
         expected_se = float(np.std(successful_means, ddof=1))
         _assert_close(result["raw_bootstrap_standard_error"], expected_se, "bootstrap SE")
+        _assert_close(
+            result["fpc_adjusted_standard_error_diagnostic_only"],
+            expected_se * expected_fpc,
+            "diagnostic FPC-adjusted SE",
+        )
         expected_interval = np.quantile(successful_means, [0.025, 0.975])
         if not np.allclose(result["posterior_mean_percentile_interval_95"],
                            expected_interval, atol=5e-7, rtol=5e-6):
