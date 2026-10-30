@@ -120,6 +120,12 @@ def audit_posterior_validation_bootstrap(
         raise AssertionError("unsupported posterior-bootstrap artifact schema")
     if method not in {"paired_bootstrap", "design_aware_srswor"}:
         raise AssertionError("unknown resampling method")
+    expected_method_status = (
+        "exploratory_pseudopopulation_resampling_not_studentized_inference"
+        if method == "design_aware_srswor" else "ordinary_paired_record_bootstrap"
+    )
+    if result.get("design_aware_method_status") != expected_method_status:
+        raise AssertionError("design-aware method status does not match its declared inferential scope")
     attempted = int(result["n_attempted"])
     success = np.asarray(result["success_mask"], dtype=bool)
     if success.shape != (attempted,):
