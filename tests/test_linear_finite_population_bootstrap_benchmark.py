@@ -223,7 +223,7 @@ def test_linear_auditor_rejects_tampered_unconditional_coverage_even_with_update
     import csv
 
     _write_small_linear_artifact(tmp_path, monkeypatch)
-    path = tmp_path / "linear_finite_population_bootstrap_summary.csv"
+    path = tmp_path / "linear_finite_population_bootstrap.csv"
     with path.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
         fields, rows = reader.fieldnames, list(reader)
