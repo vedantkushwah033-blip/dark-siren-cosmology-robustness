@@ -332,6 +332,14 @@ def test_validation_bootstrap_records_degenerate_resamples_instead_of_replacing_
     assert result["n_failed"] > 0
     assert result["n_successful"] + result["n_failed"] == 80
     assert all("ValueError" in reason for reason in result["failure_reasons"])
+    assert len(result["failure_records"]) == result["n_failed"]
+    assert all(
+        record["exception_type"] == "ValueError"
+        and "ValueError" in record["reason"]
+        and 0 <= record["bootstrap_index"] < result["n_attempted"]
+        for record in result["failure_records"]
+    )
+    assert len({record["bootstrap_index"] for record in result["failure_records"]}) == result["n_failed"]
 
 
 def test_validation_bootstrap_rejects_invalid_replicate_count_and_seed():
