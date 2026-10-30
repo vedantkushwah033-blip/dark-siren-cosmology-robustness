@@ -69,6 +69,27 @@ jobs:
           PY
       - name: Independently audit estimated-inclusion pilot smoke artifacts
         run: python scripts/audit_estimated_inclusion_pilot.py artifacts/estimated_inclusion_pilot_smoke
+      - name: Test persisted validation-bootstrap artifact generation and independent refit audit
+        run: python -m pytest tests/test_validation_bootstrap_artifacts.py -q
+      - name: Run and independently audit persisted validation-bootstrap sensitivity (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          frame = pd.read_csv('artifacts/estimated_inclusion_pilot_smoke/replicates.csv')
+          rows = frame.loc[
+              frame['arm'].str.startswith('estimated_') & frame['status'].eq('success')
+          ].sort_values(['replicate', 'validation_size'])
+          if rows.empty:
+              raise SystemExit('No successful estimated-inclusion arm available for bootstrap smoke audit')
+          row = rows.iloc[0]
+          print(f"Selected replicate={int(row['replicate'])}, validation_size={int(row['validation_size'])}")
+          with open('artifacts/bootstrap_selection.txt', 'w') as handle:
+              handle.write(f"{int(row['replicate'])},{int(row['validation_size'])}")
+          PY
+          read REPLICATE VALIDATION_SIZE < <(tr ',' ' ' < artifacts/bootstrap_selection.txt)
+          python scripts/run_validation_bootstrap_sensitivity.py --pilot-csv artifacts/estimated_inclusion_pilot_smoke/replicates.csv --replicate "$REPLICATE" --validation-size "$VALIDATION_SIZE" --n-bootstrap 100 --seed 20261031 --output-dir artifacts/validation_bootstrap_smoke
+          python scripts/audit_validation_bootstrap_sensitivity.py --artifact-dir artifacts/validation_bootstrap_smoke --pilot-csv artifacts/estimated_inclusion_pilot_smoke/replicates.csv
       - name: Test host-density-to-H0 benchmark
         run: python -m pytest tests/test_host_density_benchmark.py -q
       - name: Test corrected physical KDE bandwidth semantics
@@ -204,5 +225,7 @@ jobs:
             artifacts/multiseed_grid_sensitivity/
             artifacts/catalogue_thinning/
             artifacts/estimated_inclusion_pilot_smoke/
+            artifacts/validation_bootstrap_smoke/
+            artifacts/bootstrap_selection.txt
           if-no-files-found: error
 
