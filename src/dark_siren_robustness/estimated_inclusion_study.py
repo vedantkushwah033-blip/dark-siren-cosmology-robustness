@@ -300,6 +300,21 @@ def run_estimated_inclusion_pilot(
                     "covered_68": bool(post["ci68_low"] <= h0_true <= post["ci68_high"]),
                     "absolute_error": float(abs(post["posterior_mean"] - h0_true)),
                     "density_ise": float(trapezoid((density - target_density) ** 2, z_grid)),
+                    # Persist the numerical inputs needed for a genuinely
+                    # independent posterior/selection reconstruction. This
+                    # payload contains no hidden parent truth or inclusion
+                    # probabilities; target_density is included only to audit
+                    # the reported density ISE.
+                    "inference_audit_schema": "toy_selection_posterior_reconstruction_v1",
+                    "inference_audit_payload_json": __import__("json").dumps({
+                        "redshift_grid": z_grid.tolist(),
+                        "host_density": np.asarray(density, dtype=float).tolist(),
+                        "target_density_for_ise": target_density.tolist(),
+                        "h0_grid": h0_grid.tolist(),
+                        "observed_distances_mpc": distances.tolist(),
+                        "sigma_mpc": float(sigma_mpc),
+                        "detection_threshold_mpc": float(detection_threshold_mpc),
+                    }, separators=(",", ":")),
                     "weight_ess": weight_ess,
                     "weight_ess_fraction": weight_ess / observed_z.size,
                     "max_inverse_weight": max_inverse_weight,
