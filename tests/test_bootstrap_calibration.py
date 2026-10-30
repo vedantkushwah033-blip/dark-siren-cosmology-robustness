@@ -11,8 +11,9 @@ def _fixture():
     rows = []
     # Outer draw 2 fails for both methods; draw 1 has a design-aware inner failure.
     outer = [(0, 68.0, "success"), (1, 72.0, "success"), (2, np.nan, "failed")]
+    outer_sd = float(np.std([68.0, 72.0], ddof=1))
     method_values = {
-        "paired_bootstrap": [(2.0, 66.0, 74.0), (2.0, 66.0, 74.0), (np.nan, np.nan, np.nan)],
+        "paired_bootstrap": [(outer_sd, 66.0, 74.0), (outer_sd, 66.0, 74.0), (np.nan, np.nan, np.nan)],
         "design_aware_srswor": [(1.0, 69.0, 71.0), (np.nan, np.nan, np.nan), (np.nan, np.nan, np.nan)],
     }
     for method, values in method_values.items():
@@ -61,7 +62,7 @@ def test_scenario_balanced_calibration_separates_outer_and_inner_failures():
     # Scenario-level estimates are equally weighted, not pooled by outer draw.
     paired = aggregate.query("method == 'paired_bootstrap'").iloc[0]
     expected = np.mean([
-        2.0 / np.std([68.0, 72.0], ddof=1),
+        1.0,
         1.0 / np.std([69.0, 71.0, 69.0, 71.0], ddof=1),
     ])
     assert paired["scenario_balanced_mean_se_ratio"] == pytest.approx(expected)
