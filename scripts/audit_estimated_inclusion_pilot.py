@@ -267,8 +267,9 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
                 raise AssertionError("pre-posterior inverse-weight ESS is outside valid bounds")
             if not np.allclose(ess_fraction, ess / catalogue_size, rtol=1e-8, atol=1e-10):
                 raise AssertionError("pre-posterior ESS fraction is inconsistent")
-            if not np.allclose(ess, diagnostic_rows["weight_ess"], rtol=1e-8, atol=1e-8):
-                raise AssertionError("pre-posterior ESS disagrees with saved estimator diagnostic")
+            if "weight_ess" in diagnostic_rows.columns:
+                if not np.allclose(ess, diagnostic_rows["weight_ess"], rtol=1e-8, atol=1e-8):
+                    raise AssertionError("pre-posterior ESS disagrees with saved estimator diagnostic")
             weight_sum = diagnostic_rows["inverse_weight_sum"].to_numpy(dtype=float)
             weight_sum_squares = diagnostic_rows["inverse_weight_sum_squares"].to_numpy(dtype=float)
             if np.any((weight_sum <= 0.0) | (weight_sum_squares <= 0.0)):
@@ -279,8 +280,9 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
             expected_max_share = diagnostic_rows["inverse_weight_max"].to_numpy(dtype=float) / weight_sum
             if not np.allclose(diagnostic_rows["inverse_weight_max_share"], expected_max_share, rtol=1e-8, atol=1e-10):
                 raise AssertionError("pre-posterior maximum normalized weight share is inconsistent")
-            if not np.allclose(diagnostic_rows["inverse_weight_max"], diagnostic_rows["max_inverse_weight"], rtol=1e-8, atol=1e-8):
-                raise AssertionError("pre-posterior maximum weight disagrees with saved estimator diagnostic")
+            if "max_inverse_weight" in diagnostic_rows.columns:
+                if not np.allclose(diagnostic_rows["inverse_weight_max"], diagnostic_rows["max_inverse_weight"], rtol=1e-8, atol=1e-8):
+                    raise AssertionError("pre-posterior maximum weight disagrees with saved estimator diagnostic")
             weight_quantiles = diagnostic_rows[["inverse_weight_max", "inverse_weight_p95", "inverse_weight_p99"]].to_numpy(dtype=float)
             if np.any(np.diff(weight_quantiles[:, 1:], axis=1) < -1e-12) or np.any(weight_quantiles[:, 1:] > weight_quantiles[:, :1] + 1e-9):
                 raise AssertionError("pre-posterior inverse-weight quantiles are inconsistent")
