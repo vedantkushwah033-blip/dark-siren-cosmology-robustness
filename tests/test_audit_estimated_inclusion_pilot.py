@@ -225,3 +225,32 @@ def test_independent_pilot_auditor_rejects_duplicate_contrast_entries(tmp_path):
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(AssertionError, match="duplicate comparison contrasts"):
         audit_pilot_artifacts(tmp_path)
+
+
+def test_independent_auditor_rejects_retention_rate_inconsistent_with_catalogue_count(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261049)
+    frame.loc[0, "true_retention_rate"] += 0.01
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="true_retention_rate disagrees"):
+        audit_pilot_artifacts(tmp_path)
+
+
+def test_independent_auditor_rejects_nonmonotone_nested_validation_counts(tmp_path):
+    frame, summary = run_estimated_inclusion_pilot(
+        n_replicates=1,
+        n_parent=1200,
+        n_detected=6,
+        validation_sizes=(100, 300),
+        seed=20261050,
+        h0_points=41,
+        z_points=201,
+    )
+    lower = frame.index[frame["arm"].eq("estimated_100")][0]
+    upper = frame.index[frame["arm"].eq("estimated_300")][0]
+    frame.loc[lower, "audit_included_count"] = 100
+    frame.loc[upper, "audit_included_count"] = 0
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="nested validation inclusion counts decrease"):
+        audit_pilot_artifacts(tmp_path)
