@@ -125,10 +125,13 @@ def run_finite_parent_benchmark(
             )["selected_log_likelihood"],
         )
         rng = np.random.default_rng(validation_seed)
-        for size in sizes:
-            for draw in range(n_validation_draws):
-                indices = rng.choice(n_parent, size=size, replace=False)
-                # SRSWOR is checked at generation time, not inferred afterward.
+        # One random permutation per draw creates nested validation samples:
+        # every smaller-size sample is a prefix/subset of the larger-size sample.
+        # This enables paired, higher-precision comparisons across validation sizes.
+        for draw in range(n_validation_draws):
+            permutation = rng.permutation(n_parent)
+            for size in sizes:
+                indices = permutation[:size].copy()
                 if np.unique(indices).size != size:
                     raise RuntimeError("SRSWOR generator returned duplicate indices")
                 try:
