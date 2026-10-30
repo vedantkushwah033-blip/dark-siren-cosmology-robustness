@@ -180,3 +180,36 @@ counting an interval-construction failure as not delivering a covering interval.
 These are different estimands and should not be conflated. The unconditional success-and-cover probability is an operational performance measure, not a replacement for conditional coverage or a claim that failures are ordinary noncoverage events in every inferential framework. Both quantities and their denominators must be reported together, with failure counts and reasons.
 
 The independent auditor reconstructs these summary quantities from the replicate-level records and checks the stored values. This is a v2 schema addition; historical v1 summaries remain interpreted using their original conditional-coverage fields. No numerical v2 result is claimed until the exact-head workflow passes and a v2 artifact is generated and independently audited.
+
+
+## 13. Interpretation and decision limits
+
+The pilot is useful for implementation diagnosis, not for selecting a universally preferred interval. Its 18 method-by-frame-by-sample-size cells are based on only three realized finite frames and 100 outer samples per cell. The nominal 95% coverage estimates consequently have substantial Monte Carlo uncertainty, while the one-frame-per-regime design leaves between-frame heterogeneity unidentified. The observed 0.89–0.90 coverage in the normal frame at a 40% sampling fraction is a diagnostic signal for replication, not evidence of systematic undercoverage.
+
+Interval width is not a stand-alone measure of inferential quality. A narrower interval is not preferable if its coverage or construction reliability is inadequate. Conversely, the unconditional success-and-cover probability introduced in v2 is an operational summary and must be interpreted jointly with conditional coverage and interval success. No method ranking is justified by the pilot.
+
+The ordinary percentile comparator does not explicitly reproduce the without-replacement design. Its inclusion is intended to illustrate the consequences of using a conventional with-replacement resampling benchmark, not to define a fair competitor under every inferential objective.
+
+## 14. Reproducibility, software, and artifact status
+
+The benchmark is implemented in Python using NumPy. Deterministic seed derivation is used for frame generation, outer SRSWOR samples, and method-specific bootstrap resampling. The artifact design stores finite-frame values, replicate-level method outcomes, summary statistics, and a manifest containing schema and file checksums. The independent auditor reconstructs the finite frames and outer sample sequence, recomputes interval endpoints, and verifies summary quantities rather than relying only on stored checksums.
+
+The v1 pilot artifact and its audit remain the only reported numerical benchmark in this note. The v2 code path adds serialized inner-bootstrap attempt accounting and independent replay checks, plus the distinction between conditional coverage and unconditional successful-and-covering probability. A v2 result must not be treated as released until an exact-commit continuous-integration run succeeds, a v2 artifact is generated, and the independent auditor passes on that artifact. The existence of code and tests alone is not evidence that a v2 experiment has run successfully.
+
+The confirmatory multi-frame design is documented separately and remains prospective. Its frame count and repetition count must be selected using an explicit precision analysis before execution; proposed planning values are not experimental results.
+
+## 15. Relation to dark-siren cosmology
+
+The finite-population arithmetic mean is a deliberately simple estimand. Dark-siren inference instead combines gravitational-wave distance likelihoods, galaxy redshift information, catalogue selection, host-population assumptions, and cosmological parameters. The resulting posterior summaries are nonlinear functionals of data and model components. Good performance for a finite-population mean does not establish calibrated uncertainty for a dark-siren posterior.
+
+The linear benchmark can contribute a narrow software-engineering and statistical-validation lesson: resampling procedures should reproduce the sampling design, expose failed internal attempts, preserve seed lineage, and be independently auditable. Any transfer to dark-siren inference requires separate simulation experiments that target posterior bias, credible-interval coverage, simulation-based calibration, selection-function misspecification, and uncertainty propagation. Those experiments must use the nonlinear inference pipeline itself and must be independently reconstructed.
+
+## 16. Conclusion
+
+This exploratory benchmark provides a reproducible pilot comparison of three interval constructions for the arithmetic mean of fixed finite frames under SRSWOR. The initial audit reconstructed all 1,800 outer method attempts and 18 summary cells, while also identifying a gap in serialized inner-bootstrap failure accounting. The v2 implementation addresses that provenance gap in code and adds explicit reporting of both conditional coverage and unconditional successful-and-covering probability. These are improvements to auditability and interpretation, not new scientific findings.
+
+The pilot is too small and too frame-limited to support a general performance ranking. The appropriate next step is a precision-designed multi-frame experiment with paired method comparisons, frame-clustered uncertainty, complete failure accounting, and an independently audited release. No conclusion about nonlinear dark-siren posterior calibration follows from this linear study.
+
+## References
+
+Wang, S., Peng, L., & Kim, J. K. (2022). Bootstrap inference for the finite population mean under complex sampling designs. *Journal of the Royal Statistical Society: Series B*, 84(4), 1150–1174. https://doi.org/10.1111/rssb.12506
