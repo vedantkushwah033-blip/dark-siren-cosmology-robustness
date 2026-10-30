@@ -224,7 +224,10 @@ def run_estimated_inclusion_pilot(
                 audit_validation_redshift = np.array([], dtype=float)
                 audit_validation_included = np.array([], dtype=int)
                 fitted_inclusion_model = None
-                scoring_audit_payload: dict[str, object] | None = None
+                scoring_audit_payload: dict[str, object] = {
+                    "schema": "inclusion_probability_scoring_only_v1",
+                    "target_density_for_ise": target_density.tolist(),
+                }
                 weight_ess = float("nan")
                 max_inverse_weight = float("nan")
                 if arm == "catalogue_only":
@@ -277,12 +280,11 @@ def run_estimated_inclusion_pilot(
                     )))
                     # Keep scoring truth in a distinct, explicitly scoring-only
                     # payload. It is never passed to the estimator or posterior.
-                    scoring_audit_payload = {
-                        "schema": "inclusion_probability_scoring_only_v1",
+                    scoring_audit_payload.update({
                         "parent_redshift": parent_z.tolist(),
                         "true_inclusion_probability": true_probability.tolist(),
                         "estimated_inclusion_probability": estimated_parent_probability.tolist(),
-                    }
+                    })
                     # Freeze observable-only warning features before constructing
                     # the GW likelihood or inspecting any posterior outcome.
                     preposterior_features = build_preposterior_diagnostics(
@@ -330,7 +332,6 @@ def run_estimated_inclusion_pilot(
                     "inference_audit_payload_json": json.dumps({
                         "redshift_grid": z_grid.tolist(),
                         "host_density": np.asarray(density, dtype=float).tolist(),
-                        "target_density_for_ise": target_density.tolist(),
                         "catalogue_redshift": observed_z.tolist(),
                         "density_inclusion_probability": density_inclusion_probability.tolist(),
                         "merger_weight_grid": merger_rate.tolist(),
@@ -345,10 +346,8 @@ def run_estimated_inclusion_pilot(
                         "sigma_mpc": float(sigma_mpc),
                         "detection_threshold_mpc": float(detection_threshold_mpc),
                     }, separators=(",", ":")),
-                    "scoring_audit_payload_json": (
-                        "" if scoring_audit_payload is None else json.dumps(
-                            scoring_audit_payload, separators=(",", ":")
-                        )
+                    "scoring_audit_payload_json": json.dumps(
+                        scoring_audit_payload, separators=(",", ":")
                     ),
                     "weight_ess": weight_ess,
                     "weight_ess_fraction": weight_ess / observed_z.size,
