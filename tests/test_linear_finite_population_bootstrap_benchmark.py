@@ -207,10 +207,33 @@ def test_linear_auditor_preserves_v1_artifact_compatibility(tmp_path, monkeypatc
         writer = csv.DictWriter(handle, fieldnames=legacy_fields)
         writer.writeheader()
         writer.writerows([{key: row[key] for key in legacy_fields} for row in rows])
+    # Reconstruct the historical v1 summary schema too: v1 did not store
+    # interval-success or unconditional success-and-cover fields.
+    summary_path = tmp_path / "linear_finite_population_bootstrap.csv"
+    with summary_path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        summary_fields, summary_rows = reader.fieldnames, list(reader)
+    legacy_summary_fields = [
+        field for field in summary_fields
+        if field not in {
+            "interval_success_rate",
+            "coverage_unconditional_success_and_cover",
+            "coverage_mcse_unconditional",
+        }
+    ]
+    with summary_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=legacy_summary_fields)
+        writer.writeheader()
+        writer.writerows([
+            {key: row[key] for key in legacy_summary_fields}
+            for row in summary_rows
+        ])
+
     manifest_path = tmp_path / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["schema"] = "linear_finite_population_bootstrap_benchmark_v1"
     manifest["replicate_csv_sha256"] = hashlib.sha256(replicate_path.read_bytes()).hexdigest()
+    manifest["summary_csv_sha256"] = hashlib.sha256(summary_path.read_bytes()).hexdigest()
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     report = audit_artifact(tmp_path)
     assert report["status"] == "PASS"
