@@ -234,3 +234,40 @@ Accordingly:
 - require a separately specified statistic, centering rule, variance estimator, and independent coverage study before making a design-based calibration claim.
 
 The producer now records a machine-readable `design_aware_method_status`, and the independent auditor rejects artifacts that misstate this inferential scope.
+
+
+## 14. Integrated outer/inner comparison runner (30 October 2026)
+
+A first integrated exploratory runner has been added at
+`scripts/run_nested_validation_bootstrap_comparison.py`. It connects the
+existing finite-parent and posterior-bootstrap components in one executable
+workflow:
+
+1. Generate one fixed synthetic parent, catalogue-thinning realization, and
+   GW-distance sample per scenario using a deterministic seed hierarchy.
+2. Fit the declared validation/inclusion pipeline to all actual parent
+   records to obtain the scenario's finite-parent posterior-mean reference.
+3. Generate nested outer SRSWOR validation samples using one permutation per
+   outer draw and preserve exact sample indices.
+4. Refit the outer posterior and, conditional on each successful outer sample,
+   run both ordinary paired-record and exploratory pseudo-population
+   posterior-level bootstrap procedures.
+5. Derive a third comparator by multiplying the ordinary bootstrap SE by the
+   scalar FPC and centering a normal interval at the outer posterior mean.
+6. Preserve outer and bootstrap failure statuses separately, retain failure
+   records and deterministic seeds, and produce raw calibration rows,
+   scenario-level summaries, scenario-balanced summaries, and a manifest.
+
+The CLI defaults are deliberately small and explicitly labelled
+`SMOKE_ONLY_NOT_CONFIRMATORY`. The runner has not yet been executed and its
+outputs have not yet been independently audited. The FPC-normal comparator is
+a diagnostic baseline, not a validity claim. The pseudo-population percentile
+interval is descriptive and is not the studentized procedure in Wang, Peng &
+Kim (2022). Do not use these smoke defaults as confirmatory evidence.
+
+**Next required gates:** (i) execute and debug a tiny smoke artifact, (ii) build
+an independent auditor that regenerates scenario inputs, outer indices, both
+inner resampling layers, and independently reconstructs all successful
+posterior calculations and calibration summaries, (iii) add tamper tests,
+(iv) verify exact-head CI, and only then (v) profile a pilot and freeze a
+precision-based confirmatory design.
