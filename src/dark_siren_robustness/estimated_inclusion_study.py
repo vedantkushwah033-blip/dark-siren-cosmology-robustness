@@ -28,6 +28,7 @@ from dark_siren_robustness.generative_selection import (
     generate_synthetic_population,
     latent_galaxy_intensity,
 )
+from dark_siren_robustness.independent_audit import generate_independent_inclusion_audit
 from dark_siren_robustness.host_density_benchmark import posterior_summary
 from dark_siren_robustness.preposterior_diagnostics import build_preposterior_diagnostics
 from dark_siren_robustness.selection_toy import selection_aware_toy_likelihood
@@ -131,10 +132,11 @@ def run_estimated_inclusion_pilot(
     rows: list[dict] = []
     for replicate in range(n_replicates):
         seed_sequence = np.random.SeedSequence([int(seed), int(replicate)])
-        sim_ss, catalogue_ss, audit_ss = seed_sequence.spawn(3)
+        sim_ss, catalogue_ss, audit_ss, independent_audit_ss = seed_sequence.spawn(4)
         sim_seed = int(sim_ss.generate_state(1, dtype=np.uint32)[0])
         catalogue_seed = int(catalogue_ss.generate_state(1, dtype=np.uint32)[0])
         audit_seed = int(audit_ss.generate_state(1, dtype=np.uint32)[0])
+        independent_audit_seed = int(independent_audit_ss.generate_state(1, dtype=np.uint32)[0])
 
         sim = generate_synthetic_population(
             seed=sim_seed,
@@ -190,6 +192,13 @@ def run_estimated_inclusion_pilot(
             "redshift": parent_z[audit_order],
             "included": retained[audit_order].astype(int),
         }
+        independent_audit_observable, independent_audit_truth = (
+            generate_independent_inclusion_audit(
+                seed=independent_audit_seed, n_audit=max(sizes),
+                z_min=z_min, z_max=z_max, intercept=true_intercept,
+                slope=true_slope, quadratic=true_quadratic,
+            )
+        )
         # Persist raw provenance even when an estimator or posterior fails.
         # Truth-only fields remain separate from inference inputs.
         event_truth_payload = {
@@ -237,8 +246,16 @@ def run_estimated_inclusion_pilot(
                     "true_max_inverse_probability": true_max_inverse_probability,
                     "true_retention_rate": true_retention_rate,
                     "audit_included_count": (
-                        int(np.sum(audit_records["included"][:int(arm.rsplit("_", 1)[1])]))
-                        if arm.startswith("estimated_") else None
+                        int(np.sum((
+                            independent_audit_observable["included"].to_numpy()
+                            if arm.startswith("independent_") else audit_records["included"]
+                        )[:int(arm.rsplit("_", 1)[1])]))
+                        if arm.startswith(("estimated_", "independent_")) else None
+                    ),
+                    "audit_design": (
+                        "independent_cohort" if arm.startswith("independent_")
+                        else "shared_source_frame" if arm.startswith("estimated_")
+                        else "not_applicable"
                     ),
                     "inference_audit_schema": (
                         "toy_selection_provenance_v2" if arm.startswith("estimated_") else None
@@ -259,6 +276,11 @@ def run_estimated_inclusion_pilot(
         ]
         arm_specs.extend(
             (f"estimated_{family}_{m}", m, (m, degree))
+            for m in sizes
+            for family, degree in (("linear", 1), ("quadratic", 2))
+        )
+        arm_specs.extend(
+            (f"independent_{family}_{m}", m, (m, degree))
             for m in sizes
             for family, degree in (("linear", 1), ("quadratic", 2))
         )
@@ -305,8 +327,12 @@ def run_estimated_inclusion_pilot(
                 else:
                     m, model_degree = spec
                     m = int(m)
-                    validation_z = audit_records["redshift"][:m]
-                    validation_included = audit_records["included"][:m]
+                    if arm.startswith("independent_"):
+                        validation_z = independent_audit_observable["redshift"].to_numpy(dtype=float)[:m]
+                        validation_included = independent_audit_observable["included"].to_numpy(dtype=int)[:m]
+                    else:
+                        validation_z = audit_records["redshift"][:m]
+                        validation_included = audit_records["included"][:m]
                     audit_validation_redshift = np.asarray(validation_z, dtype=float)
                     audit_validation_included = np.asarray(validation_included, dtype=int)
                     result = estimate_host_density_from_validation(
@@ -354,6 +380,7 @@ def run_estimated_inclusion_pilot(
                 rows.append({
                     "replicate": replicate, "replicate_seed": sim_seed,
                     "catalogue_seed": catalogue_seed, "audit_seed": audit_seed,
+                    "independent_audit_seed": independent_audit_seed,
                     "arm": arm, "validation_size": int(audit_size),
                     "inclusion_model_family": (
                         fitted_inclusion_model.get("model") if fitted_inclusion_model else None
@@ -373,8 +400,15 @@ def run_estimated_inclusion_pilot(
                     "true_max_inverse_probability": true_max_inverse_probability,
                     "true_retention_rate": true_retention_rate,
                     "audit_included_count": (
-                        int(np.sum(audit_records["included"][:audit_size]))
-                        if audit_size else None
+                        int(np.sum((
+                            independent_audit_observable["included"].to_numpy()
+                            if arm.startswith("independent_") else audit_records["included"]
+                        )[:audit_size])) if audit_size else None
+                    ),
+                    "audit_design": (
+                        "independent_cohort" if arm.startswith("independent_")
+                        else "shared_source_frame" if arm.startswith("estimated_")
+                        else "not_applicable"
                     ),
                     "posterior_mean": post["posterior_mean"],
                     "posterior_median": post["posterior_median"],
@@ -510,8 +544,8 @@ def run_estimated_inclusion_pilot(
     if not successful.empty:
         baseline = successful.loc[successful["arm"] == "catalogue_only"].set_index("replicate")
         for arm in ["oracle"] + [
-            f"estimated_{family}_{m}" for m in sizes
-            for family in ("linear", "quadratic")
+            f"{design}_{family}_{m}" for design in ("estimated", "independent")
+            for m in sizes for family in ("linear", "quadratic")
         ]:
             comparison = successful.loc[successful["arm"] == arm].set_index("replicate")
             paired = baseline[["absolute_error"]].merge(
@@ -609,18 +643,26 @@ def run_estimated_inclusion_pilot(
 
     if not successful.empty:
         for arm in [
-            f"estimated_{family}_{m}" for m in sizes
-            for family in ("linear", "quadratic")
+            f"{design}_{family}_{m}" for design in ("estimated", "independent")
+            for m in sizes for family in ("linear", "quadratic")
         ]:
             _append_paired_metric("coverage_68", "catalogue_only", arm, "covered_68")
             _append_paired_metric("interval_width_68", "catalogue_only", arm, "ci68_width")
             _append_paired_metric("host_density_ise", "catalogue_only", arm, "density_ise")
-        for m in sizes:
-            _append_paired_metric(
-                "inclusion_probability_mae",
-                f"estimated_linear_{m}", f"estimated_quadratic_{m}",
-                "inclusion_probability_mae",
-            )
+        for design in ("estimated", "independent"):
+            for m in sizes:
+                _append_paired_metric(
+                    "inclusion_probability_mae",
+                    f"{design}_linear_{m}", f"{design}_quadratic_{m}",
+                    "inclusion_probability_mae",
+                )
+        for family in ("linear", "quadratic"):
+            for m in sizes:
+                _append_paired_metric(
+                    "absolute_error",
+                    f"estimated_{family}_{m}", f"independent_{family}_{m}",
+                    "absolute_error",
+                )
 
     summary = {
         "study": "estimated_catalogue_inclusion_probability_pilot",
@@ -639,6 +681,11 @@ def run_estimated_inclusion_pilot(
         "redshift_grid": [float(z_min), float(z_max), int(z_points)],
         "bandwidth_factor": None if bandwidth_factor is None else float(bandwidth_factor),
         "validation_sizes": list(sizes),
+        "audit_designs": ["shared_source_frame", "independent_cohort"],
+        "independent_audit_sampling": (
+            "fresh redshifts from normalized latent intensity and fresh "
+            "Bernoulli retention labels; disjoint namespaced IDs"
+        ),
         "estimated_model_families": {
             "linear": {"degree": 1, "model": "logistic_inclusion_v1"},
             "quadratic": {"degree": 2, "model": "quadratic_logistic_inclusion_v1"},
