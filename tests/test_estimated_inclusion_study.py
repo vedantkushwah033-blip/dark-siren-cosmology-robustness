@@ -186,6 +186,9 @@ def test_too_few_retained_catalogue_objects_are_recorded_without_unbound_feature
     assert frame["fit_status"].eq("not_attempted").all()
     assert frame["fit_boundary_limited"].eq(False).all()
     assert frame["error"].eq("too few retained catalogue objects").all()
+    estimated = frame.loc[frame["arm"].eq("estimated_20")]
+    assert estimated["inference_audit_payload_json"].notna().all()
+    assert estimated["scoring_audit_payload_json"].notna().all()
     assert summary["status"] == "NON_CONFIRMATORY_SYNTHETIC_PILOT"
 
 def test_pilot_rejects_numerically_saturated_true_inclusion_probabilities():
