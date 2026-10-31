@@ -290,7 +290,7 @@ The runner applies the existing studentized pseudo-population SRSWOR procedure, 
 
 The manifest included in the repository is a smoke-test design (three synthetic scenarios, two frames per scenario, three outer repetitions per sample-size cell, and 25 inner bootstrap replicates). It is deliberately too small for confirmatory inference. The runner labels outputs `PILOT_NOT_CONFIRMATORY`.
 
-The v3 runner is not yet an independently audited scientific artifact. Its tests exercise complete paired key coverage and method-order invariance, but the independent v3 auditor, planning-stage precision analysis, frozen confirmatory manifest, and confirmatory run remain outstanding. No new coverage result or method ranking is asserted here.
+The v3 smoke runner and independent auditor were subsequently executed in GitHub Actions run 41176574199. The workflow reported 7 dedicated runner/auditor tests passing and independently reconstructed the smoke artifact's six frames, 36 outer sample keys, 108 method-level rows, interval endpoints, and summaries. This is a software-validation result only: three outer repetitions per frame/sample-size cell and two frames per regime are far too few for coverage comparisons or method rankings. The confirmatory design, precision analysis, and confirmatory run remain outstanding.
 
 
 ## 23. v3 independent auditor and manifest hardening (implementation update; no new result)
@@ -305,10 +305,10 @@ The auditor regenerates finite frames, reconstructs the paired SRSWOR samples an
 
 The v3 manifest now also requires at least two inner bootstrap replicates. This is a minimum computational validity constraint for the studentized interval's bootstrap quantiles, not a recommendation for adequate Monte Carlo precision. A practical or confirmatory design will require substantially more inner replicates, selected through a separate stability/precision analysis.
 
-At the time of this update, the runner, auditor, and manifest-hardening changes have been committed, but exact-head CI and the CI-generated smoke artifact audit are still pending. Therefore this section reports implemented validation machinery only. It does not claim a v3 smoke audit PASS, a coverage estimate, or a confirmatory result. The next release gate is a green exact-head CI run with the smoke artifact independently audited, followed by a planning-only study of frame-level Monte Carlo precision.
+The initial v3 smoke execution and independent audit passed in run 41176574199, as summarized above. A subsequent inspection of the workflow upload log found that the smoke directory had not been included in that run's uploaded artifact. The workflow was corrected to add artifacts/multiframe_v3_smoke/ to the upload path, and the manuscript now distinguishes successful in-job reconstruction from durable artifact archival. The exact-head CI run for the archival correction and subsequent manuscript update remains pending; until its artifact is downloaded and inspected, durable archival is not verified. No coverage estimate, method ranking, or confirmatory result is claimed.
 
 
-## 11. Subsequent software development (separate from the v1 results)
+## 24. Subsequent software development (separate from the v1 results)
 
 After the v1 pilot described above, the repository developed a versioned multi-frame v3 workflow with a deterministic seed schedule, independently generated finite frames, paired outer samples, method-specific random streams, and an independent artifact auditor. A small smoke manifest was executed in GitHub Actions. The successful workflow run 41176574199 reported that the v3 runner/auditor tests passed and that the smoke artifact's six frames, 36 outer sample keys, 108 method-level records, interval endpoints, and summaries were independently reconstructed.
 
