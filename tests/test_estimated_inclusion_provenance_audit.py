@@ -50,6 +50,9 @@ def _write_fixture(tmp_path: Path) -> tuple[Path, Path]:
         "observed_distances_mpc": generated["gw_events_observed"]["distance_mpc"].tolist(),
     }
     scoring = {
+        "gw_event_host_object_id": generated["gw_event_truth"]["host_object_id"].tolist(),
+        "gw_event_host_redshift": generated["gw_event_truth"]["host_redshift"].tolist(),
+        "gw_event_latent_mean_distance_mpc": generated["gw_event_truth"]["latent_mean_distance_mpc"].tolist(),
         "parent_redshift": parent_z.tolist(),
         "true_inclusion_probability": true_p.tolist(),
     }
@@ -118,4 +121,15 @@ def test_seed_level_provenance_audit_rejects_tampered_event_distance(tmp_path):
     frame.loc[0, "inference_audit_payload_json"] = json.dumps(payload)
     frame.to_csv(replicates, index=False)
     with pytest.raises(AssertionError, match="detected GW distance observations"):
+        AUDITOR.audit_provenance(replicates, summary)
+
+
+def test_seed_level_provenance_audit_rejects_tampered_gw_host_identity(tmp_path):
+    replicates, summary = _write_fixture(tmp_path)
+    frame = pd.read_csv(replicates)
+    payload = json.loads(frame.loc[0, "scoring_audit_payload_json"])
+    payload["gw_event_host_object_id"][0] = (payload["gw_event_host_object_id"][0] + 1) % 500
+    frame.loc[0, "scoring_audit_payload_json"] = json.dumps(payload)
+    frame.to_csv(replicates, index=False)
+    with pytest.raises(AssertionError, match="detected GW host IDs"):
         AUDITOR.audit_provenance(replicates, summary)
