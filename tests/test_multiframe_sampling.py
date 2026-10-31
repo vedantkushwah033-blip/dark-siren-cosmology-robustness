@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from dark_siren_robustness.multiframe_design import MANIFEST_SCHEMA
+from dark_siren_robustness.multiframe_design import MANIFEST_SCHEMA, generate_finite_frame
 from dark_siren_robustness.multiframe_sampling import (
     OUTER_SAMPLE_SCHEMA,
     generate_outer_sample,
@@ -92,6 +92,10 @@ def test_frame_and_sample_hashes_are_recorded(manifest):
     sample = generate_outer_sample(manifest, 4, 0, 20, 0)
     assert len(sample["indices_sha256"]) == 64
     assert len(sample["frame_sha256"]) == 64
+    frame = generate_finite_frame(manifest, 4, 0)
     assert sample["finite_population_mean"] == pytest.approx(
-        float(np.mean(sample["finite_population_mean"])), abs=0
+        float(np.mean(frame["values"])), abs=0
     )
+    assert sample["frame_sha256"] == __import__("hashlib").sha256(
+        np.ascontiguousarray(frame["values"], dtype="<f8").tobytes()
+    ).hexdigest()
