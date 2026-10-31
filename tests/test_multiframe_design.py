@@ -92,6 +92,11 @@ def test_frame_grid_has_balanced_explicit_hierarchy(manifest):
     ]
 
 
+def test_frame_generation_rejects_frame_outside_manifest_grid(manifest):
+    with pytest.raises(ValueError, match="outside the manifest frame grid"):
+        generate_finite_frame(manifest, 0, manifest["frames_per_scenario"])
+
+
 def test_unknown_scenario_and_negative_frame_are_rejected(manifest):
     with pytest.raises(ValueError, match="unknown"):
         generate_finite_frame(manifest, 99, 0)
