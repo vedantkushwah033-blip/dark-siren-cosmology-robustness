@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import pytest
 
-from dark_siren_robustness.frame_precision_planning import plan_independent_frames
+from dark_siren_robustness.frame_precision_planning import (
+    plan_frame_count_sensitivity,
+    plan_independent_frames,
+)
 
 
 def test_frame_planner_returns_precision_attainment_and_planning_label():
@@ -87,3 +90,50 @@ def test_more_pilot_frames_tighten_upper_sd_bound():
         variance_confidence=0.90,
     )
     assert longer["upper_planning_sd"] < short["upper_planning_sd"]
+
+def test_frame_count_sensitivity_is_monotone_in_sd_stress():
+    rows = plan_frame_count_sensitivity(
+        0.1,
+        0.04,
+        pilot_frame_count=20,
+        sd_multipliers=(0.75, 1.0, 1.25),
+        variance_confidences=(0.90, 0.95),
+        minimum_frames=5,
+        maximum_frames=10_000,
+    )
+    assert len(rows) == 6
+    for level in (0.90, 0.95):
+        group = [row for row in rows if row["variance_confidence"] == level]
+        counts = [row["minimum_frames_for_target"] for row in group]
+        assert counts == sorted(counts)
+        assert all(row["status"] == "PLANNING_ONLY_NOT_CONFIRMATORY" for row in group)
+
+
+def test_frame_count_sensitivity_is_monotone_in_variance_confidence():
+    rows = plan_frame_count_sensitivity(
+        0.1,
+        0.04,
+        pilot_frame_count=20,
+        sd_multipliers=(1.0,),
+        variance_confidences=(0.80, 0.90, 0.95, 0.975),
+        minimum_frames=5,
+        maximum_frames=10_000,
+    )
+    counts = [row["minimum_frames_for_target"] for row in rows]
+    assert counts == sorted(counts)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"sd_multipliers": ()},
+        {"sd_multipliers": (1.0, 0.0)},
+        {"variance_confidences": ()},
+        {"variance_confidences": (0.9, 1.0)},
+    ],
+)
+def test_frame_count_sensitivity_rejects_invalid_stress_grid(kwargs):
+    with pytest.raises((TypeError, ValueError)):
+        plan_frame_count_sensitivity(
+            0.1, 0.05, pilot_frame_count=10, **kwargs
+        )
