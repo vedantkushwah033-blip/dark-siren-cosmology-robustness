@@ -275,3 +275,19 @@ For each explicit scenario × frame × sample-size × replicate key, the sampler
 The grid generator creates every declared outer-sample key in canonical order and rejects out-of-design coordinates. Tests check reproducibility, uniqueness of sampled units, coordinate separation, immutability, grid completeness, and frame provenance.
 
 This advances v3 through deterministic frame generation and paired outer sampling. It still does not execute the interval methods, persist a full benchmark artifact, or provide an independent artifact audit. No coverage or method-performance result is claimed.
+
+
+## 22. Executable v3 paired multi-frame pilot runner
+
+The v3 architecture now includes an executable pilot runner:
+
+- `scripts/run_multiframe_v3_pilot.py`
+- `tests/test_multiframe_v3_runner.py`
+- `configs/multiframe_v3_smoke_manifest.json`
+- [Runner protocol and output contract](../docs/multiframe_v3_pilot_runner_2026-10-31.md)
+
+The runner applies the existing studentized pseudo-population SRSWOR procedure, a Wald SRSWOR interval, and an ordinary percentile bootstrap to the same outer sample. Method-specific seeds are derived from stable method identifiers and independent seed domains, so method execution order does not alter stochastic streams. It writes finite-frame units, replicate-level outcomes, per-frame summaries, equal-frame-weighted descriptive summaries, software metadata, and checksums.
+
+The manifest included in the repository is a smoke-test design (three synthetic scenarios, two frames per scenario, three outer repetitions per sample-size cell, and 25 inner bootstrap replicates). It is deliberately too small for confirmatory inference. The runner labels outputs `PILOT_NOT_CONFIRMATORY`.
+
+The v3 runner is not yet an independently audited scientific artifact. Its tests exercise complete paired key coverage and method-order invariance, but the independent v3 auditor, planning-stage precision analysis, frozen confirmatory manifest, and confirmatory run remain outstanding. No new coverage result or method ranking is asserted here.
