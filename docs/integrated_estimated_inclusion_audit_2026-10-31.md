@@ -343,3 +343,12 @@ The Actions run for head `09d56f00362cd83a0c6185dd185a2114b567e4b5` advanced bey
 3. The adversarial failed-row test attempted to assign a string into a Boolean-typed pandas column. The fixture now converts that column to object dtype before injecting the string value.
 
 Commit `895da23a6ffed5aefd87b96df48eb5101ffafd16` implements the auditor corrections; commit `94cd14d07a1ef26ee2bd971b7499f1b91f02311c` repairs the two test fixtures. The workflow run containing these fixes has not yet completed, so these changes remain pending execution evidence.
+
+
+### Section 19 — Align failed-row provenance test with the auditor's documented count
+
+Actions run `41210299863` reached the estimated-inclusion stage on Python 3.11. The runner tests passed (10/10), the independent main artifact-auditor tests passed (32/32), the baseline smoke pilot generated 12 rows with zero failed fits, and its independent artifact audit returned `PASS`. The seed-level provenance test suite then reported 10 passes and one failure.
+
+The sole failure was a stale test expectation, not a reconstruction discrepancy: `estimated_arm_rows_reconstructed` intentionally counts **all** reconstructed estimated-arm rows, including a row whose downstream fit was marked failed. In the two-row fixture, one row was failed, so the correct totals are two reconstructed estimated-arm rows and one failed estimated-arm row. The regression test now asserts those semantics explicitly (commit `b12309d2133501d7619f294ab9488420620eae28`).
+
+Because the provenance test failed, the workflow did not proceed to the nonlinear stress smoke experiment. A new CI run is required to verify the corrected expectation and then execute the downstream provenance and nonlinear smoke audits.
