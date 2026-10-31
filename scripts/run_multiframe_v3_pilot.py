@@ -207,7 +207,7 @@ def run_multiframe_v3(manifest: dict, output_dir: Path) -> dict:
         "python": platform.python_version(), "numpy": np.__version__,
         "frame_rows": design["population_size"] * design["frames_per_scenario"] * len(design["scenarios"]),
         "outer_sample_keys": len(design["scenarios"]) * design["frames_per_scenario"] * len(design["sample_sizes"]) * design["outer_repetitions"],
-        "replicate_rows": len(frame_records) * len(method_ids),
+        "replicate_rows": len(frame_records),
         "frame_csv_sha256": _sha256(frame_path),
         "replicate_csv_sha256": _sha256(replicate_path),
         "frame_summary_csv_sha256": _sha256(summary_path),
