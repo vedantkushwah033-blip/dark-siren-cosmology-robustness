@@ -59,25 +59,6 @@ def test_independent_auditor_rejects_corrupted_paired_model_contrast(tmp_path):
         audit_pilot_artifacts(tmp_path)
 
 
-def test_independent_auditor_rejects_corrupted_paired_model_contrast(tmp_path):
-    frame, summary = run_estimated_inclusion_pilot(
-        n_replicates=3,
-        n_parent=1200,
-        n_detected=6,
-        validation_sizes=(150,),
-        seed=20261066,
-        h0_points=41,
-        z_points=201,
-        true_quadratic=1.2,
-    )
-    assert summary["paired_model_contrasts"], frame[["arm", "status", "error"]].to_dict("records")
-    summary["paired_model_contrasts"][0]["mean_absolute_error_reduction"] += 1.0
-    frame.to_csv(tmp_path / "replicates.csv", index=False)
-    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
-    with pytest.raises(AssertionError, match="model_contrast.mean"):
-        audit_pilot_artifacts(tmp_path)
-
-
 def test_independent_pilot_auditor_detects_corrupted_summary(tmp_path):
     frame, summary = run_estimated_inclusion_pilot(
         n_replicates=1,
