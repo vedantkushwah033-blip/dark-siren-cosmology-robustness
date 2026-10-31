@@ -138,8 +138,10 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
             raise AssertionError("estimated-arm validation records are invalid")
         validation_y = validation_y_raw.astype(float)
         if arm_name.startswith("independent_"):
-            if not all(str(value).startswith("independent-audit:") for value in validation_ids):
-                raise AssertionError("independent audit IDs are not namespaced")
+            normalized_ids = validation_ids.astype(str)
+            if (not all(value.startswith("independent-audit:") for value in normalized_ids)
+                    or np.unique(normalized_ids).size != validation_ids.size):
+                raise AssertionError("independent audit IDs are not unique and namespaced")
         else:
             try:
                 source_ids = validation_ids.astype(np.int64)
