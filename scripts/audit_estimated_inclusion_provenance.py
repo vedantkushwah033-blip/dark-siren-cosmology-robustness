@@ -52,7 +52,7 @@ def _detected_event_distances(
     detection_threshold_mpc: float,
     z_min: float,
     z_max: float,
-) -> np.ndarray:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Replay the production generator's event RNG stream without importing it.
 
     The production generator consumes one parent-redshift draw per parent
@@ -66,7 +66,8 @@ def _detected_event_distances(
     rng.random(int(n_parent))  # generator's own catalogue-thinning uniforms
     host_weight = 1.0 + 1.5 * (parent_redshift - z_min) / (z_max - z_min)
     host_probability = host_weight / host_weight.sum()
-    accepted: list[np.ndarray] = []
+    accepted_ids: list[np.ndarray] = []
+    accepted_distances: list[np.ndarray] = []
     n_accepted = 0
     attempts = 0
     max_attempts = max(100_000, int(n_detected) * 2_000)
@@ -78,14 +79,19 @@ def _detected_event_distances(
         detected = measured >= detection_threshold_mpc
         if np.any(detected):
             take = min(n_detected - n_accepted, int(np.sum(detected)))
-            accepted.append(measured[detected][:take])
+            accepted_ids.append(host_ids[detected][:take])
+            accepted_distances.append(measured[detected][:take])
             n_accepted += take
         attempts += batch
     if n_accepted != n_detected:
         raise AssertionError(
             f"event replay generated {n_accepted}/{n_detected} detections"
         )
-    return np.concatenate(accepted)
+    host_ids = np.concatenate(accepted_ids).astype(np.int64)
+    distances = np.concatenate(accepted_distances)
+    host_redshift = parent_redshift[host_ids]
+    latent_mean = 299_792.458 * host_redshift / h0_true
+    return host_ids, host_redshift, latent_mean, distances
 
 
 def _same_array(actual: object, expected: np.ndarray, label: str) -> None:
@@ -151,7 +157,7 @@ def audit_provenance(
         true_probability = expit(
             intercept + slope * x + quadratic * (x**2 - 1.0 / 3.0)
         )
-        expected_distances = _detected_event_distances(
+        expected_host_ids, expected_host_z, expected_latent_mean, expected_distances = _detected_event_distances(
             expected_sim, n_parent, parent_z, int(summary["n_detected"]),
             float(summary["h0_true"]), float(summary["sigma_mpc"]),
             float(summary["detection_threshold_mpc"]), z_min, z_max,
@@ -171,6 +177,11 @@ def audit_provenance(
                 observed_distances = np.asarray(
                     inference["observed_distances_mpc"], dtype=float
                 )
+                stored_host_ids = np.asarray(scoring["gw_event_host_object_id"], dtype=np.int64)
+                stored_host_z = np.asarray(scoring["gw_event_host_redshift"], dtype=float)
+                stored_latent_mean = np.asarray(
+                    scoring["gw_event_latent_mean_distance_mpc"], dtype=float
+                )
             except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
                 raise AssertionError(
                     f"replicate {replicate}, arm {row['arm']}: incomplete provenance payload"
@@ -179,6 +190,12 @@ def audit_provenance(
             _same_array(stored_parent, parent_z, f"replicate {replicate} parent frame")
             _same_array(stored_probability, true_probability, f"replicate {replicate} true inclusion probabilities")
             _same_array(catalogue_z, parent_z[retained], f"replicate {replicate} retained catalogue")
+            if not np.array_equal(stored_host_ids, expected_host_ids):
+                raise AssertionError(
+                    f"replicate {replicate}: detected GW host IDs do not match event RNG replay"
+                )
+            _same_array(stored_host_z, expected_host_z, f"replicate {replicate} detected GW host redshifts")
+            _same_array(stored_latent_mean, expected_latent_mean, f"replicate {replicate} latent mean distances")
             _same_array(
                 observed_distances, expected_distances,
                 f"replicate {replicate} detected GW distance observations",
@@ -217,11 +234,14 @@ def audit_provenance(
             "true quadratic-logistic inclusion probabilities",
             "catalogue-retention indicators",
             "nested validation redshifts and retention labels",
-            "detected GW distance observations and event RNG stream",
+            "detected GW host IDs, host redshifts, latent distances, observed distances, and event RNG stream",
         ],
         "scope": (
-            "Seed-level reconstruction of parent/catalogue/validation inputs only. "
-            "GW event generation is not reconstructed by this audit."
+            "Seed-level reconstruction of parent redshifts, catalogue retention, "
+            "validation samples, detected GW host identities, host redshifts, "
+            "latent mean distances, and observed detected distances for successful "
+            "estimated-inclusion rows. This validates deterministic synthetic "
+            "provenance, not astrophysical realism or real detector selection."
         ),
     }
 
