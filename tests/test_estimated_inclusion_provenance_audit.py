@@ -20,7 +20,7 @@ def _write_fixture(tmp_path: Path) -> tuple[Path, Path]:
 
     master_seed = 20261030
     replicate = 0
-    sim_seed, catalogue_seed, audit_seed = AUDITOR._component_seeds(master_seed, replicate)
+    sim_seed, catalogue_seed, audit_seed, independent_audit_seed = AUDITOR._component_seeds(master_seed, replicate)
     n_parent = 500
     n_detected = 30
     z_min, z_max = 0.01, 0.40
@@ -43,30 +43,53 @@ def _write_fixture(tmp_path: Path) -> tuple[Path, Path]:
     retained = np.random.default_rng(catalogue_seed).random(n_parent) < true_p
     order = np.random.default_rng(audit_seed).permutation(n_parent)
     m = 100
-    inference = {
-        "validation_redshift": parent_z[order[:m]].tolist(),
-        "validation_included": retained[order[:m]].astype(int).tolist(),
-        "catalogue_redshift": parent_z[retained].tolist(),
-        "observed_distances_mpc": generated["gw_events_observed"]["distance_mpc"].tolist(),
-    }
-    scoring = {
-        "gw_event_host_object_id": generated["gw_event_truth"]["host_object_id"].tolist(),
-        "gw_event_host_redshift": generated["gw_event_truth"]["host_redshift"].tolist(),
-        "gw_event_latent_mean_distance_mpc": generated["gw_event_truth"]["latent_mean_distance_mpc"].tolist(),
-        "parent_redshift": parent_z.tolist(),
-        "true_inclusion_probability": true_p.tolist(),
-    }
-    rows = [{
-        "replicate": replicate,
-        "replicate_seed": sim_seed,
-        "catalogue_seed": catalogue_seed,
-        "audit_seed": audit_seed,
-        "arm": f"estimated_{family}_{m}",
-        "validation_size": m,
-        "status": "success",
-        "inference_audit_payload_json": json.dumps(inference),
-        "scoring_audit_payload_json": json.dumps(scoring),
-    } for family in ("linear", "quadratic")]
+    independent_z, independent_y, independent_ids = AUDITOR._independent_audit_sample(
+        independent_audit_seed, 300, z_min, z_max, 0.25, -1.2, 0.3
+    )
+    independent_x = (independent_z - (z_min + z_max) / 2) / ((z_max - z_min) / 2)
+    independent_p = expit(0.25 - 1.2 * independent_x + 0.3 * (independent_x**2 - 1/3))
+    rows = []
+    for design in ("estimated", "independent"):
+        if design == "estimated":
+            validation_z = parent_z[order[:m]]
+            validation_y = retained[order[:m]].astype(int)
+            validation_ids = order[:m].astype(int).tolist()
+            design_label = "shared_source_frame"
+        else:
+            validation_z = independent_z[:m]
+            validation_y = independent_y[:m]
+            validation_ids = independent_ids[:m].tolist()
+            design_label = "independent_cohort"
+        inference = {
+            "audit_design": design_label,
+            "validation_object_id": validation_ids,
+            "validation_redshift": validation_z.tolist(),
+            "validation_included": validation_y.tolist(),
+            "catalogue_redshift": parent_z[retained].tolist(),
+            "observed_distances_mpc": generated["gw_events_observed"]["distance_mpc"].tolist(),
+        }
+        scoring = {
+            "gw_event_host_object_id": generated["gw_event_truth"]["host_object_id"].tolist(),
+            "gw_event_host_redshift": generated["gw_event_truth"]["host_redshift"].tolist(),
+            "gw_event_latent_mean_distance_mpc": generated["gw_event_truth"]["latent_mean_distance_mpc"].tolist(),
+            "parent_redshift": parent_z.tolist(),
+            "true_inclusion_probability": true_p.tolist(),
+            "independent_audit_truth_redshift": independent_z.tolist(),
+            "independent_audit_true_inclusion_probability": independent_p.tolist(),
+        }
+        for family in ("linear", "quadratic"):
+            rows.append({
+                "replicate": replicate,
+                "replicate_seed": sim_seed,
+                "catalogue_seed": catalogue_seed,
+                "audit_seed": audit_seed,
+                "independent_audit_seed": independent_audit_seed,
+                "arm": f"{design}_{family}_{m}",
+                "validation_size": m,
+                "status": "success",
+                "inference_audit_payload_json": json.dumps(inference),
+                "scoring_audit_payload_json": json.dumps(scoring),
+            })
     replicate_path = tmp_path / "replicates.csv"
     pd.DataFrame(rows).to_csv(replicate_path, index=False)
     summary_path = tmp_path / "summary.json"
@@ -91,7 +114,7 @@ def test_seed_level_provenance_audit_reconstructs_parent_catalogue_and_validatio
     report = AUDITOR.audit_provenance(replicates, summary)
     assert report["status"] == "PASS"
     assert report["replicates_reconstructed"] == 1
-    assert report["estimated_arm_rows_reconstructed"] == 2
+    assert report["estimated_arm_rows_reconstructed"] == 4
 
 
 def test_seed_level_provenance_audit_rejects_tampered_validation_label(tmp_path):
@@ -148,7 +171,7 @@ def test_seed_level_provenance_audit_reconstructs_failed_estimated_arm(tmp_path)
     assert report["failed_estimated_arm_rows_reconstructed"] == 1
     # The provenance counter includes every reconstructed estimated-arm row,
     # regardless of whether the downstream posterior fit succeeded.
-    assert report["estimated_arm_rows_reconstructed"] == 2
+    assert report["estimated_arm_rows_reconstructed"] == 4
 
 
 def test_seed_level_provenance_audit_rejects_missing_requested_replicate(tmp_path):
