@@ -158,11 +158,12 @@ def audit_provenance(
         or len(set(validation_sizes)) != len(validation_sizes)
     ):
         raise AssertionError("summary.validation_sizes must be unique integer counts >= 10")
-    expected_estimated_arms = {
-        f"estimated_{family}_{size}"
+    expected_estimated_arm_sizes = {
+        f"estimated_{family}_{size}": size
         for size in validation_sizes
         for family in ("linear", "quadratic")
     }
+    expected_estimated_arms = set(expected_estimated_arm_sizes)
 
     n_parent = int(summary["n_parent"])
     z_min, z_max = map(float, summary["redshift_grid"][:2])
@@ -222,6 +223,18 @@ def audit_provenance(
         audit_order = np.random.default_rng(expected_audit).permutation(n_parent)
 
         for _, row in estimated.iterrows():
+            arm = str(row["arm"])
+            raw_validation_size = pd.to_numeric(
+                pd.Series([row["validation_size"]]), errors="raise"
+            ).iloc[0]
+            if (
+                not np.isfinite(raw_validation_size)
+                or raw_validation_size != np.floor(raw_validation_size)
+                or int(raw_validation_size) != expected_estimated_arm_sizes[arm]
+            ):
+                raise AssertionError(
+                    f"replicate {replicate}, arm {arm}: arm label/validation_size mismatch"
+                )
             try:
                 inference = json.loads(row["inference_audit_payload_json"])
                 scoring = json.loads(row["scoring_audit_payload_json"])
