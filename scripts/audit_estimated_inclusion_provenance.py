@@ -145,6 +145,25 @@ def audit_provenance(
             f"(missing={missing}, unexpected={unexpected})"
         )
 
+    validation_sizes = summary.get("validation_sizes")
+    if (
+        not isinstance(validation_sizes, list)
+        or not validation_sizes
+        or any(
+            isinstance(value, bool)
+            or not isinstance(value, int)
+            or value < 10
+            for value in validation_sizes
+        )
+        or len(set(validation_sizes)) != len(validation_sizes)
+    ):
+        raise AssertionError("summary.validation_sizes must be unique integer counts >= 10")
+    expected_estimated_arms = {
+        f"estimated_{family}_{size}"
+        for size in validation_sizes
+        for family in ("linear", "quadratic")
+    }
+
     n_parent = int(summary["n_parent"])
     z_min, z_max = map(float, summary["redshift_grid"][:2])
     model = summary["true_inclusion_model"]
@@ -159,6 +178,18 @@ def audit_provenance(
     checked_event_rows = 0
     for replicate, group in frame.groupby("replicate", sort=True):
         replicate = int(replicate)
+        observed_estimated_arms = set(
+            group.loc[
+                group["arm"].astype(str).str.startswith("estimated_"), "arm"
+            ].astype(str)
+        )
+        if observed_estimated_arms != expected_estimated_arms:
+            missing = sorted(expected_estimated_arms - observed_estimated_arms)
+            unexpected = sorted(observed_estimated_arms - expected_estimated_arms)
+            raise AssertionError(
+                f"replicate {replicate}: estimated-arm matrix mismatch "
+                f"(missing={missing}, unexpected={unexpected})"
+            )
         expected_sim, expected_catalogue, expected_audit = _component_seeds(
             int(summary["seed"]), replicate
         )
