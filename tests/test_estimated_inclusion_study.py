@@ -277,9 +277,10 @@ def test_pilot_reports_paired_secondary_outcomes_for_shared_replicates():
     expected_coverage_difference = (
         reference_coverage - comparison_coverage
     ).mean()
-    assert coverage_contrast["mean_difference_reference_minus_comparison"] == pytest.approx(
-        expected_coverage_difference
-    )
+    assert abs(
+        coverage_contrast["mean_difference_reference_minus_comparison"]
+        - expected_coverage_difference
+    ) < 1e-12
     assert set(frame["arm"]) >= {
         "catalogue_only", "estimated_linear_150", "estimated_quadratic_150"
     }
