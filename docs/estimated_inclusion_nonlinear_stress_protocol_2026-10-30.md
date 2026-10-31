@@ -13,16 +13,22 @@ The generating retention law is allowed to be quadratic in a standardized redshi
 - **Linear logistic:** intercept plus linear redshift term.
 - **Quadratic logistic:** intercept, linear term, and quadratic term.
 
-The primary paired model contrast is
-\[
-D_r=|\widehat H_{0,r}^{\rm linear}-H_0^{\rm true}|
-    -|\widehat H_{0,r}^{\rm quadratic}-H_0^{\rm true}|.
-\]
-A positive value means the quadratic estimator has smaller absolute posterior-mean error for that replicate. This estimand says nothing by itself about interval coverage, uncertainty calibration, or general estimator superiority.
+The primary scientific contrast remains the practical comparison of each estimated-inclusion arm with the catalogue-only baseline. For arm \\(a\\), define
+\\[
+D_{r,m,a}=|\\widehat H_{0,r}^{\\rm catalogue}-H_0^{\\rm true}|
+          -|\\widehat H_{0,r,m,a}-H_0^{\\rm true}|,
+\\]
+where \\(a\\) is the linear or quadratic fitted inclusion model. Positive values favor estimated-inclusion weighting for absolute posterior-mean error only.
 
-A separate, secondary contrast compares each estimated-inclusion arm with the catalogue-only baseline. Oracle weighting is retained only as a simulation diagnostic using the known generating probabilities; it is not an implementable estimator.
+The paired model-family contrast is a secondary, mechanistic comparison:
+\\[
+Q_{r,m}=|\\widehat H_{0,r,m}^{\\rm linear}-H_0^{\\rm true}|
+       -|\\widehat H_{0,r,m}^{\\rm quadratic}-H_0^{\\rm true}|.
+\\]
+Positive values favor quadratic over linear for absolute point-estimation error only. Neither contrast alone establishes better interval coverage, uncertainty calibration, or general estimator superiority. Oracle weighting is retained only as a simulation diagnostic using the known generating probabilities; it is not an implementable estimator.
 
 All results are synthetic. They are not LVK/GWTC validation, a real-observation Hubble-constant measurement, or evidence that this toy selection law represents a particular survey.
+
 
 ## 2. Data-generating mechanism
 
@@ -72,10 +78,13 @@ Do not silently clip probabilities or cap weights. Any stabilized estimator must
 ## 5. Outcomes and reporting
 
 ### Primary outcome
-- Paired linear-minus-quadratic difference in absolute posterior-mean \(H_0\) error, with paired replicate count, mean, standard error, and interval.
-- Report the linear and quadratic arms' failure counts alongside the complete-case contrast. The paired contrast is conditional on both fits succeeding and must not conceal differential failures.
+- For each fitted model family and validation size, paired catalogue-only-minus-estimated difference in absolute posterior-mean \\(H_0\\) error, with attempted count, common-success pair count, mean, standard error, and interval.
+- Report the catalogue-only, linear, and quadratic failure counts. The complete-case paired contrast is conditional on both arms succeeding and must not conceal differential failures.
 
-### Required secondary outcomes
+### Secondary model-family outcome
+- Paired linear-minus-quadratic difference in absolute posterior-mean \\(H_0\\) error at each validation size. Report this separately from the practical estimated-versus-catalogue-only contrasts.
+
+### Required additional outcomes
 - Signed posterior-mean bias and RMSE.
 - Fixed-truth 68% interval coverage with Wilson uncertainty interval and mean interval width.
 - Inclusion-probability MAE evaluated over the complete synthetic parent frame; truth is scoring-only and must never enter fitting or posterior construction.
@@ -83,12 +92,13 @@ Do not silently clip probabilities or cap weights. Any stabilized estimator must
 - Logistic-fit failure and coefficient-boundary-hit rates.
 - Inverse-weight ESS and ESS fraction, maximum inverse weight, weight quantiles, and pre-posterior support/overlap diagnostics.
 
-The current pilot writes per-arm summaries and paired absolute-error contrasts. It does **not yet** provide paired linear-versus-quadratic contrasts for coverage, interval width, probability MAE, or host-density error. Those comparisons must be added to the producer, independent auditor, and adversarial tests before they are treated as confirmatory analysis outputs. Do not infer these contrasts from the current absolute-error contrast.
+The current pilot writes per-arm summaries and paired absolute-error contrasts, including a secondary linear-versus-quadratic absolute-error contrast. It does **not yet** provide paired contrasts for coverage, interval width, probability MAE, or host-density error. Those comparisons must be added to the producer, independent auditor, and adversarial tests before they are treated as confirmatory analysis outputs. Do not infer these contrasts from the current absolute-error contrasts.
 
 ### Monte Carlo precision
 The 20-replicate stage is a pipeline/runtime smoke test only. Do not use it to rank estimators. Before confirmatory runs, use pilot variability and a stated compute budget to select replicate counts. For coverage near 0.68, the binomial approximation gives a 95% Monte Carlo half-width of about 2 percentage points at roughly 2,100 independent replicates; paired designs and failure rates require additional planning. This approximation is a planning reference, not a universal required sample size or evidence of achieved precision.
 
 Treat the factorial cells as a family. Specify the primary contrast and multiplicity strategy before examining confirmatory outcomes. Report every cell, including failures and unfavorable results; do not select only the best curvature or validation size.
+
 
 ## 6. Analysis and audit discipline
 
