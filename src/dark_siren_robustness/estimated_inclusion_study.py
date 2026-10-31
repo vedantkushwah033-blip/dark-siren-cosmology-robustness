@@ -7,6 +7,9 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 import json
+import platform
+
+import scipy
 
 import numpy as np
 import pandas as pd
@@ -616,6 +619,12 @@ def run_estimated_inclusion_pilot(
     summary = {
         "study": "estimated_catalogue_inclusion_probability_pilot",
         "status": "NON_CONFIRMATORY_SYNTHETIC_PILOT",
+        "software_versions": {
+            "python": platform.python_version(),
+            "numpy": np.__version__,
+            "scipy": scipy.__version__,
+            "pandas": pd.__version__,
+        },
         "seed": int(seed), "n_replicates_requested": int(n_replicates),
         "n_parent": int(n_parent), "n_detected": int(n_detected),
         "h0_true": float(h0_true), "sigma_mpc": float(sigma_mpc),
