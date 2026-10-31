@@ -458,7 +458,7 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         for _, row in group.iterrows():
             arm = str(row["arm"])
             count = row["audit_included_count"]
-            if arm.startswith("estimated_"):
+            if arm.startswith(("estimated_", "independent_")):
                 m = int(arm.rsplit("_", 1)[1])
                 if pd.isna(count) or float(count) != int(float(count)) or not 0 <= int(float(count)) <= m:
                     raise AssertionError(f"{arm}: invalid audit_included_count")
@@ -527,9 +527,9 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
     if not np.allclose(retention, catalogue_counts / n_parent, rtol=1e-9, atol=1e-9):
         raise AssertionError("true_retention_rate disagrees with n_catalogue / n_parent")
     validation_counts = pd.to_numeric(frame["audit_included_count"], errors="coerce")
-    if validation_counts.loc[frame["arm"].str.startswith("estimated_")].isna().any():
+    if validation_counts.loc[frame["arm"].str.startswith(("estimated_", "independent_"))].isna().any():
         raise AssertionError("estimated arms must preserve their validation inclusion count")
-    estimated = frame.loc[frame["arm"].str.startswith("estimated_")].copy()
+    estimated = frame.loc[frame["arm"].str.startswith(("estimated_", "independent_"))].copy()
     if not estimated.empty:
         parsed_counts = _integer_values(
             estimated["audit_included_count"], "audit_included_count"
@@ -544,14 +544,14 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
                     f"nested validation inclusion counts decrease with sample size in replicate {replicate}"
                 )
     # Independently validate observable-only pre-posterior feature records.
-    estimated_success = success & frame["arm"].str.startswith("estimated_")
+    estimated_success = success & frame["arm"].str.startswith(("estimated_", "independent_"))
     if estimated_success.any():
         required_features = ["diagnostic_schema", "n_validation", "n_validation_included", "validation_inclusion_fraction", "catalogue_outside_validation_range_fraction", "catalogue_near_validation_boundary_fraction", "fitted_probability_min", "fitted_probability_p01", "fitted_probability_p05", "fitted_probability_median", "fitted_probability_max", "inverse_weight_ess", "inverse_weight_sum", "inverse_weight_sum_squares", "inverse_weight_ess_fraction", "inverse_weight_entropy_ess_fraction", "inverse_weight_max_share", "inverse_weight_top_1pct_mass", "inverse_weight_top_5pct_mass", "inverse_weight_max", "inverse_weight_p95", "inverse_weight_p99"]
         missing_features = [name for name in required_features if name not in frame.columns]
         if missing_features:
             raise AssertionError(f"replicate table missing pre-posterior features: {missing_features}")
     if "diagnostic_schema" in frame.columns:
-        if frame.loc[~frame["arm"].str.startswith("estimated_"), "diagnostic_schema"].notna().any():
+        if frame.loc[~frame["arm"].str.startswith(("estimated_", "independent_")), "diagnostic_schema"].notna().any():
             raise AssertionError("non-estimated arms must not contain pre-posterior diagnostic records")
         diagnostic_rows = frame.loc[frame["diagnostic_schema"].notna()].copy()
         if not diagnostic_rows.empty:
