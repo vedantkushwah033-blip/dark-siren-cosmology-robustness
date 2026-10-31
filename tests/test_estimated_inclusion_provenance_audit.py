@@ -174,3 +174,12 @@ def test_seed_level_provenance_audit_rejects_missing_estimated_arm(tmp_path):
     frame.to_csv(replicates, index=False)
     with pytest.raises(AssertionError, match="estimated-arm matrix mismatch"):
         AUDITOR.audit_provenance(replicates, summary)
+
+
+def test_seed_level_provenance_audit_rejects_arm_validation_size_mismatch(tmp_path):
+    replicates, summary = _write_fixture(tmp_path)
+    frame = pd.read_csv(replicates)
+    frame.loc[frame["arm"] == "estimated_linear_100", "validation_size"] = 101
+    frame.to_csv(replicates, index=False)
+    with pytest.raises(AssertionError, match="arm label/validation_size mismatch"):
+        AUDITOR.audit_provenance(replicates, summary)
