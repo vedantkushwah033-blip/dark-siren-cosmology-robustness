@@ -86,13 +86,11 @@ def run_estimated_inclusion_pilot(
 ) -> tuple[pd.DataFrame, dict]:
     """Compare catalogue-only, oracle, and audit-estimated inclusion weighting.
 
-    The inclusion-audit sample is a simple random subsample of the same
-    finite parent frame, selected independently of the retention draw. Its
-    labels are nevertheless the same realized retention outcomes that define
-    the catalogue, so the audit sample and retained catalogue can overlap and
-    are statistically dependent. Subsamples are nested by size within replicate.
-    Non-oracle fitting sees only audit redshifts and retention indicators; true
-    probabilities are used only for scoring.
+    The shared-frame audit uses a subsample of the source frame and shares its
+    realized retention labels with the catalogue. The independent cohort uses
+    fresh redshifts from the same latent intensity and fresh retention draws.
+    Both designs use nested prefixes by validation size. Non-oracle fitting
+    sees only audit redshifts and retention indicators; truth is scoring-only.
 
     The pilot records failed arms instead of silently dropping them. Its small
     default replicate count is for runtime/variance planning, not confirmatory
@@ -251,6 +249,7 @@ def run_estimated_inclusion_pilot(
                 rows.append({
                     "replicate": replicate, "replicate_seed": sim_seed,
                     "catalogue_seed": catalogue_seed, "audit_seed": audit_seed,
+                    "independent_audit_seed": independent_audit_seed,
                     "arm": arm, "validation_size": 0 if arm in ("catalogue_only", "oracle") else int(arm.rsplit("_", 1)[1]),
                     "status": "failed", "error": "too few retained catalogue objects",
                     # No inclusion model or pre-posterior features were fitted:
