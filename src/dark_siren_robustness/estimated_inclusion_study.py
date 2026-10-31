@@ -227,6 +227,11 @@ def run_estimated_inclusion_pilot(
                 scoring_audit_payload: dict[str, object] = {
                     "schema": "inclusion_probability_scoring_only_v1",
                     "target_density_for_ise": target_density.tolist(),
+                    # Truth-only fields are kept out of inference inputs and
+                    # persisted separately for independent simulator replay.
+                    "gw_event_host_object_id": sim["gw_event_truth"]["host_object_id"].tolist(),
+                    "gw_event_host_redshift": sim["gw_event_truth"]["host_redshift"].tolist(),
+                    "gw_event_latent_mean_distance_mpc": sim["gw_event_truth"]["latent_mean_distance_mpc"].tolist(),
                 }
                 weight_ess = float("nan")
                 max_inverse_weight = float("nan")
