@@ -250,7 +250,7 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
         raise AssertionError("successful row lacks supported scoring-only payload schema")
     if target.shape != z.shape or not np.all(np.isfinite(target)) or np.any(target <= 0):
         raise AssertionError("scoring-only target density is malformed")
-    if arm_name.startswith("estimated_"):
+    if arm_name.startswith(("estimated_", "independent_")):
         try:
             parent_z = np.asarray(scoring["parent_redshift"], dtype=float)
             true_parent_p = np.asarray(scoring["true_inclusion_probability"], dtype=float)
@@ -621,7 +621,8 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
             if np.any(np.diff(weight_quantiles[:, 1:], axis=1) < -1e-12) or np.any(weight_quantiles[:, 1:] > weight_quantiles[:, :1] + 1e-9):
                 raise AssertionError("pre-posterior inverse-weight quantiles are inconsistent")
     expected_arms = {"catalogue_only", "oracle"} | {
-        f"estimated_{family}_{v}"
+        f"{design}_{family}_{v}"
+        for design in ("estimated", "independent")
         for v in validation_sizes for family in ("linear", "quadratic")
     }
     arms_in_rows = set(frame["arm"])
@@ -789,52 +790,52 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
     raw_model_contrasts = summary.get("paired_model_contrasts")
     if not isinstance(raw_model_contrasts, list):
         raise AssertionError("summary.paired_model_contrasts must be a list")
-    stored_by_size = {}
+    stored_by_design_size = {}
     for item in raw_model_contrasts:
         if not isinstance(item, dict) or "validation_size" not in item:
             raise AssertionError("each paired model contrast must identify validation_size")
-        size = int(item["validation_size"])
-        if size in stored_by_size:
-            raise AssertionError("duplicate paired model contrast validation_size")
-        stored_by_size[size] = item
-    expected_model_contrast_sizes = set()
+        key = (item.get("audit_design"), int(item["validation_size"]))
+        if key in stored_by_design_size:
+            raise AssertionError("duplicate paired model contrast design/size")
+        stored_by_design_size[key] = item
+    expected_model_contrast_keys = set()
     if not successful.empty:
-        for size in validation_sizes:
-            linear_name = f"estimated_linear_{size}"
-            quadratic_name = f"estimated_quadratic_{size}"
-            linear = successful.loc[successful["arm"] == linear_name].set_index("replicate")
-            quadratic = successful.loc[successful["arm"] == quadratic_name].set_index("replicate")
-            paired_models = linear[["absolute_error"]].merge(
-                quadratic[["absolute_error"]], left_index=True, right_index=True,
-                how="inner", suffixes=("_linear", "_quadratic")
-            )
-            if paired_models.empty:
-                continue
-            expected_model_contrast_sizes.add(int(size))
-            values = (
-                paired_models["absolute_error_linear"]
-                - paired_models["absolute_error_quadratic"]
-            ).to_numpy(dtype=float)
-            stored = stored_by_size.get(int(size))
-            if stored is None:
-                raise AssertionError(f"{size}: missing paired linear-versus-quadratic contrast")
-            if (stored.get("reference_arm") != linear_name
-                    or stored.get("comparison_arm") != quadratic_name
-                    or stored.get("positive_favors_quadratic") is not True):
-                raise AssertionError(f"{size}: paired model contrast labels are inconsistent")
-            _close(stored.get("n_paired_replicates"), values.size, f"{size}.model_contrast.n")
-            mean = float(np.mean(values))
-            _close(stored.get("mean_absolute_error_reduction"), mean, f"{size}.model_contrast.mean")
-            if values.size < 2:
-                se = low = high = None
-            else:
-                se = float(np.std(values, ddof=1) / np.sqrt(values.size))
-                low, high = mean - 1.96 * se, mean + 1.96 * se
-            _close(stored.get("standard_error"), se, f"{size}.model_contrast.se")
-            _close(stored.get("normal_95_low"), low, f"{size}.model_contrast.low")
-            _close(stored.get("normal_95_high"), high, f"{size}.model_contrast.high")
-    if set(stored_by_size) != expected_model_contrast_sizes:
-        raise AssertionError("paired model contrast sizes do not match evaluable paired arms")
+        for design in ("estimated", "independent"):
+            for size in validation_sizes:
+                linear_name = f"{design}_linear_{size}"
+                quadratic_name = f"{design}_quadratic_{size}"
+                linear = successful.loc[successful["arm"] == linear_name].set_index("replicate")
+                quadratic = successful.loc[successful["arm"] == quadratic_name].set_index("replicate")
+                paired_models = linear[["absolute_error"]].merge(
+                    quadratic[["absolute_error"]], left_index=True, right_index=True,
+                    how="inner", suffixes=("_linear", "_quadratic")
+                )
+                if paired_models.empty:
+                    continue
+                design_label = "independent_cohort" if design == "independent" else "shared_source_frame"
+                key = (design_label, int(size))
+                expected_model_contrast_keys.add(key)
+                values = (paired_models["absolute_error_linear"] - paired_models["absolute_error_quadratic"]).to_numpy(dtype=float)
+                stored = stored_by_design_size.get(key)
+                if stored is None:
+                    raise AssertionError(f"{key}: missing paired linear-versus-quadratic contrast")
+                if (stored.get("reference_arm") != linear_name
+                        or stored.get("comparison_arm") != quadratic_name
+                        or stored.get("positive_favors_quadratic") is not True):
+                    raise AssertionError(f"{key}: paired model contrast labels are inconsistent")
+                _close(stored.get("n_paired_replicates"), values.size, f"{key}.model_contrast.n")
+                mean = float(np.mean(values))
+                _close(stored.get("mean_absolute_error_reduction"), mean, f"{key}.model_contrast.mean")
+                if values.size < 2:
+                    se = low = high = None
+                else:
+                    se = float(np.std(values, ddof=1) / np.sqrt(values.size))
+                    low, high = mean - 1.96 * se, mean + 1.96 * se
+                _close(stored.get("standard_error"), se, f"{key}.model_contrast.se")
+                _close(stored.get("normal_95_low"), low, f"{key}.model_contrast.low")
+                _close(stored.get("normal_95_high"), high, f"{key}.model_contrast.high")
+    if set(stored_by_design_size) != expected_model_contrast_keys:
+        raise AssertionError("paired model contrast design/size keys do not match evaluable paired arms")
 
     # Independently reconstruct all paired secondary outcomes. The first
     # three compare each estimated arm with catalogue-only; inclusion-probability
@@ -879,19 +880,25 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
 
     if not successful.empty:
         for size in validation_sizes:
+            for design in ("estimated", "independent"):
+                for family in ("linear", "quadratic"):
+                    arm = f"{design}_{family}_{size}"
+                    for metric, column in (
+                        ("coverage_68", "covered_68"),
+                        ("interval_width_68", "ci68_width"),
+                        ("host_density_ise", "density_ise"),
+                    ):
+                        _independent_secondary(metric, "catalogue_only", arm, column)
+                _independent_secondary(
+                    "inclusion_probability_mae",
+                    f"{design}_linear_{size}", f"{design}_quadratic_{size}",
+                    "inclusion_probability_mae",
+                )
             for family in ("linear", "quadratic"):
-                arm = f"estimated_{family}_{size}"
-                for metric, column in (
-                    ("coverage_68", "covered_68"),
-                    ("interval_width_68", "ci68_width"),
-                    ("host_density_ise", "density_ise"),
-                ):
-                    _independent_secondary(metric, "catalogue_only", arm, column)
-            _independent_secondary(
-                "inclusion_probability_mae",
-                f"estimated_linear_{size}", f"estimated_quadratic_{size}",
-                "inclusion_probability_mae",
-            )
+                _independent_secondary(
+                    "absolute_error", f"estimated_{family}_{size}",
+                    f"independent_{family}_{size}", "absolute_error",
+                )
 
     if set(stored_secondary) != set(expected_secondary):
         missing = set(expected_secondary) - set(stored_secondary)
