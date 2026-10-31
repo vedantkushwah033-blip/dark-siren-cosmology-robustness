@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 import pytest
+import numpy as np
 
 from dark_siren_robustness.bootstrap_attempt_audit import canonical_inner_attempt_record
 
@@ -20,6 +21,20 @@ def test_canonical_inner_attempt_record_reconciles_successes_and_failures():
     assert record["inner_successes"] == 3
     assert record["inner_failures"] == 2
     assert json.loads(record["inner_failure_code_counts"]) == {"zero_variance": 2}
+
+
+def test_canonical_inner_attempt_record_accepts_numpy_boolean_scalars():
+    result = {
+        "n_attempted": 3,
+        "n_successful": 2,
+        "n_failed": 1,
+        "success_mask": np.asarray([True, False, True], dtype=np.bool_),
+        "failure_codes": ["", "zero_variance", ""],
+    }
+    record = canonical_inner_attempt_record(result)
+    assert record["inner_attempts"] == 3
+    assert record["inner_successes"] == 2
+    assert record["inner_failures"] == 1
 
 
 def test_canonical_inner_attempt_record_uses_stable_sorted_failure_codes():
