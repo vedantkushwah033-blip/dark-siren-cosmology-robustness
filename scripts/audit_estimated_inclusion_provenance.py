@@ -108,7 +108,7 @@ def _independent_audit_sample(seed: int, n_audit: int, z_min: float, z_max: floa
     return redshift, included, ids
 
 
-def _same_array(actual: object, expected: np.ndarray, label: str) -> None
+def _same_array(actual: object, expected: np.ndarray, label: str) -> None:
     values = np.asarray(actual, dtype=float)
     if values.shape != expected.shape or not np.all(np.isfinite(values)):
         raise AssertionError(f"{label}: shape or finite-value mismatch")
