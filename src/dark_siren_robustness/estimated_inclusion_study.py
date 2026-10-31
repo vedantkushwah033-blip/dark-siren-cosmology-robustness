@@ -575,7 +575,8 @@ def run_estimated_inclusion_pilot(
             "mean_difference_reference_minus_comparison": item.pop(
                 "mean_absolute_error_reduction"
             ),
-            "positive_favors_comparison": True,
+            "difference_direction": "reference_minus_comparison",
+            "interpretation": "descriptive paired difference; positive means the reference-arm metric is larger",
         })
         paired_secondary_contrasts.append(item)
 
