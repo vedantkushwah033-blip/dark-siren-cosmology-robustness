@@ -136,6 +136,8 @@ def generate_finite_frame(
     design = validate_multiframe_manifest(manifest)
     sid = _integer("scenario_id", scenario_id)
     fid = _integer("frame_id", frame_id)
+    if fid >= design["frames_per_scenario"]:
+        raise ValueError("frame_id is outside the manifest frame grid")
     matches = [s for s in design["scenarios"] if s["scenario_id"] == sid]
     if not matches:
         raise ValueError(f"unknown scenario_id: {sid}")
