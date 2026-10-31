@@ -537,11 +537,16 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         if np.any((parsed_counts < 0) | (parsed_counts > estimated["validation_size"].to_numpy(dtype=int))):
             raise AssertionError("audit_included_count must lie within its validation sample")
         estimated["_audit_count"] = parsed_counts
-        for replicate, group in estimated.groupby("replicate"):
+        estimated["_audit_design"] = np.where(
+            estimated["arm"].astype(str).str.startswith("independent_"),
+            "independent_cohort", "shared_source_frame",
+        )
+        for (replicate, design), group in estimated.groupby(["replicate", "_audit_design"]):
             ordered = group.sort_values("validation_size")
             if np.any(np.diff(ordered["_audit_count"].to_numpy(dtype=int)) < 0):
                 raise AssertionError(
-                    f"nested validation inclusion counts decrease with sample size in replicate {replicate}"
+                    "nested validation inclusion counts decrease with sample size "
+                    f"in replicate {replicate}, design {design}"
                 )
     # Independently validate observable-only pre-posterior feature records.
     estimated_success = success & frame["arm"].str.startswith(("estimated_", "independent_"))
