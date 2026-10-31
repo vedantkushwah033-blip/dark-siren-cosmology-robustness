@@ -210,11 +210,6 @@ This exploratory benchmark provides a reproducible pilot comparison of three int
 
 The pilot is too small and too frame-limited to support a general performance ranking. The appropriate next step is a precision-designed multi-frame experiment with paired method comparisons, frame-clustered uncertainty, complete failure accounting, and an independently audited release. No conclusion about nonlinear dark-siren posterior calibration follows from this linear study.
 
-## References
-
-Wang, S., Peng, L., & Kim, J. K. (2022). Bootstrap inference for the finite population mean under complex sampling designs. *Journal of the Royal Statistical Society: Series B*, 84(4), 1150–1174. https://doi.org/10.1111/rssb.12506
-
-
 ### Machine-readable audit scope
 
 The v2 audit report now identifies the artifact schema and lists the estimands it independently checked. For v2, it reports successful inner-attempt accounting and verification of conditional coverage, interval-success rate, unconditional success-and-cover probability, and their Monte Carlo standard errors. For historical v1 artifacts, it explicitly reports that inner-attempt accounting is unavailable and lists only the legacy conditional-coverage estimands. This prevents a generic `PASS` status from being misread as evidence that every audit feature was available in every schema.
