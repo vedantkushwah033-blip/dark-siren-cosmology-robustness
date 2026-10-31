@@ -543,9 +543,9 @@ def run_estimated_inclusion_pilot(
                 paired_model_contrasts.append(item)
 
     # Paired secondary outcomes use the same replicate-level pairing as the
-    # primary absolute-error contrast. Positive differences favor the comparison
-    # arm for every metric below (coverage is a proportion; other metrics are
-    # losses, so the direction is explicitly interpreted per metric).
+    # primary absolute-error contrast. These are descriptive reference-minus-
+    # comparison differences; their sign is not universally "better" (notably,
+    # narrower intervals are not automatically better calibrated).
     paired_secondary_contrasts: list[dict] = []
 
     def _append_paired_metric(
