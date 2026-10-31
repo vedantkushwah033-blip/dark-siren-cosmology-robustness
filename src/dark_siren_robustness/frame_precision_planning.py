@@ -97,3 +97,46 @@ def plan_independent_frames(
         "pilot_frame_count": int(pilot_frame_count),
         "assumption": "independent approximately normal frame-level contrasts",
     }
+
+def plan_frame_count_sensitivity(
+    pilot_frame_sd: float,
+    target_half_width: float,
+    *,
+    pilot_frame_count: int,
+    sd_multipliers: tuple[float, ...] = (0.75, 1.0, 1.25, 1.5),
+    variance_confidences: tuple[float, ...] = (0.80, 0.90, 0.95, 0.975),
+    confidence_level: float = 0.95,
+    minimum_frames: int = 3,
+    maximum_frames: int = 1_000_000,
+) -> list[dict[str, float | int | str]]:
+    """Evaluate frame-count planning across prespecified SD/confidence stresses.
+
+    This is a sensitivity table, not a data-driven choice of the confirmatory
+    design. Every row retains the planning-only label from the base planner.
+    """
+    if not isinstance(sd_multipliers, tuple) or not sd_multipliers:
+        raise TypeError("sd_multipliers must be a non-empty tuple")
+    if not isinstance(variance_confidences, tuple) or not variance_confidences:
+        raise TypeError("variance_confidences must be a non-empty tuple")
+    for multiplier in sd_multipliers:
+        if not math.isfinite(multiplier) or multiplier <= 0:
+            raise ValueError("all sd_multipliers must be finite and positive")
+    for level in variance_confidences:
+        if not math.isfinite(level) or not 0 < level < 1:
+            raise ValueError("all variance_confidences must lie strictly between zero and one")
+
+    results: list[dict[str, float | int | str]] = []
+    for level in variance_confidences:
+        for multiplier in sd_multipliers:
+            row = plan_independent_frames(
+                pilot_frame_sd * multiplier,
+                target_half_width,
+                confidence_level=confidence_level,
+                variance_confidence=level,
+                minimum_frames=minimum_frames,
+                maximum_frames=maximum_frames,
+                pilot_frame_count=pilot_frame_count,
+            )
+            row["sd_multiplier"] = float(multiplier)
+            results.append(row)
+    return results
