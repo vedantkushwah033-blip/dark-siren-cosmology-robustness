@@ -252,6 +252,14 @@ def test_pilot_reports_paired_secondary_outcomes_for_shared_replicates():
     ))
     assert keys == expected
     assert all(item["n_paired_replicates"] <= 2 for item in contrasts)
+    assert all(item["n_attempted_common_replicates"] == 2 for item in contrasts)
+    assert all(
+        item["n_reference_attempted"] == 2
+        and item["n_comparison_attempted"] == 2
+        and item["n_reference_successful"] + item["n_reference_failed"] == 2
+        and item["n_comparison_successful"] + item["n_comparison_failed"] == 2
+        for item in contrasts
+    )
     assert all(item["difference_direction"] == "reference_minus_comparison" for item in contrasts)
     assert all("positive_favors_comparison_arm" not in item for item in contrasts)
     assert set(frame["arm"]) >= {
