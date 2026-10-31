@@ -332,3 +332,14 @@ The implementation now converts both paired operands to numeric float arrays bef
 Commit `2a27bb9bc20807d84ba3c149af43db97d91738e9` implements the numeric conversion, commit `b4c1be42d10f6fc7a35505e093d6206fcb923f56` adds the independent contrast reconstruction assertion, and commit `4a2dfc0898a6d472c4732cb88d2a0d4a03394be5` removes an unnecessary pytest dependency from that assertion.
 
 A new Actions run was observed for head `4a2dfc0898a6d472c4732cb88d2a0d4a03394be5`, but it was still pending at the time this section was written. The Boolean-subtraction fix is therefore **not yet confirmed by a passing CI run**. Downstream smoke experiments and artifact audits remain gated on successful execution.
+
+
+### Section 18 — Resolve the next CI-discovered artifact-auditor failures
+
+The Actions run for head `09d56f00362cd83a0c6185dd185a2114b567e4b5` advanced beyond the original runner failure but exposed three additional fixture/auditor issues in Python 3.11 and 3.12:
+
+1. The independent artifact auditor repeated the Boolean-subtraction error when reconstructing paired `coverage_68` contrasts. It now converts both operands to float arrays before subtraction.
+2. The explicit all-failed artifact test removed posterior metric columns, but the auditor still attempted to build paired linear-versus-quadratic posterior-error contrasts. Those contrasts are now reconstructed only when at least one successful fit exists; the all-failed fixture explicitly declares empty paired contrast lists.
+3. The adversarial failed-row test attempted to assign a string into a Boolean-typed pandas column. The fixture now converts that column to object dtype before injecting the string value.
+
+Commit `895da23a6ffed5aefd87b96df48eb5101ffafd16` implements the auditor corrections; commit `94cd14d07a1ef26ee2bd971b7499f1b91f02311c` repairs the two test fixtures. The workflow run containing these fixes has not yet completed, so these changes remain pending execution evidence.
