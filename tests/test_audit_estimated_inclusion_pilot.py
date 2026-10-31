@@ -520,5 +520,5 @@ def test_independent_auditor_rejects_inconsistent_boundary_flag_on_failed_diagno
     frame.loc[index, "fit_boundary_limited"] = "False"
     frame.to_csv(tmp_path / "replicates.csv", index=False)
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
-    with pytest.raises(AssertionError, match="pre-posterior boundary flag disagrees with fit status"):
+    with pytest.raises(AssertionError, match="fit boundary flags disagree with fit_status"):
         audit_pilot_artifacts(tmp_path)
