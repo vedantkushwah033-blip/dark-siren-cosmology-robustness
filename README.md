@@ -373,3 +373,6 @@ These audits are included in PR #7, which is open and ready for independent revi
 ### Dataset-level likelihood scope audit
 
 The [dataset-level likelihood grid and scope audit](docs/dataset_likelihood_grid_and_scope_audit_2026-10-28.md) reviews the new independent-event composition prototype. It highlights that the code does not require the numerical grid to include the declared prior boundaries, and that shared completeness/nuisance parameters and selection conditioning remain outside its scope. These are source-review findings and recommendations, not evidence of a runtime failure. Resolve the prior-grid convention and add convergence tests before using this prototype for confirmatory calibration.
+
+
+- **Integrated estimated-inclusion audit and execution gates (31 October 2026):** [reconciles the research question, likelihood/selection semantics, estimands, validation uncertainty, pre-posterior diagnostics, provenance requirements, and staged execution gates](docs/integrated_estimated_inclusion_audit_2026-10-31.md). This is a design and audit record; it reports no new confirmatory numerical results. The preceding PR #15 head `82ef8b0f751716a7f088ff98acd99ea359efb997` passed its Python 3.10/3.11/3.12 CI and pilot-smoke artifact audit; this later documentation commit requires its own exact-head CI verification.
