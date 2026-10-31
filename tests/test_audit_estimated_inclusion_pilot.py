@@ -502,3 +502,23 @@ def test_independent_auditor_rejects_corrupted_paired_attempt_denominator(tmp_pa
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(AssertionError, match="n_reference_failed"):
         audit_pilot_artifacts(tmp_path)
+
+
+def test_independent_auditor_rejects_inconsistent_boundary_flag_on_failed_diagnostic_row(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261070)
+    mask = (
+        frame["arm"].eq("estimated_linear_100")
+        & frame["diagnostic_schema"].notna()
+    )
+    assert mask.any()
+    index = frame.index[mask][0]
+    # Exercise a failed fit row: the success-only boundary check must not be
+    # the only place that enforces the Boolean/fit-status contract.
+    frame.loc[index, "status"] = "failed"
+    frame.loc[index, "error"] = "Injected failure for boundary-flag audit"
+    frame.loc[index, "fit_status"] = "boundary_limited"
+    frame.loc[index, "fit_boundary_limited"] = "False"
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="pre-posterior boundary flag disagrees with fit status"):
+        audit_pilot_artifacts(tmp_path)
