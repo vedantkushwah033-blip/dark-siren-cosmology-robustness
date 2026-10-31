@@ -287,3 +287,12 @@ The source and test changes were committed separately as:
 - `9758ec8b77f14813c2a66d9c1d4ec47d1ac999fd` — test rejection of a missing estimated arm.
 
 Validation status remains **static source review only**. No local pytest execution, GitHub Actions result, smoke simulation, or provenance artifact audit has been executed or retrieved in this session.
+
+
+### Section 13 — Bind each estimated arm label to its validation size
+
+A further static review found that the provenance audit enforced the set of expected arm names but did not explicitly verify that each row's `validation_size` agreed with the size encoded in its arm label. A malformed row could therefore retain a valid arm name while carrying a contradictory validation-size field; the later payload-length check would catch many such cases, but the row-level contract should be checked directly and reported clearly.
+
+Commit `4eac518893a52add87a1b3106fa34203bce6cdc4` adds an explicit finite-integer and arm-label/validation-size consistency check. Commit `5879cc55860813b9dbacfb5896c0f3917ef113df` adds a regression test that changes the row's validation size while leaving its arm label unchanged and requires rejection.
+
+This is a source-level hardening change only. The regression test has not yet been executed locally or through GitHub Actions, and no smoke artifacts have been generated or independently audited for this new head. The execution gate remains open.
