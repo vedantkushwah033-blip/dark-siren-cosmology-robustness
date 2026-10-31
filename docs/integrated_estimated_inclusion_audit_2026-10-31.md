@@ -314,3 +314,10 @@ Commit `e4f09c5c8453ebd09b11d47e746515f90b4ec99f` first replaced the truthiness 
 The same earlier review checklist is also represented in the current source: coverage flags are recomputed from interval endpoints and required `h0_true`; the arm/replicate matrix and validation-size mapping are checked against the declared design; successful-fit metric columns are checked before use; per-arm attempted/successful/failed counts and paired failure denominators are reconstructed; and zero-success arms are explicitly reported as non-evaluable. Regression tests exist for the coverage flag, missing truth, missing replicate-arm pair, strict Boolean parsing, all-failed artifacts, and paired attempted denominators.
 
 **Verification limitation:** these are source and test-fixture inspections only. The new test and full audit suite have not been executed in this environment. CI and generated-artifact verification remain mandatory before this PR can be treated as validated.
+
+
+### Section 16 — Enforce the declared validation-size design domain
+
+A final configuration audit found that the main artifact auditor accepted duplicate validation sizes and values outside the runner's supported design domain. The runner canonicalizes validation sizes to unique integer counts in `[10, n_parent]`; the auditor now independently enforces the same contract, including the upper bound against the declared parent-population size.
+
+Commit `0e56d97788706d7ed4273ab10831fbbc0e8e91f5` adds these checks, and commit `4e657242feae47b0345a6ea313fdcb50671540ae` adds a duplicate-size rejection fixture. These checks prevent malformed run metadata from being treated as a valid design declaration. Execution remains unverified.
