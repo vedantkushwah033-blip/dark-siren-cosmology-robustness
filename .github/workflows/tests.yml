@@ -69,6 +69,10 @@ jobs:
           PY
       - name: Independently audit estimated-inclusion pilot smoke artifacts
         run: python scripts/audit_estimated_inclusion_pilot.py artifacts/estimated_inclusion_pilot_smoke
+      - name: Test independent estimated-inclusion seed provenance auditor
+        run: python -m pytest tests/test_estimated_inclusion_provenance_audit.py -q
+      - name: Independently reconstruct estimated-inclusion pilot provenance
+        run: python scripts/audit_estimated_inclusion_provenance.py --replicates artifacts/estimated_inclusion_pilot_smoke/replicates.csv --summary artifacts/estimated_inclusion_pilot_smoke/summary.json --output artifacts/estimated_inclusion_pilot_smoke/provenance_audit.json
       - name: Run nonlinear inclusion-misspecification pilot smoke experiment
         run: python scripts/run_estimated_inclusion_pilot.py --replicates 3 --n-parent 1200 --n-detected 8 --validation-sizes 150 --seed 20261066 --true-quadratic 1.2 --h0-points 41 --z-points 201 --output-dir artifacts/estimated_inclusion_quadratic_stress_smoke
       - name: Check nonlinear pilot uses the declared quadratic data-generating process
@@ -87,6 +91,8 @@ jobs:
           PY
       - name: Independently audit nonlinear inclusion-misspecification smoke artifacts
         run: python scripts/audit_estimated_inclusion_pilot.py artifacts/estimated_inclusion_quadratic_stress_smoke
+      - name: Independently reconstruct nonlinear estimated-inclusion pilot provenance
+        run: python scripts/audit_estimated_inclusion_provenance.py --replicates artifacts/estimated_inclusion_quadratic_stress_smoke/replicates.csv --summary artifacts/estimated_inclusion_quadratic_stress_smoke/summary.json --output artifacts/estimated_inclusion_quadratic_stress_smoke/provenance_audit.json
       - name: Test host-density-to-H0 benchmark
         run: python -m pytest tests/test_host_density_benchmark.py -q
       - name: Test corrected physical KDE bandwidth semantics
