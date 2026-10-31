@@ -61,12 +61,12 @@ def _write_fixture(tmp_path: Path) -> tuple[Path, Path]:
         "replicate_seed": sim_seed,
         "catalogue_seed": catalogue_seed,
         "audit_seed": audit_seed,
-        "arm": f"estimated_{m}",
+        "arm": f"estimated_{family}_{m}",
         "validation_size": m,
         "status": "success",
         "inference_audit_payload_json": json.dumps(inference),
         "scoring_audit_payload_json": json.dumps(scoring),
-    }]
+    } for family in ("linear", "quadratic")]
     replicate_path = tmp_path / "replicates.csv"
     pd.DataFrame(rows).to_csv(replicate_path, index=False)
     summary_path = tmp_path / "summary.json"
@@ -75,6 +75,7 @@ def _write_fixture(tmp_path: Path) -> tuple[Path, Path]:
         "n_parent": n_parent,
         "n_detected": n_detected,
         "n_replicates_requested": 1,
+        "validation_sizes": [100],
         "h0_true": h0_true,
         "sigma_mpc": sigma_mpc,
         "detection_threshold_mpc": threshold,
@@ -90,7 +91,7 @@ def test_seed_level_provenance_audit_reconstructs_parent_catalogue_and_validatio
     report = AUDITOR.audit_provenance(replicates, summary)
     assert report["status"] == "PASS"
     assert report["replicates_reconstructed"] == 1
-    assert report["estimated_arm_rows_reconstructed"] == 1
+    assert report["estimated_arm_rows_reconstructed"] == 2
 
 
 def test_seed_level_provenance_audit_rejects_tampered_validation_label(tmp_path):
@@ -163,4 +164,13 @@ def test_seed_level_provenance_audit_rejects_duplicate_replicate_arm(tmp_path):
     frame = pd.concat([frame, frame.iloc[[0]]], ignore_index=True)
     frame.to_csv(replicates, index=False)
     with pytest.raises(AssertionError, match="duplicate replicate/arm"):
+        AUDITOR.audit_provenance(replicates, summary)
+
+
+def test_seed_level_provenance_audit_rejects_missing_estimated_arm(tmp_path):
+    replicates, summary = _write_fixture(tmp_path)
+    frame = pd.read_csv(replicates)
+    frame = frame.loc[frame["arm"] == "estimated_linear_100"]
+    frame.to_csv(replicates, index=False)
+    with pytest.raises(AssertionError, match="estimated-arm matrix mismatch"):
         AUDITOR.audit_provenance(replicates, summary)
