@@ -74,6 +74,7 @@ def _write_fixture(tmp_path: Path) -> tuple[Path, Path]:
         "seed": master_seed,
         "n_parent": n_parent,
         "n_detected": n_detected,
+        "n_replicates_requested": 1,
         "h0_true": h0_true,
         "sigma_mpc": sigma_mpc,
         "detection_threshold_mpc": threshold,
@@ -145,3 +146,21 @@ def test_seed_level_provenance_audit_reconstructs_failed_estimated_arm(tmp_path)
     assert report["status"] == "PASS"
     assert report["failed_estimated_arm_rows_reconstructed"] == 1
     assert report["estimated_arm_rows_reconstructed"] == 1
+
+
+def test_seed_level_provenance_audit_rejects_missing_requested_replicate(tmp_path):
+    replicates, summary = _write_fixture(tmp_path)
+    metadata = json.loads(summary.read_text(encoding="utf-8"))
+    metadata["n_replicates_requested"] = 2
+    summary.write_text(json.dumps(metadata), encoding="utf-8")
+    with pytest.raises(AssertionError, match="replicate IDs do not match requested"):
+        AUDITOR.audit_provenance(replicates, summary)
+
+
+def test_seed_level_provenance_audit_rejects_duplicate_replicate_arm(tmp_path):
+    replicates, summary = _write_fixture(tmp_path)
+    frame = pd.read_csv(replicates)
+    frame = pd.concat([frame, frame.iloc[[0]]], ignore_index=True)
+    frame.to_csv(replicates, index=False)
+    with pytest.raises(AssertionError, match="duplicate replicate/arm"):
+        AUDITOR.audit_provenance(replicates, summary)
