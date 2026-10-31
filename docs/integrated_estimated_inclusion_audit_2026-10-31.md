@@ -238,3 +238,15 @@ The runner currently reports per-arm bias, RMSE, fixed-truth 68% coverage with W
 The nonlinear stress workflow is a three-replicate smoke experiment at one curvature setting. It checks execution, arm labels, and independent artifact reconstruction; it is not a precision study or confirmatory result. The protocol's curvature and validation-size grid remains a candidate design, not a frozen preregistration.
 
 The current branch files were inspected for this reconciliation. This inspection did not execute tests, run the pilot, retrieve a CI result, or audit a generated artifact. The exact-head CI and artifact-audit gates therefore remain open. The integrated audit's earlier single-estimated-arm description and its linear-only stress description should be read as historical planning text, not as a faithful description of the present runner.
+
+## 8. Paired secondary outcomes: implementation added, execution gate open
+
+The runner now computes descriptive paired differences for:
+- 68% coverage: catalogue-only minus each estimated-inclusion arm;
+- 68% interval width: catalogue-only minus each estimated-inclusion arm;
+- host-density ISE: catalogue-only minus each estimated-inclusion arm;
+- inclusion-probability MAE: estimated-linear minus estimated-quadratic at each validation size.
+
+All differences are reference minus comparison. Their sign must be interpreted metric by metric; a narrower interval is not automatically better calibrated. Each contrast reports its paired successful-replicate count, mean difference, standard error, and normal-approximation interval. The paired analysis is complete-case for each arm pair, while arm-specific failures remain separately visible.
+
+The independent auditor now reconstructs these contrasts from the replicate-level table and checks keys, labels, paired counts, means, standard errors, and intervals. New tests cover expected paired outcomes and rejection of a corrupted summary. The runner, auditor, and tests were committed in the current branch. **No local tests or verified CI run have yet been executed**, so this is an implementation state, not a passing validation claim.
