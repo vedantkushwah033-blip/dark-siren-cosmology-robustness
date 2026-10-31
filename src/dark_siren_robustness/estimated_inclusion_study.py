@@ -561,10 +561,15 @@ def run_estimated_inclusion_pilot(
         )
         if paired_rows.empty:
             return
-        differences = (
-            paired_rows[f"{reference_column}_reference"]
-            - paired_rows[f"{comparison_column}_comparison"]
-        ).to_numpy(dtype=float)
+        # Convert both operands before subtraction. Coverage indicators are
+        # Boolean; pandas/NumPy intentionally reject Boolean subtraction.
+        reference_values = paired_rows[
+            f"{reference_column}_reference"
+        ].to_numpy(dtype=float)
+        comparison_values = paired_rows[
+            f"{comparison_column}_comparison"
+        ].to_numpy(dtype=float)
+        differences = reference_values - comparison_values
         if not np.all(np.isfinite(differences)):
             raise ValueError(f"non-finite paired values for {metric}")
         item = _contrast_summary(differences)
