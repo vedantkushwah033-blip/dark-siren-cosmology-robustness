@@ -75,6 +75,7 @@ def test_canonical_inner_attempt_record_rejects_inconsistent_attempt_ledgers(cha
     "field,value",
     [
         ("success_mask", [1, 0, True, False, True]),
+        ("success_mask", [np.int64(1), np.int64(0), True, False, True]),
         ("success_mask", ["false", "true", "true", "false", "true"]),
         ("failure_codes", ["", None, "", "zero_variance", ""]),
         ("failure_codes", ["", 7, "", "zero_variance", ""]),
