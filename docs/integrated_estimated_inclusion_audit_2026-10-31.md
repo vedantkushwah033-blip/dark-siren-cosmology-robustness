@@ -296,3 +296,10 @@ A further static review found that the provenance audit enforced the set of expe
 Commit `4eac518893a52add87a1b3106fa34203bce6cdc4` adds an explicit finite-integer and arm-label/validation-size consistency check. Commit `5879cc55860813b9dbacfb5896c0f3917ef113df` adds a regression test that changes the row's validation size while leaving its arm label unchanged and requires rejection.
 
 This is a source-level hardening change only. The regression test has not yet been executed locally or through GitHub Actions, and no smoke artifacts have been generated or independently audited for this new head. The execution gate remains open.
+
+
+### Section 14 — Fail clearly when provenance schema columns are absent
+
+The standalone provenance auditor accessed `validation_size` and the two audit-payload columns after checking only a smaller set of required CSV headers. Missing columns would still stop execution, but as incidental `KeyError` exceptions rather than the auditor's explicit schema-validation failure. The required-column gate now includes `validation_size`, `inference_audit_payload_json`, and `scoring_audit_payload_json`.
+
+Commit `560910c1eedbb0bd8c9b0cabd1947b9af29f43e7` implements the explicit schema check, and commit `4eb26c6cc2567e926388843cf99cbb18c87f4227` adds a regression test for a missing validation-size column. This is fail-fast input validation, not a scientific-method change. No test execution or generated-artifact audit is claimed.
