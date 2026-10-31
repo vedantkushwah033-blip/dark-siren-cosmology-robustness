@@ -462,3 +462,24 @@ def test_independent_auditor_rejects_success_status_with_nonoptimal_logistic_ref
     )
     with pytest.raises(AssertionError, match="independent logistic inclusion refit did not converge"):
         audit_pilot_artifacts(tmp_path)
+
+
+def test_independent_auditor_rejects_corrupted_paired_secondary_contrast(tmp_path):
+    frame, summary = run_estimated_inclusion_pilot(
+        n_replicates=2,
+        n_parent=1200,
+        n_detected=6,
+        validation_sizes=(150,),
+        seed=20261068,
+        h0_points=41,
+        z_points=201,
+        true_quadratic=1.2,
+    )
+    assert summary["paired_secondary_contrasts"]
+    summary["paired_secondary_contrasts"][0][
+        "mean_difference_reference_minus_comparison"
+    ] += 0.25
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="paired secondary contrast|\.mean"):
+        audit_pilot_artifacts(tmp_path)
