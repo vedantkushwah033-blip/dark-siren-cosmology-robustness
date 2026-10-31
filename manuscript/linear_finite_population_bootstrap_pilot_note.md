@@ -236,3 +236,14 @@ The v2 pilot schema contains one realized finite frame per distribution scenario
 - [Multi-frame v3 implementation contract](../docs/multiframe_v3_implementation_contract_2026-10-31.md)
 
 This is an implementation specification, not an executed experiment or a change to the historical pilot's status. The confirmatory run must use a genuinely multi-frame runner and auditor; v2 artifacts cannot be relabelled as multi-frame evidence.
+
+
+## 19. Implemented v3 seed-schedule primitive
+
+The repository now includes a pure, deterministic, domain-separated seed schedule for future multi-frame work:
+
+- [v3 seed schedule documentation](../docs/multiframe_v3_seed_schedule_2026-10-31.md)
+- Implementation: `src/dark_siren_robustness/multiframe_seed_schedule.py`
+- Regression tests: `tests/test_multiframe_seed_schedule.py`
+
+Frame, shared outer-sample, method-specific, and inner-attempt streams are derived from explicit experimental coordinates. The shared outer-sample stream enables paired method comparisons, while method-specific streams remain invariant to execution order. These tests establish seed-helper behavior only; they do not validate a multi-frame benchmark or establish statistical performance.
