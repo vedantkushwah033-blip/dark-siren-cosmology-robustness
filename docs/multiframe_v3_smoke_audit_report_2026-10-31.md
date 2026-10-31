@@ -86,3 +86,10 @@ No confirmatory result, preferred method, or publication claim is inferred from 
 ## 6. Scientific boundary
 
 The benchmark concerns interval estimation for the arithmetic mean of a realized finite population under SRSWOR. It does not validate the nonlinear dark-siren posterior, galaxy-catalogue completeness model, host-galaxy weighting, gravitational-wave selection function, or a measurement of the Hubble constant. Those are separate inferential targets and require their own validation evidence.
+
+
+## 7. Artifact archival correction
+
+A follow-up inspection of the successful run's upload log found that the smoke outputs had been generated and audited but were **not included** in the uploaded workflow artifact path list. The audit report above is based on the live job log, not on a downloaded copy of the smoke files. This was identified as a reproducibility packaging gap.
+
+The workflow was corrected in commit `f3046357fc93a6bd281b03ec5a8b94e61d9e3783` to include `artifacts/multiframe_v3_smoke/` in the uploaded artifact. The next exact-head CI run must verify that the archive contains the manifest, frame and replicate CSVs, summaries, checksums, and independent audit report. Until that run passes, the smoke artifact is verified from execution logs but not yet verified as durably archived in the Actions artifact.
