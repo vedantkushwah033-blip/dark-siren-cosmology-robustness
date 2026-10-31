@@ -522,3 +522,12 @@ def test_independent_auditor_rejects_inconsistent_boundary_flag_on_failed_diagno
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(AssertionError, match="fit boundary flags disagree with fit_status"):
         audit_pilot_artifacts(tmp_path)
+
+
+def test_independent_auditor_rejects_duplicate_declared_validation_sizes(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261071)
+    summary["validation_sizes"] = [100, 100]
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="validation_sizes must not contain duplicates"):
+        audit_pilot_artifacts(tmp_path)
