@@ -308,5 +308,6 @@ jobs:
             artifacts/bootstrap_selection.txt
             artifacts/nested_validation_bootstrap_smoke/
             artifacts/linear_finite_population_bootstrap_pilot/
+            artifacts/multiframe_v3_smoke/
           if-no-files-found: error
 
