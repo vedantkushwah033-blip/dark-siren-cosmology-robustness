@@ -321,3 +321,14 @@ The same earlier review checklist is also represented in the current source: cov
 A final configuration audit found that the main artifact auditor accepted duplicate validation sizes and values outside the runner's supported design domain. The runner canonicalizes validation sizes to unique integer counts in `[10, n_parent]`; the auditor now independently enforces the same contract, including the upper bound against the declared parent-population size.
 
 Commit `0e56d97788706d7ed4273ab10831fbbc0e8e91f5` adds these checks, and commit `4e657242feae47b0345a6ea313fdcb50671540ae` adds a duplicate-size rejection fixture. These checks prevent malformed run metadata from being treated as a valid design declaration. Execution remains unverified.
+
+
+### Section 17 — Fix the first observed GitHub Actions failure in paired coverage contrasts
+
+Unlike the earlier static-only reviews, GitHub Actions run `41210007329` provided an executed failure. The Python 3.11 job passed the preceding numerical and selection tests, then failed six tests in `tests/test_estimated_inclusion_study.py` at the paired secondary-outcome calculation. The common exception was NumPy's rejection of Boolean subtraction: the `coverage_68` indicators were subtracted as Boolean pandas Series.
+
+The implementation now converts both paired operands to numeric float arrays before subtraction. For binary coverage indicators this computes the intended reference-minus-comparison difference on the `0/1` scale; for continuous metrics it preserves the ordinary numeric difference. A regression assertion independently reconstructs the mean paired coverage difference from the replicate table and compares it with the stored summary contrast.
+
+Commit `2a27bb9bc20807d84ba3c149af43db97d91738e9` implements the numeric conversion, commit `b4c1be42d10f6fc7a35505e093d6206fcb923f56` adds the independent contrast reconstruction assertion, and commit `4a2dfc0898a6d472c4732cb88d2a0d4a03394be5` removes an unnecessary pytest dependency from that assertion.
+
+A new Actions run was observed for head `4a2dfc0898a6d472c4732cb88d2a0d4a03394be5`, but it was still pending at the time this section was written. The Boolean-subtraction fix is therefore **not yet confirmed by a passing CI run**. Downstream smoke experiments and artifact audits remain gated on successful execution.
