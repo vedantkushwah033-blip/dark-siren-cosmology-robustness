@@ -542,6 +542,58 @@ def run_estimated_inclusion_pilot(
                 })
                 paired_model_contrasts.append(item)
 
+    # Paired secondary outcomes use the same replicate-level pairing as the
+    # primary absolute-error contrast. Positive differences favor the comparison
+    # arm for every metric below (coverage is a proportion; other metrics are
+    # losses, so the direction is explicitly interpreted per metric).
+    paired_secondary_contrasts: list[dict] = []
+
+    def _append_paired_metric(
+        metric: str, reference_arm: str, comparison_arm: str,
+        reference_column: str, comparison_column: str | None = None,
+    ) -> None:
+        comparison_column = comparison_column or reference_column
+        reference = successful.loc[successful["arm"] == reference_arm].set_index("replicate")
+        comparison = successful.loc[successful["arm"] == comparison_arm].set_index("replicate")
+        paired_rows = reference[[reference_column]].merge(
+            comparison[[comparison_column]], left_index=True, right_index=True,
+            how="inner", suffixes=("_reference", "_comparison"),
+        )
+        if paired_rows.empty:
+            return
+        differences = (
+            paired_rows[f"{reference_column}_reference"]
+            - paired_rows[f"{comparison_column}_comparison"]
+        ).to_numpy(dtype=float)
+        if not np.all(np.isfinite(differences)):
+            raise ValueError(f"non-finite paired values for {metric}")
+        item = _contrast_summary(differences)
+        item.update({
+            "metric": metric,
+            "reference_arm": reference_arm,
+            "comparison_arm": comparison_arm,
+            "mean_difference_reference_minus_comparison": item.pop(
+                "mean_absolute_error_reduction"
+            ),
+            "positive_favors_comparison": True,
+        })
+        paired_secondary_contrasts.append(item)
+
+    if not successful.empty:
+        for arm in [
+            f"estimated_{family}_{m}" for m in sizes
+            for family in ("linear", "quadratic")
+        ]:
+            _append_paired_metric("coverage_68", "catalogue_only", arm, "covered_68")
+            _append_paired_metric("interval_width_68", "catalogue_only", arm, "ci68_width")
+            _append_paired_metric("host_density_ise", "catalogue_only", arm, "density_ise")
+        for m in sizes:
+            _append_paired_metric(
+                "inclusion_probability_mae",
+                f"estimated_linear_{m}", f"estimated_quadratic_{m}",
+                "inclusion_probability_mae",
+            )
+
     summary = {
         "study": "estimated_catalogue_inclusion_probability_pilot",
         "status": "NON_CONFIRMATORY_SYNTHETIC_PILOT",
@@ -571,6 +623,7 @@ def run_estimated_inclusion_pilot(
         "primary_contrast": "abs_error_catalogue_only - abs_error_comparison_arm",
         "contrasts": contrasts,
         "paired_model_contrasts": paired_model_contrasts,
+        "paired_secondary_contrasts": paired_secondary_contrasts,
         "arm_summaries": summaries,
         "interpretation_limit": (
             "Controlled synthetic toy only; not a real galaxy-survey or LVK validation. "
