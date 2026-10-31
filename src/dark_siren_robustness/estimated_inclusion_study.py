@@ -189,6 +189,7 @@ def run_estimated_inclusion_pilot(
         audit_rng = np.random.default_rng(audit_seed)
         audit_order = audit_rng.permutation(n_parent)
         audit_records = {
+            "object_id": audit_order.astype(np.int64),
             "redshift": parent_z[audit_order],
             "included": retained[audit_order].astype(int),
         }
@@ -215,8 +216,13 @@ def run_estimated_inclusion_pilot(
                 independent_audit_observable["included"].to_numpy(dtype=int)
                 if independent else audit_records["included"]
             )
+            audit_ids = (
+                independent_audit_observable["audit_object_id"].astype(str).tolist()
+                if independent else audit_records["object_id"].astype(int).tolist()
+            )
             return json.dumps({
                 "audit_design": "independent_cohort" if independent else "shared_source_frame",
+                "validation_object_id": audit_ids[:m],
                 "validation_redshift": audit_z[:m].tolist(),
                 "validation_included": audit_y[:m].tolist(),
                 "catalogue_redshift": observed_z.tolist(),
@@ -453,6 +459,11 @@ def run_estimated_inclusion_pilot(
                             "independent_cohort" if arm.startswith("independent_")
                             else "shared_source_frame" if arm.startswith(("estimated_", "independent_"))
                             else "not_applicable"
+                        ),
+                        "validation_object_id": (
+                            independent_audit_observable["audit_object_id"].astype(str).tolist()[:audit_size]
+                            if arm.startswith("independent_")
+                            else audit_records["object_id"].astype(int).tolist()[:audit_size]
                         ),
                         "validation_redshift": audit_validation_redshift.tolist(),
                         "validation_included": audit_validation_included.tolist(),
