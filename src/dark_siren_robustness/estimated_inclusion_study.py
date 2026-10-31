@@ -206,10 +206,19 @@ def run_estimated_inclusion_pilot(
             "gw_event_host_redshift": sim["gw_event_truth"]["host_redshift"].tolist(),
             "gw_event_latent_mean_distance_mpc": sim["gw_event_truth"]["latent_mean_distance_mpc"].tolist(),
         }
-        def _inference_provenance(m: int) -> str:
+        def _inference_provenance(m: int, *, independent: bool = False) -> str:
+            audit_z = (
+                independent_audit_observable["redshift"].to_numpy(dtype=float)
+                if independent else audit_records["redshift"]
+            )
+            audit_y = (
+                independent_audit_observable["included"].to_numpy(dtype=int)
+                if independent else audit_records["included"]
+            )
             return json.dumps({
-                "validation_redshift": audit_records["redshift"][:m].tolist(),
-                "validation_included": audit_records["included"][:m].tolist(),
+                "audit_design": "independent_cohort" if independent else "shared_source_frame",
+                "validation_redshift": audit_z[:m].tolist(),
+                "validation_included": audit_y[:m].tolist(),
                 "catalogue_redshift": observed_z.tolist(),
                 "observed_distances_mpc": distances.tolist(),
             }, separators=(",", ":"))
@@ -223,8 +232,8 @@ def run_estimated_inclusion_pilot(
         if observed_z.size < 5 or np.unique(observed_z).size < 3:
             # Preserve the replicate failure explicitly for all arms.
             arms = ["catalogue_only", "oracle"] + [
-                f"estimated_{family}_{m}" for m in sizes
-                for family in ("linear", "quadratic")
+                f"{design}_{family}_{m}" for design in ("estimated", "independent")
+                for m in sizes for family in ("linear", "quadratic")
             ]
             for arm in arms:
                 rows.append({
@@ -258,14 +267,16 @@ def run_estimated_inclusion_pilot(
                         else "not_applicable"
                     ),
                     "inference_audit_schema": (
-                        "toy_selection_provenance_v2" if arm.startswith("estimated_") else None
+                        "toy_selection_provenance_v3" if arm.startswith(("estimated_", "independent_")) else None
                     ),
                     "inference_audit_payload_json": (
-                        _inference_provenance(int(arm.rsplit("_", 1)[1]))
-                        if arm.startswith("estimated_") else None
+                        _inference_provenance(
+                            int(arm.rsplit("_", 1)[1]),
+                            independent=arm.startswith("independent_"),
+                        ) if arm.startswith(("estimated_", "independent_")) else None
                     ),
                     "scoring_audit_payload_json": (
-                        _scoring_provenance() if arm.startswith("estimated_") else None
+                        _scoring_provenance() if arm.startswith(("estimated_", "independent_")) else None
                     ),
                 })
             continue
@@ -296,6 +307,12 @@ def run_estimated_inclusion_pilot(
                 scoring_audit_payload: dict[str, object] = {
                     "schema": "inclusion_probability_scoring_only_v1",
                     "target_density_for_ise": target_density.tolist(),
+                    "independent_audit_truth_redshift": (
+                        independent_audit_observable["redshift"].to_numpy(dtype=float).tolist()
+                    ),
+                    "independent_audit_true_inclusion_probability": (
+                        independent_audit_truth["true_inclusion_probability"].to_numpy(dtype=float).tolist()
+                    ),
                     # Truth-only fields are kept out of inference inputs and
                     # persisted separately for independent simulator replay.
                     "gw_event_host_object_id": sim["gw_event_truth"]["host_object_id"].tolist(),
@@ -422,7 +439,7 @@ def run_estimated_inclusion_pilot(
                     # payload contains no hidden parent truth or inclusion
                     # probabilities; target_density is included only to audit
                     # the reported density ISE.
-                    "inference_audit_schema": "toy_selection_posterior_reconstruction_v1",
+                    "inference_audit_schema": "toy_selection_posterior_reconstruction_v2",
                     "inference_audit_payload_json": json.dumps({
                         "redshift_grid": z_grid.tolist(),
                         "host_density": np.asarray(density, dtype=float).tolist(),
@@ -431,6 +448,11 @@ def run_estimated_inclusion_pilot(
                         "merger_weight_grid": merger_rate.tolist(),
                         "bandwidth_factor": (
                             None if bandwidth_factor is None else float(bandwidth_factor)
+                        ),
+                        "audit_design": (
+                            "independent_cohort" if arm.startswith("independent_")
+                            else "shared_source_frame" if arm.startswith("estimated_")
+                            else "not_applicable"
                         ),
                         "validation_redshift": audit_validation_redshift.tolist(),
                         "validation_included": audit_validation_included.tolist(),
