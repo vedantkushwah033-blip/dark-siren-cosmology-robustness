@@ -818,6 +818,87 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
     if set(stored_by_size) != expected_model_contrast_sizes:
         raise AssertionError("paired model contrast sizes do not match evaluable paired arms")
 
+    # Independently reconstruct all paired secondary outcomes. The first
+    # three compare each estimated arm with catalogue-only; inclusion-probability
+    # MAE compares the two fitted model families because catalogue-only has no
+    # estimated inclusion probabilities.
+    raw_secondary = summary.get("paired_secondary_contrasts")
+    if not isinstance(raw_secondary, list):
+        raise AssertionError("summary.paired_secondary_contrasts must be a list")
+    stored_secondary = {}
+    for item in raw_secondary:
+        if not isinstance(item, dict):
+            raise AssertionError("each paired secondary contrast must be an object")
+        key = (
+            item.get("metric"), item.get("reference_arm"), item.get("comparison_arm")
+        )
+        if key in stored_secondary:
+            raise AssertionError("duplicate paired secondary contrast")
+        stored_secondary[key] = item
+
+    expected_secondary = {}
+    def _independent_secondary(metric, reference_arm, comparison_arm, column):
+        reference = successful.loc[successful["arm"] == reference_arm].set_index("replicate")
+        comparison = successful.loc[successful["arm"] == comparison_arm].set_index("replicate")
+        paired_rows = reference[[column]].merge(
+            comparison[[column]], left_index=True, right_index=True,
+            how="inner", suffixes=("_reference", "_comparison"),
+        )
+        if paired_rows.empty:
+            return
+        values = (
+            paired_rows[f"{column}_reference"] - paired_rows[f"{column}_comparison"]
+        ).to_numpy(dtype=float)
+        if not np.all(np.isfinite(values)):
+            raise AssertionError(f"{metric}: paired values must be finite")
+        expected_secondary[(metric, reference_arm, comparison_arm)] = values
+
+    if not successful.empty:
+        for size in validation_sizes:
+            for family in ("linear", "quadratic"):
+                arm = f"estimated_{family}_{size}"
+                for metric, column in (
+                    ("coverage_68", "covered_68"),
+                    ("interval_width_68", "ci68_width"),
+                    ("host_density_ise", "density_ise"),
+                ):
+                    _independent_secondary(metric, "catalogue_only", arm, column)
+            _independent_secondary(
+                "inclusion_probability_mae",
+                f"estimated_linear_{size}", f"estimated_quadratic_{size}",
+                "inclusion_probability_mae",
+            )
+
+    if set(stored_secondary) != set(expected_secondary):
+        missing = set(expected_secondary) - set(stored_secondary)
+        extra = set(stored_secondary) - set(expected_secondary)
+        raise AssertionError(
+            f"paired secondary contrast keys disagree; missing={sorted(missing)}, extra={sorted(extra)}"
+        )
+    for key, values in expected_secondary.items():
+        metric, reference_arm, comparison_arm = key
+        stored = stored_secondary[key]
+        label = f"{metric}.{reference_arm}->{comparison_arm}"
+        if (stored.get("metric") != metric
+                or stored.get("reference_arm") != reference_arm
+                or stored.get("comparison_arm") != comparison_arm
+                or stored.get("positive_favors_comparison") is not True):
+            raise AssertionError(f"{label}: paired secondary contrast labels are inconsistent")
+        _close(stored.get("n_paired_replicates"), values.size, f"{label}.n")
+        mean = float(np.mean(values))
+        _close(
+            stored.get("mean_difference_reference_minus_comparison"),
+            mean, f"{label}.mean",
+        )
+        if values.size < 2:
+            se = low = high = None
+        else:
+            se = float(np.std(values, ddof=1) / np.sqrt(values.size))
+            low, high = mean - 1.96 * se, mean + 1.96 * se
+        _close(stored.get("standard_error"), se, f"{label}.se")
+        _close(stored.get("normal_95_low"), low, f"{label}.low")
+        _close(stored.get("normal_95_high"), high, f"{label}.high")
+
     boundary_success = np.array([
         _strict_bool(v, "fit_boundary_limited")
         for v in frame.loc[success, "fit_boundary_limited"]
