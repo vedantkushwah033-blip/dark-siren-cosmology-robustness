@@ -291,3 +291,18 @@ The runner applies the existing studentized pseudo-population SRSWOR procedure, 
 The manifest included in the repository is a smoke-test design (three synthetic scenarios, two frames per scenario, three outer repetitions per sample-size cell, and 25 inner bootstrap replicates). It is deliberately too small for confirmatory inference. The runner labels outputs `PILOT_NOT_CONFIRMATORY`.
 
 The v3 runner is not yet an independently audited scientific artifact. Its tests exercise complete paired key coverage and method-order invariance, but the independent v3 auditor, planning-stage precision analysis, frozen confirmatory manifest, and confirmatory run remain outstanding. No new coverage result or method ranking is asserted here.
+
+
+## 23. v3 independent auditor and manifest hardening (implementation update; no new result)
+
+An independent auditor has now been implemented for the v3 pilot artifact:
+
+- `scripts/audit_multiframe_v3_pilot.py`
+- `tests/test_multiframe_v3_auditor.py`
+- [Independent audit protocol](../docs/multiframe_v3_independent_auditor_2026-10-31.md)
+
+The auditor regenerates finite frames, reconstructs the paired SRSWOR samples and method seeds, independently recomputes the Wald and percentile intervals, and replays the studentized pseudo-population bootstrap. It also reconstructs frame-level and equal-frame summaries and rejects incomplete or duplicated keys. Adversarial tests edit frame values, sample indices, interval endpoints, and row completeness while refreshing the corresponding checksums; the semantic checks are expected to detect those changes.
+
+The v3 manifest now also requires at least two inner bootstrap replicates. This is a minimum computational validity constraint for the studentized interval's bootstrap quantiles, not a recommendation for adequate Monte Carlo precision. A practical or confirmatory design will require substantially more inner replicates, selected through a separate stability/precision analysis.
+
+At the time of this update, the runner, auditor, and manifest-hardening changes have been committed, but exact-head CI and the CI-generated smoke artifact audit are still pending. Therefore this section reports implemented validation machinery only. It does not claim a v3 smoke audit PASS, a coverage estimate, or a confirmatory result. The next release gate is a green exact-head CI run with the smoke artifact independently audited, followed by a planning-only study of frame-level Monte Carlo precision.
