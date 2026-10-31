@@ -568,6 +568,7 @@ def run_estimated_inclusion_pilot(
         if not np.all(np.isfinite(differences)):
             raise ValueError(f"non-finite paired values for {metric}")
         item = _contrast_summary(differences)
+        item.pop("positive_favors_comparison_arm", None)
         item.update({
             "metric": metric,
             "reference_arm": reference_arm,
