@@ -266,3 +266,12 @@ The exact-head workflow lookup returned no PR-triggered workflow runs for this S
 Commit `4e251d7ac977720dcd6001058d4960fe3b242dfe` wires the independent seed-level provenance auditor into the test workflow. CI now runs `tests/test_estimated_inclusion_provenance_audit.py` and, after each of the baseline and nonlinear smoke experiments, invokes `scripts/audit_estimated_inclusion_provenance.py` on the persisted replicate table and summary. Each provenance report is written inside its corresponding smoke-artifact directory, which is already included in the workflow artifact upload paths.
 
 This closes a workflow-orchestration gap: previously, the provenance auditor and its regression tests existed in the branch but the workflow did not execute them. The workflow file was fetched again after the change and the test/audit commands were verified at the current branch head. **No workflow run, local test run, smoke execution, or provenance-audit result has yet been retrieved for this new commit.** The exact-head execution gate remains open; no pass is claimed.
+
+
+## 11. Strengthen provenance-audit completeness checks (31 October 2026)
+
+A source review identified that the independent seed-level provenance auditor reconstructed every replicate present in the CSV but did not independently compare the observed replicate IDs with `summary.n_replicates_requested`. Consequently, a CSV with an entire replicate removed could still receive a provenance PASS if the remaining rows were internally consistent. The main posterior-artifact auditor has its own replicate-arm matrix checks, but the provenance auditor should not silently accept incomplete replicate coverage when run independently.
+
+Commits `6331b6c777a99c904e78fa8a61b711dcf12a5fef` and `86744871dc16f9374afc0b81ad53a443f7bd8b85` address this gap. The provenance auditor now requires a positive integer `n_replicates_requested`, finite integer replicate IDs matching exactly `0, ..., n_replicates_requested - 1`, and unique `(replicate, arm)` rows. Regression tests cover a missing requested replicate and a duplicated replicate-arm row; the existing fixture now records the declared replicate count.
+
+The modified auditor and tests were fetched again from the branch and the inserted checks/tests were confirmed in source. This is static source verification only: no local tests, GitHub Actions run, smoke simulation, or artifact audit has been executed or retrieved for these commits. The execution gate remains open.
