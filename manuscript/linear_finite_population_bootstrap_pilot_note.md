@@ -306,3 +306,14 @@ The auditor regenerates finite frames, reconstructs the paired SRSWOR samples an
 The v3 manifest now also requires at least two inner bootstrap replicates. This is a minimum computational validity constraint for the studentized interval's bootstrap quantiles, not a recommendation for adequate Monte Carlo precision. A practical or confirmatory design will require substantially more inner replicates, selected through a separate stability/precision analysis.
 
 At the time of this update, the runner, auditor, and manifest-hardening changes have been committed, but exact-head CI and the CI-generated smoke artifact audit are still pending. Therefore this section reports implemented validation machinery only. It does not claim a v3 smoke audit PASS, a coverage estimate, or a confirmatory result. The next release gate is a green exact-head CI run with the smoke artifact independently audited, followed by a planning-only study of frame-level Monte Carlo precision.
+
+
+## 11. Subsequent software development (separate from the v1 results)
+
+After the v1 pilot described above, the repository developed a versioned multi-frame v3 workflow with a deterministic seed schedule, independently generated finite frames, paired outer samples, method-specific random streams, and an independent artifact auditor. A small smoke manifest was executed in GitHub Actions. The successful workflow run 41176574199 reported that the v3 runner/auditor tests passed and that the smoke artifact's six frames, 36 outer sample keys, 108 method-level records, interval endpoints, and summaries were independently reconstructed.
+
+This later smoke workflow is a software-validation milestone, **not an extension of the v1 statistical experiment**. Its small number of outer repetitions and frames does not support coverage comparisons or method rankings. The v1 results and denominators in Sections 4–8 remain unchanged and must not be combined with v3 smoke records.
+
+The first successful smoke run also exposed an artifact-packaging omission: the generated v3 smoke directory was not included in the uploaded workflow artifact. The workflow was subsequently amended to archive artifacts/multiframe_v3_smoke/. The exact-head workflow following that correction is still required to verify durable archival of the manifest, raw records, checksums, and audit report. See docs/multiframe_v3_smoke_audit_report_2026-10-31.md for the audit trail and this qualification.
+
+The confirmatory design remains unlocked. The primary contrast, practical relevance threshold, final frame-generating grid, frame count, within-frame repetition count, inner bootstrap budget, multiplicity plan, and stopping rule must be resolved and frozen before confirmatory outcomes are generated. The manuscript should not be upgraded from a pilot note to a confirmatory paper until those gates and independent reproduction are complete.
