@@ -361,3 +361,17 @@ Actions run `41210434914` confirmed that the corrected provenance row-count test
 The test now preserves the real optimizer for three-parameter quadratic fits and injects the deliberately false-success result only for the targeted two-parameter linear refit. This makes the test independent of iteration order while preserving its intended assertion. Commit `688b99d4cac45d6284ac8725cfe5e92c7ed4573a` contains this test-only correction.
 
 The run reached the main estimated-inclusion artifact-auditor test stage; 31 tests passed and this single adversarial test failed. The next Actions run must verify the correction, then complete the provenance suite and both smoke audits. No confirmatory simulation has been started.
+
+
+### Section 21 — Full three-version CI and both synthetic smoke audits passed
+
+Actions run `41210594217` completed successfully for the then-current PR head `34983e49b07eca79025a403a5eb30cb16164cd41`. All three numerical-diagnostics matrix jobs passed: Python 3.10, 3.11, and 3.12.
+
+The Python 3.12 artifact (artifact ID `13046422288`) was downloaded and inspected. Both estimated-inclusion smoke scenarios passed the independent posterior/artifact audit and the independent seed-level provenance audit:
+
+- **Linear-inclusion baseline smoke:** 2 replicates, 1,200 parent galaxies per replicate, 8 detected toy events, validation sizes 100 and 300; 6 arms, 12 replicate-arm rows, 12 successful fits, zero failed fits. The independent artifact audit returned `PASS`; the provenance audit reconstructed 2 replicates, 8 estimated-arm rows, and 8 event-observation rows, also `PASS`.
+- **Quadratic-inclusion stress smoke:** 3 replicates, 1,200 parent galaxies per replicate, 8 detected toy events, validation size 150; 4 arms, 12 replicate-arm rows, 12 successful fits, zero failed fits. The independent artifact audit returned `PASS`; the provenance audit reconstructed 3 replicates, 6 estimated-arm rows, and 6 event-observation rows, also `PASS`.
+
+This closes the current implementation-and-smoke-validation gate for the code at that commit. The runs are deliberately tiny smoke tests: **they validate execution, artifact integrity, and deterministic synthetic provenance only. They do not establish estimator superiority, nominal coverage, robust calibration, or astrophysical realism.** The experiment remains synthetic and is not a real LVK analysis or a new H0 measurement.
+
+PR #15 remains open, draft, and unmerged. The branch remains substantially diverged from its base (208 commits ahead and 10 behind at this check); no rebase, retarget, or merge was performed. The next scientific phase is to freeze the confirmatory design and Monte Carlo precision target before running a larger simulation campaign.
