@@ -1,7 +1,10 @@
-"""Non-confirmatory pilot for inclusion probabilities estimated from an external audit.
+"""Non-confirmatory pilot for inclusion probabilities estimated from an inclusion-audit subsample.
 
-This is a controlled synthetic study only. It does not use real galaxy surveys
-or gravitational-wave observations and is not an H0 measurement.
+The audit subsample is drawn from the same finite synthetic parent frame as
+the retained catalogue; its labels are therefore dependent on, and may overlap
+with, the catalogue. This is a controlled synthetic study only. It does not
+use real galaxy surveys or gravitational-wave observations and is not an H0
+measurement.
 """
 from __future__ import annotations
 
