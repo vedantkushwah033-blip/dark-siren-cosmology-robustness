@@ -7,6 +7,7 @@ not choose a confirmatory design automatically.
 from __future__ import annotations
 
 import math
+from numbers import Real
 
 from scipy.stats import chi2, t
 
@@ -37,6 +38,8 @@ def plan_independent_frames(
         ("confidence_level", confidence_level),
         ("variance_confidence", variance_confidence),
     ):
+        if isinstance(value, bool) or not isinstance(value, Real):
+            raise TypeError(f"{name} must be a real number, not a boolean")
         if not math.isfinite(value):
             raise ValueError(f"{name} must be finite")
     if pilot_frame_sd <= 0:
@@ -119,9 +122,13 @@ def plan_frame_count_sensitivity(
     if not isinstance(variance_confidences, tuple) or not variance_confidences:
         raise TypeError("variance_confidences must be a non-empty tuple")
     for multiplier in sd_multipliers:
+        if isinstance(multiplier, bool) or not isinstance(multiplier, Real):
+            raise TypeError("all sd_multipliers must be real numbers, not booleans")
         if not math.isfinite(multiplier) or multiplier <= 0:
             raise ValueError("all sd_multipliers must be finite and positive")
     for level in variance_confidences:
+        if isinstance(level, bool) or not isinstance(level, Real):
+            raise TypeError("all variance_confidences must be real numbers, not booleans")
         if not math.isfinite(level) or not 0 < level < 1:
             raise ValueError("all variance_confidences must lie strictly between zero and one")
 
