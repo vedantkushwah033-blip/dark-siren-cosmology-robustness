@@ -69,6 +69,24 @@ jobs:
           PY
       - name: Independently audit estimated-inclusion pilot smoke artifacts
         run: python scripts/audit_estimated_inclusion_pilot.py artifacts/estimated_inclusion_pilot_smoke
+      - name: Run nonlinear inclusion-misspecification pilot smoke experiment
+        run: python scripts/run_estimated_inclusion_pilot.py --replicates 3 --n-parent 1200 --n-detected 8 --validation-sizes 150 --seed 20261066 --true-quadratic 1.2 --h0-points 41 --z-points 201 --output-dir artifacts/estimated_inclusion_quadratic_stress_smoke
+      - name: Check nonlinear pilot uses the declared quadratic data-generating process
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('artifacts/estimated_inclusion_quadratic_stress_smoke')
+          summary = json.loads((p / 'summary.json').read_text())
+          assert summary['true_inclusion_model']['family'] == 'quadratic_logistic'
+          assert summary['true_inclusion_model']['quadratic'] == 1.2
+          assert {row['arm'] for row in summary['arm_summaries']} >= {
+              'estimated_linear_150', 'estimated_quadratic_150'
+          }
+          print('Validated nonlinear stress design and paired estimator arms.')
+          PY
+      - name: Independently audit nonlinear inclusion-misspecification smoke artifacts
+        run: python scripts/audit_estimated_inclusion_pilot.py artifacts/estimated_inclusion_quadratic_stress_smoke
       - name: Test host-density-to-H0 benchmark
         run: python -m pytest tests/test_host_density_benchmark.py -q
       - name: Test corrected physical KDE bandwidth semantics
