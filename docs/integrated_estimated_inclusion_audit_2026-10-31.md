@@ -194,3 +194,19 @@ Each estimated row records its fitted model family and degree. The independent p
 The runner accepts a nonzero `true_quadratic` coefficient to create a controlled curvature stress condition. The default remains zero, so the quadratic arm is then a deliberately more flexible nested fit rather than a correctly specified nonlinear model. A meaningful nonlinear stress comparison must explicitly set and report nonzero curvature and should vary curvature and validation size under a prespecified design; one pilot setting cannot establish general performance.
 
 **Verification status:** source and regression-test changes are committed, but the latest exact-head GitHub Actions result has not been retrieved and no new pilot artifact has been executed or audited in this session. Therefore no new numerical result or test pass is claimed. The next gate is exact-head CI, followed by a small paired pilot and its independent artifact audit.
+
+
+## Protocol reconciliation after paired-model implementation (2026-10-31)
+
+Updated `docs/estimated_inclusion_nonlinear_stress_protocol_2026-10-30.md` to match the implemented linear/quadratic estimator arms and the actual nonlinear data-generating law. The revised protocol:
+
+- makes the paired linear-minus-quadratic absolute posterior-mean error the primary model-family contrast, while retaining each arm's catalogue-only comparison as secondary;
+- explicitly states that positive contrast values favor quadratic only for absolute point-estimation error, not coverage or calibration;
+- marks curvature and validation-size levels as candidates pending overlap review and precision planning;
+- records that paired contrasts for coverage, interval width, inclusion-probability MAE, and density ISE are not yet implemented and must not be inferred from the current absolute-error contrast;
+- adds an explicit gate for independent regeneration of parent/catalogue/GW/validation inputs and distinguishes it from posterior reconstruction;
+- documents the plug-in inclusion-probability uncertainty limitation and the synthetic toy detector-selection boundary.
+
+**Verification update:** CLI inspection confirms `--true-quadratic` is parsed and forwarded to the runner. The nonlinear CI smoke assertions match the current summary schema (`true_inclusion_model.family`, `quadratic`, and the paired arm labels). The latest documentation commit is `ca3a4401863fa8b572ec2e9d0467674967a26213`; the workflow-run connector returned no run for that SHA. No CI pass, local test execution, pilot artifact, or independent artifact-audit pass is claimed.
+
+**Next gate:** obtain a completed exact-head CI run. Then execute the small nonlinear smoke/pilot artifact and independently audit it before increasing replicate count or launching the factorial screen.
