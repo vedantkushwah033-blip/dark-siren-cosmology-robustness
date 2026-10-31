@@ -492,8 +492,10 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
     validation_sizes = summary.get("validation_sizes")
     if not isinstance(validation_sizes, list) or not validation_sizes:
         raise AssertionError("summary.validation_sizes must be a nonempty list")
-    if any(isinstance(v, bool) or not isinstance(v, int) or v < 1 for v in validation_sizes):
-        raise AssertionError("summary.validation_sizes must contain positive integers")
+    if any(isinstance(v, bool) or not isinstance(v, int) or v < 10 for v in validation_sizes):
+        raise AssertionError("summary.validation_sizes must contain integer counts >= 10")
+    if len(set(validation_sizes)) != len(validation_sizes):
+        raise AssertionError("summary.validation_sizes must not contain duplicates")
 
     # Cross-check saved population counts against the declared simulation design.
     n_parent = summary.get("n_parent")
@@ -502,6 +504,8 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         raise AssertionError("summary.n_parent must be an integer >= 100")
     if isinstance(n_detected_declared, bool) or not isinstance(n_detected_declared, int) or n_detected_declared < 1:
         raise AssertionError("summary.n_detected must be a positive integer")
+    if max(validation_sizes) > n_parent:
+        raise AssertionError("summary.validation_sizes cannot exceed summary.n_parent")
     catalogue_counts = _integer_values(frame["n_catalogue"], "n_catalogue")
     detected_counts = _integer_values(frame["n_detected"], "n_detected")
     if np.any((catalogue_counts < 0) | (catalogue_counts > n_parent)):
