@@ -129,7 +129,6 @@ def audit_provenance(
     checked_replicates = 0
     checked_estimated_rows = 0
     checked_event_rows = 0
-    failures_without_payload: list[int] = []
     for replicate, group in frame.groupby("replicate", sort=True):
         replicate = int(replicate)
         expected_sim, expected_catalogue, expected_audit = _component_seeds(
@@ -147,10 +146,8 @@ def audit_provenance(
                 )
 
         estimated = group[group["arm"].astype(str).str.startswith("estimated_")]
-        successful = estimated[estimated["status"] == "success"]
-        if successful.empty:
-            failures_without_payload.append(replicate)
-            continue
+        if estimated.empty:
+            raise AssertionError(f"replicate {replicate}: no estimated-inclusion arms were recorded")
 
         parent_z = _parent_redshifts(expected_sim, n_parent, z_min, z_max)
         x = (parent_z - midpoint) / half_range
@@ -165,7 +162,7 @@ def audit_provenance(
         retained = np.random.default_rng(expected_catalogue).random(n_parent) < true_probability
         audit_order = np.random.default_rng(expected_audit).permutation(n_parent)
 
-        for _, row in successful.iterrows():
+        for _, row in estimated.iterrows():
             try:
                 inference = json.loads(row["inference_audit_payload_json"])
                 scoring = json.loads(row["scoring_audit_payload_json"])
@@ -214,12 +211,6 @@ def audit_provenance(
             checked_estimated_rows += 1
         checked_replicates += 1
 
-    if failures_without_payload:
-        raise AssertionError(
-            "Cannot establish seed-level provenance for replicates with no successful "
-            "estimated arm because failure rows do not persist the raw validation frame: "
-            + ", ".join(map(str, failures_without_payload))
-        )
     if checked_replicates != frame["replicate"].nunique():
         raise AssertionError("not every replicate received a provenance reconstruction")
 
@@ -227,6 +218,7 @@ def audit_provenance(
         "status": "PASS",
         "replicates_reconstructed": checked_replicates,
         "estimated_arm_rows_reconstructed": checked_estimated_rows,
+        "failed_estimated_arm_rows_reconstructed": int((frame.loc[frame["arm"].astype(str).str.startswith("estimated_"), "status"] != "success").sum()),
         "event_observation_rows_reconstructed": checked_event_rows,
         "checks": [
             "component seed schedule",
