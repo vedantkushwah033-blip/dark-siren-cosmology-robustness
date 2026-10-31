@@ -267,3 +267,50 @@ def test_preposterior_diagnostics_reject_probabilities_not_generated_by_fitted_m
         build_preposterior_diagnostics(
             model, validation_z, validation_y, catalogue_z, np.full(80, 0.5)
         )
+
+
+def test_quadratic_logistic_inclusion_fit_recovers_curvature_and_predicts():
+    rng = np.random.default_rng(20261031)
+    z_min, z_max = 0.01, 0.40
+    z = rng.uniform(z_min, z_max, 30000)
+    x = (z - (z_min + z_max) / 2) / ((z_max - z_min) / 2)
+    truth = expit(0.25 - 1.2 * x + 1.8 * (x**2 - 1.0 / 3.0))
+    included = rng.binomial(1, truth)
+    model = fit_logistic_inclusion_model(z, included, z_min=z_min, z_max=z_max, degree=2)
+    grid = np.linspace(z_min, z_max, 301)
+    predicted = predict_inclusion_probability(grid, model)
+    gx = (grid - (z_min + z_max) / 2) / ((z_max - z_min) / 2)
+    expected = expit(0.25 - 1.2 * gx + 1.8 * (gx**2 - 1.0 / 3.0))
+    assert model["model"] == "quadratic_logistic_inclusion_v1"
+    assert model["degree"] == 2
+    assert model["fit_status"] == "converged"
+    assert model["quadratic"] == pytest.approx(1.8, abs=0.10)
+    assert np.mean(np.abs(predicted - expected)) < 0.02
+
+
+def test_inclusion_fit_rejects_unsupported_polynomial_degree():
+    with pytest.raises(ValueError, match="degree"):
+        fit_logistic_inclusion_model(
+            np.linspace(0.01, 0.40, 20), np.tile([0, 1], 10),
+            z_min=0.01, z_max=0.40, degree=3,
+        )
+
+
+def test_quadratic_preposterior_diagnostics_reconstruct_fitted_probabilities():
+    from dark_siren_robustness.preposterior_diagnostics import build_preposterior_diagnostics
+    rng = np.random.default_rng(20261032)
+    z_min, z_max = 0.01, 0.40
+    validation_z = rng.uniform(z_min, z_max, 12000)
+    x = (validation_z - (z_min + z_max) / 2) / ((z_max - z_min) / 2)
+    included = rng.binomial(1, expit(0.2 - 0.8*x + 1.2*(x*x - 1/3)))
+    model = fit_logistic_inclusion_model(
+        validation_z, included, z_min=z_min, z_max=z_max, degree=2
+    )
+    catalogue_z = np.linspace(0.02, 0.39, 80)
+    probability = predict_inclusion_probability(catalogue_z, model)
+    result = build_preposterior_diagnostics(
+        model, validation_z, included, catalogue_z, probability
+    )
+    assert result["fitted_model_degree"] == 2
+    assert result["fitted_quadratic"] == pytest.approx(model["quadratic"])
+    assert 0 < result["inverse_weight_ess"] <= len(catalogue_z)
