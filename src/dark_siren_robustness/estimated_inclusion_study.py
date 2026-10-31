@@ -263,7 +263,7 @@ def run_estimated_inclusion_pilot(
                     ),
                     "audit_design": (
                         "independent_cohort" if arm.startswith("independent_")
-                        else "shared_source_frame" if arm.startswith("estimated_")
+                        else "shared_source_frame" if arm.startswith(("estimated_", "independent_"))
                         else "not_applicable"
                     ),
                     "inference_audit_schema": (
@@ -424,7 +424,7 @@ def run_estimated_inclusion_pilot(
                     ),
                     "audit_design": (
                         "independent_cohort" if arm.startswith("independent_")
-                        else "shared_source_frame" if arm.startswith("estimated_")
+                        else "shared_source_frame" if arm.startswith(("estimated_", "independent_"))
                         else "not_applicable"
                     ),
                     "posterior_mean": post["posterior_mean"],
@@ -451,7 +451,7 @@ def run_estimated_inclusion_pilot(
                         ),
                         "audit_design": (
                             "independent_cohort" if arm.startswith("independent_")
-                            else "shared_source_frame" if arm.startswith("estimated_")
+                            else "shared_source_frame" if arm.startswith(("estimated_", "independent_"))
                             else "not_applicable"
                         ),
                         "validation_redshift": audit_validation_redshift.tolist(),
@@ -504,14 +504,14 @@ def run_estimated_inclusion_pilot(
                     "max_inverse_weight": max_inverse_weight,
                     **preposterior_features,
                     "inference_audit_schema": (
-                        "toy_selection_provenance_v2" if arm.startswith("estimated_") else None
+                        "toy_selection_provenance_v2" if arm.startswith(("estimated_", "independent_")) else None
                     ),
                     "inference_audit_payload_json": (
                         _inference_provenance(int(audit_size))
-                        if arm.startswith("estimated_") else None
+                        if arm.startswith(("estimated_", "independent_")) else None
                     ),
                     "scoring_audit_payload_json": (
-                        _scoring_provenance() if arm.startswith("estimated_") else None
+                        _scoring_provenance() if arm.startswith(("estimated_", "independent_")) else None
                     ),
                 })
 
