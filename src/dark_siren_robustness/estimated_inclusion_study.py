@@ -233,6 +233,12 @@ def run_estimated_inclusion_pilot(
                 "schema": "inclusion_probability_scoring_only_v1",
                 "parent_redshift": parent_z.tolist(),
                 "true_inclusion_probability": true_probability.tolist(),
+                "independent_audit_truth_redshift": (
+                    independent_audit_observable["redshift"].to_numpy(dtype=float).tolist()
+                ),
+                "independent_audit_true_inclusion_probability": (
+                    independent_audit_truth["true_inclusion_probability"].to_numpy(dtype=float).tolist()
+                ),
                 **event_truth_payload,
             }, separators=(",", ":"))
         if observed_z.size < 5 or np.unique(observed_z).size < 3:
