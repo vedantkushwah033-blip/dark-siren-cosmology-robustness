@@ -454,13 +454,20 @@ def test_independent_auditor_rejects_success_status_with_nonoptimal_logistic_ref
     # Simulate an optimizer that reports success at a deliberately nonstationary
     # interior point. The independent KKT check must reject it before comparing
     # the saved coefficients or probabilities.
-    monkeypatch.setattr(
-        auditor,
-        "minimize",
-        lambda *args, **kwargs: SimpleNamespace(
-            x=np.zeros(2), fun=1.0, success=True, message="CONVERGENCE: fake status"
-        ),
-    )
+    real_minimize = auditor.minimize
+
+    def fake_minimize(fun, x0, *args, **kwargs):
+        # Arm iteration order is not a stable contract. Let the quadratic
+        # (3-parameter) fit run normally, while forcing the targeted linear
+        # (2-parameter) refit to report false success.
+        if np.asarray(x0).size == 2:
+            return SimpleNamespace(
+                x=np.zeros(2), fun=1.0, success=True,
+                message="CONVERGENCE: fake status",
+            )
+        return real_minimize(fun, x0, *args, **kwargs)
+
+    monkeypatch.setattr(auditor, "minimize", fake_minimize)
     with pytest.raises(AssertionError, match="independent logistic inclusion refit did not converge"):
         audit_pilot_artifacts(tmp_path)
 
