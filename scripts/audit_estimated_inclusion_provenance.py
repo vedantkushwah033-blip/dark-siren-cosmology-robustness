@@ -304,8 +304,10 @@ def audit_provenance(
                 _same_array(validation_z, independent_z[:m], f"replicate {replicate} independent validation redshifts")
                 if not np.array_equal(validation_y, independent_y[:m]):
                     raise AssertionError(f"replicate {replicate}, arm {row['arm']}: independent validation labels mismatch")
-                if not all(str(value).startswith("independent-audit:") for value in validation_ids):
-                    raise AssertionError(f"replicate {replicate}, arm {row['arm']}: independent IDs are not namespaced")
+                if (not all(str(value).startswith("independent-audit:") for value in validation_ids)
+                        or not np.array_equal(validation_ids.astype(str), independent_ids[:m].astype(str))
+                        or np.unique(validation_ids.astype(str)).size != m):
+                    raise AssertionError(f"replicate {replicate}, arm {row['arm']}: independent audit IDs are not reproducible, unique, and namespaced")
             else:
                 _same_array(validation_z, parent_z[audit_order[:m]], f"replicate {replicate} validation redshifts")
                 if not np.array_equal(validation_y, retained[audit_order[:m]].astype(int)):
