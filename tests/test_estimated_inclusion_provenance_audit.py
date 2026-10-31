@@ -133,3 +133,15 @@ def test_seed_level_provenance_audit_rejects_tampered_gw_host_identity(tmp_path)
     frame.to_csv(replicates, index=False)
     with pytest.raises(AssertionError, match="detected GW host IDs"):
         AUDITOR.audit_provenance(replicates, summary)
+
+
+def test_seed_level_provenance_audit_reconstructs_failed_estimated_arm(tmp_path):
+    replicates, summary = _write_fixture(tmp_path)
+    frame = pd.read_csv(replicates)
+    frame.loc[0, "status"] = "failed"
+    frame.loc[0, "error"] = "synthetic injected failure after data generation"
+    frame.to_csv(replicates, index=False)
+    report = AUDITOR.audit_provenance(replicates, summary)
+    assert report["status"] == "PASS"
+    assert report["failed_estimated_arm_rows_reconstructed"] == 1
+    assert report["estimated_arm_rows_reconstructed"] == 1
