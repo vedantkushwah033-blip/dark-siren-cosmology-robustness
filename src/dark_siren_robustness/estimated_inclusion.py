@@ -21,18 +21,21 @@ def fit_logistic_inclusion_model(
     *,
     z_min: float,
     z_max: float,
+    degree: int = 1,
 ) -> dict[str, float | str | bool]:
-    """Fit logit P(included=1 | z) = intercept + slope * standardized_z.
+    """Fit a degree-1 or degree-2 logistic inclusion model.
 
-    Standardization is fixed by the declared domain: standardized_z is
-    (z - (z_min + z_max)/2) / ((z_max - z_min)/2). It is not estimated from
-    the validation sample, so fitted coefficients are comparable across
-    replicates. The caller must ensure the validation sampling design supports
+    Standardization is fixed by the declared domain. Degree 1 uses
+    intercept + slope*x; degree 2 adds quadratic*(x**2 - 1/3). The latter
+    centering is with respect to a uniform reference measure on x in [-1, 1],
+    not the generally non-uniform parent-redshift distribution. The caller must ensure the validation sampling design supports
     this conditional model and must not treat fitted probabilities as known.
 
     Raises ValueError for malformed data or a validation sample containing only
     one outcome class. Raises RuntimeError if bounded maximum likelihood fails.
     """
+    if isinstance(degree, (bool, np.bool_)) or degree not in (1, 2):
+        raise ValueError("degree must be integer 1 or 2")
     z = np.asarray(validation_redshift, dtype=float)
     y_raw = np.asarray(included)
     if z.ndim != 1 or z.size < 10 or not np.all(np.isfinite(z)):
@@ -55,14 +58,16 @@ def fit_logistic_inclusion_model(
 
     def negative_log_likelihood(theta: NDArray[np.float64]) -> float:
         eta = theta[0] + theta[1] * x
+        if degree == 2:
+            eta = eta + theta[2] * (x**2 - 1.0 / 3.0)
         value = -np.sum(y * log_expit(eta) + (1.0 - y) * log_expit(-eta))
         return float(value) if np.isfinite(value) else float("inf")
 
     result = minimize(
         negative_log_likelihood,
-        x0=np.array([0.0, 0.0], dtype=float),
+        x0=np.zeros(degree + 1, dtype=float),
         method="L-BFGS-B",
-        bounds=((-25.0, 25.0), (-50.0, 50.0)),
+        bounds=((-25.0, 25.0), (-50.0, 50.0)) + (((-50.0, 50.0),) if degree == 2 else ()),
         options={"maxiter": 2000, "ftol": 1e-12, "gtol": 1e-8},
     )
     if not result.success or not np.all(np.isfinite(result.x)) or not np.isfinite(result.fun):
@@ -70,13 +75,16 @@ def fit_logistic_inclusion_model(
     coefficient_bound_hit = bool(
         np.isclose(abs(float(result.x[0])), 25.0, rtol=0.0, atol=1e-5)
         or np.isclose(abs(float(result.x[1])), 50.0, rtol=0.0, atol=1e-5)
+        or (degree == 2 and np.isclose(abs(float(result.x[2])), 50.0, rtol=0.0, atol=1e-5))
     )
-    return {
-        "model": "logistic_inclusion_v1",
+    output = {
+        "model": "logistic_inclusion_v1" if degree == 1 else "quadratic_logistic_inclusion_v1",
+        "degree": degree,
         "fit_status": "boundary_limited" if coefficient_bound_hit else "converged",
         "coefficient_bound_hit": coefficient_bound_hit,
         "intercept": float(result.x[0]),
         "slope": float(result.x[1]),
+        "quadratic": float(result.x[2]) if degree == 2 else 0.0,
         "z_min": float(z_min),
         "z_max": float(z_max),
         "n_validation": int(z.size),
@@ -84,6 +92,7 @@ def fit_logistic_inclusion_model(
         "n_not_included": int(y.size - np.sum(y)),
         "negative_log_likelihood": float(result.fun),
     }
+    return output
 
 
 def predict_inclusion_probability(
@@ -96,21 +105,24 @@ def predict_inclusion_probability(
     chooses to stabilize weights, that rule must be explicit and reported as
     part of the estimator rather than silently embedded in this function.
     """
-    if model.get("model") != "logistic_inclusion_v1":
-        raise ValueError("model must be a logistic_inclusion_v1 result")
+    model_name = model.get("model")
+    if model_name not in {"logistic_inclusion_v1", "quadratic_logistic_inclusion_v1"}:
+        raise ValueError("model must be a supported logistic inclusion result")
+    degree = 1 if model_name == "logistic_inclusion_v1" else 2
     try:
         intercept = float(model["intercept"])
         slope = float(model["slope"])
+        quadratic = float(model.get("quadratic", 0.0))
         z_min = float(model["z_min"])
         z_max = float(model["z_max"])
     except (KeyError, TypeError, ValueError) as exc:
         raise ValueError("model is missing valid coefficients or domain bounds") from exc
-    if not all(np.isfinite(value) for value in (intercept, slope, z_min, z_max)) or z_min >= z_max:
+    if not all(np.isfinite(value) for value in (intercept, slope, quadratic, z_min, z_max)) or z_min >= z_max:
         raise ValueError("model coefficients and domain bounds must be finite and valid")
     # These are the fitting bounds in fit_logistic_inclusion_model. Enforcing
     # the same model contract here prevents externally supplied coefficients
     # from producing subnormal probabilities and overflowing inverse weights.
-    if abs(intercept) > 25.0 or abs(slope) > 50.0:
+    if abs(intercept) > 25.0 or abs(slope) > 50.0 or abs(quadratic) > 50.0:
         raise ValueError("model coefficients exceed the bounded logistic-fit domain")
     z = np.asarray(redshift, dtype=float)
     if z.ndim != 1 or not np.all(np.isfinite(z)):
@@ -119,7 +131,11 @@ def predict_inclusion_probability(
         raise ValueError("redshift values must lie inside the fitted model domain")
     midpoint = (z_min + z_max) / 2.0
     half_range = (z_max - z_min) / 2.0
-    return np.asarray(expit(intercept + slope * ((z - midpoint) / half_range)), dtype=float)
+    x = (z - midpoint) / half_range
+    eta = intercept + slope * x
+    if degree == 2:
+        eta = eta + quadratic * (x**2 - 1.0 / 3.0)
+    return np.asarray(expit(eta), dtype=float)
 
 
 
@@ -131,6 +147,7 @@ def estimate_host_density_from_validation(
     *,
     merger_weight: ArrayLike | None = None,
     bandwidth_factor: float | None = None,
+    degree: int = 1,
 ) -> dict[str, object]:
     """Estimate host density using inclusion probabilities learned from audit data.
 
@@ -162,7 +179,7 @@ def estimate_host_density_from_validation(
         validation_z,
         validation_included,
         z_min=float(grid[0]),
-        z_max=float(grid[-1]),
+        z_max=float(grid[-1]), degree=degree,
     )
     probability = predict_inclusion_probability(observed, model)
     inverse_weights = 1.0 / probability
