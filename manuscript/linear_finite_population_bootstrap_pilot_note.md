@@ -260,3 +260,18 @@ A first data-generation layer has been implemented:
 The validator enforces explicit scenario identifiers, distribution parameters, population size, independent frame count, sample sizes, methods, and simulation dimensions. The generator produces immutable, reproducible Normal, Gamma, and Lognormal finite frames using the v3 frame seed schedule, with exact realized finite-population means and variances recorded.
 
 This is the manifest and frame-generation layer only. It does not yet execute outer samples, construct intervals, run bootstrap attempts, persist a benchmark artifact, or independently audit method comparisons. No v3 coverage or performance result is claimed.
+
+
+## 21. Implemented v3 paired outer-sampling layer
+
+The next experimental layer is now implemented:
+
+- [v3 paired sampling documentation](../docs/multiframe_v3_sampling_2026-10-31.md)
+- Implementation: `src/dark_siren_robustness/multiframe_sampling.py`
+- Regression tests: `tests/test_multiframe_sampling.py`
+
+For each explicit scenario × frame × sample-size × replicate key, the sampler deterministically draws a simple random sample without replacement. Its random stream is method-agnostic, so all methods receive the same immutable sampled units for a paired comparison. Sample and frame hashes, seed lineage, sample moments, and the exact finite-frame target are recorded.
+
+The grid generator creates every declared outer-sample key in canonical order and rejects out-of-design coordinates. Tests check reproducibility, uniqueness of sampled units, coordinate separation, immutability, grid completeness, and frame provenance.
+
+This advances v3 through deterministic frame generation and paired outer sampling. It still does not execute the interval methods, persist a full benchmark artifact, or provide an independent artifact audit. No coverage or method-performance result is claimed.
