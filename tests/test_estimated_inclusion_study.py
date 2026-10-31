@@ -69,7 +69,7 @@ def test_inclusion_probability_mae_is_scored_on_full_parent_population(monkeypat
         frame["arm"].str.startswith("estimated_") & frame["status"].eq("success")
     ]
     assert not estimated_successes.empty
-    assert scored_sizes == [1000, 1000]
+    assert scored_sizes == [1000] * len(estimated_successes)
     assert estimated_successes["inclusion_probability_mae"].notna().all()
 
 
@@ -156,7 +156,8 @@ def test_pilot_records_preposterior_features_before_posterior_outputs():
         seed=20261051, h0_points=41, z_points=201,
     )
     estimated = frame.loc[frame["arm"].str.startswith("estimated_") & frame["status"].eq("success")]
-    assert len(estimated) == 1, frame[["arm", "status", "error"]].to_dict("records")
+    assert len(estimated) == 2, frame[["arm", "status", "error"]].to_dict("records")
+    assert set(estimated["inclusion_model_degree"]) == {1, 2}
     required = {
         "diagnostic_schema", "n_validation", "validation_inclusion_fraction",
         "catalogue_outside_validation_range_fraction", "fitted_probability_p05",
