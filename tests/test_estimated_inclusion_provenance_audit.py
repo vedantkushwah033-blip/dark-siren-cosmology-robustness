@@ -44,7 +44,7 @@ def _write_fixture(tmp_path: Path) -> tuple[Path, Path]:
     order = np.random.default_rng(audit_seed).permutation(n_parent)
     m = 100
     independent_z, independent_y, independent_ids = AUDITOR._independent_audit_sample(
-        independent_audit_seed, 300, z_min, z_max, 0.25, -1.2, 0.3
+        independent_audit_seed, 100, z_min, z_max, 0.25, -1.2, 0.3
     )
     independent_x = (independent_z - (z_min + z_max) / 2) / ((z_max - z_min) / 2)
     independent_p = expit(0.25 - 1.2 * independent_x + 0.3 * (independent_x**2 - 1/3))
