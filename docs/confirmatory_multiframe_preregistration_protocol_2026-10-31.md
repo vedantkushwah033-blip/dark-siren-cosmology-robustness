@@ -121,3 +121,13 @@ This protocol can support a careful finite-population simulation comparison. It 
 Wang, R., Peng, L., & Kim, J. (2022). Bootstrap inference for the finite population mean under complex sampling designs. *Journal of the Royal Statistical Society: Series B*, 84(4), 1150–1174. https://doi.org/10.1111/rssb.12506
 
 This reference motivates the pseudo-population bootstrap family; the present software benchmark is not a proof or independent verification of the theorem's assumptions or conclusions.
+
+### Planning-input sensitivity analysis
+
+The executable planner also exposes a planning-only sensitivity grid over:
+- multiplicative stresses to the externally supplied pilot frame-level SD; and
+- alternative confidence levels for the upper SD bound.
+
+The grid reports the resulting minimum frame count for each combination and retains the `PLANNING_ONLY_NOT_CONFIRMATORY` label. Regression tests check that, holding other inputs fixed, the planned frame count is non-decreasing as the SD stress multiplier or variance-confidence level increases. This is a software consistency check, not evidence that the pilot SD is representative or that the normal-theory bound is valid for a particular scientific estimand.
+
+The sensitivity grid must be specified before examining confirmatory outcomes. It is intended to expose how design recommendations depend on uncertain planning inputs, not to select whichever row yields a preferred or affordable sample size.
