@@ -10,8 +10,6 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-
-import numpy as np
 import pandas as pd
 
 from dark_siren_robustness.estimated_inclusion_study import run_estimated_inclusion_pilot
@@ -65,12 +63,12 @@ def main() -> None:
         frame["true_quadratic"] = float(curvature)
         frame.to_csv(condition_dir / "replicates.csv", index=False)
         (condition_dir / "summary.json").write_text(
-            json.dumps(summary, indent=2, sort_keys=True) + "\\n", encoding="utf-8"
+            json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
 
         audit = audit_pilot_artifacts(condition_dir)
         (condition_dir / "independent_audit.json").write_text(
-            json.dumps(audit, indent=2, sort_keys=True) + "\\n", encoding="utf-8"
+            json.dumps(audit, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
         if audit.get("status") != "PASS":
             raise RuntimeError(f"independent audit failed for curvature {curvature}: {audit}")
@@ -117,7 +115,7 @@ def main() -> None:
         ),
     }
     (args.output_dir / "screen_report.json").write_text(
-        json.dumps(report, indent=2, sort_keys=True) + "\\n", encoding="utf-8"
+        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     print(json.dumps({
         "status": report["status"],
