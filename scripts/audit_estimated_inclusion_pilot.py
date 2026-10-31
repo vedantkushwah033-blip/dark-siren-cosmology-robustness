@@ -786,40 +786,41 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
             raise AssertionError("duplicate paired model contrast validation_size")
         stored_by_size[size] = item
     expected_model_contrast_sizes = set()
-    for size in validation_sizes:
-        linear_name = f"estimated_linear_{size}"
-        quadratic_name = f"estimated_quadratic_{size}"
-        linear = successful.loc[successful["arm"] == linear_name].set_index("replicate")
-        quadratic = successful.loc[successful["arm"] == quadratic_name].set_index("replicate")
-        paired_models = linear[["absolute_error"]].merge(
-            quadratic[["absolute_error"]], left_index=True, right_index=True,
-            how="inner", suffixes=("_linear", "_quadratic")
-        )
-        if paired_models.empty:
-            continue
-        expected_model_contrast_sizes.add(int(size))
-        values = (
-            paired_models["absolute_error_linear"]
-            - paired_models["absolute_error_quadratic"]
-        ).to_numpy(dtype=float)
-        stored = stored_by_size.get(int(size))
-        if stored is None:
-            raise AssertionError(f"{size}: missing paired linear-versus-quadratic contrast")
-        if (stored.get("reference_arm") != linear_name
-                or stored.get("comparison_arm") != quadratic_name
-                or stored.get("positive_favors_quadratic") is not True):
-            raise AssertionError(f"{size}: paired model contrast labels are inconsistent")
-        _close(stored.get("n_paired_replicates"), values.size, f"{size}.model_contrast.n")
-        mean = float(np.mean(values))
-        _close(stored.get("mean_absolute_error_reduction"), mean, f"{size}.model_contrast.mean")
-        if values.size < 2:
-            se = low = high = None
-        else:
-            se = float(np.std(values, ddof=1) / np.sqrt(values.size))
-            low, high = mean - 1.96 * se, mean + 1.96 * se
-        _close(stored.get("standard_error"), se, f"{size}.model_contrast.se")
-        _close(stored.get("normal_95_low"), low, f"{size}.model_contrast.low")
-        _close(stored.get("normal_95_high"), high, f"{size}.model_contrast.high")
+    if not successful.empty:
+        for size in validation_sizes:
+            linear_name = f"estimated_linear_{size}"
+            quadratic_name = f"estimated_quadratic_{size}"
+            linear = successful.loc[successful["arm"] == linear_name].set_index("replicate")
+            quadratic = successful.loc[successful["arm"] == quadratic_name].set_index("replicate")
+            paired_models = linear[["absolute_error"]].merge(
+                quadratic[["absolute_error"]], left_index=True, right_index=True,
+                how="inner", suffixes=("_linear", "_quadratic")
+            )
+            if paired_models.empty:
+                continue
+            expected_model_contrast_sizes.add(int(size))
+            values = (
+                paired_models["absolute_error_linear"]
+                - paired_models["absolute_error_quadratic"]
+            ).to_numpy(dtype=float)
+            stored = stored_by_size.get(int(size))
+            if stored is None:
+                raise AssertionError(f"{size}: missing paired linear-versus-quadratic contrast")
+            if (stored.get("reference_arm") != linear_name
+                    or stored.get("comparison_arm") != quadratic_name
+                    or stored.get("positive_favors_quadratic") is not True):
+                raise AssertionError(f"{size}: paired model contrast labels are inconsistent")
+            _close(stored.get("n_paired_replicates"), values.size, f"{size}.model_contrast.n")
+            mean = float(np.mean(values))
+            _close(stored.get("mean_absolute_error_reduction"), mean, f"{size}.model_contrast.mean")
+            if values.size < 2:
+                se = low = high = None
+            else:
+                se = float(np.std(values, ddof=1) / np.sqrt(values.size))
+                low, high = mean - 1.96 * se, mean + 1.96 * se
+            _close(stored.get("standard_error"), se, f"{size}.model_contrast.se")
+            _close(stored.get("normal_95_low"), low, f"{size}.model_contrast.low")
+            _close(stored.get("normal_95_high"), high, f"{size}.model_contrast.high")
     if set(stored_by_size) != expected_model_contrast_sizes:
         raise AssertionError("paired model contrast sizes do not match evaluable paired arms")
 
@@ -851,9 +852,15 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         )
         if paired_rows.empty:
             return
-        values = (
-            paired_rows[f"{column}_reference"] - paired_rows[f"{column}_comparison"]
-        ).to_numpy(dtype=float)
+        # Coverage is stored as Boolean; cast both operands before
+        # subtraction so the contrast is the intended numeric 0/1 difference.
+        reference_values = paired_rows[
+            f"{column}_reference"
+        ].to_numpy(dtype=float)
+        comparison_values = paired_rows[
+            f"{column}_comparison"
+        ].to_numpy(dtype=float)
+        values = reference_values - comparison_values
         if not np.all(np.isfinite(values)):
             raise AssertionError(f"{metric}: paired values must be finite")
         expected_secondary[(metric, reference_arm, comparison_arm)] = values
