@@ -21,18 +21,22 @@ def test_independent_pilot_auditor_reconstructs_output(tmp_path):
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     report = audit_pilot_artifacts(tmp_path)
     assert report["status"] == "PASS"
-    assert report["n_rows"] == 6
-    assert report["n_replicate_arm_pairs_expected"] == 6
-    assert report["n_replicate_arm_pairs_observed"] == 6
+    assert report["n_rows"] == 10
+    assert report["n_replicate_arm_pairs_expected"] == 10
+    assert report["n_replicate_arm_pairs_observed"] == 10
     assert set(report["per_arm_counts"]) == {
         "catalogue_only", "oracle",
         "estimated_linear_100", "estimated_quadratic_100",
         "estimated_linear_200", "estimated_quadratic_200",
+        "independent_linear_100", "independent_quadratic_100",
+        "independent_linear_200", "independent_quadratic_200",
     }
     assert "n_boundary_limited_successful_fits" in report
     assert set(report["comparison_diagnostics"]) == {
         "oracle", "estimated_linear_100", "estimated_quadratic_100",
         "estimated_linear_200", "estimated_quadratic_200",
+        "independent_linear_100", "independent_quadratic_100",
+        "independent_linear_200", "independent_quadratic_200",
     }
     assert all(
         item["n_attempted_common_replicates"] == 1
@@ -193,13 +197,14 @@ def test_independent_auditor_accepts_explicit_all_failed_artifact_without_fit_co
         for arm in [
             "catalogue_only", "oracle",
             "estimated_linear_100", "estimated_quadratic_100",
+            "independent_linear_100", "independent_quadratic_100",
         ]
     ]
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     report = audit_pilot_artifacts(tmp_path)
     assert report["status"] == "PASS"
     assert report["n_success"] == 0
-    assert report["n_failed"] == 4
+    assert report["n_failed"] == 6
     assert all(
         arm["status"] == "non_evaluable_no_successful_fits"
         for arm in report["per_arm_counts"].values()
