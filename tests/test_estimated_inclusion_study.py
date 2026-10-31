@@ -14,15 +14,20 @@ def test_estimated_inclusion_pilot_is_reproducible_and_retains_failures():
     first, summary = run_estimated_inclusion_pilot(**kwargs)
     second, _ = run_estimated_inclusion_pilot(**kwargs)
 
-    assert len(first) == 4  # catalogue-only, oracle, and two estimated arms
+    assert len(first) == 6  # catalogue-only, oracle, and two model families at two sizes
     assert first["status"].eq("success").any(), first[["arm", "error"]].to_dict("records")
     assert first[["replicate", "arm", "status"]].equals(
         second[["replicate", "arm", "status"]]
     )
     assert summary["status"] == "NON_CONFIRMATORY_SYNTHETIC_PILOT"
-    assert {"catalogue_only", "oracle", "estimated_100", "estimated_200"} == set(first["arm"])
+    assert {
+        "catalogue_only", "oracle",
+        "estimated_linear_100", "estimated_quadratic_100",
+        "estimated_linear_200", "estimated_quadratic_200",
+    } == set(first["arm"])
     assert all(first["status"].isin(["success", "failed"]))
-    assert len(summary["contrasts"]) <= 3
+    assert len(summary["contrasts"]) <= 5
+    assert len(summary["paired_model_contrasts"]) <= 2
 
 
 def test_estimated_inclusion_pilot_rejects_non_integer_validation_sizes():
@@ -61,10 +66,10 @@ def test_inclusion_probability_mae_is_scored_on_full_parent_population(monkeypat
         z_points=201,
     )
     estimated_successes = frame.loc[
-        frame["arm"].eq("estimated_100") & frame["status"].eq("success")
+        frame["arm"].str.startswith("estimated_") & frame["status"].eq("success")
     ]
     assert not estimated_successes.empty
-    assert scored_sizes == [1000]
+    assert scored_sizes == [1000, 1000]
     assert estimated_successes["inclusion_probability_mae"].notna().all()
 
 
@@ -88,7 +93,10 @@ def test_quadratic_selection_stress_is_recorded_and_reproducible():
     assert first[["replicate", "arm", "status"]].equals(
         second[["replicate", "arm", "status"]]
     )
-    assert set(first["arm"]) == {"catalogue_only", "oracle", "estimated_150"}
+    assert set(first["arm"]) == {
+        "catalogue_only", "oracle",
+        "estimated_linear_150", "estimated_quadratic_150",
+    }
 
 
 def test_quadratic_selection_coefficient_must_be_finite():
@@ -132,7 +140,10 @@ def test_positivity_and_validation_diagnostics_are_retained_for_each_arm():
     assert frame["true_max_inverse_probability"].to_numpy() == pytest.approx(
         1.0 / frame["true_probability_min"].iloc[0]
     )
-    for arm, size in (("estimated_100", 100), ("estimated_300", 300)):
+    for arm, size in (
+        ("estimated_linear_100", 100), ("estimated_quadratic_100", 100),
+        ("estimated_linear_300", 300), ("estimated_quadratic_300", 300),
+    ):
         count = frame.loc[frame["arm"] == arm, "audit_included_count"].iloc[0]
         assert 0 <= count <= size
     assert frame.loc[frame["arm"] == "catalogue_only", "audit_included_count"].isna().all()
@@ -144,7 +155,7 @@ def test_pilot_records_preposterior_features_before_posterior_outputs():
         n_replicates=1, n_parent=1200, n_detected=6, validation_sizes=(150,),
         seed=20261051, h0_points=41, z_points=201,
     )
-    estimated = frame.loc[frame["arm"].eq("estimated_150") & frame["status"].eq("success")]
+    estimated = frame.loc[frame["arm"].str.startswith("estimated_") & frame["status"].eq("success")]
     assert len(estimated) == 1, frame[["arm", "status", "error"]].to_dict("records")
     required = {
         "diagnostic_schema", "n_validation", "validation_inclusion_fraction",
@@ -181,12 +192,15 @@ def test_too_few_retained_catalogue_objects_are_recorded_without_unbound_feature
         h0_points=31,
         z_points=101,
     )
-    assert set(frame["arm"]) == {"catalogue_only", "oracle", "estimated_20"}
+    assert set(frame["arm"]) == {
+        "catalogue_only", "oracle",
+        "estimated_linear_20", "estimated_quadratic_20",
+    }
     assert frame["status"].eq("failed").all()
     assert frame["fit_status"].eq("not_attempted").all()
     assert frame["fit_boundary_limited"].eq(False).all()
     assert frame["error"].eq("too few retained catalogue objects").all()
-    estimated = frame.loc[frame["arm"].eq("estimated_20")]
+    estimated = frame.loc[frame["arm"].str.startswith("estimated_")]
     assert estimated["inference_audit_payload_json"].notna().all()
     assert estimated["scoring_audit_payload_json"].notna().all()
     assert summary["status"] == "NON_CONFIRMATORY_SYNTHETIC_PILOT"
