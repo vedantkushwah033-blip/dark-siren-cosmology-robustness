@@ -116,7 +116,8 @@ def audit_provenance(
         raise AssertionError("summary lacks required generation metadata")
     required_columns = {
         "replicate", "replicate_seed", "catalogue_seed", "audit_seed",
-        "arm", "status",
+        "arm", "status", "validation_size",
+        "inference_audit_payload_json", "scoring_audit_payload_json",
     }
     if frame.empty or not required_columns.issubset(frame):
         raise AssertionError("replicate table is empty or lacks provenance columns")
