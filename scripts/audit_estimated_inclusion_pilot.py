@@ -894,11 +894,11 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         denominator_checks = {
             "n_attempted_common_replicates": len(common_attempts),
             "n_reference_attempted": len(reference_all),
-            "n_reference_successful": len(reference),
-            "n_reference_failed": len(reference_all) - len(reference),
+            "n_reference_successful": int((successful["arm"] == reference_arm).sum()),
+            "n_reference_failed": len(reference_all) - int((successful["arm"] == reference_arm).sum()),
             "n_comparison_attempted": len(comparison_all),
-            "n_comparison_successful": len(comparison),
-            "n_comparison_failed": len(comparison_all) - len(comparison),
+            "n_comparison_successful": int((successful["arm"] == comparison_arm).sum()),
+            "n_comparison_failed": len(comparison_all) - int((successful["arm"] == comparison_arm).sum()),
         }
         for field, expected_count in denominator_checks.items():
             _close(stored.get(field), expected_count, f"{label}.{field}")
