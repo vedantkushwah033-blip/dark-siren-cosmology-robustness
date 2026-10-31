@@ -37,8 +37,10 @@ def canonical_inner_attempt_record(result: dict[str, Any]) -> dict[str, object]:
     # Accept Python bool and NumPy bool scalars without importing NumPy into
     # this lightweight serialization/validation module.
     def is_boolean(value: object) -> bool:
+        value_type = type(value)
         return isinstance(value, bool) or (
-            type(value).__name__ == "bool_" and type(value).__module__.startswith("numpy")
+            value_type.__module__.startswith("numpy")
+            and value_type.__name__ in {"bool", "bool_"}
         )
 
     if any(not is_boolean(value) for value in success_mask):
