@@ -517,6 +517,31 @@ def run_estimated_inclusion_pilot(
                 item.update({"comparison_arm": arm, "reference_arm": "catalogue_only"})
                 contrasts.append(item)
 
+    paired_model_contrasts: list[dict] = []
+    if not successful.empty:
+        for validation_size in sizes:
+            linear_arm = f"estimated_linear_{validation_size}"
+            quadratic_arm = f"estimated_quadratic_{validation_size}"
+            linear = successful.loc[successful["arm"] == linear_arm].set_index("replicate")
+            quadratic = successful.loc[successful["arm"] == quadratic_arm].set_index("replicate")
+            paired = linear[["absolute_error"]].merge(
+                quadratic[["absolute_error"]], left_index=True, right_index=True,
+                how="inner", suffixes=("_linear", "_quadratic")
+            )
+            if not paired.empty:
+                # Positive values mean the quadratic fit has lower absolute H0 error.
+                values = (
+                    paired["absolute_error_linear"] - paired["absolute_error_quadratic"]
+                ).to_numpy(dtype=float)
+                item = _contrast_summary(values)
+                item.update({
+                    "validation_size": int(validation_size),
+                    "reference_arm": linear_arm,
+                    "comparison_arm": quadratic_arm,
+                    "positive_favors_quadratic": True,
+                })
+                paired_model_contrasts.append(item)
+
     summary = {
         "study": "estimated_catalogue_inclusion_probability_pilot",
         "status": "NON_CONFIRMATORY_SYNTHETIC_PILOT",
@@ -544,7 +569,9 @@ def run_estimated_inclusion_pilot(
             ),
         },
         "primary_contrast": "abs_error_catalogue_only - abs_error_comparison_arm",
-        "contrasts": contrasts, "arm_summaries": summaries,
+        "contrasts": contrasts,
+        "paired_model_contrasts": paired_model_contrasts,
+        "arm_summaries": summaries,
         "interpretation_limit": (
             "Controlled synthetic toy only; not a real galaxy-survey or LVK validation. "
             "Pilot uncertainty is not confirmatory evidence."
