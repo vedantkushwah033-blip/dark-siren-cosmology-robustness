@@ -32,9 +32,9 @@ def _parent_redshifts(
     return np.interp(rng.random(n_parent), cdf, grid)
 
 
-def _component_seeds(master_seed: int, replicate: int) -> tuple[int, int, int]:
+def _component_seeds(master_seed: int, replicate: int) -> tuple[int, int, int, int]:
     sequence = np.random.SeedSequence([int(master_seed), int(replicate)])
-    children = sequence.spawn(3)
+    children = sequence.spawn(4)
     return tuple(
         int(child.generate_state(1, dtype=np.uint32)[0]) for child in children
     )
@@ -93,7 +93,22 @@ def _detected_event_distances(
     return host_ids, host_redshift, latent_mean, distances
 
 
-def _same_array(actual: object, expected: np.ndarray, label: str) -> None:
+def _independent_audit_sample(seed: int, n_audit: int, z_min: float, z_max: float, intercept: float, slope: float, quadratic: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    rng = np.random.default_rng(int(seed))
+    grid = np.linspace(z_min, z_max, 20001)
+    intensity = (1.0 + 2.2*np.exp(-0.5*((grid-0.105)/0.025)**2) + 1.6*np.exp(-0.5*((grid-0.275)/0.040)**2))
+    increments = 0.5*(intensity[:-1]+intensity[1:])*np.diff(grid)
+    cdf = np.concatenate(([0.0], np.cumsum(increments)))
+    cdf /= cdf[-1]
+    redshift = np.interp(rng.random(n_audit), cdf, grid)
+    x = (redshift-(z_min+z_max)/2.0)/((z_max-z_min)/2.0)
+    probability = expit(intercept+slope*x+quadratic*(x**2-1.0/3.0))
+    included = (rng.random(n_audit) < probability).astype(np.int8)
+    ids = np.asarray([f"independent-audit:{i}" for i in range(n_audit)], dtype=object)
+    return redshift, included, ids
+
+
+def _same_array(actual: object, expected: np.ndarray, label: str) -> None
     values = np.asarray(actual, dtype=float)
     if values.shape != expected.shape or not np.all(np.isfinite(values)):
         raise AssertionError(f"{label}: shape or finite-value mismatch")
@@ -115,7 +130,7 @@ def audit_provenance(
     if not required_summary.issubset(summary):
         raise AssertionError("summary lacks required generation metadata")
     required_columns = {
-        "replicate", "replicate_seed", "catalogue_seed", "audit_seed",
+        "replicate", "replicate_seed", "catalogue_seed", "audit_seed", "independent_audit_seed",
         "arm", "status", "validation_size",
         "inference_audit_payload_json", "scoring_audit_payload_json",
     }
@@ -160,7 +175,8 @@ def audit_provenance(
     ):
         raise AssertionError("summary.validation_sizes must be unique integer counts >= 10")
     expected_estimated_arm_sizes = {
-        f"estimated_{family}_{size}": size
+        f"{design}_{family}_{size}": size
+        for design in ("estimated", "independent")
         for size in validation_sizes
         for family in ("linear", "quadratic")
     }
@@ -182,7 +198,7 @@ def audit_provenance(
         replicate = int(replicate)
         observed_estimated_arms = set(
             group.loc[
-                group["arm"].astype(str).str.startswith("estimated_"), "arm"
+                group["arm"].astype(str).str.startswith(("estimated_", "independent_")), "arm"
             ].astype(str)
         )
         if observed_estimated_arms != expected_estimated_arms:
@@ -192,13 +208,14 @@ def audit_provenance(
                 f"replicate {replicate}: estimated-arm matrix mismatch "
                 f"(missing={missing}, unexpected={unexpected})"
             )
-        expected_sim, expected_catalogue, expected_audit = _component_seeds(
+        expected_sim, expected_catalogue, expected_audit, expected_independent_audit = _component_seeds(
             int(summary["seed"]), replicate
         )
         for column, expected in (
             ("replicate_seed", expected_sim),
             ("catalogue_seed", expected_catalogue),
             ("audit_seed", expected_audit),
+            ("independent_audit_seed", expected_independent_audit),
         ):
             observed = pd.to_numeric(group[column], errors="raise").to_numpy(dtype=np.int64)
             if np.any(observed != expected):
@@ -206,7 +223,7 @@ def audit_provenance(
                     f"replicate {replicate}: {column} does not match the declared seed schedule"
                 )
 
-        estimated = group[group["arm"].astype(str).str.startswith("estimated_")]
+        estimated = group[group["arm"].astype(str).str.startswith(("estimated_", "independent_"))]
         if estimated.empty:
             raise AssertionError(f"replicate {replicate}: no estimated-inclusion arms were recorded")
 
@@ -222,6 +239,10 @@ def audit_provenance(
         )
         retained = np.random.default_rng(expected_catalogue).random(n_parent) < true_probability
         audit_order = np.random.default_rng(expected_audit).permutation(n_parent)
+        independent_z, independent_y, independent_ids = _independent_audit_sample(
+            expected_independent_audit, max(validation_sizes), z_min, z_max,
+            intercept, slope, quadratic,
+        )
 
         for _, row in estimated.iterrows():
             arm = str(row["arm"])
@@ -241,7 +262,10 @@ def audit_provenance(
                 scoring = json.loads(row["scoring_audit_payload_json"])
                 validation_z = np.asarray(inference["validation_redshift"], dtype=float)
                 validation_y = np.asarray(inference["validation_included"], dtype=int)
+                validation_ids = np.asarray(inference["validation_object_id"], dtype=object)
                 stored_parent = np.asarray(scoring["parent_redshift"], dtype=float)
+                stored_independent_z = np.asarray(scoring["independent_audit_truth_redshift"], dtype=float)
+                stored_independent_p = np.asarray(scoring["independent_audit_true_inclusion_probability"], dtype=float)
                 stored_probability = np.asarray(scoring["true_inclusion_probability"], dtype=float)
                 catalogue_z = np.asarray(inference["catalogue_redshift"], dtype=float)
                 observed_distances = np.asarray(
@@ -276,11 +300,22 @@ def audit_provenance(
                 raise AssertionError(
                     f"replicate {replicate}, arm {row['arm']}: validation size mismatch"
                 )
-            _same_array(validation_z, parent_z[audit_order[:m]], f"replicate {replicate} validation redshifts")
-            if not np.array_equal(validation_y, retained[audit_order[:m]].astype(int)):
-                raise AssertionError(
-                    f"replicate {replicate}, arm {row['arm']}: validation labels mismatch"
-                )
+            if str(row["arm"]).startswith("independent_"):
+                _same_array(validation_z, independent_z[:m], f"replicate {replicate} independent validation redshifts")
+                if not np.array_equal(validation_y, independent_y[:m]):
+                    raise AssertionError(f"replicate {replicate}, arm {row['arm']}: independent validation labels mismatch")
+                if not all(str(value).startswith("independent-audit:") for value in validation_ids):
+                    raise AssertionError(f"replicate {replicate}, arm {row['arm']}: independent IDs are not namespaced")
+            else:
+                _same_array(validation_z, parent_z[audit_order[:m]], f"replicate {replicate} validation redshifts")
+                if not np.array_equal(validation_y, retained[audit_order[:m]].astype(int)):
+                    raise AssertionError(f"replicate {replicate}, arm {row['arm']}: validation labels mismatch")
+                if not np.array_equal(validation_ids.astype(np.int64), audit_order[:m]):
+                    raise AssertionError(f"replicate {replicate}, arm {row['arm']}: source audit IDs mismatch")
+            _same_array(stored_independent_z, independent_z, f"replicate {replicate} independent audit truth redshifts")
+            x_independent = (independent_z - midpoint) / half_range
+            expected_independent_p = expit(intercept + slope*x_independent + quadratic*(x_independent**2 - 1.0/3.0))
+            _same_array(stored_independent_p, expected_independent_p, f"replicate {replicate} independent audit truth probabilities")
             checked_estimated_rows += 1
         checked_replicates += 1
 
@@ -291,7 +326,7 @@ def audit_provenance(
         "status": "PASS",
         "replicates_reconstructed": checked_replicates,
         "estimated_arm_rows_reconstructed": checked_estimated_rows,
-        "failed_estimated_arm_rows_reconstructed": int((frame.loc[frame["arm"].astype(str).str.startswith("estimated_"), "status"] != "success").sum()),
+        "failed_estimated_arm_rows_reconstructed": int((frame.loc[frame["arm"].astype(str).str.startswith(("estimated_", "independent_")), "status"] != "success").sum()),
         "event_observation_rows_reconstructed": checked_event_rows,
         "checks": [
             "component seed schedule",
