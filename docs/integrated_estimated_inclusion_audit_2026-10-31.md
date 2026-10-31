@@ -210,3 +210,12 @@ Updated `docs/estimated_inclusion_nonlinear_stress_protocol_2026-10-30.md` to ma
 **Verification update:** CLI inspection confirms `--true-quadratic` is parsed and forwarded to the runner. The nonlinear CI smoke assertions match the current summary schema (`true_inclusion_model.family`, `quadratic`, and the paired arm labels). The latest documentation commit is `ca3a4401863fa8b572ec2e9d0467674967a26213`; the workflow-run connector returned no run for that SHA. No CI pass, local test execution, pilot artifact, or independent artifact-audit pass is claimed.
 
 **Next gate:** obtain a completed exact-head CI run. Then execute the small nonlinear smoke/pilot artifact and independently audit it before increasing replicate count or launching the factorial screen.
+
+
+## CI artifact retention and estimand reconciliation (2026-10-31)
+
+The test workflow's upload-artifact step now includes `artifacts/estimated_inclusion_quadratic_stress_smoke/` in addition to the baseline estimated-inclusion smoke output. The nonlinear smoke run was already executed and independently audited as a workflow step; this change ensures its output is retained for later inspection if that workflow completes.
+
+The nonlinear stress protocol was also reconciled with the integrated study estimand. The practical primary comparison is estimated-inclusion weighting (linear and quadratic fitted families, reported separately at each validation size) versus catalogue-only inference. The paired linear-versus-quadratic absolute-error contrast is secondary and mechanistic. This preserves the project's central practical question and prevents a model-family comparison from replacing the baseline comparison. Neither absolute-error contrast is evidence of improved coverage or calibration.
+
+**Latest session changes:** commit `00cf98085cf57f1c630cf0b688272a59ecf4c748` adds nonlinear smoke-artifact retention; commit `88b9f9e5578f377c316b95b54fb854182a0ed85a` records the first protocol update; commit `a9af56b188a5b7cd3750dd298bac4dc1c175e1c5` corrects the primary/secondary estimand wording. The workflow-run lookup connector returns only pull-request-triggered runs and returned no run for the inspected commits. No exact-head CI pass, new pilot result, or independent artifact audit is claimed in this session.
