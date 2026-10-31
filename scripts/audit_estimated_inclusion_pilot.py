@@ -477,8 +477,11 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
             raise AssertionError("credible interval endpoints are reversed")
         if (frame.loc[success, "absolute_error"] < 0).any():
             raise AssertionError("absolute posterior-mean errors cannot be negative")
-    boundary_flags = np.array([_strict_bool(v, "fit_boundary_limited") for v in frame.loc[success, "fit_boundary_limited"]], dtype=bool)
-    boundary_status = frame.loc[success, "fit_status"].eq("boundary_limited").to_numpy(dtype=bool)
+    boundary_flags = np.array([
+        _strict_bool(value, "fit_boundary_limited")
+        for value in frame["fit_boundary_limited"]
+    ], dtype=bool)
+    boundary_status = frame["fit_status"].eq("boundary_limited").to_numpy(dtype=bool)
     if not np.array_equal(boundary_flags, boundary_status):
         raise AssertionError("fit boundary flags disagree with fit_status")
 
@@ -542,17 +545,6 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
                 raise AssertionError("pre-posterior fit status contains missing values")
             if not diagnostic_rows["fit_status"].eq(frame.loc[diagnostic_rows.index, "fit_status"]).all():
                 raise AssertionError("pre-posterior fit status disagrees with replicate record")
-            diagnostic_boundary_flags = np.array([
-                _strict_bool(value, "preposterior.fit_boundary_limited")
-                for value in diagnostic_rows["fit_boundary_limited"]
-            ], dtype=bool)
-            diagnostic_status_boundary = diagnostic_rows["fit_status"].eq(
-                "boundary_limited"
-            ).to_numpy(dtype=bool)
-            if not np.array_equal(diagnostic_boundary_flags, diagnostic_status_boundary):
-                raise AssertionError(
-                    "pre-posterior boundary flag disagrees with fit status"
-                )
             if not np.array_equal(diagnostic_rows["n_catalogue"].to_numpy(dtype=int), frame.loc[diagnostic_rows.index, "n_catalogue"].to_numpy(dtype=int)):
                 raise AssertionError("pre-posterior catalogue count disagrees with replicate record")
             numeric_features = ["validation_inclusion_fraction", "catalogue_outside_validation_range_fraction", "catalogue_near_validation_boundary_fraction", "fitted_probability_min", "fitted_probability_p01", "fitted_probability_p05", "fitted_probability_median", "fitted_probability_max", "inverse_weight_ess", "inverse_weight_sum", "inverse_weight_sum_squares", "inverse_weight_ess_fraction", "inverse_weight_entropy_ess_fraction", "inverse_weight_max_share", "inverse_weight_top_1pct_mass", "inverse_weight_top_5pct_mass", "inverse_weight_max", "inverse_weight_p95", "inverse_weight_p99"]
