@@ -146,7 +146,9 @@ def test_seed_level_provenance_audit_reconstructs_failed_estimated_arm(tmp_path)
     report = AUDITOR.audit_provenance(replicates, summary)
     assert report["status"] == "PASS"
     assert report["failed_estimated_arm_rows_reconstructed"] == 1
-    assert report["estimated_arm_rows_reconstructed"] == 1
+    # The provenance counter includes every reconstructed estimated-arm row,
+    # regardless of whether the downstream posterior fit succeeded.
+    assert report["estimated_arm_rows_reconstructed"] == 2
 
 
 def test_seed_level_provenance_audit_rejects_missing_requested_replicate(tmp_path):
