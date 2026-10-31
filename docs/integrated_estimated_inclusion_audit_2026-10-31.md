@@ -167,3 +167,12 @@ The independent provenance auditor now also replays the detected GW distance obs
 The persisted `observed_distances_mpc` in each successful estimated-inclusion inference payload is compared against the independently regenerated sequence. The regression fixture now obtains its parent and event observations from the production generator, then checks that the independent auditor accepts the intact artifact and rejects a deliberately modified event distance.
 
 **Scope:** this extends the seed-level audit to the detected event-distance observations. It does not yet independently reconstruct GW host IDs or the full event-truth table, nor does it prove the physical adequacy of the simplified detector-selection model. It is a deterministic software/provenance check, not a scientific validation of real detector selection. Exact-head CI and a real persisted pilot-artifact audit remain required.
+
+
+## Extended event-truth provenance (2026-10-31)
+
+The estimated-inclusion study now stores GW host object IDs, host redshifts, and latent mean distances only in the separate scoring/provenance payload. These fields are not passed to the inclusion estimator, host-density estimator, or cosmological likelihood. The inference payload continues to contain only observed event distances.
+
+The independent auditor now replays the generator's random stream and checks, in order, the detected host IDs, host redshifts, latent mean distances, and observed detected distances. A regression test deliberately changes a stored host identity and requires the audit to reject the artifact.
+
+This closes a previously stated provenance gap for successful estimated-inclusion rows. It remains a deterministic reconstruction of the declared toy generator, not validation of detector realism. Failed-only replicates still require careful treatment because they may not contain successful-arm audit payloads.
