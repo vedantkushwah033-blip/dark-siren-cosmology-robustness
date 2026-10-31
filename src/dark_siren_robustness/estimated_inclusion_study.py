@@ -181,6 +181,27 @@ def run_estimated_inclusion_pilot(
             "redshift": parent_z[audit_order],
             "included": retained[audit_order].astype(int),
         }
+        # Persist raw provenance even when an estimator or posterior fails.
+        # Truth-only fields remain separate from inference inputs.
+        event_truth_payload = {
+            "gw_event_host_object_id": sim["gw_event_truth"]["host_object_id"].tolist(),
+            "gw_event_host_redshift": sim["gw_event_truth"]["host_redshift"].tolist(),
+            "gw_event_latent_mean_distance_mpc": sim["gw_event_truth"]["latent_mean_distance_mpc"].tolist(),
+        }
+        def _inference_provenance(m: int) -> str:
+            return json.dumps({
+                "validation_redshift": audit_records["redshift"][:m].tolist(),
+                "validation_included": audit_records["included"][:m].tolist(),
+                "catalogue_redshift": observed_z.tolist(),
+                "observed_distances_mpc": distances.tolist(),
+            }, separators=(",", ":"))
+        def _scoring_provenance() -> str:
+            return json.dumps({
+                "schema": "inclusion_probability_scoring_only_v1",
+                "parent_redshift": parent_z.tolist(),
+                "true_inclusion_probability": true_probability.tolist(),
+                **event_truth_payload,
+            }, separators=(",", ":"))
         if observed_z.size < 5 or np.unique(observed_z).size < 3:
             # Preserve the replicate failure explicitly for all arms.
             arms = ["catalogue_only", "oracle"] + [f"estimated_{m}" for m in sizes]
@@ -206,6 +227,16 @@ def run_estimated_inclusion_pilot(
                     "audit_included_count": (
                         int(np.sum(audit_records["included"][:int(arm.split("_")[1])]))
                         if arm.startswith("estimated_") else None
+                    ),
+                    "inference_audit_schema": (
+                        "toy_selection_provenance_v2" if arm.startswith("estimated_") else None
+                    ),
+                    "inference_audit_payload_json": (
+                        _inference_provenance(int(arm.split("_")[1]))
+                        if arm.startswith("estimated_") else None
+                    ),
+                    "scoring_audit_payload_json": (
+                        _scoring_provenance() if arm.startswith("estimated_") else None
                     ),
                 })
             continue
@@ -386,6 +417,16 @@ def run_estimated_inclusion_pilot(
                     ),
                     "max_inverse_weight": max_inverse_weight,
                     **preposterior_features,
+                    "inference_audit_schema": (
+                        "toy_selection_provenance_v2" if arm.startswith("estimated_") else None
+                    ),
+                    "inference_audit_payload_json": (
+                        _inference_provenance(int(audit_size))
+                        if arm.startswith("estimated_") else None
+                    ),
+                    "scoring_audit_payload_json": (
+                        _scoring_provenance() if arm.startswith("estimated_") else None
+                    ),
                 })
 
     frame = pd.DataFrame(rows)
