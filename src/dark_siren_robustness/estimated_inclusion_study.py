@@ -82,10 +82,13 @@ def run_estimated_inclusion_pilot(
 ) -> tuple[pd.DataFrame, dict]:
     """Compare catalogue-only, oracle, and audit-estimated inclusion weighting.
 
-    The validation sample is a simple random sample of the parent frame,
-    independent of catalogue retention. Validation samples are nested by size
-    within replicate. Non-oracle fitting sees only validation redshifts and
-    retention indicators; true probabilities are used only for scoring.
+    The inclusion-audit sample is a simple random subsample of the same
+    finite parent frame, selected independently of the retention draw. Its
+    labels are nevertheless the same realized retention outcomes that define
+    the catalogue, so the audit sample and retained catalogue can overlap and
+    are statistically dependent. Subsamples are nested by size within replicate.
+    Non-oracle fitting sees only audit redshifts and retention indicators; true
+    probabilities are used only for scoring.
 
     The pilot records failed arms instead of silently dropping them. Its small
     default replicate count is for runtime/variance planning, not confirmatory
