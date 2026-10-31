@@ -886,6 +886,22 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
                 or stored.get("difference_direction") != "reference_minus_comparison"):
             raise AssertionError(f"{label}: paired secondary contrast labels are inconsistent")
         _close(stored.get("n_paired_replicates"), values.size, f"{label}.n")
+        reference_all = frame.loc[frame["arm"] == reference_arm]
+        comparison_all = frame.loc[frame["arm"] == comparison_arm]
+        common_attempts = reference_all[["replicate"]].merge(
+            comparison_all[["replicate"]], on="replicate", how="inner"
+        )
+        denominator_checks = {
+            "n_attempted_common_replicates": len(common_attempts),
+            "n_reference_attempted": len(reference_all),
+            "n_reference_successful": len(reference),
+            "n_reference_failed": len(reference_all) - len(reference),
+            "n_comparison_attempted": len(comparison_all),
+            "n_comparison_successful": len(comparison),
+            "n_comparison_failed": len(comparison_all) - len(comparison),
+        }
+        for field, expected_count in denominator_checks.items():
+            _close(stored.get(field), expected_count, f"{label}.{field}")
         mean = float(np.mean(values))
         _close(
             stored.get("mean_difference_reference_minus_comparison"),
