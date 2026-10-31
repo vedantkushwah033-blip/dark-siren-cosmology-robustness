@@ -227,3 +227,12 @@ A separate preregistration-style protocol now specifies the confirmatory multi-f
 - [Confirmatory multi-frame preregistration protocol](../docs/confirmatory_multiframe_preregistration_protocol_2026-10-31.md)
 
 The protocol is prospective and does not change the status of the historical pilot. Confirmatory frame and repetition counts are not yet locked, because they must follow a planning analysis using pilot information while excluding planning frames from confirmatory inference. The v2 benchmark artifact and independent audit remain unreleased pending exact-head CI and execution of the v2 pipeline.
+
+
+## 18. Multi-frame implementation contract
+
+The v2 pilot schema contains one realized finite frame per distribution scenario. Increasing its scenario count does not create independent frames within each scenario, so scaling the v2 pilot by increasing `scenarios` would not answer the between-frame generalization question. A separate v3 engineering contract now specifies explicit scenario × frame × sample × replicate × method identifiers, deterministic seed lineage, shared outer samples for paired method comparisons, frame-level summaries, and independent audit requirements:
+
+- [Multi-frame v3 implementation contract](../docs/multiframe_v3_implementation_contract_2026-10-31.md)
+
+This is an implementation specification, not an executed experiment or a change to the historical pilot's status. The confirmatory run must use a genuinely multi-frame runner and auditor; v2 artifacts cannot be relabelled as multi-frame evidence.
