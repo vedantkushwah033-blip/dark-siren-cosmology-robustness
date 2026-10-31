@@ -218,3 +218,12 @@ Wang, S., Peng, L., & Kim, J. K. (2022). Bootstrap inference for the finite popu
 ### Machine-readable audit scope
 
 The v2 audit report now identifies the artifact schema and lists the estimands it independently checked. For v2, it reports successful inner-attempt accounting and verification of conditional coverage, interval-success rate, unconditional success-and-cover probability, and their Monte Carlo standard errors. For historical v1 artifacts, it explicitly reports that inner-attempt accounting is unavailable and lists only the legacy conditional-coverage estimands. This prevents a generic `PASS` status from being misread as evidence that every audit feature was available in every schema.
+
+
+## 17. Prospective confirmatory protocol
+
+A separate preregistration-style protocol now specifies the confirmatory multi-frame study's experimental hierarchy, estimands, paired contrasts, precision-driven sample-size selection, frame-aware uncertainty, multiplicity plan, stopping and exclusion rules, deviation log, and release gates:
+
+- [Confirmatory multi-frame preregistration protocol](../docs/confirmatory_multiframe_preregistration_protocol_2026-10-31.md)
+
+The protocol is prospective and does not change the status of the historical pilot. Confirmatory frame and repetition counts are not yet locked, because they must follow a planning analysis using pilot information while excluding planning frames from confirmatory inference. The v2 benchmark artifact and independent audit remain unreleased pending exact-head CI and execution of the v2 pipeline.
