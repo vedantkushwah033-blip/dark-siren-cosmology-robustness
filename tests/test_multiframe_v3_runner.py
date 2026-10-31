@@ -39,10 +39,12 @@ def test_v3_runner_writes_complete_paired_pilot(tmp_path):
     grouped = {}
     for row in rows:
         key = (row["scenario_id"], row["frame_id"], row["sample_size"], row["replicate_id"])
-        grouped.setdefault(key, set()).add(row["sample_indices"])
+        entry = grouped.setdefault(key, {"sample_indices": set(), "methods": set()})
+        entry["sample_indices"].add(row["sample_indices"])
+        entry["methods"].add(row["method_id"])
     assert len(grouped) == 12
-    assert all(len(indices) == 1 for indices in grouped.values())
-    assert all(len(methods) == 3 for methods in grouped.values())
+    assert all(len(entry["sample_indices"]) == 1 for entry in grouped.values())
+    assert all(len(entry["methods"]) == 3 for entry in grouped.values())
 
 
 def test_v3_runner_is_deterministic_and_method_order_invariant(tmp_path):
