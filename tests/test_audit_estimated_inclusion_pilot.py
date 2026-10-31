@@ -483,3 +483,22 @@ def test_independent_auditor_rejects_corrupted_paired_secondary_contrast(tmp_pat
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(AssertionError, match="paired secondary contrast|\.mean"):
         audit_pilot_artifacts(tmp_path)
+
+
+def test_independent_auditor_rejects_corrupted_paired_attempt_denominator(tmp_path):
+    frame, summary = run_estimated_inclusion_pilot(
+        n_replicates=2,
+        n_parent=1200,
+        n_detected=6,
+        validation_sizes=(150,),
+        seed=20261069,
+        h0_points=41,
+        z_points=201,
+        true_quadratic=1.2,
+    )
+    assert summary["paired_secondary_contrasts"]
+    summary["paired_secondary_contrasts"][0]["n_reference_failed"] += 1
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="n_reference_failed"):
+        audit_pilot_artifacts(tmp_path)
