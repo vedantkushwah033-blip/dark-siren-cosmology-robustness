@@ -176,3 +176,10 @@ The estimated-inclusion study now stores GW host object IDs, host redshifts, and
 The independent auditor now replays the generator's random stream and checks, in order, the detected host IDs, host redshifts, latent mean distances, and observed detected distances. A regression test deliberately changes a stored host identity and requires the audit to reject the artifact.
 
 This closes a previously stated provenance gap for successful estimated-inclusion rows. It remains a deterministic reconstruction of the declared toy generator, not validation of detector realism. Failed-only replicates still require careful treatment because they may not contain successful-arm audit payloads.
+
+
+## Failed-arm provenance retention (2026-10-31)
+
+Raw parent/catalogue/validation/event provenance is now written for estimated-inclusion arms even when the catalogue-size gate or a later estimator/posterior step fails. The independent auditor checks all estimated-arm rows, not only successful fits, and reports the number of failed estimated rows reconstructed. This prevents a replicate from disappearing from provenance review merely because its inferential fit failed.
+
+The audit still requires every replicate to contain its expected estimated-arm rows and their provenance payloads. It does not silently treat missing payloads as a passing result.
