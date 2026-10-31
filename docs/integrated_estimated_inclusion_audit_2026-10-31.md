@@ -275,3 +275,15 @@ A source review identified that the independent seed-level provenance auditor re
 Commits `6331b6c777a99c904e78fa8a61b711dcf12a5fef` and `86744871dc16f9374afc0b81ad53a443f7bd8b85` address this gap. The provenance auditor now requires a positive integer `n_replicates_requested`, finite integer replicate IDs matching exactly `0, ..., n_replicates_requested - 1`, and unique `(replicate, arm)` rows. Regression tests cover a missing requested replicate and a duplicated replicate-arm row; the existing fixture now records the declared replicate count.
 
 The modified auditor and tests were fetched again from the branch and the inserted checks/tests were confirmed in source. This is static source verification only: no local tests, GitHub Actions run, smoke simulation, or artifact audit has been executed or retrieved for these commits. The execution gate remains open.
+
+### Section 12 — Require the complete estimated-arm matrix in each replicate
+
+A second completeness gap remained after Section 11: the provenance auditor checked that every requested replicate appeared and that each estimated-inclusion replicate had at least one estimated arm, but it did not require every prespecified linear/quadratic arm for every validation size. A missing arm could therefore evade this *standalone provenance* gate even though the posterior artifact auditor separately checks broader artifact structure.
+
+The provenance auditor now reads the declared `validation_sizes` from the run summary and requires the exact estimated-arm set `estimated_linear_<m>` and `estimated_quadratic_<m>` for every declared size in every replicate. The regression fixture now contains both model-family arms, and a new negative test removes one arm and requires rejection. This complements—not replaces—the duplicate-row and complete-replicate-ID checks.
+
+The source and test changes were committed separately as:
+- `bb0700bf525ca79a03f61f811e624d1927fac2b8` — require the complete estimated-arm provenance matrix.
+- `9758ec8b77f14813c2a66d9c1d4ec47d1ac999fd` — test rejection of a missing estimated arm.
+
+Validation status remains **static source review only**. No local pytest execution, GitHub Actions result, smoke simulation, or provenance artifact audit has been executed or retrieved in this session.
