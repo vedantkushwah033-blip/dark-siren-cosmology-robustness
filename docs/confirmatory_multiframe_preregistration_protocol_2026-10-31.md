@@ -58,6 +58,8 @@ Do not select the number of frames or repetitions merely because a round number 
 
 Report the achieved Monte Carlo standard errors and confidence-interval widths. If the planned precision is not achieved, label the study inconclusive for that estimand rather than changing the target after seeing results.
 
+The repository also provides `src/dark_siren_robustness/frame_precision_planning.py`, a small planning utility that takes a pilot estimate of the standard deviation of independent frame-level contrasts and a target confidence-interval half-width. It inflates the planning SD using a one-sided chi-square upper confidence bound based on the supplied pilot degrees of freedom, then finds the smallest frame count whose two-sided Student-t half-width meets the target. Its output is explicitly labelled `PLANNING_ONLY_NOT_CONFIRMATORY`. The utility does not estimate the frame-level SD from the existing three-frame pilot, does not select within-frame repetitions, and relies on independent approximately normal frame-level contrasts. Those assumptions must be assessed and the planning inputs justified before a confirmatory design is locked.
+
 ## 6. Uncertainty and inference
 
 The primary generalization target is the mean operating characteristic across the prespecified frame-generating process, not merely across repeated samples from one convenient frame.
