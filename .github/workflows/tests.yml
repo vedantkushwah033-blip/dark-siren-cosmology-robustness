@@ -222,5 +222,6 @@ jobs:
             artifacts/multiseed_grid_sensitivity/
             artifacts/catalogue_thinning/
             artifacts/estimated_inclusion_pilot_smoke/
+            artifacts/estimated_inclusion_quadratic_stress_smoke/
           if-no-files-found: error
 
