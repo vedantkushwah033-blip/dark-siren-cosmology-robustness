@@ -20,6 +20,7 @@ def test_estimated_inclusion_pilot_is_reproducible_and_retains_failures():
         second[["replicate", "arm", "status"]]
     )
     assert summary["status"] == "NON_CONFIRMATORY_SYNTHETIC_PILOT"
+    assert summary["audit_designs"] == ["shared_source_frame", "independent_cohort"]
     assert {
         "catalogue_only", "oracle",
         "estimated_linear_100", "estimated_quadratic_100",
@@ -29,7 +30,7 @@ def test_estimated_inclusion_pilot_is_reproducible_and_retains_failures():
     } == set(first["arm"])
     assert all(first["status"].isin(["success", "failed"]))
     assert len(summary["contrasts"]) <= 9
-    assert len(summary["paired_model_contrasts"]) <= 2
+    assert len(summary["paired_model_contrasts"]) <= 4
 
 
 def test_estimated_inclusion_pilot_rejects_non_integer_validation_sizes():
