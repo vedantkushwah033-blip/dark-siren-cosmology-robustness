@@ -569,10 +569,22 @@ def run_estimated_inclusion_pilot(
             raise ValueError(f"non-finite paired values for {metric}")
         item = _contrast_summary(differences)
         item.pop("positive_favors_comparison_arm", None)
+        reference_all = frame.loc[frame["arm"] == reference_arm]
+        comparison_all = frame.loc[frame["arm"] == comparison_arm]
+        common_attempts = reference_all[["replicate"]].merge(
+            comparison_all[["replicate"]], on="replicate", how="inner"
+        )
         item.update({
             "metric": metric,
             "reference_arm": reference_arm,
             "comparison_arm": comparison_arm,
+            "n_attempted_common_replicates": int(len(common_attempts)),
+            "n_reference_attempted": int(len(reference_all)),
+            "n_reference_successful": int(len(reference)),
+            "n_reference_failed": int(len(reference_all) - len(reference)),
+            "n_comparison_attempted": int(len(comparison_all)),
+            "n_comparison_successful": int(len(comparison)),
+            "n_comparison_failed": int(len(comparison_all) - len(comparison)),
             "mean_difference_reference_minus_comparison": item.pop(
                 "mean_absolute_error_reduction"
             ),
