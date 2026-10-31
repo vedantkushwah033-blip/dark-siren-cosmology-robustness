@@ -183,3 +183,14 @@ This closes a previously stated provenance gap for successful estimated-inclusio
 Raw parent/catalogue/validation/event provenance is now written for estimated-inclusion arms even when the catalogue-size gate or a later estimator/posterior step fails. The independent auditor checks all estimated-arm rows, not only successful fits, and reports the number of failed estimated rows reconstructed. This prevents a replicate from disappearing from provenance review merely because its inferential fit failed.
 
 The audit still requires every replicate to contain its expected estimated-arm rows and their provenance payloads. It does not silently treat missing payloads as a passing result.
+
+
+## Paired linear-versus-quadratic estimator integration (2026-10-31)
+
+The pilot runner now creates two estimated-inclusion arms at every declared validation size: `estimated_linear_<m>` and `estimated_quadratic_<m>`. Both arms use the same replicate-level parent population, catalogue-retention realization, detected-event observations, and nested validation sample. Only the fitted inclusion-model degree differs. Catalogue-only and oracle arms remain as reference benchmarks.
+
+Each estimated row records its fitted model family and degree. The independent posterior-artifact auditor now independently refits the linear or quadratic logistic model according to the arm, checks the fitted coefficients and predicted inclusion probabilities, and reconstructs the weighted KDE and selection-conditioned posterior. The summary also records paired linear-minus-quadratic absolute-H0-error contrasts at each validation size; positive values favor the quadratic arm. The auditor independently reconstructs those contrasts from replicate-level records.
+
+The runner accepts a nonzero `true_quadratic` coefficient to create a controlled curvature stress condition. The default remains zero, so the quadratic arm is then a deliberately more flexible nested fit rather than a correctly specified nonlinear model. A meaningful nonlinear stress comparison must explicitly set and report nonzero curvature and should vary curvature and validation size under a prespecified design; one pilot setting cannot establish general performance.
+
+**Verification status:** source and regression-test changes are committed, but the latest exact-head GitHub Actions result has not been retrieved and no new pilot artifact has been executed or audited in this session. Therefore no new numerical result or test pass is claimed. The next gate is exact-head CI, followed by a small paired pilot and its independent artifact audit.
