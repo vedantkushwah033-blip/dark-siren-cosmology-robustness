@@ -352,3 +352,12 @@ Actions run `41210299863` reached the estimated-inclusion stage on Python 3.11. 
 The sole failure was a stale test expectation, not a reconstruction discrepancy: `estimated_arm_rows_reconstructed` intentionally counts **all** reconstructed estimated-arm rows, including a row whose downstream fit was marked failed. In the two-row fixture, one row was failed, so the correct totals are two reconstructed estimated-arm rows and one failed estimated-arm row. The regression test now asserts those semantics explicitly (commit `b12309d2133501d7619f294ab9488420620eae28`).
 
 Because the provenance test failed, the workflow did not proceed to the nonlinear stress smoke experiment. A new CI run is required to verify the corrected expectation and then execute the downstream provenance and nonlinear smoke audits.
+
+
+### Section 20 — Make the optimizer-adversarial test independent of arm iteration order
+
+Actions run `41210434914` confirmed that the corrected provenance row-count test no longer stopped the workflow, but Python 3.12 exposed one remaining failure in the independent artifact-auditor test suite. The adversarial test monkeypatched the optimizer to always return a two-parameter vector. The auditor iterates over arm groups without promising their order, so a quadratic three-parameter fit could be visited first and fail with an indexing error before the intended linear-model KKT assertion was reached.
+
+The test now preserves the real optimizer for three-parameter quadratic fits and injects the deliberately false-success result only for the targeted two-parameter linear refit. This makes the test independent of iteration order while preserving its intended assertion. Commit `688b99d4cac45d6284ac8725cfe5e92c7ed4573a` contains this test-only correction.
+
+The run reached the main estimated-inclusion artifact-auditor test stage; 31 tests passed and this single adversarial test failed. The next Actions run must verify the correction, then complete the provenance suite and both smoke audits. No confirmatory simulation has been started.
