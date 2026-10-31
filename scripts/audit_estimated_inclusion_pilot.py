@@ -447,7 +447,7 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
             arm = str(row["arm"])
             count = row["audit_included_count"]
             if arm.startswith("estimated_"):
-                m = int(arm.split("_")[1])
+                m = int(arm.rsplit("_", 1)[1])
                 if pd.isna(count) or float(count) != int(float(count)) or not 0 <= int(float(count)) <= m:
                     raise AssertionError(f"{arm}: invalid audit_included_count")
                 if int(float(row["validation_size"])) != m:
