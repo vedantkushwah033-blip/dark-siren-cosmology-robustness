@@ -279,6 +279,13 @@ jobs:
         if: matrix.python-version == '3.12'
         run: |
           python scripts/audit_linear_finite_population_bootstrap_benchmark.py --output-dir artifacts/linear_finite_population_bootstrap_pilot --report artifacts/linear_finite_population_bootstrap_pilot/audit_report.json
+      - name: Test v3 multi-frame pilot runner and independent auditor
+        run: python -m pytest tests/test_multiframe_v3_runner.py tests/test_multiframe_v3_auditor.py -q
+      - name: Generate and independently audit v3 multi-frame smoke artifact (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python scripts/run_multiframe_v3_pilot.py --manifest configs/multiframe_v3_smoke_manifest.json --output-dir artifacts/multiframe_v3_smoke
+          python scripts/audit_multiframe_v3_pilot.py --output-dir artifacts/multiframe_v3_smoke --report artifacts/multiframe_v3_smoke/audit_report.json
       - name: Upload numerical diagnostic results
         uses: actions/upload-artifact@v4
         with:
