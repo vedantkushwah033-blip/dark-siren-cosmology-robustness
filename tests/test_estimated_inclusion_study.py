@@ -221,3 +221,38 @@ def test_pilot_rejects_numerically_saturated_true_inclusion_probabilities():
             h0_points=31,
             z_points=101,
         )
+
+
+def test_pilot_reports_paired_secondary_outcomes_for_shared_replicates():
+    frame, summary = run_estimated_inclusion_pilot(
+        n_replicates=2,
+        n_parent=1200,
+        n_detected=6,
+        validation_sizes=(150,),
+        seed=20261067,
+        h0_points=41,
+        z_points=201,
+        true_quadratic=1.2,
+    )
+    contrasts = summary["paired_secondary_contrasts"]
+    assert contrasts
+    keys = {
+        (item["metric"], item["reference_arm"], item["comparison_arm"])
+        for item in contrasts
+    }
+    expected = {
+        (metric, "catalogue_only", arm)
+        for arm in ("estimated_linear_150", "estimated_quadratic_150")
+        for metric in ("coverage_68", "interval_width_68", "host_density_ise")
+    }
+    expected.add((
+        "inclusion_probability_mae",
+        "estimated_linear_150",
+        "estimated_quadratic_150",
+    ))
+    assert keys == expected
+    assert all(item["n_paired_replicates"] <= 2 for item in contrasts)
+    assert all(item["positive_favors_comparison"] is True for item in contrasts)
+    assert set(frame["arm"]) >= {
+        "catalogue_only", "estimated_linear_150", "estimated_quadratic_150"
+    }
