@@ -1,98 +1,122 @@
 # Estimated-inclusion nonlinear-selection stress protocol
 
-**Protocol date:** 30 October 2026  
-**Status:** prespecified design proposal; not yet executed as a confirmatory campaign  
-**Scope:** controlled synthetic dark-siren host-catalogue inference only.
+**Protocol date:** 31 October 2026  
+**Status:** prospective design; the current code contains a non-confirmatory smoke path, not a completed factorial campaign.  
+**Scope:** controlled synthetic, low-redshift dark-siren host-catalogue inference only.
 
-## 1. Question and estimand
+## 1. Research question and estimands
 
-The experiment asks when inverse-inclusion weighting learned from an external validation sample stops being reliable when the true catalogue-retention law is nonlinear but the fitted estimator remains a linear logistic model.
+The study asks how finite validation samples and inclusion-model misspecification interact when inverse-inclusion weights are used to reconstruct a host-redshift density.
 
-The primary inferential estimand is the paired change in absolute error of the posterior mean of the injected synthetic $H_0$ between (i) validation-estimated inclusion weighting and (ii) catalogue-only inference, on the same simulated parent population and GW-event realization. Oracle weighting is a diagnostic upper-bound benchmark because it receives the true retention probabilities; it is not an implementable estimator.
+The generating retention law is allowed to be quadratic in a standardized redshift coordinate. Two validation estimators are compared on the same replicate:
 
-No result from this protocol is a real-observation $H_0$ measurement, a claim about LVK catalogue completeness, or evidence that the synthetic selection law represents a particular survey.
+- **Linear logistic:** intercept plus linear redshift term.
+- **Quadratic logistic:** intercept, linear term, and quadratic term.
+
+The primary paired model contrast is
+\[
+D_r=|\widehat H_{0,r}^{\rm linear}-H_0^{\rm true}|
+    -|\widehat H_{0,r}^{\rm quadratic}-H_0^{\rm true}|.
+\]
+A positive value means the quadratic estimator has smaller absolute posterior-mean error for that replicate. This estimand says nothing by itself about interval coverage, uncertainty calibration, or general estimator superiority.
+
+A separate, secondary contrast compares each estimated-inclusion arm with the catalogue-only baseline. Oracle weighting is retained only as a simulation diagnostic using the known generating probabilities; it is not an implementable estimator.
+
+All results are synthetic. They are not LVK/GWTC validation, a real-observation Hubble-constant measurement, or evidence that this toy selection law represents a particular survey.
 
 ## 2. Data-generating mechanism
 
-For parent-frame redshift $z$, define the fixed standardized coordinate
+For parent-frame redshift \(z\), define
+\[
+x=\frac{z-(z_{\min}+z_{\max})/2}{(z_{\max}-z_{\min})/2}.
+\]
+Catalogue retention is generated independently for each parent object:
+\[
+P(R=1\mid z)=\operatorname{logit}^{-1}
+\{a+b x+g(x^2-1/3)\}.
+\]
 
-$$x = \frac{z-(z_{\min}+z_{\max})/2}{(z_{\max}-z_{\min})/2}.$$
+The quadratic coefficient \(g\) controls curvature. The subtraction of \(1/3\) centers \(x^2\) under a uniform reference measure on \([-1,1]\) only; it does not generally center the term under the simulated parent-redshift distribution. Consequently, \(a\) is not generally the average log-odds or midpoint log-odds.
 
-Generate retention indicators as independent Bernoulli draws with
+The validation sample is a simple random sample without replacement from the complete parent frame and records both redshift and catalogue-retention status. This is a strong, explicit design assumption. It is not equivalent to validating only objects already present in the retained catalogue.
 
-$$P(R=1\mid z)=\operatorname{logit}^{-1}\{a+b x+g(x^2-1/3)\}.$$
+The current pilot keeps the intercept and slope fixed and varies \(g\). It uses the same parent population, retained catalogue, GW-event realization, and nested validation records for both fitted model families within each replicate. Only the fitted logistic degree changes.
 
-The quadratic term is a deliberate stress perturbation. The subtraction of $1/3$ centers $x^2$ under a uniform distribution on $[-1,1]$ only; it does not generally center the term under the simulated parent-redshift distribution. The fitted model remains $\operatorname{logit}P(R=1\mid z)=\alpha+\beta x$. Thus $g=0$ is the correctly specified reference and $g\ne0$ is model misspecification.
+## 3. Staged factorial design
 
-The validation sample is sampled independently by simple random sampling from the complete parent frame and includes both reference redshift and retention indicator. This is an explicit design assumption. It is not equivalent to drawing validation objects only from the retained catalogue.
+Candidate confirmatory factors are:
 
-## 3. Factorial conditions
-
-Use the following staged design rather than immediately launching a large grid:
-
-| Factor | Prespecified levels | Purpose |
+| Factor | Candidate levels | Purpose |
 |---|---|---|
-| Selection curvature $g$ | $0, -1.0, +1.0, -2.0, +2.0$ | Correct specification and symmetric curvature stress |
-| Validation size $m$ | $100, 300, 1000$ | Audit-sample information |
-| Parent population | $4,000$ initially | Match pilot scale |
-| GW events | $30$ initially | Hold event information fixed |
-| Replicates | 20 smoke; then 200 per cell only after runtime and failure review | Separate pipeline validation from inferential precision |
-| Randomness | paired parent/GW draws within replicate; independent audit sampling stream | Make arm contrasts paired without leaking truth to fitted arms |
+| True curvature \(g\) | \(-1.2,-0.6,0,+0.6,+1.2\) | Correctly specified reference and symmetric nonlinear stress |
+| Validation size \(m\) | 100, 300, 1,000 | Finite validation information |
+| Parent population | 4,000 initially | Hold the population-generation scale fixed |
+| Detected GW events | 30 initially | Hold event information fixed |
+| Replicates | 20 smoke; then precision-justified confirmatory count | Separate pipeline checks from inferential precision |
 
-Keep the existing intercept and slope fixed for the first factorial screen. Before interpreting a curvature level, numerically tabulate the true probability range and the fraction of parent objects with probabilities below 0.05 and 0.10. If a cell creates near-positivity violations or almost no retained objects, report it as a separate severe-overlap stress condition rather than pooling it with moderate-curvature results.
+These are candidate settings, not a frozen confirmatory design. First inspect the actual inclusion-probability range, fractions below 0.05 and 0.10, retention counts, logistic-fit failures, coefficient-boundary hits, and weight concentration for every curvature. If a cell approaches practical positivity failure, report it as a distinct severe-overlap regime rather than pooling it with moderate stress.
 
-The pilot CLI currently supports one curvature coefficient per invocation. Run separate invocations with distinct recorded seeds and coefficient values; do not concatenate outputs without adding condition identifiers and preserving each source manifest.
+The runner accepts one curvature value per invocation. Each invocation must preserve its seed, exact CLI arguments, output files, and checksum. Combining conditions requires a later aggregation step that retains an explicit condition identifier; files must not simply be concatenated and treated as one homogeneous experiment.
 
 ## 4. Arms
 
-1. **Catalogue-only:** no inclusion correction.
-2. **Oracle:** inverse weighting with the true retention probabilities; diagnostic benchmark only.
-3. **Estimated-$m$:** fit the existing linear logistic model to the first $m$ independently sampled validation records, predict inclusion probabilities for retained catalogue objects, and apply the current untruncated inverse-probability weights.
+1. **Catalogue-only:** unweighted retained-catalogue density.
+2. **Oracle:** inverse weighting by the true retention probabilities; diagnostic benchmark only.
+3. **Estimated linear:** validation-fitted degree-1 logistic inclusion model.
+4. **Estimated quadratic:** validation-fitted degree-2 logistic inclusion model.
 
-Do not silently clip probabilities or cap weights. The estimator currently deliberately applies no probability floor or weight cap. Any stabilized estimator must be a separately named arm with a prespecified rule, not an after-the-fact repair.
+For each validation size, the linear and quadratic arms must use exactly the same validation records and the same replicate-level parent/catalogue/GW realization. Validation samples at different sizes must be nested within a replicate. Seed lineage and validation inclusion counts must be retained.
 
-## 5. Outcomes
+Do not silently clip probabilities or cap weights. Any stabilized estimator must be a separately named arm with a prespecified rule. A quadratic fit is more flexible, not automatically better: it can have higher variance, boundary instability, or worse out-of-sample probability estimates at small validation sizes.
 
-### Primary
-- Paired difference in absolute posterior-mean $H_0$ error: estimated arm versus catalogue-only.
-- Report mean paired difference, standard error, and a paired bootstrap interval over simulation replicates. Positive reduction means the estimated arm has lower absolute error.
+## 5. Outcomes and reporting
 
-### Key secondary
+### Primary outcome
+- Paired linear-minus-quadratic difference in absolute posterior-mean \(H_0\) error, with paired replicate count, mean, standard error, and interval.
+- Report the linear and quadratic arms' failure counts alongside the complete-case contrast. The paired contrast is conditional on both fits succeeding and must not conceal differential failures.
+
+### Required secondary outcomes
 - Signed posterior-mean bias and RMSE.
-- Empirical 68% interval coverage with Wilson interval and interval width.
-- Fit failure rate and coefficient-boundary-hit rate.
-- Inclusion-probability MAE evaluated over the complete synthetic parent frame (truth used for scoring only).
-- Inverse-weight ESS and ESS fraction; maximum, 95th and 99th percentile inverse weights.
-- Host-density integrated squared error.
+- Fixed-truth 68% interval coverage with Wilson uncertainty interval and mean interval width.
+- Inclusion-probability MAE evaluated over the complete synthetic parent frame; truth is scoring-only and must never enter fitting or posterior construction.
+- Host-density integrated squared error against the known generating target.
+- Logistic-fit failure and coefficient-boundary-hit rates.
+- Inverse-weight ESS and ESS fraction, maximum inverse weight, weight quantiles, and pre-posterior support/overlap diagnostics.
 
-Report attempted, successful, and paired-success replicate counts for every contrast. A complete-case paired contrast is conditional on both arms fitting successfully; it must never conceal differential failure rates.
+The current pilot writes per-arm summaries and paired absolute-error contrasts. It does **not yet** provide paired linear-versus-quadratic contrasts for coverage, interval width, probability MAE, or host-density error. Those comparisons must be added to the producer, independent auditor, and adversarial tests before they are treated as confirmatory analysis outputs. Do not infer these contrasts from the current absolute-error contrast.
 
-## 6. Analysis discipline
+### Monte Carlo precision
+The 20-replicate stage is a pipeline/runtime smoke test only. Do not use it to rank estimators. Before confirmatory runs, use pilot variability and a stated compute budget to select replicate counts. For coverage near 0.68, the binomial approximation gives a 95% Monte Carlo half-width of about 2 percentage points at roughly 2,100 independent replicates; paired designs and failure rates require additional planning. This approximation is a planning reference, not a universal required sample size or evidence of achieved precision.
 
-- Freeze seeds, factor levels, primary contrast, and analysis code before the 200-replicate stage.
-- Use the same parent population and GW events across arms within each replicate.
-- Keep validation samples nested by size within replicate, as in the current pilot.
-- Preserve failed fits as explicit rows with reasons; do not replace failures or silently drop replicates.
-- Report all factor cells, including unfavorable and non-evaluable cells.
-- Treat the 20-replicate stage as a pipeline/runtime check only.
-- For the 200-replicate stage, report uncertainty intervals and avoid declaring success from nominal significance alone.
-- Treat the five curvature levels and three validation sizes as a factorial family. Label cell-wise contrasts exploratory unless a multiplicity strategy is specified before unblinding; report the full pattern, not only the best cell.
-- Independently reconstruct persisted summaries from raw replicate rows and verify checksums before interpreting results.
+Treat the factorial cells as a family. Specify the primary contrast and multiplicity strategy before examining confirmatory outcomes. Report every cell, including failures and unfavorable results; do not select only the best curvature or validation size.
+
+## 6. Analysis and audit discipline
+
+- Freeze the generating coefficients, curvature levels, validation sizes, replicate seeds, primary estimand, and analysis code before the confirmatory stage.
+- Use paired parent, catalogue, GW-event, and validation draws across estimator arms.
+- Preserve every attempted replicate and explicit failure reason; never silently replace failed fits.
+- Distinguish fixed-truth repeated-sampling coverage from simulation-based calibration. They answer different questions.
+- Keep truth-only scoring payloads separate from inference payloads and independently verify that no truth enters the fit or posterior.
+- Independently refit each logistic model from saved validation records, reconstruct inclusion predictions, weighted host density, selection-conditioned likelihood, posterior summaries, and all reported aggregate contrasts.
+- Audit both successful and failed rows, seed lineage, nested validation samples, output schema, and checksums.
+- A posterior reconstruction from persisted inputs does not by itself prove that the simulator regenerated the correct inputs. Confirmatory audit must independently regenerate the parent frame, retention process, GW observations, and validation samples from primitive seeds.
 
 ## 7. Stop/go gates
 
-**Gate A — implementation:** unit tests establish that $g=0$ reproduces the baseline design, nonzero $g$ is deterministic for fixed seeds, invalid coefficients are rejected, and metadata records the true data-generating family and coefficients.
+**Gate A — implementation integrity:** tests establish that \(g=0\) recovers the linear generating law, nonzero \(g\) is deterministic for fixed seeds, both estimator families are correctly labelled, and invalid coefficients are rejected. The independent auditor must reconstruct both degree-1 and degree-2 fits.
 
-**Gate B — smoke:** run 20 replicates per selected condition; verify all requested arms are present, failure rows are retained, validation sizes and seeds are correct, and the independent artifact auditor passes.
+**Gate B — smoke validation:** run a small nonlinear condition; confirm all arms, seed/sample pairing, explicit failures, metadata, and independent artifact audit. A green CI job validates software checks only; it is not scientific evidence.
 
-**Gate C — overlap review:** inspect the true probability range, low-probability mass, retained catalogue counts, fitted boundary hits, and weight-tail diagnostics. Revise the stress grid only in a documented protocol amendment, before the larger run.
+**Gate C — overlap and stability review:** inspect probability support, low-probability mass, retained counts, validation inclusion counts, fit-boundary rates, ESS, and extreme weights. Amend stress levels only through a dated protocol revision before the confirmatory campaign.
 
-**Gate D — confirmatory-scale simulation:** only after A–C, run 200 replicates per cell, independently audit raw records and summaries, and publish all cells including failures.
+**Gate D — precision-based confirmatory design:** choose replicate counts from explicit Monte Carlo precision targets and available compute. Freeze contrasts and multiplicity handling before running.
 
-A failure at any gate blocks stronger claims. In particular, an oracle advantage does not establish that estimated inclusion weighting is useful when the inclusion law is unknown.
+**Gate E — confirmatory execution and release:** execute every declared cell, independently regenerate and audit raw artifacts, report all outcomes and deviations, and obtain domain-expert review before manuscript claims.
+
+A failure at any gate blocks stronger conclusions. An oracle advantage does not establish that estimated inclusion weighting is useful when inclusion probabilities are unknown.
 
 ## 8. Interpretation limits
 
-This experiment isolates one misspecification mechanism under a known parent-frame validation design. It does not cover covariate shift, redshift measurement error, validation nonresponse, spatial clustering, selection depending on unobserved galaxy properties, correlated survey masks, uncertain GW detection efficiency, or a realistic galaxy luminosity function. Those require separate studies and cannot be inferred from this factorial screen.
+This design isolates one nonlinear inclusion-model misspecification mechanism under a known parent-frame validation design and a simplified low-redshift Euclidean GW likelihood. It does not cover covariate shift, redshift measurement error, validation nonresponse, spatially correlated survey masks, unobserved galaxy properties, realistic luminosity functions, or injection-calibrated detector selection. It also does not propagate uncertainty in fitted inclusion-model coefficients through a joint hierarchical posterior; the current plug-in procedure treats fitted probabilities as fixed.
 
-**Current status:** protocol only. No factorial results are asserted here.
+**Current status:** paired linear/quadratic pilot implementation and independent artifact-audit code are present on the research branch. The CLI and nonlinear smoke-workflow declarations are source-consistent. Exact-head CI, generated pilot artifacts, and an independent pilot artifact audit have not been verified in this session. No confirmatory factorial results are asserted.
