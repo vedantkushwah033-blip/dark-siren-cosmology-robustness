@@ -54,3 +54,36 @@ def test_frame_planner_fails_explicitly_when_cap_cannot_meet_precision():
         plan_independent_frames(
             10.0, 1e-12, minimum_frames=3, maximum_frames=3
         )
+
+def test_frame_planner_returns_smallest_candidate_meeting_precision():
+    result = plan_independent_frames(
+        0.12,
+        0.04,
+        minimum_frames=8,
+        maximum_frames=20_000,
+        pilot_frame_count=15,
+        variance_confidence=0.90,
+    )
+    n = result["minimum_frames_for_target"]
+    assert result["planned_half_width"] <= result["target_half_width"]
+    if n > 8:
+        from scipy.stats import t
+
+        previous_half_width = (
+            t.ppf(0.975, n - 2)
+            * result["upper_planning_sd"]
+            / (n - 1) ** 0.5
+        )
+        assert previous_half_width > result["target_half_width"]
+
+
+def test_more_pilot_frames_tighten_upper_sd_bound():
+    short = plan_independent_frames(
+        0.1, 0.05, minimum_frames=8, pilot_frame_count=5,
+        variance_confidence=0.90,
+    )
+    longer = plan_independent_frames(
+        0.1, 0.05, minimum_frames=8, pilot_frame_count=30,
+        variance_confidence=0.90,
+    )
+    assert longer["upper_planning_sd"] < short["upper_planning_sd"]
