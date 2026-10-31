@@ -142,20 +142,33 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
             raise AssertionError("validation record count disagrees with arm validation_size")
         x_validation = (validation_z - (z_min + z_max)/2.0) / ((z_max-z_min)/2.0)
 
+        degree = 2 if arm_name.startswith("estimated_quadratic_") else 1
+        quadratic_basis = x_validation**2 - 1.0 / 3.0
+
+        def independent_eta(theta):
+            eta = theta[0] + theta[1] * x_validation
+            if degree == 2:
+                eta = eta + theta[2] * quadratic_basis
+            return eta
+
         def independent_nll(theta):
-            eta = theta[0] + theta[1]*x_validation
+            eta = independent_eta(theta)
             return float(-np.sum(
                 validation_y*log_expit(eta) + (1.0-validation_y)*log_expit(-eta)
             ))
 
         def independent_gradient(theta):
-            eta = theta[0] + theta[1]*x_validation
-            residual = expit(eta) - validation_y
-            return np.array([np.sum(residual), np.dot(residual, x_validation)])
+            residual = expit(independent_eta(theta)) - validation_y
+            gradient = [np.sum(residual), np.dot(residual, x_validation)]
+            if degree == 2:
+                gradient.append(np.dot(residual, quadratic_basis))
+            return np.asarray(gradient, dtype=float)
 
-        bounds = ((-25.0, 25.0), (-50.0, 50.0))
+        bounds = ((-25.0, 25.0), (-50.0, 50.0)) + (
+            ((-50.0, 50.0),) if degree == 2 else ()
+        )
         refit = minimize(
-            independent_nll, np.zeros(2), jac=independent_gradient,
+            independent_nll, np.zeros(degree + 1), jac=independent_gradient,
             method="L-BFGS-B", bounds=bounds,
             options={"maxiter": 10000, "maxfun": 50000, "maxls": 100,
                      "ftol": 1e-15, "gtol": 1e-8},
@@ -183,19 +196,34 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
             )
         stored_intercept = _required_finite_number(stored_model.get("intercept"), "fitted intercept")
         stored_slope = _required_finite_number(stored_model.get("slope"), "fitted slope")
-        if not np.allclose(refit.x, [stored_intercept, stored_slope], rtol=2e-5, atol=2e-5):
+        stored_quadratic = _required_finite_number(
+            stored_model.get("quadratic", 0.0), "fitted quadratic coefficient"
+        )
+        expected_coefficients = [stored_intercept, stored_slope]
+        if degree == 2:
+            expected_coefficients.append(stored_quadratic)
+        if not np.allclose(refit.x, expected_coefficients, rtol=2e-5, atol=2e-5):
             raise AssertionError("stored fitted inclusion coefficients disagree with independent refit")
         x_catalogue = (np.asarray(payload["catalogue_redshift"], dtype=float)
                        - (z_min + z_max)/2.0) / ((z_max-z_min)/2.0)
-        refit_probability = expit(refit.x[0] + refit.x[1]*x_catalogue)
+        eta_catalogue = refit.x[0] + refit.x[1] * x_catalogue
+        if degree == 2:
+            eta_catalogue += refit.x[2] * (x_catalogue**2 - 1.0 / 3.0)
+        refit_probability = expit(eta_catalogue)
         if (stored_probability.shape != refit_probability.shape
                 or not np.allclose(stored_probability, refit_probability, rtol=5e-5, atol=5e-5)):
             raise AssertionError("stored estimated inclusion probabilities disagree with independent refit")
-        if (stored_model.get("model") != "logistic_inclusion_v1"
+        expected_model_name = (
+            "quadratic_logistic_inclusion_v1" if degree == 2 else "logistic_inclusion_v1"
+        )
+        if (stored_model.get("model") != expected_model_name
+                or int(stored_model.get("degree", 1)) != degree
                 or int(stored_model.get("n_validation", -1)) != validation_z.size
                 or int(stored_model.get("n_included", -1)) != int(validation_y.sum())
                 or int(stored_model.get("n_not_included", -1)) != int(validation_y.size-validation_y.sum())):
             raise AssertionError("stored inclusion-model metadata disagrees with validation records")
+        if row.get("inclusion_model_degree") != degree:
+            raise AssertionError("row inclusion_model_degree disagrees with arm family")
     elif payload.get("fitted_inclusion_model") is not None:
         raise AssertionError("non-estimated arm unexpectedly contains a fitted inclusion model")
 
@@ -229,7 +257,10 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
         if np.any((parent_z < z[0]) | (parent_z > z[-1])):
             raise AssertionError("scoring parent redshifts fall outside the simulation domain")
         x_parent = (parent_z - (z_min + z_max)/2.0) / ((z_max-z_min)/2.0)
-        refit_parent_probability = expit(refit.x[0] + refit.x[1]*x_parent)
+        eta_parent = refit.x[0] + refit.x[1] * x_parent
+        if degree == 2:
+            eta_parent += refit.x[2] * (x_parent**2 - 1.0 / 3.0)
+        refit_parent_probability = expit(eta_parent)
         if not np.allclose(
             estimated_parent_p, refit_parent_probability, rtol=5e-5, atol=5e-5
         ):
@@ -572,7 +603,10 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
             weight_quantiles = diagnostic_rows[["inverse_weight_max", "inverse_weight_p95", "inverse_weight_p99"]].to_numpy(dtype=float)
             if np.any(np.diff(weight_quantiles[:, 1:], axis=1) < -1e-12) or np.any(weight_quantiles[:, 1:] > weight_quantiles[:, :1] + 1e-9):
                 raise AssertionError("pre-posterior inverse-weight quantiles are inconsistent")
-    expected_arms = {"catalogue_only", "oracle"} | {f"estimated_{v}" for v in validation_sizes}
+    expected_arms = {"catalogue_only", "oracle"} | {
+        f"estimated_{family}_{v}"
+        for v in validation_sizes for family in ("linear", "quadratic")
+    }
     arms_in_rows = set(frame["arm"])
     if arms_in_rows != expected_arms:
         raise AssertionError(f"replicate arm set differs from declared design: expected={sorted(expected_arms)}, observed={sorted(arms_in_rows)}")
@@ -587,7 +621,11 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         missing_pairs = sorted(expected_pairs - observed_pairs)[:5]
         extra_pairs = sorted(observed_pairs - expected_pairs)[:5]
         raise AssertionError(f"incomplete replicate-arm matrix; missing={missing_pairs}, extra={extra_pairs}")
-    expected_validation_size = {"catalogue_only": 0, "oracle": 0, **{f"estimated_{v}": v for v in validation_sizes}}
+    expected_validation_size = {"catalogue_only": 0, "oracle": 0}
+    expected_validation_size.update({
+        f"estimated_{family}_{v}": v
+        for v in validation_sizes for family in ("linear", "quadratic")
+    })
     for arm, expected_size in expected_validation_size.items():
         sizes = set(_integer_values(frame.loc[frame["arm"] == arm, "validation_size"], f"{arm}.validation_size").tolist())
         if sizes != {expected_size}:
