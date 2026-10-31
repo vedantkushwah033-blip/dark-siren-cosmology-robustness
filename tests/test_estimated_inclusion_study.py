@@ -71,7 +71,7 @@ def test_inclusion_probability_mae_is_scored_on_full_parent_population(monkeypat
         frame["arm"].str.startswith(("estimated_", "independent_")) & frame["status"].eq("success")
     ]
     assert not estimated_successes.empty
-    assert scored_sizes == [1000] * len(estimated_successes) * 2
+    assert scored_sizes == [1000] * len(estimated_successes)
     assert estimated_successes["inclusion_probability_mae"].notna().all()
 
 
@@ -248,14 +248,24 @@ def test_pilot_reports_paired_secondary_outcomes_for_shared_replicates():
     }
     expected = {
         (metric, "catalogue_only", arm)
-        for arm in ("estimated_linear_150", "estimated_quadratic_150")
+        for arm in (
+            "estimated_linear_150", "estimated_quadratic_150",
+            "independent_linear_150", "independent_quadratic_150",
+        )
         for metric in ("coverage_68", "interval_width_68", "host_density_ise")
     }
-    expected.add((
-        "inclusion_probability_mae",
-        "estimated_linear_150",
-        "estimated_quadratic_150",
-    ))
+    for design in ("estimated", "independent"):
+        expected.add((
+            "inclusion_probability_mae",
+            f"{design}_linear_150",
+            f"{design}_quadratic_150",
+        ))
+    for family in ("linear", "quadratic"):
+        expected.add((
+            "absolute_error",
+            f"estimated_{family}_150",
+            f"independent_{family}_150",
+        ))
     assert keys == expected
     assert all(item["n_paired_replicates"] <= 2 for item in contrasts)
     assert all(item["n_attempted_common_replicates"] == 2 for item in contrasts)
