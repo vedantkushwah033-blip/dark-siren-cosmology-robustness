@@ -82,7 +82,7 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
     numerical reference and also reconstructs the reported density ISE.
     """
     schema = row.get("inference_audit_schema")
-    if schema != "toy_selection_posterior_reconstruction_v1":
+    if schema != "toy_selection_posterior_reconstruction_v2":
         raise AssertionError("successful row lacks the supported inference-audit schema")
     raw = row.get("inference_audit_payload_json")
     if not isinstance(raw, str) or not raw:
@@ -117,16 +117,18 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
     # validation records. This is a separate optimization implementation and
     # never reads hidden parent truth or the scoring-only probability MAE.
     arm_name = str(row.get("arm", ""))
-    if arm_name.startswith("estimated_"):
+    if arm_name.startswith(("estimated_", "independent_")):
         try:
             validation_z = np.asarray(payload["validation_redshift"], dtype=float)
             validation_y_raw = np.asarray(payload["validation_included"])
+            validation_ids = np.asarray(payload["validation_object_id"])
             stored_model = payload["fitted_inclusion_model"]
             stored_probability = np.asarray(payload["density_inclusion_probability"], dtype=float)
         except (KeyError, TypeError, ValueError) as exc:
             raise AssertionError("estimated-arm validation audit inputs are malformed") from exc
         if (validation_z.ndim != 1 or validation_z.size < 10
                 or validation_y_raw.shape != validation_z.shape
+                or validation_ids.shape != validation_z.shape
                 or not isinstance(stored_model, dict)
                 or stored_probability.ndim != 1):
             raise AssertionError("estimated-arm validation audit arrays have invalid shapes")
@@ -135,6 +137,16 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
                 or np.unique(validation_y_raw).size != 2):
             raise AssertionError("estimated-arm validation records are invalid")
         validation_y = validation_y_raw.astype(float)
+        if arm_name.startswith("independent_"):
+            if not all(str(value).startswith("independent-audit:") for value in validation_ids):
+                raise AssertionError("independent audit IDs are not namespaced")
+        else:
+            try:
+                source_ids = validation_ids.astype(np.int64)
+            except (TypeError, ValueError) as exc:
+                raise AssertionError("shared-frame audit IDs must be integer source IDs") from exc
+            if np.any(source_ids < 0) or np.unique(source_ids).size != source_ids.size:
+                raise AssertionError("shared-frame audit IDs are invalid or duplicated")
         z_min, z_max = float(z[0]), float(z[-1])
         if np.any((validation_z < z_min) | (validation_z > z_max)):
             raise AssertionError("validation redshifts fall outside the declared fitting domain")
@@ -142,7 +154,7 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
             raise AssertionError("validation record count disagrees with arm validation_size")
         x_validation = (validation_z - (z_min + z_max)/2.0) / ((z_max-z_min)/2.0)
 
-        degree = 2 if arm_name.startswith("estimated_quadratic_") else 1
+        degree = 2 if "_quadratic_" in arm_name else 1
         quadratic_basis = x_validation**2 - 1.0 / 3.0
 
         def independent_eta(theta):
