@@ -262,6 +262,24 @@ def test_pilot_reports_paired_secondary_outcomes_for_shared_replicates():
     )
     assert all(item["difference_direction"] == "reference_minus_comparison" for item in contrasts)
     assert all("positive_favors_comparison_arm" not in item for item in contrasts)
+    coverage_contrast = next(
+        item for item in contrasts
+        if item["metric"] == "coverage_68"
+        and item["reference_arm"] == "catalogue_only"
+        and item["comparison_arm"] == "estimated_linear_150"
+    )
+    reference_coverage = frame.loc[
+        frame["arm"] == "catalogue_only"
+    ].set_index("replicate")["covered_68"].astype(float)
+    comparison_coverage = frame.loc[
+        frame["arm"] == "estimated_linear_150"
+    ].set_index("replicate")["covered_68"].astype(float)
+    expected_coverage_difference = (
+        reference_coverage - comparison_coverage
+    ).mean()
+    assert coverage_contrast["mean_difference_reference_minus_comparison"] == pytest.approx(
+        expected_coverage_difference
+    )
     assert set(frame["arm"]) >= {
         "catalogue_only", "estimated_linear_150", "estimated_quadratic_150"
     }
