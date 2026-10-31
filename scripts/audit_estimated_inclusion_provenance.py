@@ -1,9 +1,8 @@
 """Independent seed-level provenance audit for the estimated-inclusion pilot.
 
-Reconstructs the parent redshift frame, catalogue-retention indicators, and
-nested validation samples from the recorded component seeds. This is separate
-from the posterior/artifact auditor and intentionally does not import the
-production simulator or study implementation.
+Reconstructs parent/catalogue/validation data and detected GW event truth from
+recorded component seeds. This is separate from the posterior/artifact auditor
+and intentionally does not import the production simulator or study code.
 """
 from __future__ import annotations
 
@@ -231,8 +230,8 @@ def audit_provenance(
         "scope": (
             "Seed-level reconstruction of parent redshifts, catalogue retention, "
             "validation samples, detected GW host identities, host redshifts, "
-            "latent mean distances, and observed detected distances for successful "
-            "estimated-inclusion rows. This validates deterministic synthetic "
+            "latent mean distances, and observed detected distances for all "
+            "estimated-inclusion rows, including failed fits. This validates deterministic synthetic "
             "provenance, not astrophysical realism or real detector selection."
         ),
     }
