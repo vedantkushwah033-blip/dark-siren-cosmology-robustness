@@ -137,3 +137,31 @@ def test_frame_count_sensitivity_rejects_invalid_stress_grid(kwargs):
         plan_frame_count_sensitivity(
             0.1, 0.05, pilot_frame_count=10, **kwargs
         )
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"pilot_frame_sd": True, "target_half_width": 0.1},
+        {"pilot_frame_sd": 0.1, "target_half_width": False},
+        {"pilot_frame_sd": 0.1, "target_half_width": 0.1, "confidence_level": True},
+        {"pilot_frame_sd": 0.1, "target_half_width": 0.1, "variance_confidence": False},
+    ],
+)
+def test_frame_planner_rejects_boolean_numeric_inputs(kwargs):
+    with pytest.raises(TypeError, match="real number"):
+        plan_independent_frames(**kwargs)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"sd_multipliers": (1.0, True)},
+        {"variance_confidences": (0.9, False)},
+    ],
+)
+def test_frame_count_sensitivity_rejects_boolean_grid_values(kwargs):
+    with pytest.raises(TypeError, match="booleans"):
+        plan_frame_count_sensitivity(
+            0.1, 0.05, pilot_frame_count=10, **kwargs
+        )
