@@ -204,12 +204,15 @@ def run_estimated_inclusion_pilot(
             }, separators=(",", ":"))
         if observed_z.size < 5 or np.unique(observed_z).size < 3:
             # Preserve the replicate failure explicitly for all arms.
-            arms = ["catalogue_only", "oracle"] + [f"estimated_{m}" for m in sizes]
+            arms = ["catalogue_only", "oracle"] + [
+                f"estimated_{family}_{m}" for m in sizes
+                for family in ("linear", "quadratic")
+            ]
             for arm in arms:
                 rows.append({
                     "replicate": replicate, "replicate_seed": sim_seed,
                     "catalogue_seed": catalogue_seed, "audit_seed": audit_seed,
-                    "arm": arm, "validation_size": 0 if arm in ("catalogue_only", "oracle") else int(arm.split("_")[1]),
+                    "arm": arm, "validation_size": 0 if arm in ("catalogue_only", "oracle") else int(arm.rsplit("_", 1)[1]),
                     "status": "failed", "error": "too few retained catalogue objects",
                     # No inclusion model or pre-posterior features were fitted:
                     # the catalogue failed the minimum-size gate before arm setup.
@@ -225,14 +228,14 @@ def run_estimated_inclusion_pilot(
                     "true_max_inverse_probability": true_max_inverse_probability,
                     "true_retention_rate": true_retention_rate,
                     "audit_included_count": (
-                        int(np.sum(audit_records["included"][:int(arm.split("_")[1])]))
+                        int(np.sum(audit_records["included"][:int(arm.rsplit("_", 1)[1])]))
                         if arm.startswith("estimated_") else None
                     ),
                     "inference_audit_schema": (
                         "toy_selection_provenance_v2" if arm.startswith("estimated_") else None
                     ),
                     "inference_audit_payload_json": (
-                        _inference_provenance(int(arm.split("_")[1]))
+                        _inference_provenance(int(arm.rsplit("_", 1)[1]))
                         if arm.startswith("estimated_") else None
                     ),
                     "scoring_audit_payload_json": (
@@ -245,7 +248,11 @@ def run_estimated_inclusion_pilot(
             ("catalogue_only", 0, None),
             ("oracle", 0, "oracle"),
         ]
-        arm_specs.extend((f"estimated_{m}", m, m) for m in sizes)
+        arm_specs.extend(
+            (f"estimated_{family}_{m}", m, (m, degree))
+            for m in sizes
+            for family, degree in (("linear", 1), ("quadratic", 2))
+        )
         for arm, audit_size, spec in arm_specs:
             try:
                 fit_status = "not_applicable"
@@ -287,7 +294,8 @@ def run_estimated_inclusion_pilot(
                     max_inverse_weight = float(np.max(1.0 / observed_p))
                     probability_mae = 0.0
                 else:
-                    m = int(spec)
+                    m, model_degree = spec
+                    m = int(m)
                     validation_z = audit_records["redshift"][:m]
                     validation_included = audit_records["included"][:m]
                     audit_validation_redshift = np.asarray(validation_z, dtype=float)
@@ -295,6 +303,7 @@ def run_estimated_inclusion_pilot(
                     result = estimate_host_density_from_validation(
                         z_grid, observed_z, validation_z, validation_included,
                         merger_weight=merger_rate, bandwidth_factor=bandwidth_factor,
+                        degree=int(model_degree),
                     )
                     density = result["density"]
                     density_inclusion_probability = np.asarray(
@@ -337,6 +346,12 @@ def run_estimated_inclusion_pilot(
                     "replicate": replicate, "replicate_seed": sim_seed,
                     "catalogue_seed": catalogue_seed, "audit_seed": audit_seed,
                     "arm": arm, "validation_size": int(audit_size),
+                    "inclusion_model_family": (
+                        fitted_inclusion_model.get("model") if fitted_inclusion_model else None
+                    ),
+                    "inclusion_model_degree": (
+                        int(fitted_inclusion_model.get("degree")) if fitted_inclusion_model else None
+                    ),
                     "status": "success", "error": "",
                     "fit_status": fit_status, "fit_boundary_limited": fit_boundary_limited,
                     "n_catalogue": int(observed_z.size), "n_detected": int(distances.size),
@@ -396,6 +411,12 @@ def run_estimated_inclusion_pilot(
                     "replicate": replicate, "replicate_seed": sim_seed,
                     "catalogue_seed": catalogue_seed, "audit_seed": audit_seed,
                     "arm": arm, "validation_size": int(audit_size),
+                    "inclusion_model_family": (
+                        fitted_inclusion_model.get("model") if fitted_inclusion_model else None
+                    ),
+                    "inclusion_model_degree": (
+                        int(fitted_inclusion_model.get("degree")) if fitted_inclusion_model else None
+                    ),
                     "status": "failed", "error": f"{type(exc).__name__}: {exc}",
                     "fit_status": "failed", "fit_boundary_limited": False,
                     "n_catalogue": int(observed_z.size), "n_detected": int(distances.size),
@@ -479,7 +500,10 @@ def run_estimated_inclusion_pilot(
     contrasts: list[dict] = []
     if not successful.empty:
         baseline = successful.loc[successful["arm"] == "catalogue_only"].set_index("replicate")
-        for arm in ["oracle"] + [f"estimated_{m}" for m in sizes]:
+        for arm in ["oracle"] + [
+            f"estimated_{family}_{m}" for m in sizes
+            for family in ("linear", "quadratic")
+        ]:
             comparison = successful.loc[successful["arm"] == arm].set_index("replicate")
             paired = baseline[["absolute_error"]].merge(
                 comparison[["absolute_error"]], left_index=True, right_index=True,
@@ -504,6 +528,10 @@ def run_estimated_inclusion_pilot(
         "redshift_grid": [float(z_min), float(z_max), int(z_points)],
         "bandwidth_factor": None if bandwidth_factor is None else float(bandwidth_factor),
         "validation_sizes": list(sizes),
+        "estimated_model_families": {
+            "linear": {"degree": 1, "model": "logistic_inclusion_v1"},
+            "quadratic": {"degree": 2, "model": "quadratic_logistic_inclusion_v1"},
+        },
         "true_inclusion_model": {
             "family": "quadratic_logistic" if true_quadratic != 0.0 else "linear_logistic",
             "logit_probability": "intercept + slope*x + quadratic*(x^2 - 1/3)",
