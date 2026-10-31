@@ -98,4 +98,4 @@ Do not infer that independence necessarily improves estimates. The independent c
 7. Run a full-configuration planning pilot and inspect runtime, failures, positivity, ESS, weight concentration, and paired-difference variability.
 8. Set confirmatory replicate count from prespecified Monte Carlo precision targets, then freeze seeds and code commit.
 
-**Execution status:** no independent-cohort code, smoke run, planning run, or scientific result is claimed by this document.
+**Execution status (updated):** a standalone independent-cohort generator now exists in `src/dark_siren_robustness/independent_audit.py`, with unit tests in `tests/test_independent_audit.py`. The generator has not yet been integrated into the main pilot runner, and the tests have not yet been executed in a verified CI run. No smoke run, planning run, or scientific result is claimed.
