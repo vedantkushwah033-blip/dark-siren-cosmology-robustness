@@ -183,3 +183,11 @@ def test_seed_level_provenance_audit_rejects_arm_validation_size_mismatch(tmp_pa
     frame.to_csv(replicates, index=False)
     with pytest.raises(AssertionError, match="arm label/validation_size mismatch"):
         AUDITOR.audit_provenance(replicates, summary)
+
+
+def test_seed_level_provenance_audit_rejects_missing_required_validation_size_column(tmp_path):
+    replicates, summary = _write_fixture(tmp_path)
+    frame = pd.read_csv(replicates).drop(columns=["validation_size"])
+    frame.to_csv(replicates, index=False)
+    with pytest.raises(AssertionError, match="lacks provenance columns"):
+        AUDITOR.audit_provenance(replicates, summary)
