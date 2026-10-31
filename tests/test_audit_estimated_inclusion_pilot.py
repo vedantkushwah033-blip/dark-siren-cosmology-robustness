@@ -181,6 +181,7 @@ def test_independent_auditor_accepts_explicit_all_failed_artifact_without_fit_co
     frame.to_csv(tmp_path / "replicates.csv", index=False)
     summary["contrasts"] = []
     summary["paired_model_contrasts"] = []
+    summary["paired_secondary_contrasts"] = []
     summary["arm_summaries"] = [
         {
             "arm": arm,
@@ -517,6 +518,7 @@ def test_independent_auditor_rejects_inconsistent_boundary_flag_on_failed_diagno
     frame.loc[index, "status"] = "failed"
     frame.loc[index, "error"] = "Injected failure for boundary-flag audit"
     frame.loc[index, "fit_status"] = "boundary_limited"
+    frame["fit_boundary_limited"] = frame["fit_boundary_limited"].astype(object)
     frame.loc[index, "fit_boundary_limited"] = "False"
     frame.to_csv(tmp_path / "replicates.csv", index=False)
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
