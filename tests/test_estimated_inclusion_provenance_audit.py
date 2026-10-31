@@ -216,3 +216,16 @@ def test_seed_level_provenance_audit_rejects_missing_required_validation_size_co
     frame.to_csv(replicates, index=False)
     with pytest.raises(AssertionError, match="lacks provenance columns"):
         AUDITOR.audit_provenance(replicates, summary)
+
+
+
+def test_seed_level_provenance_audit_rejects_tampered_independent_audit_id(tmp_path):
+    replicates, summary = _write_fixture(tmp_path)
+    frame = pd.read_csv(replicates)
+    index = frame.index[frame["arm"] == "independent_linear_100"][0]
+    payload = json.loads(frame.loc[index, "inference_audit_payload_json"])
+    payload["validation_object_id"][0] = "independent-audit:999999"
+    frame.loc[index, "inference_audit_payload_json"] = json.dumps(payload)
+    frame.to_csv(replicates, index=False)
+    with pytest.raises(AssertionError, match="independent audit IDs are not reproducible"):
+        AUDITOR.audit_provenance(replicates, summary)
