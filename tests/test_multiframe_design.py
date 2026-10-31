@@ -105,3 +105,9 @@ def test_generation_does_not_mutate_manifest_or_global_rng(manifest):
     after = np.random.default_rng(123).random(5)
     assert np.array_equal(before, after)
     assert manifest["frames_per_scenario"] == 4
+
+
+@pytest.mark.parametrize("bad", [0, 1, True, 1.5])
+def test_manifest_requires_at_least_two_bootstrap_replicates(manifest, bad):
+    with pytest.raises((TypeError, ValueError), match="bootstrap_replicates"):
+        validate_multiframe_manifest({**manifest, "bootstrap_replicates": bad})
