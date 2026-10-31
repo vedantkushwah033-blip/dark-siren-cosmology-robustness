@@ -882,7 +882,7 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         if (stored.get("metric") != metric
                 or stored.get("reference_arm") != reference_arm
                 or stored.get("comparison_arm") != comparison_arm
-                or stored.get("positive_favors_comparison") is not True):
+                or stored.get("difference_direction") != "reference_minus_comparison"):
             raise AssertionError(f"{label}: paired secondary contrast labels are inconsistent")
         _close(stored.get("n_paired_replicates"), values.size, f"{label}.n")
         mean = float(np.mean(values))
