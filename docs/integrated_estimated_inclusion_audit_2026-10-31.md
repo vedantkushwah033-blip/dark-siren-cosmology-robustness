@@ -219,3 +219,22 @@ The test workflow's upload-artifact step now includes `artifacts/estimated_inclu
 The nonlinear stress protocol was also reconciled with the integrated study estimand. The practical primary comparison is estimated-inclusion weighting (linear and quadratic fitted families, reported separately at each validation size) versus catalogue-only inference. The paired linear-versus-quadratic absolute-error contrast is secondary and mechanistic. This preserves the project's central practical question and prevents a model-family comparison from replacing the baseline comparison. Neither absolute-error contrast is evidence of improved coverage or calibration.
 
 **Latest session changes:** commit `00cf98085cf57f1c630cf0b688272a59ecf4c748` adds nonlinear smoke-artifact retention; commit `88b9f9e5578f377c316b95b54fb854182a0ed85a` records the first protocol update; commit `a9af56b188a5b7cd3750dd298bac4dc1c175e1c5` corrects the primary/secondary estimand wording. The workflow-run lookup connector returns only pull-request-triggered runs and returned no run for the inspected commits. No exact-head CI pass, new pilot result, or independent artifact audit is claimed in this session.
+
+## 7. Implementation reconciliation (31 October 2026, verified against branch files)
+
+This section supersedes the inconsistent arm/estimand shorthand in the earlier sections of this note.
+
+The current runner has four kinds of arms: `catalogue_only`, `oracle`, `estimated_linear_<m>`, and `estimated_quadratic_<m>`. For each replicate and validation size, the linear and quadratic fits share the same parent population, catalogue realization, detected-event realization, and nested validation records. The fitted degree is the intended difference between those two estimated arms.
+
+The current primary practical contrasts are computed separately for each estimated arm:
+`abs_error_catalogue_only - abs_error_estimated_linear_<m>` and
+`abs_error_catalogue_only - abs_error_estimated_quadratic_<m>`.
+The secondary model-family contrast is
+`abs_error_estimated_linear_<m> - abs_error_estimated_quadratic_<m>`.
+Positive values favor the comparison arm for absolute posterior-mean error only. The oracle arm remains a simulation diagnostic.
+
+The runner currently reports per-arm bias, RMSE, fixed-truth 68% coverage with Wilson interval, mean interval width, mean host-density ISE, ESS fraction, maximum inverse weight, and inclusion-probability MAE. It currently computes paired replicate contrasts only for absolute posterior-mean error (catalogue-only versus each comparison arm, and linear versus quadratic). Paired contrasts for coverage, interval width, inclusion-probability MAE, and density ISE are **not implemented** and must not be reported as if they were.
+
+The nonlinear stress workflow is a three-replicate smoke experiment at one curvature setting. It checks execution, arm labels, and independent artifact reconstruction; it is not a precision study or confirmatory result. The protocol's curvature and validation-size grid remains a candidate design, not a frozen preregistration.
+
+The current branch files were inspected for this reconciliation. This inspection did not execute tests, run the pilot, retrieve a CI result, or audit a generated artifact. The exact-head CI and artifact-audit gates therefore remain open. The integrated audit's earlier single-estimated-arm description and its linear-only stress description should be read as historical planning text, not as a faithful description of the present runner.
