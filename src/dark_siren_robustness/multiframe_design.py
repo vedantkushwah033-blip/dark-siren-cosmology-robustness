@@ -61,7 +61,7 @@ def validate_multiframe_manifest(manifest: Mapping[str, Any]) -> dict[str, Any]:
         "outer_repetitions", manifest.get("outer_repetitions"), 1
     )
     normalized["bootstrap_replicates"] = _integer(
-        "bootstrap_replicates", manifest.get("bootstrap_replicates"), 1
+        "bootstrap_replicates", manifest.get("bootstrap_replicates"), 2
     )
     level = _finite_real("nominal_level", manifest.get("nominal_level"))
     if not 0 < level < 1:
