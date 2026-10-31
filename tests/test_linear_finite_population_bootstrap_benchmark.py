@@ -257,7 +257,7 @@ def test_linear_auditor_rejects_tampered_unconditional_coverage_even_with_update
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
         writer.writerows(rows)
-    _refresh_manifest_checksum(tmp_path, "summary_csv_sha256", "linear_finite_population_bootstrap_summary.csv")
+    _refresh_manifest_checksum(tmp_path, "summary_csv_sha256", "linear_finite_population_bootstrap.csv")
     with pytest.raises(ValueError, match="summary unconditional success-and-coverage mismatch"):
         audit_artifact(tmp_path)
 
