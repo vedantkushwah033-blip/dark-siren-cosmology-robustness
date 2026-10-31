@@ -6,7 +6,7 @@
 
 ## 1. Research question
 
-Under a controlled low-redshift dark-siren toy model, how do finite external validation samples and catalogue-inclusion-model misspecification affect inverse-probability-weighted host-density reconstruction and downstream fixed-truth $H_0$ inference?
+Under a controlled low-redshift dark-siren toy model, how do finite inclusion-audit subsamples and catalogue-inclusion-model misspecification affect inverse-probability-weighted host-density reconstruction and downstream fixed-truth $H_0$ inference?
 
 The narrow target is the reliability of estimated catalogue-inclusion correction—not a claim that inverse-probability weighting solves all catalogue incompleteness problems.
 
@@ -23,7 +23,9 @@ Use the existing toy simulation defaults unless the planning run exposes a docum
 
 - Parent population: 4,000 galaxies per replicate.
 - Detected toy GW events: 30 per replicate.
-- External validation sample sizes: 100, 300, and 1,000, nested within replicate.
+- Inclusion-audit subsample sizes: 100, 300, and 1,000, nested within replicate.
+
+**Sampling-dependence clarification:** these are not independent external validation cohorts. The implementation draws a simple random permutation of the same finite synthetic parent population and takes nested prefixes of that permutation; each sampled parent object carries the catalogue-retention indicator generated for that same object. The audit-sample *selection* is independent of the retention draw, but its observed labels are the same realized retention outcomes that define the catalogue. Consequently, audit records and the retained catalogue are statistically dependent and can overlap. Interpret this design as an internal probability-audit subsample of a known synthetic parent frame, not as an independent survey or external validation dataset. Any claim about genuinely independent external validation requires a separately generated audit cohort and a separately prespecified experiment.
 - Fixed truth: $H_0=70$.
 - Toy distance noise: 140 Mpc.
 - Toy observed-distance threshold: 250 Mpc.
@@ -38,16 +40,16 @@ For each replicate and each scenario, compare:
 
 - **Catalogue-only:** unweighted observed-catalogue host-density baseline.
 - **Oracle:** inverse-probability correction using the true inclusion probabilities; benchmark only, not an implementable estimator.
-- **Estimated-linear-$m$:** fitted linear-logistic inclusion model from the external validation sample of size $m$.
-- **Estimated-quadratic-$m$:** fitted quadratic-logistic inclusion model from the same nested validation sample of size $m$.
+- **Estimated-linear-$m$:** fitted linear-logistic inclusion model from the inclusion-audit subsample of size $m$.
+- **Estimated-quadratic-$m$:** fitted quadratic-logistic inclusion model from the same nested inclusion-audit subsample of size $m$.
 
-The estimated arms must fit only the external validation redshifts and retention labels. True inclusion probabilities may be used for the oracle arm and for scoring inclusion-probability error, never as fitted-model inputs.
+The estimated arms must fit only the inclusion-audit redshifts and their recorded catalogue-retention labels. True inclusion probabilities may be used for the oracle arm and for scoring inclusion-probability error, never as fitted-model inputs.
 
 Keep catalogue retention and GW event detection as separate stages. Do not add a hidden-host mixture term to the IPW likelihood unless a coherent joint generative model is derived; otherwise it risks double-counting incompleteness.
 
 ## 4. Pairing and randomization
 
-Within each replicate, reuse the same parent population, catalogue-retention realization, detected-event realization, and nested validation samples across estimator arms. Preserve the existing deterministic component-seed schedule.
+Within each replicate, reuse the same parent population, catalogue-retention realization, detected-event realization, and nested inclusion-audit subsamples across estimator arms. Preserve the shared-frame dependence described in Section 2; do not treat the audit subsamples as independent of the retained catalogue. Preserve the existing deterministic component-seed schedule.
 
 Use independent root seeds for the two DGP scenarios and record the exact seed, software versions, and configuration in each artifact. Do not drop failed fits; retain every attempted arm and report failure counts.
 
