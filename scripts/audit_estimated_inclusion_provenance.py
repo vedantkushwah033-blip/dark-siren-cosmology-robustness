@@ -108,13 +108,42 @@ def audit_provenance(
     frame = pd.read_csv(replicates_path)
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     required_summary = {
-        "seed", "n_parent", "n_detected", "h0_true", "sigma_mpc",
-        "detection_threshold_mpc", "true_inclusion_model", "redshift_grid"
+        "seed", "n_parent", "n_detected", "n_replicates_requested",
+        "h0_true", "sigma_mpc", "detection_threshold_mpc",
+        "true_inclusion_model", "redshift_grid"
     }
     if not required_summary.issubset(summary):
         raise AssertionError("summary lacks required generation metadata")
-    if frame.empty or not {"replicate", "replicate_seed", "catalogue_seed", "audit_seed", "arm", "status"}.issubset(frame):
+    required_columns = {
+        "replicate", "replicate_seed", "catalogue_seed", "audit_seed",
+        "arm", "status",
+    }
+    if frame.empty or not required_columns.issubset(frame):
         raise AssertionError("replicate table is empty or lacks provenance columns")
+
+    requested_replicates = summary["n_replicates_requested"]
+    if (
+        isinstance(requested_replicates, bool)
+        or not isinstance(requested_replicates, int)
+        or requested_replicates < 1
+    ):
+        raise AssertionError("summary.n_replicates_requested must be a positive integer")
+    replicate_values = pd.to_numeric(frame["replicate"], errors="raise").to_numpy(dtype=float)
+    if not np.all(np.isfinite(replicate_values)) or not np.all(
+        replicate_values == np.floor(replicate_values)
+    ):
+        raise AssertionError("replicate IDs must be finite integers")
+    if frame.duplicated(["replicate", "arm"]).any():
+        raise AssertionError("replicate table contains duplicate replicate/arm rows")
+    observed_replicates = set(replicate_values.astype(int).tolist())
+    expected_replicates = set(range(requested_replicates))
+    if observed_replicates != expected_replicates:
+        missing = sorted(expected_replicates - observed_replicates)
+        unexpected = sorted(observed_replicates - expected_replicates)
+        raise AssertionError(
+            "replicate IDs do not match requested replicate range "
+            f"(missing={missing}, unexpected={unexpected})"
+        )
 
     n_parent = int(summary["n_parent"])
     z_min, z_max = map(float, summary["redshift_grid"][:2])
