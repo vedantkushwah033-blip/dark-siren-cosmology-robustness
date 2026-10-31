@@ -247,3 +247,16 @@ The repository now includes a pure, deterministic, domain-separated seed schedul
 - Regression tests: `tests/test_multiframe_seed_schedule.py`
 
 Frame, shared outer-sample, method-specific, and inner-attempt streams are derived from explicit experimental coordinates. The shared outer-sample stream enables paired method comparisons, while method-specific streams remain invariant to execution order. These tests establish seed-helper behavior only; they do not validate a multi-frame benchmark or establish statistical performance.
+
+
+## 20. Implemented v3 manifest and finite-frame generator
+
+A first data-generation layer has been implemented:
+
+- [v3 manifest and frame-generator documentation](../docs/multiframe_v3_manifest_and_frames_2026-10-31.md)
+- Implementation: `src/dark_siren_robustness/multiframe_design.py`
+- Regression tests: `tests/test_multiframe_design.py`
+
+The validator enforces explicit scenario identifiers, distribution parameters, population size, independent frame count, sample sizes, methods, and simulation dimensions. The generator produces immutable, reproducible Normal, Gamma, and Lognormal finite frames using the v3 frame seed schedule, with exact realized finite-population means and variances recorded.
+
+This is the manifest and frame-generation layer only. It does not yet execute outer samples, construct intervals, run bootstrap attempts, persist a benchmark artifact, or independently audit method comparisons. No v3 coverage or performance result is claimed.
