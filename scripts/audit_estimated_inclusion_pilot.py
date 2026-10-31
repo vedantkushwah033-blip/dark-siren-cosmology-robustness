@@ -879,7 +879,8 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         metric, reference_arm, comparison_arm = key
         stored = stored_secondary[key]
         label = f"{metric}.{reference_arm}->{comparison_arm}"
-        if (stored.get("metric") != metric
+        if (("positive_favors_comparison_arm" in stored)
+                or stored.get("metric") != metric
                 or stored.get("reference_arm") != reference_arm
                 or stored.get("comparison_arm") != comparison_arm
                 or stored.get("difference_direction") != "reference_minus_comparison"):
