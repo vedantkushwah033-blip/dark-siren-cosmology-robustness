@@ -284,3 +284,29 @@ def test_pilot_reports_paired_secondary_outcomes_for_shared_replicates():
     assert set(frame["arm"]) >= {
         "catalogue_only", "estimated_linear_150", "estimated_quadratic_150"
     }
+
+
+
+def test_pilot_summary_records_numerical_software_versions():
+    import platform
+
+    import numpy as np
+    import pandas as pd
+    import scipy
+
+    _frame, summary = run_estimated_inclusion_pilot(
+        n_replicates=1,
+        n_parent=1000,
+        n_detected=5,
+        validation_sizes=(100,),
+        seed=20261068,
+        h0_points=31,
+        z_points=101,
+    )
+
+    assert summary["software_versions"] == {
+        "python": platform.python_version(),
+        "numpy": np.__version__,
+        "scipy": scipy.__version__,
+        "pandas": pd.__version__,
+    }
