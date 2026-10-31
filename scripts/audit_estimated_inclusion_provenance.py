@@ -41,6 +41,53 @@ def _component_seeds(master_seed: int, replicate: int) -> tuple[int, int, int]:
     )
 
 
+
+def _detected_event_distances(
+    seed: int,
+    n_parent: int,
+    parent_redshift: np.ndarray,
+    n_detected: int,
+    h0_true: float,
+    sigma_mpc: float,
+    detection_threshold_mpc: float,
+    z_min: float,
+    z_max: float,
+) -> np.ndarray:
+    """Replay the production generator's event RNG stream without importing it.
+
+    The production generator consumes one parent-redshift draw per parent
+    galaxy, then one internal catalogue-thinning draw per galaxy, before
+    sampling hosts and noisy distances. The internal catalogue is not used by
+    the estimated-inclusion study, but its RNG consumption is part of the
+    event-generation provenance and must be replayed.
+    """
+    rng = np.random.default_rng(int(seed))
+    rng.random(int(n_parent))  # parent inverse-CDF uniforms
+    rng.random(int(n_parent))  # generator's own catalogue-thinning uniforms
+    host_weight = 1.0 + 1.5 * (parent_redshift - z_min) / (z_max - z_min)
+    host_probability = host_weight / host_weight.sum()
+    accepted: list[np.ndarray] = []
+    n_accepted = 0
+    attempts = 0
+    max_attempts = max(100_000, int(n_detected) * 2_000)
+    while n_accepted < n_detected and attempts < max_attempts:
+        batch = min(max(1000, 2 * (n_detected - n_accepted)), max_attempts - attempts)
+        host_ids = rng.choice(n_parent, size=batch, replace=True, p=host_probability)
+        host_z = parent_redshift[host_ids]
+        measured = rng.normal(299_792.458 * host_z / h0_true, sigma_mpc)
+        detected = measured >= detection_threshold_mpc
+        if np.any(detected):
+            take = min(n_detected - n_accepted, int(np.sum(detected)))
+            accepted.append(measured[detected][:take])
+            n_accepted += take
+        attempts += batch
+    if n_accepted != n_detected:
+        raise AssertionError(
+            f"event replay generated {n_accepted}/{n_detected} detections"
+        )
+    return np.concatenate(accepted)
+
+
 def _same_array(actual: object, expected: np.ndarray, label: str) -> None:
     values = np.asarray(actual, dtype=float)
     if values.shape != expected.shape or not np.all(np.isfinite(values)):
@@ -56,7 +103,8 @@ def audit_provenance(
     frame = pd.read_csv(replicates_path)
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     required_summary = {
-        "seed", "n_parent", "true_inclusion_model", "redshift_grid"
+        "seed", "n_parent", "n_detected", "h0_true", "sigma_mpc",
+        "detection_threshold_mpc", "true_inclusion_model", "redshift_grid"
     }
     if not required_summary.issubset(summary):
         raise AssertionError("summary lacks required generation metadata")
@@ -74,6 +122,7 @@ def audit_provenance(
 
     checked_replicates = 0
     checked_estimated_rows = 0
+    checked_event_rows = 0
     failures_without_payload: list[int] = []
     for replicate, group in frame.groupby("replicate", sort=True):
         replicate = int(replicate)
@@ -102,6 +151,11 @@ def audit_provenance(
         true_probability = expit(
             intercept + slope * x + quadratic * (x**2 - 1.0 / 3.0)
         )
+        expected_distances = _detected_event_distances(
+            expected_sim, n_parent, parent_z, int(summary["n_detected"]),
+            float(summary["h0_true"]), float(summary["sigma_mpc"]),
+            float(summary["detection_threshold_mpc"]), z_min, z_max,
+        )
         retained = np.random.default_rng(expected_catalogue).random(n_parent) < true_probability
         audit_order = np.random.default_rng(expected_audit).permutation(n_parent)
 
@@ -114,6 +168,9 @@ def audit_provenance(
                 stored_parent = np.asarray(scoring["parent_redshift"], dtype=float)
                 stored_probability = np.asarray(scoring["true_inclusion_probability"], dtype=float)
                 catalogue_z = np.asarray(inference["catalogue_redshift"], dtype=float)
+                observed_distances = np.asarray(
+                    inference["observed_distances_mpc"], dtype=float
+                )
             except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
                 raise AssertionError(
                     f"replicate {replicate}, arm {row['arm']}: incomplete provenance payload"
@@ -122,6 +179,11 @@ def audit_provenance(
             _same_array(stored_parent, parent_z, f"replicate {replicate} parent frame")
             _same_array(stored_probability, true_probability, f"replicate {replicate} true inclusion probabilities")
             _same_array(catalogue_z, parent_z[retained], f"replicate {replicate} retained catalogue")
+            _same_array(
+                observed_distances, expected_distances,
+                f"replicate {replicate} detected GW distance observations",
+            )
+            checked_event_rows += 1
             m = int(row["validation_size"])
             if validation_z.shape != (m,) or validation_y.shape != (m,):
                 raise AssertionError(
@@ -148,12 +210,14 @@ def audit_provenance(
         "status": "PASS",
         "replicates_reconstructed": checked_replicates,
         "estimated_arm_rows_reconstructed": checked_estimated_rows,
+        "event_observation_rows_reconstructed": checked_event_rows,
         "checks": [
             "component seed schedule",
             "parent redshift frame",
             "true quadratic-logistic inclusion probabilities",
             "catalogue-retention indicators",
             "nested validation redshifts and retention labels",
+            "detected GW distance observations and event RNG stream",
         ],
         "scope": (
             "Seed-level reconstruction of parent/catalogue/validation inputs only. "
