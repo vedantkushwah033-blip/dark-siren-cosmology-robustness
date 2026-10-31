@@ -475,6 +475,7 @@ def run_estimated_inclusion_pilot(
                 rows.append({
                     "replicate": replicate, "replicate_seed": sim_seed,
                     "catalogue_seed": catalogue_seed, "audit_seed": audit_seed,
+                    "independent_audit_seed": independent_audit_seed,
                     "arm": arm, "validation_size": int(audit_size),
                     "inclusion_model_family": (
                         fitted_inclusion_model.get("model") if fitted_inclusion_model else None
@@ -494,8 +495,15 @@ def run_estimated_inclusion_pilot(
                     "true_max_inverse_probability": true_max_inverse_probability,
                     "true_retention_rate": true_retention_rate,
                     "audit_included_count": (
-                        int(np.sum(audit_records["included"][:audit_size]))
-                        if audit_size else None
+                        int(np.sum((
+                            independent_audit_observable["included"].to_numpy(dtype=int)
+                            if arm.startswith("independent_") else audit_records["included"]
+                        )[:audit_size])) if audit_size else None
+                    ),
+                    "audit_design": (
+                        "independent_cohort" if arm.startswith("independent_")
+                        else "shared_source_frame" if arm.startswith("estimated_")
+                        else "not_applicable"
                     ),
                     "weight_ess": weight_ess,
                     "weight_ess_fraction": (
@@ -504,11 +512,12 @@ def run_estimated_inclusion_pilot(
                     "max_inverse_weight": max_inverse_weight,
                     **preposterior_features,
                     "inference_audit_schema": (
-                        "toy_selection_provenance_v2" if arm.startswith(("estimated_", "independent_")) else None
+                        "toy_selection_provenance_v3" if arm.startswith(("estimated_", "independent_")) else None
                     ),
                     "inference_audit_payload_json": (
-                        _inference_provenance(int(audit_size))
-                        if arm.startswith(("estimated_", "independent_")) else None
+                        _inference_provenance(
+                            int(audit_size), independent=arm.startswith("independent_")
+                        ) if arm.startswith(("estimated_", "independent_")) else None
                     ),
                     "scoring_audit_payload_json": (
                         _scoring_provenance() if arm.startswith(("estimated_", "independent_")) else None
@@ -584,28 +593,30 @@ def run_estimated_inclusion_pilot(
 
     paired_model_contrasts: list[dict] = []
     if not successful.empty:
-        for validation_size in sizes:
-            linear_arm = f"estimated_linear_{validation_size}"
-            quadratic_arm = f"estimated_quadratic_{validation_size}"
-            linear = successful.loc[successful["arm"] == linear_arm].set_index("replicate")
-            quadratic = successful.loc[successful["arm"] == quadratic_arm].set_index("replicate")
-            paired = linear[["absolute_error"]].merge(
-                quadratic[["absolute_error"]], left_index=True, right_index=True,
-                how="inner", suffixes=("_linear", "_quadratic")
-            )
-            if not paired.empty:
-                # Positive values mean the quadratic fit has lower absolute H0 error.
-                values = (
-                    paired["absolute_error_linear"] - paired["absolute_error_quadratic"]
-                ).to_numpy(dtype=float)
-                item = _contrast_summary(values)
-                item.update({
-                    "validation_size": int(validation_size),
-                    "reference_arm": linear_arm,
-                    "comparison_arm": quadratic_arm,
-                    "positive_favors_quadratic": True,
-                })
-                paired_model_contrasts.append(item)
+        for design in ("estimated", "independent"):
+            for validation_size in sizes:
+                linear_arm = f"{design}_linear_{validation_size}"
+                quadratic_arm = f"{design}_quadratic_{validation_size}"
+                linear = successful.loc[successful["arm"] == linear_arm].set_index("replicate")
+                quadratic = successful.loc[successful["arm"] == quadratic_arm].set_index("replicate")
+                paired = linear[["absolute_error"]].merge(
+                    quadratic[["absolute_error"]], left_index=True, right_index=True,
+                    how="inner", suffixes=("_linear", "_quadratic")
+                )
+                if not paired.empty:
+                    # Positive values mean the quadratic fit has lower absolute H0 error.
+                    values = (
+                        paired["absolute_error_linear"] - paired["absolute_error_quadratic"]
+                    ).to_numpy(dtype=float)
+                    item = _contrast_summary(values)
+                    item.update({
+                        "audit_design": "independent_cohort" if design == "independent" else "shared_source_frame",
+                        "validation_size": int(validation_size),
+                        "reference_arm": linear_arm,
+                        "comparison_arm": quadratic_arm,
+                        "positive_favors_quadratic": True,
+                    })
+                    paired_model_contrasts.append(item)
 
     # Paired secondary outcomes use the same replicate-level pairing as the
     # primary absolute-error contrast. These are descriptive reference-minus-
