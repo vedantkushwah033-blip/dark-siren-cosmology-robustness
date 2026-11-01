@@ -8,7 +8,8 @@ import pytest
 
 from scripts.audit_multiframe_v3_pilot import audit_artifact
 from scripts.run_multiframe_v3_pilot import run_multiframe_v3
-from dark_siren_robustness.multiframe_design import MANIFEST_SCHEMA\nfrom dark_siren_robustness import multiframe_design, multiframe_seed_schedule
+from dark_siren_robustness.multiframe_design import MANIFEST_SCHEMA
+from dark_siren_robustness import multiframe_design, multiframe_seed_schedule
 
 
 def manifest():
