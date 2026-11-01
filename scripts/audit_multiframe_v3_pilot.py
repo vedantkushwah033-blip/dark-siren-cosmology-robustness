@@ -11,14 +11,117 @@ from pathlib import Path
 import numpy as np
 from scipy.stats import norm
 
-from dark_siren_robustness.multiframe_design import (
-    generate_finite_frame, validate_multiframe_manifest,
-)
-from dark_siren_robustness.multiframe_seed_schedule import (
-    frame_seed, method_seed, outer_sample_seed,
-)
+# Deliberately do not import the runner's manifest, frame-generation, or
+# seed-schedule helpers.  The auditor has a small independent reference
+# implementation so a defect in those production helpers cannot validate
+# itself merely by being reused here.
 
 METHODS = {"wald_srswor", "ordinary_percentile_bootstrap", "studentized_pseudopop_srswor"}
+_MANIFEST_SCHEMA = "linear_finite_population_multiframe_manifest_v3"
+_FRAME_DOMAIN = 101
+_OUTER_DOMAIN = 211
+_METHOD_DOMAIN = 307
+
+
+def _reference_integer(name: str, value: object, minimum: int = 0) -> int:
+    if isinstance(value, bool) or not isinstance(value, (int, np.integer)):
+        raise ValueError(f"invalid {name}: expected integer")
+    result = int(value)
+    if result < minimum or result > 2**32 - 1:
+        raise ValueError(f"invalid {name}: outside supported range")
+    return result
+
+
+def _reference_design(manifest: object) -> dict[str, object]:
+    """Validate the artifact design without importing production validators."""
+    if not isinstance(manifest, dict) or manifest.get("schema") != _MANIFEST_SCHEMA:
+        raise ValueError("invalid independent-audit manifest schema")
+    design = dict(manifest)
+    design["root_seed"] = _reference_integer("root_seed", manifest.get("root_seed"))
+    design["population_size"] = _reference_integer("population_size", manifest.get("population_size"), 2)
+    design["frames_per_scenario"] = _reference_integer("frames_per_scenario", manifest.get("frames_per_scenario"), 2)
+    design["outer_repetitions"] = _reference_integer("outer_repetitions", manifest.get("outer_repetitions"), 1)
+    design["bootstrap_replicates"] = _reference_integer("bootstrap_replicates", manifest.get("bootstrap_replicates"), 2)
+    level = manifest.get("nominal_level")
+    if isinstance(level, bool) or not isinstance(level, (int, float, np.integer, np.floating)) or not np.isfinite(level) or not 0 < float(level) < 1:
+        raise ValueError("invalid nominal_level in independent audit")
+    design["nominal_level"] = float(level)
+    sizes = manifest.get("sample_sizes")
+    if not isinstance(sizes, list) or not sizes:
+        raise ValueError("invalid sample_sizes in independent audit")
+    clean_sizes = [_reference_integer("sample_size", x, 2) for x in sizes]
+    if len(set(clean_sizes)) != len(clean_sizes) or any(x >= design["population_size"] for x in clean_sizes):
+        raise ValueError("duplicate or out-of-range sample sizes in independent audit")
+    design["sample_sizes"] = clean_sizes
+    methods = manifest.get("methods")
+    if not isinstance(methods, list) or not methods:
+        raise ValueError("invalid methods in independent audit")
+    method_ids = [x.get("method_id") for x in methods if isinstance(x, dict)]
+    if len(method_ids) != len(methods) or any(not isinstance(x, str) or not x for x in method_ids) or len(set(method_ids)) != len(method_ids):
+        raise ValueError("invalid or duplicate method IDs in independent audit")
+    design["methods"] = methods
+    scenarios = manifest.get("scenarios")
+    if not isinstance(scenarios, list) or not scenarios:
+        raise ValueError("invalid scenarios in independent audit")
+    seen = set()
+    clean = []
+    for item in scenarios:
+        if not isinstance(item, dict):
+            raise ValueError("scenario must be an object in independent audit")
+        sid = _reference_integer("scenario_id", item.get("scenario_id"))
+        if sid in seen:
+            raise ValueError("duplicate scenario ID in independent audit")
+        seen.add(sid)
+        family, params, name = item.get("family"), item.get("params"), item.get("name")
+        if family not in {"normal", "gamma", "lognormal"} or not isinstance(params, dict) or not isinstance(name, str) or not name:
+            raise ValueError("invalid scenario specification in independent audit")
+        p = dict(params)
+        required = {"normal": ("loc", "scale"), "gamma": ("shape", "scale"),
+                    "lognormal": ("meanlog", "sigmalog")}[family]
+        for key in required:
+            value = p.get(key)
+            if isinstance(value, bool) or not isinstance(value, (int, float, np.integer, np.floating)) or not np.isfinite(value):
+                raise ValueError(f"invalid {family} parameter {key} in independent audit")
+            p[key] = float(value)
+        positive_key = {"normal": "scale", "gamma": "shape", "lognormal": "sigmalog"}[family]
+        if p[positive_key] <= 0 or (family == "gamma" and p["scale"] <= 0):
+            raise ValueError(f"non-positive distribution parameter in independent audit: {family}")
+        clean.append({"scenario_id": sid, "name": name, "family": family, "params": p})
+    design["scenarios"] = clean
+    return design
+
+
+def _reference_seed(root_seed: int, domain: int, *coordinates: int) -> int:
+    """Reproduce the documented SeedSequence coordinate contract independently."""
+    entropy = [_reference_integer("seed coordinate", x) for x in (root_seed, domain, *coordinates)]
+    return int(np.random.SeedSequence(entropy).generate_state(1, dtype=np.uint64)[0])
+
+
+def _reference_frame(design: dict[str, object], scenario: dict[str, object], frame_id: int) -> tuple[np.ndarray, int]:
+    seed = _reference_seed(int(design["root_seed"]), _FRAME_DOMAIN,
+                           int(scenario["scenario_id"]), frame_id)
+    rng = np.random.default_rng(seed)
+    params = scenario["params"]
+    size = int(design["population_size"])
+    family = scenario["family"]
+    if family == "normal":
+        values = rng.normal(params["loc"], params["scale"], size=size)
+    elif family == "gamma":
+        values = rng.gamma(params["shape"], params["scale"], size=size)
+    else:
+        values = rng.lognormal(params["meanlog"], params["sigmalog"], size=size)
+    values = np.asarray(values, dtype=np.float64)
+    if values.shape != (size,) or not np.all(np.isfinite(values)):
+        raise ValueError("independent frame regeneration produced invalid values")
+    return values, seed
+
+
+def _reference_outer_seed(root_seed: int, sid: int, fid: int, n: int, rid: int) -> int:
+    return _reference_seed(root_seed, _OUTER_DOMAIN, sid, fid, n, rid)
+
+
+def _reference_method_seed(root_seed: int, sid: int, fid: int, n: int, rid: int, method_id: int) -> int:
+    return _reference_seed(root_seed, _METHOD_DOMAIN, sid, fid, n, rid, method_id)
 
 
 def _method_coordinate(method_id: str) -> int:
@@ -74,7 +177,7 @@ def audit_artifact(output_dir: Path) -> dict[str, object]:
         raise ValueError("unexpected v3 artifact schema")
     if artifact.get("status") != "PILOT_NOT_CONFIRMATORY":
         raise ValueError("v3 artifact must remain pilot-only")
-    design = validate_multiframe_manifest(artifact.get("manifest", {}))
+    design = _reference_design(artifact.get("manifest", {}))
     methods = [m["method_id"] for m in design["methods"]]
     if set(methods) != METHODS or len(methods) != len(METHODS):
         raise ValueError("method set differs from the locked v3 pilot contract")
@@ -148,7 +251,7 @@ def audit_artifact(output_dir: Path) -> dict[str, object]:
     for key in sorted(expected_outer):
         sid, fid, n, rid = key
         frame = frames[(sid, fid)]
-        sample_seed = outer_sample_seed(design["root_seed"], sid, fid, n, rid)
+        sample_seed = _reference_outer_seed(design["root_seed"], sid, fid, n, rid)
         indices = np.random.default_rng(sample_seed).choice(len(frame), size=n, replace=False)
         if len(np.unique(indices)) != n:
             raise ValueError("replayed SRSWOR indices are not unique")
@@ -173,7 +276,7 @@ def audit_artifact(output_dir: Path) -> dict[str, object]:
                 raise ValueError("finite-population target mismatch")
             if not np.isclose(float(row["sample_mean"]), estimate, rtol=0, atol=1e-12) or not np.isclose(float(row["estimate"]), estimate, rtol=0, atol=1e-12):
                 raise ValueError("sample estimate mismatch")
-            mseed = method_seed(design["root_seed"], sid, fid, n, rid, _method_coordinate(method))
+            mseed = _reference_method_seed(design["root_seed"], sid, fid, n, rid, _method_coordinate(method))
             if row["method_seed"] != str(mseed):
                 raise ValueError("method seed does not match domain-separated schedule")
 
