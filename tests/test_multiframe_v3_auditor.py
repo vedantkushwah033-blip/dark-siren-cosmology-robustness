@@ -8,7 +8,7 @@ import pytest
 
 from scripts.audit_multiframe_v3_pilot import audit_artifact
 from scripts.run_multiframe_v3_pilot import run_multiframe_v3
-from dark_siren_robustness.multiframe_design import MANIFEST_SCHEMA
+from dark_siren_robustness.multiframe_design import MANIFEST_SCHEMA\nfrom dark_siren_robustness import multiframe_design, multiframe_seed_schedule
 
 
 def manifest():
@@ -103,3 +103,21 @@ def test_auditor_detects_missing_rows_even_after_checksum_refresh(tmp_path):
     refresh_checksum(out, "replicates.csv", "replicate_csv_sha256")
     with pytest.raises(ValueError, match="incomplete"):
         audit_artifact(out)
+
+
+
+def test_auditor_does_not_reuse_production_frame_or_seed_helpers(tmp_path, monkeypatch):
+    out = make_pilot(tmp_path)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("independent auditor called a production helper")
+
+    monkeypatch.setattr(multiframe_design, "generate_finite_frame", forbidden)
+    monkeypatch.setattr(multiframe_design, "validate_multiframe_manifest", forbidden)
+    monkeypatch.setattr(multiframe_seed_schedule, "frame_seed", forbidden)
+    monkeypatch.setattr(multiframe_seed_schedule, "outer_sample_seed", forbidden)
+    monkeypatch.setattr(multiframe_seed_schedule, "method_seed", forbidden)
+
+    report = audit_artifact(out)
+    assert report["status"] == "PASS"
+    assert report["frames_verified"] == 2
