@@ -1,6 +1,6 @@
 # Independent Inclusion-Audit Cohort: Protocol Draft v1
 
-**Status:** design proposal only; not implemented, preregistered, or executed.  
+**Status:** implemented and smoke-tested in the repository; this remains a design proposal, is not preregistered, and has not been confirmatorily executed.  
 **Scope:** controlled synthetic methodology; no real survey, LVK, or observational $H_0$ claim.
 
 ## 1. Motivation
@@ -87,15 +87,28 @@ A difference between shared and independent arms may reflect both dependence str
 
 Do not infer that independence necessarily improves estimates. The independent cohort could perform similarly or worse due to its own finite-sample realization.
 
-## 9. Stop/go gates before implementation
+## 9. Validation gates and execution status
 
-1. Review and freeze this protocol before inspecting comparative outcomes.
-2. Unit-test independent RNG stream separation and source/audit ID disjointness.
-3. Test exact nested-prefix membership and reproducibility.
-4. Add adversarial tests proving that source labels/truth cannot enter the independent audit fit.
-5. Add independent artifact/provenance reconstruction for both audit designs.
-6. Run tiny smoke tests first; label them implementation checks only.
-7. Run a full-configuration planning pilot and inspect runtime, failures, positivity, ESS, weight concentration, and paired-difference variability.
-8. Set confirmatory replicate count from prespecified Monte Carlo precision targets, then freeze seeds and code commit.
+### Required before confirmatory execution
 
-**Execution status (updated 2026-10-31):** the independent-cohort generator is implemented in `src/dark_siren_robustness/independent_audit.py` and integrated into `run_estimated_inclusion_pilot` as `independent_linear_m` and `independent_quadratic_m` arms. The runner records a separate independent-audit seed, preserves namespaced audit IDs, stores inference inputs separately from scoring truth, and computes shared-versus-independent paired contrasts. Both the posterior/artifact auditor and seed-level provenance auditor have been extended to recognize the new arms and independently reconstruct their inclusion fits, seeds, audit redshifts, labels, IDs and scoring-only probabilities. Regression tests have been updated. The changes are committed, but **CI is still running and has not yet passed**; no smoke/planning run or scientific result is claimed.
+1. Review and freeze this protocol before inspecting confirmatory comparative outcomes.
+2. Preserve the independent RNG streams and source/audit ID disjointness checks.
+3. Preserve exact nested-prefix membership and reproducibility checks.
+4. Retain adversarial tests proving that source labels/truth cannot enter the independent audit fit.
+5. Retain independent artifact/provenance reconstruction for both audit designs.
+6. Treat tiny smoke tests as implementation checks only.
+7. Complete a full-configuration planning pilot and inspect runtime, failures, positivity, ESS, weight concentration, and paired-difference variability.
+8. Set the confirmatory replicate count from prespecified Monte Carlo precision targets, then freeze the protocol, seeds, and code commit.
+
+### Verified implementation and smoke status (1 November 2026)
+
+The independent-cohort generator is implemented in `src/dark_siren_robustness/independent_audit.py` and integrated into `run_estimated_inclusion_pilot` as `independent_linear_m` and `independent_quadratic_m` arms. The runner records a separate independent-audit seed, preserves namespaced audit IDs, stores inference inputs separately from scoring truth, and computes shared-versus-independent paired contrasts.
+
+At PR #15 head `a6773751d467bd280e8d2946c1093605b3b3958a`, GitHub Actions run [41221090014](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/41221090014) completed successfully on Python 3.10, 3.11, and 3.12. The Python 3.12 artifact contains both estimated-inclusion smoke scenarios:
+
+- Shared-frame and independent-cohort baseline smoke: 2 replicates; 20 replicate-arm rows; zero fit failures. The independent posterior/artifact audit and seed-level provenance audit both report `PASS`.
+- Quadratic-inclusion stress smoke: 3 replicates; 18 replicate-arm rows; zero fit failures. The independent posterior/artifact audit and seed-level provenance audit both report `PASS`.
+
+These results verify execution, persisted-artifact reconstruction, and deterministic synthetic provenance. They do **not** establish that independent cohorts improve inference, validate real survey selection, or establish astrophysical realism.
+
+**Still outstanding:** the full-configuration planning pilot has not been verified as executed; no confirmatory campaign has been run; and this protocol has not been frozen or preregistered.
