@@ -155,9 +155,50 @@ def audit(directory: Path) -> dict:
     manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
     records = pd.read_csv(directory / "calibration_records.csv")
     attempts = pd.read_json(directory / "attempt_audit.jsonl", lines=True)
+    _require(
+        manifest.get("schema") == "nested_validation_bootstrap_comparison_smoke_v2",
+        "unsupported artifact manifest schema; expected smoke_v2",
+    )
+    _require(
+        manifest.get("status") == "SMOKE_ONLY_NOT_CONFIRMATORY",
+        "partial/incomplete artifacts cannot receive a complete replay-audit pass",
+    )
+    key = ["scenario", "validation_size", "outer_draw", "method"]
+    methods = ["paired_bootstrap", "paired_bootstrap_fpc", "design_aware_srswor"]
+    scenarios_expected = int(manifest["scenarios"])
+    draws_expected = int(manifest["outer_draws"])
+    sizes_expected = [int(v) for v in manifest["validation_sizes"]]
+    expected = {
+        (scenario, size, draw, method)
+        for scenario in range(scenarios_expected)
+        for size in sizes_expected
+        for draw in range(draws_expected)
+        for method in methods
+    }
+    record_keys = list(records[key].itertuples(index=False, name=None))
+    attempt_keys = list(attempts[key].itertuples(index=False, name=None))
+    _require(len(record_keys) == len(set(record_keys)),
+             "calibration records contain duplicate scenario/draw/size/method keys")
+    _require(len(attempt_keys) == len(set(attempt_keys)),
+             "attempt trace contains duplicate scenario/draw/size/method keys")
+    _require(set(record_keys) == expected,
+             "calibration records have missing or unexpected planned keys")
+    _require(set(attempt_keys) == expected,
+             "attempt trace has missing or unexpected planned keys")
+    _require(
+        int(manifest.get("planned_method_rows", -1)) == len(expected)
+        and int(manifest.get("completed_method_rows", -1)) == len(records)
+        and len(records) == len(expected),
+        "manifest planned/completed method-row denominators do not reconcile",
+    )
+    _require(
+        int(manifest.get("planned_scenarios", -1)) == scenarios_expected
+        and int(manifest.get("completed_scenarios", -1)) == scenarios_expected
+        and int(manifest.get("failed_scenarios", -1)) == 0,
+        "manifest scenario denominators do not reconcile for a complete audit",
+    )
     # Status lives in the calibration table; join it explicitly rather than
     # assuming the attempt-level trace duplicates the row-level outcome.
-    key = ["scenario", "validation_size", "outer_draw", "method"]
     attempts = attempts.merge(
         records[key + ["bootstrap_status"]],
         on=key, how="left", validate="one_to_one",
