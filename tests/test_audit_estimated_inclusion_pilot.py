@@ -566,6 +566,7 @@ def _write_pilot_manifest_for_test(tmp_path, frame, summary):
             "z_points": summary["redshift_grid"][2],
         },
         source_commit="0123456789abcdef0123456789abcdef01234567",
+        source_commit_source="explicit_argument",
     )
 
 
@@ -578,6 +579,7 @@ def test_release_gate_auditor_verifies_per_file_manifest(tmp_path):
     assert report["manifest"]["status"] == "PASS"
     assert report["manifest"]["schema"] == "estimated_inclusion_pilot_manifest_v1"
     assert report["manifest"]["source_commit"] == "0123456789abcdef0123456789abcdef01234567"
+    assert report["manifest"]["source_commit_source"] == "explicit_argument"
     assert report["manifest"]["files_verified"] == ["replicates.csv", "summary.json"]
     assert report["manifest"]["n_rows_verified"] == len(frame)
 
@@ -598,4 +600,16 @@ def test_release_gate_auditor_rejects_post_manifest_artifact_tampering(tmp_path)
 def test_release_gate_auditor_requires_manifest_when_requested(tmp_path):
     _write_small_pilot(tmp_path, seed=20261104)
     with pytest.raises(AssertionError, match="manifest.json is required"):
+        audit_pilot_artifacts(tmp_path, require_manifest=True)
+
+
+def test_release_gate_auditor_rejects_mislabeled_source_commit_origin(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261105)
+    _write_pilot_manifest_for_test(tmp_path, frame, summary)
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["source_commit_source"] = "GITHUB_SHA"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(AssertionError, match="source_commit_source"):
         audit_pilot_artifacts(tmp_path, require_manifest=True)
