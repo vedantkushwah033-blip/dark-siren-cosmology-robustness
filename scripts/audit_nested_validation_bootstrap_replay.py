@@ -33,6 +33,20 @@ def _require(condition: bool, message: str) -> None:
         raise AssertionError(message)
 
 
+def _require_scenario_count(manifest: dict) -> int:
+    """Validate the manifest field needed before scenario-ledger inspection."""
+    _require(
+        "scenarios" in manifest,
+        "manifest is missing required fields: ['scenarios']",
+    )
+    value = manifest["scenarios"]
+    _require(
+        isinstance(value, int) and not isinstance(value, bool) and value >= 1,
+        "manifest scenarios must be a positive integer",
+    )
+    return value
+
+
 def _require_manifest_fields(manifest: dict) -> None:
     """Fail clearly when a manifest is missing inputs required for replay."""
     required = {
@@ -197,6 +211,7 @@ def _reconstruct_result(row, method: str, n_parent: int, b: int) -> dict:
 
 def audit(directory: Path) -> dict:
     manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
+    scenario_count = _require_scenario_count(manifest)
     records = pd.read_csv(directory / "calibration_records.csv")
     attempts = pd.read_json(directory / "attempt_audit.jsonl", lines=True)
     scenario_failures = pd.read_csv(directory / "scenario_failure_records.csv")
@@ -205,7 +220,7 @@ def audit(directory: Path) -> dict:
         "scenario failure ledger contains duplicate scenario identifiers",
     )
     _require(
-        scenario_failures["scenario"].tolist() == list(range(int(manifest["scenarios"]))),
+        scenario_failures["scenario"].tolist() == list(range(scenario_count)),
         "scenario failure ledger is missing or contains unexpected scenario identifiers",
     )
     _require(
@@ -262,7 +277,7 @@ def audit(directory: Path) -> dict:
     _require_manifest_fields(manifest)
     key = ["scenario", "validation_size", "outer_draw", "method"]
     methods = ["paired_bootstrap", "paired_bootstrap_fpc", "design_aware_srswor"]
-    scenarios_expected = int(manifest["scenarios"])
+    scenarios_expected = scenario_count
     draws_expected = int(manifest["outer_draws"])
     sizes_expected = [int(v) for v in manifest["validation_sizes"]]
     expected = {
