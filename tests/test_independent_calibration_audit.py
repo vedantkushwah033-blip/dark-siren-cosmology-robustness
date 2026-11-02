@@ -67,3 +67,24 @@ def test_stored_summary_comparison_rejects_changed_summary_value(tmp_path):
     altered.to_csv(output, index=False)
     with pytest.raises(AssertionError, match="numeric column mismatch"):
         _require_summary_match(tmp_path, "scenario_summary.csv", scenario)
+
+@pytest.mark.parametrize(
+    ("column", "bad_value", "message"),
+    [
+        ("validation_size", 0, "positive integer"),
+        ("validation_size", 100.5, "positive integer"),
+        ("validation_size", "not-a-size", "positive integer"),
+        ("outer_draw", -1, "nonnegative integer"),
+        ("outer_draw", 1.5, "nonnegative integer"),
+        ("outer_draw", "not-a-draw", "nonnegative integer"),
+        ("method", "   ", "method labels"),
+        ("finite_parent_target", np.inf, "finite"),
+    ],
+)
+def test_independent_summarizer_rejects_malformed_design_and_target_values(
+    column, bad_value, message
+):
+    records = fixture_records()
+    records.loc[0, column] = bad_value
+    with pytest.raises(ValueError, match=message):
+        reconstruct_calibration_summaries(records)
