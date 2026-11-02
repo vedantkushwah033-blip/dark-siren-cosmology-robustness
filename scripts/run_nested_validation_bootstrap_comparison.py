@@ -305,9 +305,31 @@ def main() -> None:
     attempts.to_json(args.output_dir/"attempt_audit.jsonl", orient="records", lines=True)
     scenario_summary.to_csv(args.output_dir/"scenario_summary.csv", index=False)
     aggregate.to_csv(args.output_dir/"scenario_balanced_summary.csv", index=False)
+    scenario_failures = (
+        attempts.groupby("scenario")["scenario_failure"]
+        .first().fillna("").astype(str)
+    )
+    completed_scenarios = int((scenario_failures == "").sum())
+    failed_scenarios = int((scenario_failures != "").sum())
+    planned_outer_draws = args.scenarios * args.draws * len(sizes)
+    completed_outer_draws = int(
+        records[["scenario", "outer_draw", "validation_size"]].drop_duplicates().shape[0]
+    )
+    planned_method_rows = planned_outer_draws * 3
     manifest = {
-        "schema": "nested_validation_bootstrap_comparison_smoke_v1",
-        "status": "SMOKE_ONLY_NOT_CONFIRMATORY",
+        "schema": "nested_validation_bootstrap_comparison_smoke_v2",
+        "status": (
+            "PARTIAL_INCOMPLETE_SCENARIOS"
+            if failed_scenarios or len(records) != planned_method_rows
+            else "SMOKE_ONLY_NOT_CONFIRMATORY"
+        ),
+        "planned_scenarios": args.scenarios,
+        "completed_scenarios": completed_scenarios,
+        "failed_scenarios": failed_scenarios,
+        "planned_outer_draw_size_units": planned_outer_draws,
+        "completed_outer_draw_size_units": completed_outer_draws,
+        "planned_method_rows": planned_method_rows,
+        "completed_method_rows": int(len(records)),
         "seed": args.seed, "scenarios": args.scenarios, "outer_draws": args.draws,
         "parent_size": args.n_parent, "detected_event_count": args.n_detected,
         "validation_sizes": list(sizes),
@@ -338,7 +360,10 @@ def main() -> None:
     )
     print(json.dumps({
         "status": manifest["status"], "records": len(records),
-        "outer_attempts": args.scenarios*args.draws*len(sizes),
+        "planned_method_rows": planned_method_rows,
+        "completed_method_rows": len(records),
+        "completed_scenarios": completed_scenarios,
+        "failed_scenarios": failed_scenarios,
         "output_dir": str(args.output_dir),
     }, indent=2))
 
