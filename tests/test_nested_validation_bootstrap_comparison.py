@@ -202,7 +202,7 @@ def test_replay_auditor_rejects_failure_ledger_row_mismatch(tmp_path):
     }]).to_csv(tmp_path / "calibration_records.csv", index=False)
     (tmp_path / "attempt_audit.jsonl").write_text(
         '{"scenario":0,"validation_size":20,"outer_draw":0,"method":"paired_bootstrap",'
-        '"scenario_failure":"ledger failure"}\\n',
+        '"scenario_failure":"ledger failure"}\n',
         encoding="utf-8",
     )
 
