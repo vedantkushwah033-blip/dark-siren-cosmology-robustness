@@ -138,3 +138,27 @@ def test_nested_comparison_records_scenario_target_failure_and_continues(monkeyp
     assert attempts["scenario_failure"].str.contains(
         "forced finite-parent target failure"
     ).all()
+
+
+def test_replay_auditor_rejects_partial_manifest_before_reconstruction(tmp_path):
+    import json
+
+    import pandas as pd
+
+    from scripts.audit_nested_validation_bootstrap_replay import audit
+
+    (tmp_path / "manifest.json").write_text(json.dumps({
+        "schema": "nested_validation_bootstrap_comparison_smoke_v2",
+        "status": "PARTIAL_INCOMPLETE_SCENARIOS",
+    }), encoding="utf-8")
+    pd.DataFrame(columns=[
+        "scenario", "validation_size", "outer_draw", "method",
+        "bootstrap_status",
+    ]).to_csv(tmp_path / "calibration_records.csv", index=False)
+    (tmp_path / "attempt_audit.jsonl").write_text(
+        '{"scenario":0,"validation_size":20,"outer_draw":0,"method":"paired_bootstrap"}\\n',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(AssertionError, match="partial/incomplete artifacts"):
+        audit(tmp_path)
