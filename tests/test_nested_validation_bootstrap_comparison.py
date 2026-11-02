@@ -170,3 +170,41 @@ def test_replay_auditor_rejects_partial_manifest_before_reconstruction(tmp_path)
 
     with pytest.raises(AssertionError, match="partial/incomplete artifacts"):
         audit(tmp_path)
+
+
+def test_replay_auditor_rejects_failure_ledger_row_mismatch(tmp_path):
+    import json
+
+    import pandas as pd
+
+    from scripts.audit_nested_validation_bootstrap_replay import audit
+
+    (tmp_path / "manifest.json").write_text(json.dumps({
+        "schema": "nested_validation_bootstrap_comparison_smoke_v2",
+        "status": "PARTIAL_INCOMPLETE_SCENARIOS",
+        "scenarios": 1,
+        "completed_scenarios": 0,
+        "failed_scenarios": 1,
+    }), encoding="utf-8")
+    pd.DataFrame([{
+        "scenario": 0,
+        "scenario_status": "failed",
+        "scenario_failure": "ledger failure",
+    }]).to_csv(tmp_path / "scenario_failure_records.csv", index=False)
+    pd.DataFrame([{
+        "scenario": 0,
+        "validation_size": 20,
+        "outer_draw": 0,
+        "method": "paired_bootstrap",
+        "scenario_failure": "different row failure",
+        "outer_status": "failed",
+        "bootstrap_status": "not_run",
+    }]).to_csv(tmp_path / "calibration_records.csv", index=False)
+    (tmp_path / "attempt_audit.jsonl").write_text(
+        '{"scenario":0,"validation_size":20,"outer_draw":0,"method":"paired_bootstrap",'
+        '"scenario_failure":"ledger failure"}\\n',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(AssertionError, match="calibration rows do not reconcile"):
+        audit(tmp_path)
