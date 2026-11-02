@@ -156,6 +156,32 @@ def audit(directory: Path) -> dict:
     manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
     records = pd.read_csv(directory / "calibration_records.csv")
     attempts = pd.read_json(directory / "attempt_audit.jsonl", lines=True)
+    scenario_failures = pd.read_csv(directory / "scenario_failure_records.csv")
+    _require(
+        scenario_failures["scenario"].is_unique,
+        "scenario failure ledger contains duplicate scenario identifiers",
+    )
+    _require(
+        scenario_failures["scenario"].tolist() == list(range(int(manifest["scenarios"]))),
+        "scenario failure ledger is missing or contains unexpected scenario identifiers",
+    )
+    _require(
+        scenario_failures["scenario_status"].isin(["complete", "failed"]).all(),
+        "scenario failure ledger contains an unknown status",
+    )
+    _require(
+        int((scenario_failures["scenario_status"] == "complete").sum())
+        == int(manifest.get("completed_scenarios", -1))
+        and int((scenario_failures["scenario_status"] == "failed").sum())
+        == int(manifest.get("failed_scenarios", -1)),
+        "scenario failure ledger does not reconcile with manifest denominators",
+    )
+    _require(
+        scenario_failures["scenario_failure"].fillna("").eq("").eq(
+            scenario_failures["scenario_status"].eq("complete")
+        ).all(),
+        "scenario failure messages and statuses are inconsistent",
+    )
     _require(
         manifest.get("schema") == "nested_validation_bootstrap_comparison_smoke_v2",
         "unsupported artifact manifest schema; expected smoke_v2",
