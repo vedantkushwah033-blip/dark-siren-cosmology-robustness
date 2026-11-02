@@ -272,3 +272,40 @@ def test_replay_auditor_rejects_tampered_artifact_key_sets(tmp_path, mutation, m
 
     with pytest.raises(AssertionError, match=message):
         audit(tmp_path)
+
+
+
+def test_replay_auditor_rejects_missing_manifest_fields():
+    from scripts.audit_nested_validation_bootstrap_replay import _require_manifest_fields
+
+    with pytest.raises(AssertionError, match="manifest is missing required fields"):
+        _require_manifest_fields({
+            "schema": "nested_validation_bootstrap_comparison_smoke_v2",
+            "status": "SMOKE_ONLY_NOT_CONFIRMATORY",
+        })
+
+
+@pytest.mark.parametrize(
+    ("filename", "column"),
+    [
+        ("scenario_summary.csv", "bootstrap_se"),
+        ("scenario_balanced_summary.csv", "bootstrap_se"),
+    ],
+)
+def test_replay_auditor_rejects_modified_summary_values(tmp_path, filename, column):
+    import pandas as pd
+
+    from scripts.audit_nested_validation_bootstrap_replay import _require_summary_match
+
+    rebuilt = pd.DataFrame({
+        "scenario": [0, 0],
+        "validation_size": [20, 40],
+        "method": ["paired_bootstrap", "paired_bootstrap"],
+        "bootstrap_se": [1.25, 2.5],
+    })
+    stored = rebuilt.copy()
+    stored.loc[0, column] += 0.5
+    stored.to_csv(tmp_path / filename, index=False)
+
+    with pytest.raises(AssertionError, match="numeric column mismatch"):
+        _require_summary_match(tmp_path, filename, rebuilt)
