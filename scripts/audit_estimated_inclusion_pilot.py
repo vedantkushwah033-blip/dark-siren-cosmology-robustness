@@ -422,6 +422,12 @@ def _verify_manifest(
     if manifest.get("status") != summary.get("status"):
         raise AssertionError("manifest status disagrees with summary")
     source_commit = manifest.get("source_commit")
+    source_commit_source = manifest.get("source_commit_source")
+    if source_commit is None:
+        if source_commit_source != "not_available":
+            raise AssertionError("manifest source_commit_source must be not_available when source_commit is null")
+    elif source_commit_source not in {"SOURCE_COMMIT", "GITHUB_SHA", "explicit_argument"}:
+        raise AssertionError("manifest source_commit_source is missing or unsupported")
     if source_commit is not None and (
         not isinstance(source_commit, str)
         or len(source_commit) != 40
@@ -475,6 +481,7 @@ def _verify_manifest(
         "status": "PASS",
         "schema": manifest["schema"],
         "source_commit": source_commit,
+        "source_commit_source": source_commit_source,
         "files_verified": sorted(records),
         "n_rows_verified": int(len(frame)),
     }
