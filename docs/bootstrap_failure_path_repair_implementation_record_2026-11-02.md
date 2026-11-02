@@ -60,7 +60,7 @@ A regression test confirms that a partial manifest is rejected before expensive 
 ## Verification state
 
 - Changes were committed to a separate branch based directly on PR #17's inspected head.
-- The branch is two commits ahead of the PR #17 base at the point of this record; later commits may update that count.
+- The branch is maintained separately from PR #17; its live ahead/behind count should be taken from GitHub rather than this document.
 - No PR was opened, no existing PR was modified, and nothing was merged.
 - No tests, simulations, or artifact replays were executed.
 - A small CI run is required before treating these repairs as verified.
