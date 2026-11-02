@@ -275,6 +275,20 @@ def test_replay_auditor_rejects_tampered_artifact_key_sets(tmp_path, mutation, m
 
 
 
+def test_replay_auditor_rejects_missing_scenarios_before_ledger_access(tmp_path):
+    import json
+
+    from scripts.audit_nested_validation_bootstrap_replay import audit
+
+    (tmp_path / "manifest.json").write_text(json.dumps({
+        "schema": "nested_validation_bootstrap_comparison_smoke_v2",
+        "status": "SMOKE_ONLY_NOT_CONFIRMATORY",
+    }), encoding="utf-8")
+
+    with pytest.raises(AssertionError, match="manifest is missing required fields.*scenarios"):
+        audit(tmp_path)
+
+
 def test_replay_auditor_rejects_missing_manifest_fields():
     from scripts.audit_nested_validation_bootstrap_replay import _require_manifest_fields
 
