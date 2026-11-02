@@ -7,6 +7,7 @@ import the simulation or aggregation implementation.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -399,13 +400,100 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
         else:
             _close(actual, expected, f"independent_inference.{key}", atol=2e-8)
 
-def audit_pilot_artifacts(output_dir: str | Path) -> dict:
+def _verify_manifest(
+    root: Path,
+    csv_path: Path,
+    json_path: Path,
+    frame: pd.DataFrame,
+    summary: dict,
+) -> dict[str, object]:
+    """Verify per-file bytes, hashes, row count, and declared run provenance."""
+    manifest_path = root / "manifest.json"
+    if not manifest_path.is_file():
+        raise AssertionError("manifest.json is required for a release-gate audit")
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise AssertionError("manifest.json is unreadable or invalid JSON") from exc
+    if not isinstance(manifest, dict) or manifest.get("schema") != "estimated_inclusion_pilot_manifest_v1":
+        raise AssertionError("manifest schema is missing or unsupported")
+    if manifest.get("study") != summary.get("study"):
+        raise AssertionError("manifest study identifier disagrees with summary")
+    if manifest.get("status") != summary.get("status"):
+        raise AssertionError("manifest status disagrees with summary")
+    source_commit = manifest.get("source_commit")
+    if source_commit is not None and (
+        not isinstance(source_commit, str)
+        or len(source_commit) != 40
+        or any(ch not in "0123456789abcdef" for ch in source_commit)
+    ):
+        raise AssertionError("manifest source_commit must be null or a full lowercase Git SHA")
+
+    records = manifest.get("files")
+    if not isinstance(records, dict) or set(records) != {"replicates.csv", "summary.json"}:
+        raise AssertionError("manifest files must declare exactly replicates.csv and summary.json")
+    for name, path, expected_rows in (
+        ("replicates.csv", csv_path, len(frame)),
+        ("summary.json", json_path, None),
+    ):
+        record = records.get(name)
+        if not isinstance(record, dict):
+            raise AssertionError(f"manifest file record is missing for {name}")
+        payload = path.read_bytes()
+        expected_digest = hashlib.sha256(payload).hexdigest()
+        if record.get("bytes") != len(payload):
+            raise AssertionError(f"manifest byte count mismatch for {name}")
+        if record.get("sha256") != expected_digest:
+            raise AssertionError(f"manifest SHA-256 mismatch for {name}")
+        if record.get("rows") != expected_rows:
+            raise AssertionError(f"manifest row count mismatch for {name}")
+    if manifest.get("expected_rows") != len(frame):
+        raise AssertionError("manifest expected_rows disagrees with replicates.csv")
+
+    arguments = manifest.get("arguments")
+    if not isinstance(arguments, dict):
+        raise AssertionError("manifest arguments must be an object")
+    expected_arguments = {
+        "replicates": summary.get("n_replicates_requested"),
+        "n_parent": summary.get("n_parent"),
+        "n_detected": summary.get("n_detected"),
+        "validation_sizes": summary.get("validation_sizes"),
+        "seed": summary.get("seed"),
+        "true_quadratic": summary.get("true_inclusion_model", {}).get("quadratic"),
+        "h0_points": summary.get("h0_grid", [None, None, None])[2],
+        "z_points": summary.get("redshift_grid", [None, None, None])[2],
+    }
+    for key, expected in expected_arguments.items():
+        if arguments.get(key) != expected:
+            raise AssertionError(
+                f"manifest argument {key!r} disagrees with the declared summary"
+            )
+    environment = manifest.get("environment")
+    if not isinstance(environment, dict) or environment.get("software_versions") != summary.get("software_versions"):
+        raise AssertionError("manifest software versions disagree with summary")
+    return {
+        "status": "PASS",
+        "schema": manifest["schema"],
+        "source_commit": source_commit,
+        "files_verified": sorted(records),
+        "n_rows_verified": int(len(frame)),
+    }
+
+
+def audit_pilot_artifacts(output_dir: str | Path, *, require_manifest: bool = False) -> dict:
     root = Path(output_dir)
     csv_path, json_path = root / "replicates.csv", root / "summary.json"
     if not csv_path.is_file() or not json_path.is_file():
         raise FileNotFoundError("pilot output must contain replicates.csv and summary.json")
     frame = pd.read_csv(csv_path)
     summary = json.loads(json_path.read_text(encoding="utf-8"))
+    manifest_path = root / "manifest.json"
+    if manifest_path.is_file():
+        manifest_report = _verify_manifest(root, csv_path, json_path, frame, summary)
+    elif require_manifest:
+        raise AssertionError("manifest.json is required for a release-gate audit")
+    else:
+        manifest_report = {"status": "NOT_PRESENT", "files_verified": []}
     required = {
         "replicate", "replicate_seed", "catalogue_seed", "audit_seed", "arm",
         "validation_size", "status", "error", "fit_status", "fit_boundary_limited",
@@ -990,6 +1078,7 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         }
     return {
         "status": "PASS",
+        "manifest": manifest_report,
         "n_rows": int(len(frame)),
         "n_success": int(success.sum()),
         "n_failed": int((~success).sum()),
@@ -1012,7 +1101,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Independently audit estimated-inclusion pilot artifacts.")
     parser.add_argument("output_dir", type=Path)
     args = parser.parse_args()
-    report = audit_pilot_artifacts(args.output_dir)
+    report = audit_pilot_artifacts(args.output_dir, require_manifest=True)
     (args.output_dir / "independent_audit.json").write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
