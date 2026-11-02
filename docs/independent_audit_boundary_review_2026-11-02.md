@@ -31,7 +31,7 @@ The posterior-level auditor implements its own logistic objective/fit, weighted 
 
 There are two important shared-code boundaries in the enclosing replay auditor:
 
-- The stored scenario and aggregate summary CSVs are rebuilt through the production `summarize_bootstrap_calibration` function. The comparison therefore checks serialization and artifact consistency, but it is not an independent reimplementation of the summary estimand.
+- The stored scenario and aggregate summary CSVs were initially rebuilt through the production `summarize_bootstrap_calibration` function. This gap has now been addressed in code: `independent_calibration_audit.py` implements an auditor-owned reconstruction, and the replay auditor calls it instead of the production summarizer. A unit test compares its output with the production reference on a controlled fixture. Exact-head CI and end-to-end adversarial artifact tests remain outstanding.
 - For a recorded wrapper-level bootstrap failure, the auditor reruns `bootstrap_validation_h0_posterior` itself with the same inputs and seed, then checks that the exception class and message match. This is deterministic replay of the producer's wrapper path, not an independent reconstruction of the wrapper failure.
 
 Consequently, the status string `INDEPENDENT_SCENARIO_AND_POSTERIOR_REPLAY_PASS` should be interpreted narrowly: independent reconstruction of the generated scenario, finite-parent target, outer fits, and successful inner posterior resamples, alongside producer-code replay for wrapper-level failures and production-code summary reconstruction. It should not be described as a wholly independent implementation of every artifact transformation.
@@ -44,7 +44,7 @@ The design-aware branch remains an exploratory multinomial-pseudo-population/SRS
 
 ## Required next improvements before a stronger independence claim
 
-1. Implement an independent summary reconstruction in the auditor. Derive the exact planned keys, scenario-level and equal-scenario-weighted aggregates from raw rows using auditor-owned code; do not import the producer summarizer.
+1. Completed in code: implement an auditor-owned summary reconstruction. Remaining: add end-to-end tests that alter stored scenario and aggregate CSVs and prove the full replay audit rejects them.
 2. Define a wrapper-failure replay contract that independently reconstructs the pre-attempt failure condition from inputs and RNG state. If exact independent reconstruction is not practical for a given exception, label that class as producer-replayed rather than independently audited.
 3. Add adversarial tests that mutate, one at a time:
    - scenario failure status/message;
@@ -65,4 +65,4 @@ The design-aware branch remains an exploratory multinomial-pseudo-population/SRS
 
 ## Release interpretation
 
-Until the above independence gaps are closed, describe the auditor as a **mixed independent-reconstruction and deterministic-replay auditor**. Do not call it fully independent end-to-end validation. Do not promote pilot artifacts to confirmatory evidence based on a replay PASS alone.
+The auditor can now be described as a **mixed independent-reconstruction and deterministic-replay auditor with independent summary reconstruction**. Do not call it fully independent end-to-end validation. Do not promote pilot artifacts to confirmatory evidence based on a replay PASS alone.
