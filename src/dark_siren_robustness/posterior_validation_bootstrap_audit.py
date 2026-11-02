@@ -177,6 +177,11 @@ def audit_posterior_validation_bootstrap(
     }
     if any(values.shape != (attempted,) for values in attempt_aligned.values()):
         raise AssertionError("attempt-aligned diagnostic arrays have incorrect shape")
+    boundary_flags = np.asarray(result["coefficient_boundary_limited_by_attempt"])
+    if boundary_flags.shape != (attempted,) or boundary_flags.dtype.kind != "b":
+        raise AssertionError(
+            "attempt-aligned coefficient-boundary flags must be a boolean vector"
+        )
     failed_mask = ~success
     for label, values in {
         "posterior mean": means,
