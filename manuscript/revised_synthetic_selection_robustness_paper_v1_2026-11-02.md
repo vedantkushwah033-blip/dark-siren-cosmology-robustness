@@ -264,17 +264,18 @@ Before submission or external circulation, complete all of the following:
 
 ## References
 
-1. Schutz, B. F. (1986). Determining the Hubble constant from gravitational wave observations. *Nature*, 323, 310–311.
-2. Holz, D. E., & Hughes, S. A. (2005). Using gravitational-wave standard sirens. *The Astrophysical Journal*, 629, 15–22.
-3. Chen, H.-Y., Fishbach, M., & Holz, D. E. (2018). A two per cent Hubble constant measurement from standard sirens within five years. *Nature*, 562, 545–547.
-4. Fishbach, M., Holz, D. E., & Farr, W. M. (2019). Does the black hole merger GW170814 have an electromagnetic counterpart? *The Astrophysical Journal Letters*, 863, L41.
-5. Gray, R., et al. (2020). Cosmological inference using gravitational wave standard sirens: A mock data analysis. *Physical Review D*, 101, 122001.
-6. Palmese, A., et al. (2023). (Galaxy-catalogue completeness and dark-siren inference; verify exact bibliographic metadata before submission.)
-7. Alfradique, V., Bom, C. R., & Castro, T. (2025). Systematic bias in dark siren statistical methods and its impact on Hubble constant measurement. *Physical Review D*, 112, 063561. DOI: 10.1103/vd36-3mys.
-8. Leyde, K., Baker, T., & Enzi, W. (2026). Cosmic cartography. Part II. Completing galaxy catalogs for gravitational-wave cosmology. *Journal of Cosmology and Astroparticle Physics*, 01 (2026) 013. DOI: 10.1088/1475-7516/2026/01/013.
-9. Dalang, C., Fiorini, B., & Baker, T. (2026). Large scale structure prior knowledge in the dark siren method. *Journal of Cosmology and Astroparticle Physics*, 01 (2026) 034. DOI: 10.1088/1475-7516/2026/01/034.
-10. Datrier, L. E. H., & Hendry, M. A. (2026). Implementing a robust test of galaxy catalogue completeness for dark siren measurements of the Hubble constant. *Monthly Notices of the Royal Astronomical Society*, 549, stag828. DOI: 10.1093/mnras/stag828.
-11. Tagliazucchi, M., Gair, J., Barbieri, R., & Moresco, M. (2026). Enhancing dark siren cosmology via Gaussian process reconstruction of incomplete galaxy catalogs. *Physical Review D*, 114, 083523. DOI: 10.1103/vmzf-1wxq.
-12. Gray, R., Williams, D., & Papadopoulos, A. (2026). Expanding the scope of dark siren cosmology: Inferring the population properties of gravitational wave-hosting galaxies. arXiv:2609.04991.
+1. Schutz, B. F. (1986). Determining the Hubble constant from gravitational wave observations. *Nature*, 323, 310–311. DOI: 10.1038/323310a0.
+2. Holz, D. E., & Hughes, S. A. (2005). Using gravitational-wave standard sirens. *The Astrophysical Journal*, 629, 15–22. DOI: 10.1086/431341.
+3. Chen, H.-Y., Fishbach, M., & Holz, D. E. (2018). A two per cent Hubble constant measurement from standard sirens within five years. *Nature*, 562, 545–547. DOI: 10.1038/s41586-018-0606-0.
+4. Fishbach, M., Gray, R., Magaña Hernandez, I., Qi, H., Sur, A., et al. (2019). A standard siren measurement of the Hubble constant from GW170817 without the electromagnetic counterpart. *The Astrophysical Journal Letters*, 871, L13. DOI: 10.3847/2041-8213/aaf96e.
+5. Gray, R., Magaña Hernandez, I., Qi, H., Sur, A., Brady, P. R., et al. (2020). Cosmological inference using gravitational wave standard sirens: A mock data analysis. *Physical Review D*, 101, 122001. DOI: 10.1103/PhysRevD.101.122001.
+6. Gair, J. R., Ghosh, A., Gray, R., Holz, D. E., Mastrogiovanni, S., et al. (2023). The Hitchhiker’s Guide to the Galaxy catalog approach for dark siren gravitational-wave cosmology. *The Astronomical Journal*, 166, 22. DOI: 10.3847/1538-3881/acca78.
+7. Palmese, A., Bom, C. R., Mucesh, S., & Hartley, W. G. (2023). A standard siren measurement of the Hubble constant using gravitational-wave events from the first three LIGO/Virgo observing runs and the DESI Legacy Survey. *The Astrophysical Journal*, 943, 56. DOI: 10.3847/1538-4357/aca6e3.
+8. Alfradique, V., Bom, C. R., & Castro, T. (2025). Systematic bias in dark siren statistical methods and its impact on Hubble constant measurement. *Physical Review D*, 112, 063561. DOI: 10.1103/vd36-3mys.
+9. Leyde, K., Baker, T., & Enzi, W. (2026). Cosmic cartography. Part II. Completing galaxy catalogs for gravitational-wave cosmology. *Journal of Cosmology and Astroparticle Physics*, 01 (2026) 013. DOI: 10.1088/1475-7516/2026/01/013.
+10. Dalang, C., Fiorini, B., & Baker, T. (2026). Large scale structure prior knowledge in the dark siren method. *Journal of Cosmology and Astroparticle Physics*, 01 (2026) 034. DOI: 10.1088/1475-7516/2026/01/034.
+11. Datrier, L. E. H., & Hendry, M. A. (2026). Implementing a robust test of galaxy catalogue completeness for dark siren measurements of the Hubble constant. *Monthly Notices of the Royal Astronomical Society*, 549, stag828. DOI: 10.1093/mnras/stag828.
+12. Tagliazucchi, M., Gair, J., Barbieri, R., & Moresco, M. (2026). Enhancing dark siren cosmology via Gaussian process reconstruction of incomplete galaxy catalogs. *Physical Review D*, 114, 083523. DOI: 10.1103/vmzf-1wxq.
+13. Gray, R., Williams, D., & Papadopoulos, A. (2026). Expanding the scope of dark siren cosmology: Inferring the population properties of gravitational wave-hosting galaxies. arXiv:2609.04991.
 
-**Bibliographic note:** Reference 6 and the precise metadata for references 1–5 must be checked against the publisher/arXiv records before submission. The references above are a working bibliography, not a completed systematic literature review.
+**Bibliographic note:** The journal, volume, article/page identifiers, and DOI metadata above were checked against publisher or institutional records where available. The author list for reference 5 is abbreviated with “et al.”; reference 13 remains an arXiv preprint. This is a focused positioning bibliography, not a completed systematic review.
