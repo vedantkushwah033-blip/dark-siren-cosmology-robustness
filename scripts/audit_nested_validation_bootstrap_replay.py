@@ -33,6 +33,49 @@ def _require(condition: bool, message: str) -> None:
         raise AssertionError(message)
 
 
+def _require_manifest_fields(manifest: dict) -> None:
+    """Fail clearly when a manifest is missing inputs required for replay."""
+    required = {
+        "schema", "status", "scenarios", "planned_scenarios",
+        "completed_scenarios", "failed_scenarios", "outer_draws",
+        "validation_sizes", "planned_method_rows", "completed_method_rows",
+        "summary_scenario_ids", "parent_size", "detected_event_count",
+        "seed", "model_parameters",
+        "bootstrap_replicates_per_method_per_outer_draw",
+    }
+    missing = sorted(required.difference(manifest))
+    _require(not missing, f"manifest is missing required fields: {missing}")
+
+
+def _require_summary_match(directory: Path, filename: str, rebuilt: pd.DataFrame) -> None:
+    """Compare a stored summary table with values rebuilt from raw records."""
+    stored = pd.read_csv(directory / filename)
+    _require(
+        list(stored.columns) == list(rebuilt.columns),
+        f"{filename} columns differ from rebuilt summary",
+    )
+    sort_cols = [c for c in ("scenario", "validation_size", "method") if c in rebuilt.columns]
+    expected_frame = rebuilt.sort_values(sort_cols).reset_index(drop=True)
+    observed_frame = stored.sort_values(sort_cols).reset_index(drop=True)
+    _require(
+        len(observed_frame) == len(expected_frame),
+        f"{filename} row count differs from rebuilt summary",
+    )
+    for column in rebuilt.columns:
+        left, right = observed_frame[column], expected_frame[column]
+        if pd.api.types.is_numeric_dtype(right):
+            _require(
+                np.allclose(left.to_numpy(dtype=float), right.to_numpy(dtype=float),
+                            rtol=1e-10, atol=1e-12, equal_nan=True),
+                f"{filename} numeric column mismatch: {column}",
+            )
+        else:
+            _require(
+                left.astype(str).tolist() == right.astype(str).tolist(),
+                f"{filename} categorical column mismatch: {column}",
+            )
+
+
 def _sha_float64(values) -> str:
     arr = np.ascontiguousarray(np.asarray(values, dtype=np.float64))
     digest = hashlib.sha256()
@@ -154,6 +197,7 @@ def _reconstruct_result(row, method: str, n_parent: int, b: int) -> dict:
 
 def audit(directory: Path) -> dict:
     manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
+    _require_manifest_fields(manifest)
     records = pd.read_csv(directory / "calibration_records.csv")
     attempts = pd.read_json(directory / "attempt_audit.jsonl", lines=True)
     scenario_failures = pd.read_csv(directory / "scenario_failure_records.csv")
@@ -265,35 +309,8 @@ def audit(directory: Path) -> dict:
         "complete replay audit requires every planned scenario in summary scope",
     )
     rebuilt_scenario, rebuilt_aggregate = summarize_bootstrap_calibration(records)
-    for filename, rebuilt in (
-        ("scenario_summary.csv", rebuilt_scenario),
-        ("scenario_balanced_summary.csv", rebuilt_aggregate),
-    ):
-        stored = pd.read_csv(directory / filename)
-        _require(
-            list(stored.columns) == list(rebuilt.columns),
-            f"{filename} columns differ from independently rebuilt summary",
-        )
-        sort_cols = [c for c in ("scenario", "validation_size", "method") if c in rebuilt.columns]
-        expected_frame = rebuilt.sort_values(sort_cols).reset_index(drop=True)
-        observed_frame = stored.sort_values(sort_cols).reset_index(drop=True)
-        _require(
-            len(observed_frame) == len(expected_frame),
-            f"{filename} row count differs from independently rebuilt summary",
-        )
-        for column in rebuilt.columns:
-            left, right = observed_frame[column], expected_frame[column]
-            if pd.api.types.is_numeric_dtype(right):
-                _require(
-                    np.allclose(left.to_numpy(dtype=float), right.to_numpy(dtype=float),
-                                rtol=1e-10, atol=1e-12, equal_nan=True),
-                    f"{filename} numeric column mismatch: {column}",
-                )
-            else:
-                _require(
-                    left.astype(str).tolist() == right.astype(str).tolist(),
-                    f"{filename} categorical column mismatch: {column}",
-                )
+    _require_summary_match(directory, "scenario_summary.csv", rebuilt_scenario)
+    _require_summary_match(directory, "scenario_balanced_summary.csv", rebuilt_aggregate)
 
     params = manifest["model_parameters"]
     n_parent = int(manifest["parent_size"])
