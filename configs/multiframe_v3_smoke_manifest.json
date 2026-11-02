@@ -1,0 +1,35 @@
+{
+  "schema": "linear_finite_population_multiframe_manifest_v3",
+  "root_seed": 20261031,
+  "population_size": 80,
+  "frames_per_scenario": 2,
+  "outer_repetitions": 3,
+  "bootstrap_replicates": 25,
+  "nominal_level": 0.95,
+  "sample_sizes": [10, 30],
+  "methods": [
+    {"method_id": "wald_srswor"},
+    {"method_id": "ordinary_percentile_bootstrap"},
+    {"method_id": "studentized_pseudopop_srswor"}
+  ],
+  "scenarios": [
+    {
+      "scenario_id": 3,
+      "name": "Normal reference",
+      "family": "normal",
+      "params": {"loc": 0.0, "scale": 1.0}
+    },
+    {
+      "scenario_id": 7,
+      "name": "Gamma skewed",
+      "family": "gamma",
+      "params": {"shape": 0.7, "scale": 1.4285714285714286}
+    },
+    {
+      "scenario_id": 11,
+      "name": "Lognormal heavy-tailed",
+      "family": "lognormal",
+      "params": {"meanlog": 0.0, "sigmalog": 1.0}
+    }
+  ]
+}
