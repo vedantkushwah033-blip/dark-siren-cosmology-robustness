@@ -109,19 +109,26 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
         observed_z = parent_z[retained]
         parent_hash, catalogue_hash, gw_hash = _sha(parent_z), _sha(observed_z), _sha(distances)
 
+        scenario_failure = ""
+        target = float("nan")
         if observed_z.size < 5 or np.unique(observed_z).size < 3 or np.unique(retained).size != 2:
-            raise RuntimeError(
+            scenario_failure = (
                 f"scenario {scenario} cannot define the prespecified finite-parent target: "
                 f"catalogue_size={observed_z.size}, unique_catalogue_redshifts={np.unique(observed_z).size}, "
                 f"retention_classes={np.unique(retained).size}"
             )
-        _, full = _posterior(
-            z_grid, h0_grid, observed_z, parent_z, retained.astype(int),
-            distances, rate, sigma_mpc, threshold_mpc,
-        )
-        target = float(full["posterior_mean"])
-        if not np.isfinite(target):
-            raise ArithmeticError(f"scenario {scenario} produced a nonfinite finite-parent target")
+        else:
+            try:
+                _, full = _posterior(
+                    z_grid, h0_grid, observed_z, parent_z, retained.astype(int),
+                    distances, rate, sigma_mpc, threshold_mpc,
+                )
+                target = float(full["posterior_mean"])
+                if not np.isfinite(target):
+                    raise ArithmeticError("nonfinite finite-parent target")
+            except (ValueError, RuntimeError, ArithmeticError, FloatingPointError) as exc:
+                scenario_failure = f"{type(exc).__name__}: {exc}"
+                target = float("nan")
 
         # One independent permutation per outer draw; its prefixes create
         # paired nested SRSWOR samples across the declared validation sizes.
