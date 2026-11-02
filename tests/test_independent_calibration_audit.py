@@ -52,3 +52,18 @@ def test_independent_summarizer_rejects_disagreement_between_methods():
     records.loc[0, "outer_posterior_mean"] = 67.0
     with pytest.raises(ValueError, match="differs across methods"):
         reconstruct_calibration_summaries(records)
+
+
+def test_stored_summary_comparison_rejects_changed_summary_value(tmp_path):
+    from scripts.audit_nested_validation_bootstrap_replay import _require_summary_match
+
+    scenario, _ = reconstruct_calibration_summaries(fixture_records())
+    output = tmp_path / "scenario_summary.csv"
+    scenario.to_csv(output, index=False)
+    _require_summary_match(tmp_path, "scenario_summary.csv", scenario)
+
+    altered = pd.read_csv(output)
+    altered.loc[0, "finite_parent_target_interval_coverage"] = 0.123
+    altered.to_csv(output, index=False)
+    with pytest.raises(AssertionError, match="numeric column mismatch"):
+        _require_summary_match(tmp_path, "scenario_summary.csv", scenario)
