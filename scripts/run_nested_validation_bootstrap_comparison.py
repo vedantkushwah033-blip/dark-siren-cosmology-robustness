@@ -319,6 +319,14 @@ def main() -> None:
         attempts.groupby("scenario")["scenario_failure"]
         .first().fillna("").astype(str)
     )
+    scenario_failure_records = pd.DataFrame({
+        "scenario": scenario_failures.index.astype(int),
+        "scenario_status": np.where(scenario_failures.to_numpy() == "", "complete", "failed"),
+        "scenario_failure": scenario_failures.to_numpy(),
+    })
+    scenario_failure_records.to_csv(
+        args.output_dir/"scenario_failure_records.csv", index=False
+    )
     completed_scenarios = int((scenario_failures == "").sum())
     failed_scenarios = int((scenario_failures != "").sum())
     planned_outer_draws = args.scenarios * args.draws * len(sizes)
