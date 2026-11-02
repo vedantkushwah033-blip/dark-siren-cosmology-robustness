@@ -613,3 +613,32 @@ def test_release_gate_auditor_rejects_mislabeled_source_commit_origin(tmp_path):
 
     with pytest.raises(AssertionError, match="source_commit_source"):
         audit_pilot_artifacts(tmp_path, require_manifest=True)
+
+
+def test_manifest_records_source_commit_origin_and_missing_revision(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261106)
+    from scripts.run_estimated_inclusion_pilot import write_pilot_manifest
+
+    arguments = {
+        "replicates": summary["n_replicates_requested"],
+        "n_parent": summary["n_parent"],
+        "n_detected": summary["n_detected"],
+        "validation_sizes": summary["validation_sizes"],
+        "seed": summary["seed"],
+        "true_quadratic": summary["true_inclusion_model"]["quadratic"],
+        "h0_points": summary["h0_grid"][2],
+        "z_points": summary["redshift_grid"][2],
+    }
+    source_sha = "abcdef0123456789abcdef0123456789abcdef01"
+    manifest = write_pilot_manifest(
+        tmp_path, frame=frame, summary=summary, arguments=arguments,
+        source_commit=source_sha, source_commit_source="SOURCE_COMMIT",
+    )
+    assert manifest["source_commit"] == source_sha
+    assert manifest["source_commit_source"] == "SOURCE_COMMIT"
+
+    manifest = write_pilot_manifest(
+        tmp_path, frame=frame, summary=summary, arguments=arguments,
+    )
+    assert manifest["source_commit"] is None
+    assert manifest["source_commit_source"] == "not_available"
