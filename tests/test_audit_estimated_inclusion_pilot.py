@@ -545,3 +545,57 @@ def test_independent_auditor_rejects_duplicate_declared_validation_sizes(tmp_pat
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(AssertionError, match="validation_sizes must not contain duplicates"):
         audit_pilot_artifacts(tmp_path)
+
+
+
+def _write_pilot_manifest_for_test(tmp_path, frame, summary):
+    from scripts.run_estimated_inclusion_pilot import write_pilot_manifest
+
+    write_pilot_manifest(
+        tmp_path,
+        frame=frame,
+        summary=summary,
+        arguments={
+            "replicates": summary["n_replicates_requested"],
+            "n_parent": summary["n_parent"],
+            "n_detected": summary["n_detected"],
+            "validation_sizes": summary["validation_sizes"],
+            "seed": summary["seed"],
+            "true_quadratic": summary["true_inclusion_model"]["quadratic"],
+            "h0_points": summary["h0_grid"][2],
+            "z_points": summary["redshift_grid"][2],
+        },
+        source_commit="0123456789abcdef0123456789abcdef01234567",
+    )
+
+
+def test_release_gate_auditor_verifies_per_file_manifest(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261102)
+    _write_pilot_manifest_for_test(tmp_path, frame, summary)
+
+    report = audit_pilot_artifacts(tmp_path, require_manifest=True)
+
+    assert report["manifest"]["status"] == "PASS"
+    assert report["manifest"]["schema"] == "estimated_inclusion_pilot_manifest_v1"
+    assert report["manifest"]["source_commit"] == "0123456789abcdef0123456789abcdef01234567"
+    assert report["manifest"]["files_verified"] == ["replicates.csv", "summary.json"]
+    assert report["manifest"]["n_rows_verified"] == len(frame)
+
+
+def test_release_gate_auditor_rejects_rehashed_artifact_tampering(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261103)
+    _write_pilot_manifest_for_test(tmp_path, frame, summary)
+
+    # Modify the raw artifact after manifest creation. The auditor must reject
+    # it before attempting any scientific summary reconstruction.
+    with (tmp_path / "summary.json").open("a", encoding="utf-8") as handle:
+        handle.write(" ")
+
+    with pytest.raises(AssertionError, match="manifest byte count mismatch|manifest SHA-256 mismatch"):
+        audit_pilot_artifacts(tmp_path, require_manifest=True)
+
+
+def test_release_gate_auditor_requires_manifest_when_requested(tmp_path):
+    _write_small_pilot(tmp_path, seed=20261104)
+    with pytest.raises(AssertionError, match="manifest.json is required"):
+        audit_pilot_artifacts(tmp_path, require_manifest=True)
