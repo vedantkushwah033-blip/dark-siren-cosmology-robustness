@@ -182,6 +182,32 @@ def audit(directory: Path) -> dict:
         ).all(),
         "scenario failure messages and statuses are inconsistent",
     )
+    # Reconcile the scenario ledger against both raw artifact tables. A
+    # self-consistent ledger/manifest must not be allowed to contradict the
+    # per-row failure annotations that drive downstream interpretation.
+    failure_by_scenario = scenario_failures.set_index("scenario")["scenario_failure"].fillna("").astype(str)
+    expected_failure = records["scenario"].map(failure_by_scenario)
+    _require(
+        expected_failure.notna().all()
+        and records["scenario_failure"].fillna("").astype(str).equals(expected_failure.astype(str)),
+        "calibration rows do not reconcile with the scenario failure ledger",
+    )
+    attempt_failure = attempts["scenario"].map(failure_by_scenario)
+    _require(
+        attempt_failure.notna().all()
+        and attempts["scenario_failure"].fillna("").astype(str).equals(attempt_failure.astype(str)),
+        "attempt trace does not reconcile with the scenario failure ledger",
+    )
+    failed_scenarios = set(
+        scenario_failures.loc[scenario_failures["scenario_status"].eq("failed"), "scenario"]
+    )
+    if failed_scenarios:
+        failed_rows = records.loc[records["scenario"].isin(failed_scenarios)]
+        _require(
+            failed_rows["outer_status"].eq("failed").all()
+            and failed_rows["bootstrap_status"].eq("not_run").all(),
+            "failed scenarios must have failed outer status and not_run bootstrap status",
+        )
     _require(
         manifest.get("schema") == "nested_validation_bootstrap_comparison_smoke_v2",
         "unsupported artifact manifest schema; expected smoke_v2",
