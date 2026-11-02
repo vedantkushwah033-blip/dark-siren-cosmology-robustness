@@ -139,9 +139,9 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                 idx = samples[size]
                 vz, vy = parent_z[idx], retained[idx].astype(int)
                 outer_status, outer_mean = "failed", np.nan
-                outer_failure = ""
+                outer_failure = scenario_failure
                 if not np.isfinite(target) or np.unique(vy).size != 2:
-                    outer_failure = "finite_parent_target_unavailable_or_one_class_outer_sample"
+                    outer_failure = scenario_failure or "finite_parent_target_unavailable_or_one_class_outer_sample"
                 else:
                     try:
                         _, outer_post = _posterior(
@@ -246,6 +246,7 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                         "interval_low": result["interval_low"],
                         "interval_high": result["interval_high"],
                         "finite_parent_target": target,
+                        "scenario_failure": scenario_failure,
                     })
                     attempt_log.append({
                         "scenario": scenario, "validation_size": size, "outer_draw": draw,
@@ -253,6 +254,7 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                         "simulation_seed": sim_seed, "thinning_seed": thin_seed,
                         "bootstrap_seed": result["bootstrap_seed"],
                         "outer_failure": outer_failure,
+                        "scenario_failure": scenario_failure,
                         "bootstrap_failure_records": result["failure_records"],
                         "bootstrap_wrapper_failure_class": result.get("wrapper_failure_class"),
                         "bootstrap_wrapper_failure_message": result.get("wrapper_failure_message"),
@@ -299,7 +301,15 @@ def main() -> None:
         n_detected=args.n_detected, validation_sizes=sizes,
         bootstrap_replicates=args.bootstrap_replicates, seed=args.seed,
     )
-    scenario_summary, aggregate = summarize_bootstrap_calibration(records)
+    complete_scenario_ids = (
+        attempts.groupby("scenario")["scenario_failure"].first()
+        .loc[lambda values: values.fillna("").eq("")].index
+    )
+    summary_input = records.loc[records["scenario"].isin(complete_scenario_ids)].copy()
+    if not summary_input.empty:
+        scenario_summary, aggregate = summarize_bootstrap_calibration(summary_input)
+    else:
+        scenario_summary, aggregate = pd.DataFrame(), pd.DataFrame()
     args.output_dir.mkdir(parents=True, exist_ok=True)
     records.to_csv(args.output_dir/"calibration_records.csv", index=False)
     attempts.to_json(args.output_dir/"attempt_audit.jsonl", orient="records", lines=True)
@@ -330,6 +340,8 @@ def main() -> None:
         "completed_outer_draw_size_units": completed_outer_draws,
         "planned_method_rows": planned_method_rows,
         "completed_method_rows": int(len(records)),
+        "summary_scenario_ids": [int(v) for v in complete_scenario_ids],
+        "summary_scope": "complete_scenarios_only_when_run_is_partial",
         "seed": args.seed, "scenarios": args.scenarios, "outer_draws": args.draws,
         "parent_size": args.n_parent, "detected_event_count": args.n_detected,
         "validation_sizes": list(sizes),
