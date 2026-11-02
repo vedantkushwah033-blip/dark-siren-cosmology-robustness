@@ -48,8 +48,25 @@ def reconstruct_calibration_summaries(records: pd.DataFrame):
 
     frame = records.copy()
     keys = ["scenario", "validation_size", "outer_draw", "method"]
-    if frame[keys].isna().any().any() or frame.duplicated(keys).any():
-        raise ValueError("audit design keys must be nonmissing and unique")
+    if frame[keys].isna().any().any():
+        raise ValueError("audit design keys must be nonmissing")
+    if frame.duplicated(keys).any():
+        raise ValueError("audit design keys must be unique")
+    size_values = pd.to_numeric(frame["validation_size"], errors="coerce")
+    if (
+        size_values.isna().any() or (size_values < 1).any()
+        or not np.equal(size_values, np.floor(size_values)).all()
+    ):
+        raise ValueError("audit validation_size must contain positive integer values")
+    frame["validation_size"] = size_values.astype(int)
+    draw_values = pd.to_numeric(frame["outer_draw"], errors="coerce")
+    if (
+        draw_values.isna().any() or (draw_values < 0).any()
+        or not np.equal(draw_values, np.floor(draw_values)).all()
+    ):
+        raise ValueError("audit outer_draw must contain nonnegative integer identifiers")
+    if frame["method"].astype(str).str.strip().str.len().eq(0).any():
+        raise ValueError("audit method labels must be nonempty or whitespace-only")
     if not frame["outer_status"].isin(["success", "failed"]).all():
         raise ValueError("audit outer status is invalid")
     if not frame["bootstrap_status"].isin(["success", "failed", "not_run"]).all():
