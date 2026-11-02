@@ -99,3 +99,42 @@ def test_nested_comparison_persists_wrapper_exception_metadata(monkeypatch):
         records["method"].isin(["paired_bootstrap", "design_aware_srswor"]),
         "bootstrap_status",
     ].eq("failed").all()
+
+
+def test_nested_comparison_records_scenario_target_failure_and_continues(monkeypatch):
+    import numpy as np
+    import pandas as pd
+
+    import scripts.run_nested_validation_bootstrap_comparison as runner
+
+    def fake_population(**kwargs):
+        return {
+            "parent_truth": pd.DataFrame({
+                "redshift": np.linspace(0.01, 0.40, kwargs["n_parent"])
+            }),
+            "gw_events_observed": pd.DataFrame({
+                "distance_mpc": np.full(kwargs["n_detected"], 350.0)
+            }),
+        }
+
+    def fail_target(*args, **kwargs):
+        raise RuntimeError("forced finite-parent target failure")
+
+    monkeypatch.setattr(runner, "generate_synthetic_population", fake_population)
+    monkeypatch.setattr(runner, "_posterior", fail_target)
+
+    records, attempts = runner.run_comparison(
+        scenarios=1, draws=2, n_parent=100, n_detected=2,
+        validation_sizes=(20,), bootstrap_replicates=2, seed=23,
+    )
+
+    assert len(records) == 2 * 1 * 3
+    assert len(attempts) == len(records)
+    assert records["outer_status"].eq("failed").all()
+    assert records["bootstrap_status"].eq("not_run").all()
+    assert records["scenario_failure"].str.contains(
+        "forced finite-parent target failure"
+    ).all()
+    assert attempts["scenario_failure"].str.contains(
+        "forced finite-parent target failure"
+    ).all()
