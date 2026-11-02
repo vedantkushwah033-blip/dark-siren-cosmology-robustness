@@ -132,6 +132,45 @@ def test_posterior_validation_bootstrap_rejects_invalid_method_and_detection_sam
 
 
 
+def test_posterior_bootstrap_auditor_rejects_malformed_boundary_flag_vector():
+    z_grid = np.linspace(0.01, 0.40, 101)
+    h0_grid = np.linspace(50.0, 90.0, 61)
+    observed_z = np.linspace(0.025, 0.385, 45)
+    validation_z = np.linspace(0.01, 0.40, 120)
+    validation_y = (np.arange(validation_z.size) % 2).astype(int)
+    distances = np.array([280.0, 330.0, 410.0, 520.0, 610.0])
+    result = bootstrap_validation_h0_posterior(
+        z_grid, h0_grid, observed_z, validation_z, validation_y, distances,
+        sigma_mpc=140.0, detection_threshold_mpc=250.0,
+        parent_population_size=180, method="paired_bootstrap",
+        n_bootstrap=3, seed=821,
+    )
+    audit_kwargs = dict(
+        sigma_mpc=140.0, detection_threshold_mpc=250.0,
+        parent_population_size=180,
+    )
+
+    shortened = dict(result)
+    shortened["coefficient_boundary_limited_by_attempt"] = (
+        result["coefficient_boundary_limited_by_attempt"][:-1]
+    )
+    with pytest.raises(AssertionError, match="coefficient-boundary flags"):
+        audit_posterior_validation_bootstrap(
+            shortened, z_grid, h0_grid, observed_z, validation_z,
+            validation_y, distances, **audit_kwargs,
+        )
+
+    non_boolean = dict(result)
+    non_boolean["coefficient_boundary_limited_by_attempt"] = [
+        "false" for _ in range(result["n_attempted"])
+    ]
+    with pytest.raises(AssertionError, match="coefficient-boundary flags"):
+        audit_posterior_validation_bootstrap(
+            non_boolean, z_grid, h0_grid, observed_z, validation_z,
+            validation_y, distances, **audit_kwargs,
+        )
+
+
 def test_independent_posterior_bootstrap_auditor_rejects_tampered_posterior_mean():
     z_grid = np.linspace(0.01, 0.40, 101)
     h0_grid = np.linspace(50.0, 90.0, 61)
