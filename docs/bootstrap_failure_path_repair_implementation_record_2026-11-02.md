@@ -50,6 +50,18 @@ In `scripts/audit_nested_validation_bootstrap_replay.py`:
 
 A regression test confirms that a partial manifest is rejected before expensive reconstruction.
 
+### 5. Validate manifest fields before scenario-ledger indexing
+
+The replay auditor now validates the required `scenarios` field immediately after loading the manifest, before using it to construct the expected scenario-ledger identifiers. The guard rejects a missing field with an explicit assertion and rejects booleans, non-integers, and non-positive counts. Full manifest validation remains later in the audit sequence, preserving the existing partial-artifact rejection precedence for manifests that do contain a scenario count.
+
+Regression coverage exercises the public `audit()` entry point with a manifest missing `scenarios`, rather than testing only the helper.
+
+### 6. Validate attempt alignment and type of coefficient-boundary flags
+
+The independent posterior-bootstrap auditor now requires `coefficient_boundary_limited_by_attempt` to be a boolean vector of exactly `n_attempted` entries. This closes a schema-integrity gap: previously the flag was read during successful-attempt replay but was not included in the general attempt-alignment shape check, so an overlong vector could carry unused trailing values.
+
+Regression coverage checks both a shortened vector and a same-length non-boolean vector.
+
 ## Important limits and remaining work
 
 1. **No tests were executed in this review environment.** New and existing tests are authored but remain unverified until CI or a local test run.
