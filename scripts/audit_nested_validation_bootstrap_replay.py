@@ -23,7 +23,9 @@ from dark_siren_robustness.posterior_validation_bootstrap_audit import (
 from dark_siren_robustness.posterior_validation_bootstrap import (
     bootstrap_validation_h0_posterior,
 )
-from dark_siren_robustness.independent_calibration_audit import (\n    reconstruct_calibration_summaries,\n)
+from dark_siren_robustness.independent_calibration_audit import (
+    reconstruct_calibration_summaries,
+)
 
 C_KM_S = 299_792.458
 
