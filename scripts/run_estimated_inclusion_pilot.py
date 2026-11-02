@@ -26,6 +26,7 @@ def write_pilot_manifest(
     summary: dict,
     arguments: dict[str, object],
     source_commit: str | None = None,
+    source_commit_source: str | None = None,
 ) -> dict[str, object]:
     """Write a deterministic, per-file provenance manifest for a pilot output.
 
@@ -45,12 +46,21 @@ def write_pilot_manifest(
         if len(source_commit) != 40 or any(ch not in "0123456789abcdef" for ch in source_commit):
             raise ValueError("source_commit must be a full 40-character hexadecimal SHA")
 
+    if source_commit is None:
+        if source_commit_source not in (None, "not_available"):
+            raise ValueError("source_commit_source must be not_available when source_commit is null")
+        source_commit_source = "not_available"
+    elif source_commit_source is None:
+        source_commit_source = "explicit_argument"
+    elif source_commit_source not in {"SOURCE_COMMIT", "GITHUB_SHA", "explicit_argument"}:
+        raise ValueError("unsupported source_commit_source")
+
     manifest = {
         "schema": "estimated_inclusion_pilot_manifest_v1",
         "study": "estimated_catalogue_inclusion_probability_pilot",
         "status": str(summary.get("status", "UNKNOWN")),
         "source_commit": source_commit,
-        "source_commit_source": "GITHUB_SHA" if source_commit else "not_available",
+        "source_commit_source": source_commit_source,
         "arguments": arguments,
         "environment": {
             "python": platform.python_version(),
@@ -103,6 +113,14 @@ def main() -> None:
     summary_path.write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+    source_commit_env = os.environ.get("SOURCE_COMMIT")
+    github_sha_env = os.environ.get("GITHUB_SHA")
+    source_commit = source_commit_env or github_sha_env
+    source_commit_source = (
+        "SOURCE_COMMIT" if source_commit_env else
+        "GITHUB_SHA" if github_sha_env else
+        "not_available"
+    )
     manifest = write_pilot_manifest(
         args.output_dir,
         frame=frame,
@@ -117,7 +135,8 @@ def main() -> None:
             "h0_points": args.h0_points,
             "z_points": args.z_points,
         },
-        source_commit=os.environ.get("SOURCE_COMMIT") or os.environ.get("GITHUB_SHA"),
+        source_commit=source_commit,
+        source_commit_source=source_commit_source,
     )
     print(json.dumps({
         "output_dir": str(args.output_dir),
