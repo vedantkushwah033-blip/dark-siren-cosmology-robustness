@@ -138,3 +138,19 @@ The runner now emits paired replicate-level differences for coverage, 68% interv
 These summaries are computed only on replicates where both arms in that particular pair succeeded. The paired sample size is retained in every summary. Differential failure counts remain separately reported by arm and in the independent audit; the complete-case contrasts must not be interpreted as unconditional performance across all attempted replicates.
 
 The independent artifact auditor reconstructs the paired differences directly from the replicate table and rejects missing, extra, duplicate, mislabeled, non-finite, or numerically corrupted contrasts. Tests have been added for the runner output and for rejection of a corrupted secondary contrast. These code and test changes have been committed, but have **not yet been executed in a verified CI run or local test environment**.
+
+
+
+## 9. Provenance-manifest release-gate implementation (2 November 2026)
+
+The pilot runner now writes `manifest.json` alongside `replicates.csv` and `summary.json`. Schema `estimated_inclusion_pilot_manifest_v1` records the source commit when supplied by the workflow, the exact runner arguments, software/platform metadata, expected CSV row count, and per-file byte counts and SHA-256 digests for both primary raw outputs.
+
+The independent artifact auditor verifies the manifest schema, source-SHA format, declared arguments against the summary, software-version agreement, raw-file byte counts, SHA-256 digests, and CSV row count before accepting the scientific reconstruction. Its command-line release-gate path requires the manifest. Direct function calls retain an explicit legacy-compatible default for historical unit fixtures; that compatibility path must not be used to release new artifacts.
+
+The test workflow sets `SOURCE_COMMIT` to the pull-request source head SHA (or the pushed commit SHA outside pull requests), avoiding accidental recording of GitHub's synthetic pull-request merge SHA as the source revision. The manifest is included automatically in the existing recursive artifact-upload paths.
+
+**Integrity boundary:** the manifest is not digitally signed and does not authenticate itself. It detects post-manifest changes to the raw files; an actor able to rewrite both raw files and the manifest could recompute the hashes. Preserve the GitHub Actions artifact digest and workflow/run provenance as the external integrity anchor.
+
+Implementation commits: `8b769f598919f28159e82be70823fff0eb121576`, `f8465bbd7d2151b10f565950729684b390c7ac47`, `91ceada52bf1dca44226aa3a396c7f0a407fc04d`, `81821d046eda326d3565e28f515808a910de3a38`, `63634b00a3d3b272fb6bdf98ad998e0bdac3cc35`, and `305cd942177658bba13e3f1c6271847779dd5295`.
+
+**Verification status at this protocol revision:** implementation and adversarial regression tests are committed, but no workflow run for the final branch head has yet been retrieved. The older smoke-artifact PASS results do not validate these new manifest changes. Do not treat the release gate as CI-verified until the exact source-head matrix completes successfully.
