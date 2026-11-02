@@ -232,8 +232,8 @@ def _write_key_integrity_fixture(directory, mutation):
         rows.append(dict(rows[0]))
         attempts.append(dict(attempts[0]))
     elif mutation == "unexpected":
-        rows[0]["scenario"] = 7
-        attempts[0]["scenario"] = 7
+        rows[0]["validation_size"] = 999
+        attempts[0]["validation_size"] = 999
     elif mutation == "altered_manifest":
         pass
 
