@@ -50,17 +50,17 @@ The oracle/known-inclusion arm is a diagnostic control: it is given the true syn
 
 Let a simulated parent frame contain galaxies indexed by j, with redshift z_j. A catalogue-retention indicator R_j is generated according to a declared probability law
 
-[
-R_j mid z_j sim operatorname{Bernoulli}{pi(z_j)},
-]
+$$
+R_j \mid z_j \sim \operatorname{Bernoulli}\!\left(\pi(z_j)\right).
+$$
 
 where (pi(z)) is the synthetic inclusion probability. The observed catalogue consists of parent-frame galaxies with R_j = 1. The principal benchmark uses a logistic transition with an inclusion floor of 0.10, midpoint 0.22, and width 0.05. The simulation retains the complete parent frame so that the true host-density target and the oracle inclusion probabilities are known for diagnostic purposes.
 
 For a retained galaxy, inverse-inclusion weighting uses a weight proportional to
 
-[
-w_j = rac{1}{pi(z_j)}.
-]
+$$
+w_j = \frac{1}{\pi(z_j)}.
+$$
 
 The weighted empirical distribution is then smoothed to form a one-dimensional host-redshift density. This is a controlled implementation of inverse-probability weighting; it does not account for all sources of uncertainty in an estimated selection model and should not be interpreted as a full hierarchical treatment of catalogue completeness.
 
@@ -77,12 +77,12 @@ Study A compares six paired arms within each synthetic replicate:
 
 The primary paired estimand for replicate r is
 
-[
+$$
 D_r =
-left|widehat H_{0,mathrm{catalogue},r}-H_{0,mathrm{true}}ight|
+\left|\widehat H_{0,\mathrm{catalogue},r}-H_{0,\mathrm{true}}\right|
 -
-left|widehat H_{0,mathrm{weighted},r}-H_{0,mathrm{true}}ight|.
-]
+\left|\widehat H_{0,\mathrm{weighted},r}-H_{0,\mathrm{true}}\right|.
+$$
 
 Positive D means that the known-law weighting arm has smaller absolute posterior-mean error than the catalogue-only arm. The estimand concerns posterior-mean absolute error only; it does not by itself establish better interval coverage, calibration, or general estimator superiority.
 
@@ -96,22 +96,22 @@ This correction is important because a numerically valid KDE can still implement
 
 Study B is a separate distance-only discrete-host model. For a host at redshift z and candidate H0,
 
-[
-mu(z,H_0)=rac{cz}{H_0}, qquad
-sigma(z,H_0)=sqrt{sigma_{m floor}^2+[f_sigmamu(z,H_0)]^2},
-]
+$$
+\mu(z,H_0)=\frac{cz}{H_0}, \quad
+\sigma(z,H_0)=\sqrt{\sigma_{\rm floor}^2+[f_\sigma\mu(z,H_0)]^2}.
+$$
 
 with fractional noise (f_sigma=0.12) and noise floor (sigma_{m floor}=8) Mpc. Each event likelihood marginalizes over 12 discrete candidate redshifts with positive normalized host weights. The detection probability is computed using the same H0-dependent noise model and a distance threshold of 300 Mpc. For a fixed number of detected events, the implemented selected log-likelihood is
 
-[
-log mathcal L_{m selected}(H_0)
+$$
+\log \mathcal L_{\rm selected}(H_0)
 =
-sum_{i=1}^{N_{m det}}log mathcal L_i(H_0)
+\sum_{i=1}^{N_{\rm det}}\log \mathcal L_i(H_0)
 -
-N_{m det}log eta(H_0),
-]
+N_{\rm det}\log \beta(H_0).
+$$
 
-where (eta(H_0)) is the model's detection efficiency. This experiment conditions on the observed number of detections; it does not infer an event rate or model the detected-count distribution. Each dataset contains three detected events, and inference uses a uniform prior on [50, 90] km s−1 Mpc−1 with 161 H0 grid points.
+where (\beta(H_0)) is the model's detection efficiency. This experiment conditions on the observed number of detections; it does not infer an event rate or model the detected-count distribution. Each dataset contains three detected events, and inference uses a uniform prior on [50, 90] km s−1 Mpc−1 with 161 H0 grid points.
 
 The fixed-count selection-conditioned formulation is reported as implemented in this toy model. It should not be conflated with a full population-level gravitational-wave likelihood that marginalizes over event-rate and other population hyperparameters.
 
