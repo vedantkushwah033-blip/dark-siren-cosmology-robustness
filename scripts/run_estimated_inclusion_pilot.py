@@ -117,7 +117,7 @@ def main() -> None:
             "h0_points": args.h0_points,
             "z_points": args.z_points,
         },
-        source_commit=os.environ.get("GITHUB_SHA"),
+        source_commit=os.environ.get("SOURCE_COMMIT") or os.environ.get("GITHUB_SHA"),
     )
     print(json.dumps({
         "output_dir": str(args.output_dir),
