@@ -23,7 +23,7 @@ from dark_siren_robustness.posterior_validation_bootstrap_audit import (
 from dark_siren_robustness.posterior_validation_bootstrap import (
     bootstrap_validation_h0_posterior,
 )
-from dark_siren_robustness.bootstrap_calibration import summarize_bootstrap_calibration
+from dark_siren_robustness.independent_calibration_audit import (\n    reconstruct_calibration_summaries,\n)
 
 C_KM_S = 299_792.458
 
@@ -323,7 +323,7 @@ def audit(directory: Path) -> dict:
         manifest.get("summary_scenario_ids") == list(range(scenarios_expected)),
         "complete replay audit requires every planned scenario in summary scope",
     )
-    rebuilt_scenario, rebuilt_aggregate = summarize_bootstrap_calibration(records)
+    rebuilt_scenario, rebuilt_aggregate = reconstruct_calibration_summaries(records)
     _require_summary_match(directory, "scenario_summary.csv", rebuilt_scenario)
     _require_summary_match(directory, "scenario_balanced_summary.csv", rebuilt_aggregate)
 
