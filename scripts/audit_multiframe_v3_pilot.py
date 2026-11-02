@@ -215,8 +215,8 @@ def audit_artifact(output_dir: Path) -> dict[str, object]:
             if [i for i, _ in rows] != list(range(design["population_size"])):
                 raise ValueError("frame unit IDs are duplicated, missing, or out of order")
             stored = np.asarray([v for _, v in rows], dtype=np.float64)
-            regenerated = np.asarray(generate_finite_frame(design, sid, fid)["values"])
-            expected_seed = frame_seed(design["root_seed"], sid, fid)
+            regenerated, expected_seed = _reference_frame(design, scenario, fid)
+            # Frame seed is independently regenerated alongside the frame values above.
             if not np.array_equal(stored, regenerated):
                 raise ValueError("finite-frame values do not independently regenerate")
             if frame_labels[key] != (expected_seed, _frame_hash(regenerated)):
