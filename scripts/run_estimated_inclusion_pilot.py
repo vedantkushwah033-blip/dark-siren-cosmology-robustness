@@ -6,7 +6,6 @@ import json
 import os
 from pathlib import Path
 import platform
-import sys
 
 from dark_siren_robustness.estimated_inclusion_study import run_estimated_inclusion_pilot
 
@@ -66,7 +65,7 @@ def write_pilot_manifest(
     }
     manifest_path = root / "manifest.json"
     manifest_path.write_text(
-        json.dumps(manifest, indent=2, sort_keys=True) + "\\n",
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
     return manifest
@@ -102,7 +101,7 @@ def main() -> None:
     summary_path = args.output_dir / "summary.json"
     frame.to_csv(csv_path, index=False)
     summary_path.write_text(
-        json.dumps(summary, indent=2, sort_keys=True) + "\\n", encoding="utf-8"
+        json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     manifest = write_pilot_manifest(
         args.output_dir,
