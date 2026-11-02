@@ -230,3 +230,37 @@ def test_posterior_bootstrap_auditor_checks_exact_failure_reason():
 )
 def test_posterior_bootstrap_failure_codes_are_stable(exception, expected):
     assert _failure_code(exception) == expected
+
+
+@pytest.mark.parametrize(
+    ("method", "generator_name"),
+    [
+        ("paired_bootstrap", "paired_bootstrap_indices"),
+        ("design_aware_srswor", "design_aware_srswor_bootstrap_indices"),
+    ],
+)
+def test_index_generation_failure_propagates_as_wrapper_failure(
+    monkeypatch, method, generator_name
+):
+    import dark_siren_robustness.posterior_validation_bootstrap as bootstrap_module
+
+    def fail_index_generation(*args, **kwargs):
+        raise RuntimeError("forced index-generation failure")
+
+    monkeypatch.setattr(
+        bootstrap_module, generator_name, fail_index_generation
+    )
+    z_grid = np.linspace(0.01, 0.40, 101)
+    h0_grid = np.linspace(50.0, 90.0, 61)
+    observed_z = np.linspace(0.025, 0.385, 45)
+    validation_z = np.linspace(0.01, 0.40, 120)
+    validation_y = (np.arange(validation_z.size) % 2).astype(int)
+    distances = np.array([280.0, 330.0, 410.0, 520.0, 610.0])
+
+    with pytest.raises(RuntimeError, match="forced index-generation failure"):
+        bootstrap_validation_h0_posterior(
+            z_grid, h0_grid, observed_z, validation_z, validation_y, distances,
+            sigma_mpc=140.0, detection_threshold_mpc=250.0,
+            parent_population_size=180, method=method, n_bootstrap=3,
+            seed=71,
+        )
