@@ -208,3 +208,67 @@ def test_replay_auditor_rejects_failure_ledger_row_mismatch(tmp_path):
 
     with pytest.raises(AssertionError, match="calibration rows do not reconcile"):
         audit(tmp_path)
+
+
+def _write_key_integrity_fixture(directory, mutation):
+    import json
+
+    import pandas as pd
+
+    methods = ["paired_bootstrap", "paired_bootstrap_fpc", "design_aware_srswor"]
+    rows = [{
+        "scenario": 0, "validation_size": 20, "outer_draw": 0,
+        "method": method, "scenario_failure": "",
+        "outer_status": "success", "bootstrap_status": "success",
+    } for method in methods]
+    attempts = [{
+        "scenario": 0, "validation_size": 20, "outer_draw": 0,
+        "method": method, "scenario_failure": "",
+    } for method in methods]
+    if mutation == "missing":
+        rows.pop()
+        attempts.pop()
+    elif mutation == "duplicate":
+        rows.append(dict(rows[0]))
+        attempts.append(dict(attempts[0]))
+    elif mutation == "unexpected":
+        rows[0]["scenario"] = 7
+        attempts[0]["scenario"] = 7
+    elif mutation == "altered_manifest":
+        pass
+
+    pd.DataFrame(rows).to_csv(directory / "calibration_records.csv", index=False)
+    pd.DataFrame(attempts).to_json(
+        directory / "attempt_audit.jsonl", orient="records", lines=True
+    )
+    pd.DataFrame([{
+        "scenario": 0, "scenario_status": "complete", "scenario_failure": "",
+    }]).to_csv(directory / "scenario_failure_records.csv", index=False)
+    (directory / "manifest.json").write_text(json.dumps({
+        "schema": "nested_validation_bootstrap_comparison_smoke_v2",
+        "status": "SMOKE_ONLY_NOT_CONFIRMATORY",
+        "scenarios": 1, "planned_scenarios": 1,
+        "completed_scenarios": 1, "failed_scenarios": 0,
+        "outer_draws": 1, "validation_sizes": [20],
+        "planned_method_rows": 3 if mutation != "altered_manifest" else 4,
+        "completed_method_rows": 3,
+        "summary_scenario_ids": [0],
+    }), encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    "mutation, message",
+    [
+        ("missing", "missing or unexpected planned keys"),
+        ("duplicate", "duplicate scenario/draw/size/method keys"),
+        ("unexpected", "missing or unexpected planned keys"),
+        ("altered_manifest", "planned/completed method-row denominators"),
+    ],
+)
+def test_replay_auditor_rejects_tampered_artifact_key_sets(tmp_path, mutation, message):
+    from scripts.audit_nested_validation_bootstrap_replay import audit
+
+    _write_key_integrity_fixture(tmp_path, mutation)
+
+    with pytest.raises(AssertionError, match=message):
+        audit(tmp_path)
