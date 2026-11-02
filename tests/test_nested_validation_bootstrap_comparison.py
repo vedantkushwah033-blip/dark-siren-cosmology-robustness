@@ -150,7 +150,15 @@ def test_replay_auditor_rejects_partial_manifest_before_reconstruction(tmp_path)
     (tmp_path / "manifest.json").write_text(json.dumps({
         "schema": "nested_validation_bootstrap_comparison_smoke_v2",
         "status": "PARTIAL_INCOMPLETE_SCENARIOS",
+        "scenarios": 1,
+        "completed_scenarios": 0,
+        "failed_scenarios": 1,
     }), encoding="utf-8")
+    pd.DataFrame([{
+        "scenario": 0,
+        "scenario_status": "failed",
+        "scenario_failure": "forced scenario target failure",
+    }]).to_csv(tmp_path / "scenario_failure_records.csv", index=False)
     pd.DataFrame(columns=[
         "scenario", "validation_size", "outer_draw", "method",
         "bootstrap_status",
