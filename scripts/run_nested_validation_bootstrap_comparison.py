@@ -201,6 +201,8 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                                 "n_bootstrap_attempted": bootstrap_replicates,
                                 "bootstrap_seed": method_seed,
                                 "failure_records": [{"reason": f"{type(exc).__name__}: {exc}"}],
+                                "wrapper_failure_class": type(exc).__name__,
+                                "wrapper_failure_message": str(exc),
                                 "fpc_factor": float(np.sqrt(max(0.0, 1.0-size/n_parent))),
                             }
                     paired = method_results["paired_bootstrap"]
