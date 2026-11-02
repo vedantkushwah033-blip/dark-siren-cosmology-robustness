@@ -88,3 +88,29 @@ def test_independent_summarizer_rejects_malformed_design_and_target_values(
     records.loc[0, column] = bad_value
     with pytest.raises(ValueError, match=message):
         reconstruct_calibration_summaries(records)
+
+def test_aggregate_summary_comparison_rejects_changed_aggregate_value(tmp_path):
+    from scripts.audit_nested_validation_bootstrap_replay import _require_summary_match
+
+    _, aggregate = reconstruct_calibration_summaries(fixture_records())
+    output = tmp_path / "aggregate_summary.csv"
+    aggregate.to_csv(output, index=False)
+    _require_summary_match(tmp_path, "aggregate_summary.csv", aggregate)
+
+    altered = pd.read_csv(output)
+    altered.loc[0, "scenario_balanced_mean_coverage"] = 0.321
+    altered.to_csv(output, index=False)
+    with pytest.raises(AssertionError, match="numeric column mismatch"):
+        _require_summary_match(tmp_path, "aggregate_summary.csv", aggregate)
+
+
+def test_independent_summarizer_rejects_missing_required_column():
+    records = fixture_records().drop(columns=["finite_parent_target"])
+    with pytest.raises(ValueError, match="missing columns"):
+        reconstruct_calibration_summaries(records)
+
+
+def test_independent_summarizer_rejects_empty_records():
+    records = fixture_records().iloc[0:0]
+    with pytest.raises(ValueError, match="empty"):
+        reconstruct_calibration_summaries(records)
