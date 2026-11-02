@@ -31,8 +31,9 @@ def write_pilot_manifest(
     """Write a deterministic, per-file provenance manifest for a pilot output.
 
     The manifest covers the two primary raw outputs, not itself or the later
-    independent-audit reports. A GitHub Actions run supplies GITHUB_SHA;
-    local runs may legitimately record null when no source revision is known.
+    independent-audit reports. GitHub Actions supplies SOURCE_COMMIT for the PR
+    source head (or GITHUB_SHA for non-PR events); local runs may record null
+    when no source revision is known.
     """
     root = Path(output_dir)
     csv_path = root / "replicates.csv"
