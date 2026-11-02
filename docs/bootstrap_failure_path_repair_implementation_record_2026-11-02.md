@@ -25,13 +25,37 @@ Rationale: an attempt is only defined after its resampling indices have been gen
 
 Tests in `tests/test_posterior_validation_bootstrap.py` inject an index-generation exception for each method and assert it propagates as a wrapper-level failure.
 
+## Additional repairs
+
+### 3. Preserve scenario-level target failures as explicit partial-run artifacts
+
+In `scripts/run_nested_validation_bootstrap_comparison.py`:
+- Finite-parent target precondition failures and expected posterior-computation exceptions are captured as scenario failures instead of aborting the entire run before artifacts are written.
+- Planned outer-draw/validation-size/method rows are still emitted. Their outer status is failed and bootstrap status is not_run when the scenario target is unavailable.
+- Failure reasons are persisted in both `calibration_records.csv` and `attempt_audit.jsonl`.
+- A separate `scenario_failure_records.csv` ledger records every scenario, its complete/failed status, and its failure message.
+- The v2 manifest records planned/completed/failed scenario counts, planned/completed row counts, and scenario IDs included in summary tables.
+- Scenario summaries are calculated only over complete scenarios; failed scenarios remain visible in raw records and the failure ledger.
+
+A regression test injects a finite-parent target failure and checks that the run continues with explicit failed/not-run records.
+
+### 4. Reject incomplete artifacts and recompute summaries from raw rows
+
+In `scripts/audit_nested_validation_bootstrap_replay.py`:
+- The auditor requires the v2 manifest and rejects partial/incomplete runs for a complete replay-audit pass.
+- It checks unique and exact scenario/draw/validation-size/method keys against the planned design.
+- It reconciles planned/completed method-row counts and scenario denominators.
+- It validates the per-scenario failure ledger and its consistency with manifest counts.
+- It recomputes both summary CSVs from raw calibration records using the same summary implementation, then compares columns, rows, and values. This is a tamper/reconciliation check, not an independent second implementation of the summary statistics.
+
+A regression test confirms that a partial manifest is rejected before expensive reconstruction.
+
 ## Important limits and remaining work
 
-1. **No tests were executed in this review environment.** The new tests are authored but unverified until CI runs on this branch or a PR.
-2. The scenario-level finite-parent target checks in `run_comparison` still raise before the runner writes scenario/draw records. Planned-versus-completed scenario accounting and a formal partial-run artifact schema remain unresolved.
-3. The replay auditor still reruns the production wrapper to reproduce wrapper-level failures. The newly persisted exception metadata fixes the serialization mismatch, but this remains deterministic failure reproduction, not independent reconstruction.
-4. The artifact auditor still needs stronger manifest/summary reconciliation and explicit rejection of incomplete or duplicated scenario/draw/method keys.
-5. These software repairs do not establish bootstrap calibration, inferential validity, estimator superiority, real-survey validity, or detector realism.
+1. **No tests were executed in this review environment.** New and existing tests are authored but remain unverified until CI or a local test run.
+2. The replay auditor still reruns the production wrapper to reproduce wrapper-level failures. This remains deterministic failure reproduction, not independent reconstruction.
+3. The scenario-level failure schema currently handles failures during finite-parent target definition. Unexpected exceptions during parent/GW generation or before attempt records are emitted can still abort the run before a complete artifact set is written.
+4. These software repairs do not establish bootstrap calibration, inferential validity, estimator superiority, real-survey validity, or detector realism.
 
 ## Verification state
 
