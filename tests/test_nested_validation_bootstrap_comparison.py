@@ -54,3 +54,48 @@ def test_nested_comparison_rejects_malformed_parameters_before_simulation(kwargs
     parameters.update(kwargs)
     with pytest.raises((TypeError, ValueError), match=message):
         run_comparison(**parameters)
+
+
+def test_nested_comparison_persists_wrapper_exception_metadata(monkeypatch):
+    import numpy as np
+    import pandas as pd
+
+    import scripts.run_nested_validation_bootstrap_comparison as runner
+
+    def fake_population(**kwargs):
+        return {
+            "parent_truth": pd.DataFrame({
+                "redshift": np.linspace(0.01, 0.40, kwargs["n_parent"])
+            }),
+            "gw_events_observed": pd.DataFrame({
+                "distance_mpc": np.full(kwargs["n_detected"], 350.0)
+            }),
+        }
+
+    def fake_posterior(*args, **kwargs):
+        return {}, {"posterior_mean": 70.0}
+
+    def fail_bootstrap(*args, **kwargs):
+        raise ValueError("forced wrapper failure for serialization test")
+
+    monkeypatch.setattr(runner, "generate_synthetic_population", fake_population)
+    monkeypatch.setattr(runner, "_posterior", fake_posterior)
+    monkeypatch.setattr(runner, "bootstrap_validation_h0_posterior", fail_bootstrap)
+
+    records, attempts = runner.run_comparison(
+        scenarios=1, draws=2, n_parent=100, n_detected=2,
+        validation_sizes=(20,), bootstrap_replicates=2, seed=19,
+    )
+
+    failed = attempts.loc[attempts["method"].isin(
+        ["paired_bootstrap", "design_aware_srswor"]
+    )]
+    assert len(failed) == 4
+    assert failed["bootstrap_wrapper_failure_class"].eq("ValueError").all()
+    assert failed["bootstrap_wrapper_failure_message"].eq(
+        "forced wrapper failure for serialization test"
+    ).all()
+    assert records.loc[
+        records["method"].isin(["paired_bootstrap", "design_aware_srswor"]),
+        "bootstrap_status",
+    ].eq("failed").all()
