@@ -582,7 +582,7 @@ def test_release_gate_auditor_verifies_per_file_manifest(tmp_path):
     assert report["manifest"]["n_rows_verified"] == len(frame)
 
 
-def test_release_gate_auditor_rejects_rehashed_artifact_tampering(tmp_path):
+def test_release_gate_auditor_rejects_post_manifest_artifact_tampering(tmp_path):
     frame, summary = _write_small_pilot(tmp_path, seed=20261103)
     _write_pilot_manifest_for_test(tmp_path, frame, summary)
 
