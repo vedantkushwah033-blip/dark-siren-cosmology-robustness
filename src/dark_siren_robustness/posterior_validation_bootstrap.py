@@ -157,21 +157,28 @@ def bootstrap_validation_h0_posterior(
     failures = []
 
     for b in range(int(n_bootstrap)):
+        # Index generation is a prerequisite for defining an attempt. If it
+        # fails, propagate to the caller as a wrapper-level failure rather
+        # than returning a misleading partial attempt trace with missing
+        # index records. Once indices exist, model/posterior failures remain
+        # attempt-level and are independently replayable.
+        if method == "paired_bootstrap":
+            idx = paired_bootstrap_indices(rng, vz.size)
+            sample_indices.append(idx.copy())
+            sample_z, sample_y = vz[idx], vy[idx]
+            reference_mean = fixed_reference_mean
+        else:
+            pseudo_idx, sample_idx, positions = design_aware_srswor_bootstrap_indices(
+                rng, vz.size, int(parent_population_size), vz.size
+            )
+            pseudo_indices.append(pseudo_idx.copy())
+            sample_indices.append(sample_idx.copy())
+            selected_positions.append(positions.copy())
+            pseudo_z, pseudo_y = vz[pseudo_idx], vy[pseudo_idx]
+            sample_z, sample_y = vz[sample_idx], vy[sample_idx]
+
         try:
-            if method == "paired_bootstrap":
-                idx = paired_bootstrap_indices(rng, vz.size)
-                sample_indices.append(idx.copy())
-                sample_z, sample_y = vz[idx], vy[idx]
-                reference_mean = fixed_reference_mean
-            else:
-                pseudo_idx, sample_idx, positions = design_aware_srswor_bootstrap_indices(
-                    rng, vz.size, int(parent_population_size), vz.size
-                )
-                pseudo_indices.append(pseudo_idx.copy())
-                sample_indices.append(sample_idx.copy())
-                selected_positions.append(positions.copy())
-                pseudo_z, pseudo_y = vz[pseudo_idx], vy[pseudo_idx]
-                sample_z, sample_y = vz[sample_idx], vy[sample_idx]
+            if method == "design_aware_srswor":
                 _, pseudo_summary = _posterior_from_validation(
                     z, h0, observed, pseudo_z, pseudo_y, distances,
                     sigma_mpc=float(sigma_mpc), detection_threshold_mpc=float(detection_threshold_mpc),
@@ -212,8 +219,6 @@ def bootstrap_validation_h0_posterior(
                 "failure_code": _failure_code(exc),
                 "reason": f"{type(exc).__name__}: {exc}",
             })
-            if method == "paired_bootstrap" and len(sample_indices) <= b:
-                sample_indices.append(np.array([], dtype=np.int64))
 
     successful_means = attempt_means[success]
     fpc = finite_population_correction(vz.size, int(parent_population_size))
