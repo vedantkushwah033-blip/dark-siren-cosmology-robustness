@@ -44,7 +44,7 @@ The design-aware branch remains an exploratory multinomial-pseudo-population/SRS
 
 ## Required next improvements before a stronger independence claim
 
-1. Completed in code: implement an auditor-owned summary reconstruction. Remaining: add end-to-end tests that alter stored scenario and aggregate CSVs and prove the full replay audit rejects them.
+1. Completed in code: implement an auditor-owned summary reconstruction. Focused tests now compare the independent calculation with the producer reference, reject malformed design keys and targets, and show that the stored scenario- and aggregate-summary comparison helper rejects altered values. Remaining: exercise these corruptions through the full replay-audit command against a complete artifact fixture.
 2. Define a wrapper-failure replay contract that independently reconstructs the pre-attempt failure condition from inputs and RNG state. If exact independent reconstruction is not practical for a given exception, label that class as producer-replayed rather than independently audited.
 3. Add adversarial tests that mutate, one at a time:
    - scenario failure status/message;
@@ -52,7 +52,7 @@ The design-aware branch remains an exploratory multinomial-pseudo-population/SRS
    - wrapper failure class/message;
    - attempt-level failure index/code/reason;
    - a successful posterior summary;
-   - a summary-table aggregate;
+   - a summary-table aggregate (the comparison helper now has a focused negative test; full replay integration remains outstanding);
    - seed or index provenance.
    Each mutation must cause the auditor to reject the artifact for the intended reason.
 4. Add a positive control for each failure class, demonstrating that an unmodified artifact still passes.
