@@ -50,6 +50,7 @@ def test_procedure_and_inner_resample_denominators_are_separate_and_exclude_fpc_
     assert paired["n_bootstrap_procedures_non_evaluable"] == 1
     assert paired["n_bootstrap_procedures_failed"] == 1
     assert paired["n_bootstrap_procedures_not_run"] == 1
+    assert paired["n_bootstrap_procedures_with_unknown_inner_count"] == 1
     assert paired["n_inner_resamples_attempted"] == 5
     assert paired["n_inner_resamples_successful"] == 3
     assert paired["n_inner_resamples_failed"] == 2
