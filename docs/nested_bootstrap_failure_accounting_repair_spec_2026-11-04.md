@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-04  
 **Target branch:** `research/bootstrap-failure-path-repairs-2026-11-02`  
-**Implementation commits:** `7cd508b`, `04133e1`, `127c132`, `81ff9b9`, `c150039`, `a270777`, `cab8b36`, `d024026`, `beed9f0`, `491c1fd`, `a2e37bb`  
+**Implementation commits:** `7cd508b`, `04133e1`, `127c132`, `81ff9b9`, `c150039`, `a270777`, `cab8b36`, `d024026`, `beed9f0`, `491c1fd`, `a2e37bb`, `675239b`, `8805412`, `0e42f13`, `e065db8`, `58d8aa6`  
 **Status:** Runner, summary, replay-auditor, and focused-test changes committed. Tests have not been executed in this environment; release gate remains closed.
 
 ## Scope
@@ -114,6 +114,8 @@ The implementation now records returned bootstrap outcomes even when fewer than 
 
 Wrapper exceptions now retain exception class/message but leave inner attempt, success, and failure counts unknown (`null`) and do not fabricate attempt-level failure records. The FPC diagnostic row is explicitly marked as derived from `paired_bootstrap`; calibration denominators exclude it.
 
+The calibration summary and auditor-owned independent reconstruction now use matching procedure/inner-resample denominators. A parity regression test compares both reconstructed tables under a mixed success, non-evaluable, wrapper-failure, not-run, and derived-FPC fixture. Count-ledger validation rejects incomplete counts, status/count disagreement, fabricated wrapper-failure counts, and nonzero counts for not-run procedures. The independent replay auditor also checks the zero-failure invariant for not-run rows.
+
 The calibration summary now also reports the number of procedures whose inner-attempt count is unknown after a wrapper exception. It distinguishes:
 - bootstrap procedure attempts, successes, non-evaluable procedures, failures, and not-run procedures;
 - observed inner resample attempts, successes, and failures;
@@ -123,6 +125,6 @@ The calibration summary now also reports the number of procedures whose inner-at
 
 The replay auditor now checks count/mask/failure-ledger reconciliation, rejects fabricated counts on wrapper failure, checks the derived FPC provenance label, and deterministically replays non-evaluable ledgers. Its report separates successful and non-evaluable replay totals.
 
-Focused tests were added for partial outcomes, unknown wrapper-failure counts, denominator separation, FPC exclusion, and inconsistent count rejection. The CI workflow was updated to include these tests and the nested-runner regression suite.
+Focused tests were added for partial outcomes, unknown wrapper-failure counts, denominator separation, FPC exclusion, independent reconstruction parity, status/count disagreement, and inconsistent count rejection. The CI workflow was updated to include these tests and the nested-runner regression suite.
 
 **Verification limitation:** These commits were written through the GitHub contents API. No local test execution or exact-head CI run has yet been obtained. Therefore the changes are implemented but not yet verified as passing. Do not describe the repair as complete or launch the confirmatory experiment.
