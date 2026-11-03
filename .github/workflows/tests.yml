@@ -103,7 +103,9 @@ jobs:
       - name: Test posterior-level validation bootstrap through H0 inference
         run: python -m pytest tests/test_posterior_validation_bootstrap.py -q
       - name: Test scenario-balanced bootstrap calibration estimands
-        run: python -m pytest tests/test_bootstrap_calibration.py -q
+        run: python -m pytest tests/test_bootstrap_calibration.py tests/test_bootstrap_calibration_accounting.py -q
+      - name: Test nested validation-bootstrap runner failure accounting
+        run: python -m pytest tests/test_nested_validation_bootstrap_comparison.py -q
       - name: Test auditor-owned calibration summary reconstruction and tamper rejection
         run: python -m pytest tests/test_independent_calibration_audit.py -q
       - name: Test independent nested validation-bootstrap artifact auditor and tamper detection
