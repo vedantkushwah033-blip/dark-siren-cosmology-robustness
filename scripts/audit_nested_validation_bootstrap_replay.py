@@ -453,11 +453,6 @@ def audit(directory: Path) -> dict:
                                 method=method, n_bootstrap=b,
                                 seed=expected_seed, merger_weight=rate,
                             )
-                            if int(replayed["n_successful"]) < 2:
-                                raise RuntimeError(
-                                    "fewer than two successful bootstrap replicates "
-                                    f"({int(replayed['n_successful'])}/{b})"
-                                )
                         except (ValueError, RuntimeError, ArithmeticError, FloatingPointError) as exc:
                             _require(type(exc).__name__ == observed_class,
                                      f"wrapper failure class mismatch for {method}: "
@@ -470,6 +465,41 @@ def audit(directory: Path) -> dict:
                                 f"recorded wrapper failure did not reproduce for {method}, "
                                 f"scenario={scenario}, draw={draw}"
                             )
+                        continue
+                    if str(row.bootstrap_status) == "non_evaluable":
+                        replayed = bootstrap_validation_h0_posterior(
+                            z_grid, h0_grid, observed_z, vz, vy, distances,
+                            sigma_mpc=sigma,
+                            detection_threshold_mpc=threshold,
+                            parent_population_size=n_parent,
+                            method=method, n_bootstrap=b,
+                            seed=expected_seed, merger_weight=rate,
+                        )
+                        stored_mask = np.asarray(row.bootstrap_success_mask, dtype=bool)
+                        replay_mask = np.asarray(replayed["success_mask"], dtype=bool)
+                        _require(replayed["n_successful"] < 2,
+                                 f"non-evaluable status did not reproduce for {method}")
+                        _require(int(row.n_bootstrap_attempted) == int(replayed["n_attempted"]),
+                                 f"inner attempt count mismatch for {method}")
+                        _require(int(row.n_bootstrap_successful) == int(replayed["n_successful"]),
+                                 f"inner success count mismatch for {method}")
+                        _require(int(row.n_bootstrap_failed) == int(replayed["n_failed"]),
+                                 f"inner failure count mismatch for {method}")
+                        _require(np.array_equal(stored_mask, replay_mask),
+                                 f"bootstrap success mask mismatch for {method}")
+                        _require(
+                            np.allclose(
+                                np.asarray(row.bootstrap_attempt_posterior_mean, dtype=float),
+                                np.asarray(replayed["attempt_posterior_mean"], dtype=float),
+                                rtol=1e-10, atol=1e-12, equal_nan=True,
+                            ),
+                            f"non-evaluable attempt posterior values mismatch for {method}",
+                        )
+                        _require(
+                            row.bootstrap_failure_records == replayed["failure_records"],
+                            f"non-evaluable failure ledger mismatch for {method}",
+                        )
+                        audited_bootstrap += 1
                         continue
                     if str(row.bootstrap_status) != "success":
                         continue
