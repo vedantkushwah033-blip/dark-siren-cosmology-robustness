@@ -319,6 +319,45 @@ def audit(directory: Path) -> dict:
     )
     _require(attempts["bootstrap_status"].notna().all(),
              "attempt trace is missing calibration status rows")
+
+    # Reconcile procedure-level status and inner-attempt ledgers independently.
+    for row in attempts.itertuples(index=False):
+        status = str(row.bootstrap_status)
+        derived = bool(getattr(row, "bootstrap_is_derived", False))
+        if derived:
+            _require(str(row.method) == "paired_bootstrap_fpc",
+                     "only the FPC diagnostic may be marked as a derived bootstrap row")
+            _require(getattr(row, "bootstrap_source_method", None) == "paired_bootstrap",
+                     "derived FPC row must identify its paired-bootstrap source")
+            continue
+        if status in ("success", "non_evaluable"):
+            mask = np.asarray(row.bootstrap_success_mask, dtype=bool)
+            attempted = int(row.n_bootstrap_attempted)
+            successful = int(row.n_bootstrap_successful)
+            failed = int(row.n_bootstrap_failed)
+            _require(attempted == mask.size,
+                     "inner attempt count does not match the persisted success mask")
+            _require(successful == int(mask.sum()) and failed == attempted - successful,
+                     "inner success/failure counts do not reconcile with success mask")
+            failure_records = row.bootstrap_failure_records
+            _require(len(failure_records) == failed,
+                     "inner failure ledger length does not match failed mask entries")
+            _require((status == "success") == (successful >= 2),
+                     "success/non-evaluable status disagrees with successful inner count")
+        elif status == "failed":
+            _require(pd.isna(row.n_bootstrap_attempted)
+                     and pd.isna(row.n_bootstrap_successful)
+                     and pd.isna(row.n_bootstrap_failed),
+                     "wrapper failure must not fabricate inner-attempt counts")
+            _require(len(row.bootstrap_failure_records) == 0,
+                     "wrapper failure must not fabricate attempt-level failure records")
+        elif status == "not_run":
+            _require(int(row.n_bootstrap_attempted) == 0
+                     and int(row.n_bootstrap_successful) == 0,
+                     "not-run procedure must have zero observed inner attempts")
+        else:
+            raise AssertionError(f"unknown bootstrap status: {status}")
+
     # Rebuild both published summary tables from the raw calibration rows;
     # stored summaries are never accepted as self-authenticating.
     _require(
