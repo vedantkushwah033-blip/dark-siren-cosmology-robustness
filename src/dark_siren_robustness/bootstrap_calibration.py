@@ -71,20 +71,34 @@ def summarize_bootstrap_calibration(records: pd.DataFrame) -> tuple[pd.DataFrame
     if "bootstrap_is_derived" not in frame:
         frame["bootstrap_is_derived"] = False
     frame["bootstrap_is_derived"] = frame["bootstrap_is_derived"].fillna(False).astype(bool)
-    for count_column in ("n_bootstrap_attempted", "n_bootstrap_successful", "n_bootstrap_failed"):
+    count_columns = (
+        "n_bootstrap_attempted", "n_bootstrap_successful", "n_bootstrap_failed"
+    )
+    has_count_ledger = any(column in frame.columns for column in count_columns)
+    if has_count_ledger and not all(column in frame.columns for column in count_columns):
+        raise ValueError("bootstrap count ledger must contain all three count columns")
+    for count_column in count_columns:
         if count_column not in frame:
             frame[count_column] = np.nan
         frame[count_column] = pd.to_numeric(frame[count_column], errors="coerce")
-    observed_counts = frame["n_bootstrap_attempted"].notna()
-    if (frame.loc[observed_counts, "n_bootstrap_attempted"] < 0).any():
-        raise ValueError("n_bootstrap_attempted cannot be negative")
-    for _, row in frame.loc[observed_counts].iterrows():
-        attempted = int(row["n_bootstrap_attempted"])
-        successful = row["n_bootstrap_successful"]
-        failed = row["n_bootstrap_failed"]
-        if pd.notna(successful) and pd.notna(failed):
-            if int(successful) + int(failed) != attempted:
-                raise ValueError("inner bootstrap attempt counts do not reconcile")
+    if has_count_ledger:
+        for _, row in frame.iterrows():
+            status = str(row["bootstrap_status"])
+            values = [row[column] for column in count_columns]
+            if status in ("success", "non_evaluable"):
+                if any(pd.isna(value) or not np.isfinite(value) or value < 0 or value != int(value) for value in values):
+                    raise ValueError("evaluated bootstrap procedures require finite nonnegative integer counts")
+                attempted, successful, failed = map(int, values)
+                if successful + failed != attempted:
+                    raise ValueError("inner bootstrap attempt counts do not reconcile")
+                if (status == "success" and successful < 2) or (status == "non_evaluable" and successful >= 2):
+                    raise ValueError("bootstrap status disagrees with successful inner-resample count")
+            elif status == "failed":
+                if any(pd.notna(value) for value in values):
+                    raise ValueError("wrapper failures must have unknown inner-attempt counts")
+            elif status == "not_run":
+                if any(pd.isna(value) or int(value) != 0 for value in values):
+                    raise ValueError("not-run bootstrap procedures must have zero inner-attempt counts")
 
     numeric = [
         "outer_posterior_mean", "bootstrap_se", "interval_low",
