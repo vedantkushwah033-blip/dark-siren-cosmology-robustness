@@ -390,6 +390,7 @@ def audit(directory: Path) -> dict:
     b = int(manifest["bootstrap_replicates_per_method_per_outer_draw"])
     audited_outer = 0
     audited_bootstrap = 0
+    audited_non_evaluable = 0
     audited_wrapper_failures = 0
 
     for scenario in range(scenarios):
@@ -539,6 +540,7 @@ def audit(directory: Path) -> dict:
                             f"non-evaluable failure ledger mismatch for {method}",
                         )
                         audited_bootstrap += 1
+                        audited_non_evaluable += 1
                         continue
                     if str(row.bootstrap_status) != "success":
                         continue
@@ -555,9 +557,11 @@ def audit(directory: Path) -> dict:
         "status": "INDEPENDENT_SCENARIO_AND_POSTERIOR_REPLAY_PASS",
         "scenarios_reconstructed": scenarios,
         "outer_fits_reconstructed": audited_outer,
-        "successful_bootstrap_methods_replayed": audited_bootstrap,
+        "successful_bootstrap_methods_replayed": audited_bootstrap - audited_non_evaluable,
+        "non_evaluable_bootstrap_methods_replayed": audited_non_evaluable,
+        "all_returned_bootstrap_ledgers_replayed": audited_bootstrap,
         "wrapper_level_bootstrap_failures_replayed": audited_wrapper_failures,
-        "scope": "synthetic parent/GW generation, catalogue thinning, finite-parent target, outer SRSWOR, successful inner posterior resampling",
+        "scope": "synthetic parent/GW generation, catalogue thinning, finite-parent target, outer SRSWOR, successful and non-evaluable inner posterior-resampling ledgers",
         "limitations": "confirmatory-scale run not established; unexpected non-determinism remains possible across dependency/platform versions",
     }
 
