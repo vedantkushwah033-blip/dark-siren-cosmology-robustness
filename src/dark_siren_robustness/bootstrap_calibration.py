@@ -66,8 +66,25 @@ def summarize_bootstrap_calibration(records: pd.DataFrame) -> tuple[pd.DataFrame
         raise ValueError("records must be unique at scenario/size/draw/method grain")
     if not frame["outer_status"].isin(["success", "failed"]).all():
         raise ValueError("outer_status must be success or failed")
-    if not frame["bootstrap_status"].isin(["success", "failed", "not_run"]).all():
-        raise ValueError("bootstrap_status must be success, failed, or not_run")
+    if not frame["bootstrap_status"].isin(["success", "non_evaluable", "failed", "not_run"]).all():
+        raise ValueError("bootstrap_status must be success, non_evaluable, failed, or not_run")
+    if "bootstrap_is_derived" not in frame:
+        frame["bootstrap_is_derived"] = False
+    frame["bootstrap_is_derived"] = frame["bootstrap_is_derived"].fillna(False).astype(bool)
+    for count_column in ("n_bootstrap_attempted", "n_bootstrap_successful", "n_bootstrap_failed"):
+        if count_column not in frame:
+            frame[count_column] = np.nan
+        frame[count_column] = pd.to_numeric(frame[count_column], errors="coerce")
+    observed_counts = frame["n_bootstrap_attempted"].notna()
+    if (frame.loc[observed_counts, "n_bootstrap_attempted"] < 0).any():
+        raise ValueError("n_bootstrap_attempted cannot be negative")
+    for _, row in frame.loc[observed_counts].iterrows():
+        attempted = int(row["n_bootstrap_attempted"])
+        successful = row["n_bootstrap_successful"]
+        failed = row["n_bootstrap_failed"]
+        if pd.notna(successful) and pd.notna(failed):
+            if int(successful) + int(failed) != attempted:
+                raise ValueError("inner bootstrap attempt counts do not reconcile")
 
     numeric = [
         "outer_posterior_mean", "bootstrap_se", "interval_low",
@@ -164,7 +181,18 @@ def summarize_bootstrap_calibration(records: pd.DataFrame) -> tuple[pd.DataFrame
             & (boot["finite_parent_target"] <= boot["interval_high"])
         )
         n_outer_success = int(outer_info["n_outer_successful"])
-        n_boot_attempted = n_outer_success
+        independently_run = group.loc[~group["bootstrap_is_derived"]]
+        procedure_attempted = int(independently_run["bootstrap_status"].ne("not_run").sum())
+        procedure_successful = int(independently_run["bootstrap_status"].eq("success").sum())
+        procedure_non_evaluable = int(independently_run["bootstrap_status"].eq("non_evaluable").sum())
+        procedure_failed = int(independently_run["bootstrap_status"].eq("failed").sum())
+        procedure_not_run = int(independently_run["bootstrap_status"].eq("not_run").sum())
+        known_attempts = independently_run["n_bootstrap_attempted"].dropna()
+        known_successes = independently_run["n_bootstrap_successful"].dropna()
+        known_failures = independently_run["n_bootstrap_failed"].dropna()
+        inner_attempted = int(known_attempts.sum()) if not known_attempts.empty else 0
+        inner_successful = int(known_successes.sum()) if not known_successes.empty else 0
+        inner_failed = int(known_failures.sum()) if not known_failures.empty else 0
         rows.append({
             "scenario": scenario,
             "validation_size": int(size),
@@ -172,9 +200,19 @@ def summarize_bootstrap_calibration(records: pd.DataFrame) -> tuple[pd.DataFrame
             "n_outer_attempted": int(outer_info["n_outer_attempted"]),
             "n_outer_successful": n_outer_success,
             "outer_failure_fraction": float(outer_info["outer_failure_fraction"]),
-            "n_bootstrap_attempted": n_boot_attempted,
-            "n_bootstrap_successful": int(len(boot)),
-            "bootstrap_failure_fraction": float(1.0 - len(boot) / n_boot_attempted) if n_boot_attempted else float("nan"),
+            "n_bootstrap_attempted": procedure_attempted,
+            "n_bootstrap_successful": procedure_successful,
+            "n_bootstrap_procedures_attempted": procedure_attempted,
+            "n_bootstrap_procedures_successful": procedure_successful,
+            "n_bootstrap_procedures_non_evaluable": procedure_non_evaluable,
+            "n_bootstrap_procedures_failed": procedure_failed,
+            "n_bootstrap_procedures_not_run": procedure_not_run,
+            "n_inner_resamples_attempted": inner_attempted,
+            "n_inner_resamples_successful": inner_successful,
+            "n_inner_resamples_failed": inner_failed,
+            "inner_resample_failure_fraction": float(inner_failed / inner_attempted) if inner_attempted else float("nan"),
+            "bootstrap_wrapper_failure_fraction": float(procedure_failed / procedure_attempted) if procedure_attempted else float("nan"),
+            "bootstrap_failure_fraction": float((procedure_non_evaluable + procedure_failed) / procedure_attempted) if procedure_attempted else float("nan"),
             "empirical_srswor_sd": empirical_sd,
             "mean_inner_bootstrap_se": mean_se,
             "mean_se_to_empirical_sd_ratio": ratio,
@@ -222,5 +260,13 @@ def summarize_bootstrap_calibration(records: pd.DataFrame) -> tuple[pd.DataFrame
             "scenario_balanced_bootstrap_failure_fraction": inner_fail_mean,
             "scenario_balanced_bootstrap_failure_fraction_ci95_low": inner_fail_low,
             "scenario_balanced_bootstrap_failure_fraction_ci95_high": inner_fail_high,
+            "scenario_balanced_inner_resample_failure_fraction": (
+                float(group["inner_resample_failure_fraction"].dropna().mean())
+                if group["inner_resample_failure_fraction"].notna().any() else float("nan")
+            ),
+            "scenario_balanced_wrapper_failure_fraction": (
+                float(group["bootstrap_wrapper_failure_fraction"].dropna().mean())
+                if group["bootstrap_wrapper_failure_fraction"].notna().any() else float("nan")
+            ),
         })
     return scenario_level, pd.DataFrame(aggregate_rows)
