@@ -187,6 +187,10 @@ def summarize_bootstrap_calibration(records: pd.DataFrame) -> tuple[pd.DataFrame
         procedure_non_evaluable = int(independently_run["bootstrap_status"].eq("non_evaluable").sum())
         procedure_failed = int(independently_run["bootstrap_status"].eq("failed").sum())
         procedure_not_run = int(independently_run["bootstrap_status"].eq("not_run").sum())
+        unknown_inner_count_procedures = int(
+            independently_run["n_bootstrap_attempted"].isna()
+            .where(independently_run["bootstrap_status"].ne("not_run"), False).sum()
+        )
         known_attempts = independently_run["n_bootstrap_attempted"].dropna()
         known_successes = independently_run["n_bootstrap_successful"].dropna()
         known_failures = independently_run["n_bootstrap_failed"].dropna()
@@ -207,6 +211,7 @@ def summarize_bootstrap_calibration(records: pd.DataFrame) -> tuple[pd.DataFrame
             "n_bootstrap_procedures_non_evaluable": procedure_non_evaluable,
             "n_bootstrap_procedures_failed": procedure_failed,
             "n_bootstrap_procedures_not_run": procedure_not_run,
+            "n_bootstrap_procedures_with_unknown_inner_count": unknown_inner_count_procedures,
             "n_inner_resamples_attempted": inner_attempted,
             "n_inner_resamples_successful": inner_successful,
             "n_inner_resamples_failed": inner_failed,
