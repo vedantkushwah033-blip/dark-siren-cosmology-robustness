@@ -41,7 +41,18 @@ def test_procedure_and_inner_resample_denominators_are_separate_and_exclude_fpc_
                 "n_bootstrap_failed": method_counts[2],
             })
 
-    scenario, _ = summarize_bootstrap_calibration(pd.DataFrame(rows))
+    records = pd.DataFrame(rows)
+    scenario, aggregate = summarize_bootstrap_calibration(records)
+    from dark_siren_robustness.independent_calibration_audit import reconstruct_calibration_summaries
+    audited_scenario, audited_aggregate = reconstruct_calibration_summaries(records)
+    pd.testing.assert_frame_equal(
+        scenario, audited_scenario, check_dtype=False, check_exact=False,
+        rtol=1e-10, atol=1e-12,
+    )
+    pd.testing.assert_frame_equal(
+        aggregate, audited_aggregate, check_dtype=False, check_exact=False,
+        rtol=1e-10, atol=1e-12,
+    )
     paired = scenario.loc[scenario["method"].eq("paired_bootstrap")].iloc[0]
     derived = scenario.loc[scenario["method"].eq("paired_bootstrap_fpc")].iloc[0]
 
@@ -84,3 +95,54 @@ def test_bootstrap_count_reconciliation_rejects_inconsistent_ledger():
         assert "do not reconcile" in str(exc)
     else:
         raise AssertionError("inconsistent bootstrap counts were accepted")
+
+
+
+def test_bootstrap_status_cannot_disagree_with_inner_success_count():
+    records = pd.DataFrame([{
+        "scenario": 0,
+        "validation_size": 20,
+        "outer_draw": 0,
+        "method": "paired_bootstrap",
+        "outer_status": "success",
+        "bootstrap_status": "success",
+        "outer_posterior_mean": 70.0,
+        "bootstrap_se": 1.0,
+        "interval_low": 68.0,
+        "interval_high": 72.0,
+        "finite_parent_target": 70.0,
+        "n_bootstrap_attempted": 3,
+        "n_bootstrap_successful": 1,
+        "n_bootstrap_failed": 2,
+    }])
+    try:
+        summarize_bootstrap_calibration(records)
+    except ValueError as exc:
+        assert "status disagrees" in str(exc)
+    else:
+        raise AssertionError("success status with one successful resample was accepted")
+
+
+def test_wrapper_failure_must_not_report_fabricated_inner_counts():
+    records = pd.DataFrame([{
+        "scenario": 0,
+        "validation_size": 20,
+        "outer_draw": 0,
+        "method": "paired_bootstrap",
+        "outer_status": "success",
+        "bootstrap_status": "failed",
+        "outer_posterior_mean": 70.0,
+        "bootstrap_se": np.nan,
+        "interval_low": np.nan,
+        "interval_high": np.nan,
+        "finite_parent_target": 70.0,
+        "n_bootstrap_attempted": 3,
+        "n_bootstrap_successful": 0,
+        "n_bootstrap_failed": 3,
+    }])
+    try:
+        summarize_bootstrap_calibration(records)
+    except ValueError as exc:
+        assert "wrapper failures" in str(exc)
+    else:
+        raise AssertionError("wrapper failure with fabricated attempt counts was accepted")
