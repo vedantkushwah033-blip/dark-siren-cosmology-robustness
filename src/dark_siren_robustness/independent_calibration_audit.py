@@ -69,8 +69,37 @@ def reconstruct_calibration_summaries(records: pd.DataFrame):
         raise ValueError("audit method labels must be nonempty or whitespace-only")
     if not frame["outer_status"].isin(["success", "failed"]).all():
         raise ValueError("audit outer status is invalid")
-    if not frame["bootstrap_status"].isin(["success", "failed", "not_run"]).all():
+    if not frame["bootstrap_status"].isin(["success", "non_evaluable", "failed", "not_run"]).all():
         raise ValueError("audit bootstrap status is invalid")
+
+    count_columns = (
+        "n_bootstrap_attempted", "n_bootstrap_successful", "n_bootstrap_failed"
+    )
+    has_count_ledger = any(column in frame.columns for column in count_columns)
+    if has_count_ledger and not all(column in frame.columns for column in count_columns):
+        raise ValueError("audit bootstrap count ledger is incomplete")
+    for column in count_columns:
+        if column not in frame:
+            frame[column] = np.nan
+        frame[column] = pd.to_numeric(frame[column], errors="coerce")
+    if has_count_ledger:
+        for _, row in frame.iterrows():
+            status = str(row["bootstrap_status"])
+            values = [row[column] for column in count_columns]
+            if status in ("success", "non_evaluable"):
+                if any(pd.isna(value) or not np.isfinite(value) or value < 0 or value != int(value) for value in values):
+                    raise ValueError("audit evaluated procedures require finite nonnegative integer counts")
+                attempted, successful, failed = map(int, values)
+                if successful + failed != attempted:
+                    raise ValueError("audit inner bootstrap counts do not reconcile")
+                if (status == "success" and successful < 2) or (status == "non_evaluable" and successful >= 2):
+                    raise ValueError("audit bootstrap status disagrees with successful inner count")
+            elif status == "failed":
+                if any(pd.notna(value) for value in values):
+                    raise ValueError("audit wrapper failures must have unknown inner counts")
+            elif status == "not_run":
+                if any(pd.isna(value) or int(value) != 0 for value in values):
+                    raise ValueError("audit not-run procedures must have zero inner counts")
 
     for name in ("outer_posterior_mean", "bootstrap_se", "interval_low",
                  "interval_high", "finite_parent_target"):
@@ -174,10 +203,37 @@ def reconstruct_calibration_summaries(records: pd.DataFrame):
             "n_outer_attempted": int(outer_info["n_outer_attempted"]),
             "n_outer_successful": n_outer,
             "outer_failure_fraction": float(outer_info["outer_failure_fraction"]),
-            "n_bootstrap_attempted": n_outer,
-            "n_bootstrap_successful": int(len(successful)),
+            "n_bootstrap_attempted": int(group.loc[~group["bootstrap_is_derived"].fillna(False), "bootstrap_status"].ne("not_run").sum()) if "bootstrap_is_derived" in group else int(group["bootstrap_status"].ne("not_run").sum()),
+            "n_bootstrap_successful": int(group.loc[~group["bootstrap_is_derived"].fillna(False), "bootstrap_status"].eq("success").sum()) if "bootstrap_is_derived" in group else int(group["bootstrap_status"].eq("success").sum()),
+            "n_bootstrap_procedures_attempted": int(group.loc[~group["bootstrap_is_derived"].fillna(False), "bootstrap_status"].ne("not_run").sum()) if "bootstrap_is_derived" in group else int(group["bootstrap_status"].ne("not_run").sum()),
+            "n_bootstrap_procedures_successful": int(group.loc[~group["bootstrap_is_derived"].fillna(False), "bootstrap_status"].eq("success").sum()) if "bootstrap_is_derived" in group else int(group["bootstrap_status"].eq("success").sum()),
+            "n_bootstrap_procedures_non_evaluable": int(group.loc[~group["bootstrap_is_derived"].fillna(False), "bootstrap_status"].eq("non_evaluable").sum()) if "bootstrap_is_derived" in group else int(group["bootstrap_status"].eq("non_evaluable").sum()),
+            "n_bootstrap_procedures_failed": int(group.loc[~group["bootstrap_is_derived"].fillna(False), "bootstrap_status"].eq("failed").sum()) if "bootstrap_is_derived" in group else int(group["bootstrap_status"].eq("failed").sum()),
+            "n_bootstrap_procedures_not_run": int(group.loc[~group["bootstrap_is_derived"].fillna(False), "bootstrap_status"].eq("not_run").sum()) if "bootstrap_is_derived" in group else int(group["bootstrap_status"].eq("not_run").sum()),
+            "n_bootstrap_procedures_with_unknown_inner_count": int(group.loc[~group["bootstrap_is_derived"].fillna(False), "n_bootstrap_attempted"].isna().where(group.loc[~group["bootstrap_is_derived"].fillna(False), "bootstrap_status"].ne("not_run"), False).sum()) if "bootstrap_is_derived" in group else int(group["n_bootstrap_attempted"].isna().where(group["bootstrap_status"].ne("not_run"), False).sum()),
+            "n_inner_resamples_attempted": int(group.loc[~group["bootstrap_is_derived"].fillna(False), "n_bootstrap_attempted"].dropna().sum()) if "bootstrap_is_derived" in group else int(group["n_bootstrap_attempted"].dropna().sum()),
+            "n_inner_resamples_successful": int(group.loc[~group["bootstrap_is_derived"].fillna(False), "n_bootstrap_successful"].dropna().sum()) if "bootstrap_is_derived" in group else int(group["n_bootstrap_successful"].dropna().sum()),
+            "n_inner_resamples_failed": int(group.loc[~group["bootstrap_is_derived"].fillna(False), "n_bootstrap_failed"].dropna().sum()) if "bootstrap_is_derived" in group else int(group["n_bootstrap_failed"].dropna().sum()),
+            "inner_resample_failure_fraction": (
+                float(group.loc[~group["bootstrap_is_derived"].fillna(False), "n_bootstrap_failed"].dropna().sum()
+                      / group.loc[~group["bootstrap_is_derived"].fillna(False), "n_bootstrap_attempted"].dropna().sum())
+                if "bootstrap_is_derived" in group and group.loc[~group["bootstrap_is_derived"].fillna(False), "n_bootstrap_attempted"].dropna().sum() > 0
+                else (float(group["n_bootstrap_failed"].dropna().sum() / group["n_bootstrap_attempted"].dropna().sum())
+                      if "bootstrap_is_derived" not in group and group["n_bootstrap_attempted"].dropna().sum() > 0 else float("nan"))
+            ),
+            "bootstrap_wrapper_failure_fraction": (
+                float(group.loc[~group["bootstrap_is_derived"].fillna(False), "bootstrap_status"].eq("failed").sum()
+                      / group.loc[~group["bootstrap_is_derived"].fillna(False), "bootstrap_status"].ne("not_run").sum())
+                if "bootstrap_is_derived" in group and group.loc[~group["bootstrap_is_derived"].fillna(False), "bootstrap_status"].ne("not_run").sum() > 0
+                else (float(group["bootstrap_status"].eq("failed").sum() / group["bootstrap_status"].ne("not_run").sum())
+                      if "bootstrap_is_derived" not in group and group["bootstrap_status"].ne("not_run").sum() > 0 else float("nan"))
+            ),
             "bootstrap_failure_fraction": (
-                float(1.0 - len(successful) / n_outer) if n_outer else float("nan")
+                float(group.loc[~group["bootstrap_is_derived"].fillna(False), "bootstrap_status"].isin(["non_evaluable", "failed"]).sum()
+                      / group.loc[~group["bootstrap_is_derived"].fillna(False), "bootstrap_status"].ne("not_run").sum())
+                if "bootstrap_is_derived" in group and group.loc[~group["bootstrap_is_derived"].fillna(False), "bootstrap_status"].ne("not_run").sum() > 0
+                else (float(group["bootstrap_status"].isin(["non_evaluable", "failed"]).sum() / group["bootstrap_status"].ne("not_run").sum())
+                      if "bootstrap_is_derived" not in group and group["bootstrap_status"].ne("not_run").sum() > 0 else float("nan"))
             ),
             "empirical_srswor_sd": empirical_sd,
             "mean_inner_bootstrap_se": mean_se,
@@ -237,5 +293,13 @@ def reconstruct_calibration_summaries(records: pd.DataFrame):
             "scenario_balanced_bootstrap_failure_fraction": inner_mean,
             "scenario_balanced_bootstrap_failure_fraction_ci95_low": inner_low,
             "scenario_balanced_bootstrap_failure_fraction_ci95_high": inner_high,
+            "scenario_balanced_inner_resample_failure_fraction": (
+                float(group["inner_resample_failure_fraction"].dropna().mean())
+                if group["inner_resample_failure_fraction"].notna().any() else float("nan")
+            ),
+            "scenario_balanced_wrapper_failure_fraction": (
+                float(group["bootstrap_wrapper_failure_fraction"].dropna().mean())
+                if group["bootstrap_wrapper_failure_fraction"].notna().any() else float("nan")
+            ),
         })
     return scenario_level, pd.DataFrame(aggregate_rows)
