@@ -168,17 +168,24 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                                 seed=method_seed, merger_weight=rate,
                             )
                             ok = int(result["n_successful"])
-                            if ok < 2:
-                                raise RuntimeError(
-                                    f"fewer than two successful bootstrap replicates ({ok}/{bootstrap_replicates})"
-                                )
-                            lo, hi = map(float, result["posterior_mean_percentile_interval_95"])
+                            attempted = int(result["n_attempted"])
+                            failed = int(result["n_failed"])
+                            success_mask = np.asarray(result["success_mask"], dtype=bool)
+                            if attempted != success_mask.size or ok != int(success_mask.sum()) or failed != attempted - ok:
+                                raise ValueError("bootstrap result counts do not reconcile with success mask")
+                            evaluable = ok >= 2
+                            interval_values = result["posterior_mean_percentile_interval_95"]
+                            lo, hi = (
+                                map(float, interval_values) if evaluable
+                                else (float("nan"), float("nan"))
+                            )
                             method_results[method] = {
-                                "bootstrap_status": "success",
-                                "bootstrap_se": float(result["raw_bootstrap_standard_error"]),
+                                "bootstrap_status": "success" if evaluable else "non_evaluable",
+                                "bootstrap_se": float(result["raw_bootstrap_standard_error"]) if evaluable else np.nan,
                                 "interval_low": lo, "interval_high": hi,
                                 "n_bootstrap_successful": ok,
-                                "n_bootstrap_attempted": bootstrap_replicates,
+                                "n_bootstrap_attempted": attempted,
+                                "n_bootstrap_failed": failed,
                                 "bootstrap_seed": method_seed,
                                 "failure_records": result["failure_records"],
                                 "wrapper_failure_class": None,
@@ -204,10 +211,11 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                             method_results[method] = {
                                 "bootstrap_status": "failed", "bootstrap_se": np.nan,
                                 "interval_low": np.nan, "interval_high": np.nan,
-                                "n_bootstrap_successful": 0,
-                                "n_bootstrap_attempted": bootstrap_replicates,
+                                "n_bootstrap_successful": None,
+                                "n_bootstrap_attempted": None,
+                                "n_bootstrap_failed": None,
                                 "bootstrap_seed": method_seed,
-                                "failure_records": [{"reason": f"{type(exc).__name__}: {exc}"}],
+                                "failure_records": [],
                                 "wrapper_failure_class": type(exc).__name__,
                                 "wrapper_failure_message": str(exc),
                                 "fpc_factor": float(np.sqrt(max(0.0, 1.0-size/n_parent))),
@@ -221,7 +229,10 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                         "interval_low": outer_mean-1.96*fpc_se if np.isfinite(fpc_se) else np.nan,
                         "interval_high": outer_mean+1.96*fpc_se if np.isfinite(fpc_se) else np.nan,
                         "n_bootstrap_successful": paired["n_bootstrap_successful"],
-                        "n_bootstrap_attempted": bootstrap_replicates,
+                        "n_bootstrap_attempted": paired["n_bootstrap_attempted"],
+                        "n_bootstrap_failed": paired.get("n_bootstrap_failed"),
+                        "bootstrap_is_derived": True,
+                        "bootstrap_source_method": "paired_bootstrap",
                         "bootstrap_seed": paired["bootstrap_seed"],
                         "failure_records": paired["failure_records"],
                         "fpc_factor": paired["fpc_factor"],
@@ -241,6 +252,7 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                         "scenario": scenario, "validation_size": size, "outer_draw": draw,
                         "method": method, "outer_status": outer_status,
                         "bootstrap_status": result["bootstrap_status"],
+                        "bootstrap_is_derived": bool(result.get("bootstrap_is_derived", False)),
                         "outer_posterior_mean": outer_mean,
                         "bootstrap_se": result["bootstrap_se"],
                         "interval_low": result["interval_low"],
@@ -275,6 +287,9 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                         "bootstrap_selected_pseudo_population_positions": result.get("selected_pseudo_population_positions"),
                         "n_bootstrap_attempted": result["n_bootstrap_attempted"],
                         "n_bootstrap_successful": result["n_bootstrap_successful"],
+                        "n_bootstrap_failed": result.get("n_bootstrap_failed"),
+                        "bootstrap_is_derived": bool(result.get("bootstrap_is_derived", False)),
+                        "bootstrap_source_method": result.get("bootstrap_source_method"),
                         "fpc_factor": result["fpc_factor"],
                         "parent_frame_sha256": parent_hash,
                         "catalogue_sha256": catalogue_hash,
