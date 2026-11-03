@@ -267,6 +267,7 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                     attempt_log.append({
                         "scenario": scenario, "validation_size": size, "outer_draw": draw,
                         "method": method, "outer_seed": outer_seed,
+                        "bootstrap_status": result["bootstrap_status"],
                         "simulation_seed": sim_seed, "thinning_seed": thin_seed,
                         "bootstrap_seed": result["bootstrap_seed"],
                         "outer_failure": outer_failure,
