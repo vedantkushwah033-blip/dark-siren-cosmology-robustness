@@ -243,7 +243,8 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                             "bootstrap_status": "not_run", "bootstrap_se": np.nan,
                             "interval_low": np.nan, "interval_high": np.nan,
                             "n_bootstrap_successful": 0,
-                            "n_bootstrap_attempted": 0, "bootstrap_seed": None,
+                            "n_bootstrap_attempted": 0, "n_bootstrap_failed": 0,
+                            "bootstrap_seed": None,
                             "failure_records": [], "fpc_factor": float(np.sqrt(max(0.0, 1.0-size/n_parent))),
                         }
 
