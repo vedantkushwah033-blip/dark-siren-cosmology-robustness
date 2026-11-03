@@ -257,15 +257,26 @@ def test_replay_auditor_rejects_failure_ledger_row_mismatch(tmp_path):
 
     (tmp_path / "manifest.json").write_text(json.dumps({
         "schema": "nested_validation_bootstrap_comparison_smoke_v2",
-        "status": "PARTIAL_INCOMPLETE_SCENARIOS",
+        "status": "SMOKE_ONLY_NOT_CONFIRMATORY",
         "scenarios": 1,
-        "completed_scenarios": 0,
-        "failed_scenarios": 1,
+        "planned_scenarios": 1,
+        "completed_scenarios": 1,
+        "failed_scenarios": 0,
+        "outer_draws": 1,
+        "validation_sizes": [20],
+        "planned_method_rows": 3,
+        "completed_method_rows": 1,
+        "summary_scenario_ids": [0],
+        "parent_size": 100,
+        "detected_event_count": 2,
+        "seed": 7,
+        "model_parameters": {},
+        "bootstrap_replicates_per_method_per_outer_draw": 2,
     }), encoding="utf-8")
     pd.DataFrame([{
         "scenario": 0,
-        "scenario_status": "failed",
-        "scenario_failure": "ledger failure",
+        "scenario_status": "complete",
+        "scenario_failure": "",
     }]).to_csv(tmp_path / "scenario_failure_records.csv", index=False)
     pd.DataFrame([{
         "scenario": 0,
@@ -278,7 +289,7 @@ def test_replay_auditor_rejects_failure_ledger_row_mismatch(tmp_path):
     }]).to_csv(tmp_path / "calibration_records.csv", index=False)
     (tmp_path / "attempt_audit.jsonl").write_text(
         '{"scenario":0,"validation_size":20,"outer_draw":0,"method":"paired_bootstrap",'
-        '"scenario_failure":"ledger failure"}\n',
+        '"scenario_failure":""}\n',
         encoding="utf-8",
     )
 
@@ -329,6 +340,11 @@ def _write_key_integrity_fixture(directory, mutation):
         "planned_method_rows": 3 if mutation != "altered_manifest" else 4,
         "completed_method_rows": 3,
         "summary_scenario_ids": [0],
+        "parent_size": 100,
+        "detected_event_count": 2,
+        "seed": 7,
+        "model_parameters": {},
+        "bootstrap_replicates_per_method_per_outer_draw": 2,
     }), encoding="utf-8")
 
 
