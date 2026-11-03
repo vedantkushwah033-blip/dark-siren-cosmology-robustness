@@ -214,6 +214,14 @@ def _reconstruct_result(row, method: str, n_parent: int, b: int) -> dict:
 def audit(directory: Path) -> dict:
     manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
     scenario_count = _require_scenario_count(manifest)
+    _require(
+        manifest.get("schema") == "nested_validation_bootstrap_comparison_smoke_v2",
+        "unsupported artifact manifest schema; expected smoke_v2",
+    )
+    _require(
+        manifest.get("status") == "SMOKE_ONLY_NOT_CONFIRMATORY",
+        "partial/incomplete artifacts cannot receive a complete replay-audit pass",
+    )
     records = pd.read_csv(directory / "calibration_records.csv")
     attempts = pd.read_json(directory / "attempt_audit.jsonl", lines=True)
     scenario_failures = pd.read_csv(directory / "scenario_failure_records.csv")
@@ -268,14 +276,6 @@ def audit(directory: Path) -> dict:
             and failed_rows["bootstrap_status"].eq("not_run").all(),
             "failed scenarios must have failed outer status and not_run bootstrap status",
         )
-    _require(
-        manifest.get("schema") == "nested_validation_bootstrap_comparison_smoke_v2",
-        "unsupported artifact manifest schema; expected smoke_v2",
-    )
-    _require(
-        manifest.get("status") == "SMOKE_ONLY_NOT_CONFIRMATORY",
-        "partial/incomplete artifacts cannot receive a complete replay-audit pass",
-    )
     _require_manifest_fields(manifest)
     key = ["scenario", "validation_size", "outer_draw", "method"]
     methods = ["paired_bootstrap", "paired_bootstrap_fpc", "design_aware_srswor"]
