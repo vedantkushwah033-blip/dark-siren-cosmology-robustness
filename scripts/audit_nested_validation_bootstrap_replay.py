@@ -353,8 +353,9 @@ def audit(directory: Path) -> dict:
                      "wrapper failure must not fabricate attempt-level failure records")
         elif status == "not_run":
             _require(int(row.n_bootstrap_attempted) == 0
-                     and int(row.n_bootstrap_successful) == 0,
-                     "not-run procedure must have zero observed inner attempts")
+                     and int(row.n_bootstrap_successful) == 0
+                     and int(row.n_bootstrap_failed) == 0,
+                     "not-run procedure must have zero observed inner attempts and failures")
         else:
             raise AssertionError(f"unknown bootstrap status: {status}")
 
