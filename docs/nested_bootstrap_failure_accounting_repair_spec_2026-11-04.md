@@ -2,8 +2,8 @@
 
 **Date:** 2026-11-04  
 **Target branch:** `research/bootstrap-failure-path-repairs-2026-11-02`  
-**Inspected branch HEAD:** `744879f0c8594a9a870c8f73bd298f026ac108f8`  
-**Status:** Source-inspection specification; implementation and tests not yet completed.
+**Implementation commits:** `7cd508b`, `04133e1`, `127c132`, `81ff9b9`, `c150039`, `a270777`, `cab8b36`  
+**Status:** Runner, summary, replay-auditor, and focused-test changes committed. Tests have not been executed in this environment; release gate remains closed.
 
 ## Scope
 
@@ -106,3 +106,23 @@ Validate the following invariants:
 Do not launch the large confirmatory experiment until the runner, calibration summarizer, artifact schema, and independent replay auditor implement this contract; the focused tests pass on the supported Python/dependency matrix; exact-head CI is available; and a small persisted smoke artifact passes independent audit.
 
 Even after this gate, the study remains a synthetic robustness experiment. A passing software audit does not establish bootstrap validity, real-survey transportability, realistic detector selection, or a new observational H0 result.
+
+
+## Implementation progress (2026-11-04)
+
+The implementation now records returned bootstrap outcomes even when fewer than two resamples succeed. Such procedures receive `non_evaluable`, retain the returned success mask, attempt-level posterior values, failure ledger, and actual counts, and do not receive an SE or percentile interval.
+
+Wrapper exceptions now retain exception class/message but leave inner attempt, success, and failure counts unknown (`null`) and do not fabricate attempt-level failure records. The FPC diagnostic row is explicitly marked as derived from `paired_bootstrap`; calibration denominators exclude it.
+
+The calibration summary now distinguishes:
+- bootstrap procedure attempts, successes, non-evaluable procedures, failures, and not-run procedures;
+- observed inner resample attempts, successes, and failures;
+- procedure-level non-success fraction;
+- inner-resample failure fraction;
+- wrapper-failure fraction.
+
+The replay auditor now checks count/mask/failure-ledger reconciliation, rejects fabricated counts on wrapper failure, checks the derived FPC provenance label, and deterministically replays non-evaluable ledgers.
+
+Focused tests were added for partial outcomes, unknown wrapper-failure counts, denominator separation, FPC exclusion, and inconsistent count rejection.
+
+**Verification limitation:** These commits were written through the GitHub contents API. No local test execution or exact-head CI run has yet been obtained. Therefore the changes are implemented but not yet verified as passing. Do not describe the repair as complete or launch the confirmatory experiment.
