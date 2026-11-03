@@ -99,6 +99,82 @@ def test_nested_comparison_persists_wrapper_exception_metadata(monkeypatch):
         records["method"].isin(["paired_bootstrap", "design_aware_srswor"]),
         "bootstrap_status",
     ].eq("failed").all()
+    assert failed["n_bootstrap_attempted"].isna().all()
+    assert failed["n_bootstrap_successful"].isna().all()
+    assert failed["n_bootstrap_failed"].isna().all()
+    assert failed["bootstrap_failure_records"].map(len).eq(0).all()
+
+
+def test_nested_comparison_preserves_partial_bootstrap_attempt_ledger(monkeypatch):
+    import numpy as np
+    import pandas as pd
+
+    import scripts.run_nested_validation_bootstrap_comparison as runner
+
+    def fake_population(**kwargs):
+        return {
+            "parent_truth": pd.DataFrame({
+                "redshift": np.linspace(0.01, 0.40, kwargs["n_parent"])
+            }),
+            "gw_events_observed": pd.DataFrame({
+                "distance_mpc": np.full(kwargs["n_detected"], 350.0)
+            }),
+        }
+
+    def fake_posterior(*args, **kwargs):
+        return {}, {"posterior_mean": 70.0}
+
+    def partial_bootstrap(*args, **kwargs):
+        return {
+            "n_attempted": 3, "n_successful": 1, "n_failed": 2,
+            "success_mask": np.array([True, False, False]),
+            "posterior_mean_percentile_interval_95": (np.nan, np.nan),
+            "raw_bootstrap_standard_error": np.nan,
+            "failure_records": [
+                {"attempt": 1, "reason": "forced failure 1"},
+                {"attempt": 2, "reason": "forced failure 2"},
+            ],
+            "fpc_factor": 0.9, "input_fingerprints": {},
+            "attempt_posterior_mean": np.array([70.1, np.nan, np.nan]),
+            "reference_posterior_mean_by_attempt": np.array([70.0, np.nan, np.nan]),
+            "posterior_median_draws_by_attempt": np.array([70.1, np.nan, np.nan]),
+            "ci68_low_draws_by_attempt": np.array([69.0, np.nan, np.nan]),
+            "ci68_high_draws_by_attempt": np.array([71.0, np.nan, np.nan]),
+            "inverse_weight_ess_by_attempt": np.array([10.0, np.nan, np.nan]),
+            "inverse_weight_maximum_by_attempt": np.array([0.2, np.nan, np.nan]),
+            "coefficient_boundary_limited_by_attempt": np.array([False, False, False]),
+            "posterior_density_draws": np.empty((1, 81)),
+            "fixed_full_validation_reference_mean": 70.0,
+            "sample_indices": [np.array([1]), np.array([2]), np.array([3])],
+            "pseudo_population_indices": [np.array([], dtype=int)] * 3,
+            "selected_pseudo_population_positions": [np.array([], dtype=int)] * 3,
+        }
+
+    monkeypatch.setattr(runner, "generate_synthetic_population", fake_population)
+    monkeypatch.setattr(runner, "_posterior", fake_posterior)
+    monkeypatch.setattr(runner, "bootstrap_validation_h0_posterior", partial_bootstrap)
+
+    records, attempts = runner.run_comparison(
+        scenarios=1, draws=2, n_parent=100, n_detected=2,
+        validation_sizes=(20,), bootstrap_replicates=3, seed=29,
+    )
+
+    independent = attempts.loc[attempts["method"].isin(
+        ["paired_bootstrap", "design_aware_srswor"]
+    )]
+    assert independent["bootstrap_status"].eq("non_evaluable").all()
+    assert independent["n_bootstrap_attempted"].eq(3).all()
+    assert independent["n_bootstrap_successful"].eq(1).all()
+    assert independent["n_bootstrap_failed"].eq(2).all()
+    assert independent["bootstrap_success_mask"].map(sum).eq(1).all()
+    assert independent["bootstrap_failure_records"].map(len).eq(2).all()
+    assert records.loc[
+        records["method"].isin(["paired_bootstrap", "design_aware_srswor"]),
+        "bootstrap_se",
+    ].isna().all()
+    derived = attempts.loc[attempts["method"].eq("paired_bootstrap_fpc")]
+    assert derived["bootstrap_is_derived"].all()
+    assert derived["bootstrap_source_method"].eq("paired_bootstrap").all()
 
 
 def test_nested_comparison_records_scenario_target_failure_and_continues(monkeypatch):
