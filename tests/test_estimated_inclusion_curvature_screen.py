@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from scripts import run_estimated_inclusion_curvature_screen as screen
 
@@ -42,3 +43,24 @@ def test_curvature_screen_runs_all_conditions_and_audits(tmp_path, monkeypatch):
         assert (condition_dir / "replicates.csv").is_file()
         assert (condition_dir / "summary.json").is_file()
         assert (condition_dir / "independent_audit.json").is_file()
+
+
+def test_curvature_screen_refuses_to_overwrite_existing_artifacts(tmp_path, monkeypatch):
+    output = tmp_path / "existing"
+    output.mkdir()
+    sentinel = output / "keep.txt"
+    sentinel.write_text("preserve prior artifact", encoding="utf-8")
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run_estimated_inclusion_curvature_screen.py",
+            "--replicates", "1",
+            "--n-parent", "1000",
+            "--n-detected", "5",
+            "--validation-sizes", "100",
+            "--output-dir", str(output),
+        ],
+    )
+    with pytest.raises(SystemExit):
+        screen.main()
+    assert sentinel.read_text(encoding="utf-8") == "preserve prior artifact"
