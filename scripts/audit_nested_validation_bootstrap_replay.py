@@ -368,7 +368,15 @@ def audit(directory: Path) -> dict:
         manifest.get("summary_scenario_ids") == list(range(scenarios_expected)),
         "complete replay audit requires every planned scenario in summary scope",
     )
-    rebuilt_scenario, rebuilt_aggregate = reconstruct_calibration_summaries(records)
+    try:
+        rebuilt_scenario, rebuilt_aggregate = reconstruct_calibration_summaries(records)
+    except ValueError as exc:
+        message = str(exc)
+        if message == "audit inner bootstrap counts do not reconcile":
+            raise AssertionError(
+                "inner success/failure counts do not reconcile in calibration ledger"
+            ) from exc
+        raise AssertionError(f"calibration ledger invariant failed: {message}") from exc
     _require_summary_match(directory, "scenario_summary.csv", rebuilt_scenario)
     _require_summary_match(directory, "scenario_balanced_summary.csv", rebuilt_aggregate)
 
