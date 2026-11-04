@@ -186,8 +186,12 @@ def main() -> None:
     n_failed = int(summary["n_failed"])
     if n_attempted < 2 or n_successful + n_failed != n_attempted:
         raise AssertionError("attempted/successful/failed bootstrap counts do not reconcile")
-    if len(summary.get("failure_reasons", [])) != n_failed:
+    failure_reasons = summary.get("failure_reasons", [])
+    failure_records = summary.get("failure_records")
+    if len(failure_reasons) != n_failed:
         raise AssertionError("failure reason count does not match failed resamples")
+    if not isinstance(failure_records, list) or len(failure_records) != n_failed:
+        raise AssertionError("failure records are missing or do not match failed-resample count")
     if summary.get("seed") is None or not isinstance(summary["seed"], int):
         raise AssertionError("bootstrap seed is missing")
     z = np.asarray(payload["redshift_grid"], dtype=float)
@@ -202,6 +206,23 @@ def main() -> None:
         raise AssertionError("resample-index matrix has incorrect dimensions")
     if success_mask.shape != (n_attempted,) or int(np.sum(success_mask)) != n_successful:
         raise AssertionError("bootstrap success mask does not reconcile with counts")
+    failed_indices = np.flatnonzero(~success_mask).astype(int).tolist()
+    recorded_failures = []
+    recorded_reasons = []
+    for record in failure_records:
+        if not isinstance(record, dict):
+            raise AssertionError("failure record must be an object")
+        attempt = record.get("bootstrap_index")
+        if isinstance(attempt, bool) or not isinstance(attempt, int):
+            raise AssertionError("failure record has an invalid bootstrap index")
+        if not isinstance(record.get("exception_type"), str) or not record["exception_type"]:
+            raise AssertionError("failure record has no exception type")
+        if not isinstance(record.get("reason"), str) or not record["reason"]:
+            raise AssertionError("failure record has no reason")
+        recorded_failures.append(attempt)
+        recorded_reasons.append(record["reason"])
+    if recorded_failures != failed_indices or recorded_reasons != failure_reasons:
+        raise AssertionError("failure records do not reconcile with the ordered success mask/reasons")
     if np.any((resample_indices < 0) | (resample_indices >= validation_z.size)):
         raise AssertionError("bootstrap resample index lies outside validation records")
     replay_rng = np.random.default_rng(int(summary["seed"]))
