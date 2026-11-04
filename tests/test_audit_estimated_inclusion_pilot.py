@@ -24,9 +24,9 @@ def test_independent_pilot_auditor_reconstructs_output(tmp_path):
     assert report["n_rows"] == 4
     assert report["n_replicate_arm_pairs_expected"] == 4
     assert report["n_replicate_arm_pairs_observed"] == 4
-    assert set(report["per_arm_counts"]) == {"catalogue_only", "oracle", "estimated_100", "estimated_200"}
+    assert set(report["per_arm_counts"]) == {"catalogue_only", "oracle", "estimated_linear_100", "estimated_200"}
     assert "n_boundary_limited_successful_fits" in report
-    assert set(report["comparison_diagnostics"]) == {"oracle", "estimated_100", "estimated_200"}
+    assert set(report["comparison_diagnostics"]) == {"oracle", "estimated_linear_100", "estimated_200"}
     assert all(
         item["n_attempted_common_replicates"] == 1
         for item in report["comparison_diagnostics"].values()
@@ -162,7 +162,7 @@ def test_independent_auditor_accepts_explicit_all_failed_artifact_without_fit_co
             "n_failed": 1,
             "status": "no_successful_fits",
         }
-        for arm in ["catalogue_only", "oracle", "estimated_100"]
+        for arm in ["catalogue_only", "oracle", "estimated_linear_100"]
     ]
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     report = audit_pilot_artifacts(tmp_path)
@@ -189,7 +189,7 @@ def test_integer_column_parser_rejects_fractional_validation_sizes():
     from scripts.audit_estimated_inclusion_pilot import _integer_values
 
     with pytest.raises(AssertionError, match="integer-valued"):
-        _integer_values(pd.Series([100, 100.5]), "estimated_100.validation_size")
+        _integer_values(pd.Series([100, 100.5]), "estimated_linear_100.validation_size")
 
 
 
@@ -247,7 +247,7 @@ def test_independent_auditor_rejects_nonmonotone_nested_validation_counts(tmp_pa
         h0_points=41,
         z_points=201,
     )
-    lower = frame.index[frame["arm"].eq("estimated_100")][0]
+    lower = frame.index[frame["arm"].eq("estimated_linear_100")][0]
     upper = frame.index[frame["arm"].eq("estimated_300")][0]
     frame.loc[lower, "audit_included_count"] = 100
     frame.loc[upper, "audit_included_count"] = 0
@@ -259,7 +259,7 @@ def test_independent_auditor_rejects_nonmonotone_nested_validation_counts(tmp_pa
 
 def test_independent_auditor_rejects_corrupted_preposterior_ess(tmp_path):
     frame, summary = _write_small_pilot(tmp_path, seed=20261052)
-    mask = frame["arm"].eq("estimated_100") & frame["diagnostic_schema"].eq("preposterior_weight_stability_v1")
+    mask = frame["arm"].eq("estimated_linear_100") & frame["diagnostic_schema"].eq("preposterior_weight_stability_v1")
     assert mask.any(), frame[["arm", "status", "error"]].to_dict("records")
     frame.loc[mask, "inverse_weight_ess"] *= 0.5
     frame.to_csv(tmp_path / "replicates.csv", index=False)
@@ -270,7 +270,7 @@ def test_independent_auditor_rejects_corrupted_preposterior_ess(tmp_path):
 
 def test_independent_auditor_rejects_corrupted_preposterior_validation_count(tmp_path):
     frame, summary = _write_small_pilot(tmp_path, seed=20261053)
-    mask = frame["arm"].eq("estimated_100") & frame["diagnostic_schema"].eq("preposterior_weight_stability_v1")
+    mask = frame["arm"].eq("estimated_linear_100") & frame["diagnostic_schema"].eq("preposterior_weight_stability_v1")
     assert mask.any(), frame[["arm", "status", "error"]].to_dict("records")
     frame.loc[mask, "n_validation_included"] += 1
     frame.to_csv(tmp_path / "replicates.csv", index=False)
@@ -281,7 +281,7 @@ def test_independent_auditor_rejects_corrupted_preposterior_validation_count(tmp
 
 def test_independent_auditor_rejects_invalid_weight_concentration_order(tmp_path):
     frame, summary = _write_small_pilot(tmp_path, seed=20261054)
-    mask = frame["arm"].eq("estimated_100") & frame["diagnostic_schema"].eq("preposterior_weight_stability_v1")
+    mask = frame["arm"].eq("estimated_linear_100") & frame["diagnostic_schema"].eq("preposterior_weight_stability_v1")
     assert mask.any(), frame[["arm", "status", "error"]].to_dict("records")
     frame.loc[mask, "inverse_weight_top_1pct_mass"] = 0.01
     frame.loc[mask, "inverse_weight_max_share"] = 0.02
@@ -293,7 +293,7 @@ def test_independent_auditor_rejects_invalid_weight_concentration_order(tmp_path
 
 def test_independent_auditor_rejects_entropy_ess_below_quadratic_ess(tmp_path):
     frame, summary = _write_small_pilot(tmp_path, seed=20261055)
-    mask = frame["arm"].eq("estimated_100") & frame["diagnostic_schema"].eq("preposterior_weight_stability_v1")
+    mask = frame["arm"].eq("estimated_linear_100") & frame["diagnostic_schema"].eq("preposterior_weight_stability_v1")
     assert mask.any(), frame[["arm", "status", "error"]].to_dict("records")
     frame.loc[mask, "inverse_weight_entropy_ess_fraction"] = 0.0
     frame.to_csv(tmp_path / "replicates.csv", index=False)
@@ -331,7 +331,7 @@ def test_independent_auditor_rejects_missing_inference_reconstruction_payload(tm
 
 def test_independent_auditor_rejects_corrupted_estimated_inclusion_probabilities(tmp_path):
     frame, summary = _write_small_pilot(tmp_path, seed=20261060)
-    mask = frame["arm"].eq("estimated_100") & frame["status"].eq("success")
+    mask = frame["arm"].eq("estimated_linear_100") & frame["status"].eq("success")
     assert mask.any(), frame[["arm", "status", "error"]].to_dict("records")
     index = frame.index[mask][0]
     payload = json.loads(frame.loc[index, "inference_audit_payload_json"])
@@ -345,7 +345,7 @@ def test_independent_auditor_rejects_corrupted_estimated_inclusion_probabilities
 
 def test_independent_auditor_rejects_corrupted_validation_labels(tmp_path):
     frame, summary = _write_small_pilot(tmp_path, seed=20261061)
-    mask = frame["arm"].eq("estimated_100") & frame["status"].eq("success")
+    mask = frame["arm"].eq("estimated_linear_100") & frame["status"].eq("success")
     assert mask.any(), frame[["arm", "status", "error"]].to_dict("records")
     index = frame.index[mask][0]
     payload = json.loads(frame.loc[index, "inference_audit_payload_json"])
@@ -360,7 +360,7 @@ def test_independent_auditor_rejects_corrupted_validation_labels(tmp_path):
 
 def test_independent_auditor_rejects_corrupted_scoring_only_probability_mae(tmp_path):
     frame, summary = _write_small_pilot(tmp_path, seed=20261062)
-    mask = frame["arm"].eq("estimated_100") & frame["status"].eq("success")
+    mask = frame["arm"].eq("estimated_linear_100") & frame["status"].eq("success")
     assert mask.any(), frame[["arm", "status", "error"]].to_dict("records")
     index = frame.index[mask][0]
     scoring = json.loads(frame.loc[index, "scoring_audit_payload_json"])
@@ -410,7 +410,7 @@ def test_independent_auditor_rejects_success_status_with_nonoptimal_logistic_ref
     import scripts.audit_estimated_inclusion_pilot as auditor
 
     frame, summary = _write_small_pilot(tmp_path, seed=20261065)
-    mask = frame["arm"].eq("estimated_100") & frame["status"].eq("success")
+    mask = frame["arm"].eq("estimated_linear_100") & frame["status"].eq("success")
     assert mask.any(), frame[["arm", "status", "error"]].to_dict("records")
     index = frame.index[mask][0]
     payload = json.loads(frame.loc[index, "inference_audit_payload_json"])
