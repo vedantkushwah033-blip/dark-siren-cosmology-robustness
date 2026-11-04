@@ -573,6 +573,7 @@ def run_validation_bootstrap_posterior_sensitivity(
         "inverse_weight_maximum_draws": bootstrap["inverse_weight_maximum_draws"],
         "inverse_weight_p99_draws": bootstrap["inverse_weight_p99_draws"],
         "failure_reasons": bootstrap["failure_reasons"],
+        "failure_records": bootstrap["failure_records"],
         "interpretation": (
             "validation-bootstrap sensitivity of posterior summaries conditional on "
             "the fixed catalogue and GW distances; percentile range is not an H0 "
