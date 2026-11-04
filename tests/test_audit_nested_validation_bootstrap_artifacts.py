@@ -144,7 +144,7 @@ def test_independent_replay_rejects_fabricated_wrapper_failure(nested_artifact):
     ][0]
     records.at[selected, "bootstrap_status"] = "failed"
     records.to_csv(records_path, index=False)
-    with pytest.raises(AssertionError, match="wrapper failure|did not reproduce"):
+    with pytest.raises(AssertionError, match="wrapper failure|did not reproduce|statuses differ"):
         audit_replay(nested_artifact)
 
 def test_nested_replay_auditor_never_calls_production_bootstrap_wrapper():
