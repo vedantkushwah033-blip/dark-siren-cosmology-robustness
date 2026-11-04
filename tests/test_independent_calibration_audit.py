@@ -85,6 +85,10 @@ def test_independent_summarizer_rejects_malformed_design_and_target_values(
     column, bad_value, message
 ):
     records = fixture_records()
+    # Pandas 3 rejects invalid upcasts into inferred integer columns before
+    # the auditor sees the deliberately malformed value. Use object dtype so
+    # the regression tests exercise the auditor's validation boundary.
+    records[column] = records[column].astype(object)
     records.loc[0, column] = bad_value
     with pytest.raises(ValueError, match=message):
         reconstruct_calibration_summaries(records)
