@@ -493,3 +493,60 @@ def test_quadratic_predictor_rejects_out_of_domain_coefficients():
     }
     with pytest.raises(ValueError, match="coefficients exceed"):
         predict_inclusion_probability([0.2], model)
+
+
+def test_validation_density_estimator_exposes_explicit_quadratic_model_choice():
+    from scipy.integrate import trapezoid
+    from dark_siren_robustness.estimated_inclusion import estimate_host_density_from_validation
+
+    rng = np.random.default_rng(20261104)
+    grid = np.linspace(0.01, 0.40, 201)
+    parent = rng.uniform(grid[0], grid[-1], 5000)
+    x = (parent - (grid[0] + grid[-1]) / 2) / ((grid[-1] - grid[0]) / 2)
+    p = expit(0.2 - 0.8 * x + 1.5 * (x**2 - 0.2845))
+    retained = rng.binomial(1, p)
+    audit = rng.choice(parent.size, size=1800, replace=False)
+    observed = parent[retained.astype(bool)]
+
+    result = estimate_host_density_from_validation(
+        grid, observed, parent[audit], retained[audit],
+        model_type="quadratic",
+    )
+    assert result["model"]["model"] == "quadratic_logistic_inclusion_v1"
+    assert result["model"]["n_validation"] == len(audit)
+    assert np.all(np.isfinite(result["observed_inclusion_probability"]))
+    assert np.all((result["observed_inclusion_probability"] > 0)
+                  & (result["observed_inclusion_probability"] < 1))
+    assert trapezoid(result["density"], grid) == pytest.approx(1.0, abs=1e-10)
+
+    with pytest.raises(ValueError, match="model_type"):
+        estimate_host_density_from_validation(
+            grid, observed, parent[audit], retained[audit], model_type="cubic"
+        )
+
+
+def test_preposterior_diagnostics_accept_quadratic_model_and_verify_probabilities():
+    from dark_siren_robustness.preposterior_diagnostics import build_preposterior_diagnostics
+    from dark_siren_robustness.estimated_inclusion import (
+        fit_quadratic_logistic_inclusion_model,
+    )
+
+    rng = np.random.default_rng(20261106)
+    z_min, z_max = 0.01, 0.40
+    validation_z = rng.uniform(z_min, z_max, 2500)
+    x = (validation_z - (z_min + z_max) / 2) / ((z_max - z_min) / 2)
+    validation_y = rng.binomial(1, expit(0.1 - 0.5*x + 1.0*x**2))
+    model = fit_quadratic_logistic_inclusion_model(
+        validation_z, validation_y, z_min=z_min, z_max=z_max
+    )
+    catalogue_z = np.linspace(0.02, 0.39, 120)
+    probability = predict_inclusion_probability(catalogue_z, model)
+    diagnostics = build_preposterior_diagnostics(
+        model, validation_z, validation_y, catalogue_z, probability
+    )
+    assert diagnostics["diagnostic_schema"] == "preposterior_weight_stability_v1"
+    assert diagnostics["n_validation"] == len(validation_z)
+    with pytest.raises(ValueError, match="disagree with fitted model"):
+        build_preposterior_diagnostics(
+            model, validation_z, validation_y, catalogue_z, np.full(120, 0.5)
+        )
