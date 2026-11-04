@@ -63,15 +63,40 @@ def fit_logistic_inclusion_model(
         value = -np.sum(y * log_expit(eta) + (1.0 - y) * log_expit(-eta))
         return float(value) if np.isfinite(value) else float("inf")
 
+    def gradient(theta: NDArray[np.float64]) -> NDArray[np.float64]:
+        residual = expit(theta[0] + theta[1] * x) - y
+        return np.array([np.sum(residual), np.dot(residual, x)], dtype=float)
+
+    bounds = ((-25.0, 25.0), (-50.0, 50.0))
     result = minimize(
         negative_log_likelihood,
         x0=np.array([0.0, 0.0], dtype=float),
+        jac=gradient,
         method="L-BFGS-B",
-        bounds=((-25.0, 25.0), (-50.0, 50.0)),
-        options={"maxiter": 2000, "ftol": 1e-12, "gtol": 1e-8},
+        bounds=bounds,
+        options={"maxiter": 2000, "maxfun": 50000, "maxls": 100,
+                 "ftol": 1e-12, "gtol": 1e-8},
     )
-    if not result.success or not np.all(np.isfinite(result.x)) or not np.isfinite(result.fun):
+    if not np.all(np.isfinite(result.x)) or not np.isfinite(result.fun):
         raise RuntimeError(f"logistic inclusion fit failed: {result.message}")
+
+    # A line-search termination flag is not itself proof that the bounded
+    # optimum was missed. Check the box-constrained KKT residual explicitly.
+    # This accepts a non-success optimizer status only when the independently
+    # computed projected gradient is already small.
+    raw_gradient = gradient(np.asarray(result.x, dtype=float))
+    projected_gradient = raw_gradient.copy()
+    for j, (lower, upper) in enumerate(bounds):
+        if result.x[j] <= lower + 1e-7 and raw_gradient[j] > 0.0:
+            projected_gradient[j] = 0.0
+        elif result.x[j] >= upper - 1e-7 and raw_gradient[j] < 0.0:
+            projected_gradient[j] = 0.0
+    kkt_residual = float(np.max(np.abs(projected_gradient)))
+    if not np.isfinite(kkt_residual) or kkt_residual > 1e-5:
+        raise RuntimeError(
+            "logistic inclusion fit failed KKT check: "
+            f"optimizer_status={result.message}; projected_gradient={kkt_residual:.3g}"
+        )
     coefficient_bound_hit = bool(
         np.isclose(abs(float(result.x[0])), 25.0, rtol=0.0, atol=1e-5)
         or np.isclose(abs(float(result.x[1])), 50.0, rtol=0.0, atol=1e-5)
@@ -88,6 +113,9 @@ def fit_logistic_inclusion_model(
         "n_included": int(np.sum(y)),
         "n_not_included": int(y.size - np.sum(y)),
         "negative_log_likelihood": float(result.fun),
+        "optimizer_success": bool(result.success),
+        "optimizer_message": str(result.message),
+        "projected_gradient_inf_norm": kkt_residual,
     }
 
 
