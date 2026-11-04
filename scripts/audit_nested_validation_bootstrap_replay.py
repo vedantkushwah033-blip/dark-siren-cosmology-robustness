@@ -20,9 +20,6 @@ from dark_siren_robustness.posterior_validation_bootstrap_audit import (
     _independent_posterior,
     audit_posterior_validation_bootstrap,
 )
-from dark_siren_robustness.posterior_validation_bootstrap import (
-    bootstrap_validation_h0_posterior,
-)
 from dark_siren_robustness.independent_calibration_audit import (
     reconstruct_calibration_summaries,
 )
@@ -481,64 +478,25 @@ def audit(directory: Path) -> dict:
                     _require(int(row.bootstrap_seed) == expected_seed,
                              f"bootstrap seed mismatch for {method}, scenario={scenario}, draw={draw}")
                     if str(row.bootstrap_status) == "failed":
-                        # Re-run the full wrapper with the same input arrays and
-                        # deterministic seed, then compare the exact failure.
+                        # No attempt ledger was returned by the producer. Do not
+                        # invoke the production wrapper from an auditor: that would
+                        # be a same-implementation replay, not independent evidence.
                         observed_class = str(row.bootstrap_wrapper_failure_class)
                         observed_message = str(row.bootstrap_wrapper_failure_message)
-                        try:
-                            replayed = bootstrap_validation_h0_posterior(
-                                z_grid, h0_grid, observed_z, vz, vy, distances,
-                                sigma_mpc=sigma,
-                                detection_threshold_mpc=threshold,
-                                parent_population_size=n_parent,
-                                method=method, n_bootstrap=b,
-                                seed=expected_seed, merger_weight=rate,
-                            )
-                        except (ValueError, RuntimeError, ArithmeticError, FloatingPointError) as exc:
-                            _require(type(exc).__name__ == observed_class,
-                                     f"wrapper failure class mismatch for {method}: "
-                                     f"{type(exc).__name__} != {observed_class}")
-                            _require(str(exc) == observed_message,
-                                     f"wrapper failure message mismatch for {method}")
-                            audited_wrapper_failures += 1
-                        else:
-                            raise AssertionError(
-                                f"recorded wrapper failure did not reproduce for {method}, "
-                                f"scenario={scenario}, draw={draw}"
-                            )
+                        _require(
+                            observed_class not in {"", "nan", "None"}
+                            and observed_message not in {"", "nan", "None"},
+                            "wrapper failure metadata missing or fabricated",
+                        )
+                        audited_wrapper_failures += 1
                         continue
                     if str(row.bootstrap_status) == "non_evaluable":
-                        replayed = bootstrap_validation_h0_posterior(
-                            z_grid, h0_grid, observed_z, vz, vy, distances,
-                            sigma_mpc=sigma,
-                            detection_threshold_mpc=threshold,
-                            parent_population_size=n_parent,
-                            method=method, n_bootstrap=b,
-                            seed=expected_seed, merger_weight=rate,
-                        )
-                        stored_mask = np.asarray(row.bootstrap_success_mask, dtype=bool)
-                        replay_mask = np.asarray(replayed["success_mask"], dtype=bool)
-                        _require(replayed["n_successful"] < 2,
-                                 f"non-evaluable status did not reproduce for {method}")
-                        _require(int(row.n_bootstrap_attempted) == int(replayed["n_attempted"]),
-                                 f"inner attempt count mismatch for {method}")
-                        _require(int(row.n_bootstrap_successful) == int(replayed["n_successful"]),
-                                 f"inner success count mismatch for {method}")
-                        _require(int(row.n_bootstrap_failed) == int(replayed["n_failed"]),
-                                 f"inner failure count mismatch for {method}")
-                        _require(np.array_equal(stored_mask, replay_mask),
-                                 f"bootstrap success mask mismatch for {method}")
-                        _require(
-                            np.allclose(
-                                np.asarray(row.bootstrap_attempt_posterior_mean, dtype=float),
-                                np.asarray(replayed["attempt_posterior_mean"], dtype=float),
-                                rtol=1e-10, atol=1e-12, equal_nan=True,
-                            ),
-                            f"non-evaluable attempt posterior values mismatch for {method}",
-                        )
-                        _require(
-                            row.bootstrap_failure_records == replayed["failure_records"],
-                            f"non-evaluable failure ledger mismatch for {method}",
+                        payload = _reconstruct_result(row, method, n_parent, b)
+                        audit_posterior_validation_bootstrap(
+                            payload, z_grid, h0_grid, observed_z, vz, vy, distances,
+                            sigma_mpc=sigma, detection_threshold_mpc=threshold,
+                            parent_population_size=n_parent, merger_weight=rate,
+                            bandwidth_factor=None,
                         )
                         audited_bootstrap += 1
                         audited_non_evaluable += 1
@@ -561,9 +519,9 @@ def audit(directory: Path) -> dict:
         "successful_bootstrap_methods_replayed": audited_bootstrap - audited_non_evaluable,
         "non_evaluable_bootstrap_methods_replayed": audited_non_evaluable,
         "all_returned_bootstrap_ledgers_replayed": audited_bootstrap,
-        "wrapper_level_bootstrap_failures_replayed": audited_wrapper_failures,
-        "scope": "synthetic parent/GW generation, catalogue thinning, finite-parent target, outer SRSWOR, successful and non-evaluable inner posterior-resampling ledgers",
-        "limitations": "confirmatory-scale run not established; unexpected non-determinism remains possible across dependency/platform versions",
+        "wrapper_level_bootstrap_failures_metadata_checked_not_replayed": audited_wrapper_failures,
+        "scope": "synthetic parent/GW generation, catalogue thinning, finite-parent target, outer SRSWOR, and independent attempt-level posterior replay for successful and non-evaluable ledgers",
+        "limitations": "wrapper-level failures have no returned attempt ledger and are checked for metadata presence only, not independently reproduced; confirmatory-scale run not established; unexpected non-determinism remains possible across dependency/platform versions",
     }
 
 
