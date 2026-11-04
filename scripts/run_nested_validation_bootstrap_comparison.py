@@ -167,48 +167,6 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                                 method=method, n_bootstrap=bootstrap_replicates,
                                 seed=method_seed, merger_weight=rate,
                             )
-                            continue
-
-                        ok = int(result["n_successful"])
-                            attempted = int(result["n_attempted"])
-                            failed = int(result["n_failed"])
-                            success_mask = np.asarray(result["success_mask"], dtype=bool)
-                            if attempted != success_mask.size or ok != int(success_mask.sum()) or failed != attempted - ok:
-                                raise ValueError("bootstrap result counts do not reconcile with success mask")
-                            evaluable = ok >= 2
-                            interval_values = result["posterior_mean_percentile_interval_95"]
-                            lo, hi = (
-                                map(float, interval_values) if evaluable
-                                else (float("nan"), float("nan"))
-                            )
-                            method_results[method] = {
-                                "bootstrap_status": "success" if evaluable else "non_evaluable",
-                                "bootstrap_se": float(result["raw_bootstrap_standard_error"]) if evaluable else np.nan,
-                                "interval_low": lo, "interval_high": hi,
-                                "n_bootstrap_successful": ok,
-                                "n_bootstrap_attempted": attempted,
-                                "n_bootstrap_failed": failed,
-                                "bootstrap_seed": method_seed,
-                                "failure_records": result["failure_records"],
-                                "wrapper_failure_class": None,
-                                "wrapper_failure_message": None,
-                                "fpc_factor": float(result["fpc_factor"]),
-                                "input_fingerprints": result["input_fingerprints"],
-                                "success_mask": np.asarray(result["success_mask"], dtype=bool).tolist(),
-                                "attempt_posterior_mean": np.asarray(result["attempt_posterior_mean"], dtype=float).tolist(),
-                                "reference_posterior_mean_by_attempt": np.asarray(result["reference_posterior_mean_by_attempt"], dtype=float).tolist(),
-                                "posterior_median_draws_by_attempt": np.asarray(result["posterior_median_draws_by_attempt"], dtype=float).tolist(),
-                                "ci68_low_draws_by_attempt": np.asarray(result["ci68_low_draws_by_attempt"], dtype=float).tolist(),
-                                "ci68_high_draws_by_attempt": np.asarray(result["ci68_high_draws_by_attempt"], dtype=float).tolist(),
-                                "inverse_weight_ess_by_attempt": np.asarray(result["inverse_weight_ess_by_attempt"], dtype=float).tolist(),
-                                "inverse_weight_maximum_by_attempt": np.asarray(result["inverse_weight_maximum_by_attempt"], dtype=float).tolist(),
-                                "coefficient_boundary_limited_by_attempt": np.asarray(result["coefficient_boundary_limited_by_attempt"], dtype=bool).tolist(),
-                                "posterior_density_draws": np.asarray(result["posterior_density_draws"], dtype=float).tolist(),
-                                "fixed_full_validation_reference_mean": float(result["fixed_full_validation_reference_mean"]),
-                                "sample_indices": [np.asarray(v, dtype=np.int64).tolist() for v in result["sample_indices"]],
-                                "pseudo_population_indices": [np.asarray(v, dtype=np.int64).tolist() for v in result["pseudo_population_indices"]],
-                                "selected_pseudo_population_positions": [np.asarray(v, dtype=np.int64).tolist() for v in result["selected_pseudo_population_positions"]],
-                            }
                         except (ValueError, RuntimeError, ArithmeticError, FloatingPointError) as exc:
                             method_results[method] = {
                                 "bootstrap_status": "failed", "bootstrap_se": np.nan,
@@ -223,6 +181,51 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                                 "fpc_factor": float(np.sqrt(max(0.0, 1.0-size/n_parent))),
                             }
                             continue
+
+                        # Validate the returned ledger outside the wrapper
+                        # exception handler. A malformed returned result is a
+                        # corrupt artifact condition, not an unobserved wrapper
+                        # failure; abort rather than discarding its known ledger.
+                        ok = int(result["n_successful"])
+                        attempted = int(result["n_attempted"])
+                        failed = int(result["n_failed"])
+                        success_mask = np.asarray(result["success_mask"], dtype=bool)
+                        if attempted != success_mask.size or ok != int(success_mask.sum()) or failed != attempted - ok:
+                            raise ValueError("bootstrap result counts do not reconcile with success mask")
+                        evaluable = ok >= 2
+                        interval_values = result["posterior_mean_percentile_interval_95"]
+                        lo, hi = (
+                            map(float, interval_values) if evaluable
+                            else (float("nan"), float("nan"))
+                        )
+                        method_results[method] = {
+                            "bootstrap_status": "success" if evaluable else "non_evaluable",
+                            "bootstrap_se": float(result["raw_bootstrap_standard_error"]) if evaluable else np.nan,
+                            "interval_low": lo, "interval_high": hi,
+                            "n_bootstrap_successful": ok,
+                            "n_bootstrap_attempted": attempted,
+                            "n_bootstrap_failed": failed,
+                            "bootstrap_seed": method_seed,
+                            "failure_records": result["failure_records"],
+                            "wrapper_failure_class": None,
+                            "wrapper_failure_message": None,
+                            "fpc_factor": float(result["fpc_factor"]),
+                            "input_fingerprints": result["input_fingerprints"],
+                            "success_mask": np.asarray(result["success_mask"], dtype=bool).tolist(),
+                            "attempt_posterior_mean": np.asarray(result["attempt_posterior_mean"], dtype=float).tolist(),
+                            "reference_posterior_mean_by_attempt": np.asarray(result["reference_posterior_mean_by_attempt"], dtype=float).tolist(),
+                            "posterior_median_draws_by_attempt": np.asarray(result["posterior_median_draws_by_attempt"], dtype=float).tolist(),
+                            "ci68_low_draws_by_attempt": np.asarray(result["ci68_low_draws_by_attempt"], dtype=float).tolist(),
+                            "ci68_high_draws_by_attempt": np.asarray(result["ci68_high_draws_by_attempt"], dtype=float).tolist(),
+                            "inverse_weight_ess_by_attempt": np.asarray(result["inverse_weight_ess_by_attempt"], dtype=float).tolist(),
+                            "inverse_weight_maximum_by_attempt": np.asarray(result["inverse_weight_maximum_by_attempt"], dtype=float).tolist(),
+                            "coefficient_boundary_limited_by_attempt": np.asarray(result["coefficient_boundary_limited_by_attempt"], dtype=bool).tolist(),
+                            "posterior_density_draws": np.asarray(result["posterior_density_draws"], dtype=float).tolist(),
+                            "fixed_full_validation_reference_mean": float(result["fixed_full_validation_reference_mean"]),
+                            "sample_indices": [np.asarray(v, dtype=np.int64).tolist() for v in result["sample_indices"]],
+                            "pseudo_population_indices": [np.asarray(v, dtype=np.int64).tolist() for v in result["pseudo_population_indices"]],
+                            "selected_pseudo_population_positions": [np.asarray(v, dtype=np.int64).tolist() for v in result["selected_pseudo_population_positions"]],
+                        }
                     paired = method_results["paired_bootstrap"]
                     fpc_se = (paired["bootstrap_se"]*paired["fpc_factor"]
                               if paired["bootstrap_status"] == "success" else np.nan)
