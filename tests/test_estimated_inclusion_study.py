@@ -276,3 +276,41 @@ def test_validation_bootstrap_posterior_rejects_events_below_detection_threshold
             detection_threshold_mpc=250.0,
             n_bootstrap=5,
         )
+
+
+def test_quadratic_inclusion_term_is_centered_under_parent_redshift_law():
+    import json
+    import numpy as np
+    import pytest
+    from scipy.special import expit
+
+    frame, summary = run_estimated_inclusion_pilot(
+        n_replicates=1,
+        n_parent=1200,
+        n_detected=6,
+        validation_sizes=(150,),
+        seed=20261104,
+        h0_points=41,
+        z_points=201,
+        true_quadratic=1.2,
+    )
+    model = summary["true_inclusion_model"]
+    center = model["quadratic_center"]
+    assert center == pytest.approx(0.28450056, abs=2e-7)
+    assert center != pytest.approx(1.0 / 3.0, abs=1e-3)
+    assert frame["true_quadratic_center"].to_numpy() == pytest.approx(
+        np.full(len(frame), center)
+    )
+
+    successful = frame.loc[frame["status"].eq("success")]
+    assert not successful.empty
+    scoring = json.loads(successful.iloc[0]["scoring_audit_payload_json"])
+    parent_z = np.asarray(scoring["parent_redshift"], dtype=float)
+    stored_probability = np.asarray(scoring["true_inclusion_probability"], dtype=float)
+    z_min, z_max = summary["redshift_grid"][:2]
+    x = (parent_z - (z_min + z_max) / 2.0) / ((z_max - z_min) / 2.0)
+    reconstructed = expit(
+        model["intercept"] + model["slope"] * x
+        + model["quadratic"] * (x**2 - center)
+    )
+    assert stored_probability == pytest.approx(reconstructed)
