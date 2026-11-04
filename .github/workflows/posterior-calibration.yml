@@ -1,0 +1,76 @@
+name: Posterior-level H0 calibration
+
+on:
+  push:
+    branches: [main, fix/known-host-wilson-edge-bounds]
+    paths:
+      - "scripts/run_posterior_calibration.py"
+      - "scripts/audit_posterior_calibration.py"
+      - "scripts/audit_posterior_calibration_generation.py"
+      - "scripts/analyze_posterior_calibration_uncertainty.py"
+      - "scripts/analyze_paired_host_weight_contrasts.py"
+      - "scripts/audit_paired_host_weight_contrasts.py"
+      - "tests/test_posterior_calibration.py"
+      - "tests/test_posterior_calibration_generation.py"
+      - "tests/test_posterior_calibration_uncertainty.py"
+      - "tests/test_paired_host_weight_contrasts.py"
+      - "src/dark_siren_robustness/selection.py"
+      - "tests/test_joint_selection_missing_hosts.py"
+      - ".github/workflows/posterior-calibration.yml"
+  pull_request:
+    paths:
+      - "scripts/run_posterior_calibration.py"
+      - "scripts/audit_posterior_calibration.py"
+      - "scripts/audit_posterior_calibration_generation.py"
+      - "scripts/analyze_posterior_calibration_uncertainty.py"
+      - "scripts/analyze_paired_host_weight_contrasts.py"
+      - "tests/test_posterior_calibration.py"
+      - "tests/test_posterior_calibration_generation.py"
+      - "tests/test_posterior_calibration_uncertainty.py"
+      - "tests/test_paired_host_weight_contrasts.py"
+      - "src/dark_siren_robustness/selection.py"
+      - "tests/test_joint_selection_missing_hosts.py"
+      - ".github/workflows/posterior-calibration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  posterior-calibration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Test raw-generation provenance audit and tamper rejection
+        run: python -m pytest tests/test_posterior_calibration_generation.py -q
+      - name: Run posterior-level calibration
+        run: |
+          python scripts/run_posterior_calibration.py \
+            --replicates 200 \
+            --seed 20261030 \
+            --output-dir results/posterior-calibration
+      - name: Independently reproduce seeded raw observations and provenance
+        run: python scripts/audit_posterior_calibration_generation.py results/posterior-calibration
+      - name: Independently reconstruct posterior summaries and calibration metrics
+        run: python scripts/audit_posterior_calibration.py results/posterior-calibration
+      - name: Quantify Monte Carlo uncertainty with stratified bootstrap
+        run: python scripts/analyze_posterior_calibration_uncertainty.py results/posterior-calibration --seed 20261031 --bootstrap-resamples 4000
+      - name: Calculate paired host-weight contrasts
+        run: python scripts/analyze_paired_host_weight_contrasts.py results/posterior-calibration --seed 20261031 --bootstrap-resamples 4000
+      - name: Independently reconstruct paired host-weight contrasts and intervals
+        run: python scripts/audit_paired_host_weight_contrasts.py results/posterior-calibration --seed 20261031 --bootstrap-resamples 4000
+      - name: Upload audited posterior calibration results
+        uses: actions/upload-artifact@v4
+        with:
+          name: posterior-calibration-results
+          path: results/posterior-calibration/
+          if-no-files-found: error
+          retention-days: 90

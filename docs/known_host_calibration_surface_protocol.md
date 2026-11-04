@@ -1,6 +1,6 @@
 # Known-host calibration surface protocol
 
-**Status:** implementation, focused tests, boundary-aware report generation, and a manually dispatchable workflow are committed. Numerical findings are pending a successful run and independent raw-artifact audit.  
+**Status (updated 2026-10-25):** the default 300-replicate run completed successfully and passed the independent raw-artifact audit. See [the audited results summary](known_host_calibration_run_20261025.md) and [workflow run 40167238554](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40167238554). The audit verifies raw posterior summaries, cell summaries, seed pairing, and file hashes. The experiment remains a synthetic one-host diagnostic.  
 **Scope:** a synthetic one-host calibration diagnostic, not a real gravitational-wave analysis or an observational estimate of H0.
 
 ## Research question

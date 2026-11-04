@@ -1,33 +1,65 @@
-# Posterior-level H₀ calibration: protocol
+# Posterior-level H₀ calibration: prespecified protocol
 
-## Objective
-Measure posterior-level bias, RMSE, interval width, and truth coverage in a synthetic two-host low-redshift mixture. This extends component-mass diagnostics to cosmological posterior summaries. It is a simulation study, not a real gravitational-wave result.
+**Scope:** synthetic statistical validation only. This experiment is not a real gravitational-wave analysis and does not model the full LVK event likelihood, detector selection, catalogue incompleteness, redshift uncertainty, or hierarchical population inference.
 
-## Prespecified design
-- Injected H₀ values: 55, 65, 75, 85 km s⁻¹ Mpc⁻¹.
-- Candidate host redshifts: z₁ = 0.02 and z₂ = 0.04.
-- Generative host weights: (0.7, 0.3); inference weights: correct (0.7, 0.3) and reversed (0.3, 0.7).
-- Distance-noise fractions: 3%, 10%, 20%, with sigma defined as noise_fraction × c × z₂ / H₀,true. This is a fixed reference scale for each truth/noise cell; generated distances use the selected host's luminosity-distance proxy c z_host/H₀,true.
-- Prior support: narrow [50,90] and broad [20,220] km s⁻¹ Mpc⁻¹.
-- Prior measure: uniform in H₀ or log-uniform in H₀ (density proportional to 1/H₀).
-- Posterior grid: 10–250 km s⁻¹ Mpc⁻¹, 2,401 equally spaced points.
-- Default: 200 replicates per truth/noise cell; seed 20261030; 2,400 raw observations and 96 summary cells.
+## Question
 
-## Paired design
-Each synthetic observation and its sigma is evaluated under all 2 × 2 × 2 inference combinations: two supports, two prior measures, and two catalogue-weight choices. This enables paired comparison without changing the generated data between analysis arms.
+In a deliberately small two-host low-redshift model, how do host-weight misspecification, prior support, and prior measure affect posterior median error, interval coverage, and interval width across repeated synthetic observations?
 
-## Posterior and estimands
-For each observation, the unnormalized posterior is
-$$
-p(H_0\mid d)\propto\left[\sum_{i=1}^2 w_i\,p(d\mid H_0,z_i)\right]\pi(H_0),
-$$
-truncated to the prespecified support and normalized numerically on the grid. Report median error (posterior median minus injected truth), median absolute error, RMSE, mean central 68% and 95% interval widths, and empirical truth coverage at 68% and 95%. Coverage is estimated separately for every truth/noise/support/measure/weight cell.
+## Fixed design
 
-## Validation
-The independent auditor reconstructs each posterior median and interval from raw distances and the fixed protocol; checks truth, host identity, sigma, unique complete replicate blocks and design counts; reconstructs all aggregate calibration metrics; and verifies SHA-256 hashes. The run is marked PASS only after these checks.
+- Injected H₀ values: 55, 65, 75, and 85 km s⁻¹ Mpc⁻¹.
+- Noise-scale settings: 3%, 10%, and 20% of the distance expected for the higher-redshift host (z₂ = 0.04). These are reference-scale settings, not the realized fractional uncertainty for both hosts.
+- Two possible host redshifts: z₁ = 0.02 and z₂ = 0.04.
+- Data-generating host probabilities: (0.7, 0.3).
+- Inference weight arms: correct (0.7, 0.3) and reversed (0.3, 0.7).
+- Prior supports: narrow [50, 90] and broad [20, 220] km s⁻¹ Mpc⁻¹.
+- Prior measures: uniform in H₀ and log-uniform in H₀ (density proportional to 1/H₀).
+- Default 200 replicates per truth × noise cell: 12 cells, 2,400 raw observations, and 96 cell-by-inference-arm summaries.
+- Fixed seed: 20261030 for generation; 20261031 is the base seed for deterministic bootstrap analyses.
+- Posterior grid: 2,401 equally spaced points from 10 to 250 km s⁻¹ Mpc⁻¹, restricted to the selected prior support.
 
-## Interpretation cautions
-- 200 replicates provide useful pilot resolution, not high-precision coverage estimates. For nominal 68% coverage, the binomial standard error is roughly 3.3 percentage points at n=200; for nominal 95%, roughly 1.5 points.
-- Truth coverage under a narrow support is only interpretable for truths inside that support; the chosen truths are inside [50,90].
-- This two-host Gaussian-distance toy omits catalogue selection/incompleteness, redshift uncertainty, detector selection, realistic event likelihoods, and population-level multi-event inference.
-- A prior/weight contrast in this simulation is not by itself evidence that a method is calibrated for real observations. Report support sensitivity and prior-measure sensitivity separately.
+For each truth/noise cell, distance uncertainty is set to `noise_fraction × c × z₂ / H₀_truth`. A host is sampled from the fixed data-generating probabilities, and a Gaussian distance observation is drawn around `c × z_host / H₀_truth`; nonpositive simulated distances are redrawn. Because z₁ = z₂/2 while the same sigma is used for both hosts, the realized fractional standard deviation is `noise_fraction` for z₂ and `2 × noise_fraction` for z₁. Interpret the noise column as a reference-scale parameter, not a host-independent fractional error. The exact same raw observation is evaluated under all eight inference arms. Because the generator redraws nonpositive distances, the matching likelihood is a two-component **positive-truncated Gaussian mixture**: for host component j, the density is Normal(d; μ_j(H₀), σ) / Φ(μ_j(H₀)/σ) for d > 0. The truncation normalization is host- and H₀-dependent and must not be omitted. This is still a simplified synthetic distance model.
+
+## Primary outputs
+
+For every truth/noise/support/measure/weighting cell, report:
+- mean posterior-median error (signed bias);
+- median absolute posterior-median error and RMSE;
+- empirical coverage of central 68% and 95% posterior intervals;
+- mean 68% and 95% interval widths.
+
+Pooled summaries must retain equal representation of the 12 prespecified truth/noise cells. They are descriptive averages across this design, not estimates for a population of real events. Report truth/noise-specific uncertainty as well as pooled uncertainty; never let a pooled metric replace the cell-level view.
+
+## Validation gates
+
+1. **Raw provenance audit:** independently replay the declared seeded random-number generator and data-generating process, checking row order, truth/noise/replicate keys, host draws, noise scales, distances, and the raw-file hash.
+2. **Posterior reconstruction audit:** independently recompute all posterior medians and 68%/95% interval endpoints from each raw observation and each inference arm; verify every raw record, summary row, and input hash.
+3. **Uncertainty analysis:** run deterministic stratified bootstrap resampling within each fixed truth/noise cell. Do not treat observations as exchangeable across different truth/noise cells.
+4. **Paired contrasts:** compare correct versus reversed host weights using the same observation in both arms; resample replicate IDs within each cell and report differences with uncertainty intervals.
+5. **Reproducibility:** retain raw CSVs, summaries, metadata, audit outputs, uncertainty reports, paired contrasts, seeds, and workflow provenance as a downloadable artifact.
+
+A passing unit test is not a substitute for the independent raw-data and posterior audits. If any gate fails, the experiment is not considered validated until the failure is investigated and corrected.
+
+## Interpretation guardrails
+
+- The narrow prior contains all four injected truths and is strongly informative relative to the broad support. Better errors under the narrow support do not imply it is generally preferable.
+- Uniform and log-uniform priors encode different prior measures; neither should be called universally superior based on this experiment.
+- Incorrect weights may change posterior modes and tails. The direction and magnitude of effects are conditional on this specific two-host model.
+- Empirical coverage is a repeated-sampling property of this simulator, not the posterior probability that a particular real-event interval contains H₀.
+- Bootstrap intervals quantify Monte Carlo uncertainty conditional on the simulation design. They do not quantify model discrepancy or astrophysical uncertainty. With 200 replicates per truth/noise cell, nominal 68% coverage has a binomial standard error of about 3.3 percentage points and nominal 95% coverage about 1.5 points; treat cell-level coverage as pilot-resolution evidence, not a high-precision calibration claim.
+- Do not describe synthetic values as observed or measured H₀, and do not claim astrophysical realism or a full dark-siren analysis from these controls.
+
+## Reproduction
+
+From the repository root in an environment with the project development dependencies installed:
+
+```bash
+python scripts/run_posterior_calibration.py --replicates 200 --seed 20261030 --output-dir results/posterior-calibration
+python scripts/audit_posterior_calibration_generation.py results/posterior-calibration
+python scripts/audit_posterior_calibration.py results/posterior-calibration
+python scripts/analyze_posterior_calibration_uncertainty.py results/posterior-calibration --seed 20261031 --bootstrap-resamples 4000
+python scripts/analyze_paired_host_weight_contrasts.py results/posterior-calibration --seed 20261031 --bootstrap-resamples 4000
+```
+
+The independent posterior audit changes metadata from PENDING to PASS; uncertainty and paired-contrast scripts refuse to run unless that audit and its hashes pass. A successful workflow establishes internal reproducibility under this declared toy model, not observational validity.
