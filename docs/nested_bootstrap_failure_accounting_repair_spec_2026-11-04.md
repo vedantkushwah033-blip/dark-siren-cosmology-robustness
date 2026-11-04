@@ -144,3 +144,18 @@ Implementation commits for this correction:
 - c113b22 — add the malformed-returned-ledger regression test.
 
 Verification status: The updated source and regression test were fetched back from the repair branch and inspected. No local test execution was performed. The GitHub connector returned no workflow run or status-check records for commit c113b22; exact-head CI therefore remains unverified. The release gate remains closed.
+
+## Independent replay boundary correction (2026-11-04)
+
+A further audit found that `scripts/audit_nested_validation_bootstrap_replay.py` called the production `bootstrap_validation_h0_posterior` wrapper to reproduce wrapper failures and non-evaluable outcomes. That made those branches same-implementation replays, despite successful-attempt posterior calculations being reconstructed by the separate auditor implementation.
+
+The replay auditor now:
+
+- Contains no import or call to the production bootstrap wrapper.
+- Reconstructs successful and non-evaluable returned ledgers through `audit_posterior_validation_bootstrap`, which independently regenerates the resampling indices and recomputes the posterior attempts.
+- For wrapper-level failures, where the producer returned no attempt ledger and actual inner-attempt counts are unknown, checks only that exception class/message metadata are present. It does **not** claim to independently reproduce those failures.
+- Reports wrapper-level failures as `wrapper_level_bootstrap_failures_metadata_checked_not_replayed`, not as independently replayed failures.
+
+A static regression test prevents the replay auditor from importing or calling the production wrapper. The existing fabricated-wrapper-failure test continues to require rejection when failure metadata is absent.
+
+**Verification status:** Source and test edits were fetched back from the repair branch and inspected. Tests have not been executed locally, and exact-head GitHub Actions status is not yet available. The release gate remains closed. The wrapper-failure branch remains a documented audit limitation until an independently implemented preflight/index-generation replay is added; no returned attempt ledger exists to reconstruct for that path.
