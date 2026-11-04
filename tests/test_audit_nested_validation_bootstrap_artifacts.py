@@ -22,11 +22,22 @@ def nested_artifact(tmp_path):
     attempts.to_json(tmp_path / "attempt_audit.jsonl", orient="records", lines=True)
     scenario.to_csv(tmp_path / "scenario_summary.csv", index=False)
     aggregate.to_csv(tmp_path / "scenario_balanced_summary.csv", index=False)
+    pd.DataFrame([{
+        "scenario": 0,
+        "scenario_status": "complete",
+        "scenario_failure": "",
+    }]).to_csv(tmp_path / "scenario_failure_records.csv", index=False)
     manifest = {
-        "schema": "nested_validation_bootstrap_comparison_smoke_v1",
+        "schema": "nested_validation_bootstrap_comparison_smoke_v2",
         "status": "SMOKE_ONLY_NOT_CONFIRMATORY",
         "seed": 20261030,
         "scenarios": 1,
+        "planned_scenarios": 1,
+        "completed_scenarios": 1,
+        "failed_scenarios": 0,
+        "planned_method_rows": 6,
+        "completed_method_rows": len(records),
+        "summary_scenario_ids": [0],
         "outer_draws": 2,
         "parent_size": 1200,
         "detected_event_count": 8,
