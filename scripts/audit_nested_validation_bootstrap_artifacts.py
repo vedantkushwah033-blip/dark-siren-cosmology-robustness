@@ -108,9 +108,19 @@ def audit(directory: Path) -> dict:
             _require(n0 < n1 and a.issubset(z),
                      f"outer SRSWOR samples are not nested for scenario={scenario}, draw={draw}")
 
-    merged = attempts.merge(records[KEY + ["outer_status", "bootstrap_status",
+    status_check = attempts[KEY + ["bootstrap_status"]].merge(
+        records[KEY + ["bootstrap_status"]], on=KEY,
+        suffixes=("_attempt", "_record"), validate="one_to_one",
+    )
+    _require(
+        status_check["bootstrap_status_attempt"].eq(
+            status_check["bootstrap_status_record"]
+        ).all(),
+        "attempt and calibration bootstrap statuses differ",
+    )
+    merged = attempts.merge(records[KEY + ["outer_status",
         "outer_posterior_mean", "bootstrap_se", "interval_low", "interval_high",
-        "finite_parent_target"]], on=KEY, suffixes=("_audit", "_record"), validate="one_to_one")
+        "finite_parent_target"]], on=KEY, validate="one_to_one")
     for row in merged.itertuples(index=False):
         idx = row.validation_indices
         _require(isinstance(idx, list) and len(idx) == int(row.validation_size),
