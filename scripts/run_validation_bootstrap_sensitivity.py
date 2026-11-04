@@ -26,7 +26,8 @@ def main() -> None:
     if args.replicate < 0 or args.validation_size < 10:
         parser.error("replicate must be nonnegative and validation-size at least 10")
     frame = pd.read_csv(args.pilot_csv)
-    arm = f"estimated_{args.validation_size}"
+    # This sensitivity runner refits the linear logistic inclusion model.
+    arm = f"estimated_linear_{args.validation_size}"
     selected = frame.loc[
         (frame["replicate"] == args.replicate)
         & (frame["arm"] == arm)
