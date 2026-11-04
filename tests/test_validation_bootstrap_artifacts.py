@@ -35,6 +35,7 @@ def test_persisted_validation_bootstrap_artifact_round_trips_and_audits(tmp_path
     )
     assert run.returncode == 0, run.stdout + run.stderr
     summary = json.loads((artifact_dir / "summary.json").read_text())
+    assert summary["arm"] == "estimated_linear_200"
     assert summary["n_attempted"] == 12
     assert summary["n_successful"] + summary["n_failed"] == 12
     assert summary["finite_population_correction_applied"] is False
