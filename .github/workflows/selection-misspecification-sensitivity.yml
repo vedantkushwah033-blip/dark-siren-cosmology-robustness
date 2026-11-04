@@ -1,0 +1,78 @@
+name: selection-misspecification-sensitivity
+
+on:
+  push:
+    branches:
+      - research/audit-posterior-grid-integrity
+      - research/selection-misspecification-sensitivity
+    paths:
+      - "scripts/run_selection_misspecification.py"
+      - "scripts/audit_selection_misspecification.py"
+      - "scripts/summarize_selection_misspecification_sensitivity.py"
+      - "src/dark_siren_robustness/catalogue_density.py"
+      - "docs/preregistered_host_density_validation_protocol.md"
+      - ".github/workflows/selection-misspecification-sensitivity.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: selection-misspecification-sensitivity-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  matched-sensitivity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Test paired sensitivity summarizer
+        run: python -m pytest tests/test_selection_misspecification_sensitivity.py -q
+      - name: Run and independently audit matched grid and bandwidth configurations
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="artifacts/selection_misspecification_sensitivity"
+          run_case() {
+            local name="$1"
+            local h0_points="$2"
+            local z_points="$3"
+            local bandwidth="$4"
+            local out="$root/$name"
+            local -a cmd=(python scripts/run_selection_misspecification.py
+              --replicates 30 --n-parent 4000 --n-detected 30 --seed 20262000
+              --h0-points "$h0_points" --z-points "$z_points" --output-dir "$out")
+            if [[ "$bandwidth" != "scott" ]]; then
+              cmd+=(--bandwidth-factor "$bandwidth")
+            fi
+            "${cmd[@]}"
+            python scripts/audit_selection_misspecification.py "$out"
+          }
+          run_case scott_baseline 161 801 scott
+          run_case h0_321 321 801 scott
+          run_case h0_641 641 801 scott
+          run_case z_1601 161 1601 scott
+          run_case bandwidth_015 161 801 0.15
+          run_case bandwidth_025 161 801 0.25
+          run_case bandwidth_035 161 801 0.35
+          python scripts/summarize_selection_misspecification_sensitivity.py \
+            --baseline "$root/scott_baseline" \
+            --comparison "h0_321=$root/h0_321" \
+            --comparison "h0_641=$root/h0_641" \
+            --comparison "z_1601=$root/z_1601" \
+            --comparison "bandwidth_015=$root/bandwidth_015" \
+            --comparison "bandwidth_025=$root/bandwidth_025" \
+            --comparison "bandwidth_035=$root/bandwidth_035" \
+            --output-dir "$root/comparison"
+      - name: Upload matched sensitivity raw records and audited comparisons
+        uses: actions/upload-artifact@v4
+        with:
+          name: selection-misspecification-sensitivity-${{ github.sha }}
+          path: artifacts/selection_misspecification_sensitivity/
+          if-no-files-found: error
+          retention-days: 90
