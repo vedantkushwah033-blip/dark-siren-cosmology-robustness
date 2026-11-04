@@ -308,14 +308,20 @@ def audit(directory: Path) -> dict:
         and int(manifest.get("failed_scenarios", -1)) == 0,
         "manifest scenario denominators do not reconcile for a complete audit",
     )
-    # Status lives in the calibration table; join it explicitly rather than
-    # assuming the attempt-level trace duplicates the row-level outcome.
-    attempts = attempts.merge(
-        records[key + ["bootstrap_status"]],
-        on=key, how="left", validate="one_to_one",
+    # Both ledgers persist status independently. Compare them before replay;
+    # do not merge duplicate status columns and accidentally create suffixes.
+    status_check = attempts[key + ["bootstrap_status"]].merge(
+        records[key + ["bootstrap_status"]], on=key, how="left",
+        suffixes=("_attempt", "_record"), validate="one_to_one",
     )
-    _require(attempts["bootstrap_status"].notna().all(),
+    _require(status_check["bootstrap_status_record"].notna().all(),
              "attempt trace is missing calibration status rows")
+    _require(
+        status_check["bootstrap_status_attempt"].eq(
+            status_check["bootstrap_status_record"]
+        ).all(),
+        "attempt and calibration bootstrap statuses differ",
+    )
 
     # Reconcile procedure-level status and inner-attempt ledgers independently.
     for row in attempts.itertuples(index=False):
