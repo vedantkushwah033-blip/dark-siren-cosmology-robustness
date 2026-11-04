@@ -141,29 +141,33 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
         if validation_z.size != int(row.get("validation_size")):
             raise AssertionError("validation record count disagrees with arm validation_size")
         x_validation = (validation_z - (z_min + z_max)/2.0) / ((z_max-z_min)/2.0)
+        quadratic_model = stored_model.get("model") == "quadratic_logistic_inclusion_v1"
+        if stored_model.get("model") not in {"logistic_inclusion_v1", "quadratic_logistic_inclusion_v1"}:
+            raise AssertionError("stored inclusion model has an unsupported model identifier")
+        if quadratic_model != ("quadratic" in arm_name.split("_")):
+            raise AssertionError("arm name and stored inclusion-model family disagree")
+
+        design_validation = (
+            np.column_stack((np.ones(validation_z.size), x_validation, x_validation**2))
+            if quadratic_model else np.column_stack((np.ones(validation_z.size), x_validation))
+        )
 
         def independent_nll(theta):
-            eta = theta[0] + theta[1]*x_validation
+            eta = design_validation @ theta
             return float(-np.sum(
                 validation_y*log_expit(eta) + (1.0-validation_y)*log_expit(-eta)
             ))
 
         def independent_gradient(theta):
-            eta = theta[0] + theta[1]*x_validation
-            residual = expit(eta) - validation_y
-            return np.array([np.sum(residual), np.dot(residual, x_validation)])
+            return design_validation.T @ (expit(design_validation @ theta) - validation_y)
 
-        bounds = ((-25.0, 25.0), (-50.0, 50.0))
+        bounds = ((-25.0, 25.0), (-50.0, 50.0), (-50.0, 50.0)) if quadratic_model else ((-25.0, 25.0), (-50.0, 50.0))
         refit = minimize(
-            independent_nll, np.zeros(2), jac=independent_gradient,
+            independent_nll, np.zeros(len(bounds)), jac=independent_gradient,
             method="L-BFGS-B", bounds=bounds,
-            options={"maxiter": 10000, "maxfun": 50000, "maxls": 100,
-                     "ftol": 1e-15, "gtol": 1e-8},
+            options={"maxiter": 10000, "maxfun": 200000, "maxls": 100,
+                     "ftol": 1e-15, "gtol": 1e-9},
         )
-        # L-BFGS-B can report an abnormal line-search termination for a
-        # nearly separated sample even when it has reached the constrained
-        # optimum. Independently verify the box-constrained KKT condition
-        # rather than accepting a failed status or blindly relaxing tolerances.
         if np.all(np.isfinite(refit.x)):
             gradient = independent_gradient(refit.x)
             projected_gradient = gradient.copy()
@@ -178,20 +182,31 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
         if (not np.all(np.isfinite(refit.x)) or not np.isfinite(refit.fun)
                 or kkt_residual > 1e-5):
             raise AssertionError(
-                "independent logistic inclusion refit did not converge "
+                "independent inclusion refit did not converge "
                 f"(status={refit.message}; projected_gradient={kkt_residual:.3g})"
             )
-        stored_intercept = _required_finite_number(stored_model.get("intercept"), "fitted intercept")
-        stored_slope = _required_finite_number(stored_model.get("slope"), "fitted slope")
-        if not np.allclose(refit.x, [stored_intercept, stored_slope], rtol=2e-5, atol=2e-5):
+        stored_coefficients = [
+            _required_finite_number(stored_model.get("intercept"), "fitted intercept"),
+            _required_finite_number(stored_model.get("slope"), "fitted slope"),
+        ]
+        if quadratic_model:
+            stored_coefficients.append(
+                _required_finite_number(stored_model.get("quadratic"), "fitted quadratic")
+            )
+        if not np.allclose(refit.x, stored_coefficients, rtol=2e-5, atol=2e-5):
             raise AssertionError("stored fitted inclusion coefficients disagree with independent refit")
         x_catalogue = (np.asarray(payload["catalogue_redshift"], dtype=float)
                        - (z_min + z_max)/2.0) / ((z_max-z_min)/2.0)
-        refit_probability = expit(refit.x[0] + refit.x[1]*x_catalogue)
+        design_catalogue = (
+            np.column_stack((np.ones(x_catalogue.size), x_catalogue, x_catalogue**2))
+            if quadratic_model else np.column_stack((np.ones(x_catalogue.size), x_catalogue))
+        )
+        refit_probability = expit(design_catalogue @ refit.x)
         if (stored_probability.shape != refit_probability.shape
                 or not np.allclose(stored_probability, refit_probability, rtol=5e-5, atol=5e-5)):
             raise AssertionError("stored estimated inclusion probabilities disagree with independent refit")
-        if (stored_model.get("model") != "logistic_inclusion_v1"
+        expected_model_name = "quadratic_logistic_inclusion_v1" if quadratic_model else "logistic_inclusion_v1"
+        if (stored_model.get("model") != expected_model_name
                 or int(stored_model.get("n_validation", -1)) != validation_z.size
                 or int(stored_model.get("n_included", -1)) != int(validation_y.sum())
                 or int(stored_model.get("n_not_included", -1)) != int(validation_y.size-validation_y.sum())):
