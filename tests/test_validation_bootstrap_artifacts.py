@@ -17,7 +17,7 @@ def test_persisted_validation_bootstrap_artifact_round_trips_and_audits(tmp_path
         h0_points=41, z_points=201,
     )
     row = frame.loc[
-        frame["arm"].eq("estimated_200") & frame["status"].eq("success")
+        frame["arm"].eq("estimated_linear_200") & frame["status"].eq("success")
     ]
     assert len(row) == 1, frame[["arm", "status", "error"]].to_dict("records")
     pilot_csv = tmp_path / "pilot.csv"
