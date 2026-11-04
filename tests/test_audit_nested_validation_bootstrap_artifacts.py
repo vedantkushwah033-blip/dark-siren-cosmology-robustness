@@ -146,3 +146,4 @@ def test_nested_replay_auditor_never_calls_production_bootstrap_wrapper():
     ).read_text(encoding="utf-8")
     assert "from dark_siren_robustness.posterior_validation_bootstrap import" not in source
     assert "bootstrap_validation_h0_posterior(" not in source
+    assert '"n_failed": int(row.n_bootstrap_failed)' in source
