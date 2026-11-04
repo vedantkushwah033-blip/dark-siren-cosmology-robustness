@@ -508,7 +508,14 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
             )
         except (TypeError, KeyError, ValueError, json.JSONDecodeError) as exc:
             raise AssertionError("scoring-only true inclusion payload is malformed") from exc
-        if parent_z.ndim != 1 or parent_z.size != n_parent or stored_probability.shape != parent_z.shape:
+        declared_parent_size = summary.get("n_parent")
+        if (
+            isinstance(declared_parent_size, bool)
+            or not isinstance(declared_parent_size, int)
+            or declared_parent_size < 100
+        ):
+            raise AssertionError("summary.n_parent must be an integer >= 100")
+        if parent_z.ndim != 1 or parent_z.size != declared_parent_size or stored_probability.shape != parent_z.shape:
             raise AssertionError("scoring-only parent/inclusion arrays have invalid shapes")
         x_parent = (parent_z - (z_min + z_max) / 2.0) / ((z_max - z_min) / 2.0)
         reconstructed_probability = expit(
