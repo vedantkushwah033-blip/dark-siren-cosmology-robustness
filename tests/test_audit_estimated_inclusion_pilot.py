@@ -432,3 +432,46 @@ def test_independent_auditor_rejects_success_status_with_nonoptimal_logistic_ref
     )
     with pytest.raises(AssertionError, match="independent logistic inclusion refit did not converge"):
         audit_pilot_artifacts(tmp_path)
+
+
+def test_independent_auditor_rejects_wrong_parent_law_quadratic_center(tmp_path):
+    frame, summary = run_estimated_inclusion_pilot(
+        n_replicates=1,
+        n_parent=1000,
+        n_detected=5,
+        validation_sizes=(100,),
+        seed=20261105,
+        true_quadratic=1.2,
+        h0_points=41,
+        z_points=201,
+    )
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    summary["true_inclusion_model"]["quadratic_center"] = 1.0 / 3.0
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="quadratic_center"):
+        audit_pilot_artifacts(tmp_path)
+
+
+def test_independent_auditor_rejects_tampered_true_inclusion_probabilities(tmp_path):
+    frame, summary = run_estimated_inclusion_pilot(
+        n_replicates=1,
+        n_parent=1000,
+        n_detected=5,
+        validation_sizes=(100,),
+        seed=20261106,
+        true_quadratic=1.2,
+        h0_points=41,
+        z_points=201,
+    )
+    successful = frame.index[
+        frame["status"].eq("success") & frame["arm"].str.startswith("estimated_")
+    ]
+    assert len(successful) > 0
+    index = successful[0]
+    scoring = json.loads(frame.loc[index, "scoring_audit_payload_json"])
+    scoring["true_inclusion_probability"][0] *= 0.9
+    frame.loc[index, "scoring_audit_payload_json"] = json.dumps(scoring)
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="true inclusion probabilities"):
+        audit_pilot_artifacts(tmp_path)
