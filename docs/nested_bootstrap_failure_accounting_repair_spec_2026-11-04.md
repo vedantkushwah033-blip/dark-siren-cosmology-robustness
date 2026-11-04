@@ -159,3 +159,5 @@ The replay auditor now:
 A static regression test prevents the replay auditor from importing or calling the production wrapper. The existing fabricated-wrapper-failure test continues to require rejection when failure metadata is absent.
 
 **Verification status:** Source and test edits were fetched back from the repair branch and inspected. Tests have not been executed locally, and exact-head GitHub Actions status is not yet available. The release gate remains closed. The wrapper-failure branch remains a documented audit limitation until an independently implemented preflight/index-generation replay is added; no returned attempt ledger exists to reconstruct for that path.
+
+A final replay-integrity refinement also ensures `_reconstruct_result` passes the persisted `n_bootstrap_failed` count to the independent posterior-bootstrap auditor. It no longer derives that value as `attempted - successful`, which could otherwise conceal a corrupted stored failure count. A regression guard checks that the persisted field is used directly. This source/test change is committed as `253a126` and `4adf11d`; exact-head execution remains pending.
