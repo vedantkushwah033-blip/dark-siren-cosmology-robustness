@@ -14,6 +14,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from dark_siren_robustness.independent_calibration_audit import (
+    reconstruct_calibration_summaries,
+)
+
 METHODS = {"paired_bootstrap", "paired_bootstrap_fpc", "design_aware_srswor"}
 KEY = ["scenario", "validation_size", "outer_draw", "method"]
 
@@ -213,7 +217,7 @@ def audit(directory: Path) -> dict:
                  "outer validation indices out of bounds or duplicated")
         _require(bool(row.parent_frame_sha256) and bool(row.catalogue_sha256)
                  and bool(row.gw_distance_sha256), "missing provenance fingerprints")
-        if row.bootstrap_status == "success" and row.method != "paired_bootstrap_fpc":
+        if row.bootstrap_status in {"success", "non_evaluable"} and row.method != "paired_bootstrap_fpc":
             mask = np.asarray(row.bootstrap_success_mask, dtype=bool)
             means = np.asarray(row.bootstrap_attempt_posterior_mean, dtype=float)
             refs = np.asarray(row.bootstrap_reference_posterior_mean_by_attempt, dtype=float)
@@ -221,6 +225,11 @@ def audit(directory: Path) -> dict:
                      "attempt-aligned bootstrap arrays have wrong shape")
             _require(int(mask.sum()) == int(row.n_bootstrap_successful),
                      "success mask disagrees with successful count")
+            _require(int(row.n_bootstrap_attempted) == b
+                     and int(row.n_bootstrap_failed) == b - int(mask.sum()),
+                     "inner attempt counts do not reconcile with success mask")
+            _require((row.bootstrap_status == "success") == (int(mask.sum()) >= 2),
+                     "success/non-evaluable status disagrees with successful count")
             _require(np.isfinite(means[mask]).all() and np.isfinite(refs[mask]).all(),
                      "successful attempts contain nonfinite posterior means")
             _require(np.isnan(means[~mask]).all() and np.isnan(refs[~mask]).all(),
@@ -269,7 +278,7 @@ def audit(directory: Path) -> dict:
                              "pseudo-population resampling indices violate their bounds/design")
                     _require(np.array_equal(s, p[q]),
                              "selected pseudo-population positions do not map to saved sample indices")
-        elif row.bootstrap_status == "success":
+        elif row.bootstrap_status in {"success", "non_evaluable"}:
             _require(pd.isna(row.bootstrap_success_mask),
                      "FPC diagnostic should not duplicate bootstrap attempt arrays")
         else:
@@ -300,7 +309,7 @@ def audit(directory: Path) -> dict:
             _require(_same_number(float(row.interval_high), center+1.96*fpc_se),
                      "FPC upper endpoint mismatch")
 
-    rebuilt_scenario, rebuilt_aggregate = _independent_summaries(records)
+    rebuilt_scenario, rebuilt_aggregate = reconstruct_calibration_summaries(records)
     for filename, rebuilt in [
         ("scenario_summary.csv", rebuilt_scenario),
         ("scenario_balanced_summary.csv", rebuilt_aggregate),
