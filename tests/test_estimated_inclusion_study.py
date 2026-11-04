@@ -316,3 +316,28 @@ def test_quadratic_inclusion_term_is_centered_under_parent_redshift_law():
         + model["quadratic"] * (x**2 - center)
     )
     assert stored_probability == pytest.approx(reconstructed)
+
+
+def test_linear_and_quadratic_arms_share_paired_validation_records():
+    import json
+
+    frame, _summary = run_estimated_inclusion_pilot(
+        n_replicates=1,
+        n_parent=1200,
+        n_detected=6,
+        validation_sizes=(150,),
+        seed=20261105,
+        h0_points=41,
+        z_points=201,
+    )
+    successful = frame.loc[frame["status"].eq("success")].set_index("arm")
+    linear = successful.loc["estimated_linear_150"]
+    quadratic = successful.loc["estimated_quadratic_150"]
+    linear_payload = json.loads(linear["inference_audit_payload_json"])
+    quadratic_payload = json.loads(quadratic["inference_audit_payload_json"])
+
+    assert linear_payload["fitted_inclusion_model"]["model"] == "logistic_inclusion_v1"
+    assert quadratic_payload["fitted_inclusion_model"]["model"] == "quadratic_logistic_inclusion_v1"
+    assert linear_payload["validation_redshift"] == quadratic_payload["validation_redshift"]
+    assert linear_payload["validation_included"] == quadratic_payload["validation_included"]
+    assert len(linear_payload["validation_redshift"]) == 150
