@@ -21,12 +21,12 @@ def test_independent_pilot_auditor_reconstructs_output(tmp_path):
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     report = audit_pilot_artifacts(tmp_path)
     assert report["status"] == "PASS"
-    assert report["n_rows"] == 4
-    assert report["n_replicate_arm_pairs_expected"] == 4
-    assert report["n_replicate_arm_pairs_observed"] == 4
-    assert set(report["per_arm_counts"]) == {"catalogue_only", "oracle", "estimated_linear_100", "estimated_200"}
+    assert report["n_rows"] == 6
+    assert report["n_replicate_arm_pairs_expected"] == 6
+    assert report["n_replicate_arm_pairs_observed"] == 6
+    assert set(report["per_arm_counts"]) == {"catalogue_only", "oracle", "estimated_linear_100", "estimated_linear_200", "estimated_quadratic_100", "estimated_quadratic_200"}
     assert "n_boundary_limited_successful_fits" in report
-    assert set(report["comparison_diagnostics"]) == {"oracle", "estimated_linear_100", "estimated_200"}
+    assert set(report["comparison_diagnostics"]) == {"oracle", "estimated_linear_100", "estimated_linear_200", "estimated_quadratic_100", "estimated_quadratic_200"}
     assert all(
         item["n_attempted_common_replicates"] == 1
         for item in report["comparison_diagnostics"].values()
@@ -162,13 +162,13 @@ def test_independent_auditor_accepts_explicit_all_failed_artifact_without_fit_co
             "n_failed": 1,
             "status": "no_successful_fits",
         }
-        for arm in ["catalogue_only", "oracle", "estimated_linear_100"]
+        for arm in frame["arm"].drop_duplicates().tolist()
     ]
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     report = audit_pilot_artifacts(tmp_path)
     assert report["status"] == "PASS"
     assert report["n_success"] == 0
-    assert report["n_failed"] == 3
+    assert report["n_failed"] == 6
     assert all(
         arm["status"] == "non_evaluable_no_successful_fits"
         for arm in report["per_arm_counts"].values()
@@ -248,7 +248,7 @@ def test_independent_auditor_rejects_nonmonotone_nested_validation_counts(tmp_pa
         z_points=201,
     )
     lower = frame.index[frame["arm"].eq("estimated_linear_100")][0]
-    upper = frame.index[frame["arm"].eq("estimated_300")][0]
+    upper = frame.index[frame["arm"].eq("estimated_linear_300")][0]
     frame.loc[lower, "audit_included_count"] = 100
     frame.loc[upper, "audit_included_count"] = 0
     frame.to_csv(tmp_path / "replicates.csv", index=False)
@@ -430,7 +430,7 @@ def test_independent_auditor_rejects_success_status_with_nonoptimal_logistic_ref
             x=np.zeros(2), fun=1.0, success=True, message="CONVERGENCE: fake status"
         ),
     )
-    with pytest.raises(AssertionError, match="independent logistic inclusion refit did not converge"):
+    with pytest.raises(AssertionError, match="independent inclusion refit did not converge"):
         audit_pilot_artifacts(tmp_path)
 
 
