@@ -128,3 +128,19 @@ The replay auditor now checks count/mask/failure-ledger reconciliation, rejects 
 Focused tests were added for partial outcomes, unknown wrapper-failure counts, denominator separation, FPC exclusion, independent reconstruction parity, status/count disagreement, and inconsistent count rejection. The CI workflow was updated to include these tests and the nested-runner regression suite.
 
 **Verification limitation:** These commits were written through the GitHub contents API. No local test execution or exact-head CI run has yet been obtained. Therefore the changes are implemented but not yet verified as passing. Do not describe the repair as complete or launch the confirmatory experiment.
+
+## Additional source-level correction (2026-11-04)
+
+A follow-up review found that the runner's exception handler covered both the bootstrap wrapper call and validation of the result it returned. Consequently, an internally inconsistent returned ledger could be caught and mislabeled as a wrapper failure, with its known attempt counts and returned evidence discarded as unknown. This conflated two distinct cases:
+
+- Wrapper exception before a result is returned: inner-attempt counts may be unknown.
+- Malformed result returned by the wrapper: the returned ledger exists but fails its integrity checks; the run must stop rather than relabel the result as an unobserved wrapper failure.
+
+The runner now catches exceptions only around the wrapper invocation. Count/mask reconciliation occurs after that exception boundary, so an invalid returned ledger raises an error and cannot silently enter the calibration table as a generic wrapper failure. A regression test supplies a deliberately inconsistent returned ledger and requires the runner to reject it.
+
+Implementation commits for this correction:
+- 79ea5e3 — initial targeted runner edit; superseded by the complete block correction below.
+- f127af1 — isolate wrapper exception handling from returned-ledger validation.
+- c113b22 — add the malformed-returned-ledger regression test.
+
+Verification status: The updated source and regression test were fetched back from the repair branch and inspected. No local test execution was performed. The GitHub connector returned no workflow run or status-check records for commit c113b22; exact-head CI therefore remains unverified. The release gate remains closed.
