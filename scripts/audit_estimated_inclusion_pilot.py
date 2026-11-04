@@ -376,6 +376,7 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
 
     # Reconstruct the per-replicate positivity/overlap diagnostics independently.
     positivity_columns = [
+        "true_quadratic_center",
         "true_probability_min", "true_probability_max", "true_probability_p01",
         "true_probability_p05", "true_probability_below_005",
         "true_probability_below_010", "true_max_inverse_probability",
@@ -460,6 +461,63 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         raise AssertionError("summary.validation_sizes must be a nonempty list")
     if any(isinstance(v, bool) or not isinstance(v, int) or v < 1 for v in validation_sizes):
         raise AssertionError("summary.validation_sizes must contain positive integers")
+
+    # Independently recompute E_parent[x^2] from the declared parent intensity.
+    # This prevents the quadratic stress law from silently using the uniform
+    # reference value 1/3 for a non-uniform parent-redshift distribution.
+    redshift_design = summary.get("redshift_grid")
+    if not isinstance(redshift_design, list) or len(redshift_design) != 3:
+        raise AssertionError("summary.redshift_grid must declare [z_min, z_max, n_points]")
+    z_min, z_max = map(float, redshift_design[:2])
+    parent_grid = np.linspace(z_min, z_max, 20_001)
+    parent_intensity = (
+        1.0
+        + 2.2 * np.exp(-0.5 * ((parent_grid - 0.105) / 0.025) ** 2)
+        + 1.6 * np.exp(-0.5 * ((parent_grid - 0.275) / 0.040) ** 2)
+    )
+    parent_x = (parent_grid - (z_min + z_max) / 2.0) / ((z_max - z_min) / 2.0)
+    expected_quadratic_center = float(
+        trapezoid(parent_intensity * parent_x**2, parent_grid)
+        / trapezoid(parent_intensity, parent_grid)
+    )
+    inclusion_model = summary.get("true_inclusion_model")
+    if not isinstance(inclusion_model, dict):
+        raise AssertionError("summary.true_inclusion_model must be an object")
+    _close(
+        inclusion_model.get("quadratic_center"), expected_quadratic_center,
+        "true_inclusion_model.quadratic_center", atol=2e-12,
+    )
+    stored_centers = pd.to_numeric(
+        frame["true_quadratic_center"], errors="raise"
+    ).to_numpy(dtype=float)
+    if not np.allclose(stored_centers, expected_quadratic_center, rtol=1e-10, atol=2e-12):
+        raise AssertionError("replicate true_quadratic_center disagrees with parent-law reconstruction")
+
+    # Reconstruct the true inclusion law on the scoring-only parent arrays for
+    # estimated arms. These arrays are never used by the inference reconstruction.
+    successful_estimated = frame.loc[
+        frame["status"].eq("success") & frame["arm"].astype(str).str.startswith("estimated_")
+    ]
+    for _, scoring_row in successful_estimated.iterrows():
+        scoring_raw = scoring_row.get("scoring_audit_payload_json")
+        try:
+            scoring_payload = json.loads(scoring_raw)
+            parent_z = np.asarray(scoring_payload["parent_redshift"], dtype=float)
+            stored_probability = np.asarray(
+                scoring_payload["true_inclusion_probability"], dtype=float
+            )
+        except (TypeError, KeyError, ValueError, json.JSONDecodeError) as exc:
+            raise AssertionError("scoring-only true inclusion payload is malformed") from exc
+        if parent_z.ndim != 1 or parent_z.size != n_parent or stored_probability.shape != parent_z.shape:
+            raise AssertionError("scoring-only parent/inclusion arrays have invalid shapes")
+        x_parent = (parent_z - (z_min + z_max) / 2.0) / ((z_max - z_min) / 2.0)
+        reconstructed_probability = expit(
+            float(inclusion_model["intercept"])
+            + float(inclusion_model["slope"]) * x_parent
+            + float(inclusion_model["quadratic"]) * (x_parent**2 - expected_quadratic_center)
+        )
+        if not np.allclose(stored_probability, reconstructed_probability, rtol=1e-11, atol=1e-12):
+            raise AssertionError("stored true inclusion probabilities disagree with parent-law-centered DGP")
 
     # Cross-check saved population counts against the declared simulation design.
     n_parent = summary.get("n_parent")
