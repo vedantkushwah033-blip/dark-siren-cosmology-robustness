@@ -171,8 +171,8 @@ def fit_quadratic_logistic_inclusion_model(
         jac=gradient,
         method="L-BFGS-B",
         bounds=bounds,
-        options={"maxiter": 3000, "maxfun": 75000, "maxls": 100,
-                 "ftol": 1e-12, "gtol": 1e-8},
+        options={"maxiter": 10000, "maxfun": 200000, "maxls": 100,
+                 "ftol": 1e-15, "gtol": 1e-9},
     )
     if not np.all(np.isfinite(result.x)) or not np.isfinite(result.fun):
         raise RuntimeError(f"quadratic logistic inclusion fit failed: {result.message}")
