@@ -427,7 +427,7 @@ def test_independent_auditor_rejects_success_status_with_nonoptimal_logistic_ref
         auditor,
         "minimize",
         lambda *args, **kwargs: SimpleNamespace(
-            x=np.zeros(2), fun=1.0, success=True, message="CONVERGENCE: fake status"
+            x=np.zeros_like(args[1]), fun=1.0, success=True, message="CONVERGENCE: fake status"
         ),
     )
     with pytest.raises(AssertionError, match="independent inclusion refit did not converge"):
