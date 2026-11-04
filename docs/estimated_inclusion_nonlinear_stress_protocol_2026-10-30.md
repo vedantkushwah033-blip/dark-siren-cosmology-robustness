@@ -1,7 +1,8 @@
 # Estimated-inclusion nonlinear-selection stress protocol
 
 **Protocol date:** 30 October 2026  
-**Status:** prespecified design proposal; not yet executed as a confirmatory campaign  
+**Revision:** 4 November 2026 — parent-law quadratic centering correction  
+**Status:** prespecified exploratory stress design; not a confirmatory campaign  
 **Scope:** controlled synthetic dark-siren host-catalogue inference only.
 
 ## 1. Question and estimand
@@ -20,9 +21,11 @@ $$x = \frac{z-(z_{\min}+z_{\max})/2}{(z_{\max}-z_{\min})/2}.$$
 
 Generate retention indicators as independent Bernoulli draws with
 
-$$P(R=1\mid z)=\operatorname{logit}^{-1}\{a+b x+g(x^2-1/3)\}.$$
+$$P(R=1\mid z)=\operatorname{logit}^{-1}\{a+b x+g(x^2-c_{\rm parent})\}.$$
 
-The quadratic term is a deliberate stress perturbation. The subtraction of $1/3$ centers $x^2$ under a uniform distribution on $[-1,1]$ only; it does not generally center the term under the simulated parent-redshift distribution. The fitted model remains $\operatorname{logit}P(R=1\mid z)=\alpha+\beta x$. Thus $g=0$ is the correctly specified reference and $g\ne0$ is model misspecification.
+Here $c_{\rm parent}=E_{p_{\rm parent}}[x^2]$ under the actual latent parent-redshift distribution. The implementation computes this expectation by trapezoidal quadrature on the same 20,001-point grid used by the parent-population sampler. For the current latent intensity and redshift domain $[0.01,0.40]$, this gives $c_{\rm parent}\approx0.284500557$, not $1/3$.
+
+The quadratic term is a deliberate stress perturbation. Subtracting $1/3$ would center $x^2$ under a uniform distribution on $[-1,1]$, which is not the simulated parent law. The fitted model in this screening implementation remains $\operatorname{logit}P(R=1\mid z)=\alpha+\beta x$. Thus $g=0$ is the correctly specified reference and $g\ne0$ is model misspecification. This exploratory screen does not yet implement the separate quadratic-fitted estimator arm specified in the later confirmatory protocol.
 
 The validation sample is sampled independently by simple random sampling from the complete parent frame and includes both reference redshift and retention indicator. This is an explicit design assumption. It is not equivalent to drawing validation objects only from the retained catalogue.
 
@@ -96,3 +99,10 @@ A failure at any gate blocks stronger claims. In particular, an oracle advantage
 This experiment isolates one misspecification mechanism under a known parent-frame validation design. It does not cover covariate shift, redshift measurement error, validation nonresponse, spatial clustering, selection depending on unobserved galaxy properties, correlated survey masks, uncertain GW detection efficiency, or a realistic galaxy luminosity function. Those require separate studies and cannot be inferred from this factorial screen.
 
 **Current status:** protocol only. No factorial results are asserted here.
+
+
+## 9. Parent-law centering correction (4 November 2026)
+
+A source audit found that the implementation used $x^2-1/3$ even though the parent redshift is sampled from a non-uniform latent galaxy intensity. The DGP now uses $x^2-c_{\rm parent}$, where $c_{\rm parent}=E_{p_{\rm parent}}[x^2]$ is calculated from that intensity. The per-row artifact records the centering constant, and the independent artifact auditor reconstructs it and checks the stored scoring-only inclusion probabilities against the declared DGP. Regression tests cover both the numerical center and tampering.
+
+This is a correction to the simulation specification, not a scientific result. Any artifacts generated under the old $1/3$ centering belong to the old DGP and must not be pooled with runs generated after this correction. Exact-head CI and a fresh persisted smoke artifact are still required before the release gate can open.
