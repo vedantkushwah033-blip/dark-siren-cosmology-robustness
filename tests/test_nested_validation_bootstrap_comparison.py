@@ -415,3 +415,40 @@ def test_replay_auditor_rejects_modified_summary_values(tmp_path, filename, colu
 
     with pytest.raises(AssertionError, match="numeric column mismatch"):
         _require_summary_match(tmp_path, filename, rebuilt)
+
+def test_nested_comparison_does_not_misclassify_invalid_returned_ledger_as_wrapper_failure(monkeypatch):
+    import numpy as np
+    import pandas as pd
+
+    import scripts.run_nested_validation_bootstrap_comparison as runner
+
+    def fake_population(**kwargs):
+        return {
+            "parent_truth": pd.DataFrame({
+                "redshift": np.linspace(0.01, 0.40, kwargs["n_parent"])
+            }),
+            "gw_events_observed": pd.DataFrame({
+                "distance_mpc": np.full(kwargs["n_detected"], 350.0)
+            }),
+        }
+
+    def fake_posterior(*args, **kwargs):
+        return {}, {"posterior_mean": 70.0}
+
+    def invalid_ledger(*args, **kwargs):
+        return {
+            "n_attempted": 3,
+            "n_successful": 1,
+            "n_failed": 1,
+            "success_mask": np.array([True, False, False]),
+        }
+
+    monkeypatch.setattr(runner, "generate_synthetic_population", fake_population)
+    monkeypatch.setattr(runner, "_posterior", fake_posterior)
+    monkeypatch.setattr(runner, "bootstrap_validation_h0_posterior", invalid_ledger)
+
+    with pytest.raises(ValueError, match="counts do not reconcile with success mask"):
+        runner.run_comparison(
+            scenarios=1, draws=1, n_parent=100, n_detected=2,
+            validation_sizes=(20,), bootstrap_replicates=3, seed=31,
+        )
