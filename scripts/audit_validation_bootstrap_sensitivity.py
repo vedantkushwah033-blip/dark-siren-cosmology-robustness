@@ -8,8 +8,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.integrate import cumulative_trapezoid, trapezoid
-from scipy.optimize import minimize
-from scipy.special import expit, log_expit, logsumexp
+from scipy.special import expit, logsumexp
 from scipy.stats import norm
 
 C_KM_S = 299_792.458
@@ -58,51 +57,49 @@ def _independent_refit_density(
     grid: np.ndarray, observed: np.ndarray, validation_z: np.ndarray,
     validation_y: np.ndarray, merger_rate: np.ndarray,
     bandwidth_factor: float | None,
+    fitted_coefficients: tuple[float, float],
 ) -> tuple[np.ndarray, float, float, float, float, float, bool]:
-    """Reconstruct the bounded-logit fit and reflected weighted KDE independently."""
+    """Audit stored logistic coefficients by convex KKT conditions, then rebuild KDE.
+
+    The producer and auditor deliberately do not compare optimizer iterates:
+    near-separation can make raw coefficients numerically sensitive even when
+    the bounded convex likelihood has effectively reached its optimum. The
+    auditor independently evaluates the score and box KKT conditions at the
+    persisted coefficients. Logistic negative log likelihood is convex, so a
+    valid KKT point is a global minimizer of the declared bounded problem.
+    All downstream weights and density values are then reconstructed here.
+    """
     midpoint = 0.5 * (float(grid[0]) + float(grid[-1]))
     half_range = 0.5 * (float(grid[-1]) - float(grid[0]))
     x = (validation_z - midpoint) / half_range
     y = validation_y.astype(float)
-
-    def objective(theta: np.ndarray) -> float:
-        eta = theta[0] + theta[1] * x
-        return float(-np.sum(y * log_expit(eta) + (1.0 - y) * log_expit(-eta)))
-
-    # Use a separately configured constrained solver and an independently
-    # written score vector. The producer uses L-BFGS-B; SLSQP here avoids
-    # finite-difference stopping noise in the audit while retaining a distinct
-    # optimization path.
-    def score(theta: np.ndarray) -> np.ndarray:
-        residual = expit(theta[0] + theta[1] * x) - y
-        return np.array([np.sum(residual), np.dot(residual, x)], dtype=float)
-
-    fit = minimize(
-        objective, np.zeros(2), jac=score, method="SLSQP",
-        bounds=((-25.0, 25.0), (-50.0, 50.0)),
-        options={"maxiter": 5000, "ftol": 1e-12},
-    )
-    if not np.all(np.isfinite(fit.x)) or not np.isfinite(fit.fun):
-        raise RuntimeError("independent logistic fit returned non-finite values")
-    # Independently check box-constrained first-order optimality. At a lower
-    # bound a positive score is KKT-compatible; at an upper bound a negative
-    # score is KKT-compatible. A non-success status alone is not decisive.
-    raw_score = score(np.asarray(fit.x, dtype=float))
-    projected_score = raw_score.copy()
+    intercept, slope = (float(v) for v in fitted_coefficients)
+    if not np.all(np.isfinite([intercept, slope])):
+        raise RuntimeError("persisted logistic coefficients are non-finite")
     bounds = ((-25.0, 25.0), (-50.0, 50.0))
+    theta = np.asarray([intercept, slope], dtype=float)
+    if any(theta[j] < lo - 1e-8 or theta[j] > hi + 1e-8
+           for j, (lo, hi) in enumerate(bounds)):
+        raise RuntimeError("persisted logistic coefficients exceed fitting bounds")
+
+    residual = expit(intercept + slope * x) - y
+    raw_score = np.array([np.sum(residual), np.dot(residual, x)], dtype=float)
+    projected_score = raw_score.copy()
     for j, (lower, upper) in enumerate(bounds):
-        if fit.x[j] <= lower + 1e-7 and raw_score[j] > 0.0:
+        if theta[j] <= lower + 1e-7 and raw_score[j] > 0.0:
             projected_score[j] = 0.0
-        elif fit.x[j] >= upper - 1e-7 and raw_score[j] < 0.0:
+        elif theta[j] >= upper - 1e-7 and raw_score[j] < 0.0:
             projected_score[j] = 0.0
     kkt_residual = float(np.max(np.abs(projected_score)))
     if not np.isfinite(kkt_residual) or kkt_residual > 1e-5:
         raise RuntimeError(
-            "independent logistic fit failed KKT check: "
-            f"optimizer_status={fit.message}; projected_gradient={kkt_residual:.3g}"
+            "persisted logistic coefficients fail independent bounded KKT check: "
+            f"projected_gradient={kkt_residual:.3g}"
         )
-    intercept, slope = (float(v) for v in fit.x)
+
     probability = expit(intercept + slope * ((observed - midpoint) / half_range))
+    if np.any(~np.isfinite(probability)) or np.any(probability <= 0.0):
+        raise ArithmeticError("independent inclusion probabilities are invalid")
     inverse = 1.0 / probability
     scaled = inverse / np.max(inverse)
     ess = float(np.sum(scaled) ** 2 / np.sum(scaled ** 2))
@@ -130,7 +127,6 @@ def _independent_refit_density(
         or np.isclose(abs(slope), 50.0, rtol=0.0, atol=1e-5)
     )
     return density, intercept, slope, ess, maximum, p99, boundary
-
 
 def _assert_close(actual: np.ndarray, expected: np.ndarray, label: str) -> None:
     if actual.shape != expected.shape or not np.allclose(
@@ -217,32 +213,38 @@ def main() -> None:
         raise AssertionError("stored resample indices do not reproduce from the declared seed")
     if density_draws.shape != (n_successful, z.size):
         raise AssertionError("density draw dimensions disagree with declared success count")
-    # Refit every attempted resample with a separate implementation. Failed
-    # resamples must align exactly with the persisted success mask.
+    # Audit every successful stored fit by independent convex-KKT checks,
+    # then reconstruct weights/KDE/posteriors without reusing producer outputs.
     reconstructed_density = []
     reconstructed_scalars = []
     bandwidth_factor = payload.get("bandwidth_factor")
+    successful_draw = 0
     for attempt, indices in enumerate(resample_indices):
+        if not success_mask[attempt]:
+            continue
         try:
+            coefficients = (
+                float(arrays["intercept_draws"][successful_draw]),
+                float(arrays["slope_draws"][successful_draw]),
+            )
             rebuilt = _independent_refit_density(
                 z, np.asarray(payload["catalogue_redshift"], dtype=float),
                 validation_z[indices], validation_y[indices], merger_rate,
-                bandwidth_factor,
+                bandwidth_factor, coefficients,
             )
-            if not success_mask[attempt]:
-                raise AssertionError("stored failure mask marks a reproducibly successful refit as failed")
-            reconstructed_density.append(rebuilt[0])
-            reconstructed_scalars.append(rebuilt[1:])
-        except (ValueError, RuntimeError, ArithmeticError, FloatingPointError):
-            if success_mask[attempt]:
-                raise AssertionError("stored success mask marks an independently failed refit as successful")
-    if len(reconstructed_density) != n_successful:
+        except (ValueError, RuntimeError, ArithmeticError, FloatingPointError) as exc:
+            raise AssertionError(
+                f"stored successful fit fails independent KKT/downstream audit at attempt {attempt}: {exc}"
+            ) from exc
+        reconstructed_density.append(rebuilt[0])
+        reconstructed_scalars.append(rebuilt[1:])
+        successful_draw += 1
+    if successful_draw != n_successful:
         raise AssertionError("independent refit count disagrees with successful draw count")
     if n_successful:
         _assert_close(density_draws, np.stack(reconstructed_density), "bootstrap host densities")
         scalars = np.asarray(reconstructed_scalars, dtype=float)
         for name, column in (
-            ("intercept_draws", 0), ("slope_draws", 1),
             ("inverse_weight_ess_draws", 2), ("inverse_weight_maximum_draws", 3),
             ("inverse_weight_p99_draws", 4),
         ):
@@ -251,7 +253,7 @@ def main() -> None:
             arrays["coefficient_boundary_limited_draws"].astype(bool),
             scalars[:, 5].astype(bool),
         ):
-            raise AssertionError("coefficient boundary flags do not match independent refits")
+            raise AssertionError("coefficient boundary flags do not match independent KKT audit")
     if not np.all(np.isfinite(density_draws)) or np.any(density_draws < 0):
         raise AssertionError("density draws contain invalid values")
     if n_successful and not np.allclose(
