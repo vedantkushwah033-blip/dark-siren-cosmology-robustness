@@ -168,7 +168,7 @@ def _reconstruct_result(row, method: str, n_parent: int, b: int) -> dict:
         "seed": int(row.bootstrap_seed),
         "n_attempted": int(row.n_bootstrap_attempted),
         "n_successful": int(row.n_bootstrap_successful),
-        "n_failed": int(row.n_bootstrap_attempted) - int(row.n_bootstrap_successful),
+        "n_failed": int(row.n_bootstrap_failed),
         "success_mask": mask,
         "attempt_posterior_mean": means,
         "reference_posterior_mean_by_attempt": np.asarray(
