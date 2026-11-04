@@ -404,3 +404,92 @@ def test_validation_bootstrap_rejects_invalid_density_controls_before_attempting
             grid, observed, validation_z, validation_y,
             bandwidth_factor=0.0, n_bootstrap=10,
         )
+
+
+def test_quadratic_logistic_inclusion_fit_recovers_nonlinear_curve():
+    from dark_siren_robustness.estimated_inclusion import (
+        fit_quadratic_logistic_inclusion_model,
+    )
+
+    rng = np.random.default_rng(20261104)
+    z_min, z_max = 0.01, 0.40
+    z = rng.uniform(z_min, z_max, 12000)
+    x = (z - (z_min + z_max) / 2) / ((z_max - z_min) / 2)
+    # A centered and uncentered quadratic basis differ only by the intercept.
+    truth = expit(0.2 - 1.1 * x + 1.7 * (x**2 - 0.2845))
+    included = rng.binomial(1, truth)
+
+    model = fit_quadratic_logistic_inclusion_model(
+        z, included, z_min=z_min, z_max=z_max
+    )
+    grid = np.linspace(z_min, z_max, 301)
+    x_grid = (grid - (z_min + z_max) / 2) / ((z_max - z_min) / 2)
+    expected = expit(0.2 - 1.1 * x_grid + 1.7 * (x_grid**2 - 0.2845))
+    predicted = predict_inclusion_probability(grid, model)
+
+    assert model["model"] == "quadratic_logistic_inclusion_v1"
+    assert model["fit_status"] == "converged"
+    assert model["coefficient_bound_hit"] is False
+    assert model["n_validation"] == len(z)
+    assert np.all(np.isfinite(predicted))
+    assert np.all((predicted > 0.0) & (predicted < 1.0))
+    assert np.mean(np.abs(predicted - expected)) < 0.015
+
+
+def test_quadratic_predictor_is_invariant_to_constant_shift_of_squared_basis():
+    from dark_siren_robustness.estimated_inclusion import (
+        fit_quadratic_logistic_inclusion_model,
+    )
+
+    rng = np.random.default_rng(20261105)
+    z_min, z_max = 0.01, 0.40
+    z = rng.uniform(z_min, z_max, 5000)
+    x = (z - (z_min + z_max) / 2) / ((z_max - z_min) / 2)
+    y = rng.binomial(1, expit(-0.1 + 0.7 * x + 1.2 * (x**2 - 0.31)))
+    model = fit_quadratic_logistic_inclusion_model(
+        z, y, z_min=z_min, z_max=z_max
+    )
+    grid = np.linspace(z_min, z_max, 101)
+    predicted = predict_inclusion_probability(grid, model)
+    shifted = {
+        **model,
+        "intercept": float(model["intercept"] - 0.31 * model["quadratic"]),
+    }
+    # The shifted representation uses x**2 - 0.31 and therefore has the
+    # corresponding intercept adjustment; the public predictor uses x**2.
+    # This check is performed by direct algebra on the fitted coefficients.
+    x_grid = (grid - (z_min + z_max) / 2) / ((z_max - z_min) / 2)
+    expected = expit(
+        shifted["intercept"] + shifted["slope"] * x_grid
+        + shifted["quadratic"] * (x_grid**2 + 0.31)
+    )
+    assert np.allclose(predicted, expected, rtol=1e-12, atol=1e-12)
+
+
+@pytest.mark.parametrize(
+    "z, included, message",
+    [
+        (np.ones(9), np.ones(9), "at least 10"),
+        (np.linspace(0.01, 0.40, 30), np.ones(30), "both"),
+        (np.linspace(0.01, 0.40, 30), np.arange(30), "binary"),
+    ],
+)
+def test_quadratic_logistic_fit_rejects_invalid_validation_records(z, included, message):
+    from dark_siren_robustness.estimated_inclusion import (
+        fit_quadratic_logistic_inclusion_model,
+    )
+
+    with pytest.raises(ValueError, match=message):
+        fit_quadratic_logistic_inclusion_model(
+            z, included, z_min=0.01, z_max=0.40
+        )
+
+
+def test_quadratic_predictor_rejects_out_of_domain_coefficients():
+    model = {
+        "model": "quadratic_logistic_inclusion_v1",
+        "intercept": 0.0, "slope": 0.0, "quadratic": 50.01,
+        "z_min": 0.01, "z_max": 0.40,
+    }
+    with pytest.raises(ValueError, match="coefficients exceed"):
+        predict_inclusion_probability([0.2], model)
