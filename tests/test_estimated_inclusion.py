@@ -31,6 +31,31 @@ def test_logistic_inclusion_fit_recovers_declared_synthetic_curve():
     assert np.mean(np.abs(predicted - truth)) < 0.025
 
 
+def test_logistic_fit_accepts_abnormal_line_search_only_when_kkt_is_satisfied(monkeypatch):
+    from scipy.optimize import minimize as scipy_minimize
+    import dark_siren_robustness.estimated_inclusion as inclusion_module
+
+    rng = np.random.default_rng(20261104)
+    z_min, z_max = 0.01, 0.40
+    z = rng.uniform(z_min, z_max, 2500)
+    x = (z - (z_min + z_max) / 2) / ((z_max - z_min) / 2)
+    included = rng.binomial(1, expit(0.25 - 1.2 * x))
+
+    def report_abnormal_line_search(*args, **kwargs):
+        result = scipy_minimize(*args, **kwargs)
+        result.success = False
+        result.message = "ABNORMAL_TERMINATION_IN_LNSRCH (injected regression case)"
+        return result
+
+    monkeypatch.setattr(inclusion_module, "minimize", report_abnormal_line_search)
+    model = fit_logistic_inclusion_model(z, included, z_min=z_min, z_max=z_max)
+
+    assert model["optimizer_success"] is False
+    assert "ABNORMAL_TERMINATION" in model["optimizer_message"]
+    assert model["projected_gradient_inf_norm"] <= 1e-5
+    assert model["fit_status"] == "converged"
+
+
 def test_logistic_inclusion_fit_is_deterministic_with_separation():
     z = np.linspace(0.01, 0.40, 100)
     included = (z < 0.23).astype(int)
