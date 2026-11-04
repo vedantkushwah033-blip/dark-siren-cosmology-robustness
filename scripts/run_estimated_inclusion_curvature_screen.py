@@ -39,6 +39,10 @@ def main() -> None:
     if not sizes or len(set(sizes)) != len(sizes) or any(v < 10 for v in sizes):
         parser.error("--validation-sizes must be distinct integer counts >= 10")
 
+    # Never overwrite a previous or partially completed experiment. Each
+    # output directory is an immutable artifact destination.
+    if args.output_dir.exists() and any(args.output_dir.iterdir()):
+        parser.error("--output-dir must be new or empty; refusing to overwrite existing artifacts")
     args.output_dir.mkdir(parents=True, exist_ok=True)
     condition_frames: list[pd.DataFrame] = []
     condition_summaries: list[dict] = []
