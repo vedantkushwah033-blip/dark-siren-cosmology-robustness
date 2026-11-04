@@ -652,7 +652,9 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
             weight_quantiles = diagnostic_rows[["inverse_weight_max", "inverse_weight_p95", "inverse_weight_p99"]].to_numpy(dtype=float)
             if np.any(np.diff(weight_quantiles[:, 1:], axis=1) < -1e-12) or np.any(weight_quantiles[:, 1:] > weight_quantiles[:, :1] + 1e-9):
                 raise AssertionError("pre-posterior inverse-weight quantiles are inconsistent")
-    expected_arms = {"catalogue_only", "oracle"} | {f"estimated_{v}" for v in validation_sizes}
+    expected_arms = {"catalogue_only", "oracle"} | {
+        f"estimated_{kind}_{v}" for kind in ("linear", "quadratic") for v in validation_sizes
+    }
     arms_in_rows = set(frame["arm"])
     if arms_in_rows != expected_arms:
         raise AssertionError(f"replicate arm set differs from declared design: expected={sorted(expected_arms)}, observed={sorted(arms_in_rows)}")
@@ -667,7 +669,13 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         missing_pairs = sorted(expected_pairs - observed_pairs)[:5]
         extra_pairs = sorted(observed_pairs - expected_pairs)[:5]
         raise AssertionError(f"incomplete replicate-arm matrix; missing={missing_pairs}, extra={extra_pairs}")
-    expected_validation_size = {"catalogue_only": 0, "oracle": 0, **{f"estimated_{v}": v for v in validation_sizes}}
+    expected_validation_size = {
+        "catalogue_only": 0, "oracle": 0,
+        **{
+            f"estimated_{kind}_{v}": v
+            for kind in ("linear", "quadratic") for v in validation_sizes
+        },
+    }
     for arm, expected_size in expected_validation_size.items():
         sizes = set(_integer_values(frame.loc[frame["arm"] == arm, "validation_size"], f"{arm}.validation_size").tolist())
         if sizes != {expected_size}:
