@@ -192,12 +192,14 @@ def run_estimated_inclusion_pilot(
         }
         if observed_z.size < 5 or np.unique(observed_z).size < 3:
             # Preserve the replicate failure explicitly for all arms.
-            arms = ["catalogue_only", "oracle"] + [f"estimated_{m}" for m in sizes]
+            arms = ["catalogue_only", "oracle"] + [
+                f"estimated_{kind}_{m}" for kind in ("linear", "quadratic") for m in sizes
+            ]
             for arm in arms:
                 rows.append({
                     "replicate": replicate, "replicate_seed": sim_seed,
                     "catalogue_seed": catalogue_seed, "audit_seed": audit_seed,
-                    "arm": arm, "validation_size": 0 if arm in ("catalogue_only", "oracle") else int(arm.split("_")[1]),
+                    "arm": arm, "validation_size": 0 if arm in ("catalogue_only", "oracle") else int(arm.split("_")[-1]),
                     "status": "failed", "error": "too few retained catalogue objects",
                     # No inclusion model or pre-posterior features were fitted:
                     # the catalogue failed the minimum-size gate before arm setup.
@@ -224,7 +226,10 @@ def run_estimated_inclusion_pilot(
             ("catalogue_only", 0, None),
             ("oracle", 0, "oracle"),
         ]
-        arm_specs.extend((f"estimated_{m}", m, m) for m in sizes)
+        arm_specs.extend(
+            (f"estimated_{kind}_{m}", m, (m, kind))
+            for kind in ("linear", "quadratic") for m in sizes
+        )
         for arm, audit_size, spec in arm_specs:
             try:
                 fit_status = "not_applicable"
@@ -261,7 +266,7 @@ def run_estimated_inclusion_pilot(
                     max_inverse_weight = float(np.max(1.0 / observed_p))
                     probability_mae = 0.0
                 else:
-                    m = int(spec)
+                    m, model_type = spec
                     validation_z = audit_records["redshift"][:m]
                     validation_included = audit_records["included"][:m]
                     audit_validation_redshift = np.asarray(validation_z, dtype=float)
@@ -269,6 +274,7 @@ def run_estimated_inclusion_pilot(
                     result = estimate_host_density_from_validation(
                         z_grid, observed_z, validation_z, validation_included,
                         merger_weight=merger_rate, bandwidth_factor=bandwidth_factor,
+                        model_type=model_type,
                     )
                     density = result["density"]
                     density_inclusion_probability = np.asarray(
@@ -445,7 +451,9 @@ def run_estimated_inclusion_pilot(
     contrasts: list[dict] = []
     if not successful.empty:
         baseline = successful.loc[successful["arm"] == "catalogue_only"].set_index("replicate")
-        for arm in ["oracle"] + [f"estimated_{m}" for m in sizes]:
+        for arm in ["oracle"] + [
+            f"estimated_{kind}_{m}" for kind in ("linear", "quadratic") for m in sizes
+        ]:
             comparison = successful.loc[successful["arm"] == arm].set_index("replicate")
             paired = baseline[["absolute_error"]].merge(
                 comparison[["absolute_error"]], left_index=True, right_index=True,
