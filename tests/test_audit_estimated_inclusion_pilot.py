@@ -475,3 +475,28 @@ def test_independent_auditor_rejects_tampered_true_inclusion_probabilities(tmp_p
     (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(AssertionError, match="true inclusion probabilities"):
         audit_pilot_artifacts(tmp_path)
+
+
+def test_independent_auditor_reconstructs_nonlinear_quadratic_inclusion_arm(tmp_path):
+    frame, summary = run_estimated_inclusion_pilot(
+        n_replicates=1,
+        n_parent=1000,
+        n_detected=5,
+        validation_sizes=(100,),
+        seed=20261107,
+        true_quadratic=1.2,
+        h0_points=41,
+        z_points=201,
+    )
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+
+    report = audit_pilot_artifacts(tmp_path)
+
+    assert report["status"] == "PASS"
+    quadratic_rows = frame.loc[
+        frame["arm"].eq("estimated_quadratic_100")
+    ]
+    assert len(quadratic_rows) == 1
+    assert quadratic_rows.iloc[0]["status"] == "success"
+    assert report["per_arm_counts"]["estimated_quadratic_100"]["n_success"] == 1
