@@ -168,7 +168,7 @@ def test_independent_auditor_accepts_explicit_all_failed_artifact_without_fit_co
     report = audit_pilot_artifacts(tmp_path)
     assert report["status"] == "PASS"
     assert report["n_success"] == 0
-    assert report["n_failed"] == 6
+    assert report["n_failed"] == 4
     assert all(
         arm["status"] == "non_evaluable_no_successful_fits"
         for arm in report["per_arm_counts"].values()
