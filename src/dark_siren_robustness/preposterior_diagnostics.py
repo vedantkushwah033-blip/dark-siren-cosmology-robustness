@@ -18,8 +18,9 @@ def build_preposterior_diagnostics(model: Mapping[str, object], validation_redsh
     min/max range represented in the external validation sample. It is a
     warning proxy, not a formal test of covariate shift.
     """
-    if model.get("model") != "logistic_inclusion_v1":
-        raise ValueError("model must be a logistic_inclusion_v1 fitted result")
+    model_kind = model.get("model")
+    if model_kind not in {"logistic_inclusion_v1", "quadratic_logistic_inclusion_v1"}:
+        raise ValueError("model must be a supported logistic inclusion fitted result")
     validation_z = np.asarray(validation_redshift, dtype=float)
     included_raw = np.asarray(validation_included)
     catalogue_z = np.asarray(observed_redshift, dtype=float)
@@ -38,11 +39,12 @@ def build_preposterior_diagnostics(model: Mapping[str, object], validation_redsh
         raise ValueError("observed inclusion probabilities must lie strictly inside (0, 1)")
     try:
         intercept, slope = float(model["intercept"]), float(model["slope"])
+        quadratic = float(model["quadratic"]) if model_kind == "quadratic_logistic_inclusion_v1" else 0.0
     except (KeyError, TypeError, ValueError) as exc:
         raise ValueError("fitted model coefficients must be present and finite") from exc
-    if not np.all(np.isfinite([intercept, slope])):
+    if not np.all(np.isfinite([intercept, slope, quadratic])):
         raise ValueError("fitted model coefficients must be present and finite")
-    if abs(intercept) > 25.0 or abs(slope) > 50.0:
+    if abs(intercept) > 25.0 or abs(slope) > 50.0 or abs(quadratic) > 50.0:
         raise ValueError("fitted model coefficients exceed the bounded logistic-fit domain")
     try:
         z_min, z_max = float(model["z_min"]), float(model["z_max"])
@@ -76,8 +78,9 @@ def build_preposterior_diagnostics(model: Mapping[str, object], validation_redsh
     if bool(model.get("coefficient_bound_hit", False)) != (model.get("fit_status") == "boundary_limited"):
         raise ValueError("fitted model boundary flag disagrees with fit status")
 
+    standardized_z = (catalogue_z - (z_min + z_max) / 2.0) / ((z_max - z_min) / 2.0)
     expected_probability = expit(
-        intercept + slope * ((catalogue_z - (z_min + z_max) / 2.0) / ((z_max - z_min) / 2.0))
+        intercept + slope * standardized_z + quadratic * standardized_z**2
     )
     if not np.allclose(probability, expected_probability, rtol=1e-10, atol=1e-12):
         raise ValueError("supplied probabilities disagree with fitted model")
