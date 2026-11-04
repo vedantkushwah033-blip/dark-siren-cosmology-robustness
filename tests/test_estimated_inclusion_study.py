@@ -302,7 +302,9 @@ def test_quadratic_inclusion_term_is_centered_under_parent_redshift_law():
         np.full(len(frame), center)
     )
 
-    successful = frame.loc[frame["status"].eq("success")]
+    successful = frame.loc[
+        frame["status"].eq("success") & frame["arm"].str.startswith("estimated_")
+    ]
     assert not successful.empty
     scoring = json.loads(successful.iloc[0]["scoring_audit_payload_json"])
     parent_z = np.asarray(scoring["parent_redshift"], dtype=float)
