@@ -261,6 +261,7 @@ def estimate_host_density_from_validation(
     *,
     merger_weight: ArrayLike | None = None,
     bandwidth_factor: float | None = None,
+    model_type: str = "linear",
 ) -> dict[str, object]:
     """Estimate host density using inclusion probabilities learned from audit data.
 
@@ -288,7 +289,13 @@ def estimate_host_density_from_validation(
         raise ValueError("observed_redshift must contain at least five finite values")
     if np.any((observed < grid[0]) | (observed > grid[-1])):
         raise ValueError("observed_redshift must lie inside redshift_grid bounds")
-    model = fit_logistic_inclusion_model(
+    if model_type == "linear":
+        fitter = fit_logistic_inclusion_model
+    elif model_type == "quadratic":
+        fitter = fit_quadratic_logistic_inclusion_model
+    else:
+        raise ValueError("model_type must be 'linear' or 'quadratic'")
+    model = fitter(
         validation_z,
         validation_included,
         z_min=float(grid[0]),
