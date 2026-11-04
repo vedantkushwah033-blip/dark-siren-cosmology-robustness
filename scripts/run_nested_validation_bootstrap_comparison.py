@@ -167,7 +167,9 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                                 method=method, n_bootstrap=bootstrap_replicates,
                                 seed=method_seed, merger_weight=rate,
                             )
-                            ok = int(result["n_successful"])
+                            continue
+
+                        ok = int(result["n_successful"])
                             attempted = int(result["n_attempted"])
                             failed = int(result["n_failed"])
                             success_mask = np.asarray(result["success_mask"], dtype=bool)
@@ -220,6 +222,7 @@ def run_comparison(*, scenarios: int, draws: int, n_parent: int,
                                 "wrapper_failure_message": str(exc),
                                 "fpc_factor": float(np.sqrt(max(0.0, 1.0-size/n_parent))),
                             }
+                            continue
                     paired = method_results["paired_bootstrap"]
                     fpc_se = (paired["bootstrap_se"]*paired["fpc_factor"]
                               if paired["bootstrap_status"] == "success" else np.nan)
