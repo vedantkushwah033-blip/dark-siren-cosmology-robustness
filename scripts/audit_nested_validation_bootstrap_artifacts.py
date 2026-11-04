@@ -127,8 +127,13 @@ def _independent_summaries(records: pd.DataFrame) -> tuple[pd.DataFrame, pd.Data
 
 def audit(directory: Path) -> dict:
     manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
-    _require(manifest.get("schema") == "nested_validation_bootstrap_comparison_smoke_v1",
-             "unsupported artifact schema")
+    _require(
+        manifest.get("schema") in {
+            "nested_validation_bootstrap_comparison_smoke_v1",
+            "nested_validation_bootstrap_comparison_smoke_v2",
+        },
+        "unsupported artifact schema",
+    )
     _require(manifest.get("status") == "SMOKE_ONLY_NOT_CONFIRMATORY",
              "artifact must remain explicitly smoke-only")
     _require(set(manifest.get("methods", [])) == METHODS, "declared method set mismatch")
