@@ -116,6 +116,17 @@ def run_estimated_inclusion_pilot(
     z_min, z_max = float(z_grid[0]), float(z_grid[-1])
     z_mid, z_half = (z_min + z_max) / 2.0, (z_max - z_min) / 2.0
     standardized_grid = (z_grid - z_mid) / z_half
+
+    # The quadratic term must be centered under the actual parent-redshift
+    # distribution, not under an unrelated uniform[-1, 1] reference measure.
+    # Match the 20,001-point trapezoidal grid used by the parent sampler.
+    parent_moment_grid = np.linspace(z_min, z_max, 20_001)
+    parent_moment_x = (parent_moment_grid - z_mid) / z_half
+    parent_moment_intensity = latent_galaxy_intensity(parent_moment_grid)
+    quadratic_center = float(
+        trapezoid(parent_moment_intensity * parent_moment_x**2, parent_moment_grid)
+        / trapezoid(parent_moment_intensity, parent_moment_grid)
+    )
     merger_rate = 1.0 + 1.5 * (z_grid - z_min) / (z_max - z_min)
     target_density = latent_galaxy_intensity(z_grid) * merger_rate
     target_density = target_density / trapezoid(target_density, z_grid)
@@ -146,14 +157,11 @@ def run_estimated_inclusion_pilot(
         # table is deliberately ignored; this experiment uses its own thinning.
         standardized_parent = (parent_z - z_mid) / z_half
         # A nonzero quadratic term creates a deliberately misspecified stress
-        # condition for the linear-logit validation estimator. Subtracting 1/3
-        # centers x^2 under a *uniform reference measure* on [-1, 1] in logit
-        # space. It does not make the intercept the midpoint log-odds (at x=0,
-        # eta = intercept - quadratic/3), nor does it generally center under
-        # the non-uniform simulated parent-redshift distribution.
+        # condition for the linear-logit validation estimator. Center x^2 under
+        # the actual parent-redshift law used by the synthetic population.
         true_probability = expit(
             true_intercept + true_slope * standardized_parent
-            + true_quadratic * (standardized_parent**2 - 1.0 / 3.0)
+            + true_quadratic * (standardized_parent**2 - quadratic_center)
         )
         if (
             not np.all(np.isfinite(true_probability))
@@ -196,6 +204,8 @@ def run_estimated_inclusion_pilot(
                     "fit_status": "not_attempted",
                     "fit_boundary_limited": False,
                     "n_catalogue": int(observed_z.size), "n_detected": int(distances.size),
+                    "true_quadratic_center": quadratic_center,
+                    "true_quadratic_center": quadratic_center,
                     "true_probability_min": true_probability_min,
                     "true_probability_max": true_probability_max,
                     "true_probability_p01": true_probability_p01,
@@ -305,6 +315,8 @@ def run_estimated_inclusion_pilot(
                     "status": "success", "error": "",
                     "fit_status": fit_status, "fit_boundary_limited": fit_boundary_limited,
                     "n_catalogue": int(observed_z.size), "n_detected": int(distances.size),
+                    "true_quadratic_center": quadratic_center,
+                    "true_quadratic_center": quadratic_center,
                     "true_probability_min": true_probability_min,
                     "true_probability_max": true_probability_max,
                     "true_probability_p01": true_probability_p01,
@@ -364,6 +376,8 @@ def run_estimated_inclusion_pilot(
                     "status": "failed", "error": f"{type(exc).__name__}: {exc}",
                     "fit_status": "failed", "fit_boundary_limited": False,
                     "n_catalogue": int(observed_z.size), "n_detected": int(distances.size),
+                    "true_quadratic_center": quadratic_center,
+                    "true_quadratic_center": quadratic_center,
                     "true_probability_min": true_probability_min,
                     "true_probability_max": true_probability_max,
                     "true_probability_p01": true_probability_p01,
@@ -461,13 +475,17 @@ def run_estimated_inclusion_pilot(
         "validation_sizes": list(sizes),
         "true_inclusion_model": {
             "family": "quadratic_logistic" if true_quadratic != 0.0 else "linear_logistic",
-            "logit_probability": "intercept + slope*x + quadratic*(x^2 - 1/3)",
+            "logit_probability": (
+                f"intercept + slope*x + quadratic*(x^2 - {quadratic_center:.15g})"
+            ),
             "intercept": float(true_intercept), "slope": float(true_slope),
             "quadratic": float(true_quadratic),
+            "quadratic_center": quadratic_center,
             "standardization": "(z - domain_midpoint) / domain_half_range",
             "quadratic_centering": (
-                "x^2 - 1/3; centered in logit space under uniform x on [-1, 1] "
-                "only, not necessarily under the simulated parent distribution"
+                "E_parent[x^2] under the latent parent-redshift intensity; "
+                "computed by trapezoidal quadrature on the same 20,001-point grid "
+                "used by the parent-population sampler"
             ),
         },
         "primary_contrast": "abs_error_catalogue_only - abs_error_comparison_arm",
