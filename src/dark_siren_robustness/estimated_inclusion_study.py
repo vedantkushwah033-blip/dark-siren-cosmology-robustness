@@ -216,7 +216,7 @@ def run_estimated_inclusion_pilot(
                     "true_max_inverse_probability": true_max_inverse_probability,
                     "true_retention_rate": true_retention_rate,
                     "audit_included_count": (
-                        int(np.sum(audit_records["included"][:int(arm.split("_")[1])]))
+                        int(np.sum(audit_records["included"][:int(arm.split("_")[-1])]))
                         if arm.startswith("estimated_") else None
                     ),
                 })
