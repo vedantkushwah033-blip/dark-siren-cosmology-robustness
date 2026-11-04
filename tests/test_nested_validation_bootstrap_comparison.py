@@ -449,6 +449,6 @@ def test_nested_comparison_does_not_misclassify_invalid_returned_ledger_as_wrapp
 
     with pytest.raises(ValueError, match="counts do not reconcile with success mask"):
         runner.run_comparison(
-            scenarios=1, draws=1, n_parent=100, n_detected=2,
+            scenarios=1, draws=2, n_parent=100, n_detected=2,
             validation_sizes=(20,), bootstrap_replicates=3, seed=31,
         )
