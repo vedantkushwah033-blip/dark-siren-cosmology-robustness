@@ -98,7 +98,7 @@ A failure at any gate blocks stronger claims. In particular, an oracle advantage
 
 This experiment isolates one misspecification mechanism under a known parent-frame validation design. It does not cover covariate shift, redshift measurement error, validation nonresponse, spatial clustering, selection depending on unobserved galaxy properties, correlated survey masks, uncertain GW detection efficiency, or a realistic galaxy luminosity function. Those require separate studies and cannot be inferred from this factorial screen.
 
-**Current status:** protocol only. No factorial results are asserted here.
+**Current status:** an exploratory implementation and five-curvature screen harness exist, but no executed factorial results are asserted here. The later confirmatory protocol remains unrun.
 
 
 ## 9. Parent-law centering correction (4 November 2026)
