@@ -147,3 +147,17 @@ def test_nested_replay_auditor_never_calls_production_bootstrap_wrapper():
     assert "from dark_siren_robustness.posterior_validation_bootstrap import" not in source
     assert "bootstrap_validation_h0_posterior(" not in source
     assert '"n_failed": int(row.n_bootstrap_failed)' in source
+
+def test_independent_nested_replay_rejects_tampered_persisted_failure_count(nested_artifact):
+    path = nested_artifact / "calibration_records.csv"
+    records = pd.read_csv(path)
+    selected = records.index[
+        records["method"].eq("paired_bootstrap")
+        & records["bootstrap_status"].isin(["success", "non_evaluable"])
+    ][0]
+    records.at[selected, "n_bootstrap_failed"] = (
+        int(records.at[selected, "n_bootstrap_failed"]) + 1
+    )
+    records.to_csv(path, index=False)
+    with pytest.raises(AssertionError, match="inner success/failure counts do not reconcile"):
+        audit_replay(nested_artifact)
