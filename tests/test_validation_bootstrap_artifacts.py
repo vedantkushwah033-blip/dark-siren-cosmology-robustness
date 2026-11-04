@@ -86,3 +86,19 @@ def test_persisted_validation_bootstrap_artifact_round_trips_and_audits(tmp_path
         check=False, capture_output=True, text=True,
     )
     assert tampered_density_audit.returncode != 0
+
+    # Adversarial check 3: changing a stored fitted coefficient must fail
+    # the auditor's independent bounded-logistic KKT check or KDE replay.
+    draws_path.write_bytes(original_bytes)
+    with np.load(draws_path, allow_pickle=False) as saved:
+        arrays = {key: saved[key].copy() for key in saved.files}
+    arrays["intercept_draws"][0] += 0.1
+    np.savez_compressed(draws_path, **arrays)
+    tampered_coefficient_audit = subprocess.run(
+        [
+            sys.executable, "scripts/audit_validation_bootstrap_sensitivity.py",
+            "--artifact-dir", str(artifact_dir), "--pilot-csv", str(pilot_csv),
+        ],
+        check=False, capture_output=True, text=True,
+    )
+    assert tampered_coefficient_audit.returncode != 0
