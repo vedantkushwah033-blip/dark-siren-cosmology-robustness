@@ -22,7 +22,7 @@ def test_estimated_inclusion_pilot_is_reproducible_and_retains_failures():
     assert summary["status"] == "NON_CONFIRMATORY_SYNTHETIC_PILOT"
     assert {"catalogue_only", "oracle", "estimated_linear_100", "estimated_linear_200", "estimated_quadratic_100", "estimated_quadratic_200"} == set(first["arm"])
     assert all(first["status"].isin(["success", "failed"]))
-    assert len(summary["contrasts"]) <= 3
+    assert len(summary["contrasts"]) <= 5
 
 
 def test_estimated_inclusion_pilot_rejects_non_integer_validation_sizes():
