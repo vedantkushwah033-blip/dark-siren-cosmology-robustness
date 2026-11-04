@@ -119,6 +119,99 @@ def fit_logistic_inclusion_model(
     }
 
 
+
+def fit_quadratic_logistic_inclusion_model(
+    validation_redshift: ArrayLike,
+    included: ArrayLike,
+    *,
+    z_min: float,
+    z_max: float,
+) -> dict[str, float | str | bool]:
+    """Fit logit P(included=1 | z) = a + b*x + q*x**2.
+
+    The quadratic basis is deliberately uncentered: subtracting any fixed
+    constant from x**2 is exactly absorbed by the intercept, so fitted
+    probabilities are invariant to that convention. The DGP's parent-law
+    centering remains recorded separately in simulation metadata.
+    """
+    z = np.asarray(validation_redshift, dtype=float)
+    y_raw = np.asarray(included)
+    if z.ndim != 1 or z.size < 10 or not np.all(np.isfinite(z)):
+        raise ValueError("validation_redshift must contain at least 10 finite values")
+    if not np.isfinite(z_min) or not np.isfinite(z_max) or not z_min < z_max:
+        raise ValueError("z_min and z_max must be finite with z_min < z_max")
+    if np.any((z < z_min) | (z > z_max)):
+        raise ValueError("validation_redshift must lie inside the declared domain")
+    if y_raw.shape != z.shape or y_raw.ndim != 1:
+        raise ValueError("included must be a one-dimensional array matching validation_redshift")
+    if not np.all(np.isin(y_raw, [0, 1, False, True])):
+        raise ValueError("included must contain only binary 0/1 values")
+    y = y_raw.astype(float)
+    if np.unique(y).size != 2:
+        raise ValueError("validation sample must contain both included and not-included outcomes")
+
+    midpoint = (float(z_min) + float(z_max)) / 2.0
+    half_range = (float(z_max) - float(z_min)) / 2.0
+    x = (z - midpoint) / half_range
+    design = np.column_stack((np.ones(z.size), x, x**2))
+
+    def negative_log_likelihood(theta: NDArray[np.float64]) -> float:
+        eta = design @ theta
+        value = -np.sum(y * log_expit(eta) + (1.0 - y) * log_expit(-eta))
+        return float(value) if np.isfinite(value) else float("inf")
+
+    def gradient(theta: NDArray[np.float64]) -> NDArray[np.float64]:
+        residual = expit(design @ theta) - y
+        return design.T @ residual
+
+    bounds = ((-25.0, 25.0), (-50.0, 50.0), (-50.0, 50.0))
+    result = minimize(
+        negative_log_likelihood,
+        x0=np.zeros(3, dtype=float),
+        jac=gradient,
+        method="L-BFGS-B",
+        bounds=bounds,
+        options={"maxiter": 3000, "maxfun": 75000, "maxls": 100,
+                 "ftol": 1e-12, "gtol": 1e-8},
+    )
+    if not np.all(np.isfinite(result.x)) or not np.isfinite(result.fun):
+        raise RuntimeError(f"quadratic logistic inclusion fit failed: {result.message}")
+
+    raw_gradient = gradient(np.asarray(result.x, dtype=float))
+    projected_gradient = raw_gradient.copy()
+    for j, (lower, upper) in enumerate(bounds):
+        if result.x[j] <= lower + 1e-7 and raw_gradient[j] > 0.0:
+            projected_gradient[j] = 0.0
+        elif result.x[j] >= upper - 1e-7 and raw_gradient[j] < 0.0:
+            projected_gradient[j] = 0.0
+    kkt_residual = float(np.max(np.abs(projected_gradient)))
+    if not np.isfinite(kkt_residual) or kkt_residual > 1e-5:
+        raise RuntimeError(
+            "quadratic logistic inclusion fit failed KKT check: "
+            f"optimizer_status={result.message}; projected_gradient={kkt_residual:.3g}"
+        )
+    bound_hit = any(
+        np.isclose(abs(float(result.x[j])), limit, rtol=0.0, atol=1e-5)
+        for j, limit in enumerate((25.0, 50.0, 50.0))
+    )
+    return {
+        "model": "quadratic_logistic_inclusion_v1",
+        "fit_status": "boundary_limited" if bound_hit else "converged",
+        "coefficient_bound_hit": bool(bound_hit),
+        "intercept": float(result.x[0]),
+        "slope": float(result.x[1]),
+        "quadratic": float(result.x[2]),
+        "z_min": float(z_min),
+        "z_max": float(z_max),
+        "n_validation": int(z.size),
+        "n_included": int(np.sum(y)),
+        "n_not_included": int(y.size - np.sum(y)),
+        "negative_log_likelihood": float(result.fun),
+        "optimizer_success": bool(result.success),
+        "optimizer_message": str(result.message),
+        "projected_gradient_inf_norm": kkt_residual,
+    }
+
 def predict_inclusion_probability(
     redshift: ArrayLike,
     model: Mapping[str, object],
@@ -129,21 +222,24 @@ def predict_inclusion_probability(
     chooses to stabilize weights, that rule must be explicit and reported as
     part of the estimator rather than silently embedded in this function.
     """
-    if model.get("model") != "logistic_inclusion_v1":
-        raise ValueError("model must be a logistic_inclusion_v1 result")
+    model_kind = model.get("model")
+    if model_kind not in {"logistic_inclusion_v1", "quadratic_logistic_inclusion_v1"}:
+        raise ValueError("model must be a supported logistic inclusion result")
     try:
         intercept = float(model["intercept"])
         slope = float(model["slope"])
+        quadratic = (
+            float(model["quadratic"])
+            if model_kind == "quadratic_logistic_inclusion_v1" else 0.0
+        )
         z_min = float(model["z_min"])
         z_max = float(model["z_max"])
     except (KeyError, TypeError, ValueError) as exc:
         raise ValueError("model is missing valid coefficients or domain bounds") from exc
-    if not all(np.isfinite(value) for value in (intercept, slope, z_min, z_max)) or z_min >= z_max:
+    if not all(np.isfinite(value) for value in (intercept, slope, quadratic, z_min, z_max)) or z_min >= z_max:
         raise ValueError("model coefficients and domain bounds must be finite and valid")
-    # These are the fitting bounds in fit_logistic_inclusion_model. Enforcing
-    # the same model contract here prevents externally supplied coefficients
-    # from producing subnormal probabilities and overflowing inverse weights.
-    if abs(intercept) > 25.0 or abs(slope) > 50.0:
+    # Enforce the same coefficient box used by the corresponding fitter.
+    if abs(intercept) > 25.0 or abs(slope) > 50.0 or abs(quadratic) > 50.0:
         raise ValueError("model coefficients exceed the bounded logistic-fit domain")
     z = np.asarray(redshift, dtype=float)
     if z.ndim != 1 or not np.all(np.isfinite(z)):
@@ -152,7 +248,8 @@ def predict_inclusion_probability(
         raise ValueError("redshift values must lie inside the fitted model domain")
     midpoint = (z_min + z_max) / 2.0
     half_range = (z_max - z_min) / 2.0
-    return np.asarray(expit(intercept + slope * ((z - midpoint) / half_range)), dtype=float)
+    x = (z - midpoint) / half_range
+    return np.asarray(expit(intercept + slope * x + quadratic * x**2), dtype=float)
 
 
 
