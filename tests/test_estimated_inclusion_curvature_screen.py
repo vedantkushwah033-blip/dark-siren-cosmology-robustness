@@ -36,8 +36,14 @@ def test_curvature_screen_runs_all_conditions_and_audits(tmp_path, monkeypatch):
     assert all(item["audit_status"] == "PASS" for item in report["conditions"])
 
     combined = pd.read_csv(output / "all_conditions_replicates.csv")
-    assert len(combined) == 25
+    assert len(combined) == 40  # 5 curvatures x (catalogue + oracle + 6 estimated arms)
     assert set(combined["true_quadratic"]) == {-2.0, -1.0, 0.0, 1.0, 2.0}
+    expected_arms = {
+        "catalogue_only", "oracle",
+        "estimated_linear_100", "estimated_linear_300", "estimated_linear_500",
+        "estimated_quadratic_100", "estimated_quadratic_300", "estimated_quadratic_500",
+    }
+    assert set(combined["arm"]) == expected_arms
     for item in report["conditions"]:
         condition_dir = output / item["condition"]
         assert (condition_dir / "replicates.csv").is_file()
