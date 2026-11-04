@@ -244,7 +244,10 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
         if np.any((parent_z < z[0]) | (parent_z > z[-1])):
             raise AssertionError("scoring parent redshifts fall outside the simulation domain")
         x_parent = (parent_z - (z_min + z_max)/2.0) / ((z_max-z_min)/2.0)
-        refit_parent_probability = expit(refit.x[0] + refit.x[1]*x_parent)
+        refit_parent_eta = refit.x[0] + refit.x[1] * x_parent
+        if quadratic_model:
+            refit_parent_eta = refit_parent_eta + refit.x[2] * x_parent**2
+        refit_parent_probability = expit(refit_parent_eta)
         if not np.allclose(
             estimated_parent_p, refit_parent_probability, rtol=5e-5, atol=5e-5
         ):
@@ -432,7 +435,13 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
             arm = str(row["arm"])
             count = row["audit_included_count"]
             if arm.startswith("estimated_"):
-                m = int(arm.split("_")[1])
+                parts = arm.split("_")
+                if len(parts) != 3 or parts[1] not in {"linear", "quadratic"}:
+                    raise AssertionError(f"{arm}: malformed estimated-arm identifier")
+                try:
+                    m = int(parts[-1])
+                except ValueError as exc:
+                    raise AssertionError(f"{arm}: malformed validation-size suffix") from exc
                 if pd.isna(count) or float(count) != int(float(count)) or not 0 <= int(float(count)) <= m:
                     raise AssertionError(f"{arm}: invalid audit_included_count")
                 if int(float(row["validation_size"])) != m:
