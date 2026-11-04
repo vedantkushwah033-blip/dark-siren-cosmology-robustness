@@ -135,3 +135,14 @@ def test_independent_replay_rejects_fabricated_wrapper_failure(nested_artifact):
     records.to_csv(records_path, index=False)
     with pytest.raises(AssertionError, match="wrapper failure|did not reproduce"):
         audit_replay(nested_artifact)
+
+def test_nested_replay_auditor_never_calls_production_bootstrap_wrapper():
+    from pathlib import Path
+
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "scripts"
+        / "audit_nested_validation_bootstrap_replay.py"
+    ).read_text(encoding="utf-8")
+    assert "from dark_siren_robustness.posterior_validation_bootstrap import" not in source
+    assert "bootstrap_validation_h0_posterior(" not in source
