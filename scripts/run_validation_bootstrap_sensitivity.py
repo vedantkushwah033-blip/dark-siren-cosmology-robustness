@@ -101,6 +101,7 @@ def main() -> None:
             "posterior_mean_bootstrap_percentile_95"
         ],
         "failure_reasons": list(result["failure_reasons"]),
+        "failure_records": list(result["failure_records"]),
         "array_file": "bootstrap_draws.npz",
         "input_file": "inputs.json",
         "warning": (
