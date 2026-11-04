@@ -163,3 +163,20 @@ A static regression test prevents the replay auditor from importing or calling t
 A final replay-integrity refinement also ensures `_reconstruct_result` passes the persisted `n_bootstrap_failed` count to the independent posterior-bootstrap auditor. It no longer derives that value as `attempted - successful`, which could otherwise conceal a corrupted stored failure count. A regression guard checks that the persisted field is used directly. This source/test change is committed as `253a126` and `4adf11d`; exact-head execution remains pending.
 
 A dynamic tamper regression now complements the static source guard: it increments a persisted `n_bootstrap_failed` value while leaving the attempt mask and other counts unchanged, then requires the replay auditor to reject the artifact. This directly exercises the failure-count integrity check rather than only checking that the implementation references the persisted field. Test commit: `2bed5ae`. The test has been committed but not executed; exact-head CI remains unverified.
+
+## Current-manifest and structural-auditor alignment (2026-11-04)
+
+A review of the complete CI path exposed a stale first-stage artifact auditor and fixture:
+
+- The runner emits manifest schema `nested_validation_bootstrap_comparison_smoke_v2`, but the structural auditor only accepted `smoke_v1`.
+- The structural auditor did not accept the newly introduced `non_evaluable` status.
+- Its locally reconstructed summary schema predated the separate procedure/inner-resample accounting fields.
+- The replay-auditor test fixture still wrote a v1 manifest and omitted the required scenario-failure ledger and v2 denominator fields.
+
+Corrections committed:
+- Structural auditor now accepts both v1 and v2 manifests for backward compatibility.
+- It validates success and non-evaluable attempt masks/counts using the explicit status threshold, and accepts derived FPC rows with either status.
+- Its summary reconstruction now uses the separately implemented `reconstruct_calibration_summaries` routine, which includes current procedure-level and inner-resample-level estimands.
+- The shared nested-artifact test fixture now writes a v2 manifest, required scenario denominator fields, and `scenario_failure_records.csv`.
+
+This is an important CI-path correction: without it, the structural audit and replay test fixture were inconsistent with the runner's current output contract. The code and fixture have been fetched back from the repair branch for source inspection. Tests have not been run locally; exact-head CI remains unverified.
