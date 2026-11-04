@@ -69,13 +69,38 @@ def _independent_refit_density(
         eta = theta[0] + theta[1] * x
         return float(-np.sum(y * log_expit(eta) + (1.0 - y) * log_expit(-eta)))
 
+    # Use a separately configured constrained solver and an independently
+    # written score vector. The producer uses L-BFGS-B; SLSQP here avoids
+    # finite-difference stopping noise in the audit while retaining a distinct
+    # optimization path.
+    def score(theta: np.ndarray) -> np.ndarray:
+        residual = expit(theta[0] + theta[1] * x) - y
+        return np.array([np.sum(residual), np.dot(residual, x)], dtype=float)
+
     fit = minimize(
-        objective, np.zeros(2), method="L-BFGS-B",
+        objective, np.zeros(2), jac=score, method="SLSQP",
         bounds=((-25.0, 25.0), (-50.0, 50.0)),
-        options={"maxiter": 2000, "ftol": 1e-12, "gtol": 1e-8},
+        options={"maxiter": 5000, "ftol": 1e-12},
     )
-    if not fit.success or not np.all(np.isfinite(fit.x)):
-        raise RuntimeError("independent logistic fit failed")
+    if not np.all(np.isfinite(fit.x)) or not np.isfinite(fit.fun):
+        raise RuntimeError("independent logistic fit returned non-finite values")
+    # Independently check box-constrained first-order optimality. At a lower
+    # bound a positive score is KKT-compatible; at an upper bound a negative
+    # score is KKT-compatible. A non-success status alone is not decisive.
+    raw_score = score(np.asarray(fit.x, dtype=float))
+    projected_score = raw_score.copy()
+    bounds = ((-25.0, 25.0), (-50.0, 50.0))
+    for j, (lower, upper) in enumerate(bounds):
+        if fit.x[j] <= lower + 1e-7 and raw_score[j] > 0.0:
+            projected_score[j] = 0.0
+        elif fit.x[j] >= upper - 1e-7 and raw_score[j] < 0.0:
+            projected_score[j] = 0.0
+    kkt_residual = float(np.max(np.abs(projected_score)))
+    if not np.isfinite(kkt_residual) or kkt_residual > 1e-5:
+        raise RuntimeError(
+            "independent logistic fit failed KKT check: "
+            f"optimizer_status={fit.message}; projected_gradient={kkt_residual:.3g}"
+        )
     intercept, slope = (float(v) for v in fit.x)
     probability = expit(intercept + slope * ((observed - midpoint) / half_range))
     inverse = 1.0 / probability
