@@ -161,6 +161,9 @@ def _reconstruct_result(row, method: str, n_parent: int, b: int) -> dict:
     return {
         "schema": "validation_h0_posterior_resampling_v2",
         "method": method,
+        "solver_version": str(row.bootstrap_solver_version),
+        "model_type": str(row.bootstrap_model_type),
+        "experiment_config": row.bootstrap_experiment_config,
         "design_aware_method_status": (
             "exploratory_pseudopopulation_resampling_not_studentized_inference"
             if method == "design_aware_srswor" else "ordinary_paired_record_bootstrap"
