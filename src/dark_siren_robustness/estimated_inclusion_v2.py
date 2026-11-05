@@ -43,6 +43,20 @@ def _validate_design(
     return z, y, np.column_stack(columns)
 
 
+def _logistic_nll_gradient_hessian(
+    design: NDArray[np.float64], y: NDArray[np.float64], theta: NDArray[np.float64],
+) -> tuple[float, NDArray[np.float64], NDArray[np.float64]]:
+    """Return stable logistic NLL, analytic gradient, and observed Hessian."""
+    eta = design @ theta
+    probability = expit(eta)
+    residual = probability - y
+    variance = probability * (1.0 - probability)
+    nll = float(-np.sum(y * log_expit(eta) + (1.0 - y) * log_expit(-eta)))
+    gradient = design.T @ residual
+    hessian = design.T @ (design * variance[:, None])
+    return nll, gradient, hessian
+
+
 def _fit_box_logistic(
     design: NDArray[np.float64], y: NDArray[np.float64], bounds: tuple[tuple[float, float], ...],
     *, max_iter: int = 500, kkt_tolerance: float = 1e-7,
@@ -55,15 +69,10 @@ def _fit_box_logistic(
     identity = np.eye(theta.size)
 
     def objective(value: NDArray[np.float64]) -> float:
-        eta = design @ value
-        return float(-np.sum(y * log_expit(eta) + (1.0 - y) * log_expit(-eta)))
+        return _logistic_nll_gradient_hessian(design, y, value)[0]
 
     def derivatives(value: NDArray[np.float64]) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-        probability = expit(design @ value)
-        residual = probability - y
-        variance = probability * (1.0 - probability)
-        gradient = design.T @ residual
-        hessian = design.T @ (design * variance[:, None])
+        _, gradient, hessian = _logistic_nll_gradient_hessian(design, y, value)
         return gradient, hessian
 
     value = objective(theta)
@@ -135,9 +144,18 @@ def _fit_box_logistic(
         if not accepted:
             break
 
-    gradient, _ = derivatives(theta)
+    _, gradient, final_hessian = _logistic_nll_gradient_hessian(design, y, theta)
     projected = theta - np.clip(theta - gradient, lower, upper)
     kkt = float(np.max(np.abs(projected)))
+    eigenvalues = np.linalg.eigvalsh(final_hessian)
+    largest_eigenvalue = float(max(0.0, eigenvalues[-1]))
+    rank_tolerance = np.finfo(float).eps * max(final_hessian.shape) * largest_eigenvalue
+    hessian_rank = int(np.count_nonzero(eigenvalues > rank_tolerance))
+    positive_eigenvalues = eigenvalues[eigenvalues > rank_tolerance]
+    hessian_condition = (
+        float(largest_eigenvalue / positive_eigenvalues[0])
+        if hessian_rank == final_hessian.shape[0] else float("inf")
+    )
     if not converged and kkt <= kkt_tolerance:
         converged = True
     if not converged:
@@ -154,6 +172,11 @@ def _fit_box_logistic(
         "accepted_steps": accepted_steps,
         "rejected_steps": rejected_steps,
         "projected_gradient_inf_norm": kkt,
+        "hessian_rank": hessian_rank,
+        "parameter_dimension": int(final_hessian.shape[0]),
+        "hessian_condition_number": hessian_condition,
+        "hessian_min_eigenvalue": float(eigenvalues[0]),
+        "hessian_max_eigenvalue": largest_eigenvalue,
         "coefficient_bound_hit": bound_hit,
         "fit_status": "boundary_limited" if bound_hit else "converged",
     }
