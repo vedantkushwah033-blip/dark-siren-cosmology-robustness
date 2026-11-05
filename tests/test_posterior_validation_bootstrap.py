@@ -37,6 +37,11 @@ def test_posterior_validation_bootstrap_replays_full_toy_pipeline(method):
         seed=9127, merger_weight=merger,
     )
     assert first["schema"] == "validation_h0_posterior_resampling_v2"
+    assert first["solver_version"] == "v1"
+    assert first["model_type"] == "linear"
+    assert first["experiment_config"] == {
+        "method": method, "solver_version": "v1", "model_type": "linear"
+    }
     assert set(first["input_fingerprints"]) == {
         "redshift_grid", "h0_grid", "observed_redshift",
         "validation_redshift", "validation_included",
@@ -87,6 +92,24 @@ def test_posterior_validation_bootstrap_replays_full_toy_pipeline(method):
         audit_posterior_validation_bootstrap(
             tampered_scope, z_grid, h0_grid, observed_z, validation_z, validation_y, distances,
             sigma_mpc=140.0, detection_threshold_mpc=250.0,
+            parent_population_size=180, merger_weight=merger,
+        )
+
+    tampered_solver = dict(first)
+    tampered_solver["solver_version"] = "v2"
+    with pytest.raises(AssertionError, match="solver_version"):
+        audit_posterior_validation_bootstrap(
+            tampered_solver, z_grid, h0_grid, observed_z, validation_z, validation_y,
+            distances, sigma_mpc=140.0, detection_threshold_mpc=250.0,
+            parent_population_size=180, merger_weight=merger,
+        )
+
+    tampered_model = dict(first)
+    tampered_model["model_type"] = "quadratic"
+    with pytest.raises(AssertionError, match="model_type"):
+        audit_posterior_validation_bootstrap(
+            tampered_model, z_grid, h0_grid, observed_z, validation_z, validation_y,
+            distances, sigma_mpc=140.0, detection_threshold_mpc=250.0,
             parent_population_size=180, merger_weight=merger,
         )
 
@@ -302,4 +325,33 @@ def test_index_generation_failure_propagates_as_wrapper_failure(
             sigma_mpc=140.0, detection_threshold_mpc=250.0,
             parent_population_size=180, method=method, n_bootstrap=3,
             seed=71,
+        )
+
+
+
+@pytest.mark.parametrize(
+    ("selector", "value", "message"),
+    [
+        ("solver_version", "v3", "solver_version"),
+        ("model_type", "cubic", "model_type"),
+        ("solver_version", "v2", "independent auditor"),
+        ("model_type", "quadratic", "independent auditor"),
+    ],
+)
+def test_posterior_bootstrap_rejects_unsupported_solver_or_model(selector, value, message):
+    z_grid = np.linspace(0.01, 0.40, 101)
+    h0_grid = np.linspace(50.0, 90.0, 61)
+    observed_z = np.linspace(0.02, 0.39, 20)
+    validation_z = np.linspace(0.01, 0.40, 40)
+    validation_y = (np.arange(40) % 2).astype(int)
+    kwargs = {
+        "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0,
+        "parent_population_size": 80,
+        selector: value,
+    }
+    with pytest.raises(ValueError, match=message):
+        bootstrap_validation_h0_posterior(
+            z_grid, h0_grid, observed_z, validation_z, validation_y, [300.0],
+            **kwargs,
         )
