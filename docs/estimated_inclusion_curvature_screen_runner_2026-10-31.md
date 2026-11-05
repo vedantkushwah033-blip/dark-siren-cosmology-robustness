@@ -18,7 +18,7 @@ For each condition it:
 5. Calls the independent persisted-artifact auditor for each condition and stops immediately if any audit fails.
 6. Produces a combined raw table and a screen report with failure counts, fit-boundary counts, true-probability ranges, low-probability mass, and maximum true inverse probability.
 
-No probabilities are clipped and no inverse weights are capped. Oracle weighting remains a diagnostic upper-bound arm, not an implementable method.
+No probabilities are clipped and no inverse weights are capped. Oracle weighting is a diagnostic benchmark that uses the known data-generating inclusion probabilities; it is not an implementable estimator. It is not guaranteed to be an upper bound on finite-sample error or uncertainty because weighting, KDE smoothing, and posterior construction can interact nonlinearly.
 
 ## Reproducible command
 
