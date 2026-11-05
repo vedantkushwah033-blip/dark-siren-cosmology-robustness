@@ -84,3 +84,8 @@ def test_atomic_checkpoint_files(tmp_path):
     assert len(pd.read_csv(csv))==8
     assert json.loads(js.read_text())["stage"]=="running"
     assert not list(csv.parent.glob(".*.tmp"))
+
+def test_metadata_cannot_overwrite_attempt_identity_or_state():
+    with pytest.raises(ValueError, match="reserved fields"):
+        initialize_attempt_ledger(n_scenarios=1,n_draws=1,
+            validation_sizes=(10,),metadata={"status":"SUCCESS"})
