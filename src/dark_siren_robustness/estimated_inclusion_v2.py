@@ -139,8 +139,14 @@ def _fit_box_logistic(
                 continue
             candidate_value = objective(candidate)
             directional_change = float(gradient @ delta)
+            # Near the optimum, the predicted decrease can fall below
+            # float64 resolution of the objective. Permit an 8-ulp rounding
+            # slack in Armijo acceptance; the independent projected-KKT
+            # criterion below remains the sole convergence certificate.
+            armijo_roundoff_slack = 8.0 * np.spacing(abs(value))
             if (directional_change < 0.0 and np.isfinite(candidate_value)
-                    and candidate_value <= value + 1e-4 * directional_change):
+                    and candidate_value <= value + 1e-4 * directional_change
+                    + armijo_roundoff_slack):
                 theta = candidate
                 value = candidate_value
                 accepted = True
@@ -190,6 +196,7 @@ def _fit_box_logistic(
                      or np.any(np.isclose(theta, upper, atol=1e-6, rtol=0.0)))
     return {
         "coefficients": theta,
+        "solver_revision": "2.1-armijo-noise-slack",
         "negative_log_likelihood": value,
         "iterations": iteration,
         "accepted_steps": accepted_steps,
