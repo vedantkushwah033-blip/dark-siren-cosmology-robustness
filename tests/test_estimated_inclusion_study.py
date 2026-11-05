@@ -509,3 +509,39 @@ def test_v1_v2_pilot_comparison_uses_identical_synthetic_inputs():
 
     # This is a paired-input regression test, not evidence that either solver
     # improves H0 calibration; downstream performance requires repeated sampling.
+
+
+def test_finite_parent_unit_ids_and_catalogue_validation_overlap_are_persisted():
+    import json
+    import numpy as np
+
+    frame, _summary = run_estimated_inclusion_pilot(
+        n_replicates=1,
+        n_parent=1200,
+        n_detected=6,
+        validation_sizes=(150, 300),
+        seed=20261106,
+        h0_points=41,
+        z_points=201,
+    )
+    assert frame["unit_overlap_schema"].eq("finite_parent_unit_identity_v1").all()
+    assert frame["n_catalogue_validation_overlap"].between(
+        0, frame["n_catalogue"]
+    ).all()
+
+    for _, row in frame.iterrows():
+        catalogue_ids = json.loads(row["catalogue_object_ids_json"])
+        validation_ids = json.loads(row["validation_object_ids_json"])
+        overlap_ids = json.loads(row["overlap_object_ids_json"])
+        assert len(catalogue_ids) == row["n_catalogue"]
+        assert len(set(catalogue_ids)) == len(catalogue_ids)
+        assert len(set(validation_ids)) == len(validation_ids)
+        expected_overlap = sorted(set(catalogue_ids).intersection(validation_ids))
+        assert overlap_ids == expected_overlap
+        assert len(overlap_ids) == row["n_catalogue_validation_overlap"]
+
+        if row["arm"].startswith("estimated_") and row["status"] == "success":
+            payload = json.loads(row["inference_audit_payload_json"])
+            assert payload["catalogue_object_id"] == catalogue_ids
+            assert payload["validation_object_id"] == validation_ids
+            assert payload["catalogue_validation_overlap_object_id"] == overlap_ids
