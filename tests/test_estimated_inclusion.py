@@ -486,6 +486,17 @@ def test_quadratic_logistic_fit_rejects_invalid_validation_records(z, included, 
         )
 
 
+def test_linear_logistic_fit_rejects_rank_deficient_redshift_design():
+    from dark_siren_robustness.estimated_inclusion import fit_logistic_inclusion_model
+
+    validation_z = np.full(20, 0.2)
+    validation_y = np.tile([0, 1], 10)
+    with pytest.raises(RuntimeError, match="rank deficient.*slope is not identifiable"):
+        fit_logistic_inclusion_model(
+            validation_z, validation_y, z_min=0.01, z_max=0.40
+        )
+
+
 def test_quadratic_predictor_rejects_out_of_domain_coefficients():
     model = {
         "model": "quadratic_logistic_inclusion_v1",
