@@ -103,7 +103,7 @@ def main() -> None:
         "--n-parent", str(config["n_parent"]),
         "--n-detected", str(config["n_detected"]),
         "--validation-sizes", ",".join(map(str, config["validation_sizes"])),
-        "--curvature-levels", ",".join(map(str, config["curvature_levels"])),
+        f"--curvature-levels={','.join(map(str, config['curvature_levels']))}",
         "--seed", str(config["seed"]),
         "--h0-points", str(config["h0_points"]),
         "--z-points", str(config["z_points"]),
