@@ -591,3 +591,30 @@ def test_validation_host_density_wrapper_rejects_unknown_solver_version():
         estimate_host_density_from_validation(
             grid, observed, validation, included, solver_version="v3"
         )
+
+
+
+def test_validation_bootstrap_refits_with_selected_v2_solver():
+    from dark_siren_robustness.estimated_inclusion import (
+        bootstrap_validation_inclusion_density,
+    )
+
+    rng = np.random.default_rng(20261106)
+    z_min, z_max = 0.01, 0.40
+    parent_z = rng.uniform(z_min, z_max, 4000)
+    x = (parent_z - (z_min + z_max) / 2) / ((z_max - z_min) / 2)
+    included = rng.binomial(1, expit(0.2 - 0.8 * x))
+    retained_z = parent_z[included.astype(bool)]
+    validation_idx = rng.choice(parent_z.size, size=1200, replace=False)
+    result = bootstrap_validation_inclusion_density(
+        np.linspace(z_min, z_max, 201),
+        retained_z,
+        parent_z[validation_idx],
+        included[validation_idx],
+        n_bootstrap=4,
+        seed=20261106,
+        solver_version="v2",
+    )
+    assert result["solver_version"] == "v2"
+    assert result["n_attempted"] == 4
+    assert result["n_successful"] + result["n_failed"] == 4
