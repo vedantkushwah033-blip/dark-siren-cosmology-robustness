@@ -376,6 +376,10 @@ def test_independent_auditor_accepts_kkt_stationary_fit_despite_optimizer_flag(m
     original_minimize = audit_module.minimize
 
     def non_success_status_at_same_solution(*args, **kwargs):
+        assert kwargs["options"] == {
+            "maxiter": 2000, "maxfun": 50000, "maxls": 100,
+            "ftol": 1e-12, "gtol": 1e-8,
+        }
         fit = original_minimize(*args, **kwargs)
         fit.success = False
         fit.message = "forced non-success status for KKT-policy regression test"
