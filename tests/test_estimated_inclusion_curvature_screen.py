@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import subprocess
+import sys
 
 import pandas as pd
 import pytest
@@ -99,3 +101,17 @@ def test_curvature_screen_rejects_nonfinite_or_colliding_levels(
 
     # Validation must fail before creating an artifact directory.
     assert not output.exists()
+
+
+def test_curvature_screen_direct_cli_imports_independent_auditor():
+    repository_root = Path(__file__).resolve().parents[1]
+    script = repository_root / "scripts" / "run_estimated_inclusion_curvature_screen.py"
+    completed = subprocess.run(
+        [sys.executable, str(script), "--help"],
+        cwd=repository_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "nonlinear inclusion-curvature" in completed.stdout
