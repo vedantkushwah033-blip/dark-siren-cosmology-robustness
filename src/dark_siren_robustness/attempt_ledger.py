@@ -46,6 +46,10 @@ def initialize_attempt_ledger(
     if len(set(sizes)) != len(sizes):
         raise ValueError("validation_sizes must be unique")
 
+    reserved = set(KEY_COLUMNS) | {"ledger_schema", "status", "stage", "failure_code", "failure_reason", "transition_count"}
+    if metadata and reserved.intersection(metadata):
+        raise ValueError(f"metadata cannot override reserved fields: {sorted(reserved.intersection(metadata))}")
+
     rows = []
     for scenario in range(n_scenarios):
         for draw in range(n_draws):
