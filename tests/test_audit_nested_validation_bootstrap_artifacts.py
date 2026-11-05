@@ -136,7 +136,7 @@ def test_independent_nested_replay_rejects_tampered_estimator_provenance(nested_
     rows = [json.loads(line) for line in path.read_text().splitlines()]
     row = next(item for item in rows if item["method"] == "paired_bootstrap")
     row["bootstrap_solver_version"] = "v2"
-    path.write_text("\\n".join(json.dumps(item) for item in rows) + "\\n")
+    path.write_text("\n".join(json.dumps(item) for item in rows) + "\n")
     with pytest.raises(AssertionError, match="solver_version"):
         audit_replay(nested_artifact)
 
