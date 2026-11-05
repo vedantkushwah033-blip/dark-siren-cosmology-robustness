@@ -269,6 +269,27 @@ jobs:
         run: python -m pytest tests/test_audit_finite_parent_validation_benchmark.py -q
       - name: Independently audit finite-parent validation smoke artifacts
         run: python scripts/audit_finite_parent_validation_benchmark.py artifacts/finite_parent_validation_smoke
+      - name: Run opt-in V2 finite-parent SRSWOR smoke benchmark
+        run: python scripts/run_finite_parent_validation_benchmark.py --scenarios 1 --draws 2 --n-parent 1200 --n-detected 8 --validation-sizes 100 --seed 20261106 --solver-version v2 --output-dir artifacts/finite_parent_validation_v2_smoke
+      - name: Check V2 finite-parent artifact metadata and attempt accounting
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          p = Path('artifacts/finite_parent_validation_v2_smoke')
+          manifest = json.loads((p / 'summary.json').read_text())
+          records = pd.read_csv(p / 'records.csv')
+          assert manifest['schema'] == 'finite_parent_srswor_smoke_v3'
+          assert manifest['solver_version'] == 'v2'
+          assert records['solver_version'].eq('v2').all()
+          assert manifest['n_attempted'] == manifest['n_successful'] + manifest['n_failed']
+          assert len(records) == manifest['n_attempted'] == 2
+          assert records['status'].isin(['success', 'failed']).all()
+          print('V2 finite-parent smoke attempts:', len(records))
+          PY
+      - name: Independently audit V2 finite-parent smoke artifacts
+        run: python scripts/audit_finite_parent_validation_benchmark.py artifacts/finite_parent_validation_v2_smoke
       - name: Test host-density-to-H0 benchmark
         run: python -m pytest tests/test_host_density_benchmark.py -q
       - name: Test corrected physical KDE bandwidth semantics
