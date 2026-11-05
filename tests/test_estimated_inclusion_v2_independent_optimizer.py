@@ -83,3 +83,60 @@ def test_v2_matches_independent_slsqp_reference(degree: int, seed: int):
     assert fit["projected_gradient_inf_norm"] <= 1e-7
     assert objective_v2 <= objective_ref + 2e-7
     assert np.allclose(theta_v2, theta_ref, rtol=2e-5, atol=2e-5)
+
+
+@pytest.mark.parametrize("degree", [1, 2])
+@pytest.mark.parametrize("direction", ["increasing", "decreasing"])
+def test_v2_separated_fit_satisfies_independent_box_kkt_conditions(
+    degree: int, direction: str
+):
+    """Stress the constrained optimum and independently check every KKT face."""
+    z_min, z_max = 0.01, 0.40
+    z = np.linspace(z_min, z_max, 401)
+    x = (z - (z_min + z_max) / 2.0) / ((z_max - z_min) / 2.0)
+    outcome = (x > 0.12).astype(float)
+    if direction == "decreasing":
+        outcome = 1.0 - outcome
+
+    if degree == 1:
+        design = np.column_stack([np.ones(z.size), x])
+        bounds = ((-25.0, 25.0), (-50.0, 50.0))
+        fit = fit_logistic_inclusion_model_v2(
+            z, outcome, z_min=z_min, z_max=z_max
+        )
+        theta = np.array([fit["intercept"], fit["slope"]])
+    else:
+        design = np.column_stack([np.ones(z.size), x, x * x])
+        bounds = ((-25.0, 25.0), (-50.0, 50.0), (-50.0, 50.0))
+        fit = fit_quadratic_logistic_inclusion_model_v2(
+            z, outcome, z_min=z_min, z_max=z_max
+        )
+        theta = np.array([fit["intercept"], fit["slope"], fit["quadratic"]])
+
+    # Recompute objective derivatives without calling the production solver's
+    # private likelihood/gradient/Hessian implementation.
+    eta = design @ theta
+    probability = expit(eta)
+    independent_gradient = design.T @ (probability - outcome)
+    independent_hessian = design.T @ (
+        design * (probability * (1.0 - probability))[:, None]
+    )
+    assert np.linalg.eigvalsh(independent_hessian).min() >= -1e-8
+
+    # Box-constrained minimization KKT signs: gradient >= 0 at a lower
+    # face, <= 0 at an upper face, and zero in the interior.
+    kkt_components = []
+    for coefficient, gradient, (lower, upper) in zip(
+        theta, independent_gradient, bounds
+    ):
+        if coefficient <= lower + 1e-5:
+            kkt_components.append(max(0.0, -float(gradient)))
+        elif coefficient >= upper - 1e-5:
+            kkt_components.append(max(0.0, float(gradient)))
+        else:
+            kkt_components.append(abs(float(gradient)))
+
+    assert fit["coefficient_bound_hit"]
+    assert fit["fit_status"] == "boundary_limited"
+    assert max(kkt_components) <= 2e-7
+    assert fit["projected_gradient_inf_norm"] <= 1e-7
