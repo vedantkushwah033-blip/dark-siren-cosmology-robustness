@@ -95,3 +95,41 @@ The versioned manifest is `configs/estimated_inclusion_curvature_screen_v1.json`
 ## Next highest-priority task
 
 Refresh GitHub Actions for the current branch head. If the focused test fix passes, execute the reduced config-driven smoke, inspect all emitted artifacts, and independently audit it before starting the full exploratory screen.
+
+## Verified update — 5 November 2026, exact-head CI and configured smoke
+
+**Verified source revision:** `d7dcc79f966fc35a6eec6db60620eff4a3122927`  
+**Workflow run:** [41983103045](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/41983103045)  
+**Workflow result:** `success`  
+**Matrix:** Python 3.10, 3.11, and 3.12 all completed successfully.
+
+The run completed all three matrix jobs (105 steps in each job). The Python 3.12 job also ran the configured curvature-screen smoke and its condition-level independent audits.
+
+### Configured smoke artifact evidence
+
+The Python 3.12 workflow artifact `numerical-diagnostics-py3.12` was downloaded and inspected. It contains:
+
+- Configuration: `configured_inclusion_screen_smoke`.
+- Source revision recorded in provenance: `d7dcc79f966fc35a6eec6db60620eff4a3122927`.
+- Configuration SHA-256: `d81b6fe0365f215348abce0bbb4618ac748a0e66cf682fb9452b7227703242b2`.
+- Curvature levels: `[-2, 0, 2]`.
+- Replicates per curvature: 2.
+- Parent population: 1,200.
+- Detected events: 8.
+- Validation sizes: 100 and 300.
+- H0 grid: 41 points; redshift grid: 201 points.
+- Aggregate records: 36.
+- Failed records: 0.
+- All three condition-level independent audits: `PASS`.
+
+The persisted aggregate CSV was inspected: it contains the expected 3 × 2 × 6 = 36 condition/replicate/arm records, with all 36 marked successful. Each independent audit JSON exactly matched the corresponding audit embedded in the screen report.
+
+The independent audit's `comparison_diagnostics` also records, for every comparison arm and condition, the number of attempted common replicates, jointly successful pairs, baseline-success/comparison-failure cases, baseline-failure/comparison-success cases, and jointly failed cases. The paired estimator contrast remains explicitly conditional on joint fit success. This differential-failure accounting is present in the independent audit; it should be retained and surfaced clearly in the final full-screen report.
+
+### Evidence boundary and next gate
+
+This is a **reduced smoke test**, not the full exploratory experiment. Its 2 replicates and 3 curvature levels do not establish estimator performance, calibration, or scientific conclusions. It does establish that the configured runner completed on the verified source revision and that its emitted smoke artifacts passed the existing independent condition-level audits.
+
+The full manifest `configs/estimated_inclusion_curvature_screen_v1.json` remains unexecuted in this evidence record. Its five-curvature × 20-replicate screen must run into a fresh output directory and pass independent audits before confirmatory design work is based on it.
+
+No scientific estimator, likelihood, DGP, or estimand was changed by this verification. No PR was merged and `main` was not modified.
