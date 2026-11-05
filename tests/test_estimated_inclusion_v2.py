@@ -122,14 +122,20 @@ def test_v2_reports_hessian_rank_and_conditioning_diagnostics():
     assert fit["hessian_min_eigenvalue"] > 0
 
 
-def test_v2_rank_deficiency_is_exposed_in_hessian_diagnostics():
+def test_v2_quadratic_rank_deficiency_is_rejected_before_hessian_diagnostics():
     z_min, z_max = 0.01, 0.40
     z = np.full(100, 0.205)
     y = np.tile([0, 1], 50)
-    fit = fit_quadratic_logistic_inclusion_model_v2(z, y, z_min=z_min, z_max=z_max)
-    assert fit["hessian_rank"] == 1
-    assert fit["parameter_dimension"] == 3
-    assert np.isinf(fit["hessian_condition_number"])
+    # A constant predictor cannot identify slope or curvature. The fitter now
+    # rejects this design before optimization rather than returning a nominal
+    # fit whose Hessian diagnostics merely reveal the non-identifiability.
+    with pytest.raises(
+        ValueError,
+        match="quadratic logistic design is rank deficient; coefficients are not identifiable",
+    ):
+        fit_quadratic_logistic_inclusion_model_v2(
+            z, y, z_min=z_min, z_max=z_max
+        )
 
 
 
