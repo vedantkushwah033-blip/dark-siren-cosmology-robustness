@@ -89,20 +89,38 @@ def _fit_box_logistic(
             converged = True
             break
 
-        direction = None
-        ridge = 0.0
-        for _ in range(12):
-            try:
-                candidate_direction = np.linalg.solve(hessian + ridge * identity, -gradient)
-            except np.linalg.LinAlgError:
-                candidate_direction = np.full_like(theta, np.nan)
-            if np.all(np.isfinite(candidate_direction)) and float(gradient @ candidate_direction) < 0:
-                direction = candidate_direction
-                break
-            ridge = 1e-10 if ridge == 0 else ridge * 10.0
+        # Identify coordinates whose active box constraints already satisfy
+        # the KKT sign condition. A full-space Newton step can point outside
+        # such a face; clipping that step may destroy descent in the remaining
+        # coordinates. Solve the Newton system on the free subspace instead.
+        active_lower = (theta <= lower + 1e-10) & (gradient > 0.0)
+        active_upper = (theta >= upper - 1e-10) & (gradient < 0.0)
+        free = ~(active_lower | active_upper)
 
-        # If the Hessian is singular/ill-conditioned, use a projected-gradient
-        # direction. The line search below still enforces monotone objective descent.
+        direction = None
+        if np.any(free):
+            free_hessian = hessian[np.ix_(free, free)]
+            free_gradient = gradient[free]
+            ridge = 0.0
+            for _ in range(12):
+                try:
+                    free_direction = np.linalg.solve(
+                        free_hessian + ridge * np.eye(int(np.sum(free))),
+                        -free_gradient,
+                    )
+                except np.linalg.LinAlgError:
+                    free_direction = np.full_like(free_gradient, np.nan)
+                if (
+                    np.all(np.isfinite(free_direction))
+                    and float(free_gradient @ free_direction) < 0.0
+                ):
+                    direction = np.zeros_like(theta)
+                    direction[free] = free_direction
+                    break
+                ridge = 1e-10 if ridge == 0 else ridge * 10.0
+
+        # If the reduced Hessian is singular/ill-conditioned, use a
+        # projected-gradient direction. The line search still enforces descent.
         if direction is None:
             direction = -gradient / max(1.0, float(np.linalg.norm(gradient, ord=np.inf)))
 
