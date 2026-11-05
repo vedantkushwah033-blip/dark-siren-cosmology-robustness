@@ -4,7 +4,7 @@
 
 ## Repository inspection
 
-The finite-parent runner now accepts an opt-in `solver_version="v1"|"v2"` argument and passes it to both the full-parent finite-frame reference and each repeated validation-sample fit. The default remains V1. The CLI exposes `--solver-version`; the output manifest uses schema `finite_parent_srswor_smoke_v3` and records the selected version, while every record carries the same version.
+The finite-parent runner accepts an opt-in `solver_version="v1"|"v2"` argument and passes it to both the full-parent finite-frame reference and each repeated validation-sample fit. The default remains V1. The CLI exposes `--solver-version`; the output manifest uses schema `finite_parent_srswor_smoke_v3` and records the selected version, solver revision and fixed `linear_logistic` model family. Every record carries all three fields.
 
 The auditor now requires the record and manifest versions, solver revision and model family to agree. For V2 it independently solves the bounded linear-logistic likelihood using SciPy SLSQP, then reconstructs the fitted probabilities, inverse weights, reflected KDE and downstream posterior. This is algorithmically separate from the production damped-Newton iterations; it is not a high-precision oracle. The benchmark currently fixes the inclusion model to linear, so the model family is not a selectable dimension in this experiment. V2 records carry revision `2.1-armijo-noise-slack`; V1 records carry the explicit legacy label `v1-lbfgsb-kkt`.
 
@@ -14,8 +14,8 @@ The separate estimated-inclusion pilot already supports `--solver-version v2` an
 
 1. Implemented: explicit `solver_version` argument in the finite-parent runner; V1 remains default and only V1/V2 are accepted.
 2. Implemented: selected version is passed to both the per-draw and full-parent estimated-density calls.
-3. Partially implemented: manifest and records carry `solver_version`; solver revision and model-family fields are not yet persisted per record.
-4. Existing scenario seeds and nested validation indices are unchanged by solver selection. A paired V1/V2 comparison artifact and cross-version pairing auditor are still outstanding.
+3. Implemented: manifest and records carry `solver_version`, `solver_revision`, and `model_family`; the auditor rejects mismatched or tampered provenance.
+4. Implemented: `scripts/run_finite_parent_v1_v2_paired_comparison.py` executes V1 and V2 with the same seed and verifies identical scenario keys, parent/catalogue/GW hashes, validation indices, and overlap IDs before producing paired deltas. A regression test independently audits both arm artifacts and checks paired accounting.
 5. Partially implemented: V2 audit uses an independently coded likelihood/gradient with SLSQP and an independent box-KKT check. A high-precision oracle and a full dedicated V2 stress suite remain outstanding.
 6. Existing failure retention is preserved; exact V2 failure replay still needs runtime confirmation.
 7. Existing finite-frame, generating-truth and oracle references remain distinct.
