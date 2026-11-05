@@ -107,6 +107,75 @@ jobs:
           PY
       - name: Independently audit estimated-inclusion pilot smoke artifacts
         run: python scripts/audit_estimated_inclusion_pilot.py artifacts/estimated_inclusion_pilot_smoke
+      - name: Run paired V1 and V2 estimated-inclusion smoke experiments (same synthetic seeds)
+        run: |
+          python scripts/run_estimated_inclusion_pilot.py --replicates 2 --n-parent 1200 --n-detected 8 --validation-sizes 100,300 --seed 20261030 --h0-points 41 --z-points 201 --solver-version v2 --output-dir artifacts/estimated_inclusion_pilot_v2_smoke
+          python scripts/audit_estimated_inclusion_pilot.py artifacts/estimated_inclusion_pilot_v2_smoke
+          python - <<'PY'
+          import json
+          import pandas as pd
+          from pathlib import Path
+          v1 = pd.read_csv("artifacts/estimated_inclusion_pilot_smoke/replicates.csv")
+          v2 = pd.read_csv("artifacts/estimated_inclusion_pilot_v2_smoke/replicates.csv")
+          assert set(v1["arm"]) == set(v2["arm"])
+          keys = ["replicate", "arm"]
+          a = v1.set_index(keys).sort_index()
+          b = v2.set_index(keys).sort_index()
+          invariant = [
+              "replicate_seed", "catalogue_seed", "audit_seed", "n_catalogue",
+              "n_detected", "true_quadratic_center", "true_probability_min",
+              "true_probability_max", "true_probability_p01", "true_probability_p05",
+              "true_probability_below_005", "true_probability_below_010",
+              "true_max_inverse_probability", "true_retention_rate",
+              "audit_included_count",
+          ]
+          for column in invariant:
+              assert a[column].equals(b[column]), f"paired input mismatch: {column}"
+          paired = []
+          for key in a.index:
+              x, y = a.loc[key], b.loc[key]
+              px = json.loads(x["inference_audit_payload_json"])
+              py = json.loads(y["inference_audit_payload_json"])
+              for field in (
+                  "redshift_grid", "catalogue_redshift", "validation_redshift",
+                  "validation_included", "h0_grid", "observed_distances_mpc",
+              ):
+                  assert px[field] == py[field], f"{key}: {field} differs"
+              sx = json.loads(x["scoring_audit_payload_json"])
+              sy = json.loads(y["scoring_audit_payload_json"])
+              for field in ("parent_redshift", "true_inclusion_probability"):
+                  assert sx.get(field) == sy.get(field), f"{key}: {field} differs"
+              paired.append({
+                  "replicate": int(key[0]), "arm": key[1],
+                  "v1_status": x["status"], "v2_status": y["status"],
+                  "v1_fit_status": x["fit_status"], "v2_fit_status": y["fit_status"],
+                  "v1_density_ise": None if pd.isna(x["density_ise"]) else float(x["density_ise"]),
+                  "v2_density_ise": None if pd.isna(y["density_ise"]) else float(y["density_ise"]),
+                  "v1_h0_mean": None if pd.isna(x["posterior_mean"]) else float(x["posterior_mean"]),
+                  "v2_h0_mean": None if pd.isna(y["posterior_mean"]) else float(y["posterior_mean"]),
+                  "v1_ci68_width": None if pd.isna(x["ci68_width"]) else float(x["ci68_width"]),
+                  "v2_ci68_width": None if pd.isna(y["ci68_width"]) else float(y["ci68_width"]),
+                  "v1_weight_ess": None if pd.isna(x["weight_ess"]) else float(x["weight_ess"]),
+                  "v2_weight_ess": None if pd.isna(y["weight_ess"]) else float(y["weight_ess"]),
+                  "v1_probability_mae": None if pd.isna(x["inclusion_probability_mae"]) else float(x["inclusion_probability_mae"]),
+                  "v2_probability_mae": None if pd.isna(y["inclusion_probability_mae"]) else float(y["inclusion_probability_mae"]),
+              })
+          out = Path("artifacts/estimated_inclusion_v1_v2_paired_comparison")
+          out.mkdir(parents=True, exist_ok=True)
+          (out / "paired_comparison.json").write_text(
+              json.dumps({
+                  "status": "NON_CONFIRMATORY_PAIRED_SMOKE",
+                  "same_synthetic_inputs_verified": True,
+                  "replicates": 2,
+                  "validation_sizes": [100, 300],
+                  "solver_versions": ["v1", "v2"],
+                  "results": paired,
+                  "interpretation": "Smoke-level paired comparison only; not a calibration or superiority claim."
+              }, indent=2) + "\\n",
+              encoding="utf-8",
+          )
+          print("Paired V1/V2 synthetic inputs verified; comparison artifact written.")
+          PY
       - name: Test persisted validation-bootstrap artifact generation and independent refit audit
         run: python -m pytest tests/test_validation_bootstrap_artifacts.py -q
       - name: Run and independently audit persisted validation-bootstrap sensitivity (Python 3.12 only)
@@ -346,6 +415,8 @@ jobs:
             artifacts/multiseed_grid_sensitivity/
             artifacts/catalogue_thinning/
             artifacts/estimated_inclusion_pilot_smoke/
+            artifacts/estimated_inclusion_pilot_v2_smoke/
+            artifacts/estimated_inclusion_v1_v2_paired_comparison/
             artifacts/configured_inclusion_screen_smoke/
             artifacts/validation_bootstrap_smoke/
             artifacts/bootstrap_selection.txt
