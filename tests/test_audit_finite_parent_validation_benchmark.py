@@ -194,6 +194,8 @@ def test_failure_code_categories_are_stable_and_ordered_by_exception_specificity
 def test_independent_auditor_accepts_kkt_valid_non_success_optimizer_status(monkeypatch):
     from types import SimpleNamespace
 
+    from scipy.integrate import trapezoid
+
     import scripts.audit_finite_parent_validation_benchmark as auditor
 
     def line_search_status(objective, x0, **kwargs):
@@ -219,4 +221,4 @@ def test_independent_auditor_accepts_kkt_valid_non_success_optimizer_status(monk
     assert intercept == pytest.approx(0.0)
     assert slope == pytest.approx(0.0)
     assert np.all(np.isfinite(density))
-    assert np.trapezoid(density, grid) == pytest.approx(1.0, abs=1e-10)
+    assert trapezoid(density, grid) == pytest.approx(1.0, abs=1e-10)
