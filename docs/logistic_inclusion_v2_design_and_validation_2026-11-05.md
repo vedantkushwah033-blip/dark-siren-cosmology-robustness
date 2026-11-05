@@ -2,7 +2,7 @@
 
 **Date:** 5 November 2026  
 **Branch:** `research/logistic-inclusion-v2-newton-2026-11-05`  
-**Status:** implementation and derivative/conditioning diagnostics added; exact-head Python 3.10/3.11/3.12 CI passed for the prior implementation commit; new diagnostics are awaiting CI.  
+**Status:** active-set Newton refinement and adversarial V1/V2 tests added; the dedicated curvature regression passed on the active-set code commit; full three-version test workflow for the latest test additions is pending.  
 **Relationship to v1:** opt-in alternative. No v1 production call path, pilot result, or manuscript result is changed.
 
 ## Motivation
@@ -15,7 +15,7 @@ For design matrix X, binary outcomes y, and coefficient vector theta, v2 minimiz
 
 `ell(theta) = -sum_i [y_i log sigmoid(x_i' theta) + (1-y_i) log sigmoid(-x_i' theta)]`.
 
-The quadratic model uses the same uncentered `x**2` basis as the production v1 fitter. This is essential because the intercept coefficient bounds are part of the constrained estimator; centering shifts the intercept by `quadratic/3` and does not preserve the same feasible coefficient box. It computes the analytic gradient `X' (p-y)` and Hessian `X' diag(p(1-p)) X`. Each iteration attempts a Newton direction, adding increasing diagonal damping if the Hessian solve is singular or the direction is not a descent direction. A projected Armijo backtracking search clips candidate coefficients to the declared v1-compatible box. If the damped Newton line search cannot find a step, it attempts a projected-gradient descent step.
+The quadratic model uses the same uncentered `x**2` basis as the production v1 fitter. This is essential because the intercept coefficient bounds are part of the constrained estimator; centering shifts the intercept by `quadratic/3` and does not preserve the same feasible coefficient box. It computes the analytic gradient `X' (p-y)` and Hessian `X' diag(p(1-p)) X`. At each iteration, coordinates on a box face whose gradient sign satisfies the KKT condition are treated as active; a damped Newton system is solved on the remaining free-coordinate subspace. This prevents an outward Newton component in an already-active coordinate from destroying descent after projection. If the reduced Hessian solve is singular or does not yield a descent direction, the method uses a projected-gradient direction. A projected Armijo backtracking search clips candidate coefficients to the declared v1-compatible box, with a final projected-gradient descent fallback.
 
 Convergence is declared only when the infinity norm of the unit-step projected-gradient mapping is at most `1e-7`. A non-converged run raises an explicit RuntimeError; it is not relabelled as success. Coefficients touching a box face are returned as `boundary_limited`, including separated data where the finite box constrains the estimate.
 
@@ -33,6 +33,7 @@ Results identify their model version and retain iteration, accepted/rejected ste
 - Quadratic curve recovery.
 - Complete-separation fixture reported as boundary-limited.
 - Identical-data V1/V2 comparison on a deterministic quadratic near-separation fixture with one discordant label; compare the fitted probability curve, objective, boundary status, and projected KKT residual.
+- Identical-data V1/V2 parity under complete separation for both linear and quadratic models.
 - Rank-deficient quadratic design and deterministic replay.
 - Analytic gradient and Hessian checked against central finite differences.
 - Final observed-Hessian rank, minimum/maximum eigenvalue, and condition-number diagnostics, including explicit infinite condition number for rank deficiency.
