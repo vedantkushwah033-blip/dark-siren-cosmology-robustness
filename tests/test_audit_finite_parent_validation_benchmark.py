@@ -262,3 +262,13 @@ def test_finite_parent_auditor_rejects_tampered_parent_law_centering(tmp_path):
     frame.to_csv(tmp_path / "records.csv", index=False)
     with pytest.raises(AssertionError, match="parent-law quadratic centering"):
         audit(tmp_path)
+
+
+def test_finite_parent_auditor_rejects_tampered_manifest_centering(tmp_path):
+    _artifact(tmp_path)
+    path = tmp_path / "summary.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    manifest["true_quadratic_centering"] = 1.0 / 3.0
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(AssertionError, match="manifest parent-law quadratic centering"):
+        audit(tmp_path)
