@@ -116,3 +116,22 @@ Before the quadratic curvature screen is used to motivate confirmatory design:
 ## 7. Evidence boundary
 
 This note is a mathematical review and test specification only. No code, estimator, coefficient bound, configuration, simulation result, or manuscript result was changed by writing it. The full five-curvature screen remains unexecuted in the verified evidence record. All project claims remain restricted to synthetic toy-model studies.
+
+## 8. Implementation update — 5 November 2026
+
+A deterministic regression-test file has now been added at
+`tests/test_quadratic_parameterization_audit.py`. It covers:
+
+- Equality of centered and uncentered linear predictors over a dense fixed grid for several coefficient tuples.
+- Equality after applying the logistic inverse link.
+- Exact mapping of the q-dependent centered intercept interval to the existing uncentered intercept interval.
+- A counterexample showing that reusing the same fixed numeric intercept box in both bases is not generally equivalent.
+- The zero-centering special case.
+
+The production estimator, its default coefficient bounds, the data-generating process, and all experiment configurations remain unchanged.
+
+**Not yet implemented:** the paired constrained-optimizer equivalence fixture, boundary-case optimizer comparison, and wider-box downstream sensitivity arm. The algebra tests do not establish optimizer equivalence or downstream H0 robustness.
+
+**CI status at the time of this update:** the new test commit has triggered workflow run
+`41999055457`; it was pending when last queried. The preceding documentation-only commit's run
+`41998117284` was still in progress. No pass is claimed for the new tests until the exact-head run completes.
