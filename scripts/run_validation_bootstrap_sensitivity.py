@@ -26,7 +26,8 @@ def main() -> None:
     if args.replicate < 0 or args.validation_size < 10:
         parser.error("replicate must be nonnegative and validation-size at least 10")
     frame = pd.read_csv(args.pilot_csv)
-    # This sensitivity runner refits the linear logistic inclusion model.
+    # Solver provenance is read from the selected pilot record and carried
+    # unchanged through every validation-bootstrap refit.
     arm = f"estimated_linear_{args.validation_size}"
     selected = frame.loc[
         (frame["replicate"] == args.replicate)
@@ -58,6 +59,7 @@ def main() -> None:
         seed=args.seed,
         merger_weight=np.asarray(payload["merger_weight_grid"], dtype=float),
         bandwidth_factor=payload.get("bandwidth_factor"),
+        solver_version=str(payload.get("solver_version", "v1")),
     )
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -89,6 +91,7 @@ def main() -> None:
         "replicate": int(args.replicate),
         "arm": arm,
         "validation_size": int(args.validation_size),
+        "solver_version": str(result["solver_version"]),
         "n_validation": int(len(payload["validation_redshift"])),
         "n_attempted": int(result["n_attempted"]),
         "n_successful": int(result["n_successful"]),
