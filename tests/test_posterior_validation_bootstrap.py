@@ -357,6 +357,25 @@ def test_posterior_bootstrap_rejects_unsupported_solver_or_model(selector, value
         )
 
 
+def test_independent_replay_rejects_rank_deficient_validation_design():
+    from dark_siren_robustness.posterior_validation_bootstrap_audit import (
+        _independent_posterior,
+    )
+
+    z_grid = np.linspace(0.01, 0.40, 101)
+    h0_grid = np.linspace(50.0, 90.0, 61)
+    observed_z = np.linspace(0.025, 0.385, 45)
+    validation_z = np.full(20, 0.2)
+    validation_y = np.tile([0, 1], 10)
+    distances = np.array([280.0, 330.0, 410.0, 520.0, 610.0])
+
+    with pytest.raises(RuntimeError, match="rank deficient.*slope is not identifiable"):
+        _independent_posterior(
+            z_grid, h0_grid, observed_z, validation_z, validation_y, distances,
+            140.0, 250.0, np.ones_like(z_grid), None,
+        )
+
+
 def test_independent_auditor_accepts_kkt_stationary_fit_despite_optimizer_flag(monkeypatch):
     import dark_siren_robustness.posterior_validation_bootstrap_audit as audit_module
 
