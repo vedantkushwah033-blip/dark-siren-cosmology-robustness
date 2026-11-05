@@ -19,10 +19,10 @@ import pandas as pd
 IDENTITY_COLUMNS = (
     "scenario", "draw", "validation_size", "validation_seed",
     "simulation_seed", "thinning_seed", "true_intercept", "true_slope",
-    "true_quadratic", "sigma_mpc", "detection_threshold_mpc",
+    "true_quadratic", "h0_true", "sigma_mpc", "detection_threshold_mpc",
     "validation_indices", "catalogue_validation_overlap_indices",
     "catalogue_validation_overlap_count", "n_validation_included",
-    "parent_size", "parent_frame_sha256", "catalogue_sha256",
+    "n_catalogue", "n_detected", "parent_size", "parent_frame_sha256", "catalogue_sha256",
     "gw_distance_sha256",
 )
 
