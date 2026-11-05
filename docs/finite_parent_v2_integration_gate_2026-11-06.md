@@ -6,7 +6,7 @@
 
 The finite-parent runner now accepts an opt-in `solver_version="v1"|"v2"` argument and passes it to both the full-parent finite-frame reference and each repeated validation-sample fit. The default remains V1. The CLI exposes `--solver-version`; the output manifest uses schema `finite_parent_srswor_smoke_v3` and records the selected version, while every record carries the same version.
 
-The auditor now requires the record and manifest versions to agree. For V2 it independently solves the bounded linear-logistic likelihood using SciPy SLSQP, then reconstructs the fitted probabilities, inverse weights, reflected KDE and downstream posterior. This is algorithmically separate from the production damped-Newton iterations; it is not a high-precision oracle. The benchmark currently fixes the inclusion model to linear, so the model family is not a selectable dimension in this experiment.
+The auditor now requires the record and manifest versions, solver revision and model family to agree. For V2 it independently solves the bounded linear-logistic likelihood using SciPy SLSQP, then reconstructs the fitted probabilities, inverse weights, reflected KDE and downstream posterior. This is algorithmically separate from the production damped-Newton iterations; it is not a high-precision oracle. The benchmark currently fixes the inclusion model to linear, so the model family is not a selectable dimension in this experiment. V2 records carry revision `2.1-armijo-noise-slack`; V1 records carry the explicit legacy label `v1-lbfgsb-kkt`.
 
 The separate estimated-inclusion pilot already supports `--solver-version v2` and its CI workflow runs a small V2 smoke experiment. That does not replace the finite-parent repeated-SRSWOR benchmark: the pilot and finite-parent benchmark have different sampling estimands and artifact schemas.
 
@@ -19,7 +19,7 @@ The separate estimated-inclusion pilot already supports `--solver-version v2` an
 5. Partially implemented: V2 audit uses an independently coded likelihood/gradient with SLSQP and an independent box-KKT check. A high-precision oracle and a full dedicated V2 stress suite remain outstanding.
 6. Existing failure retention is preserved; exact V2 failure replay still needs runtime confirmation.
 7. Existing finite-frame, generating-truth and oracle references remain distinct.
-8. Added regression coverage for V2 dispatch, solver-version validation, and an independently audited V2 smoke fixture. Test execution and metadata-tampering coverage remain to be verified.
+8. Added regression coverage for V2 dispatch, solver-version validation, an independently audited V2 smoke fixture, and rejection of altered solver revision/model-family metadata. CI now generates and independently audits a separate V2 finite-parent smoke artifact in addition to the V1 smoke. Runtime results remain pending observation.
 
 ## Numerical gate before benchmark interpretation
 
