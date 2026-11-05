@@ -58,6 +58,8 @@ jobs:
         run: python -m pytest tests/test_estimated_inclusion.py -q
       - name: Test versioned damped-Newton logistic inclusion estimator v2
         run: python -m pytest tests/test_estimated_inclusion_v2.py tests/test_v2_quasi_separation_limitations.py -q
+      - name: Cross-check V2 against independent SLSQP logistic fits
+        run: python -m pytest tests/test_estimated_inclusion_v2_independent_optimizer.py -q
       - name: Test LP-based logistic separation diagnostics
         run: python -m pytest tests/test_logistic_separation_diagnostics.py -q
       - name: Test estimated-inclusion pilot runner
