@@ -390,3 +390,6 @@ The audit concludes that catalogue incompleteness, host weighting, and flexible 
 ### Pilot manuscript note
 
 - **Linear finite-population bootstrap pilot manuscript:** [reproducible methods, audited pilot results, interpretation, and limitations](manuscript/linear_finite_population_bootstrap_pilot_note.md). This is an exploratory simulation note, not a confirmatory or submission-ready paper. Its audit qualification and v2 requirements are stated explicitly.
+
+- **Research-release baseline audit (5 November 2026):** [live branch/source inventory, implemented likelihood architecture, estimated-inclusion diagnostics, CI state, and staged release blockers](docs/research_release_baseline_2026-11-05.md).
+- **Statistical model and likelihood boundaries:** [explicit finite catalogue/missing-host mixture, matched toy selection normalization, prior treatment, and implemented-versus-unvalidated components](docs/statistical_model.md).
