@@ -77,6 +77,7 @@ def run_estimated_inclusion_pilot(
     true_slope: float = -1.2,
     true_quadratic: float = 0.0,
     bandwidth_factor: float | None = None,
+    solver_version: str = "v1",
 ) -> tuple[pd.DataFrame, dict]:
     """Compare catalogue-only, oracle, and audit-estimated inclusion weighting.
 
@@ -89,6 +90,15 @@ def run_estimated_inclusion_pilot(
     default replicate count is for runtime/variance planning, not confirmatory
     scientific claims.
     """
+    if solver_version not in {"v1", "v2"}:
+        raise ValueError("solver_version must be 'v1' or 'v2'")
+    probability_predictor = predict_inclusion_probability
+    if solver_version == "v2":
+        from dark_siren_robustness.estimated_inclusion_v2 import (
+            predict_inclusion_probability_v2,
+        )
+        probability_predictor = predict_inclusion_probability_v2
+
     raw_sizes = tuple(validation_sizes)
     if any(
         isinstance(m, (bool, np.bool_)) or not isinstance(m, (int, np.integer))
@@ -274,7 +284,7 @@ def run_estimated_inclusion_pilot(
                     result = estimate_host_density_from_validation(
                         z_grid, observed_z, validation_z, validation_included,
                         merger_weight=merger_rate, bandwidth_factor=bandwidth_factor,
-                        model_type=model_type,
+                        model_type=model_type, solver_version=solver_version,
                     )
                     density = result["density"]
                     density_inclusion_probability = np.asarray(
@@ -288,7 +298,7 @@ def run_estimated_inclusion_pilot(
                     # Score probability estimation over the full synthetic parent
                     # population, not only retained objects. Parent truth is used
                     # strictly for simulation evaluation, never for fitting/weighting.
-                    estimated_parent_probability = predict_inclusion_probability(
+                    estimated_parent_probability = probability_predictor(
                         parent_z, result["model"]
                     )
                     probability_mae = float(np.mean(np.abs(
@@ -300,6 +310,7 @@ def run_estimated_inclusion_pilot(
                         "parent_redshift": parent_z.tolist(),
                         "true_inclusion_probability": true_probability.tolist(),
                         "estimated_inclusion_probability": estimated_parent_probability.tolist(),
+                        "solver_version": solver_version,
                     })
                     # Freeze observable-only warning features before constructing
                     # the GW likelihood or inspecting any posterior outcome.
@@ -478,6 +489,7 @@ def run_estimated_inclusion_pilot(
         "redshift_grid": [float(z_min), float(z_max), int(z_points)],
         "bandwidth_factor": None if bandwidth_factor is None else float(bandwidth_factor),
         "validation_sizes": list(sizes),
+        "solver_version": solver_version,
         "true_inclusion_model": {
             "family": "quadratic_logistic" if true_quadratic != 0.0 else "linear_logistic",
             "logit_probability": (
