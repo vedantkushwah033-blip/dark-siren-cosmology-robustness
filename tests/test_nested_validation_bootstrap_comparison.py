@@ -135,6 +135,10 @@ def test_nested_comparison_preserves_partial_bootstrap_attempt_ledger(monkeypatc
                 {"attempt": 2, "reason": "forced failure 2"},
             ],
             "fpc_factor": 0.9, "input_fingerprints": {},
+            "solver_version": "v1", "model_type": "linear",
+            "experiment_config": {
+                "method": kwargs["method"], "solver_version": "v1", "model_type": "linear",
+            },
             "attempt_posterior_mean": np.array([70.1, np.nan, np.nan]),
             "reference_posterior_mean_by_attempt": np.array([70.0, np.nan, np.nan]),
             "posterior_median_draws_by_attempt": np.array([70.1, np.nan, np.nan]),
