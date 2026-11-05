@@ -56,6 +56,40 @@ jobs:
         run: python -m pytest tests/test_audit_estimated_inclusion_pilot.py -q
       - name: Test paired nonlinear inclusion-curvature screen and independent audits
         run: python -m pytest tests/test_estimated_inclusion_curvature_screen.py -q
+      - name: Test versioned configuration-driven inclusion screen
+        run: python -m pytest tests/test_estimated_inclusion_config_runner.py -q
+      - name: Run and independently audit configured inclusion-screen smoke (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          config = {
+              "schema_version": 1, "replicates": 2, "n_parent": 1200,
+              "n_detected": 8, "validation_sizes": [100, 300],
+              "seed": 20261105, "h0_points": 41, "z_points": 201,
+              "curvature_levels": [-2, 0, 2],
+              "output_dir": "artifacts/configured_inclusion_screen_smoke",
+          }
+          Path("artifacts").mkdir(exist_ok=True)
+          Path("artifacts/configured_inclusion_screen_smoke_config.json").write_text(
+              json.dumps(config, indent=2) + "\\n", encoding="utf-8"
+          )
+          PY
+          python scripts/run_estimated_inclusion_curvature_screen_from_config.py --config artifacts/configured_inclusion_screen_smoke_config.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("artifacts/configured_inclusion_screen_smoke")
+          report = json.loads((p / "screen_report.json").read_text())
+          provenance = json.loads((p / "provenance.json").read_text())
+          assert report["status"] == "SCREEN_NOT_CONFIRMATORY"
+          assert report["curvature_levels"] == [-2.0, 0.0, 2.0]
+          assert len(report["conditions"]) == 3
+          assert all(row["audit_status"] == "PASS" for row in report["conditions"])
+          assert provenance["artifact_sha256"]
+          print("Configured screen smoke and independent audits passed.")
+          PY
       - name: Run non-confirmatory estimated-inclusion pilot smoke experiment
         run: python scripts/run_estimated_inclusion_pilot.py --replicates 2 --n-parent 1200 --n-detected 8 --validation-sizes 100,300 --seed 20261030 --h0-points 41 --z-points 201 --output-dir artifacts/estimated_inclusion_pilot_smoke
       - name: Check estimated-inclusion pilot smoke outputs
@@ -310,6 +344,7 @@ jobs:
             artifacts/multiseed_grid_sensitivity/
             artifacts/catalogue_thinning/
             artifacts/estimated_inclusion_pilot_smoke/
+            artifacts/configured_inclusion_screen_smoke/
             artifacts/validation_bootstrap_smoke/
             artifacts/bootstrap_selection.txt
             artifacts/nested_validation_bootstrap_smoke/
