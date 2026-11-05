@@ -152,3 +152,36 @@ def test_v2_quadratic_matches_v1_on_identical_data_and_parameterization():
     assert v1["negative_log_likelihood"] == pytest.approx(
         v2["negative_log_likelihood"], rel=1e-9, abs=1e-7
     )
+
+
+def test_v2_linear_matches_v1_on_identical_data_and_parameterization():
+    """V1 L-BFGS-B and V2 damped Newton solve the same bounded linear MLE."""
+    from dark_siren_robustness.estimated_inclusion import (
+        fit_logistic_inclusion_model,
+    )
+
+    rng = np.random.default_rng(202611055)
+    z_min, z_max = 0.01, 0.40
+    z = rng.uniform(z_min, z_max, 10000)
+    x = (z - (z_min + z_max) / 2.0) / ((z_max - z_min) / 2.0)
+    y = rng.binomial(1, expit(0.35 - 1.05 * x))
+
+    v1 = fit_logistic_inclusion_model(z, y, z_min=z_min, z_max=z_max)
+    v2 = fit_logistic_inclusion_model_v2(z, y, z_min=z_min, z_max=z_max)
+
+    grid = np.linspace(z_min, z_max, 301)
+    p1 = predict_inclusion_probability(grid, v1)
+    p2 = predict_inclusion_probability_v2(grid, v2)
+
+    assert v1["fit_status"] == "converged"
+    assert v2["fit_status"] == "converged"
+    assert np.allclose(
+        [v1["intercept"], v1["slope"]],
+        [v2["intercept"], v2["slope"]],
+        rtol=2e-4,
+        atol=2e-5,
+    )
+    assert np.allclose(p1, p2, rtol=2e-4, atol=2e-5)
+    assert v1["negative_log_likelihood"] == pytest.approx(
+        v2["negative_log_likelihood"], rel=1e-9, abs=1e-7
+    )
