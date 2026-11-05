@@ -366,3 +366,27 @@ def test_estimated_inclusion_pilot_runs_v2_end_to_end_and_records_solver():
     assert payload["solver_version"] == "v2"
     assert payload["fitted_inclusion_model"]["model"] == "logistic_inclusion_v2"
     assert payload["fitted_inclusion_model"]["solver_version"] == "v2"
+
+
+
+def test_v2_pilot_artifact_passes_independent_auditor(tmp_path):
+    import json
+    import subprocess
+    import sys
+
+    frame, summary = run_estimated_inclusion_pilot(
+        n_replicates=1, n_parent=1400, n_detected=6,
+        validation_sizes=(350,), seed=20261107,
+        h0_points=41, z_points=201, solver_version="v2",
+    )
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(
+        json.dumps(summary, indent=2), encoding="utf-8"
+    )
+    result = subprocess.run(
+        [sys.executable, "scripts/audit_estimated_inclusion_pilot.py", str(tmp_path)],
+        check=False, capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    audit = json.loads(result.stdout)
+    assert audit["status"] == "PASS"
