@@ -262,6 +262,7 @@ def estimate_host_density_from_validation(
     merger_weight: ArrayLike | None = None,
     bandwidth_factor: float | None = None,
     model_type: str = "linear",
+    solver_version: str = "v1",
 ) -> dict[str, object]:
     """Estimate host density using inclusion probabilities learned from audit data.
 
@@ -289,10 +290,25 @@ def estimate_host_density_from_validation(
         raise ValueError("observed_redshift must contain at least five finite values")
     if np.any((observed < grid[0]) | (observed > grid[-1])):
         raise ValueError("observed_redshift must lie inside redshift_grid bounds")
+    if solver_version not in {"v1", "v2"}:
+        raise ValueError("solver_version must be 'v1' or 'v2'")
+    if solver_version == "v2":
+        from dark_siren_robustness.estimated_inclusion_v2 import (
+            fit_logistic_inclusion_model_v2,
+            fit_quadratic_logistic_inclusion_model_v2,
+            predict_inclusion_probability_v2,
+        )
+        linear_fitter = fit_logistic_inclusion_model_v2
+        quadratic_fitter = fit_quadratic_logistic_inclusion_model_v2
+        predictor = predict_inclusion_probability_v2
+    else:
+        linear_fitter = fit_logistic_inclusion_model
+        quadratic_fitter = fit_quadratic_logistic_inclusion_model
+        predictor = predict_inclusion_probability
     if model_type == "linear":
-        fitter = fit_logistic_inclusion_model
+        fitter = linear_fitter
     elif model_type == "quadratic":
-        fitter = fit_quadratic_logistic_inclusion_model
+        fitter = quadratic_fitter
     else:
         raise ValueError("model_type must be 'linear' or 'quadratic'")
     model = fitter(
@@ -301,7 +317,7 @@ def estimate_host_density_from_validation(
         z_min=float(grid[0]),
         z_max=float(grid[-1]),
     )
-    probability = predict_inclusion_probability(observed, model)
+    probability = predictor(observed, model)
     inverse_weights = 1.0 / probability
     scaled = inverse_weights / np.max(inverse_weights)
     effective_sample_size = float(np.sum(scaled) ** 2 / np.sum(scaled**2))
@@ -322,6 +338,7 @@ def estimate_host_density_from_validation(
         "inverse_weight_p99": float(np.quantile(inverse_weights, 0.99)),
         "n_observed_catalogue": int(observed.size),
         "n_validation": int(model["n_validation"]),
+        "solver_version": solver_version,
     }
 
 
@@ -336,6 +353,7 @@ def bootstrap_validation_inclusion_density(
     seed: int = 20261030,
     merger_weight: ArrayLike | None = None,
     bandwidth_factor: float | None = None,
+    solver_version: str = "v1",
 ) -> dict[str, object]:
     """Bootstrap validation-sample uncertainty in fitted inclusion and host density.
 
@@ -352,6 +370,8 @@ def bootstrap_validation_inclusion_density(
     class or otherwise invalid fits are recorded as failures, never silently
     replaced. A fixed seed makes the resampling reproducible.
     """
+    if solver_version not in {"v1", "v2"}:
+        raise ValueError("solver_version must be 'v1' or 'v2'")
     if (
         isinstance(n_bootstrap, (bool, np.bool_))
         or not isinstance(n_bootstrap, (int, np.integer))
@@ -431,6 +451,7 @@ def bootstrap_validation_inclusion_density(
                 validation_y[indices],
                 merger_weight=merger_weight,
                 bandwidth_factor=bandwidth_factor,
+                solver_version=solver_version,
             )
         except (ValueError, RuntimeError, ArithmeticError, FloatingPointError) as exc:
             reason = f"{type(exc).__name__}: {exc}"
@@ -475,6 +496,7 @@ def bootstrap_validation_inclusion_density(
         "failure_reasons": failure_reasons,
         "failure_records": failure_records,
         "bootstrap_method": "paired validation-record resampling with replacement",
+        "solver_version": solver_version,
         "finite_population_correction_applied": False,
         "uncertainty_scope": (
             "approximate iid validation-sample bootstrap; observed catalogue fixed; "
