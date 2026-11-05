@@ -36,7 +36,7 @@ For the current superpopulation DGP use the deterministic constant
 c_g=\frac{\int_{z_{min}}^{z_{max}}x(z)^2\lambda_g(z)dz}
 {\int_{z_{min}}^{z_{max}}\lambda_g(z)dz}.
 ]
-Numerical integration of the current declared λ_g over [0.01, 0.40] gives approximately **0.28450** (the exact stored value should be generated deterministically at the declared quadrature resolution). Calculate it from the declared generator law, store it in each scenario manifest, and independently recompute it in the auditor. Do not estimate it from each validation sample. A finite-frame alternative (c_N=N^{-1}\sum_i x_i^2) is a different DGP and must be labelled separately.
+High-resolution 200,001-point trapezoidal integration of the current continuous λ_g over [0.01, 0.40] gives approximately **0.284500557016**. The implementation should store the deterministic quadrature value and the auditor should independently recompute it. Calculate it from the declared generator law, store it in each scenario manifest, and independently recompute it in the auditor. Do not estimate it from each validation sample. A finite-frame alternative (c_N=N^{-1}\sum_i x_i^2) is a different DGP and must be labelled separately.
 
 The current producer and independent auditor both hard-code (1/3) in the quadratic term. Thus the document's claimed parent-law centering is not implemented.
 
