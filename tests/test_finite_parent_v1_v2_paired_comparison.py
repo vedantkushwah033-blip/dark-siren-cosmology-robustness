@@ -47,7 +47,9 @@ def test_paired_v1_v2_runner_uses_identical_inputs_and_audits_both_arms(tmp_path
     )
     assert len(records) == 2
     assert "true_quadratic_centering" in summary["identity_columns_checked"]
-    assert records["true_quadratic_centering_v1"].equals(records["true_quadratic_centering_v2"])
+    v1_records = pd.read_csv(output / "v1" / "records.csv")
+    v2_records = pd.read_csv(output / "v2" / "records.csv")
+    assert v1_records["true_quadratic_centering"].equals(v2_records["true_quadratic_centering"])
     assert not records.duplicated(["scenario", "draw", "validation_size"]).any()
     assert records["status_v1"].isin(["success", "failed"]).all()
     assert records["status_v2"].isin(["success", "failed"]).all()
