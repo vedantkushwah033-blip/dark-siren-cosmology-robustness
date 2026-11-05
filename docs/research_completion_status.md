@@ -2,7 +2,7 @@
 
 **Updated:** 5 November 2026  
 **Branch:** `research/bootstrap-failure-path-repairs-2026-11-02`  
-**Recorded source head before this status-file update:** `9c16b93dded047a7eb5adf760535c6ab7da3cc90`  
+**Recorded source head before this status-file update:** `0361a862a9fe2bc774b864a019f09ae93d7fb181`  
 **Default branch:** `main` (not modified)
 
 This is a remote GitHub status record. It does not inspect or certify the user's local working tree.
@@ -22,10 +22,12 @@ Resolve the exact CI failure in the configuration-driven estimated-inclusion cur
    - Initial audit commit: `221312794531525d02300702b6b078296c8b708d`.
    - Follow-up audit commit: `9c16b93dded047a7eb5adf760535c6ab7da3cc90`.
 
-3. Fixed the direct-CLI import path in `scripts/run_estimated_inclusion_curvature_screen.py` and added a subprocess `--help` regression test in `tests/test_estimated_inclusion_curvature_screen.py`.
+3. Fixed the direct-CLI import path in `scripts/run_estimated_inclusion_curvature_screen.py` and added a subprocess `--help` regression test.
    - Commits: `82732e32e484b17d2233731e51cd7b903f239554` and `2c356da161e701cade8d1f8c0df4a56e1b5388bd`.
+4. Fixed the configuration wrapper's negative-curvature CLI argument by passing it atomically as `--curvature-levels=-2,0,2`; updated the config-runner assertion.
+   - Commits: `cb32c98b711d9cab19ef5ee961891ee6db830b67` and `55099af8665c8d1b8b92bbcebf5a1231e33e35f3`.
 
-No scientific estimator, likelihood, simulation DGP, or scientific estimand was changed. The CI smoke attempted a reduced experiment but failed during script import before simulation. No full experiment was launched. No PR was merged and `main` was not modified.
+No scientific estimator, likelihood, simulation DGP, or scientific estimand was changed. The CI smoke was attempted twice on earlier commits: first failed before simulation due to direct-CLI import resolution, then after that repair failed because argparse treated a negative curvature string as an option. Both defects have been repaired in later commits. The smoke has not yet been shown to pass on the current head. No full experiment was launched. No PR was merged and `main` was not modified.
 
 ## Tests and CI
 
@@ -47,7 +49,8 @@ Historical curvature regression workflow `41976283260` passed on `fa05e2fc488831
 
 - Test-only fix committed as `97e1b6ee6ec1e195409c3ca5951161d6ac4785d9`; its focused test passed (9 passed on Python 3.12), but the overall workflow failed during configured smoke.
 - The smoke exposed a direct-CLI import defect; code/test repairs are in `82732e32e484b17d2233731e51cd7b903f239554` and `2c356da161e701cade8d1f8c0df4a56e1b5388bd`.
-- The exact-head run for the final code/doc commits must be refreshed from GitHub Actions before claiming success.
+- A second smoke exposed negative curvature argument parsing; wrapper/test repairs are in `cb32c98b711d9cab19ef5ee961891ee6db830b67` and `55099af8665c8d1b8b92bbcebf5a1231e33e35f3`.
+- Dedicated curvature regression workflow passed on `2c356da161e701cade8d1f8c0df4a56e1b5388bd`; full CI on that head failed in the smoke step before the negative-argument fix. Exact-head CI for the latest fix is required.
 - No local pytest execution was performed in this session.
 
 ## Experiment status
@@ -57,7 +60,8 @@ Historical curvature regression workflow `41976283260` passed on `fa05e2fc488831
 | Config schema and canonical hash implementation | Implemented/source-inspected |
 | Curvature runner guards | Implemented/source-inspected |
 | Config-runner mock repair | Implemented/committed; focused test passed, full workflow then failed in smoke |
-| Direct-CLI import repair and regression test | Implemented/committed; exact-head CI pending |
+| Direct-CLI import repair and regression test | Implemented/committed; dedicated regression workflow passed on 2c356da161e701cade8d1f8c0df4a56e1b5388bd |
+| Negative-curvature argparse fix | Implemented/committed; exact-head CI pending |
 | Reduced configuration-wrapper smoke | Not run |
 | Full five-curvature × 20-replicate screen | Not run/verified |
 | Full screen artifact audit | Not run |
