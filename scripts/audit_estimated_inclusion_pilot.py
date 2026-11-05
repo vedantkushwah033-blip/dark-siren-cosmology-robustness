@@ -130,6 +130,22 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
     if (catalogue_ids.size != int(row.get("n_catalogue"))
             or validation_ids.size != int(row.get("validation_size"))):
         raise AssertionError("inference payload unit counts disagree with replicate row")
+    try:
+        csv_catalogue_ids = np.asarray(
+            json.loads(row["catalogue_object_ids_json"]), dtype=np.int64
+        )
+        csv_validation_ids = np.asarray(
+            json.loads(row["validation_object_ids_json"]), dtype=np.int64
+        )
+        csv_overlap_ids = np.asarray(
+            json.loads(row["overlap_object_ids_json"]), dtype=np.int64
+        )
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise AssertionError("CSV finite-parent identity fields are malformed") from exc
+    if (not np.array_equal(catalogue_ids, csv_catalogue_ids)
+            or not np.array_equal(validation_ids, csv_validation_ids)
+            or not np.array_equal(overlap_ids, csv_overlap_ids)):
+        raise AssertionError("inference payload unit identities disagree with replicate CSV")
 
     # Refit the estimated logistic inclusion model from the saved independent
     # validation records. This is a separate optimization implementation and
