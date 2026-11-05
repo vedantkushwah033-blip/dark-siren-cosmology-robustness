@@ -40,7 +40,13 @@ def _validate_design(
     columns = [np.ones(z.size), x]
     if degree == 2:
         columns.append(x * x)
-    return z, y, np.column_stack(columns)
+    design = np.column_stack(columns)
+    if np.linalg.matrix_rank(design) < design.shape[1]:
+        model_name = "quadratic" if degree == 2 else "linear"
+        raise ValueError(
+            f"{model_name} logistic design is rank deficient; coefficients are not identifiable"
+        )
+    return z, y, design
 
 
 def _logistic_nll_gradient_hessian(
