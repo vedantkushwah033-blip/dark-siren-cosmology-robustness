@@ -130,7 +130,7 @@ def audit(artifact_dir: Path) -> dict:
     missing = required.difference(records.columns)
     if missing:
         raise AssertionError(f"records missing columns: {sorted(missing)}")
-    if summary.get("schema") != "finite_parent_srswor_smoke_v1":
+    if summary.get("schema") != "finite_parent_srswor_smoke_v2":
         raise AssertionError("unsupported finite-parent artifact schema")
     if summary.get("status") != "SMOKE_ONLY_NOT_CONFIRMATORY":
         raise AssertionError("artifact must retain non-confirmatory status")
