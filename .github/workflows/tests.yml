@@ -280,7 +280,7 @@ jobs:
           p = Path('artifacts/finite_parent_validation_v2_smoke')
           manifest = json.loads((p / 'summary.json').read_text())
           records = pd.read_csv(p / 'records.csv')
-          assert manifest['schema'] == 'finite_parent_srswor_smoke_v3'
+          assert manifest['schema'] == 'finite_parent_srswor_smoke_v4'
           assert manifest['solver_version'] == 'v2'
           assert records['solver_version'].eq('v2').all()
           assert manifest['n_attempted'] == manifest['n_successful'] + manifest['n_failed']
