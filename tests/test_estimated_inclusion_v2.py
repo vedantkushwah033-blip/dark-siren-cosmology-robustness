@@ -115,6 +115,35 @@ def test_v2_analytic_gradient_and_hessian_match_finite_differences():
     assert np.linalg.eigvalsh(hessian).min() >= -1e-10
 
 
+def test_v2_design_condition_number_detects_redshift_concentration():
+    z_min, z_max = 0.01, 0.40
+    midpoint, half_range = 0.205, 0.195
+    outcomes = np.tile([0, 1], 100)
+
+    def fit_at_span(span):
+        x = np.linspace(-span, span, outcomes.size)
+        z = midpoint + half_range * x
+        return fit_quadratic_logistic_inclusion_model_v2(
+            z, outcomes, z_min=z_min, z_max=z_max
+        )
+
+    broad = fit_at_span(1.0)
+    concentrated = fit_at_span(0.1)
+    assert concentrated["design_condition_number"] > broad["design_condition_number"] * 50
+
+    # The diagnostic describes design geometry, not record ordering.
+    rng = np.random.default_rng(202611055)
+    x = np.linspace(-0.1, 0.1, outcomes.size)
+    z = midpoint + half_range * x
+    order = rng.permutation(z.size)
+    permuted = fit_quadratic_logistic_inclusion_model_v2(
+        z[order], outcomes[order], z_min=z_min, z_max=z_max
+    )
+    assert permuted["design_condition_number"] == pytest.approx(
+        concentrated["design_condition_number"], rel=1e-12
+    )
+
+
 def test_v2_reports_hessian_rank_and_conditioning_diagnostics():
     z_min, z_max = 0.01, 0.40
     z = np.linspace(z_min, z_max, 300)
