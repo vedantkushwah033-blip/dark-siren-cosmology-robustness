@@ -122,7 +122,9 @@ def audit(artifact_dir: Path) -> dict:
         "scenario", "draw", "validation_size", "status", "validation_seed",
         "simulation_seed", "thinning_seed", "true_intercept", "true_slope",
         "true_quadratic", "sigma_mpc", "detection_threshold_mpc",
-        "validation_indices", "failure_code", "failure_reason", "parent_size", "parent_frame_sha256",
+        "validation_indices", "catalogue_validation_overlap_indices",
+        "catalogue_validation_overlap_count", "failure_code", "failure_reason",
+        "parent_size", "parent_frame_sha256",
         "catalogue_sha256", "gw_distance_sha256",
     }
     missing = required.difference(records.columns)
@@ -264,8 +266,27 @@ def audit(artifact_dir: Path) -> dict:
                         raise AssertionError("validation index outside parent frame")
                     if not np.array_equal(indices, expected_indices):
                         raise AssertionError("nested validation sample does not replay from declared seed")
+                    expected_overlap = np.intersect1d(
+                        indices, np.flatnonzero(retained), assume_unique=True
+                    )
+                    encoded_overlap = (
+                        "" if pd.isna(row["catalogue_validation_overlap_indices"])
+                        else str(row["catalogue_validation_overlap_indices"])
+                    )
+                    stored_overlap = (
+                        np.fromstring(encoded_overlap, sep=",", dtype=int)
+                        if encoded_overlap else np.array([], dtype=int)
+                    )
+                    if not np.array_equal(stored_overlap, expected_overlap):
+                        raise AssertionError(
+                            "stored catalogue/validation overlap IDs do not match regenerated frame"
+                        )
+                    if int(row["catalogue_validation_overlap_count"]) != expected_overlap.size:
+                        raise AssertionError("catalogue/validation overlap count is inconsistent")
                     if int(row["n_validation_included"]) != int(np.sum(retained[indices])):
                         raise AssertionError("validation inclusion count does not match regenerated parent frame")
+                    if int(row["catalogue_validation_overlap_count"]) != int(row["n_validation_included"]):
+                        raise AssertionError("overlap count and validation-positive count must agree")
                     if row["status"] == "success":
                         if finite_target_mean is None:
                             raise AssertionError("successful row has no reconstructible finite-parent target")
