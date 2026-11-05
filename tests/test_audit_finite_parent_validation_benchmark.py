@@ -47,7 +47,7 @@ def _artifact(tmp_path):
             "scenario_coverage_sd": float(scenario_coverage.std(ddof=1)) if len(scenario_coverage) > 1 else None,
         }
     summary = {
-        "schema": "finite_parent_srswor_smoke_v1",
+        "schema": "finite_parent_srswor_smoke_v2",
         "status": "SMOKE_ONLY_NOT_CONFIRMATORY",
         "n_attempted": len(frame),
         "n_successful": int(successful.shape[0]),
