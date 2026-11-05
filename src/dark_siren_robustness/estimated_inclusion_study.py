@@ -208,6 +208,13 @@ def run_estimated_inclusion_pilot(
                 f"estimated_{kind}_{m}" for kind in ("linear", "quadratic") for m in sizes
             ]
             for arm in arms:
+                arm_validation_size = (
+                    int(arm.split("_")[-1]) if arm.startswith("estimated_") else 0
+                )
+                arm_validation_ids = audit_records["object_id"][:arm_validation_size]
+                arm_overlap_ids = np.intersect1d(
+                    catalogue_object_ids, arm_validation_ids
+                ).astype(np.int64)
                 rows.append({
                     "replicate": replicate, "replicate_seed": sim_seed,
                     "catalogue_seed": catalogue_seed, "audit_seed": audit_seed,
@@ -233,11 +240,10 @@ def run_estimated_inclusion_pilot(
                         if arm.startswith("estimated_") else None
                     ),
                     "unit_overlap_schema": "finite_parent_unit_identity_v1",
-                    "n_catalogue_validation_overlap": int(np.intersect1d(
-                        catalogue_object_ids,
-                        audit_records["object_id"][:int(arm.split("_")[-1])]
-                        if arm.startswith("estimated_") else np.array([], dtype=np.int64),
-                    ).size),
+                    "n_catalogue_validation_overlap": int(arm_overlap_ids.size),
+                    "catalogue_object_ids_json": json.dumps(catalogue_object_ids.tolist()),
+                    "validation_object_ids_json": json.dumps(arm_validation_ids.tolist()),
+                    "overlap_object_ids_json": json.dumps(arm_overlap_ids.tolist()),
                 })
             continue
 
