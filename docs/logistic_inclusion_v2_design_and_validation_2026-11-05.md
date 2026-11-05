@@ -32,6 +32,7 @@ Results identify their model version and retain iteration, accepted/rejected ste
 - Linear curve recovery on a well-conditioned synthetic sample.
 - Quadratic curve recovery.
 - Complete-separation fixture reported as boundary-limited.
+- Identical-data V1/V2 comparison on a deterministic quadratic near-separation fixture with one discordant label; compare the fitted probability curve, objective, boundary status, and projected KKT residual.
 - Rank-deficient quadratic design and deterministic replay.
 - Analytic gradient and Hessian checked against central finite differences.
 - Final observed-Hessian rank, minimum/maximum eigenvalue, and condition-number diagnostics, including explicit infinite condition number for rank deficiency.
@@ -51,7 +52,7 @@ Results identify their model version and retain iteration, accepted/rejected ste
 ## Release gate
 
 D-01 remains open until:
-- the derivative/conditioning additions pass on supported Python versions;
+- the derivative/conditioning and adversarial near-separation tests pass on supported Python versions;
 - historical abnormal-line-search fixtures and the recorded 2/840 pilot failures are replayed;
 - v1/v2 coefficients, objective values, predicted probabilities, and boundary diagnostics are independently compared;
 - failure accounting is preserved;
