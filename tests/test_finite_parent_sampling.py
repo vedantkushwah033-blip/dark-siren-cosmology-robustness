@@ -121,3 +121,21 @@ def test_nested_srswor_primitive_rejects_invalid_design(parent_size, sizes, erro
         nested_srswor_sample_indices(
             np.random.default_rng(3), parent_size, sizes
         )
+
+
+def test_finite_parent_benchmark_records_opt_in_v2_solver():
+    frame = run_finite_parent_benchmark(
+        n_scenarios=1, n_validation_draws=2, n_parent=1200,
+        n_detected=6, validation_sizes=(100, 200), seed=20261034,
+        h0_points=41, z_points=201, solver_version="v2",
+    )
+    assert frame["solver_version"].eq("v2").all()
+
+
+def test_finite_parent_benchmark_rejects_unknown_solver_version():
+    with pytest.raises(ValueError, match="solver_version"):
+        run_finite_parent_benchmark(
+            n_scenarios=1, n_validation_draws=2, n_parent=1200,
+            n_detected=6, validation_sizes=(100,), seed=20261034,
+            h0_points=41, z_points=201, solver_version="v3",
+        )
