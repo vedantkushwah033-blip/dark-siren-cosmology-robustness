@@ -552,3 +552,42 @@ def test_preposterior_diagnostics_accept_quadratic_model_and_verify_probabilitie
         build_preposterior_diagnostics(
             model, validation_z, validation_y, catalogue_z, np.full(120, 0.5)
         )
+
+
+
+def test_validation_host_density_wrapper_supports_opt_in_v2_solver():
+    from scipy.integrate import trapezoid
+    from dark_siren_robustness.estimated_inclusion import estimate_host_density_from_validation
+
+    rng = np.random.default_rng(20261105)
+    z_min, z_max = 0.01, 0.40
+    parent_z = rng.uniform(z_min, z_max, 5000)
+    x = (parent_z - (z_min + z_max) / 2) / ((z_max - z_min) / 2)
+    retained = rng.binomial(1, expit(0.25 - 1.2 * x))
+    observed = parent_z[retained.astype(bool)]
+    validation_idx = rng.choice(parent_z.size, size=1200, replace=False)
+    grid = np.linspace(z_min, z_max, 201)
+
+    result = estimate_host_density_from_validation(
+        grid, observed, parent_z[validation_idx], retained[validation_idx],
+        bandwidth_factor=0.8, solver_version="v2",
+    )
+
+    assert result["solver_version"] == "v2"
+    assert result["model"]["model"] == "logistic_inclusion_v2"
+    assert result["model"]["fit_status"] in {"converged", "boundary_limited"}
+    assert np.all(np.isfinite(result["observed_inclusion_probability"]))
+    assert trapezoid(result["density"], grid) == pytest.approx(1.0, abs=1e-10)
+
+
+def test_validation_host_density_wrapper_rejects_unknown_solver_version():
+    from dark_siren_robustness.estimated_inclusion import estimate_host_density_from_validation
+
+    grid = np.linspace(0.01, 0.40, 101)
+    observed = np.linspace(0.02, 0.39, 20)
+    validation = np.linspace(0.01, 0.40, 100)
+    included = np.tile([0, 1], 50)
+    with pytest.raises(ValueError, match="solver_version"):
+        estimate_host_density_from_validation(
+            grid, observed, validation, included, solver_version="v3"
+        )
