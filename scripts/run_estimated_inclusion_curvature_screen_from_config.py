@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.metadata
 import json
+import platform
 from pathlib import Path
 import subprocess
 import sys
@@ -57,6 +59,33 @@ def load_config(path: Path) -> tuple[dict, str]:
     return config, digest
 
 
+def collect_provenance(output_dir: Path) -> dict:
+    try:
+        revision = subprocess.run(
+            ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        revision = None
+    packages = {}
+    for package in ("numpy", "scipy", "pandas", "matplotlib"):
+        try:
+            packages[package] = importlib.metadata.version(package)
+        except importlib.metadata.PackageNotFoundError:
+            packages[package] = None
+    artifact_hashes = {}
+    for path in sorted(output_dir.rglob("*")):
+        if path.is_file() and path.name not in {"screen_report.json", "provenance.json"}:
+            relative = str(path.relative_to(output_dir))
+            artifact_hashes[relative] = hashlib.sha256(path.read_bytes()).hexdigest()
+    return {
+        "source_revision": revision,
+        "python_version": sys.version,
+        "platform": platform.platform(),
+        "package_versions": packages,
+        "artifact_sha256": artifact_hashes,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the nonlinear inclusion screen from a validated JSON manifest.")
     parser.add_argument("--config", type=Path, required=True)
@@ -84,6 +113,11 @@ def main() -> None:
     report["configuration_schema_version"] = SCHEMA_VERSION
     report["configuration"] = config
     report["configuration_sha256"] = digest
+    provenance = collect_provenance(output_dir)
+    report["provenance"] = provenance
+    (output_dir / "provenance.json").write_text(
+        json.dumps(provenance, indent=2, sort_keys=True) + "\\n", encoding="utf-8"
+    )
     (output_dir / "experiment_config.canonical.json").write_text(
         json.dumps(config, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
