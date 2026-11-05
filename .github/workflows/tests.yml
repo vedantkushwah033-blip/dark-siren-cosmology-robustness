@@ -50,6 +50,8 @@ jobs:
         run: python -m pytest tests/test_catalogue_density.py -q
       - name: Test fixed-bandwidth IPW-KDE first-order perturbation
         run: python -m pytest tests/test_ipw_kde_first_order_perturbation.py -q
+      - name: Test selected H0 likelihood host-density first-order perturbation
+        run: python -m pytest tests/test_selected_likelihood_host_density_perturbation.py -q
       - name: Test estimated catalogue inclusion from external validation data
         run: python -m pytest tests/test_estimated_inclusion.py -q
       - name: Test versioned damped-Newton logistic inclusion estimator v2
