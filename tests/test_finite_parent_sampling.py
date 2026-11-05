@@ -139,3 +139,15 @@ def test_finite_parent_benchmark_rejects_unknown_solver_version():
             n_detected=6, validation_sizes=(100,), seed=20261034,
             h0_points=41, z_points=201, solver_version="v3",
         )
+
+
+def test_quadratic_inclusion_centering_matches_nonuniform_parent_law():
+    frame = run_finite_parent_benchmark(
+        n_scenarios=1, n_validation_draws=2, n_parent=1200,
+        n_detected=6, validation_sizes=(100,), seed=20261108,
+        h0_points=41, z_points=201, true_quadratic=1.2,
+    )
+    centering = frame["true_quadratic_centering"].to_numpy(dtype=float)
+    assert np.all(np.isfinite(centering))
+    assert np.allclose(centering, 0.2845005570164394, rtol=0.0, atol=2e-8)
+    assert not np.allclose(centering, 1.0 / 3.0, rtol=0.0, atol=1e-3)
