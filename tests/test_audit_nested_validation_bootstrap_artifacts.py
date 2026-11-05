@@ -114,6 +114,33 @@ def test_independent_nested_replay_reconstructs_smoke_scenario_and_posteriors(ne
     assert result["successful_bootstrap_methods_replayed"] >= 2
 
 
+def test_nested_attempt_ledger_persists_estimator_provenance(nested_artifact):
+    path = nested_artifact / "attempt_audit.jsonl"
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    returned = [row for row in rows if row["bootstrap_status"] in {"success", "non_evaluable"}]
+    assert returned
+    assert all(row["bootstrap_solver_version"] == "v1" for row in returned)
+    assert all(row["bootstrap_model_type"] == "linear" for row in returned)
+    assert all(
+        row["bootstrap_experiment_config"] == {
+            "method": row["method"],
+            "solver_version": "v1",
+            "model_type": "linear",
+        }
+        for row in returned
+    )
+
+
+def test_independent_nested_replay_rejects_tampered_estimator_provenance(nested_artifact):
+    path = nested_artifact / "attempt_audit.jsonl"
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    row = next(item for item in rows if item["method"] == "paired_bootstrap")
+    row["bootstrap_solver_version"] = "v2"
+    path.write_text("\\n".join(json.dumps(item) for item in rows) + "\\n")
+    with pytest.raises(AssertionError, match="solver_version"):
+        audit_replay(nested_artifact)
+
+
 def test_independent_nested_replay_rejects_tampered_parent_fingerprint(nested_artifact):
     path = nested_artifact / "attempt_audit.jsonl"
     frame = pd.read_json(path, lines=True)
