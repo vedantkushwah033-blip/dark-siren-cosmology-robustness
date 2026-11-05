@@ -28,7 +28,7 @@ def _quad_weights(grid: np.ndarray) -> np.ndarray:
     return weights
 
 
-def _independent_density_and_fit(grid, observed, validation_z, validation_y, rate):
+def _independent_density_and_fit(grid, observed, validation_z, validation_y, rate, solver_version="v1"):
     """Reconstruct bounded logistic fit, IP weights, and reflected weighted KDE."""
     midpoint = 0.5 * (grid[0] + grid[-1])
     half_range = 0.5 * (grid[-1] - grid[0])
@@ -39,9 +39,21 @@ def _independent_density_and_fit(grid, observed, validation_z, validation_y, rat
         eta = theta[0] + theta[1] * x
         return float(-np.sum(y * log_expit(eta) + (1.0-y) * log_expit(-eta)))
 
-    fit = minimize(objective, np.zeros(2), method="L-BFGS-B",
-                   bounds=((-25.0, 25.0), (-50.0, 50.0)),
-                   options={"maxiter": 2000, "ftol": 1e-12, "gtol": 1e-8})
+    bounds = ((-25.0, 25.0), (-50.0, 50.0))
+    if solver_version == "v1":
+        fit = minimize(objective, np.zeros(2), method="L-BFGS-B", bounds=bounds,
+                       options={"maxiter": 2000, "ftol": 1e-12, "gtol": 1e-8})
+    elif solver_version == "v2":
+        # Independent SLSQP solve: deliberately does not reproduce the
+        # production damped-Newton iterations or line-search implementation.
+        def gradient(theta):
+            residual = expit(theta[0] + theta[1] * x) - y
+            return np.array([np.sum(residual), np.dot(residual, x)], dtype=float)
+        fit = minimize(objective, np.zeros(2), jac=gradient, method="SLSQP",
+                       bounds=bounds,
+                       options={"maxiter": 5000, "ftol": 1e-13, "disp": False})
+    else:
+        raise ValueError("unsupported solver_version in independent audit")
     if not np.all(np.isfinite(fit.x)) or not np.isfinite(fit.fun):
         raise RuntimeError("independent logistic refit returned non-finite output")
     # Match the production estimator's acceptance contract: an optimizer
@@ -148,10 +160,15 @@ def audit(artifact_dir: Path) -> dict:
     missing = required.difference(records.columns)
     if missing:
         raise AssertionError(f"records missing columns: {sorted(missing)}")
-    if summary.get("schema") != "finite_parent_srswor_smoke_v2":
+    if summary.get("schema") != "finite_parent_srswor_smoke_v3":
         raise AssertionError("unsupported finite-parent artifact schema")
     if summary.get("status") != "SMOKE_ONLY_NOT_CONFIRMATORY":
         raise AssertionError("artifact must retain non-confirmatory status")
+    solver_version = summary.get("solver_version")
+    if solver_version not in {"v1", "v2"}:
+        raise AssertionError("manifest has unsupported solver_version")
+    if "solver_version" not in records or not records["solver_version"].eq(solver_version).all():
+        raise AssertionError("record solver_version does not match manifest")
     attempted = len(records)
     successful = int(records["status"].eq("success").sum())
     failed = int(records["status"].eq("failed").sum())
@@ -247,7 +264,7 @@ def audit(artifact_dir: Path) -> dict:
         finite_target_mean = None
         if observed_z.size >= 5 and np.unique(observed_z).size >= 3:
             target_density, *_ = _independent_density_and_fit(
-                z_grid, observed_z, parent_z, retained.astype(int), rate
+                z_grid, observed_z, parent_z, retained.astype(int), rate, solver_version
             )
             finite_target_mean = _independent_posterior(
                 z_grid, target_density, h0_grid, distances,
@@ -316,7 +333,8 @@ def audit(artifact_dir: Path) -> dict:
                         if np.unique(retained[indices]).size != 2:
                             raise AssertionError("successful logistic fit lacks both validation classes")
                         rebuilt = _independent_density_and_fit(
-                            z_grid, observed_z, parent_z[indices], retained[indices].astype(int), rate
+                            z_grid, observed_z, parent_z[indices], retained[indices].astype(int), rate,
+                            solver_version
                         )
                         density, intercept, slope, ess, max_weight, p99, boundary = rebuilt
                         _close(row["fit_status"] == "boundary_limited", boundary, "fit status")
@@ -352,7 +370,7 @@ def audit(artifact_dir: Path) -> dict:
                         try:
                             failed_density = _independent_density_and_fit(
                                 z_grid, observed_z, parent_z[indices],
-                                retained[indices].astype(int), rate
+                                retained[indices].astype(int), rate, solver_version
                             )[0]
                             _independent_posterior(
                                 z_grid, failed_density, h0_grid, distances,
