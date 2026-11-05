@@ -292,6 +292,30 @@ jobs:
         run: python scripts/audit_finite_parent_validation_benchmark.py artifacts/finite_parent_validation_v2_smoke
       - name: Test paired V1/V2 finite-parent comparison on identical inputs
         run: python -m pytest tests/test_finite_parent_v1_v2_paired_comparison.py -q
+      - name: Run paired V1/V2 finite-parent smoke comparison
+        run: python scripts/run_finite_parent_v1_v2_paired_comparison.py --scenarios 1 --draws 2 --n-parent 1200 --n-detected 8 --validation-sizes 100 --seed 20261107 --output-dir artifacts/finite_parent_v1_v2_paired_smoke
+      - name: Independently audit both paired comparison arms
+        run: |
+          python scripts/audit_finite_parent_validation_benchmark.py artifacts/finite_parent_v1_v2_paired_smoke/v1
+          python scripts/audit_finite_parent_validation_benchmark.py artifacts/finite_parent_v1_v2_paired_smoke/v2
+      - name: Check paired V1/V2 comparison accounting
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          p = Path('artifacts/finite_parent_v1_v2_paired_smoke')
+          s = json.loads((p / 'paired_summary.json').read_text())
+          r = pd.read_csv(p / 'paired_records.csv')
+          assert s['schema'] == 'finite_parent_v1_v2_paired_comparison_v1'
+          assert s['status'] == 'SMOKE_ONLY_NOT_CONFIRMATORY'
+          assert s['n_attempted'] == len(r) == 2
+          assert s['n_attempted'] == (
+              s['n_both_success'] + s['n_v1_only_success']
+              + s['n_v2_only_success'] + s['n_both_failed']
+          )
+          print('Validated paired V1/V2 attempts:', len(r))
+          PY
       - name: Test host-density-to-H0 benchmark
         run: python -m pytest tests/test_host_density_benchmark.py -q
       - name: Test corrected physical KDE bandwidth semantics
@@ -456,5 +480,6 @@ jobs:
             artifacts/nested_validation_bootstrap_smoke/
             artifacts/linear_finite_population_bootstrap_pilot/
             artifacts/multiframe_v3_smoke/
+            artifacts/finite_parent_v1_v2_paired_smoke/
           if-no-files-found: error
 
