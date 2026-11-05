@@ -41,7 +41,6 @@ def _validate_design(
     if degree == 2:
         columns.append(x * x)
     design = np.column_stack(columns)
-    singular_values = np.linalg.svd(design, compute_uv=False)
     if np.linalg.matrix_rank(design) < design.shape[1]:
         model_name = "quadratic" if degree == 2 else "linear"
         raise ValueError(
