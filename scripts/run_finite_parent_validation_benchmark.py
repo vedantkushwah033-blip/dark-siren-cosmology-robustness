@@ -17,19 +17,21 @@ def main() -> None:
     parser.add_argument("--n-detected", type=int, default=30)
     parser.add_argument("--validation-sizes", default="100,300")
     parser.add_argument("--seed", type=int, default=20261032)
+    parser.add_argument("--solver-version", choices=("v1", "v2"), default="v1")
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
     sizes = tuple(int(x) for x in args.validation_sizes.split(",") if x.strip())
     frame = run_finite_parent_benchmark(
         n_scenarios=args.scenarios, n_validation_draws=args.draws,
         n_parent=args.n_parent, n_detected=args.n_detected,
-        validation_sizes=sizes, seed=args.seed,
+        validation_sizes=sizes, seed=args.seed, solver_version=args.solver_version,
     )
     args.output_dir.mkdir(parents=True, exist_ok=True)
     frame.to_csv(args.output_dir / "records.csv", index=False)
     successful = frame.loc[frame["status"].eq("success")]
     summary = {
-        "schema": "finite_parent_srswor_smoke_v2",
+        "schema": "finite_parent_srswor_smoke_v3",
+        "solver_version": args.solver_version,
         "status": "SMOKE_ONLY_NOT_CONFIRMATORY",
         "n_attempted": int(len(frame)),
         "n_successful": int(len(successful)),
