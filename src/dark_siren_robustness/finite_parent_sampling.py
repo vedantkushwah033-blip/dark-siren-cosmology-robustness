@@ -92,8 +92,11 @@ def run_finite_parent_benchmark(
     true_intercept: float = 0.25,
     true_slope: float = -1.2,
     true_quadratic: float = 0.0,
+    solver_version: str = "v1",
 ) -> pd.DataFrame:
     """Run a nested exact-SRSWOR benchmark and preserve every failed attempt."""
+    if solver_version not in {"v1", "v2"}:
+        raise ValueError("solver_version must be 'v1' or 'v2'")
     n_scenarios = _require_integer("n_scenarios", n_scenarios, 1)
     n_validation_draws = _require_integer("n_validation_draws", n_validation_draws, 2)
     n_parent = _require_integer("n_parent", n_parent, 100)
@@ -215,7 +218,7 @@ def run_finite_parent_benchmark(
         # from any pseudo-population reference used by a bootstrap.
         finite_parent_result = estimate_host_density_from_validation(
             z_grid, observed_z, parent_z, retained.astype(int),
-            merger_weight=rate,
+            merger_weight=rate, solver_version=solver_version,
         )
         finite_parent_post = posterior_summary(
             h0_grid, selection_aware_toy_likelihood(
@@ -239,7 +242,7 @@ def run_finite_parent_benchmark(
                 try:
                     result = estimate_host_density_from_validation(
                         z_grid, observed_z, parent_z[indices], retained[indices].astype(int),
-                        merger_weight=rate,
+                        merger_weight=rate, solver_version=solver_version,
                     )
                     density = np.asarray(result["density"], dtype=float)
                     likelihood = selection_aware_toy_likelihood(
@@ -325,4 +328,6 @@ def run_finite_parent_benchmark(
                         "catalogue_sha256": catalogue_hash,
                         "gw_distance_sha256": gw_hash,
                     })
-    return pd.DataFrame(rows)
+    frame = pd.DataFrame(rows)
+    frame["solver_version"] = solver_version
+    return frame
