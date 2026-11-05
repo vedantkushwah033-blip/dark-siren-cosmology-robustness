@@ -5,6 +5,8 @@ It solves the box-constrained convex logistic negative log-likelihood with
 analytic gradient/Hessian, projected-KKT stopping, and monotone backtracking.
 A finite coefficient box constrains separation numerically; boundary-limited
 fits must be reported and are not evidence of positivity or model adequacy.
+The primary backtracking condition permits only a documented eight-ULP
+objective-roundoff allowance near convergence; it is not strict monotonicity.
 """
 from __future__ import annotations
 
@@ -124,7 +126,8 @@ def _fit_box_logistic(
                 ridge = 1e-10 if ridge == 0 else ridge * 10.0
 
         # If the reduced Hessian is singular/ill-conditioned, use a
-        # projected-gradient direction. The line search still enforces descent.
+        # projected-gradient direction. The line search requires a descent
+        # direction and uses strict objective decrease in this fallback.
         if direction is None:
             direction = -gradient / max(1.0, float(np.linalg.norm(gradient, ord=np.inf)))
 
@@ -142,7 +145,9 @@ def _fit_box_logistic(
             # Near the optimum, the predicted decrease can fall below
             # float64 resolution of the objective. Permit an 8-ulp rounding
             # slack in Armijo acceptance; the independent projected-KKT
-            # criterion below remains the sole convergence certificate.
+            # criterion below remains the sole convergence certificate. Because
+        # of this allowance, accepted objective values can differ by a few ULPs;
+        # do not describe the line search as strictly monotone.
             armijo_roundoff_slack = 8.0 * np.spacing(abs(value))
             if (directional_change < 0.0 and np.isfinite(candidate_value)
                     and candidate_value <= value + 1e-4 * directional_change
