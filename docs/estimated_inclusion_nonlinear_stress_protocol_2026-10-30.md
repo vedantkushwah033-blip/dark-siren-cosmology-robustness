@@ -9,7 +9,7 @@
 
 The experiment asks when inverse-inclusion weighting learned from an external validation sample stops being reliable when the true catalogue-retention law is nonlinear but the fitted estimator remains a linear logistic model.
 
-The primary inferential estimand is the paired change in absolute error of the posterior mean of the injected synthetic $H_0$ between (i) validation-estimated inclusion weighting and (ii) catalogue-only inference, on the same simulated parent population and GW-event realization. Oracle weighting is a diagnostic upper-bound benchmark because it receives the true retention probabilities; it is not an implementable estimator.
+The primary inferential estimand is the paired change in absolute error of the posterior mean of the injected synthetic $H_0$ between (i) validation-estimated inclusion weighting and (ii) catalogue-only inference, on the same simulated parent population and GW-event realization. Oracle weighting is a diagnostic comparator because it receives the true retention probabilities; it is not an implementable estimator and is not guaranteed to be an upper bound on finite-sample error, posterior uncertainty, or any other performance measure.
 
 No result from this protocol is a real-observation $H_0$ measurement, a claim about LVK catalogue completeness, or evidence that the synthetic selection law represents a particular survey.
 
@@ -25,7 +25,7 @@ $$P(R=1\mid z)=\operatorname{logit}^{-1}\{a+b x+g(x^2-c_{\rm parent})\}.$$
 
 Here $c_{\rm parent}=E_{p_{\rm parent}}[x^2]$ under the actual latent parent-redshift distribution. The implementation computes this expectation by trapezoidal quadrature on the same 20,001-point grid used by the parent-population sampler. For the current latent intensity and redshift domain $[0.01,0.40]$, this gives $c_{\rm parent}\approx0.284500557$, not $1/3$.
 
-The quadratic term is a deliberate stress perturbation. Subtracting $1/3$ would center $x^2$ under a uniform distribution on $[-1,1]$, which is not the simulated parent law. The fitted model in this screening implementation remains $\operatorname{logit}P(R=1\mid z)=\alpha+\beta x$. Thus $g=0$ is the correctly specified reference and $g\ne0$ is model misspecification. This exploratory screen does not yet implement the separate quadratic-fitted estimator arm specified in the later confirmatory protocol.
+The quadratic term is a deliberate stress perturbation. Subtracting $1/3$ would center $x^2$ under a uniform distribution on $[-1,1]$, which is not the simulated parent law. The fitted estimator families now include both a linear logistic model, $\operatorname{logit}P(R=1\mid z)=\alpha+\beta x$, and a quadratic logistic model, $\operatorname{logit}P(R=1\mid z)=\alpha+\beta x+q x^2$. Thus $g=0$ is correctly specified for both families (with the quadratic coefficient expected to be unnecessary), while $g\ne0$ is deliberate misspecification for the linear family but is representable by the quadratic family. The quadratic arm is a model-family comparison, not proof that quadratic fitting is uniformly preferable; finite validation samples can increase variance and instability.
 
 The validation sample is sampled independently by simple random sampling from the complete parent frame and includes both reference redshift and retention indicator. This is an explicit design assumption. It is not equivalent to drawing validation objects only from the retained catalogue.
 
@@ -50,7 +50,8 @@ The pilot CLI currently supports one curvature coefficient per invocation. Run s
 
 1. **Catalogue-only:** no inclusion correction.
 2. **Oracle:** inverse weighting with the true retention probabilities; diagnostic benchmark only.
-3. **Estimated-$m$:** fit the existing linear logistic model to the first $m$ independently sampled validation records, predict inclusion probabilities for retained catalogue objects, and apply the current untruncated inverse-probability weights.
+3. **Estimated-linear-$m$:** fit the linear logistic model to the first $m$ independently sampled validation records, predict inclusion probabilities for retained catalogue objects, and apply the current untruncated inverse-probability weights.
+4. **Estimated-quadratic-$m$:** fit the quadratic logistic model to the same nested validation records, predict inclusion probabilities for retained catalogue objects, and apply the same untruncated inverse-probability weighting rule. Pair linear and quadratic arms within replicate using identical validation records.
 
 Do not silently clip probabilities or cap weights. The estimator currently deliberately applies no probability floor or weight cap. Any stabilized estimator must be a separately named arm with a prespecified rule, not an after-the-fact repair.
 
