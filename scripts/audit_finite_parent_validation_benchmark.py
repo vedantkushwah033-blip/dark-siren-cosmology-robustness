@@ -185,6 +185,8 @@ def audit(artifact_dir: Path) -> dict:
     expected_revision = "2.1-armijo-noise-slack" if solver_version == "v2" else "v1-lbfgsb-kkt"
     if summary.get("solver_revision") != expected_revision:
         raise AssertionError("manifest solver_revision is inconsistent with solver_version")
+    if "true_quadratic_centering" not in summary:
+        raise AssertionError("manifest omits parent-law quadratic centering")
     if summary.get("model_family") != "linear_logistic":
         raise AssertionError("unsupported finite-parent model_family")
     if not records["solver_revision"].eq(expected_revision).all():
@@ -266,6 +268,10 @@ def audit(artifact_dir: Path) -> dict:
         midpoint, half_range = 0.205, 0.195
         x_parent = (parent_z - midpoint) / half_range
         expected_centering = _independent_parent_quadratic_centering(0.01, 0.40)
+        _close(
+            summary["true_quadratic_centering"], expected_centering,
+            "manifest parent-law quadratic centering", rtol=0.0, atol=2e-12,
+        )
         _close(
             first["true_quadratic_centering"], expected_centering,
             "parent-law quadratic centering", rtol=0.0, atol=2e-12,
