@@ -46,4 +46,6 @@ def test_paired_v1_v2_runner_uses_identical_inputs_and_audits_both_arms(tmp_path
         == 2
     )
     assert len(records) == 2
-    assert set(records["_merge"]) == {"both"}
+    assert not records.duplicated(["scenario", "draw", "validation_size"]).any()
+    assert records["status_v1"].isin(["success", "failed"]).all()
+    assert records["status_v2"].isin(["success", "failed"]).all()
