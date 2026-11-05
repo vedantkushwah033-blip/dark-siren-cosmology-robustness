@@ -341,3 +341,28 @@ def test_linear_and_quadratic_arms_share_paired_validation_records():
     assert linear_payload["validation_redshift"] == quadratic_payload["validation_redshift"]
     assert linear_payload["validation_included"] == quadratic_payload["validation_included"]
     assert len(linear_payload["validation_redshift"]) == 150
+
+
+
+def test_estimated_inclusion_pilot_runs_v2_end_to_end_and_records_solver():
+    frame, summary = run_estimated_inclusion_pilot(
+        n_replicates=1,
+        n_parent=1400,
+        n_detected=6,
+        validation_sizes=(350,),
+        seed=20261105,
+        h0_points=41,
+        z_points=201,
+        solver_version="v2",
+    )
+    assert summary["solver_version"] == "v2"
+    assert frame["solver_version"].eq("v2").all()
+    estimated = frame.loc[
+        frame["arm"].eq("estimated_linear_350") & frame["status"].eq("success")
+    ]
+    assert len(estimated) == 1, frame[["arm", "status", "error"]].to_dict("records")
+    import json
+    payload = json.loads(estimated.iloc[0]["inference_audit_payload_json"])
+    assert payload["solver_version"] == "v2"
+    assert payload["fitted_inclusion_model"]["model"] == "logistic_inclusion_v2"
+    assert payload["fitted_inclusion_model"]["solver_version"] == "v2"
