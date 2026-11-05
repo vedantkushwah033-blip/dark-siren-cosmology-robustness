@@ -69,6 +69,7 @@ def test_configured_runner_records_manifest_and_hash(tmp_path, monkeypatch):
         (output / "screen_report.json").write_text(
             json.dumps({"status": "SCREEN_NOT_CONFIRMATORY"}), encoding="utf-8"
         )
+        (output / "raw.csv").write_text("replicate,status\\n1,success\\n", encoding="utf-8")
 
     monkeypatch.setattr(configured.subprocess, "run", fake_run)
     configured.main()
@@ -79,3 +80,7 @@ def test_configured_runner_records_manifest_and_hash(tmp_path, monkeypatch):
     assert canonical == config
     assert report["configuration_sha256"] == configured.load_config(config_path)[1]
     assert report["configuration_schema_version"] == 1
+    provenance = json.loads((output / "provenance.json").read_text(encoding="utf-8"))
+    assert provenance["artifact_sha256"]["experiment_config.canonical.json"]
+    assert provenance["artifact_sha256"]["raw.csv"]
+    assert "source_revision" in provenance and "package_versions" in provenance
