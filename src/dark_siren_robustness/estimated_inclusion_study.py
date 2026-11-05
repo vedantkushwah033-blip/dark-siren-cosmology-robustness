@@ -209,6 +209,7 @@ def run_estimated_inclusion_pilot(
                 rows.append({
                     "replicate": replicate, "replicate_seed": sim_seed,
                     "catalogue_seed": catalogue_seed, "audit_seed": audit_seed,
+                    "solver_version": solver_version,
                     "arm": arm, "validation_size": 0 if arm in ("catalogue_only", "oracle") else int(arm.split("_")[-1]),
                     "status": "failed", "error": "too few retained catalogue objects",
                     # No inclusion model or pre-posterior features were fitted:
@@ -327,6 +328,7 @@ def run_estimated_inclusion_pilot(
                 rows.append({
                     "replicate": replicate, "replicate_seed": sim_seed,
                     "catalogue_seed": catalogue_seed, "audit_seed": audit_seed,
+                    "solver_version": solver_version,
                     "arm": arm, "validation_size": int(audit_size),
                     "status": "success", "error": "",
                     "fit_status": fit_status, "fit_boundary_limited": fit_boundary_limited,
@@ -369,6 +371,7 @@ def run_estimated_inclusion_pilot(
                         "validation_redshift": audit_validation_redshift.tolist(),
                         "validation_included": audit_validation_included.tolist(),
                         "fitted_inclusion_model": fitted_inclusion_model,
+                        "solver_version": solver_version,
                         "h0_grid": h0_grid.tolist(),
                         "observed_distances_mpc": distances.tolist(),
                         "sigma_mpc": float(sigma_mpc),
@@ -387,6 +390,7 @@ def run_estimated_inclusion_pilot(
                 rows.append({
                     "replicate": replicate, "replicate_seed": sim_seed,
                     "catalogue_seed": catalogue_seed, "audit_seed": audit_seed,
+                    "solver_version": solver_version,
                     "arm": arm, "validation_size": int(audit_size),
                     "status": "failed", "error": f"{type(exc).__name__}: {exc}",
                     "fit_status": "failed", "fit_boundary_limited": False,
