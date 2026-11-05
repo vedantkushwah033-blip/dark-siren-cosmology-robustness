@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -64,7 +65,11 @@ def test_configured_runner_records_manifest_and_hash(tmp_path, monkeypatch):
     config_path.write_text(json.dumps(config), encoding="utf-8")
     monkeypatch.setattr("sys.argv", ["runner", "--config", str(config_path)])
 
-    def fake_run(command, check):
+    def fake_run(command, check, **kwargs):
+        if command[:3] == ["git", "rev-parse", "HEAD"]:
+            assert check is True
+            assert kwargs == {"capture_output": True, "text": True}
+            return SimpleNamespace(stdout="test-source-revision\\n")
         assert check is True
         assert "--replicates" in command and "2" in command
         assert command[command.index("--curvature-levels") + 1] == "-2,0,2"
