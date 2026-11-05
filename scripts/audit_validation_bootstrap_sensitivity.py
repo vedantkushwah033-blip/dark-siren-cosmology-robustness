@@ -152,6 +152,9 @@ def main() -> None:
     payload = inputs.get("inference_payload")
     if not isinstance(payload, dict):
         raise AssertionError("missing inference-only input payload")
+    solver_version = str(payload.get("solver_version", "v1"))
+    if solver_version not in {"v1", "v2"} or summary.get("solver_version", "v1") != solver_version:
+        raise AssertionError("bootstrap solver provenance disagrees with the pilot inference payload")
     forbidden = {"parent_redshift", "true_inclusion_probability", "estimated_inclusion_probability"}
     if forbidden.intersection(payload):
         raise AssertionError("hidden-parent/scoring truth leaked into bootstrap inference inputs")
@@ -333,6 +336,7 @@ def main() -> None:
         "status": "PASS",
         "replicate": int(inputs["replicate"]),
         "arm": inputs["arm"],
+        "solver_version": solver_version,
         "n_attempted": n_attempted,
         "n_successful": n_successful,
         "n_failed": n_failed,
