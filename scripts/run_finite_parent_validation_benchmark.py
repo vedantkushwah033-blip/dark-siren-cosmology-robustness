@@ -29,7 +29,7 @@ def main() -> None:
     frame.to_csv(args.output_dir / "records.csv", index=False)
     successful = frame.loc[frame["status"].eq("success")]
     summary = {
-        "schema": "finite_parent_srswor_smoke_v1",
+        "schema": "finite_parent_srswor_smoke_v2",
         "status": "SMOKE_ONLY_NOT_CONFIRMATORY",
         "n_attempted": int(len(frame)),
         "n_successful": int(len(successful)),
