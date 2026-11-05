@@ -33,7 +33,7 @@ def load_config(path: Path) -> tuple[dict, str]:
     missing, unknown = REQUIRED - set(config), set(config) - REQUIRED
     if missing or unknown:
         raise ValueError(f"configuration keys invalid; missing={sorted(missing)}, unknown={sorted(unknown)}")
-    if config["schema_version"] != SCHEMA_VERSION:
+    if type(config["schema_version"]) is not int or config["schema_version"] != SCHEMA_VERSION:
         raise ValueError(f"unsupported schema_version {config['schema_version']!r}")
     integer_fields = ("replicates", "n_parent", "n_detected", "seed", "h0_points", "z_points")
     if any(type(config[key]) is not int for key in integer_fields):
