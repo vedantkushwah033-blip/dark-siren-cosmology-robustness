@@ -393,3 +393,5 @@ The audit concludes that catalogue incompleteness, host weighting, and flexible 
 
 - **Research-release baseline audit (5 November 2026):** [live branch/source inventory, implemented likelihood architecture, estimated-inclusion diagnostics, CI state, and staged release blockers](docs/research_release_baseline_2026-11-05.md).
 - **Statistical model and likelihood boundaries:** [explicit finite catalogue/missing-host mixture, matched toy selection normalization, prior treatment, and implemented-versus-unvalidated components](docs/statistical_model.md).
+
+- **Configuration-driven nonlinear inclusion screen:** [versioned experiment manifest and reproducible runner instructions](docs/estimated_inclusion_config_runner.md); manifest: `configs/estimated_inclusion_curvature_screen_v1.json`.
