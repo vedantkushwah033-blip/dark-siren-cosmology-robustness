@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 import pandas as pd
 
@@ -47,6 +48,20 @@ def main() -> None:
         parser.error("--curvature-levels must be comma-separated numbers")
     if not curvatures or len(set(curvatures)) != len(curvatures):
         parser.error("--curvature-levels must be nonempty and unique")
+    if not all(math.isfinite(value) for value in curvatures):
+        parser.error("--curvature-levels must contain only finite numbers")
+    # Directory names are intentionally human-readable to one decimal place.
+    # Reject distinct values that would map to the same directory: otherwise a
+    # later condition could overwrite the earlier condition's persisted files.
+    condition_labels = [
+        f"g_{value:+.1f}".replace("+", "plus").replace("-", "minus").replace(".", "p")
+        for value in curvatures
+    ]
+    if len(set(condition_labels)) != len(condition_labels):
+        parser.error(
+            "--curvature-levels contain distinct values that collide at the "
+            "one-decimal artifact-directory precision"
+        )
 
     # Never overwrite a previous or partially completed experiment. Each
     # output directory is an immutable artifact destination.
