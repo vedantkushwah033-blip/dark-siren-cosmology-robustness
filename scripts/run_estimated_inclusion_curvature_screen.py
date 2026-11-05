@@ -27,6 +27,7 @@ def main() -> None:
     parser.add_argument("--n-parent", type=int, default=4000)
     parser.add_argument("--n-detected", type=int, default=30)
     parser.add_argument("--validation-sizes", default="100,300,1000")
+    parser.add_argument("--curvature-levels", default=",".join(str(v) for v in CURVATURES))
     parser.add_argument("--seed", type=int, default=20261031)
     parser.add_argument("--h0-points", type=int, default=41)
     parser.add_argument("--z-points", type=int, default=201)
@@ -35,9 +36,17 @@ def main() -> None:
 
     if args.replicates < 1:
         parser.error("--replicates must be positive")
+    if args.n_parent < 100 or args.n_detected < 1:
+        parser.error("--n-parent must be >= 100 and --n-detected must be positive")
     sizes = tuple(int(v.strip()) for v in args.validation_sizes.split(",") if v.strip())
-    if not sizes or len(set(sizes)) != len(sizes) or any(v < 10 for v in sizes):
-        parser.error("--validation-sizes must be distinct integer counts >= 10")
+    if not sizes or len(set(sizes)) != len(sizes) or any(v < 10 or v > args.n_parent for v in sizes):
+        parser.error("--validation-sizes must be distinct integer counts in [10, n-parent]")
+    try:
+        curvatures = tuple(float(v.strip()) for v in args.curvature_levels.split(",") if v.strip())
+    except ValueError:
+        parser.error("--curvature-levels must be comma-separated numbers")
+    if not curvatures or len(set(curvatures)) != len(curvatures):
+        parser.error("--curvature-levels must be nonempty and unique")
 
     # Never overwrite a previous or partially completed experiment. Each
     # output directory is an immutable artifact destination.
@@ -46,7 +55,7 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     condition_frames: list[pd.DataFrame] = []
     condition_summaries: list[dict] = []
-    for curvature in CURVATURES:
+    for curvature in curvatures:
         label = f"g_{curvature:+.1f}".replace("+", "plus").replace("-", "minus").replace(".", "p")
         condition_dir = args.output_dir / label
         condition_dir.mkdir(parents=True, exist_ok=True)
@@ -105,7 +114,7 @@ def main() -> None:
         "n_parent": int(args.n_parent),
         "n_detected": int(args.n_detected),
         "validation_sizes": list(sizes),
-        "curvature_levels": list(CURVATURES),
+        "curvature_levels": list(curvatures),
         "common_random_numbers_across_curvature": True,
         "h0_grid_points": int(args.h0_points),
         "redshift_grid_points": int(args.z_points),
