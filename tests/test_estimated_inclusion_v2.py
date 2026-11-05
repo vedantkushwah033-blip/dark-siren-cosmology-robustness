@@ -237,4 +237,6 @@ def test_v2_extreme_finite_coefficients_expose_floating_point_saturation():
     assert np.all(np.isfinite(probability))
     assert probability[0] > 0.0
     assert probability[-1] == 1.0  # expit(75) rounds to exactly one in float64
-    assert probability[0] < 1e-30
+    # At x=-1 the linear predictor is 25 - 50 = -25, not -75;
+    # the coefficient box therefore gives expit(-25) at this endpoint.
+    assert probability[0] == pytest.approx(expit(-25.0), rel=1e-12)
