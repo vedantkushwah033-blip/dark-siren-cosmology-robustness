@@ -19,7 +19,7 @@ The separate estimated-inclusion pilot already supports `--solver-version v2` an
 5. Partially implemented: V2 audit uses an independently coded likelihood/gradient with SLSQP and an independent box-KKT check. A high-precision oracle and a full dedicated V2 stress suite remain outstanding.
 6. Existing failure retention is preserved; exact V2 failure replay still needs runtime confirmation.
 7. Existing finite-frame, generating-truth and oracle references remain distinct.
-8. Added regression coverage for V2 dispatch, solver-version validation, an independently audited V2 smoke fixture, and rejection of altered solver revision/model-family metadata. CI now generates and independently audits a separate V2 finite-parent smoke artifact in addition to the V1 smoke. Runtime results remain pending observation.
+8. Added regression coverage for V2 dispatch, solver-version validation, an independently audited V2 smoke fixture, rejection of altered solver revision/model-family metadata, and paired V1/V2 comparisons. CI is configured to run V1 and V2 finite-parent smoke experiments, independently audit each arm, and execute the paired comparison regression. Runtime results remain pending observation.
 
 ## Numerical gate before benchmark interpretation
 
@@ -35,4 +35,4 @@ A solver-reliability result is not a calibration result. Even if V2 reproduces t
 
 ## Current conclusion
 
-V2 is now an opt-in finite-parent benchmark path with an independent SLSQP reconstruction path in the auditor. This closes the initial code-dispatch gap, but it does **not** establish validated V2 results: exact-head tests have not been observed running, no paired V1/V2 campaign has been audited, and the reported solver revision is not yet recorded in each artifact. Until those gates close, label any V2 output **SMOKE ONLY — AUDIT/EXECUTION PENDING**.
+V2 is now an opt-in finite-parent benchmark path with an independent SLSQP reconstruction path in the auditor, explicit solver provenance, and a paired V1/V2 smoke-comparison runner. This closes the implementation and pairing-code gaps, but it does **not** establish validated V2 results: exact-head CI has not been observed running, no paired comparison artifact has yet been produced and audited in a live run, and the high-precision D-01 oracle evidence remains unverified. Until those gates close, label any V2 output **SMOKE ONLY — AUDIT/EXECUTION PENDING**.
