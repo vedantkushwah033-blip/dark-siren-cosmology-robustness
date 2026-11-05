@@ -155,7 +155,8 @@ def audit(artifact_dir: Path) -> dict:
         "validation_indices", "catalogue_validation_overlap_indices",
         "catalogue_validation_overlap_count", "failure_code", "failure_reason",
         "parent_size", "parent_frame_sha256",
-        "catalogue_sha256", "gw_distance_sha256",
+        "catalogue_sha256", "gw_distance_sha256", "solver_version",
+        "solver_revision", "model_family",
     }
     missing = required.difference(records.columns)
     if missing:
@@ -169,6 +170,15 @@ def audit(artifact_dir: Path) -> dict:
         raise AssertionError("manifest has unsupported solver_version")
     if "solver_version" not in records or not records["solver_version"].eq(solver_version).all():
         raise AssertionError("record solver_version does not match manifest")
+    expected_revision = "2.1-armijo-noise-slack" if solver_version == "v2" else "v1-lbfgsb-kkt"
+    if summary.get("solver_revision") != expected_revision:
+        raise AssertionError("manifest solver_revision is inconsistent with solver_version")
+    if summary.get("model_family") != "linear_logistic":
+        raise AssertionError("unsupported finite-parent model_family")
+    if not records["solver_revision"].eq(expected_revision).all():
+        raise AssertionError("record solver_revision does not match manifest")
+    if not records["model_family"].eq("linear_logistic").all():
+        raise AssertionError("record model_family does not match finite-parent design")
     attempted = len(records)
     successful = int(records["status"].eq("success").sum())
     failed = int(records["status"].eq("failed").sum())
