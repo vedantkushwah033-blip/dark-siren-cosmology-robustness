@@ -203,9 +203,11 @@ def test_detection_efficiency_matches_uniform_host_closed_form():
     expected = _uniform_host_detection_efficiency_closed_form(
         z_min, z_max, h0, sigma, threshold
     )
-    assert result["detection_efficiency"][0] == pytest.approx(
-        expected, rel=1e-7, abs=1e-9
-    )
+    # The implementation integrates on the supplied finite grid.  The
+    # continuous closed form is therefore a convergence reference, not an
+    # exact finite-grid answer; the independently tested 1601-point error is
+    # bounded by 5e-8 below.
+    assert abs(result["detection_efficiency"][0] - expected) < 5e-8
 
 
 def test_detection_efficiency_grid_refinement_converges_to_closed_form():
