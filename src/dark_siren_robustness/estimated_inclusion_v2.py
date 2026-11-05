@@ -2,7 +2,7 @@
 
 V2 is intentionally opt-in and does not replace the v1 L-BFGS-B estimator.
 It solves the box-constrained convex logistic negative log-likelihood with
-analytic gradient/Hessian, projected-KKT stopping, and monotone backtracking.
+analytic gradient/Hessian, projected-KKT stopping, and roundoff-aware backtracking.
 A finite coefficient box constrains separation numerically; boundary-limited
 fits must be reported and are not evidence of positivity or model adequacy.
 The primary backtracking condition permits only a documented eight-ULP
@@ -146,8 +146,8 @@ def _fit_box_logistic(
             # float64 resolution of the objective. Permit an 8-ulp rounding
             # slack in Armijo acceptance; the independent projected-KKT
             # criterion below remains the sole convergence certificate. Because
-        # of this allowance, accepted objective values can differ by a few ULPs;
-        # do not describe the line search as strictly monotone.
+            # of this allowance, accepted objective values can differ by a few ULPs;
+            # do not describe the line search as strictly monotone.
             armijo_roundoff_slack = 8.0 * np.spacing(abs(value))
             if (directional_change < 0.0 and np.isfinite(candidate_value)
                     and candidate_value <= value + 1e-4 * directional_change
