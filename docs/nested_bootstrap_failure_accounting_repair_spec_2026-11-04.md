@@ -180,3 +180,19 @@ Corrections committed:
 - The shared nested-artifact test fixture now writes a v2 manifest, required scenario denominator fields, and `scenario_failure_records.csv`.
 
 This is an important CI-path correction: without it, the structural audit and replay test fixture were inconsistent with the runner's current output contract. The code and fixture have been fetched back from the repair branch for source inspection. Tests have not been run locally; exact-head CI remains unverified.
+
+
+## Exact-head CI verification update (2026-11-05)
+
+The historical verification notes above describe the state before the latest GitHub Actions run. The repair branch has since been tested at its exact then-current head:
+
+- Branch: `research/bootstrap-failure-path-repairs-2026-11-02`
+- Tested commit: `4f68c423523f2694ee466223195cd6ecff6e6b4a`
+- GitHub Actions run: [#41850746927](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/41850746927)
+- Workflow: `tests`
+- Event: push
+- Result: completed successfully.
+- Matrix jobs: Python 3.10, 3.11, and 3.12; all three jobs completed with conclusion `success`.
+- The Python 3.12 job executed the persisted nested-bootstrap smoke experiment, structural artifact checks, independent replay audit, and finite-parent validation smoke audit; all listed steps completed successfully. Python 3.10 and 3.11 completed the shared test suite successfully, with Python-3.12-only longer artifact runs skipped as configured.
+
+This verifies the tested source and tests at commit `4f68c423...`; it does not verify any later commit until a new exact-head run passes. It is software/artefact-pipeline evidence only, not evidence that the bootstrap procedures are statistically valid for the nonlinear posterior functional. The confirmatory inferential release gate therefore remains closed.
