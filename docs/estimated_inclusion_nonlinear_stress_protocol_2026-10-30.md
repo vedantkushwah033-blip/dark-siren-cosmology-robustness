@@ -44,7 +44,7 @@ Use the following staged design rather than immediately launching a large grid:
 
 Keep the existing intercept and slope fixed for the first factorial screen. Before interpreting a curvature level, numerically tabulate the true probability range and the fraction of parent objects with probabilities below 0.05 and 0.10. If a cell creates near-positivity violations or almost no retained objects, report it as a separate severe-overlap stress condition rather than pooling it with moderate-curvature results.
 
-The pilot CLI currently supports one curvature coefficient per invocation. Run separate invocations with distinct recorded seeds and coefficient values; do not concatenate outputs without adding condition identifiers and preserving each source manifest.
+The paired curvature-screen runner now accepts an explicit `--curvature-levels` list, and the configuration-driven wrapper passes the manifest's curvature levels to that runner. The versioned manifest records all condition values and the wrapper records a canonical configuration hash. This is an exploratory screening interface, not a confirmatory analysis. Use a fresh, empty output directory for each run; preserve the canonical manifest, source revision, environment metadata, and artifact hashes.
 
 ## 4. Arms
 
@@ -107,3 +107,8 @@ This experiment isolates one misspecification mechanism under a known parent-fra
 A source audit found that the implementation used $x^2-1/3$ even though the parent redshift is sampled from a non-uniform latent galaxy intensity. The DGP now uses $x^2-c_{\rm parent}$, where $c_{\rm parent}=E_{p_{\rm parent}}[x^2]$ is calculated from that intensity. The per-row artifact records the centering constant, and the independent artifact auditor reconstructs it and checks the stored scoring-only inclusion probabilities against the declared DGP. Regression tests cover both the numerical center and tampering.
 
 This is a correction to the simulation specification, not a scientific result. Any artifacts generated under the old $1/3$ centering belong to the old DGP and must not be pooled with runs generated after this correction. Exact-head CI and a fresh persisted smoke artifact are still required before the release gate can open.
+
+
+## 8. Uncertainty propagation release gate
+
+The current pilot uses plug-in fitted inclusion coefficients. It does not propagate validation-sample uncertainty in those coefficients through inverse weighting, KDE construction, and the H0 likelihood. A separate protocol now defines the candidate Bayesian likelihood integration and design-respecting SRSWOR repeated-validation analysis, including their distinct interpretations and release gates: [inclusion-parameter uncertainty protocol](inclusion_parameter_uncertainty_protocol_2026-11-05.md). Neither method is implemented or validated by this protocol update.
