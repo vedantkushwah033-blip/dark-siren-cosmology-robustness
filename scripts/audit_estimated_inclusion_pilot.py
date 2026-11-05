@@ -113,6 +113,24 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
     if not np.isclose(trapezoid(density, z), 1.0, rtol=1e-7, atol=1e-9):
         raise AssertionError("persisted host density does not integrate to one")
 
+    # Independently verify finite-parent unit identity and exact overlap.
+    try:
+        catalogue_ids = np.asarray(payload["catalogue_object_id"], dtype=np.int64)
+        validation_ids = np.asarray(payload["validation_object_id"], dtype=np.int64)
+        overlap_ids = np.asarray(
+            payload["catalogue_validation_overlap_object_id"], dtype=np.int64
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise AssertionError("inference payload lacks finite-parent unit identities") from exc
+    if (catalogue_ids.ndim != 1 or validation_ids.ndim != 1 or overlap_ids.ndim != 1
+            or len(np.unique(catalogue_ids)) != catalogue_ids.size
+            or len(np.unique(validation_ids)) != validation_ids.size
+            or not np.array_equal(overlap_ids, np.intersect1d(catalogue_ids, validation_ids))):
+        raise AssertionError("inference payload unit identities or overlap are inconsistent")
+    if (catalogue_ids.size != int(row.get("n_catalogue"))
+            or validation_ids.size != int(row.get("validation_size"))):
+        raise AssertionError("inference payload unit counts disagree with replicate row")
+
     # Refit the estimated logistic inclusion model from the saved independent
     # validation records. This is a separate optimization implementation and
     # never reads hidden parent truth or the scoring-only probability MAE.
@@ -405,6 +423,51 @@ def audit_pilot_artifacts(output_dir: str | Path) -> dict:
         raise AssertionError("replicate table is empty or has duplicate replicate/arm rows")
     if not set(frame["status"]).issubset({"success", "failed"}):
         raise AssertionError("unknown fit status in replicate table")
+
+    identity_columns = {
+        "unit_overlap_schema", "n_catalogue_validation_overlap",
+        "catalogue_object_ids_json", "validation_object_ids_json",
+        "overlap_object_ids_json",
+    }
+    missing_identity = identity_columns - set(frame.columns)
+    if missing_identity:
+        raise AssertionError(
+            f"replicate table lacks finite-parent identity columns: {sorted(missing_identity)}"
+        )
+    declared_parent_size = summary.get("n_parent")
+    if (isinstance(declared_parent_size, bool) or not isinstance(declared_parent_size, int)
+            or declared_parent_size < 1):
+        raise AssertionError("summary.n_parent must be a positive integer")
+    for _, identity_row in frame.iterrows():
+        if identity_row["unit_overlap_schema"] != "finite_parent_unit_identity_v1":
+            raise AssertionError("unsupported finite-parent unit identity schema")
+        try:
+            catalogue_ids = np.asarray(
+                json.loads(identity_row["catalogue_object_ids_json"]), dtype=np.int64
+            )
+            validation_ids = np.asarray(
+                json.loads(identity_row["validation_object_ids_json"]), dtype=np.int64
+            )
+            overlap_ids = np.asarray(
+                json.loads(identity_row["overlap_object_ids_json"]), dtype=np.int64
+            )
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise AssertionError("finite-parent identity JSON is malformed") from exc
+        for label, ids in (("catalogue", catalogue_ids), ("validation", validation_ids),
+                           ("overlap", overlap_ids)):
+            if ids.ndim != 1 or np.any(ids < 0) or np.any(ids >= declared_parent_size):
+                raise AssertionError(f"{label} unit IDs are outside the declared parent frame")
+            if np.unique(ids).size != ids.size:
+                raise AssertionError(f"{label} unit IDs contain duplicates")
+        expected_overlap = np.intersect1d(catalogue_ids, validation_ids)
+        if not np.array_equal(overlap_ids, expected_overlap):
+            raise AssertionError("persisted catalogue-validation overlap is incorrect")
+        if (catalogue_ids.size != int(identity_row["n_catalogue"])
+                or validation_ids.size != int(identity_row["validation_size"])
+                or overlap_ids.size != int(identity_row["n_catalogue_validation_overlap"])):
+            raise AssertionError("persisted finite-parent identity counts disagree with row")
+        if not str(identity_row["arm"]).startswith("estimated_") and validation_ids.size:
+            raise AssertionError("non-estimated arm unexpectedly contains validation units")
 
     # Reconstruct the per-replicate positivity/overlap diagnostics independently.
     positivity_columns = [
