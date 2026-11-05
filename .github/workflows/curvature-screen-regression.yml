@@ -1,0 +1,46 @@
+name: Curvature screen regression
+
+on:
+  push:
+    branches:
+      - "**"
+    paths:
+      - ".github/workflows/curvature-screen-regression.yml"
+      - "scripts/run_estimated_inclusion_curvature_screen.py"
+      - "scripts/audit_estimated_inclusion_pilot.py"
+      - "src/dark_siren_robustness/**"
+      - "tests/test_estimated_inclusion_curvature_screen.py"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/curvature-screen-regression.yml"
+      - "scripts/run_estimated_inclusion_curvature_screen.py"
+      - "scripts/audit_estimated_inclusion_pilot.py"
+      - "src/dark_siren_robustness/**"
+      - "tests/test_estimated_inclusion_curvature_screen.py"
+
+permissions:
+  contents: read
+
+jobs:
+  curvature-screen-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Run curvature-screen regression tests
+        run: python -m pytest -q tests/test_estimated_inclusion_curvature_screen.py
