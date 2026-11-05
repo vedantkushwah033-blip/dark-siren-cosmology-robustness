@@ -149,5 +149,5 @@ def test_quadratic_inclusion_centering_matches_nonuniform_parent_law():
     )
     centering = frame["true_quadratic_centering"].to_numpy(dtype=float)
     assert np.all(np.isfinite(centering))
-    assert np.allclose(centering, 0.2845005570229332, rtol=0.0, atol=2e-10)
+    assert np.allclose(centering, 0.2845005570164394, rtol=0.0, atol=2e-11)
     assert not np.allclose(centering, 1.0 / 3.0, rtol=0.0, atol=1e-3)
