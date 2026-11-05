@@ -49,6 +49,8 @@ def _artifact(tmp_path, solver_version="v1"):
     summary = {
         "schema": "finite_parent_srswor_smoke_v3",
         "solver_version": solver_version,
+        "solver_revision": ("2.1-armijo-noise-slack" if solver_version == "v2" else "v1-lbfgsb-kkt"),
+        "model_family": "linear_logistic",
         "status": "SMOKE_ONLY_NOT_CONFIRMATORY",
         "n_attempted": len(frame),
         "n_successful": int(successful.shape[0]),
@@ -232,3 +234,21 @@ def test_finite_parent_v2_run_is_independently_audited_with_slsqp(tmp_path):
     result = audit(tmp_path)
     assert result["status"] == "INDEPENDENT_NUMERICAL_AUDIT_PASS"
     assert result["n_attempted"] == 4
+
+
+def test_finite_parent_auditor_rejects_solver_revision_tampering(tmp_path):
+    frame = _artifact(tmp_path, solver_version="v2")
+    frame.loc[frame.index[0], "solver_revision"] = "unverified-revision"
+    frame.to_csv(tmp_path / "records.csv", index=False)
+    with pytest.raises(AssertionError, match="solver_revision"):
+        audit(tmp_path)
+
+
+def test_finite_parent_auditor_rejects_model_family_tampering(tmp_path):
+    _artifact(tmp_path, solver_version="v2")
+    summary_path = tmp_path / "summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["model_family"] = "quadratic_logistic"
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="model_family"):
+        audit(tmp_path)
