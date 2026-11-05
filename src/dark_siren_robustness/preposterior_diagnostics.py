@@ -127,6 +127,7 @@ def build_preposterior_diagnostics(model: Mapping[str, object], validation_redsh
         "fit_boundary_limited": bool(model.get("coefficient_bound_hit", False)),
         "fitted_intercept": intercept,
         "fitted_slope": slope,
+        "fitted_quadratic": quadratic,
         "fitted_probability_min": float(np.min(probability)),
         "fitted_probability_p01": float(np.quantile(probability, 0.01)),
         "fitted_probability_p05": float(np.quantile(probability, 0.05)),
