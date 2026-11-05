@@ -185,3 +185,56 @@ def test_v2_linear_matches_v1_on_identical_data_and_parameterization():
     assert v1["negative_log_likelihood"] == pytest.approx(
         v2["negative_log_likelihood"], rel=1e-9, abs=1e-7
     )
+
+
+@pytest.mark.parametrize(
+    ("included", "expected_slope_sign"),
+    [
+        ("increasing", 1),
+        ("decreasing", -1),
+    ],
+)
+def test_v2_boundary_solution_satisfies_explicit_box_kkt_gradient_sign(
+    included, expected_slope_sign
+):
+    """At an upper/lower slope face, verify the minimization KKT sign directly."""
+    z_min, z_max = 0.01, 0.40
+    z = np.linspace(z_min, z_max, 300)
+    y = (z > 0.205).astype(int)
+    if included == "decreasing":
+        y = 1 - y
+    fit = fit_logistic_inclusion_model_v2(
+        z, y, z_min=z_min, z_max=z_max
+    )
+    x = (z - (z_min + z_max) / 2.0) / ((z_max - z_min) / 2.0)
+    design = np.column_stack([np.ones(z.size), x])
+    theta = np.array([fit["intercept"], fit["slope"]])
+    _objective, gradient, _hessian = _logistic_nll_gradient_hessian(
+        design, y.astype(float), theta
+    )
+    assert abs(fit["slope"]) == pytest.approx(50.0, abs=1e-5)
+    assert np.sign(fit["slope"]) == expected_slope_sign
+    if expected_slope_sign > 0:
+        # Upper bound: gradient must be nonpositive for box-constrained
+        # minimization under the documented KKT convention.
+        assert gradient[1] <= 1e-6
+    else:
+        # Lower bound: gradient must be nonnegative.
+        assert gradient[1] >= -1e-6
+    assert fit["projected_gradient_inf_norm"] <= 1e-7
+
+
+def test_v2_extreme_finite_coefficients_expose_floating_point_saturation():
+    model = {
+        "model": "logistic_inclusion_v2",
+        "intercept": 25.0,
+        "slope": 50.0,
+        "z_min": 0.01,
+        "z_max": 0.40,
+    }
+    grid = np.array([0.01, 0.205, 0.40])
+    probability = predict_inclusion_probability_v2(grid, model)
+    assert np.all(np.isfinite(probability))
+    assert probability[0] > 0.0
+    assert probability[-1] == 1.0  # expit(75) rounds to exactly one in float64
+    assert probability[0] < 1e-30
