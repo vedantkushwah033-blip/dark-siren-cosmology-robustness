@@ -37,7 +37,8 @@ def _independent_posterior(z, h0, observed, validation_z, validation_y, distance
     fit = minimize(
         objective, np.zeros(2), jac=gradient, method="L-BFGS-B",
         bounds=bounds,
-        options={"maxiter": 2000, "ftol": 1e-12, "gtol": 1e-8},
+        options={"maxiter": 2000, "maxfun": 50000, "maxls": 100,
+                 "ftol": 1e-12, "gtol": 1e-8},
     )
     if not np.all(np.isfinite(fit.x)) or not np.isfinite(fit.fun):
         raise RuntimeError("independent logistic refit failed")
