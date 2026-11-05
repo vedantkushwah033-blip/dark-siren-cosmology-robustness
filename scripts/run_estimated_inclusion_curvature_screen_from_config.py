@@ -85,9 +85,9 @@ def main() -> None:
     report["configuration"] = config
     report["configuration_sha256"] = digest
     (output_dir / "experiment_config.canonical.json").write_text(
-        json.dumps(config, indent=2, sort_keys=True) + "\\n", encoding="utf-8"
+        json.dumps(config, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
-    report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+    report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps({"status": report["status"], "configuration_sha256": digest, "output_dir": str(output_dir)}, indent=2))
 
 
