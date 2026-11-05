@@ -330,4 +330,12 @@ def run_finite_parent_benchmark(
                     })
     frame = pd.DataFrame(rows)
     frame["solver_version"] = solver_version
+    # Stable artifact labels: V2 reports the solver's own revision string;
+    # V1 is labelled as the legacy bounded L-BFGS-B/KKT implementation.
+    solver_revision = (
+        "2.1-armijo-noise-slack" if solver_version == "v2"
+        else "v1-lbfgsb-kkt"
+    )
+    frame["solver_revision"] = solver_revision
+    frame["model_family"] = "linear_logistic"
     return frame
