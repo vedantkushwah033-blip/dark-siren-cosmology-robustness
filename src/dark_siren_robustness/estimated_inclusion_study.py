@@ -184,6 +184,7 @@ def run_estimated_inclusion_pilot(
         catalogue_rng = np.random.default_rng(catalogue_seed)
         retained = catalogue_rng.random(n_parent) < true_probability
         observed_z = parent_z[retained]
+        catalogue_object_ids = np.flatnonzero(retained).astype(np.int64)
         # Record overlap/positivity diagnostics for every replicate, including
         # those that fail before any posterior can be constructed.
         true_probability_min = float(np.min(true_probability))
@@ -197,6 +198,7 @@ def run_estimated_inclusion_pilot(
         audit_rng = np.random.default_rng(audit_seed)
         audit_order = audit_rng.permutation(n_parent)
         audit_records = {
+            "object_id": audit_order.astype(np.int64),
             "redshift": parent_z[audit_order],
             "included": retained[audit_order].astype(int),
         }
@@ -230,6 +232,12 @@ def run_estimated_inclusion_pilot(
                         int(np.sum(audit_records["included"][:int(arm.split("_")[-1])]))
                         if arm.startswith("estimated_") else None
                     ),
+                    "unit_overlap_schema": "finite_parent_unit_identity_v1",
+                    "n_catalogue_validation_overlap": int(np.intersect1d(
+                        catalogue_object_ids,
+                        audit_records["object_id"][:int(arm.split("_")[-1])]
+                        if arm.startswith("estimated_") else np.array([], dtype=np.int64),
+                    ).size),
                 })
             continue
 
@@ -242,6 +250,20 @@ def run_estimated_inclusion_pilot(
             for kind in ("linear", "quadratic") for m in sizes
         )
         for arm, audit_size, spec in arm_specs:
+            validation_object_ids = (
+                audit_records["object_id"][:audit_size].astype(np.int64)
+                if audit_size else np.array([], dtype=np.int64)
+            )
+            overlap_object_ids = np.intersect1d(
+                catalogue_object_ids, validation_object_ids
+            ).astype(np.int64)
+            unit_identity_metadata = {
+                "unit_overlap_schema": "finite_parent_unit_identity_v1",
+                "n_catalogue_validation_overlap": int(overlap_object_ids.size),
+                "catalogue_object_ids_json": json.dumps(catalogue_object_ids.tolist()),
+                "validation_object_ids_json": json.dumps(validation_object_ids.tolist()),
+                "overlap_object_ids_json": json.dumps(overlap_object_ids.tolist()),
+            }
             try:
                 fit_status = "not_applicable"
                 fit_boundary_limited = False
@@ -363,6 +385,9 @@ def run_estimated_inclusion_pilot(
                         "redshift_grid": z_grid.tolist(),
                         "host_density": np.asarray(density, dtype=float).tolist(),
                         "catalogue_redshift": observed_z.tolist(),
+                        "catalogue_object_id": catalogue_object_ids.tolist(),
+                        "validation_object_id": validation_object_ids.tolist(),
+                        "catalogue_validation_overlap_object_id": overlap_object_ids.tolist(),
                         "density_inclusion_probability": density_inclusion_probability.tolist(),
                         "merger_weight_grid": merger_rate.tolist(),
                         "bandwidth_factor": (
@@ -384,6 +409,7 @@ def run_estimated_inclusion_pilot(
                     "weight_ess_fraction": weight_ess / observed_z.size,
                     "max_inverse_weight": max_inverse_weight,
                     "inclusion_probability_mae": probability_mae,
+                    **unit_identity_metadata,
                     **preposterior_features,
                 })
             except Exception as exc:  # failed fits are retained as explicit records
@@ -413,6 +439,7 @@ def run_estimated_inclusion_pilot(
                         weight_ess / observed_z.size if np.isfinite(weight_ess) else np.nan
                     ),
                     "max_inverse_weight": max_inverse_weight,
+                    **unit_identity_metadata,
                     **preposterior_features,
                 })
 
