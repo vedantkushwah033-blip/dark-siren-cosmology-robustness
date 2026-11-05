@@ -14,7 +14,16 @@ from pathlib import Path
 import pandas as pd
 
 from dark_siren_robustness.estimated_inclusion_study import run_estimated_inclusion_pilot
-from scripts.audit_estimated_inclusion_pilot import audit_pilot_artifacts
+
+# When invoked as `python scripts/run_....py`, Python places the scripts/
+# directory (not the repository root) on sys.path. The package-style import
+# works for module/test invocation; the sibling import supports direct CLI use.
+try:
+    from scripts.audit_estimated_inclusion_pilot import audit_pilot_artifacts
+except ModuleNotFoundError as exc:
+    if exc.name != "scripts":
+        raise
+    from audit_estimated_inclusion_pilot import audit_pilot_artifacts
 
 
 CURVATURES = (-2.0, -1.0, 0.0, 1.0, 2.0)
