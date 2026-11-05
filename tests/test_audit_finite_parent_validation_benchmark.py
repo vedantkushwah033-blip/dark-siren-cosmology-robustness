@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 
+import numpy as np
 import pytest
 
 from dark_siren_robustness.finite_parent_sampling import run_finite_parent_benchmark
