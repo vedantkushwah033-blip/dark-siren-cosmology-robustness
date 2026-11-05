@@ -68,7 +68,7 @@ On Python 3.11:
 - The curvature-screen tests passed (5).
 - The configuration-runner tests had 8 passes and 1 failure.
 
-The failing test was `test_configured_runner_records_manifest_and_hash`. Its subprocess mock was intended to intercept the runner invocation and `git rev-parse`, but the production provenance collector calls `platform.platform()`; Python's platform implementation may call `subprocess.run(["uname", "-p"], ...)`. The mock incorrectly treated that unrelated platform probe as the runner invocation. This is a test-isolation defect. The repair patches `configured.platform.platform` to a deterministic test value before installing the subprocess mock. On the repaired test commit, the configuration-runner unit test passed (9 passed on Python 3.12), but the CI smoke then exposed a separate production invocation defect: running the curvature script by file path places `scripts/` rather than the repository root on `sys.path`, so its `from scripts.audit_estimated_inclusion_pilot ...` import failed with `ModuleNotFoundError: No module named 'scripts'`. The runner now falls back to importing its sibling auditor module only when the missing module is exactly `scripts`; other import failures are re-raised. A direct-CLI `--help` regression test was added. This second repair also requires exact-head CI.
+The failing test was `test_configured_runner_records_manifest_and_hash`. Its subprocess mock was intended to intercept the runner invocation and `git rev-parse`, but the production provenance collector calls `platform.platform()`; Python's platform implementation may call `subprocess.run(["uname", "-p"], ...)`. The mock incorrectly treated that unrelated platform probe as the runner invocation. This is a test-isolation defect. The repair patches `configured.platform.platform` to a deterministic test value before installing the subprocess mock. On the repaired test commit, the configuration-runner unit test passed (9 passed on Python 3.12), but the CI smoke then exposed a separate production invocation defect: running the curvature script by file path places `scripts/` rather than the repository root on `sys.path`, so its `from scripts.audit_estimated_inclusion_pilot ...` import failed with `ModuleNotFoundError: No module named 'scripts'`. The runner now falls back to importing its sibling auditor module only when the missing module is exactly `scripts`; other import failures are re-raised. A direct-CLI `--help` regression test was added. That fixed the import, and the next CI smoke exposed a second CLI defect: argparse interpreted the negative value `-2,0,2` as an option rather than the value for `--curvature-levels`. The configuration wrapper now emits the value as a single `--curvature-levels=-2,0,2` argument, and the config-runner unit test asserts this form. This repair also requires exact-head CI.
 
 The Python 3.10 and 3.12 jobs were cancelled by the matrix's fail-fast behavior after the Python 3.11 failure; later workflow steps were skipped. Therefore the run is a **failed CI run**, not a passing matrix.
 
@@ -81,7 +81,8 @@ Separate historical evidence:
 
 ### Immediate software/CI defects
 - The config-runner test mock was not isolated from `platform.platform()`. The test-only fix was committed as `97e1b6ee6ec1e195409c3ca5951161d6ac4785d9`.
-- The config-runner smoke exposed a real direct-CLI import-path defect in the curvature screen. The runner import fallback and a direct-execution regression test were committed as `82732e32e484b17d2233731e51cd7b903f239554` and `2c356da161e701cade8d1f8c0df4a56e1b5388bd`. Exact-head CI remains pending.
+- The config-runner smoke exposed a direct-CLI import-path defect in the curvature screen. The runner import fallback and direct-execution regression test were committed as `82732e32e484b17d2233731e51cd7b903f239554` and `2c356da161e701cade8d1f8c0df4a56e1b5388bd`.
+- After that repair, CI exposed negative curvature arguments being parsed as options. The wrapper now uses the equals form for the argument, and the test asserts it; commits: `cb32c98b711d9cab19ef5ee961891ee6db830b67` and `55099af8665c8d1b8b92bbcebf5a1231e33e35f3`. Exact-head CI remains pending.
 
 ### Scientific and experiment blockers
 - The full prescribed 5 × 20 curvature screen has not been verified as run.
@@ -106,7 +107,8 @@ Separate historical evidence:
 | Curvature CLI collision and overwrite guards | Source-inspected; prior focused regression workflow passed |
 | Config schema validation and canonical hash | Source-inspected; focused tests partly passed in failed CI |
 | Config-runner test mock isolation repair | Implemented/committed; unit test passed on Python 3.12 in run 41982733387; overall run failed later in smoke |
-| Direct-CLI import-path repair and regression test | Implemented/committed; exact-head CI pending |
+| Direct-CLI import-path repair and regression test | Implemented/committed; dedicated curvature regression workflow passed on commit 2c356da161e701cade8d1f8c0df4a56e1b5388bd |
+| Negative-curvature argparse fix | Implemented/committed; exact-head CI pending |
 | Full supported-version test matrix | Not verified |
 | Five-curvature × 20-replicate screen | Not run/verified |
 | Screen raw artifacts | Not available in this audit |
@@ -119,7 +121,7 @@ Separate historical evidence:
 
 ## 7. Next release sequence
 
-1. Verify exact-head CI for both test-isolation and direct-CLI import repairs; inspect all Python-version jobs.
+1. Verify exact-head CI for test-isolation, direct-CLI import, and negative-argument fixes; inspect all Python-version jobs.
 2. Confirm the CI configured smoke runs and independently audits all three reduced curvature conditions.
 3. Run a reduced smoke through the versioned configuration wrapper in a fresh artifact directory; verify manifest, hashes, all conditions/arms, deterministic replay, and independent audit.
 4. Only after smoke PASS, execute the prescribed five-curvature, 20-replicate exploratory screen at the declared settings.
