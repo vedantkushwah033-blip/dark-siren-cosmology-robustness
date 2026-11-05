@@ -209,7 +209,7 @@ def fit_logistic_inclusion_model_v2(
     fit = _fit_box_logistic(design, y, ((-25.0, 25.0), (-50.0, 50.0)))
     intercept, slope = fit.pop("coefficients")
     return {
-        "model": "logistic_inclusion_v2",
+        "model": "logistic_inclusion_v2", "solver_version": "v2",
         "intercept": float(intercept), "slope": float(slope),
         "z_min": float(z_min), "z_max": float(z_max),
         "n_validation": int(z.size), "n_included": int(y.sum()),
@@ -229,7 +229,7 @@ def fit_quadratic_logistic_inclusion_model_v2(
     )
     intercept, slope, quadratic = fit.pop("coefficients")
     return {
-        "model": "quadratic_logistic_inclusion_v2",
+        "model": "quadratic_logistic_inclusion_v2", "solver_version": "v2",
         "intercept": float(intercept), "slope": float(slope),
         "quadratic": float(quadratic), "z_min": float(z_min), "z_max": float(z_max),
         "n_validation": int(z.size), "n_included": int(y.sum()),
