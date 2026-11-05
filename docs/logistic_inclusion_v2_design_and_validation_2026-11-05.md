@@ -60,3 +60,26 @@ D-01 remains open until:
 - a downstream density/H0 comparison is performed only after the fitter-level gate passes.
 
 No confirmatory simulation is authorized by this implementation alone.
+
+
+## Opt-in pipeline integration update — 2026-11-05
+
+The V2 solver is no longer standalone. An explicit `solver_version="v1"|"v2"` option is now available in the validation-to-host-density wrapper. V1 remains the default. The option dispatches the selected linear or quadratic fitter and its matching probability predictor; the result records solver provenance.
+
+The ordinary paired validation bootstrap accepts the same solver option and refits with the selected solver on every resample. The posterior-sensitivity wrapper and command-line bootstrap runner carry solver provenance from the pilot inference payload into the bootstrap summary. The bootstrap auditor checks that the summary and persisted inference payload agree on solver identity.
+
+The pre-posterior diagnostic API now accepts both V1 and V2 model identifiers. The pilot runner accepts an opt-in solver version, uses the corresponding predictor for scoring-only probability evaluation, and persists solver identity in successful, failed, and pre-fit failure rows as well as the inference audit payload. The independent pilot auditor accepts V1/V2 identifiers and independently refits the same unpenalized box-constrained logistic objective using its separate L-BFGS-B implementation; it checks coefficient, probability, and provenance consistency.
+
+Tests added:
+- V2 host-density wrapper integration and invalid solver-option rejection;
+- V2 pilot end-to-end run and explicit model/solver metadata;
+- V2 pilot artifact reconstruction by the independent auditor;
+- V2 refitting through the paired validation bootstrap.
+
+CI evidence:
+- Focused workflow run `42027228156` passed on wrapper/bootstrap integration commit `9377315957704c953ee8527bc272f714334e863a`.
+- Focused workflow run `42027244582` passed on V2 diagnostics compatibility commit `36ab98b6f80f44b8201a99477adf9bd40170b29a`.
+- Focused workflow run `42027660123` passed on V2 fitted-model provenance commit `d2efbaa70452acab2e09528a0f8fb5fee9139f95`.
+- The full Python 3.10/3.11/3.12 matrix for the final V2 end-to-end pilot/auditor tests is queued/running on the branch's latest commit and must be checked before declaring cross-version validation complete.
+
+This integration does not yet change the default solver, does not integrate the exploratory design-aware SRSWOR bootstrap, and does not establish any downstream H0 performance advantage for V2. No confirmatory campaign or release gate is declared passed.
