@@ -228,6 +228,7 @@ def test_independent_auditor_accepts_kkt_valid_non_success_optimizer_status(monk
 def test_finite_parent_v2_run_is_independently_audited_with_slsqp(tmp_path):
     frame = _artifact(tmp_path, solver_version="v2")
     assert frame["solver_version"].eq("v2").all()
+    assert frame["status"].eq("success").any(), "V2 smoke fixture must exercise successful fits"
     result = audit(tmp_path)
     assert result["status"] == "INDEPENDENT_NUMERICAL_AUDIT_PASS"
     assert result["n_attempted"] == 4
