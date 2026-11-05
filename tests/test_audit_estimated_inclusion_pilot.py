@@ -500,3 +500,40 @@ def test_independent_auditor_reconstructs_nonlinear_quadratic_inclusion_arm(tmp_
     assert len(quadratic_rows) == 1
     assert quadratic_rows.iloc[0]["status"] == "success"
     assert report["per_arm_counts"]["estimated_quadratic_100"]["n_success"] == 1
+
+
+def test_independent_auditor_rejects_tampered_catalogue_validation_overlap(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261106)
+    estimated = frame.index[
+        frame["arm"].eq("estimated_linear_100") & frame["status"].eq("success")
+    ]
+    assert len(estimated) > 0
+    index = estimated[0]
+    overlap = json.loads(frame.loc[index, "overlap_object_ids_json"])
+    if overlap:
+        overlap = overlap[:-1]
+    else:
+        overlap = [json.loads(frame.loc[index, "catalogue_object_ids_json"])[0]]
+    frame.loc[index, "overlap_object_ids_json"] = json.dumps(overlap)
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="persisted catalogue-validation overlap is incorrect"):
+        audit_pilot_artifacts(tmp_path)
+
+
+def test_independent_auditor_rejects_inference_payload_unit_id_tampering(tmp_path):
+    frame, summary = _write_small_pilot(tmp_path, seed=20261107)
+    estimated = frame.index[
+        frame["arm"].eq("estimated_linear_100") & frame["status"].eq("success")
+    ]
+    assert len(estimated) > 0
+    index = estimated[0]
+    payload = json.loads(frame.loc[index, "inference_audit_payload_json"])
+    payload["catalogue_object_id"][0] = (
+        payload["catalogue_object_id"][0] + 1
+    ) % summary["n_parent"]
+    frame.loc[index, "inference_audit_payload_json"] = json.dumps(payload)
+    frame.to_csv(tmp_path / "replicates.csv", index=False)
+    (tmp_path / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(AssertionError, match="inference payload unit identities disagree with replicate CSV"):
+        audit_pilot_artifacts(tmp_path)
