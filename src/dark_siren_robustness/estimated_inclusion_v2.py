@@ -39,7 +39,7 @@ def _validate_design(
     x = (z - midpoint) / half_range
     columns = [np.ones(z.size), x]
     if degree == 2:
-        columns.append(x * x)
+        columns.append(x * x - 1.0 / 3.0)
     return z, y, np.column_stack(columns)
 
 
@@ -241,4 +241,4 @@ def predict_inclusion_probability_v2(
     if z.ndim != 1 or not np.all(np.isfinite(z)) or np.any((z < z_min) | (z > z_max)):
         raise ValueError("redshift must be finite, one-dimensional, and inside the fitted domain")
     x = (z - (z_min + z_max) / 2) / ((z_max - z_min) / 2)
-    return np.asarray(expit(intercept + slope * x + quadratic * x**2), dtype=float)
+    return np.asarray(expit(intercept + slope * x + quadratic * (x**2 - 1.0 / 3.0)), dtype=float)
