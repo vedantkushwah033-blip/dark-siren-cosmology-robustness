@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import importlib.metadata
 import json
+import math
 import platform
 from pathlib import Path
 import subprocess
@@ -50,7 +51,7 @@ def load_config(path: Path) -> tuple[dict, str]:
     curvatures = config["curvature_levels"]
     if not isinstance(curvatures, list) or not curvatures:
         raise ValueError("curvature_levels must be a nonempty list")
-    if any(type(x) not in (int, float) for x in curvatures) or len(set(curvatures)) != len(curvatures):
+    if any(type(x) not in (int, float) or not math.isfinite(x) for x in curvatures) or len(set(curvatures)) != len(curvatures):
         raise ValueError("curvature_levels must contain unique numeric values")
     if not isinstance(config["output_dir"], str) or not config["output_dir"].strip():
         raise ValueError("output_dir must be a nonempty string")
