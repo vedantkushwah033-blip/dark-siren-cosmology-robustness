@@ -117,18 +117,32 @@ def test_independent_nested_replay_reconstructs_smoke_scenario_and_posteriors(ne
 def test_nested_attempt_ledger_persists_estimator_provenance(nested_artifact):
     path = nested_artifact / "attempt_audit.jsonl"
     rows = [json.loads(line) for line in path.read_text().splitlines()]
-    returned = [row for row in rows if row["bootstrap_status"] in {"success", "non_evaluable"}]
-    assert returned
-    assert all(row["bootstrap_solver_version"] == "v1" for row in returned)
-    assert all(row["bootstrap_model_type"] == "linear" for row in returned)
+    returned = [
+        row for row in rows
+        if row["bootstrap_status"] in {"success", "non_evaluable"}
+    ]
+    executed = [
+        row for row in returned
+        if row["method"] in {"paired_bootstrap", "design_aware_srswor"}
+    ]
+    derived = [row for row in returned if row["method"] == "paired_bootstrap_fpc"]
+
+    # The FPC row is a deterministic transformation of the paired-bootstrap
+    # result, not a third independently executed bootstrap estimator.
+    assert len(executed) == 2
+    assert len(derived) == 1
+    assert all(row["bootstrap_solver_version"] == "v1" for row in executed)
+    assert all(row["bootstrap_model_type"] == "linear" for row in executed)
     assert all(
         row["bootstrap_experiment_config"] == {
             "method": row["method"],
             "solver_version": "v1",
             "model_type": "linear",
         }
-        for row in returned
+        for row in executed
     )
+    assert derived[0]["bootstrap_is_derived"] is True
+    assert derived[0]["bootstrap_source_method"] == "paired_bootstrap"
 
 
 def test_independent_nested_replay_rejects_tampered_estimator_provenance(nested_artifact):
