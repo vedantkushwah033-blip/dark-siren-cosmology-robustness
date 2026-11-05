@@ -253,3 +253,11 @@ def test_finite_parent_auditor_rejects_model_family_tampering(tmp_path):
     summary_path.write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(AssertionError, match="model_family"):
         audit(tmp_path)
+
+
+def test_finite_parent_auditor_rejects_tampered_parent_law_centering(tmp_path):
+    frame = _artifact(tmp_path)
+    frame.loc[0, "true_quadratic_centering"] = 1.0 / 3.0
+    frame.to_csv(tmp_path / "records.csv", index=False)
+    with pytest.raises(AssertionError, match="parent-law quadratic centering"):
+        audit(tmp_path)
