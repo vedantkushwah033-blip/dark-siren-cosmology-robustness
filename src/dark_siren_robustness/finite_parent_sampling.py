@@ -138,6 +138,16 @@ def run_finite_parent_benchmark(
     rate = 1.0 + 1.5 * (z_grid - zmin) / (zmax - zmin)
     target = latent_galaxy_intensity(z_grid) * rate
     target = target / trapezoid(target, z_grid)
+    # Center the quadratic inclusion basis under the declared parent law,
+    # not under a uniform-on-x approximation. Use a fixed high-resolution
+    # integration grid so the constant is deterministic across scenarios.
+    centering_grid = np.linspace(zmin, zmax, 20001)
+    centering_x = (centering_grid - zmid) / zhalf
+    centering_intensity = latent_galaxy_intensity(centering_grid)
+    true_quadratic_centering = float(
+        trapezoid(centering_x**2 * centering_intensity, centering_grid)
+        / trapezoid(centering_intensity, centering_grid)
+    )
     rows: list[dict] = []
 
     for scenario in range(n_scenarios):
@@ -155,7 +165,7 @@ def run_finite_parent_benchmark(
         parent_z = sim["parent_truth"]["redshift"].to_numpy(dtype=float)
         distances = sim["gw_events_observed"]["distance_mpc"].to_numpy(dtype=float)
         x = (parent_z - zmid) / zhalf
-        p_true = expit(true_intercept + true_slope*x + true_quadratic*(x*x - 1/3))
+        p_true = expit(true_intercept + true_slope*x + true_quadratic*(x*x - true_quadratic_centering))
         if np.any((p_true <= 0) | (p_true >= 1)) or not np.all(np.isfinite(p_true)):
             raise ValueError("true inclusion probabilities saturated")
         thin_rng = np.random.default_rng(thin_seed)
@@ -179,6 +189,7 @@ def run_finite_parent_benchmark(
                                  "true_intercept": float(true_intercept),
                                  "true_slope": float(true_slope),
                                  "true_quadratic": float(true_quadratic),
+                                 "true_quadratic_centering": true_quadratic_centering,
                                  "n_detected": int(distances.size),
                                  "n_catalogue": int(observed_z.size),
                                  "validation_indices": "",
@@ -260,6 +271,7 @@ def run_finite_parent_benchmark(
                         "true_intercept": float(true_intercept),
                         "true_slope": float(true_slope),
                         "true_quadratic": float(true_quadratic),
+                        "true_quadratic_centering": true_quadratic_centering,
                         "sigma_mpc": float(sigma_mpc),
                         "detection_threshold_mpc": float(detection_threshold_mpc),
                         "validation_indices": ",".join(map(str, indices.tolist())),
@@ -313,6 +325,7 @@ def run_finite_parent_benchmark(
                         "true_intercept": float(true_intercept),
                         "true_slope": float(true_slope),
                         "true_quadratic": float(true_quadratic),
+                        "true_quadratic_centering": true_quadratic_centering,
                         "sigma_mpc": float(sigma_mpc),
                         "detection_threshold_mpc": float(detection_threshold_mpc),
                         "validation_indices": ",".join(map(str, indices.tolist())),
