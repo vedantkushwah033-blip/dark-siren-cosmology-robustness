@@ -546,6 +546,7 @@ def test_preposterior_diagnostics_accept_quadratic_model_and_verify_probabilitie
     )
     assert diagnostics["diagnostic_schema"] == "preposterior_weight_stability_v1"
     assert diagnostics["n_validation"] == len(validation_z)
+    assert diagnostics["fitted_quadratic"] == pytest.approx(model["quadratic"])
     with pytest.raises(ValueError, match="disagree with fitted model"):
         build_preposterior_diagnostics(
             model, validation_z, validation_y, catalogue_z, np.full(120, 0.5)
