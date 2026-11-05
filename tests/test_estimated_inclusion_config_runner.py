@@ -72,7 +72,7 @@ def test_configured_runner_records_manifest_and_hash(tmp_path, monkeypatch):
             return SimpleNamespace(stdout="test-source-revision\\n")
         assert check is True
         assert "--replicates" in command and "2" in command
-        assert command[command.index("--curvature-levels") + 1] == "-2,0,2"
+        assert "--curvature-levels=-2,0,2" in command
         output.mkdir(parents=True)
         (output / "screen_report.json").write_text(
             json.dumps({"status": "SCREEN_NOT_CONFIRMATORY"}), encoding="utf-8"
