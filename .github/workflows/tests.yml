@@ -51,7 +51,7 @@ jobs:
       - name: Test estimated catalogue inclusion from external validation data
         run: python -m pytest tests/test_estimated_inclusion.py -q
       - name: Test versioned damped-Newton logistic inclusion estimator v2
-        run: python -m pytest tests/test_estimated_inclusion_v2.py -q
+        run: python -m pytest tests/test_estimated_inclusion_v2.py tests/test_v2_quasi_separation_limitations.py -q
       - name: Test estimated-inclusion pilot runner
         run: python -m pytest tests/test_estimated_inclusion_study.py -q
       - name: Test independent estimated-inclusion artifact auditor
