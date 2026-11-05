@@ -141,9 +141,20 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
         if validation_z.size != int(row.get("validation_size")):
             raise AssertionError("validation record count disagrees with arm validation_size")
         x_validation = (validation_z - (z_min + z_max)/2.0) / ((z_max-z_min)/2.0)
-        quadratic_model = stored_model.get("model") == "quadratic_logistic_inclusion_v1"
-        if stored_model.get("model") not in {"logistic_inclusion_v1", "quadratic_logistic_inclusion_v1"}:
+        solver_version = str(payload.get("solver_version", "v1"))
+        if solver_version not in {"v1", "v2"} or str(row.get("solver_version", "v1")) != solver_version:
+            raise AssertionError("solver provenance is missing or inconsistent between CSV and payload")
+        quadratic_model = stored_model.get("model") in {
+            "quadratic_logistic_inclusion_v1", "quadratic_logistic_inclusion_v2"
+        }
+        supported_models = {
+            "logistic_inclusion_v1", "quadratic_logistic_inclusion_v1",
+            "logistic_inclusion_v2", "quadratic_logistic_inclusion_v2",
+        }
+        if stored_model.get("model") not in supported_models:
             raise AssertionError("stored inclusion model has an unsupported model identifier")
+        if not str(stored_model.get("model", "")).endswith(f"_{solver_version}"):
+            raise AssertionError("stored model identifier disagrees with solver provenance")
         if quadratic_model != ("quadratic" in arm_name.split("_")):
             raise AssertionError("arm name and stored inclusion-model family disagree")
 
@@ -205,7 +216,10 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
         if (stored_probability.shape != refit_probability.shape
                 or not np.allclose(stored_probability, refit_probability, rtol=5e-5, atol=5e-5)):
             raise AssertionError("stored estimated inclusion probabilities disagree with independent refit")
-        expected_model_name = "quadratic_logistic_inclusion_v1" if quadratic_model else "logistic_inclusion_v1"
+        expected_model_name = (
+            f"quadratic_logistic_inclusion_{solver_version}"
+            if quadratic_model else f"logistic_inclusion_{solver_version}"
+        )
         if (stored_model.get("model") != expected_model_name
                 or int(stored_model.get("n_validation", -1)) != validation_z.size
                 or int(stored_model.get("n_included", -1)) != int(validation_y.sum())
