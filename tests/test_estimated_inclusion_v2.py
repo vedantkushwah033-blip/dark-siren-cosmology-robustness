@@ -60,18 +60,16 @@ def test_v2_solver_reports_separated_data_as_boundary_limited():
     assert fit["projected_gradient_inf_norm"] <= 1e-7
 
 
-def test_v2_solver_handles_rank_deficient_quadratic_design_deterministically():
+@pytest.mark.parametrize(
+    "fitter",
+    [fit_logistic_inclusion_model_v2, fit_quadratic_logistic_inclusion_model_v2],
+)
+def test_v2_solver_rejects_rank_deficient_design(fitter):
     z_min, z_max = 0.01, 0.40
     z = np.full(100, 0.205)
     y = np.tile([0, 1], 50)
-    first = fit_quadratic_logistic_inclusion_model_v2(z, y, z_min=z_min, z_max=z_max)
-    second = fit_quadratic_logistic_inclusion_model_v2(z, y, z_min=z_min, z_max=z_max)
-    assert first["fit_status"] == "converged"
-    assert np.array_equal(
-        [first["intercept"], first["slope"], first["quadratic"]],
-        [second["intercept"], second["slope"], second["quadratic"]],
-    )
-    assert first["projected_gradient_inf_norm"] <= 1e-7
+    with pytest.raises(ValueError, match="rank deficient.*coefficients are not identifiable"):
+        fitter(z, y, z_min=z_min, z_max=z_max)
 
 
 def test_v2_solver_rejects_degenerate_outcome_and_predictor_domain():
