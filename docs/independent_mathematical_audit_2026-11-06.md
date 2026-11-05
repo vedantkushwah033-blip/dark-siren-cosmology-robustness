@@ -68,12 +68,25 @@ The supplied observed-data expression omitted these non-retention factors for un
 
 ## 4. Design-based uncertainty: no automatic scalar FPC
 
-The SRSWOR sample-mean correction (1-n/N) does not imply that logistic coefficient covariance equals the ordinary inverse-Hessian covariance multiplied by this scalar. For a finite-frame estimating equation (U_N(\theta)=\sum_i u_i(\theta)), a design linearization uses sensitivity (A_N=-\partial U_N/\partial\theta^T) and the SRSWOR design variance of the sampled score total. Schematically,
-[
-\operatorname{Var}_d(\hat\theta)\approx
-A_N^{-1}\operatorname{Var}_d(\widehat U_V(\theta_N))A_N^{-T}.
-]
-The exact scaling, finite-frame target, and treatment of Bernoulli-retention and parent-frame randomness require a derivation for the chosen estimating equation. Until derived and calibrated, Method C should be called a conditional sensitivity integration over a specified propensity-parameter distribution, not validated design-based uncertainty propagation.
+The SRSWOR sample-mean correction $1-n/N$ does not imply that logistic coefficient covariance equals the ordinary inverse-Hessian covariance multiplied by this scalar. Define the finite-frame pseudo-true coefficient $\theta_N$ by the full-frame score equation
+\[
+\bar u_N(\theta_N)=N^{-1}\sum_{i=1}^N u_i(\theta_N)=0,
+\]
+where $u_i$ is the Bernoulli-logistic score contribution for the realized pair $(z_i,R_i)$. Let $J_N=N^{-1}\sum_i \partial u_i(\theta_N)/\partial\theta^T$ and
+\[
+S_{u,N}=\frac{1}{N-1}\sum_{i=1}^N
+[u_i(\theta_N)-\bar u_N][u_i(\theta_N)-\bar u_N]^T.
+\]
+For an SRSWOR validation sample of size $n$, the first-order design linearization of the sample-score root gives
+\[
+\operatorname{Var}_d(\hat\theta_V\mid Z,R)
+\approx J_N^{-1}
+\left(\frac{1-n/N}{n}S_{u,N}\right)
+J_N^{-T}.
+\]
+This is conditional on the realized finite frame and retention indicators, and assumes a regular interior root and nonsingular sensitivity. With bounded coefficients, separation, or active constraints, the unconstrained linearization may fail and boundary-aware inference is needed. In practice $J_N$ and $S_{u,N}$ must be estimated or independently benchmarked; the formula is not a license to multiply an ordinary Hessian covariance by an FPC without checking score scaling and target definition.
+
+This design variance addresses only validation-sampling variation conditional on $(Z,R)$. Parent-frame generation and Bernoulli-retention randomness are separate outer sources and must be assessed by repeated independent scenarios if the scientific estimand averages over them. Until this derivation is implemented and calibrated, Method C should be called a conditional sensitivity integration over a specified propensity-parameter distribution, not validated design-based uncertainty propagation.
 
 ## 5. IPW, KDE, and host-density perturbation
 
