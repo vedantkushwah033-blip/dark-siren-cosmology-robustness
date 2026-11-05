@@ -14,6 +14,8 @@ def main() -> None:
     parser.add_argument("--n-detected", type=int, default=30)
     parser.add_argument("--validation-sizes", default="100,300,1000")
     parser.add_argument("--seed", type=int, default=20261030)
+    parser.add_argument("--solver-version", choices=("v1", "v2"), default="v1",
+                        help="Versioned logistic inclusion solver; v1 remains the default.")
     parser.add_argument("--true-quadratic", type=float, default=0.0,
                         help="Quadratic logit coefficient for nonlinear selection stress; zero preserves linear selection.")
     parser.add_argument("--h0-points", type=int, default=81)
@@ -31,6 +33,7 @@ def main() -> None:
         true_quadratic=args.true_quadratic,
         h0_points=args.h0_points,
         z_points=args.z_points,
+        solver_version=args.solver_version,
     )
     args.output_dir.mkdir(parents=True, exist_ok=True)
     frame.to_csv(args.output_dir / "replicates.csv", index=False)
@@ -42,6 +45,7 @@ def main() -> None:
         "rows": int(len(frame)),
         "failed_rows": int((frame["status"] != "success").sum()),
         "status": summary["status"],
+        "solver_version": summary["solver_version"],
     }, indent=2))
 
 
