@@ -533,6 +533,7 @@ def run_validation_bootstrap_posterior_sensitivity(
     seed: int = 20261030,
     merger_weight: np.ndarray | None = None,
     bandwidth_factor: float | None = None,
+    solver_version: str = "v1",
 ) -> dict:
     """Propagate validation-record bootstrap draws through the fixed toy GW likelihood.
 
@@ -563,10 +564,13 @@ def run_validation_bootstrap_posterior_sensitivity(
     if np.any(distances < detection_threshold_mpc):
         raise ValueError("all supplied GW distances must satisfy the detection threshold")
 
+    if solver_version not in {"v1", "v2"}:
+        raise ValueError("solver_version must be 'v1' or 'v2'")
     bootstrap = bootstrap_validation_inclusion_density(
         z_grid, observed_redshift, validation_redshift, validation_included,
         n_bootstrap=n_bootstrap, seed=seed,
         merger_weight=merger_weight, bandwidth_factor=bandwidth_factor,
+        solver_version=solver_version,
     )
     posterior_means: list[float] = []
     posterior_medians: list[float] = []
@@ -592,6 +596,7 @@ def run_validation_bootstrap_posterior_sensitivity(
     return {
         "schema": "validation_bootstrap_posterior_sensitivity_v1",
         "seed": int(seed),
+        "solver_version": solver_version,
         "n_attempted": int(bootstrap["n_attempted"]),
         "n_successful": int(bootstrap["n_successful"]),
         "n_failed": int(bootstrap["n_failed"]),
