@@ -46,10 +46,11 @@ def _failure_code(exc: Exception) -> str:
 
 def _posterior_from_validation(z, h0, observed, validation_z, validation_y, distances,
                                *, sigma_mpc, detection_threshold_mpc, merger_weight,
-                               bandwidth_factor):
+                               bandwidth_factor, solver_version="v1", model_type="linear"):
     density_result = estimate_host_density_from_validation(
         z, observed, validation_z, validation_y,
         merger_weight=merger_weight, bandwidth_factor=bandwidth_factor,
+        solver_version=solver_version, model_type=model_type,
     )
     likelihood = selection_aware_toy_likelihood(
         z, density_result["density"], h0, distances,
@@ -74,6 +75,8 @@ def bootstrap_validation_h0_posterior(
     seed: int = 20261030,
     merger_weight: ArrayLike | None = None,
     bandwidth_factor: float | None = None,
+    solver_version: str = "v1",
+    model_type: str = "linear",
 ) -> dict[str, object]:
     """Propagate validation resampling through the full toy H0 posterior.
 
@@ -88,6 +91,16 @@ def bootstrap_validation_h0_posterior(
     """
     if method not in {"paired_bootstrap", "design_aware_srswor"}:
         raise ValueError("method must be paired_bootstrap or design_aware_srswor")
+    if solver_version not in {"v1", "v2"}:
+        raise ValueError("solver_version must be 'v1' or 'v2'")
+    if model_type not in {"linear", "quadratic"}:
+        raise ValueError("model_type must be 'linear' or 'quadratic'")
+    if (solver_version, model_type) != ("v1", "linear"):
+        raise ValueError(
+            "posterior-bootstrap replay currently supports only solver_version='v1' "
+            "with model_type='linear'; V2/quadratic remain disabled until the "
+            "independent auditor implements those paths"
+        )
     for name, value, minimum in (
         ("n_bootstrap", n_bootstrap, 2),
         ("parent_population_size", parent_population_size, 10),
@@ -135,6 +148,7 @@ def bootstrap_validation_h0_posterior(
             z, h0, observed, vz, vy, distances,
             sigma_mpc=float(sigma_mpc), detection_threshold_mpc=float(detection_threshold_mpc),
             merger_weight=rate, bandwidth_factor=bandwidth_factor,
+            solver_version=solver_version, model_type=model_type,
         )
         fixed_reference_mean = float(full_reference["posterior_mean"])
     else:
@@ -183,6 +197,7 @@ def bootstrap_validation_h0_posterior(
                     z, h0, observed, pseudo_z, pseudo_y, distances,
                     sigma_mpc=float(sigma_mpc), detection_threshold_mpc=float(detection_threshold_mpc),
                     merger_weight=rate, bandwidth_factor=bandwidth_factor,
+                    solver_version=solver_version, model_type=model_type,
                 )
                 reference_mean = float(pseudo_summary["posterior_mean"])
 
@@ -190,6 +205,7 @@ def bootstrap_validation_h0_posterior(
                 z, h0, observed, sample_z, sample_y, distances,
                 sigma_mpc=float(sigma_mpc), detection_threshold_mpc=float(detection_threshold_mpc),
                 merger_weight=rate, bandwidth_factor=bandwidth_factor,
+                solver_version=solver_version, model_type=model_type,
             )
             posterior_density = np.asarray(
                 json.loads(str(summary["posterior_density_grid_json"])), dtype=float
@@ -242,6 +258,13 @@ def bootstrap_validation_h0_posterior(
             "merger_weight": _array_sha256(np.ones_like(z) if rate is None else rate),
         },
         "method": method,
+        "solver_version": solver_version,
+        "model_type": model_type,
+        "experiment_config": {
+            "method": method,
+            "solver_version": solver_version,
+            "model_type": model_type,
+        },
         "design_aware_method_status": (
             "exploratory_pseudopopulation_resampling_not_studentized_inference"
             if method == "design_aware_srswor" else "ordinary_paired_record_bootstrap"
