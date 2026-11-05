@@ -172,3 +172,58 @@ def test_detection_efficiency_predicts_empirical_threshold_rate():
     monte_carlo_se = np.sqrt(predicted_rate * (1.0 - predicted_rate) / n_draws)
     assert abs(empirical_rate - predicted_rate) < 5.0 * monte_carlo_se + 0.001
 
+def _uniform_host_detection_efficiency_closed_form(z_min, z_max, h0, sigma, threshold):
+    """Analytic integral of a Gaussian-threshold detection curve over uniform z."""
+    from scipy.stats import norm
+
+    scale = C_KM_S / h0
+    u_min = (scale * z_min - threshold) / sigma
+    u_max = (scale * z_max - threshold) / sigma
+
+    def antiderivative(u):
+        return u * norm.cdf(u) + norm.pdf(u)
+
+    return (
+        sigma / scale
+        * (antiderivative(u_max) - antiderivative(u_min))
+        / (z_max - z_min)
+    )
+
+
+def test_detection_efficiency_matches_uniform_host_closed_form():
+    """Known-answer check independent of numerical quadrature implementation."""
+    z_min, z_max = 0.02, 0.12
+    h0, sigma, threshold = 70.0, 120.0, 500.0
+    z = np.linspace(z_min, z_max, 1601)
+    density = normalized_host_density(z, np.ones_like(z))
+    result = selection_aware_toy_likelihood(
+        z, density, [h0, 75.0], [700.0], sigma=sigma,
+        detection_threshold=threshold,
+    )
+    expected = _uniform_host_detection_efficiency_closed_form(
+        z_min, z_max, h0, sigma, threshold
+    )
+    assert result["detection_efficiency"][0] == pytest.approx(
+        expected, rel=1e-7, abs=1e-9
+    )
+
+
+def test_detection_efficiency_grid_refinement_converges_to_closed_form():
+    """Refinement check for beta, with identical physical inputs at every resolution."""
+    z_min, z_max = 0.02, 0.12
+    h0, sigma, threshold = 70.0, 120.0, 500.0
+    expected = _uniform_host_detection_efficiency_closed_form(
+        z_min, z_max, h0, sigma, threshold
+    )
+    errors = []
+    for n_grid in (201, 401, 801, 1601):
+        z = np.linspace(z_min, z_max, n_grid)
+        density = normalized_host_density(z, np.ones_like(z))
+        result = selection_aware_toy_likelihood(
+            z, density, [h0, 75.0], [700.0], sigma=sigma,
+            detection_threshold=threshold,
+        )
+        errors.append(abs(result["detection_efficiency"][0] - expected))
+
+    assert all(later < earlier for earlier, later in zip(errors, errors[1:]))
+    assert errors[-1] < 5e-8
