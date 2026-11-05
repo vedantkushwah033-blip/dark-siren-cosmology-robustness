@@ -43,6 +43,7 @@ def test_load_config_validates_and_hashes_canonical_manifest(tmp_path):
         lambda c: c.update({"replicates": True}),
         lambda c: c.update({"curvature_levels": []}),
         lambda c: c.update({"schema_version": 99}),
+        lambda c: c.update({"schema_version": True}),
     ],
 )
 def test_load_config_rejects_invalid_manifests(tmp_path, mutate):
