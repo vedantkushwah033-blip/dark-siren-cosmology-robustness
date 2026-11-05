@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from scipy.special import expit
 
-from dark_siren_robustness.estimated_inclusion_v2 import (
+from dark_siren_robustness.estimated_inclusion import (\n    fit_quadratic_logistic_inclusion_model,\n    predict_inclusion_probability,\n)\nfrom dark_siren_robustness.estimated_inclusion_v2 import (
     fit_logistic_inclusion_model_v2,
     fit_quadratic_logistic_inclusion_model_v2,
     predict_inclusion_probability_v2,
@@ -128,3 +128,23 @@ def test_v2_rank_deficiency_is_exposed_in_hessian_diagnostics():
     assert fit["hessian_rank"] == 1
     assert fit["parameter_dimension"] == 3
     assert np.isinf(fit["hessian_condition_number"])
+
+
+
+def test_v2_quadratic_matches_v1_on_identical_data_and_parameterization():
+    rng = np.random.default_rng(202611054)
+    z_min, z_max = 0.01, 0.40
+    z = rng.uniform(z_min, z_max, 9000)
+    x = (z - 0.205) / 0.195
+    y = rng.binomial(1, expit(0.2 - 0.9 * x + 1.1 * x**2))
+    v1 = fit_quadratic_logistic_inclusion_model(z, y, z_min=z_min, z_max=z_max)
+    v2 = fit_quadratic_logistic_inclusion_model_v2(z, y, z_min=z_min, z_max=z_max)
+    grid = np.linspace(z_min, z_max, 201)
+    p1 = predict_inclusion_probability(grid, v1)
+    p2 = predict_inclusion_probability_v2(grid, v2)
+    assert v1["model"] == "quadratic_logistic_inclusion_v1"
+    assert v2["model"] == "quadratic_logistic_inclusion_v2"
+    assert np.allclose(p1, p2, rtol=2e-4, atol=2e-5)
+    assert v1["negative_log_likelihood"] == pytest.approx(
+        v2["negative_log_likelihood"], rel=1e-9, abs=1e-7
+    )
