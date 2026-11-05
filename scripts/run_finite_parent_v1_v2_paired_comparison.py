@@ -80,11 +80,16 @@ def main() -> None:
         raise AssertionError("paired arm manifest has an unsupported schema")
     if manifests["v1"].get("status") != "SMOKE_ONLY_NOT_CONFIRMATORY":
         raise AssertionError("paired arms must remain explicitly non-confirmatory")
+    requested_sizes = [int(item) for item in args.validation_sizes.split(",") if item.strip()]
     if manifests["v1"].get("seed") != args.seed:
         raise AssertionError("paired arm manifest seed does not match requested seed")
-    expected_attempts = args.scenarios * args.draws * len(
-        [item for item in args.validation_sizes.split(",") if item.strip()]
-    )
+    if manifests["v1"].get("scenarios") != args.scenarios:
+        raise AssertionError("paired arm manifest scenario count does not match request")
+    if manifests["v1"].get("draws_per_scenario_and_size") != args.draws:
+        raise AssertionError("paired arm manifest draw count does not match request")
+    if manifests["v1"].get("validation_sizes") != requested_sizes:
+        raise AssertionError("paired arm manifest validation sizes do not match request")
+    expected_attempts = args.scenarios * args.draws * len(requested_sizes)
     for label, frame, expected in (("V1", v1, "v1"), ("V2", v2, "v2")):
         manifest = manifests[expected]
         if manifest.get("solver_version") != expected:
@@ -95,6 +100,12 @@ def main() -> None:
             raise AssertionError(f"{label} manifest has an unexpected solver revision")
         if len(frame) != expected_attempts or len(frame) != manifest.get("n_attempted"):
             raise AssertionError(f"{label} artifact attempt count disagrees with requested design")
+        n_success = int(frame["status"].eq("success").sum())
+        n_failed = int(frame["status"].eq("failed").sum())
+        if n_success != manifest.get("n_successful") or n_failed != manifest.get("n_failed"):
+            raise AssertionError(f"{label} manifest success/failure counts disagree with records")
+        if n_success + n_failed != expected_attempts:
+            raise AssertionError(f"{label} attempt accounting does not reconcile")
         if not frame["status"].isin(["success", "failed"]).all():
             raise AssertionError(f"{label} artifact contains an unknown attempt status")
         if not frame["solver_version"].eq(expected).all():
