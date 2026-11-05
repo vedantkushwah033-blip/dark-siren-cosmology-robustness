@@ -355,3 +355,37 @@ def test_posterior_bootstrap_rejects_unsupported_solver_or_model(selector, value
             z_grid, h0_grid, observed_z, validation_z, validation_y, [300.0],
             **kwargs,
         )
+
+
+def test_independent_auditor_accepts_kkt_stationary_fit_despite_optimizer_flag(monkeypatch):
+    import dark_siren_robustness.posterior_validation_bootstrap_audit as audit_module
+
+    z_grid = np.linspace(0.01, 0.40, 101)
+    h0_grid = np.linspace(50.0, 90.0, 61)
+    observed_z = np.linspace(0.025, 0.385, 45)
+    validation_z = np.linspace(0.01, 0.40, 120)
+    validation_y = (np.arange(validation_z.size) % 2).astype(int)
+    distances = np.array([280.0, 330.0, 410.0, 520.0, 610.0])
+    result = bootstrap_validation_h0_posterior(
+        z_grid, h0_grid, observed_z, validation_z, validation_y, distances,
+        sigma_mpc=140.0, detection_threshold_mpc=250.0,
+        parent_population_size=180, method="paired_bootstrap",
+        n_bootstrap=3, seed=731,
+    )
+
+    original_minimize = audit_module.minimize
+
+    def non_success_status_at_same_solution(*args, **kwargs):
+        fit = original_minimize(*args, **kwargs)
+        fit.success = False
+        fit.message = "forced non-success status for KKT-policy regression test"
+        return fit
+
+    monkeypatch.setattr(audit_module, "minimize", non_success_status_at_same_solution)
+    audited = audit_posterior_validation_bootstrap(
+        result, z_grid, h0_grid, observed_z, validation_z, validation_y, distances,
+        sigma_mpc=140.0, detection_threshold_mpc=250.0,
+        parent_population_size=180,
+    )
+    assert audited["status"] == "PASS"
+    assert audited["independently_reconstructed_posteriors"] == result["n_successful"]
