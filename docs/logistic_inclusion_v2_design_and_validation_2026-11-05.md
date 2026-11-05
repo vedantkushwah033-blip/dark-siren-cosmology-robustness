@@ -2,7 +2,7 @@
 
 **Date:** 5 November 2026  
 **Branch:** `research/logistic-inclusion-v2-newton-2026-11-05`  
-**Status:** implementation added; CI and numerical validation pending.  
+**Status:** implementation and derivative/conditioning diagnostics added; exact-head Python 3.10/3.11/3.12 CI passed for the prior implementation commit; new diagnostics are awaiting CI.  
 **Relationship to v1:** opt-in alternative. No v1 production call path, pilot result, or manuscript result is changed.
 
 ## Motivation
@@ -33,6 +33,8 @@ Results identify their model version and retain iteration, accepted/rejected ste
 - Quadratic curve recovery.
 - Complete-separation fixture reported as boundary-limited.
 - Rank-deficient quadratic design and deterministic replay.
+- Analytic gradient and Hessian checked against central finite differences.
+- Final observed-Hessian rank, minimum/maximum eigenvalue, and condition-number diagnostics, including explicit infinite condition number for rank deficiency.
 - Degenerate outcome and prediction-domain validation.
 
 ## Interpretation and limitations
@@ -41,13 +43,14 @@ Results identify their model version and retain iteration, accepted/rejected ste
 2. The coefficient box is part of the estimator. Boundary-limited fits are scientifically important diagnostics, not successful unconstrained MLEs.
 3. A small projected-gradient mapping establishes approximate first-order constrained stationarity. For a convex objective this is strong optimization evidence, but finite precision, ill-conditioning, and the chosen box still matter.
 4. The Hessian can be singular under rank deficiency or near separation. Damping supports computation but does not create information; rank and conditioning diagnostics remain necessary for a confirmatory release.
-5. V2 is not yet wired into the host-density estimator, pilot runner, bootstrap, or artifact schemas. Do not compare it with v1 downstream until an explicit versioned integration and independent artifact audit are added.
-6. Unit tests and CI do not establish D-01 closure in the historical pilot. The historical failure cases must be replayed against both v1 and v2 using identical validation records and recorded outcomes.
+5. The Hessian condition number is reported as infinity when the observed Hessian is numerically rank-deficient under a scale-aware floating-point threshold; this is a diagnostic, not a regularization or a proof of statistical identifiability.
+6. V2 is not yet wired into the host-density estimator, pilot runner, bootstrap, or artifact schemas. Do not compare it with v1 downstream until an explicit versioned integration and independent artifact audit are added.
+7. Unit tests and CI do not establish D-01 closure in the historical pilot. The historical failure cases must be replayed against both v1 and v2 using identical validation records and recorded outcomes.
 
 ## Release gate
 
 D-01 remains open until:
-- the new tests pass on supported Python versions;
+- the derivative/conditioning additions pass on supported Python versions;
 - historical abnormal-line-search fixtures and the recorded 2/840 pilot failures are replayed;
 - v1/v2 coefficients, objective values, predicted probabilities, and boundary diagnostics are independently compared;
 - failure accounting is preserved;
