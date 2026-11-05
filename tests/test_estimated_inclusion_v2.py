@@ -127,13 +127,16 @@ def test_v2_design_condition_number_detects_redshift_concentration():
             z, outcomes, z_min=z_min, z_max=z_max
         )
 
-    broad = fit_at_span(1.0)
-    concentrated = fit_at_span(0.1)
+    # Stay strictly inside the declared redshift domain: constructing the
+    # exact endpoints through midpoint + half_range can round just outside
+    # [z_min, z_max] on some Python/NumPy combinations.
+    broad = fit_at_span(0.99)
+    concentrated = fit_at_span(0.099)
     assert concentrated["design_condition_number"] > broad["design_condition_number"] * 50
 
     # The diagnostic describes design geometry, not record ordering.
     rng = np.random.default_rng(202611055)
-    x = np.linspace(-0.1, 0.1, outcomes.size)
+    x = np.linspace(-0.099, 0.099, outcomes.size)
     z = midpoint + half_range * x
     order = rng.permutation(z.size)
     permuted = fit_quadratic_logistic_inclusion_model_v2(
