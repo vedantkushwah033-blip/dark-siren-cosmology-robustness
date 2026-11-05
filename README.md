@@ -395,3 +395,5 @@ The audit concludes that catalogue incompleteness, host weighting, and flexible 
 - **Statistical model and likelihood boundaries:** [explicit finite catalogue/missing-host mixture, matched toy selection normalization, prior treatment, and implemented-versus-unvalidated components](docs/statistical_model.md).
 
 - **Configuration-driven nonlinear inclusion screen:** [versioned experiment manifest and reproducible runner instructions](docs/estimated_inclusion_config_runner.md); manifest: `configs/estimated_inclusion_curvature_screen_v1.json`.
+
+- **Inclusion-parameter uncertainty:** [Bayesian integration and design-respecting repeated-sampling protocol](docs/inclusion_parameter_uncertainty_protocol_2026-11-05.md). This is a methodological protocol; implementation is pending.
