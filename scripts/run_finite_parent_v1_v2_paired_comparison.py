@@ -19,7 +19,7 @@ import pandas as pd
 IDENTITY_COLUMNS = (
     "scenario", "draw", "validation_size", "validation_seed",
     "simulation_seed", "thinning_seed", "true_intercept", "true_slope",
-    "true_quadratic", "h0_true", "sigma_mpc", "detection_threshold_mpc",
+    "true_quadratic", "true_quadratic_centering", "h0_true", "sigma_mpc", "detection_threshold_mpc",
     "validation_indices", "catalogue_validation_overlap_indices",
     "catalogue_validation_overlap_count", "n_validation_included",
     "n_catalogue", "n_detected", "parent_size", "parent_frame_sha256", "catalogue_sha256",
@@ -72,11 +72,12 @@ def main() -> None:
         "schema", "status", "n_attempted", "validation_sizes", "scenarios",
         "draws_per_scenario_and_size", "seed", "h0_points", "z_points",
         "h0_grid_bounds", "redshift_grid_bounds", "model_family",
+        "true_quadratic_centering",
     )
     for field in common_manifest_fields:
         if manifests["v1"].get(field) != manifests["v2"].get(field):
             raise AssertionError(f"paired arm manifests disagree on {field!r}")
-    if manifests["v1"].get("schema") != "finite_parent_srswor_smoke_v3":
+    if manifests["v1"].get("schema") != "finite_parent_srswor_smoke_v4":
         raise AssertionError("paired arm manifest has an unsupported schema")
     if manifests["v1"].get("status") != "SMOKE_ONLY_NOT_CONFIRMATORY":
         raise AssertionError("paired arms must remain explicitly non-confirmatory")

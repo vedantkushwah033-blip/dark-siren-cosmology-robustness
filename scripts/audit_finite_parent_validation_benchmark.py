@@ -20,6 +20,19 @@ from scipy.stats import norm
 C_KM_S = 299_792.458
 
 
+def _independent_parent_quadratic_centering(z_min: float, z_max: float) -> float:
+    """Independently integrate E_g[x^2] under the continuous parent law."""
+    grid = np.linspace(float(z_min), float(z_max), 200001)
+    midpoint = 0.5 * (float(z_min) + float(z_max))
+    half_range = 0.5 * (float(z_max) - float(z_min))
+    intensity = (
+        1.0
+        + 2.2 * np.exp(-0.5 * ((grid - 0.105) / 0.025) ** 2)
+        + 1.6 * np.exp(-0.5 * ((grid - 0.275) / 0.040) ** 2)
+    )
+    x = (grid - midpoint) / half_range
+    return float(trapezoid(x**2 * intensity, grid) / trapezoid(intensity, grid))
+
 def _quad_weights(grid: np.ndarray) -> np.ndarray:
     delta = np.diff(grid)
     weights = np.empty_like(grid)
@@ -151,7 +164,7 @@ def audit(artifact_dir: Path) -> dict:
     required = {
         "scenario", "draw", "validation_size", "status", "validation_seed",
         "simulation_seed", "thinning_seed", "true_intercept", "true_slope",
-        "true_quadratic", "sigma_mpc", "detection_threshold_mpc",
+        "true_quadratic", "true_quadratic_centering", "sigma_mpc", "detection_threshold_mpc",
         "validation_indices", "catalogue_validation_overlap_indices",
         "catalogue_validation_overlap_count", "failure_code", "failure_reason",
         "parent_size", "parent_frame_sha256",
@@ -161,7 +174,7 @@ def audit(artifact_dir: Path) -> dict:
     missing = required.difference(records.columns)
     if missing:
         raise AssertionError(f"records missing columns: {sorted(missing)}")
-    if summary.get("schema") != "finite_parent_srswor_smoke_v3":
+    if summary.get("schema") != "finite_parent_srswor_smoke_v4":
         raise AssertionError("unsupported finite-parent artifact schema")
     if summary.get("status") != "SMOKE_ONLY_NOT_CONFIRMATORY":
         raise AssertionError("artifact must retain non-confirmatory status")
@@ -173,6 +186,8 @@ def audit(artifact_dir: Path) -> dict:
     expected_revision = "2.1-armijo-noise-slack" if solver_version == "v2" else "v1-lbfgsb-kkt"
     if summary.get("solver_revision") != expected_revision:
         raise AssertionError("manifest solver_revision is inconsistent with solver_version")
+    if "true_quadratic_centering" not in summary:
+        raise AssertionError("manifest omits parent-law quadratic centering")
     if summary.get("model_family") != "linear_logistic":
         raise AssertionError("unsupported finite-parent model_family")
     if not records["solver_revision"].eq(expected_revision).all():
@@ -253,10 +268,22 @@ def audit(artifact_dir: Path) -> dict:
         distances = simulation["gw_events_observed"]["distance_mpc"].to_numpy(dtype=float)
         midpoint, half_range = 0.205, 0.195
         x_parent = (parent_z - midpoint) / half_range
+        expected_centering = _independent_parent_quadratic_centering(0.01, 0.40)
+        _close(
+            summary["true_quadratic_centering"], expected_centering,
+            "manifest parent-law quadratic centering", rtol=0.0, atol=2e-12,
+        )
+        _close(
+            first["true_quadratic_centering"], expected_centering,
+            "parent-law quadratic centering", rtol=0.0, atol=2e-12,
+        )
+        if group["true_quadratic_centering"].nunique(dropna=True) != 1:
+            raise AssertionError("quadratic centering constant varies within a scenario")
         p_inclusion = expit(
             float(first["true_intercept"])
             + float(first["true_slope"]) * x_parent
-            + float(first["true_quadratic"]) * (x_parent*x_parent - 1.0/3.0)
+            + float(first["true_quadratic"])
+            * (x_parent*x_parent - float(first["true_quadratic_centering"]))
         )
         retained = np.random.default_rng(int(first["thinning_seed"])).random(len(parent_z)) < p_inclusion
         observed_z = parent_z[retained]

@@ -48,10 +48,11 @@ def _artifact(tmp_path, solver_version="v1"):
             "scenario_coverage_sd": float(scenario_coverage.std(ddof=1)) if len(scenario_coverage) > 1 else None,
         }
     summary = {
-        "schema": "finite_parent_srswor_smoke_v3",
+        "schema": "finite_parent_srswor_smoke_v4",
         "solver_version": solver_version,
         "solver_revision": ("2.1-armijo-noise-slack" if solver_version == "v2" else "v1-lbfgsb-kkt"),
         "model_family": "linear_logistic",
+        "true_quadratic_centering": float(frame["true_quadratic_centering"].iloc[0]),
         "status": "SMOKE_ONLY_NOT_CONFIRMATORY",
         "n_attempted": len(frame),
         "n_successful": int(successful.shape[0]),
@@ -252,4 +253,22 @@ def test_finite_parent_auditor_rejects_model_family_tampering(tmp_path):
     summary["model_family"] = "quadratic_logistic"
     summary_path.write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(AssertionError, match="model_family"):
+        audit(tmp_path)
+
+
+def test_finite_parent_auditor_rejects_tampered_parent_law_centering(tmp_path):
+    frame = _artifact(tmp_path)
+    frame.loc[0, "true_quadratic_centering"] = 1.0 / 3.0
+    frame.to_csv(tmp_path / "records.csv", index=False)
+    with pytest.raises(AssertionError, match="parent-law quadratic centering"):
+        audit(tmp_path)
+
+
+def test_finite_parent_auditor_rejects_tampered_manifest_centering(tmp_path):
+    _artifact(tmp_path)
+    path = tmp_path / "summary.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    manifest["true_quadratic_centering"] = 1.0 / 3.0
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(AssertionError, match="manifest parent-law quadratic centering"):
         audit(tmp_path)
