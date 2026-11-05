@@ -29,13 +29,35 @@ def _independent_posterior(z, h0, observed, validation_z, validation_y, distance
         eta = theta[0] + theta[1] * x
         return float(-np.sum(y * log_expit(eta) + (1.0 - y) * log_expit(-eta)))
 
+    def gradient(theta):
+        residual = expit(theta[0] + theta[1] * x) - y
+        return np.array([np.sum(residual), np.dot(residual, x)], dtype=float)
+
+    bounds = ((-25.0, 25.0), (-50.0, 50.0))
     fit = minimize(
-        objective, np.zeros(2), method="L-BFGS-B",
-        bounds=((-25.0, 25.0), (-50.0, 50.0)),
+        objective, np.zeros(2), jac=gradient, method="L-BFGS-B",
+        bounds=bounds,
         options={"maxiter": 2000, "ftol": 1e-12, "gtol": 1e-8},
     )
-    if not fit.success or not np.all(np.isfinite(fit.x)):
+    if not np.all(np.isfinite(fit.x)) or not np.isfinite(fit.fun):
         raise RuntimeError("independent logistic refit failed")
+
+    # Match the producer's documented acceptance rule: optimizer status is
+    # advisory when an independently recomputed box-constrained KKT residual
+    # already certifies a stationary point to the configured tolerance.
+    raw_gradient = gradient(np.asarray(fit.x, dtype=float))
+    projected_gradient = raw_gradient.copy()
+    for j, (lower, upper) in enumerate(bounds):
+        if fit.x[j] <= lower + 1e-7 and raw_gradient[j] > 0.0:
+            projected_gradient[j] = 0.0
+        elif fit.x[j] >= upper - 1e-7 and raw_gradient[j] < 0.0:
+            projected_gradient[j] = 0.0
+    kkt_residual = float(np.max(np.abs(projected_gradient)))
+    if not np.isfinite(kkt_residual) or kkt_residual > 1e-5:
+        raise RuntimeError(
+            "independent logistic refit failed KKT check: "
+            f"optimizer_status={fit.message}; projected_gradient={kkt_residual:.3g}"
+        )
     intercept, slope = map(float, fit.x)
     probability = expit(intercept + slope * ((observed - midpoint) / half))
     inverse = 1.0 / probability
