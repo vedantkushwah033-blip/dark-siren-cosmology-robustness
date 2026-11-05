@@ -2,7 +2,7 @@
 
 **Date:** 5 November 2026  
 **Branch:** `research/logistic-inclusion-v2-newton-2026-11-05`  
-**Status:** active-set Newton refinement and adversarial V1/V2 tests added; the dedicated curvature regression passed on the active-set code commit; full three-version test workflow for the latest test additions is pending.  
+**Status:** active-set Newton refinement and adversarial V1/V2 tests added; the focused Python 3.12 regression workflow passed on commit `965fa8e1fe6ce0f67cf5e1ce1da2309ca02d01c7` (run `42026075059`), including curvature-screen, V2, complete-separation, and quadratic near-separation tests. The full Python 3.10/3.11/3.12 workflow for the latest additions remains pending.  
 **Relationship to v1:** opt-in alternative. No v1 production call path, pilot result, or manuscript result is changed.
 
 ## Motivation
