@@ -89,3 +89,21 @@ def test_metadata_cannot_overwrite_attempt_identity_or_state():
     with pytest.raises(ValueError, match="reserved fields"):
         initialize_attempt_ledger(n_scenarios=1,n_draws=1,
             validation_sizes=(10,),metadata={"status":"SUCCESS"})
+
+def test_reserved_payload_rejection_does_not_partially_transition():
+    ledger = make_ledger()
+    with pytest.raises(ValueError, match="reserved ledger fields"):
+        transition_attempt(ledger, scenario=0, draw=0, validation_size=100,
+            status="SUCCESS", stage="posterior", payload={"status":"FAILED"})
+    row = ledger.iloc[0]
+    assert row["status"] == "NOT_RUN"
+    assert row["transition_count"] == 0
+
+
+def test_failed_atomic_serialization_preserves_previous_checkpoint(tmp_path):
+    path = tmp_path / "run.json"
+    atomic_write_run_state({"stage":"stable"}, path)
+    with pytest.raises(TypeError):
+        atomic_write_run_state({"bad": object()}, path)
+    assert json.loads(path.read_text(encoding="utf-8")) == {"stage":"stable"}
+    assert not list(tmp_path.glob(".*.tmp"))
