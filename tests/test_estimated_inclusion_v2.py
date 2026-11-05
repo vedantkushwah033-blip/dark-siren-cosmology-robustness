@@ -43,6 +43,11 @@ def test_v2_quadratic_solver_recovers_nonlinear_probability_curve():
     assert fit["model"] == "quadratic_logistic_inclusion_v2"
     assert fit["fit_status"] == "converged"
     assert fit["projected_gradient_inf_norm"] <= 1e-7
+    assert len(fit["design_singular_values"]) == 3
+    assert np.all(np.asarray(fit["design_singular_values"]) > 0)
+    assert fit["design_condition_number"] == pytest.approx(
+        fit["design_singular_values"][0] / fit["design_singular_values"][-1]
+    )
     assert np.mean(np.abs(predicted - expit(0.15 - 0.8*x_grid + 1.4*x_grid**2))) < 0.015
     # V1 production quadratic fitter uses the uncentered x**2 basis.
     assert fit["intercept"] == pytest.approx(0.15, abs=0.10)
@@ -179,6 +184,9 @@ def test_v2_linear_matches_v1_on_identical_data_and_parameterization():
 
     assert v1["fit_status"] == "converged"
     assert v2["fit_status"] == "converged"
+    assert len(v2["design_singular_values"]) == 2
+    assert np.all(np.asarray(v2["design_singular_values"]) > 0)
+    assert np.isfinite(v2["design_condition_number"])
     assert np.allclose(
         [v1["intercept"], v1["slope"]],
         [v2["intercept"], v2["slope"]],
