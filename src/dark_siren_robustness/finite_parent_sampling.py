@@ -141,28 +141,15 @@ def run_finite_parent_benchmark(
     # Center the quadratic inclusion basis under the declared parent law,
     # not under a uniform-on-x approximation. Use a fixed high-resolution
     # integration grid so the constant is deterministic across scenarios.
-    centering_grid = np.linspace(zmin, zmax, 20001)
-    centering_midpoints = 0.5 * (centering_grid[:-1] + centering_grid[1:])
-    centering_halfwidths = 0.5 * np.diff(centering_grid)
-    gauss_nodes = np.array([-1.0 / np.sqrt(3.0), 1.0 / np.sqrt(3.0)])
-    centering_nodes = (
-        centering_midpoints[:, None]
-        + centering_halfwidths[:, None] * gauss_nodes[None, :]
+    # Compute E_g[x^2] under the declared continuous parent density.
+    # A dense deterministic quadrature grid makes this scenario-invariant.
+    centering_grid = np.linspace(zmin, zmax, 200001)
+    centering_x = (centering_grid - zmid) / zhalf
+    centering_intensity = latent_galaxy_intensity(centering_grid)
+    true_quadratic_centering = float(
+        trapezoid(centering_x**2 * centering_intensity, centering_grid)
+        / trapezoid(centering_intensity, centering_grid)
     )
-    centering_x = (centering_nodes - zmid) / zhalf
-    centering_intensity = latent_galaxy_intensity(centering_nodes.ravel()).reshape(
-        centering_nodes.shape
-    )
-    # Two-point Gauss-Legendre is exact on each segment because x^2 times
-    # the generator's piecewise-linear intensity is a cubic polynomial.
-    centering_numerator = np.sum(
-        centering_halfwidths
-        * np.sum(centering_x**2 * centering_intensity, axis=1)
-    )
-    centering_denominator = trapezoid(
-        latent_galaxy_intensity(centering_grid), centering_grid
-    )
-    true_quadratic_centering = float(centering_numerator / centering_denominator)
     rows: list[dict] = []
 
     for scenario in range(n_scenarios):
