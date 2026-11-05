@@ -19,8 +19,11 @@ def build_preposterior_diagnostics(model: Mapping[str, object], validation_redsh
     warning proxy, not a formal test of covariate shift.
     """
     model_kind = model.get("model")
-    if model_kind not in {"logistic_inclusion_v1", "quadratic_logistic_inclusion_v1"}:
-        raise ValueError("model must be a supported logistic inclusion fitted result")
+    if model_kind not in {
+        "logistic_inclusion_v1", "quadratic_logistic_inclusion_v1",
+        "logistic_inclusion_v2", "quadratic_logistic_inclusion_v2",
+    }:
+        raise ValueError("model must be a supported V1 or V2 logistic inclusion fitted result")
     validation_z = np.asarray(validation_redshift, dtype=float)
     included_raw = np.asarray(validation_included)
     catalogue_z = np.asarray(observed_redshift, dtype=float)
@@ -39,7 +42,9 @@ def build_preposterior_diagnostics(model: Mapping[str, object], validation_redsh
         raise ValueError("observed inclusion probabilities must lie strictly inside (0, 1)")
     try:
         intercept, slope = float(model["intercept"]), float(model["slope"])
-        quadratic = float(model["quadratic"]) if model_kind == "quadratic_logistic_inclusion_v1" else 0.0
+        quadratic = float(model["quadratic"]) if model_kind in {
+            "quadratic_logistic_inclusion_v1", "quadratic_logistic_inclusion_v2"
+        } else 0.0
     except (KeyError, TypeError, ValueError) as exc:
         raise ValueError("fitted model coefficients must be present and finite") from exc
     if not np.all(np.isfinite([intercept, slope, quadratic])):
