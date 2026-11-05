@@ -32,6 +32,8 @@ def main() -> None:
     summary = {
         "schema": "finite_parent_srswor_smoke_v3",
         "solver_version": args.solver_version,
+        "solver_revision": ("2.1-armijo-noise-slack" if args.solver_version == "v2" else "v1-lbfgsb-kkt"),
+        "model_family": "linear_logistic",
         "status": "SMOKE_ONLY_NOT_CONFIRMATORY",
         "n_attempted": int(len(frame)),
         "n_successful": int(len(successful)),
