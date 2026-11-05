@@ -210,3 +210,36 @@ The most tractable defensible sequence is:
 5. If the unit identities or likelihood contract cannot be verified, limit the primary result to host-density reconstruction and do not claim complete propagated dark-siren posterior uncertainty.
 
 This is a proposed research decision, not an approval to implement the sampler. U1 remains open until the listed data and likelihood contracts are verified.
+
+
+## 8. Artifact-level finite-parent unit identity contract (2026-11-06)
+
+The estimated-inclusion pilot now records a zero-based positional `object_id` for
+each unit in the generated finite parent frame. These IDs are local to one
+replicate's generated parent array; they are not persistent astronomical object
+identifiers and do not imply an observed real catalogue.
+
+For every replicate-arm row, the artifact stores:
+- `catalogue_object_ids_json`: parent-frame indices with retention indicator 1;
+- `validation_object_ids_json`: parent-frame indices selected into that arm's
+  validation sample (empty for catalogue-only and oracle arms);
+- `overlap_object_ids_json`: the sorted set intersection of those two lists;
+- `n_catalogue_validation_overlap`: the corresponding overlap count;
+- `unit_overlap_schema = finite_parent_unit_identity_v1`.
+
+The successful inference payload repeats the catalogue, validation, and overlap
+IDs. The independent auditor checks the IDs are unique and within the declared
+parent frame, recomputes the set intersection, checks the counts, and verifies
+that the inference payload agrees with the replicate CSV. Failed rows are also
+required to preserve the CSV-level identities.
+
+This closes the artifact-level identity/overlap traceability gap for newly
+generated pilot artifacts. It does **not** retroactively add identities to
+historical artifacts, prove that validation outcomes are independent of
+catalogue observations, or resolve the statistical choice between a modular
+validation-informed posterior and a full joint finite-frame likelihood.
+The validation sample remains an SRSWOR subset of parent units, and the same
+unit may appear in both the observed catalogue and validation sample. Any
+likelihood treating these as independent records would need an explicit
+dependence/overlap model; these identifiers make that dependence auditable but
+do not by themselves specify the correct likelihood.
