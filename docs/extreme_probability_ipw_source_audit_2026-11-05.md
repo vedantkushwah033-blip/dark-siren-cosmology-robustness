@@ -67,14 +67,15 @@ This is not a claim that an ordinary fit will reach the corners of the coefficie
 
 ## 1A. Benchmark-truth probability range (important qualification)
 
-The theoretical coefficient-box extrema above should not be confused with the true inclusion probabilities used by the planned curvature screen. The inspected pilot defaults are (a=0.25), (b=-1.2), and the curvature screen uses (q\in\{-2,0,2\}), with the quadratic term centered under the parent intensity. Recomputing that center from the repository's exact unnormalized intensity
-[
-\lambda(z)=1+2.2e^{-(z-0.105)^2/(2(0.025)^2)}
-+1.6e^{-(z-0.275)^2/(2(0.040)^2)}
-]
-on the same 20,001-point grid gives (c=0.28450056) (rounded). Over (z\in[0.01,0.40]), the true probability ranges are:
+The theoretical coefficient-box extrema above should not be confused with the true inclusion probabilities used by the planned curvature screen. The inspected pilot defaults are intercept = 0.25, slope = -1.2, and curvature q in {-2, 0, +2}; the quadratic term is centered under the parent intensity.
 
-| True curvature (q) | Minimum true inclusion probability | Maximum true inclusion probability | Maximum true inverse probability |
+Recomputing that center from the repository's exact unnormalized intensity,
+
+`lambda(z) = 1 + 2.2 exp(-0.5 ((z - 0.105)/0.025)^2) + 1.6 exp(-0.5 ((z - 0.275)/0.040)^2)`,
+
+on the same 20,001-point grid gives `c = 0.28450056`. Over the declared domain z in [0.01, 0.40], the true probability ranges are:
+
+| True curvature q | Minimum true inclusion probability | Maximum true inclusion probability | Maximum true inverse probability |
 |---:|---:|---:|---:|
 | -2 | 0.08463 | 0.73086 | 11.82 |
 | 0 | 0.27888 | 0.81000 | 3.59 |
