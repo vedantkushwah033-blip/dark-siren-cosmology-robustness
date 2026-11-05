@@ -189,3 +189,34 @@ def test_failure_code_categories_are_stable_and_ordered_by_exception_specificity
     assert _independent_failure_code(ValueError("one class")) == "invalid_validation_sample"
     assert _independent_failure_code(RuntimeError("fit failed")) == "model_fit_failure"
     assert _independent_failure_code(KeyError("unexpected")) == "unexpected_exception"
+
+
+def test_independent_auditor_accepts_kkt_valid_non_success_optimizer_status(monkeypatch):
+    from types import SimpleNamespace
+
+    import scripts.audit_finite_parent_validation_benchmark as auditor
+
+    def line_search_status(objective, x0, **kwargs):
+        # Symmetric validation data below make theta=(0, 0) an exact
+        # stationary point, despite the simulated non-success status.
+        return SimpleNamespace(
+            x=np.array([0.0, 0.0]),
+            fun=float(objective(np.array([0.0, 0.0]))),
+            success=False,
+            message="ABNORMAL_TERMINATION_IN_LNSRCH",
+        )
+
+    monkeypatch.setattr(auditor, "minimize", line_search_status)
+    grid = np.linspace(0.01, 0.40, 101)
+    observed = np.linspace(0.02, 0.39, 30)
+    validation_z = np.linspace(0.02, 0.38, 12)
+    validation_y = np.array([0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0])
+
+    density, intercept, slope, *_ = auditor._independent_density_and_fit(
+        grid, observed, validation_z, validation_y, np.ones_like(grid)
+    )
+
+    assert intercept == pytest.approx(0.0)
+    assert slope == pytest.approx(0.0)
+    assert np.all(np.isfinite(density))
+    assert np.trapezoid(density, grid) == pytest.approx(1.0, abs=1e-10)
