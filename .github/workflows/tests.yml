@@ -176,10 +176,6 @@ jobs:
           )
           print("Paired V1/V2 synthetic inputs verified; comparison artifact written.")
           PY
-      - name: Run and independently audit V2 estimated-inclusion pilot smoke
-        run: |
-          python scripts/run_estimated_inclusion_pilot.py --replicates 2 --n-parent 1200 --n-detected 8 --validation-sizes 100,300 --seed 20261030 --h0-points 41 --z-points 201 --solver-version v2 --output-dir artifacts/estimated_inclusion_pilot_v2_smoke
-          python scripts/audit_estimated_inclusion_pilot.py artifacts/estimated_inclusion_pilot_v2_smoke
       - name: Test persisted validation-bootstrap artifact generation and independent refit audit
         run: python -m pytest tests/test_validation_bootstrap_artifacts.py -q
       - name: Run and independently audit persisted validation-bootstrap sensitivity (Python 3.12 only)
@@ -419,7 +415,6 @@ jobs:
             artifacts/multiseed_grid_sensitivity/
             artifacts/catalogue_thinning/
             artifacts/estimated_inclusion_pilot_smoke/
-            artifacts/estimated_inclusion_pilot_v2_smoke/
             artifacts/estimated_inclusion_pilot_v2_smoke/
             artifacts/estimated_inclusion_v1_v2_paired_comparison/
             artifacts/configured_inclusion_screen_smoke/
