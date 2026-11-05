@@ -70,3 +70,32 @@ def test_curvature_screen_refuses_to_overwrite_existing_artifacts(tmp_path, monk
     with pytest.raises(SystemExit):
         screen.main()
     assert sentinel.read_text(encoding="utf-8") == "preserve prior artifact"
+
+
+
+@pytest.mark.parametrize(
+    "curvature_levels",
+    ["nan,1", "inf,1", "0.01,0.02"],
+)
+def test_curvature_screen_rejects_nonfinite_or_colliding_levels(
+    tmp_path, monkeypatch, curvature_levels
+):
+    output = tmp_path / "invalid_curvature_screen"
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run_estimated_inclusion_curvature_screen.py",
+            "--replicates", "1",
+            "--n-parent", "1000",
+            "--n-detected", "5",
+            "--validation-sizes", "100",
+            "--curvature-levels", curvature_levels,
+            "--output-dir", str(output),
+        ],
+    )
+
+    with pytest.raises(SystemExit):
+        screen.main()
+
+    # Validation must fail before creating an artifact directory.
+    assert not output.exists()
