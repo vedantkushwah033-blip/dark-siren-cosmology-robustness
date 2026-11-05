@@ -102,6 +102,7 @@ def main() -> None:
         "--n-parent", str(config["n_parent"]),
         "--n-detected", str(config["n_detected"]),
         "--validation-sizes", ",".join(map(str, config["validation_sizes"])),
+        "--curvature-levels", ",".join(map(str, config["curvature_levels"])),
         "--seed", str(config["seed"]),
         "--h0-points", str(config["h0_points"]),
         "--z-points", str(config["z_points"]),
@@ -114,12 +115,12 @@ def main() -> None:
     report["configuration"] = config
     report["configuration_sha256"] = digest
     (output_dir / "experiment_config.canonical.json").write_text(
-        json.dumps(config, indent=2, sort_keys=True) + "\\n", encoding="utf-8"
+        json.dumps(config, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     provenance = collect_provenance(output_dir)
     report["provenance"] = provenance
     (output_dir / "provenance.json").write_text(
-        json.dumps(provenance, indent=2, sort_keys=True) + "\\n", encoding="utf-8"
+        json.dumps(provenance, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps({"status": report["status"], "configuration_sha256": digest, "output_dir": str(output_dir)}, indent=2))
