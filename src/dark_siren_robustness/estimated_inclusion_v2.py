@@ -66,8 +66,6 @@ def _fit_box_logistic(
     if design.shape[1] != lower.size or np.any(lower >= upper):
         raise ValueError("coefficient bounds do not match the design")
     theta = np.zeros(design.shape[1], dtype=float)
-    identity = np.eye(theta.size)
-
     def objective(value: NDArray[np.float64]) -> float:
         return _logistic_nll_gradient_hessian(design, y, value)[0]
 
