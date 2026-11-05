@@ -42,9 +42,27 @@ def _independent_density_and_fit(grid, observed, validation_z, validation_y, rat
     fit = minimize(objective, np.zeros(2), method="L-BFGS-B",
                    bounds=((-25.0, 25.0), (-50.0, 50.0)),
                    options={"maxiter": 2000, "ftol": 1e-12, "gtol": 1e-8})
-    if not fit.success or not np.all(np.isfinite(fit.x)):
-        raise RuntimeError("independent logistic refit failed")
+    if not np.all(np.isfinite(fit.x)) or not np.isfinite(fit.fun):
+        raise RuntimeError("independent logistic refit returned non-finite output")
+    # Match the production estimator's acceptance contract: an optimizer
+    # line-search/status flag is not decisive when the independently computed
+    # box-constrained KKT residual already certifies stationarity. This keeps
+    # the auditor from falsely rejecting valid near-flat solutions.
     intercept, slope = map(float, fit.x)
+    residual = expit(intercept + slope * x) - y
+    raw_gradient = np.array([np.sum(residual), np.dot(residual, x)], dtype=float)
+    projected_gradient = raw_gradient.copy()
+    for j, (lower, upper) in enumerate(((-25.0, 25.0), (-50.0, 50.0))):
+        if fit.x[j] <= lower + 1e-7 and raw_gradient[j] > 0.0:
+            projected_gradient[j] = 0.0
+        elif fit.x[j] >= upper - 1e-7 and raw_gradient[j] < 0.0:
+            projected_gradient[j] = 0.0
+    kkt_residual = float(np.max(np.abs(projected_gradient)))
+    if not np.isfinite(kkt_residual) or kkt_residual > 1e-5:
+        raise RuntimeError(
+            "independent logistic refit failed KKT check: "
+            f"projected_gradient={kkt_residual:.3g}"
+        )
     p = expit(intercept + slope * ((observed-midpoint)/half_range))
     inverse = 1.0/p
     scaled = inverse/np.max(inverse)
