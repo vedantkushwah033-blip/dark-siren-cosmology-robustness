@@ -161,6 +161,7 @@ def run_finite_parent_benchmark(
         parent_hash = hashlib.sha256(np.ascontiguousarray(parent_z).view(np.uint8)).hexdigest()
         catalogue_hash = hashlib.sha256(np.ascontiguousarray(observed_z).view(np.uint8)).hexdigest()
         gw_hash = hashlib.sha256(np.ascontiguousarray(distances).view(np.uint8)).hexdigest()
+        catalogue_parent_indices = np.flatnonzero(retained)
         if observed_z.size < 5 or np.unique(observed_z).size < 3:
             for size in sizes:
                 for draw in range(n_validation_draws):
@@ -226,6 +227,9 @@ def run_finite_parent_benchmark(
             nested_samples = nested_srswor_sample_indices(rng, n_parent, sizes)
             for size in sizes:
                 indices = nested_samples[size]
+                overlap_indices = np.intersect1d(
+                    indices, catalogue_parent_indices, assume_unique=True
+                )
                 if np.unique(indices).size != size:
                     raise RuntimeError("SRSWOR generator returned duplicate indices")
                 try:
@@ -252,6 +256,10 @@ def run_finite_parent_benchmark(
                         "sigma_mpc": float(sigma_mpc),
                         "detection_threshold_mpc": float(detection_threshold_mpc),
                         "validation_indices": ",".join(map(str, indices.tolist())),
+                        "catalogue_validation_overlap_indices": ",".join(
+                            map(str, overlap_indices.tolist())
+                        ),
+                        "catalogue_validation_overlap_count": int(overlap_indices.size),
                         "n_validation_included": int(np.sum(retained[indices])),
                         "fit_status": result["model"]["fit_status"],
                         "fit_boundary_limited": bool(result["model"]["coefficient_bound_hit"]),
@@ -301,6 +309,10 @@ def run_finite_parent_benchmark(
                         "sigma_mpc": float(sigma_mpc),
                         "detection_threshold_mpc": float(detection_threshold_mpc),
                         "validation_indices": ",".join(map(str, indices.tolist())),
+                        "catalogue_validation_overlap_indices": ",".join(
+                            map(str, overlap_indices.tolist())
+                        ),
+                        "catalogue_validation_overlap_count": int(overlap_indices.size),
                         "n_validation_included": int(np.sum(retained[indices])),
                         "covered_68": None, "h0_true": float(h0_true),
                         "n_catalogue": int(observed_z.size),
