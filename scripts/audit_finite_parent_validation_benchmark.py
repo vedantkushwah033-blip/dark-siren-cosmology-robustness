@@ -40,20 +40,20 @@ def _independent_density_and_fit(grid, observed, validation_z, validation_y, rat
         return float(-np.sum(y * log_expit(eta) + (1.0-y) * log_expit(-eta)))
 
     bounds = ((-25.0, 25.0), (-50.0, 50.0))
-    if solver_version == "v1":
-        fit = minimize(objective, np.zeros(2), method="L-BFGS-B", bounds=bounds,
-                       options={"maxiter": 2000, "ftol": 1e-12, "gtol": 1e-8})
-    elif solver_version == "v2":
-        # Independent SLSQP solve: deliberately does not reproduce the
-        # production damped-Newton iterations or line-search implementation.
-        def gradient(theta):
-            residual = expit(theta[0] + theta[1] * x) - y
-            return np.array([np.sum(residual), np.dot(residual, x)], dtype=float)
-        fit = minimize(objective, np.zeros(2), jac=gradient, method="SLSQP",
-                       bounds=bounds,
-                       options={"maxiter": 5000, "ftol": 1e-13, "disp": False})
-    else:
+    def gradient(theta):
+        residual = expit(theta[0] + theta[1] * x) - y
+        return np.array([np.sum(residual), np.dot(residual, x)], dtype=float)
+
+    if solver_version not in {"v1", "v2"}:
         raise ValueError("unsupported solver_version in independent audit")
+    # Use the same independently coded constrained reference algorithm for
+    # both production solver versions. SLSQP is intentionally distinct from
+    # production V1 L-BFGS-B and V2 damped Newton. Supplying the exact gradient
+    # avoids finite-difference noise near flat/boundary-limited optima.
+    fit = minimize(
+        objective, np.zeros(2), jac=gradient, method="SLSQP", bounds=bounds,
+        options={"maxiter": 10000, "ftol": 1e-14, "disp": False},
+    )
     if not np.all(np.isfinite(fit.x)) or not np.isfinite(fit.fun):
         raise RuntimeError("independent logistic refit returned non-finite output")
     # Match the production estimator's acceptance contract: an optimizer
