@@ -19,6 +19,11 @@ def _independent_posterior(z, h0, observed, validation_z, validation_y, distance
     midpoint = 0.5 * (z[0] + z[-1])
     half = 0.5 * (z[-1] - z[0])
     x = (validation_z - midpoint) / half
+    design = np.column_stack((np.ones(x.size), x))
+    if np.linalg.matrix_rank(design) < design.shape[1]:
+        raise RuntimeError(
+            "independent linear logistic design is rank deficient; slope is not identifiable"
+        )
     y = validation_y.astype(float)
     if np.unique(y).size != 2:
         raise ValueError(
