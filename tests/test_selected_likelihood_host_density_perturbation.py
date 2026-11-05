@@ -58,7 +58,7 @@ def test_selected_loglikelihood_first_order_derivative_includes_beta_term():
     # Smooth, nonconstant perturbation. Centering under p ensures the
     # first-order density perturbation integrates to zero.
     raw_delta = 0.65 * np.sin(2.0 * np.pi * (z - z[0]) / (z[-1] - z[0]))
-    raw_delta += 0.25 * (z - np.trapezoid(z * density, z))
+    raw_delta += 0.25 * (z - trapezoid(z * density, z))
     delta_mean = trapezoid(density * raw_delta, z)
     centered_delta = raw_delta - delta_mean
     assert abs(trapezoid(density * centered_delta, z)) < 1e-12
