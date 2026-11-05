@@ -42,6 +42,7 @@ def test_load_config_validates_and_hashes_canonical_manifest(tmp_path):
         lambda c: c.update({"validation_sizes": [100, 100]}),
         lambda c: c.update({"replicates": True}),
         lambda c: c.update({"curvature_levels": []}),
+        lambda c: c.update({"curvature_levels": [float("nan")]}),
         lambda c: c.update({"schema_version": 99}),
         lambda c: c.update({"schema_version": True}),
     ],
@@ -66,6 +67,7 @@ def test_configured_runner_records_manifest_and_hash(tmp_path, monkeypatch):
     def fake_run(command, check):
         assert check is True
         assert "--replicates" in command and "2" in command
+        assert command[command.index("--curvature-levels") + 1] == "-2,0,2"
         output.mkdir(parents=True)
         (output / "screen_report.json").write_text(
             json.dumps({"status": "SCREEN_NOT_CONFIRMATORY"}), encoding="utf-8"
@@ -79,6 +81,7 @@ def test_configured_runner_records_manifest_and_hash(tmp_path, monkeypatch):
     canonical = json.loads((output / "experiment_config.canonical.json").read_text(encoding="utf-8"))
     assert report["configuration"] == config
     assert canonical == config
+    assert (output / "experiment_config.canonical.json").read_text(encoding="utf-8").endswith("\n")
     assert report["configuration_sha256"] == configured.load_config(config_path)[1]
     assert report["configuration_schema_version"] == 1
     provenance = json.loads((output / "provenance.json").read_text(encoding="utf-8"))
