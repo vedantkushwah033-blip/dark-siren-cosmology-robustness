@@ -78,7 +78,7 @@ The repository also has an explicitly exploratory pseudo-population SRSWOR boots
 The supplied dossier correctly emphasizes that the selection normalization must match the population density used in the event integral. It should also preserve the current design's exact limitations:
 - fixed detected-event count; no event-rate likelihood;
 - simplified one-dimensional redshift/distance model;
-- sharp toy detection threshold, with the current code's explicit convention documented (do not silently replace it with a realistic detector-selection claim);
+- the current toy generator/likelihood retain events when observed distance satisfies `d_obs >= tau`, i.e. they retain the far-distance side of the threshold. This is the reverse of the common simplified intuition that detects events below a maximum distance, and it does not match the Consensus dossier's displayed `I(d <= 250 Mpc)` equation. The generator and likelihood are internally aligned to their toy rule, but that rule is not detector-realistic;
 - synthetic-only validation, not LVK data or a measured H0 result.
 
 A fixed truth H0=70 does not create a generating-truth stratum of 55<=H0<=85. If that interval is used, call it a posterior-grid interior region or boundary-sensitivity region, not a truth stratum. A separate truth-stratified design would require varying H0_truth across replicates and preregistering the strata.
