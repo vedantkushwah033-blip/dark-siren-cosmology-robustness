@@ -52,6 +52,7 @@ def _artifact(tmp_path, solver_version="v1"):
         "solver_version": solver_version,
         "solver_revision": ("2.1-armijo-noise-slack" if solver_version == "v2" else "v1-lbfgsb-kkt"),
         "model_family": "linear_logistic",
+        "true_quadratic_centering": float(frame["true_quadratic_centering"].iloc[0]),
         "status": "SMOKE_ONLY_NOT_CONFIRMATORY",
         "n_attempted": len(frame),
         "n_successful": int(successful.shape[0]),
