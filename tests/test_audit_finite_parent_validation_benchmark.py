@@ -8,11 +8,11 @@ from dark_siren_robustness.finite_parent_sampling import run_finite_parent_bench
 from scripts.audit_finite_parent_validation_benchmark import audit
 
 
-def _artifact(tmp_path):
+def _artifact(tmp_path, solver_version="v1"):
     frame = run_finite_parent_benchmark(
         n_scenarios=1, n_validation_draws=2, n_parent=1200,
         n_detected=6, validation_sizes=(100, 200), seed=20261033,
-        h0_points=41, z_points=201,
+        h0_points=41, z_points=201, solver_version=solver_version,
     )
     frame.to_csv(tmp_path / "records.csv", index=False)
     successful = frame.loc[frame["status"].eq("success")]
@@ -47,7 +47,8 @@ def _artifact(tmp_path):
             "scenario_coverage_sd": float(scenario_coverage.std(ddof=1)) if len(scenario_coverage) > 1 else None,
         }
     summary = {
-        "schema": "finite_parent_srswor_smoke_v2",
+        "schema": "finite_parent_srswor_smoke_v3",
+        "solver_version": solver_version,
         "status": "SMOKE_ONLY_NOT_CONFIRMATORY",
         "n_attempted": len(frame),
         "n_successful": int(successful.shape[0]),
@@ -222,3 +223,11 @@ def test_independent_auditor_accepts_kkt_valid_non_success_optimizer_status(monk
     assert slope == pytest.approx(0.0)
     assert np.all(np.isfinite(density))
     assert trapezoid(density, grid) == pytest.approx(1.0, abs=1e-10)
+
+
+def test_finite_parent_v2_run_is_independently_audited_with_slsqp(tmp_path):
+    frame = _artifact(tmp_path, solver_version="v2")
+    assert frame["solver_version"].eq("v2").all()
+    result = audit(tmp_path)
+    assert result["status"] == "INDEPENDENT_NUMERICAL_AUDIT_PASS"
+    assert result["n_attempted"] == 4
