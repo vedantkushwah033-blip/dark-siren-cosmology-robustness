@@ -15,7 +15,7 @@ For design matrix X, binary outcomes y, and coefficient vector theta, v2 minimiz
 
 `ell(theta) = -sum_i [y_i log sigmoid(x_i' theta) + (1-y_i) log sigmoid(-x_i' theta)]`.
 
-The quadratic model uses the same centered basis `x**2 - 1/3` as v1, so v1/v2 coefficients and constraints have the same parameterization. It computes the analytic gradient `X' (p-y)` and Hessian `X' diag(p(1-p)) X`. Each iteration attempts a Newton direction, adding increasing diagonal damping if the Hessian solve is singular or the direction is not a descent direction. A projected Armijo backtracking search clips candidate coefficients to the declared v1-compatible box. If the damped Newton line search cannot find a step, it attempts a projected-gradient descent step.
+The quadratic model uses the same uncentered `x**2` basis as the production v1 fitter. This is essential because the intercept coefficient bounds are part of the constrained estimator; centering shifts the intercept by `quadratic/3` and does not preserve the same feasible coefficient box. It computes the analytic gradient `X' (p-y)` and Hessian `X' diag(p(1-p)) X`. Each iteration attempts a Newton direction, adding increasing diagonal damping if the Hessian solve is singular or the direction is not a descent direction. A projected Armijo backtracking search clips candidate coefficients to the declared v1-compatible box. If the damped Newton line search cannot find a step, it attempts a projected-gradient descent step.
 
 Convergence is declared only when the infinity norm of the unit-step projected-gradient mapping is at most `1e-7`. A non-converged run raises an explicit RuntimeError; it is not relabelled as success. Coefficients touching a box face are returned as `boundary_limited`, including separated data where the finite box constrains the estimate.
 
@@ -39,7 +39,7 @@ Results identify their model version and retain iteration, accepted/rejected ste
 
 ## Interpretation and limitations
 
-1. The quadratic basis is deliberately v1-compatible: `intercept + slope*x + quadratic*(x**2 - 1/3)`. An uncentered `x**2` basis would shift the intercept and could make coefficient comparisons misleading.
+1. The quadratic basis is deliberately production-v1-compatible: `intercept + slope*x + quadratic*x**2`. Although centering is an algebraic reparameterization of the same unconstrained curves, it shifts the intercept by `quadratic/3`; with fixed coefficient bounds, the feasible parameter sets differ. Therefore v1/v2 comparisons must retain the uncentered basis.
 2. This is a convex optimization routine for the stated finite-dimensional logistic likelihood with box constraints. It does not establish that the logistic inclusion model is correctly specified.
 3. The coefficient box is part of the estimator. Boundary-limited fits are scientifically important diagnostics, not successful unconstrained MLEs.
 4. A small projected-gradient mapping establishes approximate first-order constrained stationarity. For a convex objective this is strong optimization evidence, but finite precision, ill-conditioning, and the chosen box still matter.
