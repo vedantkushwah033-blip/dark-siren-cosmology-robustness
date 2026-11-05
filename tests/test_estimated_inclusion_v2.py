@@ -40,6 +40,9 @@ def test_v2_quadratic_solver_recovers_nonlinear_probability_curve():
     assert fit["fit_status"] == "converged"
     assert fit["projected_gradient_inf_norm"] <= 1e-7
     assert np.mean(np.abs(predicted - expit(0.15 - 0.8*x_grid + 1.4*x_grid**2))) < 0.015
+    # V2 uses the same centered quadratic basis as the established v1 fitter.
+    assert fit["intercept"] == pytest.approx(0.15 + 1.4 / 3.0, abs=0.10)
+    assert fit["quadratic"] == pytest.approx(1.4, abs=0.10)
 
 
 def test_v2_solver_reports_separated_data_as_boundary_limited():
