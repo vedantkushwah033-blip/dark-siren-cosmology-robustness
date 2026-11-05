@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 from scipy.special import expit
 
-from dark_siren_robustness.estimated_inclusion import (\n    fit_quadratic_logistic_inclusion_model,\n    predict_inclusion_probability,\n)\nfrom dark_siren_robustness.estimated_inclusion_v2 import (
+from dark_siren_robustness.estimated_inclusion import (
+    fit_quadratic_logistic_inclusion_model,
+    predict_inclusion_probability,
+)
+from dark_siren_robustness.estimated_inclusion_v2 import (
     fit_logistic_inclusion_model_v2,
     fit_quadratic_logistic_inclusion_model_v2,
     predict_inclusion_probability_v2,
