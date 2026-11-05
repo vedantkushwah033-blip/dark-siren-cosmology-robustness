@@ -191,6 +191,7 @@ def test_preposterior_diagnostics_are_observable_only_and_reconstruct_weight_met
     assert result["diagnostic_schema"] == "preposterior_weight_stability_v1"
     assert result["n_validation"] == 200
     assert result["n_validation_included"] == 100
+    assert result["fitted_quadratic"] == 0.0
     assert result["inverse_weight_ess"] == pytest.approx(expected_ess)
     assert result["inverse_weight_ess_fraction"] == pytest.approx(expected_ess / 80)
     normalized = weights / weights.sum()
