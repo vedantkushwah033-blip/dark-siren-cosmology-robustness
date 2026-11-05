@@ -290,6 +290,8 @@ jobs:
           PY
       - name: Independently audit V2 finite-parent smoke artifacts
         run: python scripts/audit_finite_parent_validation_benchmark.py artifacts/finite_parent_validation_v2_smoke
+      - name: Test paired V1/V2 finite-parent comparison on identical inputs
+        run: python -m pytest tests/test_finite_parent_v1_v2_paired_comparison.py -q
       - name: Test host-density-to-H0 benchmark
         run: python -m pytest tests/test_host_density_benchmark.py -q
       - name: Test corrected physical KDE bandwidth semantics
