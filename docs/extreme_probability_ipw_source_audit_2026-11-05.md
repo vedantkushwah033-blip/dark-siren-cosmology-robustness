@@ -201,3 +201,22 @@ Freeze estimands, failure denominators, prior/domain, validation sampling design
 ## Reproducibility and evidence boundary
 
 This document records source-level inspection of the files named above at the stated branch head. It does not report a new test run, a new simulation, a historical D-01 replay, or a full-repository audit. The D-01 historical root cause remains unresolved unless its original records are recovered and replayed.
+
+
+## 8. Addendum: subsequent V2 pipeline integration (5 November 2026)
+
+This section supersedes the earlier implementation-status sentence in the executive finding that described V2 as standalone and not integrated. That sentence accurately described the earlier inspected snapshot, but is stale relative to the current research branch.
+
+The current branch now has an opt-in `solver_version="v1"|"v2"` path through validation-to-host-density estimation, paired validation bootstrap, pre-posterior diagnostics, the estimated-inclusion pilot runner, and the independent pilot artifact auditor. V1 remains the default. The pilot CLI exposes `--solver-version v1|v2`. This is a software integration fact, not evidence that V2 improves H0 inference.
+
+The workflow's paired smoke step runs the V1 and V2 pilots with the same seed and compares persisted inference payloads for exact equality of the redshift grid, catalogue redshifts, validation redshifts and outcomes, H0 grid, and observed GW distances; it also compares scoring payload parent redshifts and true inclusion probabilities. The smoke uses only two replicates, 1,200 parent objects, eight detected events, validation sizes 100 and 300, and coarse 41/201 H0/redshift grids. It is an integration/provenance check only, not a performance or calibration study.
+
+The workflow subsequently runs the V2 pilot again into the same `artifacts/estimated_inclusion_pilot_v2_smoke` output directory used by the paired step. This is redundant generation and may overwrite the paired-step V2 files; the workflow should use one canonical generation or distinct output directories. Until an exact-head run and its artifacts are inspected, no successful paired artifact or current cross-version CI result is claimed here.
+
+The original mathematical conclusions remain unchanged:
+- coefficient bounds do not imply a useful positivity floor;
+- uncapped IPW remains the baseline;
+- empirical diagnostics do not prove population positivity;
+- no universal ESS or weight-concentration threshold has been validated;
+- no downstream V2 superiority claim is supported;
+- the historical D-01 root cause remains OPEN / UNKNOWN.
