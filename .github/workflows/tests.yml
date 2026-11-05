@@ -73,7 +73,7 @@ jobs:
           }
           Path("artifacts").mkdir(exist_ok=True)
           Path("artifacts/configured_inclusion_screen_smoke_config.json").write_text(
-              json.dumps(config, indent=2) + "\\n", encoding="utf-8"
+              json.dumps(config, indent=2) + "\n", encoding="utf-8"
           )
           PY
           python scripts/run_estimated_inclusion_curvature_screen_from_config.py --config artifacts/configured_inclusion_screen_smoke_config.json
