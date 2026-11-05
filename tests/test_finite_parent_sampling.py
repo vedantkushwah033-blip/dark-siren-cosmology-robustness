@@ -25,6 +25,12 @@ def test_finite_parent_benchmark_is_reproducible_and_accounts_for_attempts():
         assert indices.size == int(row["validation_size"])
         assert np.unique(indices).size == int(row["validation_size"])
         assert np.all((indices >= 0) & (indices < 1200))
+        overlap = np.fromstring(
+            row["catalogue_validation_overlap_indices"], sep=",", dtype=int
+        )
+        assert int(row["catalogue_validation_overlap_count"]) == overlap.size
+        assert np.all(np.isin(overlap, indices))
+        assert int(row["catalogue_validation_overlap_count"]) == int(row["n_validation_included"])
     assert (first["status"] == "success").sum() + (first["status"] == "failed").sum() == 4
     for draw in range(2):
         small = first.loc[(first["draw"] == draw) & (first["validation_size"] == 100)].iloc[0]
