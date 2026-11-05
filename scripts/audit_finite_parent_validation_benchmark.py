@@ -20,6 +20,18 @@ from scipy.stats import norm
 C_KM_S = 299_792.458
 
 
+def _independent_parent_quadratic_centering(z_min: float, z_max: float) -> float:
+    """Recompute E_g[x^2] independently from the declared parent intensity."""
+    grid = np.linspace(float(z_min), float(z_max), 20001)
+    intensity = (
+        1.0
+        + 2.2 * np.exp(-0.5 * ((grid - 0.105) / 0.025) ** 2)
+        + 1.6 * np.exp(-0.5 * ((grid - 0.275) / 0.040) ** 2)
+    )
+    x = (grid - 0.5 * (z_min + z_max)) / (0.5 * (z_max - z_min))
+    return float(trapezoid(x**2 * intensity, grid) / trapezoid(intensity, grid))
+
+
 def _quad_weights(grid: np.ndarray) -> np.ndarray:
     delta = np.diff(grid)
     weights = np.empty_like(grid)
@@ -151,7 +163,7 @@ def audit(artifact_dir: Path) -> dict:
     required = {
         "scenario", "draw", "validation_size", "status", "validation_seed",
         "simulation_seed", "thinning_seed", "true_intercept", "true_slope",
-        "true_quadratic", "sigma_mpc", "detection_threshold_mpc",
+        "true_quadratic", "true_quadratic_centering", "sigma_mpc", "detection_threshold_mpc",
         "validation_indices", "catalogue_validation_overlap_indices",
         "catalogue_validation_overlap_count", "failure_code", "failure_reason",
         "parent_size", "parent_frame_sha256",
@@ -253,10 +265,18 @@ def audit(artifact_dir: Path) -> dict:
         distances = simulation["gw_events_observed"]["distance_mpc"].to_numpy(dtype=float)
         midpoint, half_range = 0.205, 0.195
         x_parent = (parent_z - midpoint) / half_range
+        expected_centering = _independent_parent_quadratic_centering(0.01, 0.40)
+        _close(
+            first["true_quadratic_centering"], expected_centering,
+            "parent-law quadratic centering", rtol=0.0, atol=2e-12,
+        )
+        if group["true_quadratic_centering"].nunique(dropna=True) != 1:
+            raise AssertionError("quadratic centering constant varies within a scenario")
         p_inclusion = expit(
             float(first["true_intercept"])
             + float(first["true_slope"]) * x_parent
-            + float(first["true_quadratic"]) * (x_parent*x_parent - 1.0/3.0)
+            + float(first["true_quadratic"])
+            * (x_parent*x_parent - float(first["true_quadratic_centering"]))
         )
         retained = np.random.default_rng(int(first["thinning_seed"])).random(len(parent_z)) < p_inclusion
         observed_z = parent_z[retained]
