@@ -390,3 +390,63 @@ def test_v2_pilot_artifact_passes_independent_auditor(tmp_path):
     assert result.returncode == 0, result.stdout + result.stderr
     audit = json.loads(result.stdout)
     assert audit["status"] == "PASS"
+
+
+
+def test_v1_v2_pilot_comparison_uses_identical_synthetic_inputs():
+    """Pair both solvers on the same parent, catalogue, validation and GW data."""
+    import json
+    import numpy as np
+
+    common = dict(
+        n_replicates=1,
+        n_parent=1200,
+        n_detected=8,
+        validation_sizes=(100,),
+        seed=20261108,
+        h0_points=41,
+        z_points=201,
+    )
+    v1, summary_v1 = run_estimated_inclusion_pilot(**common, solver_version="v1")
+    v2, summary_v2 = run_estimated_inclusion_pilot(**common, solver_version="v2")
+
+    assert summary_v1["solver_version"] == "v1"
+    assert summary_v2["solver_version"] == "v2"
+    assert set(v1["arm"]) == set(v2["arm"])
+    left = v1.set_index("arm").sort_index()
+    right = v2.set_index("arm").sort_index()
+
+    invariant_columns = (
+        "replicate_seed", "catalogue_seed", "audit_seed",
+        "n_catalogue", "n_detected", "true_quadratic_center",
+        "true_probability_min", "true_probability_max",
+        "true_probability_p01", "true_probability_p05",
+        "true_probability_below_005", "true_probability_below_010",
+        "true_max_inverse_probability", "true_retention_rate",
+        "audit_included_count",
+    )
+    for column in invariant_columns:
+        assert np.array_equal(
+            left[column].to_numpy(), right[column].to_numpy(), equal_nan=True
+        ), column
+
+    for arm in left.index:
+        payload_v1 = json.loads(left.loc[arm, "inference_audit_payload_json"])
+        payload_v2 = json.loads(right.loc[arm, "inference_audit_payload_json"])
+        for key in (
+            "redshift_grid", "catalogue_redshift", "density_inclusion_probability",
+            "merger_weight_grid", "validation_redshift", "validation_included",
+            "h0_grid", "observed_distances_mpc",
+        ):
+            assert payload_v1[key] == payload_v2[key], (arm, key)
+        assert payload_v1["solver_version"] == "v1"
+        assert payload_v2["solver_version"] == "v2"
+
+        scoring_v1 = json.loads(left.loc[arm, "scoring_audit_payload_json"])
+        scoring_v2 = json.loads(right.loc[arm, "scoring_audit_payload_json"])
+        for key in ("parent_redshift", "true_inclusion_probability"):
+            assert scoring_v1.get(key) == scoring_v2.get(key), (arm, key)
+
+    # This is a paired-input regression test, not evidence that either solver
+    # improves H0 calibration; downstream performance must be estimated over
+    # a prespecified repeated-sampling campaign.
