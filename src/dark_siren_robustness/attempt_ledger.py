@@ -86,6 +86,11 @@ def transition_attempt(
         raise ValueError(f"status must be one of {sorted(TERMINAL_STATUSES)}")
     if not isinstance(stage, str) or not stage.strip():
         raise ValueError("stage must be a non-empty string")
+    if not isinstance(failure_code, str) or not isinstance(failure_reason, str):
+        raise TypeError("failure_code and failure_reason must be strings")
+    reserved_payload = set(KEY_COLUMNS) | {"status", "ledger_schema", "transition_count"}
+    if reserved_payload.intersection(payload or {}):
+        raise ValueError(f"payload cannot overwrite reserved ledger fields: {sorted(reserved_payload.intersection(payload or {}))}")
     if status in {"FAILED", "NON_EVALUABLE"}:
         if not failure_code.strip() or not failure_reason.strip():
             raise ValueError(f"{status} requires failure_code and failure_reason")
@@ -109,8 +114,6 @@ def transition_attempt(
     ledger.at[index, "failure_reason"] = failure_reason
     ledger.at[index, "transition_count"] = int(ledger.at[index, "transition_count"]) + 1
     for key, value in (payload or {}).items():
-        if key in KEY_COLUMNS or key in {"status", "ledger_schema", "transition_count"}:
-            raise ValueError(f"payload cannot overwrite reserved ledger field {key!r}")
         ledger.at[index, key] = value
     return ledger
 
