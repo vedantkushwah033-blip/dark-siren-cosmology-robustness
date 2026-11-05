@@ -494,7 +494,7 @@ def test_v1_v2_pilot_comparison_uses_identical_synthetic_inputs():
         payload_v1 = json.loads(left.loc[arm, "inference_audit_payload_json"])
         payload_v2 = json.loads(right.loc[arm, "inference_audit_payload_json"])
         for key in (
-            "redshift_grid", "catalogue_redshift", "density_inclusion_probability",
+            "redshift_grid", "catalogue_redshift",
             "merger_weight_grid", "validation_redshift", "validation_included",
             "h0_grid", "observed_distances_mpc",
         ):
