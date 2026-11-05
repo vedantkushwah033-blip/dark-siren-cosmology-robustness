@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "replicates": 20,
+  "n_parent": 4000,
+  "n_detected": 30,
+  "validation_sizes": [
+    100,
+    300,
+    1000
+  ],
+  "seed": 20261031,
+  "h0_points": 41,
+  "z_points": 201,
+  "curvature_levels": [
+    -2,
+    -1,
+    0,
+    1,
+    2
+  ],
+  "output_dir": "artifacts/estimated_inclusion_curvature_screen"
+}
