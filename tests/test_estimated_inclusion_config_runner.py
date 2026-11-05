@@ -79,6 +79,10 @@ def test_configured_runner_records_manifest_and_hash(tmp_path, monkeypatch):
         )
         (output / "raw.csv").write_text("replicate,status\\n1,success\\n", encoding="utf-8")
 
+    # platform.platform() may invoke subprocess internally (for example, uname -p).
+    # Keep provenance collection deterministic without letting that unrelated OS
+    # probe pass through the mock intended for the runner and Git revision call.
+    monkeypatch.setattr(configured.platform, "platform", lambda: "test-platform")
     monkeypatch.setattr(configured.subprocess, "run", fake_run)
     configured.main()
 
