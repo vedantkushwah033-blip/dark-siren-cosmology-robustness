@@ -64,7 +64,39 @@ def main() -> None:
 
     v1 = pd.read_csv(v1_dir / "records.csv")
     v2 = pd.read_csv(v2_dir / "records.csv")
+    manifests = {
+        "v1": json.loads((v1_dir / "summary.json").read_text(encoding="utf-8")),
+        "v2": json.loads((v2_dir / "summary.json").read_text(encoding="utf-8")),
+    }
+    common_manifest_fields = (
+        "schema", "status", "n_attempted", "validation_sizes", "scenarios",
+        "draws_per_scenario_and_size", "seed", "h0_points", "z_points",
+        "h0_grid_bounds", "redshift_grid_bounds", "model_family",
+    )
+    for field in common_manifest_fields:
+        if manifests["v1"].get(field) != manifests["v2"].get(field):
+            raise AssertionError(f"paired arm manifests disagree on {field!r}")
+    if manifests["v1"].get("schema") != "finite_parent_srswor_smoke_v3":
+        raise AssertionError("paired arm manifest has an unsupported schema")
+    if manifests["v1"].get("status") != "SMOKE_ONLY_NOT_CONFIRMATORY":
+        raise AssertionError("paired arms must remain explicitly non-confirmatory")
+    if manifests["v1"].get("seed") != args.seed:
+        raise AssertionError("paired arm manifest seed does not match requested seed")
+    expected_attempts = args.scenarios * args.draws * len(
+        [item for item in args.validation_sizes.split(",") if item.strip()]
+    )
     for label, frame, expected in (("V1", v1, "v1"), ("V2", v2, "v2")):
+        manifest = manifests[expected]
+        if manifest.get("solver_version") != expected:
+            raise AssertionError(f"{label} manifest has an unexpected solver version")
+        if manifest.get("solver_revision") != (
+            "2.1-armijo-noise-slack" if expected == "v2" else "v1-lbfgsb-kkt"
+        ):
+            raise AssertionError(f"{label} manifest has an unexpected solver revision")
+        if len(frame) != expected_attempts or len(frame) != manifest.get("n_attempted"):
+            raise AssertionError(f"{label} artifact attempt count disagrees with requested design")
+        if not frame["status"].isin(["success", "failed"]).all():
+            raise AssertionError(f"{label} artifact contains an unknown attempt status")
         if not frame["solver_version"].eq(expected).all():
             raise AssertionError(f"{label} artifact contains an unexpected solver version")
     if len(v1) != len(v2):
