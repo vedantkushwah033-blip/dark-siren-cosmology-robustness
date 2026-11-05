@@ -41,6 +41,7 @@ def _validate_design(
     if degree == 2:
         columns.append(x * x)
     design = np.column_stack(columns)
+    singular_values = np.linalg.svd(design, compute_uv=False)
     if np.linalg.matrix_rank(design) < design.shape[1]:
         model_name = "quadratic" if degree == 2 else "linear"
         raise ValueError(
@@ -212,10 +213,14 @@ def fit_logistic_inclusion_model_v2(
     z, y, design = _validate_design(
         validation_redshift, included, z_min=z_min, z_max=z_max, degree=1
     )
+    design_singular_values = np.linalg.svd(design, compute_uv=False)
+    design_condition_number = float(design_singular_values[0] / design_singular_values[-1])
     fit = _fit_box_logistic(design, y, ((-25.0, 25.0), (-50.0, 50.0)))
     intercept, slope = fit.pop("coefficients")
     return {
         "model": "logistic_inclusion_v2", "solver_version": "v2",
+        "design_singular_values": design_singular_values.tolist(),
+        "design_condition_number": design_condition_number,
         "intercept": float(intercept), "slope": float(slope),
         "z_min": float(z_min), "z_max": float(z_max),
         "n_validation": int(z.size), "n_included": int(y.sum()),
@@ -230,12 +235,16 @@ def fit_quadratic_logistic_inclusion_model_v2(
     z, y, design = _validate_design(
         validation_redshift, included, z_min=z_min, z_max=z_max, degree=2
     )
+    design_singular_values = np.linalg.svd(design, compute_uv=False)
+    design_condition_number = float(design_singular_values[0] / design_singular_values[-1])
     fit = _fit_box_logistic(
         design, y, ((-25.0, 25.0), (-50.0, 50.0), (-50.0, 50.0))
     )
     intercept, slope, quadratic = fit.pop("coefficients")
     return {
         "model": "quadratic_logistic_inclusion_v2", "solver_version": "v2",
+        "design_singular_values": design_singular_values.tolist(),
+        "design_condition_number": design_condition_number,
         "intercept": float(intercept), "slope": float(slope),
         "quadratic": float(quadratic), "z_min": float(z_min), "z_max": float(z_max),
         "n_validation": int(z.size), "n_included": int(y.sum()),
