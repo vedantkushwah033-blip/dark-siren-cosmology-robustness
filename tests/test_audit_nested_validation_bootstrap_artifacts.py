@@ -129,8 +129,8 @@ def test_nested_attempt_ledger_persists_estimator_provenance(nested_artifact):
 
     # The FPC row is a deterministic transformation of the paired-bootstrap
     # result, not a third independently executed bootstrap estimator.
-    assert len(executed) == 2
-    assert len(derived) == 1
+    assert len(executed) == 4
+    assert len(derived) == 2
     assert all(row["bootstrap_solver_version"] == "v1" for row in executed)
     assert all(row["bootstrap_model_type"] == "linear" for row in executed)
     assert all(
