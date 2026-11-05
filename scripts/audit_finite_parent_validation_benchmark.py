@@ -21,16 +21,30 @@ C_KM_S = 299_792.458
 
 
 def _independent_parent_quadratic_centering(z_min: float, z_max: float) -> float:
-    """Recompute E_g[x^2] independently from the declared parent intensity."""
+    """Recompute E_g[x^2] for the generator's piecewise-linear parent law."""
     grid = np.linspace(float(z_min), float(z_max), 20001)
-    intensity = (
+    midpoint = 0.5 * (float(z_min) + float(z_max))
+    half_range = 0.5 * (float(z_max) - float(z_min))
+    segment_midpoints = 0.5 * (grid[:-1] + grid[1:])
+    segment_halfwidths = 0.5 * np.diff(grid)
+    nodes = np.array([-1.0 / np.sqrt(3.0), 1.0 / np.sqrt(3.0)])
+    z_nodes = segment_midpoints[:, None] + segment_halfwidths[:, None] * nodes[None, :]
+    intensity_nodes = (
+        1.0
+        + 2.2 * np.exp(-0.5 * ((z_nodes - 0.105) / 0.025) ** 2)
+        + 1.6 * np.exp(-0.5 * ((z_nodes - 0.275) / 0.040) ** 2)
+    )
+    x_nodes = (z_nodes - midpoint) / half_range
+    numerator = np.sum(
+        segment_halfwidths * np.sum(x_nodes**2 * intensity_nodes, axis=1)
+    )
+    intensity_grid = (
         1.0
         + 2.2 * np.exp(-0.5 * ((grid - 0.105) / 0.025) ** 2)
         + 1.6 * np.exp(-0.5 * ((grid - 0.275) / 0.040) ** 2)
     )
-    x = (grid - 0.5 * (z_min + z_max)) / (0.5 * (z_max - z_min))
-    return float(trapezoid(x**2 * intensity, grid) / trapezoid(intensity, grid))
-
+    denominator = trapezoid(intensity_grid, grid)
+    return float(numerator / denominator)
 
 def _quad_weights(grid: np.ndarray) -> np.ndarray:
     delta = np.diff(grid)
