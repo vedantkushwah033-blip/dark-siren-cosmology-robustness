@@ -47,3 +47,58 @@ def test_v1_and_v2_quadratic_fits_agree_on_near_separated_bounded_solution():
     assert v1["negative_log_likelihood"] == pytest.approx(
         v2["negative_log_likelihood"], rel=1e-8, abs=1e-8
     )
+
+
+def test_v1_and_v2_linear_fits_agree_under_complete_separation():
+    from dark_siren_robustness.estimated_inclusion import (
+        fit_logistic_inclusion_model,
+    )
+    from dark_siren_robustness.estimated_inclusion_v2 import (
+        fit_logistic_inclusion_model_v2,
+    )
+
+    z_min, z_max = 0.01, 0.40
+    z = np.linspace(z_min, z_max, 200)
+    included = (z > 0.205).astype(int)
+    v1 = fit_logistic_inclusion_model(z, included, z_min=z_min, z_max=z_max)
+    v2 = fit_logistic_inclusion_model_v2(z, included, z_min=z_min, z_max=z_max)
+
+    assert v1["fit_status"] == "boundary_limited"
+    assert v2["fit_status"] == "boundary_limited"
+    assert v2["projected_gradient_inf_norm"] <= 1e-7
+    grid = np.linspace(z_min, z_max, 301)
+    assert np.allclose(
+        predict_inclusion_probability(grid, v1),
+        predict_inclusion_probability_v2(grid, v2),
+        rtol=2e-4,
+        atol=2e-5,
+    )
+    assert v1["negative_log_likelihood"] == pytest.approx(
+        v2["negative_log_likelihood"], rel=1e-8, abs=1e-8
+    )
+
+
+def test_v1_and_v2_quadratic_fits_agree_under_complete_separation():
+    z_min, z_max = 0.01, 0.40
+    z = np.linspace(z_min, z_max, 200)
+    included = (z > 0.205).astype(int)
+    v1 = fit_quadratic_logistic_inclusion_model(
+        z, included, z_min=z_min, z_max=z_max
+    )
+    v2 = fit_quadratic_logistic_inclusion_model_v2(
+        z, included, z_min=z_min, z_max=z_max
+    )
+
+    assert v1["fit_status"] == "boundary_limited"
+    assert v2["fit_status"] == "boundary_limited"
+    assert v2["projected_gradient_inf_norm"] <= 1e-7
+    grid = np.linspace(z_min, z_max, 301)
+    assert np.allclose(
+        predict_inclusion_probability(grid, v1),
+        predict_inclusion_probability_v2(grid, v2),
+        rtol=2e-4,
+        atol=2e-5,
+    )
+    assert v1["negative_log_likelihood"] == pytest.approx(
+        v2["negative_log_likelihood"], rel=1e-8, abs=1e-8
+    )
