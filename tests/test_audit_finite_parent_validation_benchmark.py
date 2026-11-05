@@ -48,7 +48,7 @@ def _artifact(tmp_path, solver_version="v1"):
             "scenario_coverage_sd": float(scenario_coverage.std(ddof=1)) if len(scenario_coverage) > 1 else None,
         }
     summary = {
-        "schema": "finite_parent_srswor_smoke_v3",
+        "schema": "finite_parent_srswor_smoke_v4",
         "solver_version": solver_version,
         "solver_revision": ("2.1-armijo-noise-slack" if solver_version == "v2" else "v1-lbfgsb-kkt"),
         "model_family": "linear_logistic",
