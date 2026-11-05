@@ -30,7 +30,7 @@ def main() -> None:
     frame.to_csv(args.output_dir / "records.csv", index=False)
     successful = frame.loc[frame["status"].eq("success")]
     summary = {
-        "schema": "finite_parent_srswor_smoke_v3",
+        "schema": "finite_parent_srswor_smoke_v4",
         "solver_version": args.solver_version,
         "solver_revision": ("2.1-armijo-noise-slack" if args.solver_version == "v2" else "v1-lbfgsb-kkt"),
         "model_family": "linear_logistic",
