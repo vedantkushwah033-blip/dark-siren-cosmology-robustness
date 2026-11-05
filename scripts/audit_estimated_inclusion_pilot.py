@@ -122,14 +122,6 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
         )
     except (KeyError, TypeError, ValueError) as exc:
         raise AssertionError("inference payload lacks finite-parent unit identities") from exc
-    if (catalogue_ids.ndim != 1 or validation_ids.ndim != 1 or overlap_ids.ndim != 1
-            or len(np.unique(catalogue_ids)) != catalogue_ids.size
-            or len(np.unique(validation_ids)) != validation_ids.size
-            or not np.array_equal(overlap_ids, np.intersect1d(catalogue_ids, validation_ids))):
-        raise AssertionError("inference payload unit identities or overlap are inconsistent")
-    if (catalogue_ids.size != int(row.get("n_catalogue"))
-            or validation_ids.size != int(row.get("validation_size"))):
-        raise AssertionError("inference payload unit counts disagree with replicate row")
     try:
         csv_catalogue_ids = np.asarray(
             json.loads(row["catalogue_object_ids_json"]), dtype=np.int64
@@ -142,10 +134,25 @@ def _audit_inference_payload(row: pd.Series, h0_true: float) -> None:
         )
     except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
         raise AssertionError("CSV finite-parent identity fields are malformed") from exc
+
+    # First bind the inference payload to the independently persisted replicate
+    # row. A payload-only ID mutation can also make its internal overlap
+    # inconsistent; reporting the cross-artifact mismatch first makes the
+    # provenance failure explicit and preserves a stable audit error contract.
     if (not np.array_equal(catalogue_ids, csv_catalogue_ids)
             or not np.array_equal(validation_ids, csv_validation_ids)
             or not np.array_equal(overlap_ids, csv_overlap_ids)):
         raise AssertionError("inference payload unit identities disagree with replicate CSV")
+
+    # Then validate the internal structure of the payload itself.
+    if (catalogue_ids.ndim != 1 or validation_ids.ndim != 1 or overlap_ids.ndim != 1
+            or len(np.unique(catalogue_ids)) != catalogue_ids.size
+            or len(np.unique(validation_ids)) != validation_ids.size
+            or not np.array_equal(overlap_ids, np.intersect1d(catalogue_ids, validation_ids))):
+        raise AssertionError("inference payload unit identities or overlap are inconsistent")
+    if (catalogue_ids.size != int(row.get("n_catalogue"))
+            or validation_ids.size != int(row.get("validation_size"))):
+        raise AssertionError("inference payload unit counts disagree with replicate row")
 
     # Refit the estimated logistic inclusion model from the saved independent
     # validation records. This is a separate optimization implementation and
