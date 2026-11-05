@@ -141,6 +141,19 @@ def audit_posterior_validation_bootstrap(
         raise AssertionError("unsupported posterior-bootstrap artifact schema")
     if method not in {"paired_bootstrap", "design_aware_srswor"}:
         raise AssertionError("unknown resampling method")
+    if result.get("solver_version") != "v1":
+        raise AssertionError("unsupported or missing solver_version; independent replay supports only v1")
+    if result.get("model_type") != "linear":
+        raise AssertionError("unsupported or missing model_type; independent replay supports only linear")
+    experiment_config = result.get("experiment_config")
+    if not isinstance(experiment_config, dict):
+        raise AssertionError("missing or malformed experiment_config provenance")
+    if (
+        experiment_config.get("method") != method
+        or experiment_config.get("solver_version") != "v1"
+        or experiment_config.get("model_type") != "linear"
+    ):
+        raise AssertionError("experiment_config does not match independently supported replay selections")
     expected_method_status = (
         "exploratory_pseudopopulation_resampling_not_studentized_inference"
         if method == "design_aware_srswor" else "ordinary_paired_record_bootstrap"
