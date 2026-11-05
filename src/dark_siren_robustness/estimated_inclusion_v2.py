@@ -117,7 +117,8 @@ def _fit_box_logistic(
                 continue
             candidate_value = objective(candidate)
             directional_change = float(gradient @ delta)
-            if np.isfinite(candidate_value) and candidate_value <= value + 1e-4 * directional_change:
+            if (directional_change < 0.0 and np.isfinite(candidate_value)
+                    and candidate_value <= value + 1e-4 * directional_change):
                 theta = candidate
                 value = candidate_value
                 accepted = True
