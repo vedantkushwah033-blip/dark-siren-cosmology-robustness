@@ -133,3 +133,59 @@ def test_centered_and_uncentered_constrained_mles_agree_under_transformed_bounds
     np.testing.assert_allclose(expit(eta_c), expit(eta_u), rtol=0.0, atol=2e-8)
     assert np.max(np.abs(gradient(uncentered_design, uncentered.x))) < 1e-6
     assert np.max(np.abs(gradient(centered_design, centered.x))) < 1e-5
+
+
+def test_centered_and_uncentered_fit_agree_when_transformed_intercept_bound_is_active():
+    """Exercise the q-dependent intercept constraint at an actual optimum."""
+    x = np.linspace(-1.0, 1.0, 201)
+    center = 0.28450056
+    fixed_quadratic = 1.2
+    included = np.ones(x.size, dtype=float)
+
+    uncentered_design = np.column_stack((np.ones_like(x), x))
+    centered_design = uncentered_design.copy()
+    uncentered_offset = fixed_quadratic * x**2
+    centered_offset = fixed_quadratic * (x**2 - center)
+
+    def objective(design, offset, theta):
+        eta = design @ theta + offset
+        return float(-np.sum(log_expit(eta)))
+
+    def gradient(design, offset, theta):
+        eta = design @ theta + offset
+        residual = expit(eta) - included
+        return design.T @ residual
+
+    uncentered = minimize(
+        lambda theta: objective(uncentered_design, uncentered_offset, theta),
+        np.zeros(2),
+        jac=lambda theta: gradient(uncentered_design, uncentered_offset, theta),
+        method="L-BFGS-B",
+        bounds=((-25.0, 25.0), (-50.0, 50.0)),
+        options={"maxiter": 10000, "ftol": 1e-15, "gtol": 1e-9},
+    )
+
+    # a = alpha - q*c, so the equivalent centered intercept interval
+    # is [-25 + q*c, 25 + q*c], not the same fixed numeric box.
+    centered_intercept_bounds = (
+        -25.0 + fixed_quadratic * center,
+        25.0 + fixed_quadratic * center,
+    )
+    centered = minimize(
+        lambda theta: objective(centered_design, centered_offset, theta),
+        np.zeros(2),
+        jac=lambda theta: gradient(centered_design, centered_offset, theta),
+        method="L-BFGS-B",
+        bounds=(centered_intercept_bounds, (-50.0, 50.0)),
+        options={"maxiter": 10000, "ftol": 1e-15, "gtol": 1e-9},
+    )
+
+    assert uncentered.success, uncentered.message
+    assert centered.success, centered.message
+    assert uncentered.x[0] == pytest.approx(25.0, abs=1e-7)
+    assert centered.x[0] == pytest.approx(centered_intercept_bounds[1], abs=1e-7)
+    assert uncentered.fun == pytest.approx(centered.fun, rel=0.0, abs=1e-10)
+
+    eta_uncentered = uncentered_design @ uncentered.x + uncentered_offset
+    eta_centered = centered_design @ centered.x + centered_offset
+    np.testing.assert_allclose(eta_centered, eta_uncentered, rtol=0.0, atol=1e-9)
