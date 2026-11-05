@@ -57,6 +57,11 @@ def fit_logistic_inclusion_model(
     midpoint = (float(z_min) + float(z_max)) / 2.0
     half_range = (float(z_max) - float(z_min)) / 2.0
     x = (z - midpoint) / half_range
+    design = np.column_stack((np.ones(z.size), x))
+    if np.linalg.matrix_rank(design) < design.shape[1]:
+        raise RuntimeError(
+            "linear logistic inclusion design is rank deficient; slope is not identifiable"
+        )
 
     def negative_log_likelihood(theta: NDArray[np.float64]) -> float:
         eta = theta[0] + theta[1] * x
