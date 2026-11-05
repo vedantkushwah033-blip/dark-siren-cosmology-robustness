@@ -30,9 +30,6 @@ def _adaptive_kde_directional_derivative(grid, sample, base_weights, delta, rate
     )
     # Axis 1 indexes the three reflected copies; axis 2 indexes observations.
     weighted_kernel = kernels * (a[None, None, :] / 3.0)
-    raw = np.sum(weighted_kernel)
-    del raw  # The grid-dependent raw density is calculated below.
-
     raw_density = np.sum(weighted_kernel, axis=(1, 2))
     log_kernel_bandwidth_derivative = -1.0 / bandwidth + offsets**2 / bandwidth**3
     raw_derivative = np.sum(
