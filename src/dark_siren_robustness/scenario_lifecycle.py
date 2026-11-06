@@ -210,8 +210,6 @@ def run_scenario_campaign(
         validation_sizes=sizes,
         metadata=run_metadata,
     )
-    ledger_path = root / "attempt_ledger.csv"
-    state_path = root / "run_state.json"
     state: dict[str, Any] = {
         "schema": "scenario_lifecycle_state_v1",
         "run_status": "RUNNING",
@@ -228,7 +226,8 @@ def run_scenario_campaign(
 
     for scenario in range(n_scenarios):
         state["scenario_states"][str(scenario)] = "RUNNING"
-        _atomic_json(state_path, state)
+        state["checkpoint_sequence"] += 1
+        _write_checkpoint(root, ledger, state)
         try:
             records = executor(scenario)
             if not isinstance(records, pd.DataFrame):
