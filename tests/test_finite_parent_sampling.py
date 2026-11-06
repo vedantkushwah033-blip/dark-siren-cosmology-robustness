@@ -174,3 +174,21 @@ def test_selected_scenario_id_reproduces_same_parent_frame_as_full_campaign():
         "validation_indices", "catalogue_validation_overlap_indices",
     ):
         assert actual[column].tolist() == expected[column].tolist()
+
+
+@pytest.mark.parametrize(
+    "scenario_ids,error",
+    [
+        ((1,), ValueError),
+        ((1, 1), ValueError),
+        ((-1, 2), ValueError),
+        ((1.5, 2), TypeError),
+    ],
+)
+def test_selected_scenario_identity_validation(scenario_ids, error):
+    with pytest.raises(error):
+        run_finite_parent_benchmark(
+            n_scenarios=2, n_validation_draws=2, n_parent=1200,
+            n_detected=6, validation_sizes=(100,), seed=20261109,
+            h0_points=31, z_points=101, scenario_ids=scenario_ids,
+        )
