@@ -78,29 +78,51 @@ def test_independent_audit_accepts_interrupted_running_checkpoint(tmp_path):
 
 def test_independent_audit_rejects_tampered_denominator(tmp_path):
     execute(tmp_path)
-    ledger_path = tmp_path / "attempt_ledger.csv"
-    frame = pd.read_csv(ledger_path)
-    frame = frame.iloc[:-1]
-    frame.to_csv(ledger_path, index=False)
+    checkpoint_path = tmp_path / "checkpoint.json"
+    snapshot = json.loads(checkpoint_path.read_text())
+    snapshot["ledger_records"] = snapshot["ledger_records"][:-1]
+    checkpoint_path.write_text(json.dumps(snapshot))
     with pytest.raises(AssertionError, match="denominator mismatch"):
         audit_scenario_lifecycle(tmp_path)
 
 
 def test_independent_audit_rejects_tampered_state_counts(tmp_path):
     execute(tmp_path)
-    state_path = tmp_path / "run_state.json"
-    state = json.loads(state_path.read_text())
-    state["attempt_counts"]["n_success"] = 7
-    state_path.write_text(json.dumps(state))
+    checkpoint_path = tmp_path / "checkpoint.json"
+    snapshot = json.loads(checkpoint_path.read_text())
+    snapshot["run_state"]["attempt_counts"]["n_success"] = 7
+    checkpoint_path.write_text(json.dumps(snapshot))
     with pytest.raises(AssertionError, match="counts disagree"):
         audit_scenario_lifecycle(tmp_path)
 
 
 def test_independent_audit_rejects_invalid_status_and_transition_count(tmp_path):
     execute(tmp_path)
-    ledger_path = tmp_path / "attempt_ledger.csv"
-    frame = pd.read_csv(ledger_path)
-    frame.loc[0, "status"] = "MAYBE"
-    frame.to_csv(ledger_path, index=False)
+    checkpoint_path = tmp_path / "checkpoint.json"
+    snapshot = json.loads(checkpoint_path.read_text())
+    snapshot["ledger_records"][0]["status"] = "MAYBE"
+    checkpoint_path.write_text(json.dumps(snapshot))
     with pytest.raises(AssertionError, match="unknown attempt status"):
         audit_scenario_lifecycle(tmp_path)
+
+def test_atomic_snapshot_preserves_last_complete_scenario_when_next_is_interrupted(tmp_path):
+    class StopNow(BaseException):
+        pass
+
+    def executor(scenario):
+        if scenario == 1:
+            raise StopNow()
+        return executor_success(scenario)
+
+    with pytest.raises(StopNow):
+        execute(tmp_path, executor)
+    snapshot = json.loads((tmp_path / "checkpoint.json").read_text())
+    ledger = pd.DataFrame(snapshot["ledger_records"])
+    state = snapshot["run_state"]
+    assert set(ledger.loc[ledger.scenario.eq(0), "status"]) == {"SUCCESS"}
+    assert set(ledger.loc[ledger.scenario.eq(1), "status"]) == {"NOT_RUN"}
+    assert state["scenario_states"] == {"0": "SUCCESS", "1": "RUNNING"}
+    audited = audit_scenario_lifecycle(tmp_path)
+    assert audited["n_success"] == 4
+    assert audited["n_not_run"] == 4
+    assert audited["run_status"] == "RUNNING"
