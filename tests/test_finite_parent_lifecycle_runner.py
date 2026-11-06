@@ -57,7 +57,8 @@ def test_checkpointed_runner_records_generation_failure_without_losing_planned_d
     assert set(failed.status) == {"NON_EVALUABLE"}
     assert set(failed.stage) == {"scenario_generation"}
     assert set(failed.failure_code) == {"model_fit_failure"}
-    assert set(succeeded.status) == {"SUCCESS"} or set(succeeded.status) == {"FAILED"}
+    assert set(succeeded.status).issubset({"SUCCESS", "FAILED"})
+    assert len(succeeded) == 2
     assert set(records["scenario"]) == {1}
     assert state["scenario_states"]["0"] == "FAILED"
     audit = audit_scenario_lifecycle(tmp_path)
