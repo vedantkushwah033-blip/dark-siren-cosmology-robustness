@@ -73,6 +73,18 @@ def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
         raise
 
 
+def _write_checkpoint(root: Path, ledger: pd.DataFrame, state: dict[str, Any]) -> None:
+    """Publish sidecars and then one authoritative atomic two-artifact snapshot."""
+    atomic_write_ledger(ledger, root / "attempt_ledger.csv")
+    atomic_write_run_state(state, root / "run_state.json")
+    snapshot = {
+        "schema": "scenario_lifecycle_checkpoint_v1",
+        "ledger_records": json.loads(ledger.to_json(orient="records")),
+        "run_state": state,
+    }
+    _atomic_json(root / "checkpoint.json", snapshot)
+
+
 def _scenario_rows(ledger: pd.DataFrame, scenario: int) -> pd.DataFrame:
     return ledger.loc[ledger["scenario"].eq(scenario)]
 
@@ -209,10 +221,10 @@ def run_scenario_campaign(
         "scenario_states": {str(i): "NOT_STARTED" for i in range(n_scenarios)},
         "scenario_failures": {},
         "metadata": run_metadata or {},
+        "checkpoint_sequence": 0,
     }
     # Persist the complete denominator before starting any scientific work.
-    atomic_write_ledger(ledger, ledger_path)
-    _atomic_json(state_path, state)
+    _write_checkpoint(root, ledger, state)
 
     for scenario in range(n_scenarios):
         state["scenario_states"][str(scenario)] = "RUNNING"
@@ -251,8 +263,8 @@ def run_scenario_campaign(
             }
         # Each scenario boundary is a durable recovery point. A crash during
         # the next scenario leaves its planned rows explicitly NOT_RUN.
-        atomic_write_ledger(ledger, ledger_path)
-        _atomic_json(state_path, state)
+        state["checkpoint_sequence"] += 1
+        _write_checkpoint(root, ledger, state)
 
     counts = reconcile_attempt_ledger(
         ledger,
@@ -266,5 +278,6 @@ def run_scenario_campaign(
         else "COMPLETED_WITH_FAILURES"
     )
     state["attempt_counts"] = counts
-    _atomic_json(state_path, state)
+    state["checkpoint_sequence"] += 1
+    _write_checkpoint(root, ledger, state)
     return ledger, state
