@@ -93,11 +93,24 @@ def run_finite_parent_benchmark(
     true_slope: float = -1.2,
     true_quadratic: float = 0.0,
     solver_version: str = "v1",
+    scenario_ids: Sequence[int] | None = None,
 ) -> pd.DataFrame:
     """Run a nested exact-SRSWOR benchmark and preserve every failed attempt."""
     if solver_version not in {"v1", "v2"}:
         raise ValueError("solver_version must be 'v1' or 'v2'")
     n_scenarios = _require_integer("n_scenarios", n_scenarios, 1)
+    if scenario_ids is None:
+        scenario_labels = tuple(range(n_scenarios))
+    else:
+        raw_scenario_ids = tuple(scenario_ids)
+        if len(raw_scenario_ids) != n_scenarios:
+            raise ValueError("scenario_ids length must equal n_scenarios")
+        scenario_labels = tuple(
+            _require_integer(f"scenario_ids[{i}]", value, 0)
+            for i, value in enumerate(raw_scenario_ids)
+        )
+        if len(set(scenario_labels)) != len(scenario_labels):
+            raise ValueError("scenario_ids must be unique")
     n_validation_draws = _require_integer("n_validation_draws", n_validation_draws, 2)
     n_parent = _require_integer("n_parent", n_parent, 100)
     n_detected = _require_integer("n_detected", n_detected, 1)
@@ -152,7 +165,7 @@ def run_finite_parent_benchmark(
     )
     rows: list[dict] = []
 
-    for scenario in range(n_scenarios):
+    for scenario in scenario_labels:
         root = np.random.SeedSequence([int(seed), scenario])
         sim_ss, thin_ss, val_ss = root.spawn(3)
         sim_seed = int(sim_ss.generate_state(1, dtype=np.uint32)[0])
