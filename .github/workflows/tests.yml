@@ -60,6 +60,8 @@ jobs:
         run: python -m pytest tests/test_estimated_inclusion_v2.py tests/test_v2_quasi_separation_limitations.py -q
       - name: Cross-check V2 against independent SLSQP logistic fits
         run: python -m pytest tests/test_estimated_inclusion_v2_independent_optimizer.py -q
+      - name: Cross-check bounded logistic V2 against high-precision Decimal active-set oracle
+        run: python -m pytest tests/test_v2_decimal_active_set_oracle.py -q
       - name: Test LP-based logistic separation diagnostics
         run: python -m pytest tests/test_logistic_separation_diagnostics.py -q
       - name: Test estimated-inclusion pilot runner
