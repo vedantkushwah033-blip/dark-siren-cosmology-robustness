@@ -38,6 +38,7 @@ SCENARIO_FAILURE_STAGES = {
     "finite_parent_reference",
     "scenario_execution",
     "result_reconciliation",
+    "validation_sample_generation",
 }
 
 
