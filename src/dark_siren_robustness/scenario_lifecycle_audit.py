@@ -39,12 +39,12 @@ def audit_scenario_lifecycle(artifact_dir: Path) -> dict:
     n_scenarios = state.get("n_scenarios")
     n_draws = state.get("n_draws")
     sizes = state.get("validation_sizes")
-    if not isinstance(n_scenarios, int) or n_scenarios < 1:
+    if isinstance(n_scenarios, bool) or not isinstance(n_scenarios, int) or n_scenarios < 1:
         raise AssertionError("invalid scenario count in run state")
-    if not isinstance(n_draws, int) or n_draws < 1:
+    if isinstance(n_draws, bool) or not isinstance(n_draws, int) or n_draws < 1:
         raise AssertionError("invalid draw count in run state")
     if not isinstance(sizes, list) or not sizes or any(
-        not isinstance(x, int) or x < 1 for x in sizes
+        isinstance(x, bool) or not isinstance(x, int) or x < 1 for x in sizes
     ) or len(set(sizes)) != len(sizes):
         raise AssertionError("invalid validation-size plan in run state")
     if not ledger["ledger_schema"].eq("planned_attempt_ledger_v1").all():
