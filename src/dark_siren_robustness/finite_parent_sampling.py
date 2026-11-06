@@ -424,7 +424,6 @@ def run_finite_parent_benchmark_checkpointed(
         raise ValueError("validation_sizes must be non-empty and unique")
     if max(sizes) > n_parent:
         raise ValueError("validation sizes cannot exceed n_parent")
-    seed = _require_integer("seed", design.get("seed", 20261032), 0)
     if n_detected > n_parent:
         raise ValueError("n_detected cannot exceed n_parent")
     seed = _require_integer("seed", design.get("seed", 20261032), 0)
