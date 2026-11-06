@@ -203,13 +203,16 @@ def run_scenario_campaign(
     """
     root = Path(checkpoint_dir)
     root.mkdir(parents=True, exist_ok=True)
-    sizes = tuple(int(value) for value in validation_sizes)
+    raw_sizes = tuple(validation_sizes)
     ledger = initialize_attempt_ledger(
         n_scenarios=n_scenarios,
         n_draws=n_draws,
-        validation_sizes=sizes,
+        validation_sizes=raw_sizes,
         metadata=run_metadata,
     )
+    sizes = tuple(int(value) for value in raw_sizes)
+    # Fail before creating any artifacts if run metadata cannot be checkpointed.
+    json.dumps(run_metadata or {})
     state: dict[str, Any] = {
         "schema": "scenario_lifecycle_state_v1",
         "run_status": "RUNNING",
