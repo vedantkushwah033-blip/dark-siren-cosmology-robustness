@@ -88,7 +88,10 @@ def transition_attempt(
         raise ValueError("stage must be a non-empty string")
     if not isinstance(failure_code, str) or not isinstance(failure_reason, str):
         raise TypeError("failure_code and failure_reason must be strings")
-    reserved_payload = set(KEY_COLUMNS) | {"status", "ledger_schema", "transition_count"}
+    reserved_payload = set(KEY_COLUMNS) | {
+        "status", "ledger_schema", "stage", "failure_code",
+        "failure_reason", "transition_count",
+    }
     if reserved_payload.intersection(payload or {}):
         raise ValueError(f"payload cannot overwrite reserved ledger fields: {sorted(reserved_payload.intersection(payload or {}))}")
     if status in {"FAILED", "NON_EVALUABLE"}:
