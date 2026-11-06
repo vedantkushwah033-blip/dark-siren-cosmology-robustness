@@ -392,3 +392,86 @@ def run_finite_parent_benchmark(
     frame["solver_revision"] = solver_revision
     frame["model_family"] = "linear_logistic"
     return frame
+
+
+def run_finite_parent_benchmark_checkpointed(
+    *,
+    checkpoint_dir,
+    **benchmark_kwargs,
+) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+    """Run the finite-parent benchmark through scenario-level durable accounting.
+
+    Each parent scenario is executed independently with its original
+    SeedSequence identity. The returned records contain scientific draw-level
+    outputs for scenarios whose executor returned; the ledger is the complete
+    planned denominator, including upstream scenario failures and interrupted
+    work. Use the independent scenario-lifecycle auditor on checkpoint_dir.
+    """
+    design = dict(benchmark_kwargs)
+    if "scenario_ids" in design:
+        raise ValueError("scenario_ids are managed internally by the checkpointed runner")
+    n_scenarios = _require_integer("n_scenarios", design.get("n_scenarios", 10), 1)
+    n_draws = _require_integer(
+        "n_validation_draws", design.get("n_validation_draws", 20), 2
+    )
+    n_parent = _require_integer("n_parent", design.get("n_parent", 4000), 100)
+    n_detected = _require_integer("n_detected", design.get("n_detected", 30), 1)
+    sizes = tuple(
+        _require_integer(f"validation_sizes[{i}]", value, 10)
+        for i, value in enumerate(design.get("validation_sizes", (100, 300)))
+    )
+    if not sizes or len(set(sizes)) != len(sizes):
+        raise ValueError("validation_sizes must be non-empty and unique")
+    if max(sizes) > n_parent:
+        raise ValueError("validation sizes cannot exceed n_parent")
+    seed = _require_integer("seed", design.get("seed", 20261032), 0)
+    solver_version = design.get("solver_version", "v1")
+    if solver_version not in {"v1", "v2"}:
+        raise ValueError("solver_version must be 'v1' or 'v2'")
+
+    completed_records: dict[int, pd.DataFrame] = {}
+
+    def execute_scenario(scenario: int) -> pd.DataFrame:
+        scenario_design = dict(design)
+        scenario_design.update(
+            n_scenarios=1,
+            scenario_ids=(scenario,),
+            n_validation_draws=n_draws,
+            n_parent=n_parent,
+            n_detected=n_detected,
+            validation_sizes=sizes,
+            seed=seed,
+            solver_version=solver_version,
+        )
+        records = run_finite_parent_benchmark(**scenario_design)
+        # The legacy records format labels this scenario-level catalogue gate
+        # as failed. In the lifecycle ledger it is correctly non-evaluable:
+        # no validation estimator can be compared when the catalogue reference
+        # population itself fails its minimum-size gate.
+        gate = records["failure_code"].eq("catalogue_size_gate")
+        if gate.any():
+            records.loc[gate, "status"] = "non_evaluable"
+            records.loc[gate, "failure_stage"] = "catalogue_reference"
+        completed_records[scenario] = records
+        return records
+
+    ledger, state = run_scenario_campaign(
+        n_scenarios=n_scenarios,
+        n_draws=n_draws,
+        validation_sizes=sizes,
+        executor=execute_scenario,
+        checkpoint_dir=checkpoint_dir,
+        run_metadata={
+            "benchmark": "finite_parent_srswor",
+            "seed": seed,
+            "solver_version": solver_version,
+        },
+    )
+    records = (
+        pd.concat(
+            [completed_records[key] for key in sorted(completed_records)],
+            ignore_index=True,
+        )
+        if completed_records else pd.DataFrame()
+    )
+    return records, ledger, state
