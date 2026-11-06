@@ -151,3 +151,26 @@ def test_quadratic_inclusion_centering_matches_nonuniform_parent_law():
     assert np.all(np.isfinite(centering))
     assert np.allclose(centering, 0.2845005570164394, rtol=0.0, atol=2e-11)
     assert not np.allclose(centering, 1.0 / 3.0, rtol=0.0, atol=1e-3)
+
+
+def test_selected_scenario_id_reproduces_same_parent_frame_as_full_campaign():
+    kwargs = dict(
+        n_validation_draws=2, n_parent=1200, n_detected=6,
+        validation_sizes=(100, 200), seed=20261109,
+        h0_points=41, z_points=201,
+    )
+    full = run_finite_parent_benchmark(n_scenarios=2, **kwargs)
+    selected = run_finite_parent_benchmark(
+        n_scenarios=1, scenario_ids=(1,), **kwargs
+    )
+    expected = full.loc[full["scenario"].eq(1)].sort_values(
+        ["draw", "validation_size"]
+    ).reset_index(drop=True)
+    actual = selected.sort_values(["draw", "validation_size"]).reset_index(drop=True)
+    assert actual["scenario"].eq(1).all()
+    for column in (
+        "simulation_seed", "thinning_seed", "validation_seed",
+        "parent_frame_sha256", "catalogue_sha256", "gw_distance_sha256",
+        "validation_indices", "catalogue_validation_overlap_indices",
+    ):
+        assert actual[column].tolist() == expected[column].tolist()
