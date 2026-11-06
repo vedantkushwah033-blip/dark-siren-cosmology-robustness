@@ -161,3 +161,23 @@ def test_empty_or_invalid_result_does_not_shrink_denominator(tmp_path):
     assert len(ledger) == 8
     assert set(ledger.status) == {"NON_EVALUABLE"}
     assert state["attempt_counts"]["n_planned"] == 8
+
+def test_fractional_validation_size_is_not_silently_truncated(tmp_path):
+    with pytest.raises(TypeError):
+        run_scenario_campaign(
+            n_scenarios=1, n_draws=2, validation_sizes=(10.5,),
+            executor=successful_records, checkpoint_dir=tmp_path,
+        )
+    assert not (tmp_path / "checkpoint.json").exists()
+
+
+def test_non_json_metadata_fails_before_checkpoint_or_execution(tmp_path):
+    called = []
+    with pytest.raises(TypeError):
+        run_scenario_campaign(
+            n_scenarios=1, n_draws=2, validation_sizes=(10,),
+            executor=lambda scenario: called.append(scenario),
+            checkpoint_dir=tmp_path, run_metadata={"invalid": object()},
+        )
+    assert called == []
+    assert not (tmp_path / "checkpoint.json").exists()
