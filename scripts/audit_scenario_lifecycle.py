@@ -100,17 +100,18 @@ def audit_scenario_lifecycle(artifact_dir: Path) -> dict:
         state_value = scenario_states[str(scenario)]
         if state_value not in SCENARIO_STATES:
             raise AssertionError("unknown scenario lifecycle state")
+        scenario_failure_recorded = str(scenario) in state.get("scenario_failures", {})
         if "NOT_RUN" in statuses:
             if state_value not in {"RUNNING", "NOT_STARTED"}:
                 raise AssertionError("unfinished scenario has an incompatible lifecycle state")
+        elif scenario_failure_recorded:
+            if state_value != "FAILED":
+                raise AssertionError("scenario-level failure record requires FAILED lifecycle state")
         elif statuses == {"SUCCESS"}:
             if state_value != "SUCCESS":
                 raise AssertionError("all-success scenario has an inconsistent lifecycle state")
-        elif statuses == {"NON_EVALUABLE"}:
-            if state_value != "FAILED":
-                raise AssertionError("scenario-level non-evaluable attempts require FAILED scenario state")
         elif state_value != "PARTIAL_FAILURE":
-            raise AssertionError("mixed or draw-failure scenario requires PARTIAL_FAILURE state")
+            raise AssertionError("draw-level or reconciliation outcomes require PARTIAL_FAILURE state")
 
     run_status = state.get("run_status")
     if counts["n_not_run"]:
