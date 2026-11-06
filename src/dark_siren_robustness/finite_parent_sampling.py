@@ -425,6 +425,25 @@ def run_finite_parent_benchmark_checkpointed(
     if max(sizes) > n_parent:
         raise ValueError("validation sizes cannot exceed n_parent")
     seed = _require_integer("seed", design.get("seed", 20261032), 0)
+    if n_detected > n_parent:
+        raise ValueError("n_detected cannot exceed n_parent")
+    seed = _require_integer("seed", design.get("seed", 20261032), 0)
+    h0_points = _require_integer("h0_points", design.get("h0_points", 81), 31)
+    z_points = _require_integer("z_points", design.get("z_points", 401), 101)
+    for name, value in (
+        ("h0_true", design.get("h0_true", 70.0)),
+        ("sigma_mpc", design.get("sigma_mpc", 140.0)),
+        ("detection_threshold_mpc", design.get("detection_threshold_mpc", 250.0)),
+    ):
+        if not np.isfinite(value) or value <= 0:
+            raise ValueError(f"{name} must be finite and positive")
+    for name, value in (
+        ("true_intercept", design.get("true_intercept", 0.25)),
+        ("true_slope", design.get("true_slope", -1.2)),
+        ("true_quadratic", design.get("true_quadratic", 0.0)),
+    ):
+        if not np.isfinite(value):
+            raise ValueError(f"{name} must be finite")
     solver_version = design.get("solver_version", "v1")
     if solver_version not in {"v1", "v2"}:
         raise ValueError("solver_version must be 'v1' or 'v2'")
