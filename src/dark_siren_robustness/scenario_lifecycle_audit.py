@@ -14,10 +14,16 @@ SCENARIO_STATES = {"NOT_STARTED", "RUNNING", "SUCCESS", "PARTIAL_FAILURE", "FAIL
 
 def audit_scenario_lifecycle(artifact_dir: Path) -> dict:
     """Independently reconcile ledger keys, lifecycle state, and denominators."""
-    ledger_path = artifact_dir / "attempt_ledger.csv"
-    state_path = artifact_dir / "run_state.json"
-    ledger = pd.read_csv(ledger_path, keep_default_na=False)
-    state = json.loads(state_path.read_text(encoding="utf-8"))
+    snapshot_path = artifact_dir / "checkpoint.json"
+    snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+    if snapshot.get("schema") != "scenario_lifecycle_checkpoint_v1":
+        raise AssertionError("unsupported atomic checkpoint snapshot schema")
+    if not isinstance(snapshot.get("ledger_records"), list):
+        raise AssertionError("checkpoint snapshot has no ledger record list")
+    ledger = pd.DataFrame(snapshot["ledger_records"])
+    state = snapshot.get("run_state")
+    if not isinstance(state, dict):
+        raise AssertionError("checkpoint snapshot has no run-state object")
 
     required = {
         "scenario", "draw", "validation_size", "ledger_schema", "status",
@@ -28,6 +34,8 @@ def audit_scenario_lifecycle(artifact_dir: Path) -> dict:
         raise AssertionError(f"ledger missing required fields: {sorted(missing)}")
     if state.get("schema") != "scenario_lifecycle_state_v1":
         raise AssertionError("unsupported scenario lifecycle state schema")
+    if not isinstance(state.get("checkpoint_sequence"), int) or state["checkpoint_sequence"] < 0:
+        raise AssertionError("invalid checkpoint sequence")
     n_scenarios = state.get("n_scenarios")
     n_draws = state.get("n_draws")
     sizes = state.get("validation_sizes")
