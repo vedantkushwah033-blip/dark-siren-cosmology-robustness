@@ -226,13 +226,21 @@ def test_decimal_active_set_oracle_matches_lower_and_upper_box_faces(
     assert float(oracle_theta[0]) == pytest.approx(expected_intercept, abs=3e-5)
 
 
-def test_decimal_active_set_oracle_matches_complete_separation_face():
+@pytest.mark.parametrize(
+    "direction,expected_slope",
+    [("increasing", 50.0), ("decreasing", -50.0)],
+)
+def test_decimal_active_set_oracle_matches_complete_separation_faces(
+    direction, expected_slope
+):
     x = np.linspace(-1.0, 1.0, 201)
     outcome = (x > 0.13).astype(float)
+    if direction == "decreasing":
+        outcome = 1.0 - outcome
     fit, coefficients, oracle_theta = _fit_and_compare(x, outcome, degree=1)
     assert fit["fit_status"] == "boundary_limited"
-    assert coefficients[1] == pytest.approx(50.0, abs=3e-5)
-    assert float(oracle_theta[1]) == pytest.approx(50.0, abs=3e-5)
+    assert coefficients[1] == pytest.approx(expected_slope, abs=3e-5)
+    assert float(oracle_theta[1]) == pytest.approx(expected_slope, abs=3e-5)
 
 
 def test_decimal_active_set_oracle_matches_quadratic_interior_fit():
