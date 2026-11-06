@@ -78,3 +78,52 @@ def test_checkpointed_runner_rejects_invalid_global_design_before_creating_plan(
     else:
         raise AssertionError("fractional validation size should be rejected")
     assert not (tmp_path / "checkpoint.json").exists()
+
+
+import pytest
+
+
+@pytest.mark.parametrize(
+    "target_name,fail_on_call,expected_stage",
+    [
+        ("estimate_host_density", 1, "oracle_reference"),
+        ("estimate_host_density", 2, "catalogue_reference"),
+        ("estimate_host_density_from_validation", 1, "finite_parent_reference"),
+    ],
+)
+def test_checkpointed_runner_classifies_reference_fit_failure_by_stage(
+    tmp_path, monkeypatch, target_name, fail_on_call, expected_stage
+):
+    original = getattr(finite_parent, target_name)
+    calls = {"count": 0}
+
+    def selective_failure(*args, **kwargs):
+        calls["count"] += 1
+        if calls["count"] == fail_on_call:
+            raise RuntimeError("injected reference-stage failure")
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(finite_parent, target_name, selective_failure)
+    design = _small_design()
+    records, ledger, state = finite_parent.run_finite_parent_benchmark_checkpointed(
+        checkpoint_dir=tmp_path, **design
+    )
+    failed = ledger.loc[ledger.scenario.eq(0)]
+    assert set(failed.status) == {"NON_EVALUABLE"}
+    assert set(failed.stage) == {expected_stage}
+    assert state["scenario_states"]["0"] == "FAILED"
+    assert set(records["scenario"]) == {1}
+    assert audit_scenario_lifecycle(tmp_path)["n_non_evaluable"] == 2
+
+
+def test_checkpointed_runner_treats_catalogue_size_gate_as_non_evaluable(tmp_path):
+    design = _small_design()
+    design.update(true_intercept=-20.0, true_slope=0.0, true_quadratic=0.0)
+    records, ledger, state = finite_parent.run_finite_parent_benchmark_checkpointed(
+        checkpoint_dir=tmp_path, **design
+    )
+    assert len(records) == 4
+    assert set(records.status) == {"non_evaluable"}
+    assert set(ledger.status) == {"NON_EVALUABLE"}
+    assert set(ledger.stage) == {"catalogue_reference"}
+    assert audit_scenario_lifecycle(tmp_path)["n_non_evaluable"] == 4
