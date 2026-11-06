@@ -460,6 +460,8 @@ def run_finite_parent_benchmark_checkpointed(
             n_detected=n_detected,
             validation_sizes=sizes,
             seed=seed,
+            h0_points=h0_points,
+            z_points=z_points,
             solver_version=solver_version,
         )
         records = run_finite_parent_benchmark(**scenario_design)
