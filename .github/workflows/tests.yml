@@ -209,6 +209,31 @@ jobs:
           python scripts/audit_validation_bootstrap_sensitivity.py --artifact-dir artifacts/validation_bootstrap_smoke --pilot-csv artifacts/estimated_inclusion_pilot_smoke/replicates.csv
       - name: Test finite-parent SRSWOR validation benchmark
         run: python -m pytest tests/test_finite_parent_sampling.py -q
+      - name: Test planned-attempt ledger, scenario lifecycle, and checkpointed finite-parent integration
+        run: python -m pytest tests/test_attempt_ledger.py tests/test_scenario_lifecycle.py tests/test_scenario_lifecycle_audit.py tests/test_finite_parent_lifecycle_runner.py -q
+      - name: Test deterministic selected-scenario replay
+        run: python -m pytest tests/test_finite_parent_sampling.py -q
+      - name: Run checkpointed finite-parent SRSWOR smoke benchmark
+        run: python scripts/run_finite_parent_validation_benchmark_checkpointed.py --scenarios 2 --draws 2 --n-parent 1200 --n-detected 6 --validation-sizes 100 --seed 20261110 --h0-points 31 --z-points 101 --output-dir artifacts/finite_parent_lifecycle_checkpointed_smoke
+      - name: Independently audit checkpointed finite-parent lifecycle smoke artifacts
+        run: python scripts/audit_scenario_lifecycle.py artifacts/finite_parent_lifecycle_checkpointed_smoke
+      - name: Check checkpointed finite-parent smoke denominator
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("artifacts/finite_parent_lifecycle_checkpointed_smoke")
+          summary = json.loads((p / "summary.json").read_text())
+          assert summary["status"] == "SMOKE_ONLY_NOT_CONFIRMATORY"
+          assert summary["n_planned_attempts"] == 4
+          counts = summary["attempt_counts"]
+          assert counts["n_planned"] == (
+              counts["n_success"] + counts["n_failed"]
+              + counts["n_non_evaluable"] + counts["n_not_run"]
+          )
+          assert summary["lifecycle_audit"]["status"] == "SCENARIO_LIFECYCLE_AUDIT_PASS"
+          print("Checkpointed smoke denominator:", counts)
+          PY
       - name: Test finite-parent bootstrap uncertainty primitives
         run: python -m pytest tests/test_finite_parent_uncertainty.py -q
       - name: Test design-aware pseudo-population SRSWOR bootstrap indices
