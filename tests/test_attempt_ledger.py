@@ -107,3 +107,14 @@ def test_failed_atomic_serialization_preserves_previous_checkpoint(tmp_path):
         atomic_write_run_state({"bad": object()}, path)
     assert json.loads(path.read_text(encoding="utf-8")) == {"stage":"stable"}
     assert not list(tmp_path.glob(".*.tmp"))
+
+@pytest.mark.parametrize("field", ["stage", "failure_code", "failure_reason", "transition_count"])
+def test_payload_cannot_overwrite_any_attempt_state_field(field):
+    ledger = make_ledger()
+    with pytest.raises(ValueError, match="reserved ledger fields"):
+        transition_attempt(
+            ledger, scenario=0, draw=0, validation_size=100,
+            status="SUCCESS", stage="posterior", payload={field: "tampered"},
+        )
+    assert ledger.iloc[0]["status"] == "NOT_RUN"
+    assert ledger.iloc[0]["transition_count"] == 0

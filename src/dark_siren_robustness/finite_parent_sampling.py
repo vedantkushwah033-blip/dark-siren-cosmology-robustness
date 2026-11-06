@@ -22,6 +22,10 @@ from dark_siren_robustness.generative_selection import (
 )
 from dark_siren_robustness.host_density_benchmark import posterior_summary
 from dark_siren_robustness.selection_toy import selection_aware_toy_likelihood
+from dark_siren_robustness.scenario_lifecycle import (
+    ScenarioLifecycleError,
+    run_scenario_campaign,
+)
 
 
 def _require_integer(name: str, value: object, minimum: int) -> int:
@@ -45,6 +49,19 @@ def _failure_code(exc: Exception) -> str:
     if isinstance(exc, RuntimeError):
         return "model_fit_failure"
     return "unexpected_exception"
+
+
+
+def _scenario_stage(stage: str, function):
+    """Promote an upstream exception to an explicit scenario-level failure."""
+    try:
+        return function()
+    except ScenarioLifecycleError:
+        raise
+    except Exception as exc:
+        raise ScenarioLifecycleError(
+            stage, _failure_code(exc), f"{type(exc).__name__}: {exc}"
+        ) from exc
 
 
 def nested_srswor_sample_indices(
@@ -93,11 +110,24 @@ def run_finite_parent_benchmark(
     true_slope: float = -1.2,
     true_quadratic: float = 0.0,
     solver_version: str = "v1",
+    scenario_ids: Sequence[int] | None = None,
 ) -> pd.DataFrame:
     """Run a nested exact-SRSWOR benchmark and preserve every failed attempt."""
     if solver_version not in {"v1", "v2"}:
         raise ValueError("solver_version must be 'v1' or 'v2'")
     n_scenarios = _require_integer("n_scenarios", n_scenarios, 1)
+    if scenario_ids is None:
+        scenario_labels = tuple(range(n_scenarios))
+    else:
+        raw_scenario_ids = tuple(scenario_ids)
+        if len(raw_scenario_ids) != n_scenarios:
+            raise ValueError("scenario_ids length must equal n_scenarios")
+        scenario_labels = tuple(
+            _require_integer(f"scenario_ids[{i}]", value, 0)
+            for i, value in enumerate(raw_scenario_ids)
+        )
+        if len(set(scenario_labels)) != len(scenario_labels):
+            raise ValueError("scenario_ids must be unique")
     n_validation_draws = _require_integer("n_validation_draws", n_validation_draws, 2)
     n_parent = _require_integer("n_parent", n_parent, 100)
     n_detected = _require_integer("n_detected", n_detected, 1)
@@ -152,24 +182,27 @@ def run_finite_parent_benchmark(
     )
     rows: list[dict] = []
 
-    for scenario in range(n_scenarios):
+    for scenario in scenario_labels:
         root = np.random.SeedSequence([int(seed), scenario])
         sim_ss, thin_ss, val_ss = root.spawn(3)
         sim_seed = int(sim_ss.generate_state(1, dtype=np.uint32)[0])
         thin_seed = int(thin_ss.generate_state(1, dtype=np.uint32)[0])
         validation_seed = int(val_ss.generate_state(1, dtype=np.uint32)[0])
-        sim = generate_synthetic_population(
+        sim = _scenario_stage("scenario_generation", lambda: generate_synthetic_population(
             seed=sim_seed, n_parent=n_parent, n_detected=n_detected,
             h0_true=h0_true, sigma_mpc=sigma_mpc,
             detection_threshold_mpc=detection_threshold_mpc,
             z_min=zmin, z_max=zmax,
-        )
+        ))
         parent_z = sim["parent_truth"]["redshift"].to_numpy(dtype=float)
         distances = sim["gw_events_observed"]["distance_mpc"].to_numpy(dtype=float)
         x = (parent_z - zmid) / zhalf
         p_true = expit(true_intercept + true_slope*x + true_quadratic*(x*x - true_quadratic_centering))
         if np.any((p_true <= 0) | (p_true >= 1)) or not np.all(np.isfinite(p_true)):
-            raise ValueError("true inclusion probabilities saturated")
+            raise ScenarioLifecycleError(
+                "scenario_generation", "invalid_true_inclusion_probability",
+                "true inclusion probabilities saturated",
+            )
         thin_rng = np.random.default_rng(thin_seed)
         retained = thin_rng.random(n_parent) < p_true
         observed_z = parent_z[retained]
@@ -207,44 +240,49 @@ def run_finite_parent_benchmark(
 
         # Oracle and catalogue-only are fixed within a scenario; the primary
         # repeated-sampling estimand is the variation across validation draws.
-        oracle = estimate_host_density(
+        oracle = _scenario_stage("oracle_reference", lambda: estimate_host_density(
             z_grid, observed_z, inclusion_probability=p_true[retained],
             merger_weight=rate,
-        )
-        oracle_post = posterior_summary(
+        ))
+        oracle_post = _scenario_stage("oracle_reference", lambda: posterior_summary(
             h0_grid, selection_aware_toy_likelihood(
                 z_grid, oracle, h0_grid, distances, sigma=sigma_mpc,
                 detection_threshold=detection_threshold_mpc,
             )["selected_log_likelihood"],
-        )
-        catalogue = estimate_host_density(z_grid, observed_z, merger_weight=rate)
-        cat_post = posterior_summary(
+        ))
+        catalogue = _scenario_stage("catalogue_reference", lambda: estimate_host_density(
+            z_grid, observed_z, merger_weight=rate
+        ))
+        cat_post = _scenario_stage("catalogue_reference", lambda: posterior_summary(
             h0_grid, selection_aware_toy_likelihood(
                 z_grid, catalogue, h0_grid, distances, sigma=sigma_mpc,
                 detection_threshold=detection_threshold_mpc,
             )["selected_log_likelihood"],
-        )
+        ))
 
         # The finite-parent reference is the same estimated-inclusion pipeline
         # applied to every paired record in this scenario's actual N-record
         # validation frame. It is distinct from the generating H0 truth and
         # from any pseudo-population reference used by a bootstrap.
-        finite_parent_result = estimate_host_density_from_validation(
+        finite_parent_result = _scenario_stage("finite_parent_reference", lambda: estimate_host_density_from_validation(
             z_grid, observed_z, parent_z, retained.astype(int),
             merger_weight=rate, solver_version=solver_version,
-        )
-        finite_parent_post = posterior_summary(
+        ))
+        finite_parent_post = _scenario_stage("finite_parent_reference", lambda: posterior_summary(
             h0_grid, selection_aware_toy_likelihood(
                 z_grid, finite_parent_result["density"], h0_grid, distances,
                 sigma=sigma_mpc, detection_threshold=detection_threshold_mpc,
             )["selected_log_likelihood"],
-        )
+        ))
         rng = np.random.default_rng(validation_seed)
         # One random permutation per draw creates nested validation samples:
         # every smaller-size sample is a prefix/subset of the larger-size sample.
         # This enables paired, higher-precision comparisons across validation sizes.
         for draw in range(n_validation_draws):
-            nested_samples = nested_srswor_sample_indices(rng, n_parent, sizes)
+            nested_samples = _scenario_stage(
+                "validation_sample_generation",
+                lambda: nested_srswor_sample_indices(rng, n_parent, sizes),
+            )
             for size in sizes:
                 indices = nested_samples[size]
                 overlap_indices = np.intersect1d(
@@ -354,3 +392,106 @@ def run_finite_parent_benchmark(
     frame["solver_revision"] = solver_revision
     frame["model_family"] = "linear_logistic"
     return frame
+
+
+def run_finite_parent_benchmark_checkpointed(
+    *,
+    checkpoint_dir,
+    **benchmark_kwargs,
+) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+    """Run the finite-parent benchmark through scenario-level durable accounting.
+
+    Each parent scenario is executed independently with its original
+    SeedSequence identity. The returned records contain scientific draw-level
+    outputs for scenarios whose executor returned; the ledger is the complete
+    planned denominator, including upstream scenario failures and interrupted
+    work. Use the independent scenario-lifecycle auditor on checkpoint_dir.
+    """
+    design = dict(benchmark_kwargs)
+    if "scenario_ids" in design:
+        raise ValueError("scenario_ids are managed internally by the checkpointed runner")
+    n_scenarios = _require_integer("n_scenarios", design.get("n_scenarios", 10), 1)
+    n_draws = _require_integer(
+        "n_validation_draws", design.get("n_validation_draws", 20), 2
+    )
+    n_parent = _require_integer("n_parent", design.get("n_parent", 4000), 100)
+    n_detected = _require_integer("n_detected", design.get("n_detected", 30), 1)
+    sizes = tuple(
+        _require_integer(f"validation_sizes[{i}]", value, 10)
+        for i, value in enumerate(design.get("validation_sizes", (100, 300)))
+    )
+    if not sizes or len(set(sizes)) != len(sizes):
+        raise ValueError("validation_sizes must be non-empty and unique")
+    if max(sizes) > n_parent:
+        raise ValueError("validation sizes cannot exceed n_parent")
+    if n_detected > n_parent:
+        raise ValueError("n_detected cannot exceed n_parent")
+    seed = _require_integer("seed", design.get("seed", 20261032), 0)
+    h0_points = _require_integer("h0_points", design.get("h0_points", 81), 31)
+    z_points = _require_integer("z_points", design.get("z_points", 401), 101)
+    for name, value in (
+        ("h0_true", design.get("h0_true", 70.0)),
+        ("sigma_mpc", design.get("sigma_mpc", 140.0)),
+        ("detection_threshold_mpc", design.get("detection_threshold_mpc", 250.0)),
+    ):
+        if not np.isfinite(value) or value <= 0:
+            raise ValueError(f"{name} must be finite and positive")
+    for name, value in (
+        ("true_intercept", design.get("true_intercept", 0.25)),
+        ("true_slope", design.get("true_slope", -1.2)),
+        ("true_quadratic", design.get("true_quadratic", 0.0)),
+    ):
+        if not np.isfinite(value):
+            raise ValueError(f"{name} must be finite")
+    solver_version = design.get("solver_version", "v1")
+    if solver_version not in {"v1", "v2"}:
+        raise ValueError("solver_version must be 'v1' or 'v2'")
+
+    completed_records: dict[int, pd.DataFrame] = {}
+
+    def execute_scenario(scenario: int) -> pd.DataFrame:
+        scenario_design = dict(design)
+        scenario_design.update(
+            n_scenarios=1,
+            scenario_ids=(scenario,),
+            n_validation_draws=n_draws,
+            n_parent=n_parent,
+            n_detected=n_detected,
+            validation_sizes=sizes,
+            seed=seed,
+            h0_points=h0_points,
+            z_points=z_points,
+            solver_version=solver_version,
+        )
+        records = run_finite_parent_benchmark(**scenario_design)
+        # The legacy records format labels this scenario-level catalogue gate
+        # as failed. In the lifecycle ledger it is correctly non-evaluable:
+        # no validation estimator can be compared when the catalogue reference
+        # population itself fails its minimum-size gate.
+        gate = records["failure_code"].eq("catalogue_size_gate")
+        if gate.any():
+            records.loc[gate, "status"] = "non_evaluable"
+            records.loc[gate, "failure_stage"] = "catalogue_reference"
+        completed_records[scenario] = records
+        return records
+
+    ledger, state = run_scenario_campaign(
+        n_scenarios=n_scenarios,
+        n_draws=n_draws,
+        validation_sizes=sizes,
+        executor=execute_scenario,
+        checkpoint_dir=checkpoint_dir,
+        run_metadata={
+            "benchmark": "finite_parent_srswor",
+            "seed": seed,
+            "solver_version": solver_version,
+        },
+    )
+    records = (
+        pd.concat(
+            [completed_records[key] for key in sorted(completed_records)],
+            ignore_index=True,
+        )
+        if completed_records else pd.DataFrame()
+    )
+    return records, ledger, state
