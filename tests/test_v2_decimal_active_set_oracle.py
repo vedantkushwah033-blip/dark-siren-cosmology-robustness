@@ -187,7 +187,7 @@ def _fit_and_compare(x, outcome, *, degree):
         coefficients, np.asarray([float(value) for value in oracle_theta]),
         rtol=0.0, atol=3e-5,
     )
-    assert abs(production_objective - oracle_objective) <= D("1e-8")
+    assert abs(production_objective - oracle_objective) <= D("1e-10")
     return fit, coefficients, oracle_theta
 
 
@@ -204,13 +204,13 @@ def test_decimal_active_set_oracle_matches_well_conditioned_interior_linear_fit(
     "x,outcome,expected_intercept,expected_slope",
     [
         (
-            np.concatenate([np.zeros(1000), [1.0]]),
+            np.concatenate([np.zeros(100), [1.0]]),
             np.concatenate([np.zeros(1000), [1.0]]),
             -25.0, 50.0,
         ),
         (
             np.concatenate([np.zeros(1000), [-1.0]]),
-            np.concatenate([np.ones(1000), [0.0]]),
+            np.concatenate([np.ones(100), [0.0]]),
             25.0, 50.0,
         ),
     ],
