@@ -181,3 +181,10 @@ def test_non_json_metadata_fails_before_checkpoint_or_execution(tmp_path):
         )
     assert called == []
     assert not (tmp_path / "checkpoint.json").exists()
+
+def test_existing_checkpoint_directory_is_not_overwritten(tmp_path):
+    run(tmp_path, successful_records)
+    previous = (tmp_path / "checkpoint.json").read_text(encoding="utf-8")
+    with pytest.raises(FileExistsError, match="fresh output directory"):
+        run(tmp_path, successful_records)
+    assert (tmp_path / "checkpoint.json").read_text(encoding="utf-8") == previous
