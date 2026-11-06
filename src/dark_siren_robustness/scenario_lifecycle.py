@@ -86,6 +86,18 @@ def _write_checkpoint(root: Path, ledger: pd.DataFrame, state: dict[str, Any]) -
     _atomic_json(root / "checkpoint.json", snapshot)
 
 
+def _text_or_empty(value: Any) -> str:
+    """Normalize absent pandas scalar values without turning NaN into 'nan'."""
+    if value is None:
+        return ""
+    try:
+        if pd.isna(value):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    return str(value)
+
+
 def _scenario_rows(ledger: pd.DataFrame, scenario: int) -> pd.DataFrame:
     return ledger.loc[ledger["scenario"].eq(scenario)]
 
@@ -165,9 +177,9 @@ def _apply_scenario_records(
         if raw_status not in mapping:
             raise ValueError(f"unsupported scenario attempt status {raw_status!r}")
         terminal = mapping[raw_status]
-        stage = str(getattr(row, "failure_stage", "") or "validation_attempt")
-        code = str(getattr(row, "failure_code", "") or "")
-        reason = str(getattr(row, "failure_reason", "") or "")
+        stage = _text_or_empty(getattr(row, "failure_stage", "")) or "validation_attempt"
+        code = _text_or_empty(getattr(row, "failure_code", ""))
+        reason = _text_or_empty(getattr(row, "failure_reason", ""))
         if terminal in {"FAILED", "NON_EVALUABLE"}:
             if not code:
                 code = "draw_level_failure"
