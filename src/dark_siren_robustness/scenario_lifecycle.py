@@ -41,6 +41,19 @@ SCENARIO_FAILURE_STAGES = {
 }
 
 
+class ScenarioLifecycleError(RuntimeError):
+    """Expected scenario-level failure with an explicit scientific stage."""
+
+    def __init__(self, stage: str, failure_code: str, message: str) -> None:
+        if stage not in SCENARIO_FAILURE_STAGES:
+            raise ValueError(f"unsupported scenario failure stage {stage!r}")
+        if not failure_code.strip() or not message.strip():
+            raise ValueError("scenario failure code and message must be non-empty")
+        super().__init__(message)
+        self.stage = stage
+        self.failure_code = failure_code
+
+
 def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
     """Write JSON atomically without destroying the previous checkpoint."""
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -207,8 +220,17 @@ def run_scenario_campaign(
         try:
             records = executor(scenario)
             if not isinstance(records, pd.DataFrame):
-                raise TypeError("scenario executor must return a pandas DataFrame")
-            _apply_scenario_records(ledger, scenario=scenario, records=records)
+                raise ScenarioLifecycleError(
+                    "result_reconciliation", "invalid_executor_result",
+                    "scenario executor must return a pandas DataFrame",
+                )
+            try:
+                _apply_scenario_records(ledger, scenario=scenario, records=records)
+            except Exception as exc:
+                raise ScenarioLifecycleError(
+                    "result_reconciliation", "scenario_result_reconciliation_failure",
+                    f"{type(exc).__name__}: {exc}",
+                ) from exc
             statuses = set(_scenario_rows(ledger, scenario)["status"])
             if statuses == {"SUCCESS"}:
                 state["scenario_states"][str(scenario)] = "SUCCESS"
@@ -217,17 +239,15 @@ def run_scenario_campaign(
             else:
                 state["scenario_states"][str(scenario)] = "PARTIAL_FAILURE"
         except Exception as exc:
+            stage = exc.stage if isinstance(exc, ScenarioLifecycleError) else "scenario_execution"
+            code = exc.failure_code if isinstance(exc, ScenarioLifecycleError) else f"scenario_{type(exc).__name__.lower()}"
+            reason = f"{type(exc).__name__}: {exc}"
             _mark_scenario_non_evaluable(
-                ledger,
-                scenario=scenario,
-                stage="scenario_execution",
-                code=f"scenario_{type(exc).__name__.lower()}",
-                reason=f"{type(exc).__name__}: {exc}",
+                ledger, scenario=scenario, stage=stage, code=code, reason=reason,
             )
             state["scenario_states"][str(scenario)] = "FAILED"
             state["scenario_failures"][str(scenario)] = {
-                "failure_code": f"scenario_{type(exc).__name__.lower()}",
-                "failure_reason": f"{type(exc).__name__}: {exc}",
+                "stage": stage, "failure_code": code, "failure_reason": reason,
             }
         # Each scenario boundary is a durable recovery point. A crash during
         # the next scenario leaves its planned rows explicitly NOT_RUN.
