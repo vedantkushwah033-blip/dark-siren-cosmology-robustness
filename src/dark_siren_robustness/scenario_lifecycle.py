@@ -216,6 +216,15 @@ def run_scenario_campaign(
     """
     root = Path(checkpoint_dir)
     root.mkdir(parents=True, exist_ok=True)
+    existing_artifacts = [
+        name for name in ("checkpoint.json", "attempt_ledger.csv", "run_state.json")
+        if (root / name).exists()
+    ]
+    if existing_artifacts:
+        raise FileExistsError(
+            f"checkpoint directory already contains lifecycle artifacts: {existing_artifacts}; "
+            "use a fresh output directory"
+        )
     raw_sizes = tuple(validation_sizes)
     ledger = initialize_attempt_ledger(
         n_scenarios=n_scenarios,
