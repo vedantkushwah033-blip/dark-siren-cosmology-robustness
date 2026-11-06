@@ -22,6 +22,10 @@ from dark_siren_robustness.generative_selection import (
 )
 from dark_siren_robustness.host_density_benchmark import posterior_summary
 from dark_siren_robustness.selection_toy import selection_aware_toy_likelihood
+from dark_siren_robustness.scenario_lifecycle import (
+    ScenarioLifecycleError,
+    run_scenario_campaign,
+)
 
 
 def _require_integer(name: str, value: object, minimum: int) -> int:
@@ -45,6 +49,19 @@ def _failure_code(exc: Exception) -> str:
     if isinstance(exc, RuntimeError):
         return "model_fit_failure"
     return "unexpected_exception"
+
+
+
+def _scenario_stage(stage: str, function):
+    """Promote an upstream exception to an explicit scenario-level failure."""
+    try:
+        return function()
+    except ScenarioLifecycleError:
+        raise
+    except Exception as exc:
+        raise ScenarioLifecycleError(
+            stage, _failure_code(exc), f"{type(exc).__name__}: {exc}"
+        ) from exc
 
 
 def nested_srswor_sample_indices(
@@ -171,18 +188,21 @@ def run_finite_parent_benchmark(
         sim_seed = int(sim_ss.generate_state(1, dtype=np.uint32)[0])
         thin_seed = int(thin_ss.generate_state(1, dtype=np.uint32)[0])
         validation_seed = int(val_ss.generate_state(1, dtype=np.uint32)[0])
-        sim = generate_synthetic_population(
+        sim = _scenario_stage("scenario_generation", lambda: generate_synthetic_population(
             seed=sim_seed, n_parent=n_parent, n_detected=n_detected,
             h0_true=h0_true, sigma_mpc=sigma_mpc,
             detection_threshold_mpc=detection_threshold_mpc,
             z_min=zmin, z_max=zmax,
-        )
+        ))
         parent_z = sim["parent_truth"]["redshift"].to_numpy(dtype=float)
         distances = sim["gw_events_observed"]["distance_mpc"].to_numpy(dtype=float)
         x = (parent_z - zmid) / zhalf
         p_true = expit(true_intercept + true_slope*x + true_quadratic*(x*x - true_quadratic_centering))
         if np.any((p_true <= 0) | (p_true >= 1)) or not np.all(np.isfinite(p_true)):
-            raise ValueError("true inclusion probabilities saturated")
+            raise ScenarioLifecycleError(
+                "scenario_generation", "invalid_true_inclusion_probability",
+                "true inclusion probabilities saturated",
+            )
         thin_rng = np.random.default_rng(thin_seed)
         retained = thin_rng.random(n_parent) < p_true
         observed_z = parent_z[retained]
@@ -220,44 +240,49 @@ def run_finite_parent_benchmark(
 
         # Oracle and catalogue-only are fixed within a scenario; the primary
         # repeated-sampling estimand is the variation across validation draws.
-        oracle = estimate_host_density(
+        oracle = _scenario_stage("oracle_reference", lambda: estimate_host_density(
             z_grid, observed_z, inclusion_probability=p_true[retained],
             merger_weight=rate,
-        )
-        oracle_post = posterior_summary(
+        ))
+        oracle_post = _scenario_stage("oracle_reference", lambda: posterior_summary(
             h0_grid, selection_aware_toy_likelihood(
                 z_grid, oracle, h0_grid, distances, sigma=sigma_mpc,
                 detection_threshold=detection_threshold_mpc,
             )["selected_log_likelihood"],
-        )
-        catalogue = estimate_host_density(z_grid, observed_z, merger_weight=rate)
-        cat_post = posterior_summary(
+        ))
+        catalogue = _scenario_stage("catalogue_reference", lambda: estimate_host_density(
+            z_grid, observed_z, merger_weight=rate
+        ))
+        cat_post = _scenario_stage("catalogue_reference", lambda: posterior_summary(
             h0_grid, selection_aware_toy_likelihood(
                 z_grid, catalogue, h0_grid, distances, sigma=sigma_mpc,
                 detection_threshold=detection_threshold_mpc,
             )["selected_log_likelihood"],
-        )
+        ))
 
         # The finite-parent reference is the same estimated-inclusion pipeline
         # applied to every paired record in this scenario's actual N-record
         # validation frame. It is distinct from the generating H0 truth and
         # from any pseudo-population reference used by a bootstrap.
-        finite_parent_result = estimate_host_density_from_validation(
+        finite_parent_result = _scenario_stage("finite_parent_reference", lambda: estimate_host_density_from_validation(
             z_grid, observed_z, parent_z, retained.astype(int),
             merger_weight=rate, solver_version=solver_version,
-        )
-        finite_parent_post = posterior_summary(
+        ))
+        finite_parent_post = _scenario_stage("finite_parent_reference", lambda: posterior_summary(
             h0_grid, selection_aware_toy_likelihood(
                 z_grid, finite_parent_result["density"], h0_grid, distances,
                 sigma=sigma_mpc, detection_threshold=detection_threshold_mpc,
             )["selected_log_likelihood"],
-        )
+        ))
         rng = np.random.default_rng(validation_seed)
         # One random permutation per draw creates nested validation samples:
         # every smaller-size sample is a prefix/subset of the larger-size sample.
         # This enables paired, higher-precision comparisons across validation sizes.
         for draw in range(n_validation_draws):
-            nested_samples = nested_srswor_sample_indices(rng, n_parent, sizes)
+            nested_samples = _scenario_stage(
+                "validation_sample_generation",
+                lambda: nested_srswor_sample_indices(rng, n_parent, sizes),
+            )
             for size in sizes:
                 indices = nested_samples[size]
                 overlap_indices = np.intersect1d(
