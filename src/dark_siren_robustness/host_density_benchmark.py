@@ -21,7 +21,9 @@ def posterior_summary(grid, loglike):
     q16, q50, q84 = (float(np.interp(q, cdf, grid)) for q in (0.16, 0.50, 0.84))
     return {"posterior_mean": float(trapezoid(grid*density, grid)),
             "posterior_median": q50, "ci68_low": q16, "ci68_high": q84,
-            "ci68_width": q84-q16, "posterior_integral": float(trapezoid(density, grid)),\n            "_posterior_grid": np.asarray(grid, dtype=float).tolist(),\n            "_posterior_density": density.tolist()}
+            "ci68_width": q84-q16, "posterior_integral": float(trapezoid(density, grid)),
+            "_posterior_grid": np.asarray(grid, dtype=float).tolist(),
+            "_posterior_density": density.tolist()}
 
 def run_benchmark(*, n_replicates=10, n_parent=6000, n_detected=40, seed=20261028,
                   h0_true=70.0, sigma_mpc=140.0, detection_threshold_mpc=250.0,
