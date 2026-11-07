@@ -88,7 +88,7 @@ def test_independent_audit_rejects_shape_tampering_with_summaries_unchanged(tmp_
     row = rows[0]
     grid = np.asarray(json.loads(row["posterior_grid_json"]), dtype=float)
     density = np.asarray(json.loads(row["posterior_density_json"]), dtype=float)
-    density[10] *= 1.25
+    density[len(density) // 2 + 4] *= 1.5
     density /= np.trapezoid(density, grid)
     row["posterior_density_json"] = json.dumps(density.tolist(), separators=(",", ":"))
     row["posterior_density_sha256"] = hashlib.sha256(
