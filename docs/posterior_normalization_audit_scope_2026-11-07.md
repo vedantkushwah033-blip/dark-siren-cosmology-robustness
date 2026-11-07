@@ -1,23 +1,25 @@
-# Posterior normalization audit: claim boundary
+# Posterior normalization audit: scope and artifact schema
 
-## Scope
+## Current implementation
 
-The host-density benchmark currently stores posterior summary statistics and a scalar `posterior_integral` in each replicate/arm record. The independent audit checks that this recorded scalar is finite and approximately one. It does not currently persist or reconstruct the complete posterior density vector.
+Artifact schema version 2 stores, for every replicate and estimator arm:
 
-## Correct interpretation
+- the explicit H0 grid as a JSON array;
+- the corresponding normalized posterior density vector as a JSON array;
+- the density vector's SHA-256 checksum;
+- the posterior mean, median, 16th/84th percentiles, interval width, and recorded integral.
 
-The audit therefore verifies **recorded posterior-integral claims**, not posterior normalization independently. The output key is named `recorded_posterior_integral_claims_checked` to avoid overstating what the artifact supports.
+The summary metadata declares schema version 2 and the JSON encoding. The independent auditor verifies the density checksum, finite/nonnegative values, grid shape and strict monotonicity, agreement with the declared grid, and the independently recomputed trapezoidal integral. It then recomputes the posterior mean and quantiles from the stored density and compares them with the recorded summaries. Aggregate metrics are reconstructed from replicate rows.
 
-This is an audit-language correction. It does not establish that existing posterior grids are incorrect, and it does not independently validate the posterior mean, median, quantiles, or density shape.
+## Interpretation and limitations
 
-## Work required for full independent verification
+The audit now independently reconstructs the posterior quantities represented by the saved grid and density vector. It does **not** independently reconstruct the likelihood from the event-level inputs or prove that the producer's likelihood model is scientifically correct. The density is an artifact produced by the benchmark; the auditor checks its internal numerical consistency and consistency with its reported summaries.
 
-A later schema revision should persist, for each replicate and arm, either:
+The checksum detects accidental or uncoordinated modification of the density field. It is not a digital signature and does not establish provenance against an actor able to rewrite both data and checksum.
 
-- the declared H0 grid and corresponding finite, non-negative posterior density vector; or
-- a deterministic, versioned set of inputs sufficient for an independent auditor to reconstruct that vector.
+## Adversarial tests
 
-The independent auditor should then recompute the integral, posterior mean, quantiles, interval width, and coverage indicator from the stored/reconstructed density. Tests should tamper with the density while leaving summary fields unchanged and verify that the audit fails. The artifact schema version and hashes should be recorded in the manifest.
+Tests must alter the density while leaving stored summaries unchanged, update the density checksum to avoid a trivial checksum-only failure, and verify that independently recomputed posterior summaries disagree. Separate tests cover missing schema metadata, interval tampering, aggregate tampering, and missing paired arms.
 
 ## Scientific scope
 
