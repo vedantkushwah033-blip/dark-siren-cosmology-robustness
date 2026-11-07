@@ -17,7 +17,7 @@ def _write_artifacts(folder):
     )
     folder.mkdir(parents=True)
     rows.to_csv(folder / "replicate_metrics.csv", index=False)
-    (folder / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    (folder / "summary.json").write_text(json.dumps(summary, indent=2) + "\\n", encoding="utf-8")
 
 
 def test_independent_audit_reconstructs_paired_rows_and_aggregates(tmp_path):
@@ -27,7 +27,7 @@ def test_independent_audit_reconstructs_paired_rows_and_aggregates(tmp_path):
     assert report["status"] == "PASS"
     assert report["raw_record_count"] == 6
     assert report["replicates_verified"] == 2
-    assert report["posterior_normalizations_verified"] == 6
+    assert report["recorded_posterior_integral_claims_checked"] == 6
     assert report["aggregate_metrics_reconstructed"] == 3
     assert len(report["replicate_metrics_sha256"]) == 64
 
