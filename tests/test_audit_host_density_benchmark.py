@@ -1,8 +1,10 @@
 import csv
+import hashlib
 import json
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
@@ -27,7 +29,8 @@ def test_independent_audit_reconstructs_paired_rows_and_aggregates(tmp_path):
     assert report["status"] == "PASS"
     assert report["raw_record_count"] == 6
     assert report["replicates_verified"] == 2
-    assert report["recorded_posterior_integral_claims_checked"] == 6
+    assert report["posterior_densities_independently_reconstructed"] == 6
+    assert report["posterior_integrations_recomputed"] == 6
     assert report["aggregate_metrics_reconstructed"] == 3
     assert len(report["replicate_metrics_sha256"]) == 64
 
@@ -72,4 +75,39 @@ def test_independent_audit_rejects_missing_paired_arm(tmp_path):
         writer.writeheader()
         writer.writerows(rows)
     with pytest.raises(ValueError, match="raw record count"):
+        audit_artifacts(folder)
+
+
+def test_independent_audit_rejects_shape_tampering_with_summaries_unchanged(tmp_path):
+    folder = tmp_path / "benchmark"
+    _write_artifacts(folder)
+    path = folder / "replicate_metrics.csv"
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+        columns = list(rows[0])
+    row = rows[0]
+    grid = np.asarray(json.loads(row["posterior_grid_json"]), dtype=float)
+    density = np.asarray(json.loads(row["posterior_density_json"]), dtype=float)
+    density[10] *= 1.25
+    density /= np.trapezoid(density, grid)
+    row["posterior_density_json"] = json.dumps(density.tolist(), separators=(",", ":"))
+    row["posterior_density_sha256"] = hashlib.sha256(
+        row["posterior_density_json"].encode("utf-8")
+    ).hexdigest()
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=columns)
+        writer.writeheader()
+        writer.writerows(rows)
+    with pytest.raises(ValueError, match="posterior (mean|median|16th percentile|84th percentile) from saved density"):
+        audit_artifacts(folder)
+
+
+def test_independent_audit_rejects_missing_schema_version(tmp_path):
+    folder = tmp_path / "benchmark"
+    _write_artifacts(folder)
+    path = folder / "summary.json"
+    metadata = json.loads(path.read_text(encoding="utf-8"))
+    metadata.pop("artifact_schema_version")
+    path.write_text(json.dumps(metadata), encoding="utf-8")
+    with pytest.raises(ValueError, match="artifact_schema_version"):
         audit_artifacts(folder)
