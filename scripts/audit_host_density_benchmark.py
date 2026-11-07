@@ -8,11 +8,14 @@ import json
 import math
 from pathlib import Path
 
+import numpy as np
+
 ARMS = ("oracle", "catalogue_only", "known_completeness")
 REQUIRED_COLUMNS = {
     "replicate", "seed", "arm", "h0_true", "n_parent", "n_catalogue_observed",
     "n_detected", "min_detection_efficiency", "posterior_mean", "posterior_median",
     "ci68_low", "ci68_high", "ci68_width", "posterior_integral", "covered_68",
+    "posterior_grid_json", "posterior_density_json", "posterior_density_sha256",
 }
 
 
@@ -48,6 +51,8 @@ def audit_artifacts(output_dir: str | Path) -> dict:
         raise ValueError("replicate_metrics.csv and summary.json must both exist")
     raw_bytes, summary_bytes = raw_path.read_bytes(), summary_path.read_bytes()
     metadata = json.loads(summary_bytes)
+    if metadata.get("artifact_schema_version") != 2:
+        raise ValueError("unsupported or missing artifact_schema_version")
     if metadata.get("status") != "synthetic_exploratory_benchmark_not_real_H0_measurement":
         raise ValueError("missing or unexpected scientific-scope status")
     n_replicates = metadata.get("n_replicates")
@@ -109,7 +114,40 @@ def audit_artifacts(output_dir: str | Path) -> dict:
         if width <= 0:
             raise ValueError(f"non-positive interval width: {key}")
         _close(width, high - low, "68% interval width")
-        _close(integral, 1.0, "posterior integral", atol=1e-6)
+        _close(integral, 1.0, "recorded posterior integral", atol=1e-6)
+        grid_json = row["posterior_grid_json"]
+        density_json = row["posterior_density_json"]
+        expected_hash = hashlib.sha256(density_json.encode("utf-8")).hexdigest()
+        if row["posterior_density_sha256"] != expected_hash:
+            raise ValueError(f"posterior density checksum mismatch: {key}")
+        try:
+            grid = np.asarray(json.loads(grid_json), dtype=float)
+            density = np.asarray(json.loads(density_json), dtype=float)
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ValueError(f"posterior grid/density JSON is invalid: {key}") from exc
+        if grid.ndim != 1 or density.ndim != 1 or len(grid) != int(h0_points) or len(density) != len(grid):
+            raise ValueError(f"posterior grid/density shape mismatch: {key}")
+        if not np.all(np.isfinite(grid)) or not np.all(np.isfinite(density)) or np.any(density < 0):
+            raise ValueError(f"posterior grid/density contains invalid values: {key}")
+        if not np.all(np.diff(grid) > 0):
+            raise ValueError(f"posterior H0 grid is not strictly increasing: {key}")
+        expected_grid = np.linspace(float(h0_min), float(h0_max), int(h0_points))
+        if not np.allclose(grid, expected_grid, rtol=0.0, atol=1e-12):
+            raise ValueError(f"posterior H0 grid disagrees with artifact metadata: {key}")
+        reconstructed_integral = float(np.trapezoid(density, grid))
+        if not math.isfinite(reconstructed_integral) or reconstructed_integral <= 0:
+            raise ValueError(f"posterior density has invalid integral: {key}")
+        _close(reconstructed_integral, 1.0, "independently integrated posterior density", atol=1e-6)
+        _close(reconstructed_integral, integral, "stored vs reconstructed posterior integral", atol=1e-6)
+        reconstructed_mean = float(np.trapezoid(grid * density, grid) / reconstructed_integral)
+        cumulative = np.r_[0.0, np.cumsum(0.5 * (density[:-1] + density[1:]) * np.diff(grid))]
+        cumulative /= cumulative[-1]
+        q16, q50, q84 = (float(np.interp(q, cumulative, grid)) for q in (0.16, 0.50, 0.84))
+        _close(mean, reconstructed_mean, "posterior mean from saved density", atol=1e-6)
+        _close(median, q50, "posterior median from saved density", atol=1e-6)
+        _close(low, q16, "posterior 16th percentile from saved density", atol=1e-6)
+        _close(high, q84, "posterior 84th percentile from saved density", atol=1e-6)
+        _close(width, q84 - q16, "posterior interval width from saved density", atol=1e-6)
         covered = _bool(row["covered_68"], "covered_68")
         expected_covered = low <= h0_true <= high
         if covered != expected_covered:
@@ -152,11 +190,12 @@ def audit_artifacts(output_dir: str | Path) -> dict:
         "raw_record_count": len(rows),
         "replicates_verified": n_replicates,
         "paired_arm_groups_verified": n_replicates,
-        "recorded_posterior_integral_claims_checked": len(rows),
+        "posterior_densities_independently_reconstructed": len(rows),
         "aggregate_metrics_reconstructed": len(ARMS),
         "replicate_metrics_sha256": hashlib.sha256(raw_bytes).hexdigest(),
         "summary_json_sha256": hashlib.sha256(summary_bytes).hexdigest(),
         "scope": "synthetic toy benchmark only; not a real H0 measurement",
+        "posterior_integrations_recomputed": len(rows),
     }
 
 
