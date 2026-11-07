@@ -152,7 +152,7 @@ def audit_artifacts(output_dir: str | Path) -> dict:
         "raw_record_count": len(rows),
         "replicates_verified": n_replicates,
         "paired_arm_groups_verified": n_replicates,
-        "posterior_normalizations_verified": len(rows),
+        "recorded_posterior_integral_claims_checked": len(rows),
         "aggregate_metrics_reconstructed": len(ARMS),
         "replicate_metrics_sha256": hashlib.sha256(raw_bytes).hexdigest(),
         "summary_json_sha256": hashlib.sha256(summary_bytes).hexdigest(),
