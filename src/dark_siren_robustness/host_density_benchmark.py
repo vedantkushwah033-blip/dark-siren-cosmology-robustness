@@ -53,10 +53,14 @@ def run_benchmark(*, n_replicates=10, n_parent=6000, n_detected=40, seed=2026102
             like = selection_aware_toy_likelihood(z, host, h0, distances, sigma=sigma_mpc,
                                                   detection_threshold=detection_threshold_mpc)
             s = posterior_summary(h0, like["selected_log_likelihood"])
+            grid_json = json.dumps(s.pop("_posterior_grid"), separators=(",", ":"))
+            density_json = json.dumps(s.pop("_posterior_density"), separators=(",", ":"))
+            density_sha256 = hashlib.sha256(density_json.encode("utf-8")).hexdigest()
             rows.append({"replicate": rep, "seed": seed+rep, "arm": arm, "h0_true": h0_true,
                 "n_parent": len(parent_z), "n_catalogue_observed": len(observed_z),
                 "n_detected": len(distances), "min_detection_efficiency": float(np.min(like["detection_efficiency"])),
-                **s, "covered_68": bool(s["ci68_low"] <= h0_true <= s["ci68_high"])})
+                "posterior_grid_json": grid_json, "posterior_density_json": density_json,
+                "posterior_density_sha256": density_sha256, **s, "covered_68": bool(s["ci68_low"] <= h0_true <= s["ci68_high"])})
     frame = pd.DataFrame(rows)
     aggregate = []
     for arm, group in frame.groupby("arm", sort=False):
