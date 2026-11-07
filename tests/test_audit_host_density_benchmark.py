@@ -17,7 +17,7 @@ def _write_artifacts(folder):
     )
     folder.mkdir(parents=True)
     rows.to_csv(folder / "replicate_metrics.csv", index=False)
-    (folder / "summary.json").write_text(json.dumps(summary, indent=2) + "\\n", encoding="utf-8")
+    (folder / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
 
 def test_independent_audit_reconstructs_paired_rows_and_aggregates(tmp_path):
