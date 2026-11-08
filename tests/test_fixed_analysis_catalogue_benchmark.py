@@ -54,6 +54,19 @@ def test_auditor_rejects_tampered_coefficient_with_refreshed_hash(tmp_path):
  with pytest.raises(AssertionError,match="Fitted logistic score mismatch|Fitted logistic objective mismatch"):
   audit_fixed_catalogue_artifact(tmp_path)
 
+def test_auditor_rejects_tampered_rng_stream_with_refreshed_hash(tmp_path):
+ a,u,s=_smoke(tmp_path)
+ path=tmp_path/"frame_units.csv";f=pd.read_csv(path)
+ ix=f.index[(f.frame=="VALIDATION")][0]
+ pi=float(f.loc[ix,"true_inclusion_probability"]);ret=int(f.loc[ix,"retained"])
+ f.loc[ix,"retention_uniform"]=pi/2 if ret else (1+pi)/2
+ f.to_csv(path,index=False)
+ mp=tmp_path/"manifest.json";m=json.loads(mp.read_text());payload=path.read_bytes()
+ m["files"]["units"]["bytes"]=len(payload);m["files"]["units"]["sha256"]=hashlib.sha256(payload).hexdigest()
+ mp.write_text(json.dumps(m,indent=2,sort_keys=True)+"\\n")
+ with pytest.raises(AssertionError,match="Independent RNG stream mismatch"):
+  audit_fixed_catalogue_artifact(tmp_path)
+
 def test_auditor_rejects_changed_analysis_membership(tmp_path):
  a,u,s=_smoke(tmp_path)
  path=tmp_path/"frame_units.csv";f=pd.read_csv(path)
