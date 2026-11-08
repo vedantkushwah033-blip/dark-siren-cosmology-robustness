@@ -59,3 +59,18 @@ Report conditional-success mean IAE separately from per-cell success probability
 The 100-replicate FAC experiment can support a synthetic density-recovery statement only. It cannot establish H0 posterior calibration, posterior coverage, real-survey validity, detector selection validity, or universal superiority of IPW. The known-inclusion arm is an oracle simulation diagnostic. The parent-frame KDE is a diagnostic unavailable when the full analysis parent frame is unknown.
 
 Before any H0 propagation, separately verify numerical convergence, density recovery, coefficient-uncertainty treatment, selection-conditioned likelihood marginalization, and fixed-truth coverage/SBC. Catalogue inclusion and GW detection selection remain distinct processes.
+
+
+## Independent RNG-stream audit gate (2026-11-08)
+
+The fixed-analysis-catalogue auditor now reconstructs all five declared SeedSequence([seed, replicate, stream_id]) streams independently:
+
+1. analysis-frame redshifts;
+2. independent validation-frame redshifts;
+3. validation-frame permutation/ranks;
+4. analysis-frame retention uniforms;
+5. validation-frame retention uniforms.
+
+It checks the reconstructed values against the raw frame-unit artifact, in addition to checking that Bernoulli labels follow the stored uniforms and DGP probabilities. This guards against a common failure mode in which a raw uniform or frame coordinate is altered while the corresponding Bernoulli label and manifest checksum are also updated.
+
+The regression suite includes an adversarial retention-uniform tampering test that refreshes the manifest hash and still requires the independent auditor to reject the artifact. The confirmatory artifact is not considered fully audited until this new check has passed on the full raw output.
