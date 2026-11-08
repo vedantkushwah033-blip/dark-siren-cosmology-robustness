@@ -70,12 +70,15 @@ stdout and stderr are retained beside those directories.
 ## Outcomes
 
 SBC/PIT summaries include the empirical PIT mean, variance, fixed-bin counts,
-expected equal-bin count and Monte Carlo standard error. These are descriptive
-diagnostics, not a standalone proof of calibration.
+expected equal-bin count and Monte Carlo standard error. They also report
+prior-predictive inclusion rates for 68%, 90% and 95% equal-tail intervals,
+with Wilson uncertainty intervals. These are descriptive diagnostics, not a
+standalone proof of calibration.
 
 Fixed-truth summaries include 68%, 90% and 95% equal-tail coverage, Wilson
-95% intervals, binomial Monte Carlo standard errors, and median interval
-widths. The 95% interval uses posterior q2.5% and q97.5%, now archived by the
+95% intervals, binomial Monte Carlo standard errors, median interval widths,
+posterior-median bias, and median coefficient-quadrature/IPW stability
+diagnostics (Kish ESS and maximum normalized host weight). The 95% interval uses posterior q2.5% and q97.5%, now archived by the
 single-replicate smoke runner.
 
 All summary denominators use successful, numerically evaluable, independently
