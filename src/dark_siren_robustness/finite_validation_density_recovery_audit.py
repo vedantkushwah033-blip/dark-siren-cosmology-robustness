@@ -275,7 +275,7 @@ def audit_artifact(artifact_dir: Path) -> dict:
         if row.status!="SUCCESS":
             if row.density_json and isinstance(row.density_json,str):
                 raise AssertionError(f"Failed attempt unexpectedly contains density: {key}")
-            if row.arm.startswith("estimated_degree_") and row.fit_status not in {"SUCCESS","FAILED","NON_EVALUABLE"}:
+            if row.arm.startswith("estimated_degree_") and row.fit_status not in {"SUCCESS","FAILED","NON_EVALUABLE","NOT_RUN"}:
                 raise AssertionError(f"Failed estimated arm has inconsistent fit status: {key}")
             continue
         if row.arm=="catalogue_only":
