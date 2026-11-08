@@ -166,6 +166,13 @@ def audit_artifact(artifact_dir: Path) -> dict:
         group=group.sort_values("object_id")
         if not np.array_equal(group.object_id.to_numpy(),np.arange(len(group))):
             raise AssertionError(f"Parent IDs are not complete and contiguous: {key}")
+        rank=group.validation_rank.to_numpy(dtype=int)
+        if not np.array_equal(np.sort(rank),np.arange(len(group))):
+            raise AssertionError(f"Validation ranks are not a permutation: {key}")
+        if np.any((group.redshift.to_numpy()<Z_MIN)|(group.redshift.to_numpy()>Z_MAX)):
+            raise AssertionError(f"Parent redshift outside declared support: {key}")
+        if np.any((group.retention_uniform.to_numpy()<0)|(group.retention_uniform.to_numpy()>=1)):
+            raise AssertionError(f"Retention uniform outside [0,1): {key}")
         gamma=float(key[1]); retention=float(key[2]); nval=int(key[3])
         alpha=_alpha(gamma,retention,center)
         x=(group.redshift.to_numpy()-Z_MIN)/(Z_MAX-Z_MIN)
@@ -280,11 +287,25 @@ def audit_artifact(artifact_dir: Path) -> dict:
                 raise AssertionError(f"Weight diagnostic reconstruction failed: {key}/{row.arm}/{metric}")
         checked_densities+=1
 
-    if len(attempts)!=int(summary["attempt_count"]):
-        raise AssertionError("Attempt count differs from summary")
+    expected_attempt_count=(
+        int(summary["n_replicates"])*len(summary["gamma_values"])*
+        len(summary["retention_values"])*len(summary["validation_sizes"])*
+        len(summary["bandwidth_multipliers"])*(3+len(summary["degrees"]))
+    )
+    if len(attempts)!=expected_attempt_count or len(attempts)!=int(summary["attempt_count"]):
+        raise AssertionError("Attempt count differs from complete factorial design or summary")
     observed_counts={str(k):int(v) for k,v in attempts.status.value_counts().items()}
     if observed_counts!=summary["status_counts"]:
         raise AssertionError("Attempt status ledger differs from summary")
+    success=attempts.loc[attempts.status=="SUCCESS"]
+    reconstructed_arm_means={str(k):float(v.iae.mean())
+                              for k,v in success.groupby("arm",sort=True)}
+    if reconstructed_arm_means.keys()!=summary["conditional_success_mean_iae"].keys():
+        raise AssertionError("Conditional-success arm summary keys differ")
+    for arm,value in reconstructed_arm_means.items():
+        if not np.isclose(value,summary["conditional_success_mean_iae"][arm],
+                          rtol=1e-10,atol=1e-12):
+            raise AssertionError(f"Conditional-success IAE summary mismatch: {arm}")
     reconstructed_contrasts=_reconstruct_paired_contrasts(
         attempts,n_replicates=int(summary["n_replicates"]),
         seed=int(summary["seed_start"])+9109,
