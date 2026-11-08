@@ -71,3 +71,20 @@ ESS_L(H_0)=\frac{1}{\sum_b a_b(H_0)^2}.
 It also reports the maximum normalized likelihood-contribution weight and the same contribution ESS within each disjoint Monte Carlo batch. This is distinct from (i) the validation-posterior proposal ESS and (ii) the batch ESS of the proposal weights alone. The default diagnostic status is LOW_CONTRIBUTION_ESS if any H0 point has contribution ESS below 5; callers may set a stricter threshold before a confirmatory run. A high coefficient-posterior ESS must not override a low H0-specific contribution ESS.
 
 The memory guard now accounts for the additional full draw-by-H0 log-contribution and normalized-contribution arrays, as well as the returned batch diagnostics. This remains a conservative allocation estimate, not a strict process peak-memory guarantee.
+
+
+---
+
+## Updated implementation checkpoint — 2026-11-08
+
+The earlier status statement is retained as a snapshot from the first implementation stage. Since then:
+
+- The vectorized primary path in `finite_validation_h0.py` has been connected to the weighted fixed-basis Bayesian inclusion importance sampler.
+- The returned H0 posterior now includes declared-prior normalization, 68%/95% summaries, and boundary-mass diagnostics.
+- The reference path in this module is tested against the vectorized per-draw unconditional likelihood, GW detection efficiency, and selected likelihood.
+- The integration suite includes a real importance-sampler posterior flowing through host-density reconstruction and selected-likelihood marginalization, plus a parent-frame-to-normalized-H0-posterior smoke test.
+- Marginalization diagnostics now include coefficient-proposal ESS by batch, H0-specific likelihood-contribution ESS, maximum contribution weight, batch-level contribution ESS, and log-likelihood MCSE. Low contribution ESS is separately flagged; a high proposal ESS does not override it.
+
+The focused sampler workflow and full numerical-diagnostics matrix passed on Python 3.10, 3.11, and 3.12 at commit `dae374c17a462b65aec94c06ca05f730ac094e37` (runs `42482040468` and `42482040471`).
+
+These are software and numerical cross-checks, not repeated-sampling calibration. The production/reference paths share SciPy's KDE primitive, and the reference path's returned-array memory guard is not a strict process peak-memory guarantee. The repeated-sampling experiment and independent H0 artifact auditor remain future work; see `docs/finite_validation_h0_repeated_sampling_protocol_2026-11-08.md`.
