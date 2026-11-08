@@ -153,6 +153,7 @@ def test_configured_runner_writes_provenance_manifest_and_auditable_artifacts(tm
     assert completed.returncode == 0, completed.stdout + completed.stderr
     manifest_path = summary_path.parent / "run_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["artifact_schema_version"] == 2
     assert manifest["summary_rows"] == 2
     assert manifest["raw_unit_records"] == 1000
     assert manifest["summary_sha256"] == hashlib.sha256(summary_path.read_bytes()).hexdigest()
