@@ -106,3 +106,51 @@ def test_pipeline_uses_each_proposal_and_its_importance_weight():
     ) - logsumexp(np.log(weights))
     np.testing.assert_allclose(result.marginalized_selected_log_likelihood, expected)
     assert np.isclose(result.importance_ess, 1 / np.sum(weights**2))
+
+
+def test_pipeline_rejects_truncated_redshift_domain_and_oversized_output():
+    proposals = np.array([[-0.5, -0.8], [0.2, -1.1]])
+    weights = np.array([0.3, 0.7])
+    posterior = InclusionPosteriorApproximation(
+        status="SUCCESS",
+        message="test fixture",
+        degree=1,
+        z_min=0.01,
+        z_max=0.40,
+        prior_mean=np.zeros(2),
+        prior_sd=np.ones(2),
+        map_coefficients=np.zeros(2),
+        laplace_covariance=np.eye(2),
+        coefficient_proposals=proposals,
+        normalized_importance_weights=weights,
+        log_importance_weights=np.log(weights),
+        posterior_mean=np.zeros(2),
+        posterior_covariance=np.eye(2),
+        importance_ess=float(1 / np.sum(weights**2)),
+        max_normalized_weight=float(np.max(weights)),
+        log_evidence_estimate=0.0,
+        log_evidence_relative_mcse=0.0,
+        n_draws=2,
+        newton_iterations=1,
+    )
+    catalogue = np.linspace(0.02, 0.39, 80)
+    z_grid = np.linspace(0.01, 0.40, 101)
+    h0_grid = np.linspace(55, 85, 31)
+    merger = 1.0 + 1.5 * (z_grid - 0.01) / 0.39
+    arguments = dict(
+        posterior=posterior,
+        analysis_redshift=catalogue,
+        redshift_grid=z_grid,
+        H0_grid=h0_grid,
+        distances=np.array([330.0, 410.0, 520.0]),
+        merger_weight=merger,
+        scott_multiplier=0.3,
+        sigma=120.0,
+        detection_threshold=250.0,
+    )
+    with pytest.raises(ValueError, match="full fixed inclusion-prior domain"):
+        propagate_inclusion_posterior_to_h0(
+            **{**arguments, "redshift_grid": z_grid[1:], "merger_weight": merger[1:]}
+        )
+    with pytest.raises(MemoryError, match="reduce proposal draws or grid size"):
+        propagate_inclusion_posterior_to_h0(**arguments, max_output_bytes=100)
