@@ -68,6 +68,8 @@ jobs:
         run: python -m pytest tests/test_inclusion_posterior_calibration.py -q
       - name: Validate calibration runner command-line interface
         run: python scripts/run_inclusion_posterior_calibration.py --help
+      - name: Test independent calibration orchestration and nested-design auditor
+        run: python -m pytest tests/test_audit_inclusion_posterior_calibration.py -q
       - name: Run and verify tiny conditional H0 PIT and fixed-truth calibration orchestration (Python 3.12 only)
         if: matrix.python-version == '3.12'
         run: |
@@ -99,6 +101,7 @@ jobs:
           assert (ledger["audit_status"] == "PASS").all()
           assert summary["pit_estimand"].startswith("H0 prior-predictive PIT")
           PY
+          python scripts/audit_inclusion_posterior_calibration.py artifacts/inclusion_posterior_calibration_smoke --output artifacts/inclusion_posterior_calibration_smoke/independent_audit_report.json
       - name: Test independent finite-validation raw-record auditor
         run: python -m pytest tests/test_audit_finite_validation_probability_benchmark.py -q
       - name: Run paired finite-validation inclusion-probability smoke benchmark
