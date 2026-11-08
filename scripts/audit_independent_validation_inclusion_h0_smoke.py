@@ -195,6 +195,57 @@ def audit(artifact_dir: Path) -> dict[str, object]:
         node_log_selected = (
             node_log_joint - len(events) * node_log_beta
         )
+
+        # Verify persisted posterior nodes/weights and nodewise likelihood arrays
+        # against this independent reconstruction from the raw validation sample.
+        quadrature_table = pd.read_csv(
+            root / f"inclusion_quadrature_order_{order}.csv"
+        )
+        theta_columns = [
+            f"theta_{index}" for index in range(fit.nodes.shape[1])
+        ]
+        archived_nodes = quadrature_table[theta_columns].to_numpy(dtype=float)
+        archived_weights = quadrature_table["posterior_weight"].to_numpy(dtype=float)
+        if not np.allclose(archived_nodes, fit.nodes, rtol=1e-11, atol=1e-12):
+            raise AssertionError(f"archived quadrature nodes differ at order {order}")
+        if not np.allclose(archived_weights, fit.weights, rtol=1e-11, atol=1e-14):
+            raise AssertionError(f"archived quadrature weights differ at order {order}")
+
+        archived_likelihood = pd.read_csv(
+            root / f"selected_likelihood_order_{order}.csv"
+        )
+        expected_rows = fit.nodes.shape[0] * h0_grid.size
+        if len(archived_likelihood) != expected_rows:
+            raise AssertionError(f"archived likelihood row count differs at order {order}")
+        expected_node_ids = np.repeat(
+            np.arange(fit.nodes.shape[0]), h0_grid.size
+        )
+        expected_h0 = np.tile(h0_grid, fit.nodes.shape[0])
+        if not np.array_equal(
+            archived_likelihood["node_index"].to_numpy(dtype=int),
+            expected_node_ids,
+        ) or not np.allclose(
+            archived_likelihood["H0"].to_numpy(dtype=float),
+            expected_h0, rtol=0, atol=1e-12,
+        ):
+            raise AssertionError(f"archived likelihood index does not match at order {order}")
+        archived_node_selected = archived_likelihood[
+            "node_log_selected_likelihood"
+        ].to_numpy(dtype=float).reshape(fit.nodes.shape[0], h0_grid.size)
+        archived_node_beta = archived_likelihood[
+            "node_log_detection_efficiency"
+        ].to_numpy(dtype=float).reshape(fit.nodes.shape[0], h0_grid.size)
+        if not np.allclose(
+            archived_node_selected, node_log_selected,
+            rtol=1e-10, atol=1e-10,
+        ):
+            raise AssertionError(f"archived nodewise selected likelihood differs at order {order}")
+        if not np.allclose(
+            archived_node_beta, node_log_beta,
+            rtol=1e-10, atol=1e-10,
+        ):
+            raise AssertionError(f"archived nodewise detection efficiency differs at order {order}")
+
         marginal_log_likelihood = logsumexp(
             node_log_selected + np.log(fit.weights)[:, None],
             axis=0,
@@ -211,6 +262,16 @@ def audit(artifact_dir: Path) -> dict[str, object]:
         reconstructed_density = (
             reconstructed_unnormalized / reconstructed_area
         )
+        archived_marginal = archived_likelihood[
+            "marginal_log_likelihood"
+        ].to_numpy(dtype=float).reshape(fit.nodes.shape[0], h0_grid.size)[0]
+        if not np.allclose(
+            archived_marginal, marginal_log_likelihood,
+            rtol=1e-10, atol=1e-10,
+        ):
+            raise AssertionError(
+                f"archived marginal log likelihood differs at order {order}"
+            )
         archived_density = density[f"density_order_{order}"].to_numpy(
             dtype=float
         )
