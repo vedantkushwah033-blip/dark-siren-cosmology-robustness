@@ -124,6 +124,25 @@ def test_marginalized_shared_likelihood_produces_normalized_h0_posterior():
     assert 50.0 <= h0_posterior.quantile(0.05) < h0_posterior.quantile(0.95) <= 90.0
 
 
+def test_constant_inclusion_probability_recovers_base_population_weights():
+    from dataclasses import replace
+
+    posterior, catalogue_z, h0, events = _inputs()
+    constant_nodes = np.zeros_like(posterior.nodes)
+    constant = replace(posterior, nodes=constant_nodes)
+    base = 1.0 + 1.5 * (catalogue_z - 0.01) / 0.39
+    result = shared_inclusion_selected_log_likelihood(
+        h0, catalogue_z, events, constant,
+        detection_threshold_mpc=250.0,
+        population_base_weights=base,
+    )
+    expected = base / base.sum()
+    assert np.allclose(
+        result.node_catalogue_weights,
+        np.repeat(expected[:, None], constant.nodes.shape[0], axis=1),
+    )
+
+
 def test_shared_selected_likelihood_rejects_heterogeneous_noise_for_this_selection_model():
     posterior, catalogue_z, h0, events = _inputs()
     events[1] = {"gw_distance": 1050.0, "gw_sigma": 150.0}
