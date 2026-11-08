@@ -110,159 +110,159 @@ def run_probability_validation_benchmark(
                 })
 
                 for n_validation in sizes:
-                split_seed = scenario_seed + 37 * n_validation
-                split = split_disjoint_validation(
-                    parent, n_validation=n_validation, seed=split_seed
-                )
-                holdout = parent.loc[
-                    ~parent["object_id"].isin(split.validation_object_ids)
-                ].reset_index(drop=True)
-                # Oracle weights are scoring-only diagnostics; never supplied to the fitter.
-                truth_by_id = parent.set_index("object_id")
-                if len(split.analysis_catalogue):
-                    oracle_probability = truth_by_id.loc[
-                        split.analysis_object_ids, "inclusion_probability"
-                    ].to_numpy()
-                    oracle_weight = inverse_probability_weight_diagnostics(oracle_probability)
-                else:
-                    oracle_weight = {
-                        "kish_ess": np.nan, "entropy_ess": np.nan,
-                        "max_normalized_weight": np.nan,
-                    }
-
-                for degree in model_degrees:
-                    fit = fit_inclusion_logistic(
-                        split.validation["redshift"].to_numpy(),
-                        split.validation["retained"].to_numpy(),
-                        degree=degree,
+                    split_seed = scenario_seed + 37 * n_validation
+                    split = split_disjoint_validation(
+                        parent, n_validation=n_validation, seed=split_seed
                     )
-                    model_label = (
-                        "correctly_specified"
-                        if (gamma == 0.0 and degree == 1) or degree == 2
-                        else "deliberately_misspecified"
-                    )
-                    row = {
-                        "scenario_seed": scenario_seed,
-                        "replicate": replicate,
-                        "gamma": gamma,
-                        "retention_target": retention_target,
-                        "retention_realized_parent": float(retained.mean()),
-                        "mean_true_probability": float(p_true.mean()),
-                        "true_alpha": true_alpha,
-                        "true_beta": -1.0,
-                        "true_gamma": gamma,
-                        "curvature_center": curvature_center,
-                        "model_degree": degree,
-                        "model_specification": model_label,
-                        "n_parent": n_parent,
-                        "n_validation": n_validation,
-                        "validation_retained": fit.n_retained,
-                        "validation_not_retained": fit.n_not_retained,
-                        "n_analysis_catalogue": len(split.analysis_catalogue),
-                        "oracle_kish_ess": oracle_weight["kish_ess"],
-                        "oracle_entropy_ess": oracle_weight["entropy_ess"],
-                        "oracle_max_normalized_weight": oracle_weight["max_normalized_weight"],
-                        "fit_status": fit.status,
-                        "fit_message": fit.message,
-                        "design_rank": fit.design_rank,
-                        "design_condition_number": fit.design_condition_number,
-                        "gradient_inf_norm": fit.gradient_inf_norm,
-                        "hessian_condition_number": fit.hessian_condition_number,
-                        "max_abs_coefficient": fit.max_abs_coefficient,
-                        "iterations": fit.iterations,
-                        "fit_center": fit.center,
-                        "fit_scale": fit.scale,
-                        "coefficients_json": (
-                            None if fit.coefficients is None
-                            else json.dumps(fit.coefficients.tolist())
-                        ),
-                        "covariance_json": (
-                            None if fit.covariance is None
-                            else json.dumps(fit.covariance.tolist())
-                        ),
-                    }
-                    if fit.status == "SUCCESS":
-                        p_holdout = fit.predict(holdout["redshift"].to_numpy())
-                        p_validation = fit.predict(
-                            split.validation["redshift"].to_numpy()
-                        )
+                    holdout = parent.loc[
+                        ~parent["object_id"].isin(split.validation_object_ids)
+                    ].reset_index(drop=True)
+                    # Oracle weights are scoring-only diagnostics; never supplied to the fitter.
+                    truth_by_id = parent.set_index("object_id")
+                    if len(split.analysis_catalogue):
+                        oracle_probability = truth_by_id.loc[
+                            split.analysis_object_ids, "inclusion_probability"
+                        ].to_numpy()
+                        oracle_weight = inverse_probability_weight_diagnostics(oracle_probability)
                     else:
-                        p_holdout = np.full(len(holdout), np.nan)
-                        p_validation = np.full(len(split.validation), np.nan)
+                        oracle_weight = {
+                            "kish_ess": np.nan, "entropy_ess": np.nan,
+                            "max_normalized_weight": np.nan,
+                        }
 
-                    # Complete unit-level partition: validation, retained analysis
-                    # catalogue, and non-retained holdout. IDs and roles are auditable.
-                    raw_key = {
-                        "scenario_seed": scenario_seed,
-                        "replicate": replicate,
-                        "gamma": gamma,
-                        "retention_target": retention_target,
-                        "n_validation": n_validation,
-                        "model_degree": degree,
-                    }
-                    for position, unit in enumerate(split.validation.itertuples(index=False)):
-                        raw_rows.append({
-                            **raw_key,
-                            "split_role": "validation",
-                            "object_id": int(unit.object_id),
-                            "redshift": float(unit.redshift),
-                            "retained": int(unit.retained),
-                            "p_true": float(truth_by_id.loc[unit.object_id, "inclusion_probability"]),
-                            "p_hat": float(p_validation[position]),
-                        })
-                    for position, unit in enumerate(holdout.itertuples(index=False)):
-                        raw_rows.append({
-                            **raw_key,
-                            "split_role": (
-                                "analysis_catalogue" if int(unit.retained) == 1
-                                else "nonretained_holdout"
-                            ),
-                            "object_id": int(unit.object_id),
-                            "redshift": float(unit.redshift),
-                            "retained": int(unit.retained),
-                            "p_true": float(truth_by_id.loc[unit.object_id, "inclusion_probability"]),
-                            "p_hat": float(p_holdout[position]),
-                        })
-                    if fit.status == "SUCCESS":
-                        score = score_inclusion_predictions(
-                            holdout["retained"].to_numpy(), p_holdout
+                    for degree in model_degrees:
+                        fit = fit_inclusion_logistic(
+                            split.validation["redshift"].to_numpy(),
+                            split.validation["retained"].to_numpy(),
+                            degree=degree,
                         )
-                        if len(split.analysis_catalogue):
-                            p_analysis = fit.predict(
-                                split.analysis_catalogue["redshift"].to_numpy()
+                        model_label = (
+                            "correctly_specified"
+                            if (gamma == 0.0 and degree == 1) or degree == 2
+                            else "deliberately_misspecified"
+                        )
+                        row = {
+                            "scenario_seed": scenario_seed,
+                            "replicate": replicate,
+                            "gamma": gamma,
+                            "retention_target": retention_target,
+                            "retention_realized_parent": float(retained.mean()),
+                            "mean_true_probability": float(p_true.mean()),
+                            "true_alpha": true_alpha,
+                            "true_beta": -1.0,
+                            "true_gamma": gamma,
+                            "curvature_center": curvature_center,
+                            "model_degree": degree,
+                            "model_specification": model_label,
+                            "n_parent": n_parent,
+                            "n_validation": n_validation,
+                            "validation_retained": fit.n_retained,
+                            "validation_not_retained": fit.n_not_retained,
+                            "n_analysis_catalogue": len(split.analysis_catalogue),
+                            "oracle_kish_ess": oracle_weight["kish_ess"],
+                            "oracle_entropy_ess": oracle_weight["entropy_ess"],
+                            "oracle_max_normalized_weight": oracle_weight["max_normalized_weight"],
+                            "fit_status": fit.status,
+                            "fit_message": fit.message,
+                            "design_rank": fit.design_rank,
+                            "design_condition_number": fit.design_condition_number,
+                            "gradient_inf_norm": fit.gradient_inf_norm,
+                            "hessian_condition_number": fit.hessian_condition_number,
+                            "max_abs_coefficient": fit.max_abs_coefficient,
+                            "iterations": fit.iterations,
+                            "fit_center": fit.center,
+                            "fit_scale": fit.scale,
+                            "coefficients_json": (
+                                None if fit.coefficients is None
+                                else json.dumps(fit.coefficients.tolist())
+                            ),
+                            "covariance_json": (
+                                None if fit.covariance is None
+                                else json.dumps(fit.covariance.tolist())
+                            ),
+                        }
+                        if fit.status == "SUCCESS":
+                            p_holdout = fit.predict(holdout["redshift"].to_numpy())
+                            p_validation = fit.predict(
+                                split.validation["redshift"].to_numpy()
                             )
-                            weight = inverse_probability_weight_diagnostics(p_analysis)
                         else:
-                            weight = {
-                                "kish_ess": np.nan, "entropy_ess": np.nan,
+                            p_holdout = np.full(len(holdout), np.nan)
+                            p_validation = np.full(len(split.validation), np.nan)
+
+                        # Complete unit-level partition: validation, retained analysis
+                        # catalogue, and non-retained holdout. IDs and roles are auditable.
+                        raw_key = {
+                            "scenario_seed": scenario_seed,
+                            "replicate": replicate,
+                            "gamma": gamma,
+                            "retention_target": retention_target,
+                            "n_validation": n_validation,
+                            "model_degree": degree,
+                        }
+                        for position, unit in enumerate(split.validation.itertuples(index=False)):
+                            raw_rows.append({
+                                **raw_key,
+                                "split_role": "validation",
+                                "object_id": int(unit.object_id),
+                                "redshift": float(unit.redshift),
+                                "retained": int(unit.retained),
+                                "p_true": float(truth_by_id.loc[unit.object_id, "inclusion_probability"]),
+                                "p_hat": float(p_validation[position]),
+                            })
+                        for position, unit in enumerate(holdout.itertuples(index=False)):
+                            raw_rows.append({
+                                **raw_key,
+                                "split_role": (
+                                    "analysis_catalogue" if int(unit.retained) == 1
+                                    else "nonretained_holdout"
+                                ),
+                                "object_id": int(unit.object_id),
+                                "redshift": float(unit.redshift),
+                                "retained": int(unit.retained),
+                                "p_true": float(truth_by_id.loc[unit.object_id, "inclusion_probability"]),
+                                "p_hat": float(p_holdout[position]),
+                            })
+                        if fit.status == "SUCCESS":
+                            score = score_inclusion_predictions(
+                                holdout["retained"].to_numpy(), p_holdout
+                            )
+                            if len(split.analysis_catalogue):
+                                p_analysis = fit.predict(
+                                    split.analysis_catalogue["redshift"].to_numpy()
+                                )
+                                weight = inverse_probability_weight_diagnostics(p_analysis)
+                            else:
+                                weight = {
+                                    "kish_ess": np.nan, "entropy_ess": np.nan,
+                                    "max_normalized_weight": np.nan,
+                                    "top_1pct_weight_mass": np.nan,
+                                    "top_5pct_weight_mass": np.nan,
+                                }
+                            row.update({
+                                "heldout_brier_score": score["brier_score"],
+                                "heldout_log_loss": score["log_loss"],
+                                "heldout_probability_rmse": float(np.sqrt(np.mean(
+                                    (p_holdout - holdout["inclusion_probability"].to_numpy())**2
+                                ))),
+                                "kish_ess": weight["kish_ess"],
+                                "entropy_ess": weight["entropy_ess"],
+                                "max_normalized_weight": weight["max_normalized_weight"],
+                                "top_1pct_weight_mass": weight["top_1pct_weight_mass"],
+                                "top_5pct_weight_mass": weight["top_5pct_weight_mass"],
+                            })
+                        else:
+                            row.update({
+                                "heldout_brier_score": np.nan,
+                                "heldout_log_loss": np.nan,
+                                "heldout_probability_rmse": np.nan,
+                                "kish_ess": np.nan,
+                                "entropy_ess": np.nan,
                                 "max_normalized_weight": np.nan,
                                 "top_1pct_weight_mass": np.nan,
                                 "top_5pct_weight_mass": np.nan,
-                            }
-                        row.update({
-                            "heldout_brier_score": score["brier_score"],
-                            "heldout_log_loss": score["log_loss"],
-                            "heldout_probability_rmse": float(np.sqrt(np.mean(
-                                (p_holdout - holdout["inclusion_probability"].to_numpy())**2
-                            ))),
-                            "kish_ess": weight["kish_ess"],
-                            "entropy_ess": weight["entropy_ess"],
-                            "max_normalized_weight": weight["max_normalized_weight"],
-                            "top_1pct_weight_mass": weight["top_1pct_weight_mass"],
-                            "top_5pct_weight_mass": weight["top_5pct_weight_mass"],
-                        })
-                    else:
-                        row.update({
-                            "heldout_brier_score": np.nan,
-                            "heldout_log_loss": np.nan,
-                            "heldout_probability_rmse": np.nan,
-                            "kish_ess": np.nan,
-                            "entropy_ess": np.nan,
-                            "max_normalized_weight": np.nan,
-                            "top_1pct_weight_mass": np.nan,
-                            "top_5pct_weight_mass": np.nan,
-                        })
-                    rows.append(row)
+                            })
+                        rows.append(row)
     summary = pd.DataFrame(rows)
     if raw_output is not None:
         raw_path = Path(raw_output)
