@@ -79,7 +79,7 @@ def _summarize(replicates: pd.DataFrame, bins: int) -> dict:
                 "pit_bin_expected": float(len(pit) / bins),
                 "pit_mean_mc_se": float(np.std(pit, ddof=1) / math.sqrt(len(pit))) if len(pit) > 1 else None,
             })
-            for level, column in ((68, "sbc_included_68"), (90, "sbc_included_90"), (95, "sbc_included_95")):
+            for level, column in ((68, "h0_pit_interval_included_68"), (90, "h0_pit_interval_included_90"), (95, "h0_pit_interval_included_95")):
                 successes = int(valid[column].sum())
                 lo, hi = _wilson_interval(successes, len(valid))
                 item[f"prior_predictive_interval_inclusion_{level}"] = successes / len(valid)
@@ -318,7 +318,7 @@ def main() -> None:
                                     (90, "h0_q05", "h0_q95"),
                                     (95, "h0_q025", "h0_q975"),
                                 ):
-                                    row[f"sbc_included_{level}"] = int(row[lower] <= h0_true <= row[upper])
+                                    row[f"h0_pit_interval_included_{level}"] = int(row[lower] <= h0_true <= row[upper])
                             else:
                                 for level, lower, upper in (
                                     (68, "h0_q16", "h0_q84"),
