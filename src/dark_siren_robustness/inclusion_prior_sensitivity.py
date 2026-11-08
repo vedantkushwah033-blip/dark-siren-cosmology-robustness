@@ -95,6 +95,11 @@ def run_inclusion_prior_scale_sensitivity(
         raise ValueError("prior parameters must be finite with positive scales")
 
     h0 = np.asarray(H0_grid, dtype=float)
+    if (
+        h0.ndim != 1 or h0.size < 2 or not np.all(np.isfinite(h0))
+        or np.any(h0 <= 0) or np.any(np.diff(h0) <= 0)
+    ):
+        raise ValueError("H0_grid must be finite, positive, and strictly increasing")
     lo = float(h0[0] if prior_min is None else prior_min)
     hi = float(h0[-1] if prior_max is None else prior_max)
     records = []
