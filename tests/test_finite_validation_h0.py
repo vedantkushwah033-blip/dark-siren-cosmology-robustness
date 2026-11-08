@@ -10,10 +10,7 @@ from dark_siren_robustness.finite_validation_h0 import (
     reconstruct_host_density_draws,
     selected_log_likelihood_by_draw,
 )
-from dark_siren_robustness.selection_toy import (
-    C_KM_S,
-    selection_aware_toy_likelihood,
-)
+from dark_siren_robustness.selection_toy import selection_aware_toy_likelihood
 
 
 def _density_pair():
@@ -69,7 +66,9 @@ def test_selection_correction_is_applied_inside_each_draw_before_marginalization
     wrong_unconditional = weighted_log_marginal_likelihood(
         result["unconditional_log_likelihoods"], log_weights
     )
-    average_beta = np.average(result["detection_efficiencies"], axis=0, weights=np.exp(log_weights))
+    average_beta = np.average(
+        result["detection_efficiencies"], axis=0, weights=np.exp(log_weights)
+    )
     wrong_shortcut = wrong_unconditional - distances.size * np.log(average_beta)
     assert not np.allclose(correct, wrong_shortcut, rtol=1e-6, atol=1e-6)
 
