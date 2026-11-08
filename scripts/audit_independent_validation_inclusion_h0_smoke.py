@@ -143,6 +143,17 @@ def audit(artifact_dir: Path) -> dict[str, object]:
         fit_inclusion_posterior_quadrature,
     )
 
+    coefficient_prior = config["inference"].get("coefficient_prior")
+    if not isinstance(coefficient_prior, dict) or coefficient_prior.get("family") != "independent_normal":
+        raise AssertionError("coefficient prior family is missing or unsupported")
+    prior_mean = np.asarray(coefficient_prior.get("mean"), dtype=float)
+    prior_sd = np.asarray(coefficient_prior.get("sd"), dtype=float)
+    expected_dimension = int(config["inference"]["degree"]) + 1
+    if prior_mean.shape != (expected_dimension,) or prior_sd.shape != (expected_dimension,):
+        raise AssertionError("coefficient prior vectors do not match fitted model dimension")
+    if not np.all(np.isfinite(prior_mean)) or not np.all(np.isfinite(prior_sd)) or np.any(prior_sd <= 0):
+        raise AssertionError("coefficient prior parameters are invalid")
+
     z_catalogue = catalogue["redshift"].to_numpy(dtype=float)
     z_min, z_max = analysis_cfg["redshift_domain"]
     base_weights = 1.0 + 1.5 * (z_catalogue - z_min) / (z_max - z_min)
@@ -156,6 +167,8 @@ def audit(artifact_dir: Path) -> dict[str, object]:
             validation["redshift"].to_numpy(dtype=float),
             validation["retained"].to_numpy(dtype=int),
             degree=int(config["inference"]["degree"]),
+            prior_mean=prior_mean,
+            prior_sd=prior_sd,
             order=int(order),
         )
         x = (z_catalogue - fit.center) / fit.scale
