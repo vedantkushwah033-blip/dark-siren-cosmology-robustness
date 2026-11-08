@@ -11,7 +11,7 @@ Frozen design in that artifact:
 - 100 replicates;
 - 4,000 independent analysis-frame parent units per replicate/scenario;
 - independent validation frame of maximum size 1,000, with nested sizes 100, 300 and 1,000;
-- curvature \\(\gamma\in\{-1.2,0,+1.2\}\\);
+- curvature \(\gamma\in\{-1.2,0,+1.2\}\);
 - target retention 0.25;
 - degree-1 and degree-2 logistic inclusion fits;
 - Scott multiplier 0.15;
@@ -31,7 +31,7 @@ The archived raw artifact's independent auditor reports:
 
 The manifest's four raw/configuration files (attempt ledger, frame units, configuration and summary) were independently re-hashed locally; all byte counts and SHA-256 values matched.
 
-A separate direct Gaussian-kernel calculation was also performed locally on 15 selected raw attempts: one replicate for each of the three curvature values and each of the five estimator arms. This calculation used an explicit weighted Gaussian sum and weighted covariance formula, not `scipy.stats.gaussian_kde`. Maximum absolute difference from the stored density vectors was \\(1.69\times10^{-14}\\); maximum absolute IAE discrepancy was below \\(3.4\times10^{-16}\\).
+A separate direct Gaussian-kernel calculation was also performed locally on 15 selected raw attempts: one replicate for each of the three curvature values and each of the five estimator arms. This calculation used an explicit weighted Gaussian sum and weighted covariance formula, not `scipy.stats.gaussian_kde`. Maximum absolute difference from the stored density vectors was \(1.69\times10^{-14}\); maximum absolute IAE discrepancy was below \(3.4\times10^{-16}\).
 
 The direct-formula spot check is now being incorporated into both repository auditors so future smoke and confirmatory runs execute it automatically. The full current-head workflow for those new audit changes is a separate verification gate; the local reconstruction above is not a claim that the updated auditor has already passed CI.
 
@@ -39,18 +39,18 @@ The direct-formula spot check is now being incorporated into both repository aud
 
 The analysis JSON defines
 
-\\[
+\[
 \Delta(\gamma,n_V,d)=
 \operatorname{IAE}_{\mathrm{estimated\ IPW}}-
 \operatorname{IAE}_{\mathrm{catalogue-only}},
-\\]
+\]
 
 and the pilot-informed primary interaction
 
-\\[
+\[
 \Psi=
 \Delta(+1.2,300,1)-\Delta(-1.2,300,1),
-\\]
+\]
 
 at Scott multiplier 0.15.
 
@@ -58,7 +58,7 @@ Independent reconstruction from the raw attempt CSV gave:
 
 | Quantity | Reconstructed value |
 |---|---:|
-| Mean interaction \\(\hat\Psi\\) | +0.2778930 |
+| Mean interaction \(\hat\Psi\) | +0.2778930 |
 | Monte Carlo SE | 0.0054182 |
 | Paired bootstrap 95% interval | [0.2674495, 0.2886512] |
 | Paired-t 95% interval | [0.2671421, 0.2886440] |
@@ -74,7 +74,7 @@ Paired mean IAE differences at Scott multiplier 0.15 are shown below. Negative v
 
 ### Degree 1
 
-| Curvature \\(\gamma\\) | Validation 100 | Validation 300 | Validation 1,000 |
+| Curvature \(\gamma\) | Validation 100 | Validation 300 | Validation 1,000 |
 |---:|---:|---:|---:|
 | -1.2 | -0.22186 (SE 0.00778) | -0.25927 (0.00427) | -0.27864 (0.00357) |
 | 0.0 | -0.02773 (0.00878) | -0.07394 (0.00466) | -0.09350 (0.00377) |
@@ -82,7 +82,7 @@ Paired mean IAE differences at Scott multiplier 0.15 are shown below. Negative v
 
 ### Degree 2
 
-| Curvature \\(\gamma\\) | Validation 100 | Validation 300 | Validation 1,000 |
+| Curvature \(\gamma\) | Validation 100 | Validation 300 | Validation 1,000 |
 |---:|---:|---:|---:|
 | -1.2 | -0.10225 (SE 0.02199) | -0.21422 (0.00856) | -0.26932 (0.00441) |
 | 0.0 | +0.08388 (0.02106) | -0.04093 (0.00788) | -0.08152 (0.00419) |
@@ -90,7 +90,7 @@ Paired mean IAE differences at Scott multiplier 0.15 are shown below. Negative v
 
 For the positive-curvature degree-1 cell at validation size 1,000, the paired-t 95% interval is approximately [-0.00198, 0.00688]. For degree 2 it is approximately [-0.00723, 0.00407]. These intervals include zero. At positive curvature and validation sizes 100 and 300, both fitted models have positive paired IAE differences in this DGP.
 
-The 18 secondary paired contrasts and their Holm adjustments were independently reconstructed from the raw attempt CSV. Maximum absolute discrepancy across the reported means, Monte Carlo SEs, p-values and Holm-adjusted p-values was \\(2.3\times10^{-16}\\).
+The 18 secondary paired contrasts and their Holm adjustments were independently reconstructed from the raw attempt CSV. Maximum absolute discrepancy across the reported means, Monte Carlo SEs, p-values and Holm-adjusted p-values was \(2.3\times10^{-16}\).
 
 ## 5. Oracle/reference arms
 
