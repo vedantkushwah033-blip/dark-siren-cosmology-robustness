@@ -133,22 +133,50 @@ def run_probability_validation_benchmark(
                         "hessian_condition_number": fit.hessian_condition_number,
                         "max_abs_coefficient": fit.max_abs_coefficient,
                         "iterations": fit.iterations,
+                        "coefficients_json": (
+                            None if fit.coefficients is None
+                            else __import__("json").dumps(fit.coefficients.tolist())
+                        ),
+                        "covariance_json": (
+                            None if fit.covariance is None
+                            else __import__("json").dumps(fit.covariance.tolist())
+                        ),
                     }
                     if fit.status == "SUCCESS":
                         p_holdout = fit.predict(holdout["redshift"].to_numpy())
+                        p_validation = fit.predict(
+                            split.validation["redshift"].to_numpy()
+                        )
                     else:
                         p_holdout = np.full(len(holdout), np.nan)
+                        p_validation = np.full(len(split.validation), np.nan)
 
-                    # Unit-level audit trail: every non-validation parent unit appears
-                    # exactly once, with held-out label, simulation truth, and fitted p.
+                    # Complete unit-level partition: validation, retained analysis
+                    # catalogue, and non-retained holdout. IDs and roles are auditable.
+                    raw_key = {
+                        "scenario_seed": scenario_seed,
+                        "replicate": replicate,
+                        "gamma": gamma,
+                        "n_validation": n_validation,
+                        "model_degree": degree,
+                    }
+                    for position, unit in enumerate(split.validation.itertuples(index=False)):
+                        raw_rows.append({
+                            **raw_key,
+                            "split_role": "validation",
+                            "object_id": int(unit.object_id),
+                            "redshift": float(unit.redshift),
+                            "retained": int(unit.retained),
+                            "p_true": float(truth_by_id.loc[unit.object_id, "inclusion_probability"]),
+                            "p_hat": float(p_validation[position]),
+                        })
                     for position, unit in enumerate(holdout.itertuples(index=False)):
                         raw_rows.append({
-                            "scenario_seed": scenario_seed,
-                            "replicate": replicate,
-                            "gamma": gamma,
-                            "n_validation": n_validation,
-                            "model_degree": degree,
-                            "record_type": "heldout_parent",
+                            **raw_key,
+                            "split_role": (
+                                "analysis_catalogue" if int(unit.retained) == 1
+                                else "nonretained_holdout"
+                            ),
                             "object_id": int(unit.object_id),
                             "redshift": float(unit.redshift),
                             "retained": int(unit.retained),
