@@ -110,6 +110,7 @@ def main() -> None:
     h0_grid = np.linspace(args.prior_min, args.prior_max, args.h0_points)
 
     posterior_records = []
+    density_columns = {"H0": h0_grid.tolist()}
     convergence_records = []
     previous_posterior = None
     consecutive = 0
@@ -130,6 +131,9 @@ def main() -> None:
             h0_grid, likelihood.marginal_log_likelihood,
             prior_min=args.prior_min, prior_max=args.prior_max,
         )
+        density_columns[f"density_order_{order}"] = np.interp(
+            h0_grid, h0_posterior.grid, h0_posterior.density
+        ).tolist()
         posterior_records.append({
             "order": order,
             "posterior_mean_coefficients": fit.posterior_mean.tolist(),
@@ -168,6 +172,7 @@ def main() -> None:
             break
 
     status = "CONVERGED" if converged_at is not None else "NON_CONVERGED"
+    pd.DataFrame(density_columns).to_csv(output / "h0_posterior_density_by_order.csv", index=False)
     posterior_summary = {
         "status": status,
         "converged_at_order": converged_at,
