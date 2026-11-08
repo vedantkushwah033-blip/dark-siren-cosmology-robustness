@@ -15,7 +15,7 @@ def test_equal_probabilities_give_equal_weights_and_full_ess():
 
 
 def test_concentrated_weights_reduce_effective_sample_size():
-    p = np.r_[np.full(99, 0.9), 0.01]
+    p = np.r_[np.full(99, 0.9), 0.001]
     result = inverse_probability_weight_diagnostics(p)
     assert result["kish_ess"] < 10
     assert result["top_1pct_weight_mass"] > 0.5
