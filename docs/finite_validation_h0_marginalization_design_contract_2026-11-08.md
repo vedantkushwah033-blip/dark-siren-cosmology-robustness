@@ -189,3 +189,12 @@ The general numerical-diagnostics workflow for that exact head (#42479890015) wa
 3. Freeze the prior only after the prior-scale sensitivity and prior-predictive checks are reviewed.
 4. Establish redshift-grid, H0-grid, coefficient-draw and KDE-bandwidth convergence separately.
 5. Only then predeclare and run SBC and repeated fixed-truth coverage experiments with complete SUCCESS/NON_EVALUABLE/FAILED/NOT_RUN accounting.
+
+
+### Marginal-likelihood Monte Carlo error
+
+The H0 propagation layer now reports a separate batch-based Monte Carlo error for the marginalized selected log likelihood. It partitions iid Student-t importance proposals into disjoint batches, recomputes the self-normalized H0 likelihood expectation in each batch, and reports the across-batch standard error on the log-likelihood scale. It also records each batch's importance ESS. The default is 10 batches with a minimum batch ESS of 20; small smoke cases with too few proposals return `INSUFFICIENT_DRAWS`, and low-ESS batches are explicitly flagged `LOW_BATCH_ESS`.
+
+This diagnostic is distinct from the importance sampler's `log_evidence_relative_mcse`, which concerns the validation-data normalizing constant, not the GW/H0 marginal likelihood. Batch MCSE is an approximation and does not replace increasing the proposal count or comparing independent proposal batches.
+
+Focused workflow [#42480779870](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/42480779870) passed on Python 3.10, 3.11 and 3.12 at PR head `54ac5a99eba3e8cef3eaffee9a492c6dcf91628e`. This run includes the end-to-end parent-frame/validation/importance-posterior/H0 smoke test, vectorized-vs-reference likelihood checks, draw-specific selection tests, posterior normalization, batch-MCSE diagnostics, and memory-guard tests.
