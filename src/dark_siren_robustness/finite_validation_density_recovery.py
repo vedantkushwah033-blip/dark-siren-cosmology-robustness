@@ -279,7 +279,7 @@ def run_density_recovery_benchmark(
                             weight_metrics = (_weight_diagnostics(probabilities, int(sample.size))
                                               if sample.size else {})
                             attempt_rows.append({
-                                "replicate": rep, "seed": seed + 1000003 * rep,
+                                "replicate": rep, "seed": int(seed),
                                 "gamma": float(gamma), "target_retention": float(target_retention),
                                 "n_validation": int(n_validation), "degree": 0,
                                 "bandwidth_multiplier": float(multiplier), "arm": arm,
@@ -313,7 +313,7 @@ def run_density_recovery_benchmark(
                             weight_metrics = (_weight_diagnostics(estimated_pi, int(analysis_z.size))
                                               if density is not None else {})
                             attempt_rows.append({
-                                "replicate": rep, "seed": seed + 1000003 * rep,
+                                "replicate": rep, "seed": int(seed),
                                 "gamma": float(gamma), "target_retention": float(target_retention),
                                 "n_validation": int(n_validation), "degree": int(degree),
                                 "bandwidth_multiplier": float(multiplier), "arm": arm,
