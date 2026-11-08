@@ -16,7 +16,7 @@ For this synthetic project, the fixed domain is \([z_{\min},z_{\max}]=[0.01,0.40
 \]
 The prior is defined on the fixed-domain polynomial coefficients and therefore does not change when the realized validation sample's mean or standard deviation changes. This is important: applying the same numerical prior to sample-standardized coefficients would induce a validation-sample-dependent prior on the inclusion curve.
 
-The prior scale is provisional. Sensitivity analysis at 1.5, 2.5, and 5.0 is required before confirmatory posterior claims. The target is the validation-only modular posterior; GW data do not update \(\theta\).
+The prior scale 1.0 is a candidate reference, not a frozen confirmatory choice. Sensitivity analysis at 0.75, 1.0, and 1.5 is required before confirmatory posterior claims. The target is the validation-only modular posterior; GW data do not update \(\theta\).
 
 ## Algorithm and diagnostics
 
