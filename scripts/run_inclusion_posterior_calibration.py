@@ -7,6 +7,7 @@ runner; failed and non-evaluable attempts remain in the ledger.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import subprocess
@@ -185,6 +186,12 @@ def main() -> None:
                         "stage": "NOT_STARTED",
                         "error": "",
                         "pit": float("nan"),
+                        "config_sha256": "",
+                        "n_generation_attempts": None,
+                        "n_analysis_catalogue": None,
+                        "quadrature_orders_evaluated": "",
+                        "converged_at_order": None,
+                        "h0_grid_points": args.h0_points,
                     }
                     try:
                         artifact_dir.parent.mkdir(parents=True, exist_ok=True)
@@ -197,9 +204,22 @@ def main() -> None:
                             row["error"] = f"smoke runner exit={run.returncode}: {run.stderr[-2000:]}"
                             raise RuntimeError(row["error"])
 
+                        config_path = artifact_dir / "config.json"
+                        replicate_config = json.loads(config_path.read_text(encoding="utf-8"))
+                        row["config_sha256"] = hashlib.sha256(config_path.read_bytes()).hexdigest()
+                        row["n_generation_attempts"] = int(
+                            replicate_config["analysis_generator_config"]["n_generation_attempts"]
+                        )
+                        row["n_analysis_catalogue"] = int(
+                            replicate_config["analysis_generator_config"]["n_catalogue_observed"]
+                        )
                         convergence_path = artifact_dir / "quadrature_convergence.json"
                         convergence = json.loads(convergence_path.read_text(encoding="utf-8"))
                         row["quadrature_status"] = convergence["status"]
+                        row["quadrature_orders_evaluated"] = ",".join(
+                            str(value) for value in convergence["orders_evaluated"]
+                        )
+                        row["converged_at_order"] = convergence["converged_at_order"]
                         row["stage"] = "INDEPENDENT_AUDIT"
                         audit_path = artifact_dir / "audit_report.json"
                         audit = subprocess.run(
