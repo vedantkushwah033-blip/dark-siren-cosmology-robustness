@@ -273,7 +273,11 @@ def run_density_recovery_benchmark(
         "validation_sizes": list(validation_sizes), "degrees": list(degrees),
         "bandwidth_multipliers": list(bandwidth_multipliers),
         "grid": [Z_MIN, Z_MAX, grid_points],
-        "analytic_target_density": truth.tolist(),\n        "analytic_target_sha256": hashlib.sha256(\n            json.dumps(truth.tolist(), separators=(",", ":")).encode("utf-8")\n        ).hexdigest(),\n        "attempt_count": int(len(attempts)),
+        "analytic_target_density": truth.tolist(),
+        "analytic_target_sha256": hashlib.sha256(
+            json.dumps(truth.tolist(), separators=(",", ":")).encode("utf-8")
+        ).hexdigest(),
+        "attempt_count": int(len(attempts)),
         "status_counts": {str(k): int(v) for k, v in attempts.status.value_counts().items()},
         "success_count": int((attempts.status == "SUCCESS").sum()),
         "conditional_success_mean_iae": {
