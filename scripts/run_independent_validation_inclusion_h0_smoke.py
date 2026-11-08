@@ -111,6 +111,12 @@ def main() -> None:
         for row in events_frame.itertuples(index=False)
     ]
     h0_grid = np.linspace(args.prior_min, args.prior_max, args.h0_points)
+    # Record the coefficient prior explicitly so the posterior target is fully
+    # specified in the artifact rather than relying on library defaults.
+    coefficient_prior_mean = np.zeros(args.degree + 1, dtype=float)
+    coefficient_prior_sd = np.asarray(
+        [5.0] + [2.5] * args.degree, dtype=float
+    )
 
     posterior_records = []
     density_columns = {"H0": h0_grid.tolist()}
@@ -123,7 +129,8 @@ def main() -> None:
     for order in orders:
         fit = fit_inclusion_posterior_quadrature(
             z_validation, retained_validation,
-            degree=args.degree, order=order,
+            degree=args.degree, prior_mean=coefficient_prior_mean,
+            prior_sd=coefficient_prior_sd, order=order,
         )
         likelihood = shared_inclusion_selected_log_likelihood(
             h0_grid, z_catalogue, events, fit,
@@ -221,6 +228,11 @@ def main() -> None:
         "validation_generator_config": validation["config"],
         "inference": {
             "degree": args.degree,
+            "coefficient_prior": {
+                "family": "independent_normal",
+                "mean": coefficient_prior_mean.tolist(),
+                "sd": coefficient_prior_sd.tolist(),
+            },
             "quadrature_orders_requested": list(orders),
             "h0_grid_points": args.h0_points,
             "uniform_h0_prior": [args.prior_min, args.prior_max],
