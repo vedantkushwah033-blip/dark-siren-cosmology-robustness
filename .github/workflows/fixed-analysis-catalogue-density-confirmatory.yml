@@ -8,13 +8,16 @@ on:
       - src/dark_siren_robustness/fixed_analysis_catalogue_benchmark.py
       - src/dark_siren_robustness/fixed_analysis_catalogue_audit.py
       - src/dark_siren_robustness/fixed_analysis_catalogue_analysis.py
+      - src/dark_siren_robustness/fixed_analysis_catalogue_analysis_audit.py
       - src/dark_siren_robustness/finite_validation_density_recovery.py
       - src/dark_siren_robustness/catalogue_density.py
       - scripts/run_fixed_analysis_catalogue_benchmark.py
       - scripts/audit_fixed_analysis_catalogue_benchmark.py
       - scripts/analyze_fixed_analysis_catalogue_confirmatory.py
+      - scripts/audit_fixed_analysis_catalogue_confirmatory_analysis.py
       - tests/test_fixed_analysis_catalogue_benchmark.py
       - tests/test_fixed_analysis_catalogue_analysis.py
+      - tests/test_fixed_analysis_catalogue_analysis_audit.py
       - docs/fixed_analysis_catalogue_confirmatory_analysis_plan_2026-11-08.md
   workflow_dispatch:
 permissions:
@@ -37,7 +40,8 @@ jobs:
         run: |
           python -m pytest \
             tests/test_fixed_analysis_catalogue_benchmark.py \
-            tests/test_fixed_analysis_catalogue_analysis.py -q
+            tests/test_fixed_analysis_catalogue_analysis.py \
+            tests/test_fixed_analysis_catalogue_analysis_audit.py -q
       - name: Run predeclared 100-replicate fixed-analysis-catalogue design
         run: |
           python scripts/run_fixed_analysis_catalogue_benchmark.py \
@@ -55,6 +59,13 @@ jobs:
             --attempts-csv artifacts/fixed_analysis_catalogue_density_confirmatory/attempt_metrics.csv \
             --planned-replicates 100 \
             --output artifacts/fixed_analysis_catalogue_density_confirmatory/confirmatory_analysis.json
+      - name: Independently audit confirmatory analysis calculations
+        run: |
+          python scripts/audit_fixed_analysis_catalogue_confirmatory_analysis.py \
+            --attempts-csv artifacts/fixed_analysis_catalogue_density_confirmatory/attempt_metrics.csv \
+            --analysis-json artifacts/fixed_analysis_catalogue_density_confirmatory/confirmatory_analysis.json \
+            --planned-replicates 100 \
+            --output artifacts/fixed_analysis_catalogue_density_confirmatory/confirmatory_analysis_audit.json
       - name: Upload audited confirmatory artifact and analysis
         uses: actions/upload-artifact@v4
         with:
