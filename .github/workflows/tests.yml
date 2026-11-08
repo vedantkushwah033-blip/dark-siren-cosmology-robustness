@@ -158,6 +158,8 @@ jobs:
         run: |
           python scripts/run_catalogue_thinning_audit.py --n-parent 40000 --seed 20261028 --output-dir artifacts/catalogue_thinning
           python scripts/audit_catalogue_thinning_audit.py artifacts/catalogue_thinning
+      - name: Test fixed-basis Bayesian inclusion posterior importance sampler
+        run: python -m pytest tests/test_bayesian_inclusion.py -q
       - name: Test fixed-catalogue confirmatory analysis and independent arithmetic auditor
         run: python -m pytest tests/test_fixed_analysis_catalogue_analysis.py tests/test_fixed_analysis_catalogue_analysis_audit.py -q
       - name: Upload numerical diagnostic results
