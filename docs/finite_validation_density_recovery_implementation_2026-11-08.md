@@ -7,8 +7,8 @@
 ## Implemented components
 
 - `src/dark_siren_robustness/finite_validation_density_recovery.py`
-  - Declared two-overdensity synthetic parent intensity on (z\in[0.01,0.40]).
-  - Parent-law curvature centering (c=E_{\lambda}[x^2]), not a uniform-law shortcut.
+  - Declared two-overdensity synthetic parent intensity on (redshift between 0.01 and 0.40).
+  - Parent-law curvature centering (the parent-intensity-weighted expectation of squared normalized redshift), not a uniform-law shortcut.
   - Numerically calibrated logistic inclusion intercept for each declared retention target.
   - Common random numbers for parent frames and retention uniforms.
   - Nested simple-random validation samples, independent of retention labels.
