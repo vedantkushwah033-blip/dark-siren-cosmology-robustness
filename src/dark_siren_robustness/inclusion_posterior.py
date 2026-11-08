@@ -5,7 +5,9 @@ The Gaussian prior is part of the target distribution; the inverse Hessian at
 the MAP is used only to precondition proposals.
 """
 from __future__ import annotations
+
 from dataclasses import dataclass
+
 import numpy as np
 from scipy.optimize import minimize
 from scipy.special import expit
@@ -16,12 +18,12 @@ class InclusionPosterior:
     status: str
     message: str
     degree: int
-    center: float
-    scale: float
+    z_min: float
+    z_max: float
     prior_sd: float
     map_coefficients: np.ndarray | None
     map_covariance: np.ndarray | None
-    draws: np.ndarray | None  # (chain, draw, coefficient)
+    draws: np.ndarray | None
     acceptance_rates: np.ndarray | None
     rhat: np.ndarray | None
     ess: np.ndarray | None
@@ -34,34 +36,31 @@ class InclusionPosterior:
     def predict(self, redshift):
         """Predict inclusion probabilities for every retained posterior draw.
 
-        Returns shape (chain, draw, redshift), using validation-derived
-        centering/scaling for all analysis-catalogue predictions.
+        Returns shape (chain, draw, redshift), using the same fixed-domain
+        coordinate for validation and analysis-catalogue redshifts.
         """
         if self.draws is None:
             raise RuntimeError(f"Cannot predict from posterior status={self.status}")
         z = np.asarray(redshift, dtype=float)
         if z.ndim != 1 or not np.all(np.isfinite(z)):
             raise ValueError("redshift must be a finite one-dimensional array")
-        x = (z - self.center) / self.scale
+        x = (z - self.z_min) / (self.z_max - self.z_min)
         design = np.column_stack([x**k for k in range(self.degree + 1)])
         return expit(np.einsum("cdp,np->cdn", self.draws, design))
 
 
-def _design(z, degree):
-    center = float(np.mean(z))
-    scale = float(np.std(z, ddof=0))
-    if not np.isfinite(scale) or scale <= 0:
-        scale = 1.0
-    x = (z - center) / scale
-    return np.column_stack([x**k for k in range(degree + 1)]), center, scale
+def _design(redshift, degree, z_min, z_max):
+    """Fixed-coordinate polynomial basis; independent of validation moments."""
+    x = (redshift - z_min) / (z_max - z_min)
+    return np.column_stack([x**k for k in range(degree + 1)])
 
 
 def _split_rhat(chains):
     """Classical split-Rhat; chains have shape (chain, draw, parameter)."""
-    n_chain, n_draw, _ = chains.shape
+    _, n_draw, _ = chains.shape
     half = n_draw // 2
     split = np.concatenate([chains[:, :half, :], chains[:, -half:, :]], axis=0)
-    n_split, n_half, _ = split.shape
+    _, n_half, _ = split.shape
     means = split.mean(axis=1)
     variances = split.var(axis=1, ddof=1)
     within = variances.mean(axis=0)
@@ -111,6 +110,8 @@ def sample_inclusion_posterior(
     *,
     degree=1,
     prior_sd=2.5,
+    z_min=0.01,
+    z_max=0.40,
     n_chains=4,
     warmup=2000,
     draws_per_chain=2000,
@@ -121,9 +122,10 @@ def sample_inclusion_posterior(
 ):
     """Sample p(theta | validation) under independent N(0, prior_sd^2) priors.
 
-    The polynomial basis uses the validation sample's mean and standard
-    deviation, matching the project's MLE fitter. Returned draws are correlated
-    MCMC draws, not independent samples. Classical split-Rhat, approximate
+    The polynomial basis uses the fixed coordinate u=(z-z_min)/(z_max-z_min),
+    not validation-sample standardization. The proper Gaussian prior is thus
+    invariant to the realized validation sample. Returned draws are correlated
+    MCMC draws, not independent samples; classical split-Rhat, approximate
     initial-positive-sequence ESS, and post-warmup acceptance are reported.
     """
     z = np.asarray(validation_redshift, dtype=float)
@@ -136,6 +138,10 @@ def sample_inclusion_posterior(
         raise ValueError("degree must be 1 or 2")
     if not np.isfinite(prior_sd) or prior_sd <= 0:
         raise ValueError("prior_sd must be finite and positive")
+    if not np.isfinite(z_min) or not np.isfinite(z_max) or z_min >= z_max:
+        raise ValueError("fixed redshift domain must be finite with z_min < z_max")
+    if np.any((z < z_min) | (z > z_max)):
+        raise ValueError("validation redshifts must lie inside the fixed prior domain")
     if n_chains < 4 or warmup < 500 or draws_per_chain < 500:
         raise ValueError("use at least four chains and 500 warmup/draws per chain")
     if not 0.05 < target_acceptance < 0.8:
@@ -146,19 +152,19 @@ def sample_inclusion_posterior(
         raise ValueError("min_ess must be finite and positive")
 
     y = labels.astype(float)
-    design, center, scale = _design(z, degree)
+    design = _design(z, degree, z_min, z_max)
     rank = int(np.linalg.matrix_rank(design))
     condition = float(np.linalg.cond(design))
     if rank != degree + 1 or not np.isfinite(condition) or condition > 1e10:
         return InclusionPosterior(
             "NON_EVALUABLE", "Validation design is rank deficient or ill-conditioned.",
-            degree, center, scale, prior_sd, None, None, None, None, None, None,
+            degree, z_min, z_max, prior_sd, None, None, None, None, None, None,
             rank, condition, warmup, draws_per_chain, seed,
         )
     if np.unique(y).size < 2:
         return InclusionPosterior(
             "NON_EVALUABLE", "Validation labels contain only one outcome class.",
-            degree, center, scale, prior_sd, None, None, None, None, None, None,
+            degree, z_min, z_max, prior_sd, None, None, None, None, None, None,
             rank, condition, warmup, draws_per_chain, seed,
         )
 
@@ -196,7 +202,7 @@ def sample_inclusion_posterior(
     ):
         return InclusionPosterior(
             "FAILED", f"MAP optimization/Hessian check failed (score={score_norm:g}).",
-            degree, center, scale, prior_sd, None, None, None, None, None, None,
+            degree, z_min, z_max, prior_sd, None, None, None, None, None, None,
             rank, condition, warmup, draws_per_chain, seed,
         )
 
@@ -257,7 +263,7 @@ def sample_inclusion_posterior(
         message = "Proper-prior logistic posterior sampled; declared MCMC diagnostics passed."
 
     return InclusionPosterior(
-        status, message, degree, center, scale, prior_sd, mode, map_covariance,
+        status, message, degree, z_min, z_max, prior_sd, mode, map_covariance,
         chains, acceptance_rates, rhat, ess, rank, condition, warmup,
         draws_per_chain, int(seed),
     )
