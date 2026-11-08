@@ -136,8 +136,33 @@ def main() -> None:
     audit_script = root / "scripts" / "audit_independent_validation_inclusion_h0_smoke.py"
     output = args.output_dir
     output.mkdir(parents=True, exist_ok=True)
+    if any(output.iterdir()):
+        parser.error("output directory must be empty; use a new path to preserve prior run artifacts")
     ledger = []
-    planned = len(experiments) * len(floors) * args.replicates * len(sizes)
+    planned_rows = []
+    for mode_id, experiment in enumerate(experiments):
+        for floor_id, floor in enumerate(floors):
+            for replicate in range(args.replicates):
+                analysis_seed = _seed(args.seed, mode_id, floor_id, replicate, 0)
+                validation_seed = _seed(args.seed, mode_id, floor_id, replicate, 1)
+                if analysis_seed == validation_seed:
+                    validation_seed = (validation_seed + 1) % (2**32)
+                if experiment == "SBC":
+                    rng = np.random.default_rng(_seed(args.seed, mode_id, floor_id, replicate, 2))
+                    h0_true = float(rng.uniform(args.prior_min, args.prior_max))
+                else:
+                    h0_true = float(args.fixed_h0)
+                for n_validation in sizes:
+                    cell = f"{experiment.lower()}_floor_{floor:g}_n_{n_validation}_rep_{replicate:04d}"
+                    planned_rows.append({
+                        "cell_id": cell, "experiment": experiment,
+                        "catalogue_floor": floor, "replicate": replicate,
+                        "n_validation": n_validation, "analysis_seed": analysis_seed,
+                        "validation_seed": validation_seed, "h0_true": h0_true,
+                        "status": "NOT_RUN",
+                    })
+    pd.DataFrame(planned_rows).to_csv(output / "planned_cells.csv", index=False)
+    planned = len(planned_rows)
     attempt = 0
 
     for mode_id, experiment in enumerate(experiments):
@@ -174,6 +199,7 @@ def main() -> None:
                         "--output-dir", str(artifact_dir),
                     ]
                     row = {
+                        "cell_id": cell,
                         "experiment": experiment,
                         "catalogue_floor": floor,
                         "replicate": replicate,
@@ -272,6 +298,15 @@ def main() -> None:
                     pd.DataFrame(ledger).to_csv(output / "replicate_ledger.csv", index=False)
                     print(f"[{attempt}/{planned}] {cell}: {row['status']} ({row['stage']})", flush=True)
 
+    completed_cells = {row["cell_id"] for row in ledger}
+    for planned_row in planned_rows:
+        if planned_row["cell_id"] not in completed_cells:
+            ledger.append({
+                **planned_row,
+                "stage": "NOT_STARTED",
+                "error": "planned but not attempted before orchestration stopped",
+                "pit": float("nan"),
+            })
     frame = pd.DataFrame(ledger)
     frame.to_csv(output / "replicate_ledger.csv", index=False)
     summary = {
