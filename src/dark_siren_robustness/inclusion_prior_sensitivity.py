@@ -61,6 +61,8 @@ def run_inclusion_prior_scale_sensitivity(
     degree: int = 1,
     prior_mean: ArrayLike | None = None,
     prior_sd: ArrayLike | None = None,
+    coordinate_center: float | None = None,
+    coordinate_scale: float | None = None,
     slope_multipliers: tuple[float, ...] = (0.5, 1.0, 2.0),
     order: int = 11,
     prior_min: float | None = None,
@@ -112,6 +114,8 @@ def run_inclusion_prior_scale_sensitivity(
             degree=degree,
             prior_mean=mean,
             prior_sd=scaled_sd,
+            coordinate_center=coordinate_center,
+            coordinate_scale=coordinate_scale,
             order=order,
         )
         likelihood = shared_inclusion_selected_log_likelihood(
