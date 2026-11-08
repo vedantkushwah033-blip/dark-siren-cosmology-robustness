@@ -11,6 +11,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.optimize import brentq
 from scipy.special import expit
 
 from dark_siren_robustness.estimated_inclusion import fit_inclusion_logistic
@@ -34,12 +35,28 @@ def _draw_parent_redshifts(n_parent: int, rng: np.random.Generator):
     return np.interp(rng.random(n_parent), cdf, z_grid), z_grid, intensity
 
 
-def _true_inclusion_probability(z, gamma, z_grid, intensity):
+def _true_inclusion_probability(
+    z, gamma, z_grid, intensity, retention_fraction
+):
+    """Return probabilities and DGP parameters with a calibrated parent mean."""
     x_grid = (z_grid - 0.01) / (0.40 - 0.01)
-    center = float(np.trapezoid(intensity * x_grid**2, z_grid) /
-                   np.trapezoid(intensity, z_grid))
+    center = float(
+        np.trapezoid(intensity * x_grid**2, z_grid)
+        / np.trapezoid(intensity, z_grid)
+    )
+    base_grid = -x_grid + gamma * (x_grid**2 - center)
+    intensity_norm = np.trapezoid(intensity, z_grid)
+    alpha = float(brentq(
+        lambda intercept: (
+            np.trapezoid(intensity * expit(intercept + base_grid), z_grid)
+            / intensity_norm
+            - retention_fraction
+        ),
+        -30.0, 30.0,
+    ))
     x = (z - 0.01) / (0.40 - 0.01)
-    return expit(0.6 - 1.0 * x + gamma * (x**2 - center))
+    probability = expit(alpha - x + gamma * (x**2 - center))
+    return probability, alpha, center
 
 
 def run_probability_validation_benchmark(
@@ -47,6 +64,7 @@ def run_probability_validation_benchmark(
     n_parent: int = 4000,
     validation_sizes=(100, 300, 1000),
     curvature_values=(-2.0, -1.2, 0.0, 1.2, 2.0),
+    retention_fractions=(0.1, 0.25, 0.5),
     degrees=(1, 2),
     replicates: int = 20,
     seed: int = 20261108,
@@ -61,6 +79,9 @@ def run_probability_validation_benchmark(
     if not sizes or any(n < 5 or n >= n_parent for n in sizes):
         raise ValueError("validation_sizes must be between 5 and n_parent - 1")
     gammas = tuple(float(g) for g in curvature_values)
+    retention_targets = tuple(float(r) for r in retention_fractions)
+    if not retention_targets or any(not 0.0 < r < 1.0 for r in retention_targets):
+        raise ValueError("retention_fractions must lie strictly between 0 and 1")
     model_degrees = tuple(int(d) for d in degrees)
     if not model_degrees or any(d not in (1, 2) for d in model_degrees):
         raise ValueError("degrees must contain only 1 or 2")
@@ -75,17 +96,20 @@ def run_probability_validation_benchmark(
         z, z_grid, intensity = _draw_parent_redshifts(n_parent, rng)
         retention_uniform = rng.random(n_parent)
 
-        for gamma in gammas:
-            p_true = _true_inclusion_probability(z, gamma, z_grid, intensity)
-            retained = (retention_uniform < p_true).astype(np.int8)
-            parent = pd.DataFrame({
-                "object_id": np.arange(n_parent, dtype=np.int64),
-                "redshift": z,
-                "retained": retained,
-                "inclusion_probability": p_true,
-            })
+        for retention_target in retention_targets:
+            for gamma in gammas:
+                p_true, true_alpha, curvature_center = _true_inclusion_probability(
+                    z, gamma, z_grid, intensity, retention_target
+                )
+                retained = (retention_uniform < p_true).astype(np.int8)
+                parent = pd.DataFrame({
+                    "object_id": np.arange(n_parent, dtype=np.int64),
+                    "redshift": z,
+                    "retained": retained,
+                    "inclusion_probability": p_true,
+                })
 
-            for n_validation in sizes:
+                for n_validation in sizes:
                 split_seed = scenario_seed + 37 * n_validation
                 split = split_disjoint_validation(
                     parent, n_validation=n_validation, seed=split_seed
@@ -121,6 +145,13 @@ def run_probability_validation_benchmark(
                         "scenario_seed": scenario_seed,
                         "replicate": replicate,
                         "gamma": gamma,
+                        "retention_target": retention_target,
+                        "retention_realized_parent": float(retained.mean()),
+                        "mean_true_probability": float(p_true.mean()),
+                        "true_alpha": true_alpha,
+                        "true_beta": -1.0,
+                        "true_gamma": gamma,
+                        "curvature_center": curvature_center,
                         "model_degree": degree,
                         "model_specification": model_label,
                         "n_parent": n_parent,
@@ -165,6 +196,7 @@ def run_probability_validation_benchmark(
                         "scenario_seed": scenario_seed,
                         "replicate": replicate,
                         "gamma": gamma,
+                        "retention_target": retention_target,
                         "n_validation": n_validation,
                         "model_degree": degree,
                     }
