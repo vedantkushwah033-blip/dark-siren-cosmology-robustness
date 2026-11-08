@@ -84,3 +84,21 @@ def test_independent_probability_auditor_rejects_prediction_not_from_coefficient
     raw.to_csv(raw_path, index=False)
     with pytest.raises(ValueError, match="predicted probabilities do not match"):
         audit(summary_path, raw_path)
+
+
+
+def test_curvature_scenarios_share_parent_frame_and_validation_ids(tmp_path: Path):
+    raw_path = tmp_path / "raw_unit_records.csv"
+    run_probability_validation_benchmark(
+        n_parent=500, validation_sizes=(100,), curvature_values=(-1.2, 0.0, 1.2),
+        degrees=(1,), replicates=1, seed=95, raw_output=raw_path,
+    )
+    raw = pd.read_csv(raw_path)
+    frames = []
+    for gamma in (-1.2, 0.0, 1.2):
+        frame = raw.loc[raw["gamma"] == gamma].sort_values("object_id")
+        frames.append(frame)
+    for frame in frames[1:]:
+        assert frame["object_id"].tolist() == frames[0]["object_id"].tolist()
+        assert frame["redshift"].tolist() == frames[0]["redshift"].tolist()
+        assert frame["split_role"].tolist() == frames[0]["split_role"].tolist()
