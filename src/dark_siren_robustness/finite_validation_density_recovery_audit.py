@@ -34,7 +34,7 @@ def _center():
 
 
 def _alpha(gamma, retention, center):
-    z=np.linspace(Z_MIN,Z_MAX,30001); x=(z-Z_MIN)/(Z_MAX-Z_MIN); lam=_lambda(z)
+    z=np.linspace(Z_MIN,Z_MAX,20001); x=(z-Z_MIN)/(Z_MAX-Z_MIN); lam=_lambda(z)
     den=trapezoid(lam,z)
     def mean(a):
         return float(trapezoid(lam*expit(a-x+gamma*(x*x-center)),z)/den)
