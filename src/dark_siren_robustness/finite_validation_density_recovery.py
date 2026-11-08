@@ -9,8 +9,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import platform
+import sys
 from pathlib import Path
 
+import scipy
 import numpy as np
 import pandas as pd
 from scipy.integrate import cumulative_trapezoid, trapezoid
@@ -313,7 +317,15 @@ def write_artifacts(attempts: pd.DataFrame, units: pd.DataFrame, summary: dict,
         },
         "attempt_count": summary["attempt_count"],
         "success_count": summary["success_count"],
-        "python_note": "Runtime and package versions are recorded by the CLI.",
+        "runtime": {
+            "python": sys.version,
+            "platform": platform.platform(),
+            "numpy": np.__version__,
+            "scipy": scipy.__version__,
+            "pandas": pd.__version__,
+            "github_sha": os.environ.get("GITHUB_SHA"),
+            "github_ref": os.environ.get("GITHUB_REF"),
+        },
     }
     manifest_path = output_dir / "manifest.json"
     manifest_path.write_text(
