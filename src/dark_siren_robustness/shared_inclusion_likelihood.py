@@ -102,8 +102,8 @@ def shared_inclusion_selected_log_likelihood(
         raise ArithmeticError("log-normalized catalogue weights do not sum to one")
 
     for event_index, event in enumerate(events):
-        if not isinstance(event, Mapping) or set(event) != {"gw_distance", "gw_sigma"}:
-            raise ValueError(f"events[{event_index}] must contain exactly gw_distance and gw_sigma")
+        if not isinstance(event, Mapping) or not {"gw_distance", "gw_sigma"}.issubset(event):
+            raise ValueError(f"events[{event_index}] must contain gw_distance and gw_sigma")
     event_sigmas = np.asarray([float(event["gw_sigma"]) for event in events], dtype=float)
     if not np.all(np.isfinite(event_sigmas)) or np.any(event_sigmas <= 0):
         raise ValueError("every event gw_sigma must be finite and positive")
