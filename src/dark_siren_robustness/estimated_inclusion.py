@@ -118,7 +118,47 @@ def fit_inclusion_logistic(
         options={"maxiter": max_iterations, "gtol": 1e-8},
     )
     beta = np.asarray(fit.x, dtype=float)
-    grad_norm = float(np.linalg.norm(gradient(beta), ord=np.inf))
+    grad_norm = (
+        float(np.linalg.norm(gradient(beta), ord=np.inf))
+        if np.all(np.isfinite(beta)) else float("inf")
+    )
+
+    # BFGS can report precision loss when it has reached a nearly converged
+    # point.  A short damped-Newton polish uses the analytic score/information
+    # to distinguish that numerical status from a genuinely unresolved fit.
+    polish_iterations = 0
+    if np.all(np.isfinite(beta)) and (not fit.success or grad_norm > 1e-10):
+        for _ in range(50):
+            score = gradient(beta)
+            if not np.all(np.isfinite(score)) or np.linalg.norm(score, ord=np.inf) <= 1e-10:
+                break
+            probability = expit(xmat @ beta)
+            information = xmat.T @ (
+                (probability * (1.0 - probability))[:, None] * xmat
+            )
+            eigenvalues = np.linalg.eigvalsh(information)
+            if not np.all(np.isfinite(eigenvalues)) or np.min(eigenvalues) <= 0:
+                break
+            direction = np.linalg.solve(information, score)
+            decrement = float(score @ direction)
+            if not np.isfinite(decrement) or decrement <= 0:
+                break
+            current_objective = objective(beta)
+            step_length = 1.0
+            accepted = False
+            while step_length >= 2.0 ** -30:
+                candidate = beta - step_length * direction
+                if objective(candidate) <= (
+                    current_objective - 1e-4 * step_length * decrement
+                ):
+                    beta = candidate
+                    accepted = True
+                    break
+                step_length *= 0.5
+            if not accepted:
+                break
+            polish_iterations += 1
+        grad_norm = float(np.linalg.norm(gradient(beta), ord=np.inf))
     probability = expit(xmat @ beta)
     hessian = xmat.T @ ((probability * (1.0 - probability))[:, None] * xmat)
     eigenvalues = np.linalg.eigvalsh(hessian)
@@ -131,7 +171,7 @@ def fit_inclusion_logistic(
         gradient_inf_norm=grad_norm,
         hessian_condition_number=hessian_condition,
         max_abs_coefficient=max_beta,
-        iterations=int(getattr(fit, "nit", 0)),
+        iterations=int(getattr(fit, "nit", 0)) + polish_iterations,
     )
 
     if max_beta >= separation_coefficient_limit or hessian_condition > 1e12:
