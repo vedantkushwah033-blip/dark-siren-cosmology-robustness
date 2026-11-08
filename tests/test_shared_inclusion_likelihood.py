@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
-from scipy.special import log_ndtr, logsumexp
+from scipy.special import expit, log_ndtr, logsumexp
+from scipy.stats import norm
 
 from dark_siren_robustness.dataset_likelihood import C_KM_S
 from dark_siren_robustness.inclusion_posterior import fit_inclusion_posterior_quadrature
@@ -50,6 +51,56 @@ def test_shared_selected_likelihood_uses_node_specific_weights_and_marginalizes_
             axis=1,
         )
         assert np.allclose(result.node_log_detection_efficiency[node], expected_log_beta)
+
+
+
+def test_full_selected_likelihood_matches_independent_nodewise_reconstruction():
+    posterior, catalogue_z, h0, events = _inputs()
+    threshold = 250.0
+    base = 1.0 + 1.5 * (catalogue_z - 0.01) / 0.39
+    result = shared_inclusion_selected_log_likelihood(
+        h0, catalogue_z, events, posterior,
+        detection_threshold_mpc=threshold,
+        population_base_weights=base,
+    )
+
+    x = (catalogue_z - posterior.center) / posterior.scale
+    design = np.column_stack([
+        x ** power for power in range(posterior.degree + 1)
+    ])
+    inclusion = expit(design @ posterior.nodes.T)
+    raw = base[:, None] / inclusion
+    weights = raw / raw.sum(axis=0, keepdims=True)
+    means = C_KM_S * catalogue_z[None, :] / h0[:, None]
+
+    reconstructed = np.empty_like(result.node_log_selected_likelihood)
+    for node in range(posterior.nodes.shape[0]):
+        event_sum = np.zeros(h0.size)
+        for event in events:
+            terms = norm.logpdf(
+                event["gw_distance"], loc=means, scale=event["gw_sigma"]
+            )
+            event_sum += logsumexp(
+                terms + np.log(weights[:, node])[None, :], axis=1
+            )
+        beta = np.sum(
+            norm.sf((threshold - means) / events[0]["gw_sigma"])
+            * weights[:, node][None, :],
+            axis=1,
+        )
+        reconstructed[node] = event_sum - len(events) * np.log(beta)
+
+    assert np.allclose(
+        result.node_log_selected_likelihood, reconstructed,
+        rtol=2e-12, atol=2e-12,
+    )
+    expected_marginal = logsumexp(
+        reconstructed + np.log(posterior.weights)[:, None], axis=0
+    )
+    assert np.allclose(
+        result.marginal_log_likelihood, expected_marginal,
+        rtol=2e-12, atol=2e-12,
+    )
 
 
 def test_shared_selected_likelihood_rejects_heterogeneous_noise_for_this_selection_model():
