@@ -14,12 +14,12 @@ def test_probability_benchmark_preserves_full_paired_denominator():
         replicates=2,
         seed=17,
     )
-    assert len(result) == 2 * 2 * 2 * 2
+    assert len(result) == 2 * 2 * 3 * 2 * 2
     assert result["fit_status"].isin(
         ["SUCCESS", "NON_EVALUABLE", "FAILED", "NOT_RUN"]
     ).all()
     assert result.groupby(
-        ["gamma", "replicate", "n_validation"]
+        ["gamma", "retention_target", "replicate", "n_validation"]
     )["model_degree"].nunique().eq(2).all()
     successful = result.loc[result["fit_status"] == "SUCCESS"]
     assert len(successful) > 0
