@@ -35,7 +35,7 @@ g_\theta(z)=
 {\int \widehat f_{\mathrm{IPW}}(u\mid\theta)m(u)\,du}.
 ]
 
-The first comparison should use a fixed, predeclared KDE bandwidth factor (initially the existing benchmark value 0.8) across all coefficient draws. This isolates inclusion-probability uncertainty from bandwidth adaptation. Bandwidth re-estimation can be a separate sensitivity experiment.
+The first comparison must use a fixed, predeclared KDE bandwidth across all coefficient draws, but the existing benchmark value 0.8 is not yet an acceptable default. In the current implementation, `bandwidth_factor` is passed directly as SciPy's scalar `gaussian_kde` covariance factor; it is not a multiplier of Scott's rule. A local forensic diagnostic found that this distinction materially changes host-density recovery and H0 posteriors. Resolve the bandwidth semantics and run a parent-density recovery/coverage sensitivity study before selecting the fixed bandwidth. Once selected independently of H0 outcomes, hold it fixed across all coefficient draws and arms; treat bandwidth sensitivity as a separate factorial experiment.
 
 Do not add a second missing-host mixture correction to this already IPW-reconstructed host density. Such a term would require a separately derived likelihood and a clear definition of what population remains absent after reconstruction.
 
