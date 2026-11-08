@@ -128,6 +128,27 @@ def test_independent_auditor_rejects_tampered_attempt_status_summary(tmp_path):
         audit_artifact(tmp_path)
 
 
+def test_independent_auditor_rejects_tampered_catalogue_size_summary(tmp_path):
+    attempts, units, summary = run_density_recovery_benchmark(
+        n_replicates=1, n_parent=1200, seed=20261110,
+        gamma_values=(0.0,), validation_sizes=(100,),
+        degrees=(1,), bandwidth_multipliers=(0.15,), grid_points=201,
+    )
+    write_artifacts(attempts, units, summary, tmp_path)
+    path = tmp_path / "summary.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["paired_ipw_minus_catalogue_only_contrasts"][0]["mean_n_analysis_catalogue"] += 1.0
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    summary_bytes = path.read_bytes()
+    manifest["files"]["summary"]["bytes"] = len(summary_bytes)
+    manifest["files"]["summary"]["sha256"] = hashlib.sha256(summary_bytes).hexdigest()
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    with pytest.raises(AssertionError, match="Paired contrast mismatch: mean_n_analysis_catalogue"):
+        audit_artifact(tmp_path)
+
+
 def test_independent_auditor_reconstructs_smoke_artifact(tmp_path):
     attempts, units, summary = run_density_recovery_benchmark(
         n_replicates=1, n_parent=1200, seed=202,
