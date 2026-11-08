@@ -136,12 +136,8 @@ def run_probability_validation_benchmark(
                     }
                     if fit.status == "SUCCESS":
                         p_holdout = fit.predict(holdout["redshift"].to_numpy())
-                        p_analysis_raw = fit.predict(
-                            split.analysis_catalogue["redshift"].to_numpy()
-                        ) if len(split.analysis_catalogue) else np.array([], dtype=float)
                     else:
                         p_holdout = np.full(len(holdout), np.nan)
-                        p_analysis_raw = np.full(len(split.analysis_catalogue), np.nan)
 
                     # Unit-level audit trail: every non-validation parent unit appears
                     # exactly once, with held-out label, simulation truth, and fitted p.
