@@ -114,3 +114,8 @@ or interval-inclusion estimate could move if numerical failures are
 informative. They do not replace the evaluable-only estimate or its Wilson
 interval, and a wide bound is a warning that calibration conclusions are
 sensitive to evaluability.
+
+The per-cell `attempted` count and `evaluable_fraction` denominator exclude
+planned `NOT_RUN` rows; the separate `not_run` count preserves those planned
+but unexecuted cells. This avoids understating evaluability when an experiment
+is interrupted before all planned cells are reached.
