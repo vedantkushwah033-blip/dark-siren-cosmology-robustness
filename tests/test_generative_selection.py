@@ -39,6 +39,14 @@ def test_detected_events_obey_threshold_and_truth_ids_match_parent() -> None:
     expected = 299_792.458 * truth["host_redshift"] / result["config"]["h0_true_km_s_mpc"]
     np.testing.assert_allclose(truth["latent_mean_distance_mpc"], expected)
     assert len(result["catalogue_observed"]) < len(parent)
+    config = result["config"]
+    assert config["n_generation_attempts"] == (
+        config["n_detected_candidates"] + config["n_rejected_candidates"]
+    )
+    assert config["n_detected_candidates"] == (
+        config["n_detected_events"] + config["n_excess_detected_candidates_discarded"]
+    )
+    assert config["n_rejected_candidates"] > 0
 
 def test_invalid_configuration_is_rejected() -> None:
     with pytest.raises(ValueError):
