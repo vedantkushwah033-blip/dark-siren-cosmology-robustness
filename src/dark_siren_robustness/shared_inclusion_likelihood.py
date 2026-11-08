@@ -89,7 +89,19 @@ def shared_inclusion_selected_log_likelihood(
     log_normalizer = logsumexp(log_raw_weights, axis=0)
     log_host_weights = log_raw_weights - log_normalizer[None, :]
     host_weights = np.exp(log_host_weights)
+    weight_sums = host_weights.sum(axis=0)
+    if not np.all(np.isfinite(weight_sums)) or np.any(weight_sums <= 0):
+        raise ArithmeticError("normalized catalogue weights have invalid total mass")
+    host_weights /= weight_sums[None, :]
+    # Rebuild log weights from the representable normalized weights so the
+    # event mixture and beta use exactly the same floating-point support.
+    log_host_weights = np.full(host_weights.shape, -np.inf)
+    positive_host_weights = host_weights > 0
+    log_host_weights[positive_host_weights] = np.log(host_weights[positive_host_weights])
 
+    for event_index, event in enumerate(events):
+        if not isinstance(event, Mapping) or set(event) != {"gw_distance", "gw_sigma"}:
+            raise ValueError(f"events[{event_index}] must contain exactly gw_distance and gw_sigma")
     event_sigmas = np.asarray([float(event["gw_sigma"]) for event in events], dtype=float)
     if not np.all(np.isfinite(event_sigmas)) or np.any(event_sigmas <= 0):
         raise ValueError("every event gw_sigma must be finite and positive")
@@ -99,8 +111,6 @@ def shared_inclusion_selected_log_likelihood(
     n_nodes = nodes.shape[0]
     node_log_likelihood = np.zeros((n_nodes, h0.size), dtype=float)
     for event_index, event in enumerate(events):
-        if not isinstance(event, Mapping) or set(event) != {"gw_distance", "gw_sigma"}:
-            raise ValueError(f"events[{event_index}] must contain exactly gw_distance and gw_sigma")
         distance = float(event["gw_distance"])
         sigma = float(event["gw_sigma"])
         if not np.isfinite(distance) or distance < threshold:
