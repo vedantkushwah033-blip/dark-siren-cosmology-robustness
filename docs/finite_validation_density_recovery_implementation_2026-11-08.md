@@ -94,3 +94,18 @@ The independent auditor separately reconstructs all three streams from the decla
 The objective/coefficient tampering fixtures have been returned to a single replicate because the corrected stream protocol removes the replicate-zero collision; they no longer rely on five replicate attempts to find a successful fit.
 
 **Next gate:** run the focused tests on the corrected code, then rerun the full 100-replicate experiment and inspect its independent RNG-stream audit report. No pre-fix density-recovery results should be pooled with the corrected experiment.
+
+
+## Corrected-stream smoke verification (2026-11-08)
+
+The corrected implementation has now passed the focused density-recovery tests and the density-recovery smoke runner plus independent auditor in the Python 3.10, 3.11, and 3.12 jobs of workflow run #42475897983 (head `807c76dd989e943710a9d98c037715319655a7e5`). The inspected Python 3.11 artifact reports:
+
+- Independent auditor: **PASS**.
+- 1 RNG stream set and 9 parent partitions reconstructed.
+- 135/135 planned smoke attempts reconstructed, including all 135 density estimates.
+- 135 SUCCESS statuses; 54/54 estimated-IPW attempts succeeded.
+- 54 paired estimated-IPW minus catalogue-only contrasts, each with one paired replicate (smoke-only; no inferential precision).
+
+This is a useful implementation regression check: it confirms that the replicate-zero stream collision is removed in the smoke design and that the auditor can reproduce the corrected deterministic stream protocol. It is **not** a confirmatory density-recovery result because it has only one replicate, and it says nothing about H0 posterior calibration.
+
+The corrected 100-replicate workflow is queued as run #42475897922 on head `807c76dd989e943710a9d98c037715319655a7e5`. The earlier pre-fix run #42474967403 must remain excluded from interpretation because its replicate-zero random streams were reused. Do not combine its outputs with the corrected run.
