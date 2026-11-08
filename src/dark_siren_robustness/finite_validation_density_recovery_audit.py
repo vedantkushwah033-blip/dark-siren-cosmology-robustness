@@ -28,7 +28,7 @@ def _lambda(z):
 
 
 def _center():
-    z = np.linspace(Z_MIN, Z_MAX, 30001)
+    z = np.linspace(Z_MIN, Z_MAX, 20001)
     x = (z-Z_MIN)/(Z_MAX-Z_MIN)
     return float(trapezoid(_lambda(z)*x*x,z)/trapezoid(_lambda(z),z))
 
