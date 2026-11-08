@@ -55,3 +55,19 @@ A regression test covers both the full-domain requirement and the pre-allocation
 The primary implementation is now `finite_validation_h0.py`, which reconstructs density draws, evaluates event mixtures and per-draw selection efficiencies in H0 batches, performs weighted marginalization, and normalizes a declared-prior H0 posterior. This module remains a deliberately slower loop-based reference path: it calls the established `selection_aware_toy_likelihood` once per coefficient proposal. A cross-implementation regression test compares its unconditional likelihoods, beta curves, and selected likelihoods against the vectorized implementation using the same host-density draws.
 
 The reference path is useful for small independent numerical checks, not for large proposal counts. Its one-gigabyte guard estimates returned draw-array storage; it is not a strict peak-memory bound. The vectorized implementation has separate output/temporary allocation guards.
+
+
+## H0-specific likelihood-contribution effective sample size
+
+The coefficient-posterior importance ESS alone is not sufficient for likelihood marginalization. At a given H0, a small subset of coefficient proposals may dominate the integrand even when the proposal weights themselves have a healthy ESS. The propagation output now reports, at every H0 grid point,
+
+\[
+a_b(H_0)=\frac{\exp\{\log w_b+\ell_b(H_0)\}}
+{\sum_j\exp\{\log w_j+\ell_j(H_0)\}},
+\qquad
+ESS_L(H_0)=\frac{1}{\sum_b a_b(H_0)^2}.
+\]
+
+It also reports the maximum normalized likelihood-contribution weight and the same contribution ESS within each disjoint Monte Carlo batch. This is distinct from (i) the validation-posterior proposal ESS and (ii) the batch ESS of the proposal weights alone. The default diagnostic status is LOW_CONTRIBUTION_ESS if any H0 point has contribution ESS below 5; callers may set a stricter threshold before a confirmatory run. A high coefficient-posterior ESS must not override a low H0-specific contribution ESS.
+
+The memory guard now accounts for the additional full draw-by-H0 log-contribution and normalized-contribution arrays, as well as the returned batch diagnostics. This remains a conservative allocation estimate, not a strict process peak-memory guarantee.
