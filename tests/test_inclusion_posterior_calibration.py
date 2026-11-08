@@ -79,12 +79,12 @@ def test_summary_keeps_non_evaluable_and_failed_attempts_visible():
     assert cell["median_minimum_catalogue_kish_ess"] == pytest.approx(500.0)
 
 
-def test_sbc_summary_reports_pit_and_prior_predictive_interval_inclusion():
+def test_conditional_h0_pit_summary_reports_interval_inclusion():
     frame = pd.DataFrame([
         {"experiment": "H0_PIT_FIXED_INCLUSION_TRUTH", "catalogue_floor": 0.1, "n_validation": 300,
          "status": "SUCCESS", "pit": 0.4,
          "sbc_included_68": 1, "sbc_included_90": 1, "sbc_included_95": 1},
-        {"experiment": "SBC", "catalogue_floor": 0.1, "n_validation": 300,
+        {"experiment": "H0_PIT_FIXED_INCLUSION_TRUTH", "catalogue_floor": 0.1, "n_validation": 300,
          "status": "SUCCESS", "pit": 0.6,
          "sbc_included_68": 0, "sbc_included_90": 1, "sbc_included_95": 1},
     ])
