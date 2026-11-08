@@ -110,6 +110,7 @@ def test_independent_validation_h0_runner_writes_auditable_artifacts(tmp_path):
             "--n-validation", "150",
             "--orders", "5,7,9,11",
             "--h0-points", "41",
+            "--catalogue-floor", "0.0",
             "--output-dir", str(output),
         ],
         cwd=root, env=env, text=True, capture_output=True, check=False,
@@ -131,6 +132,8 @@ def test_independent_validation_h0_runner_writes_auditable_artifacts(tmp_path):
     ]
     assert config["analysis_generator_config"]["seed"] != config["validation_generator_config"]["seed"]
     assert config["truth_firewall"].startswith("Only validation")
+    assert config["analysis_generator_config"]["catalogue_selection"]["floor"] == 0.0
+    assert config["validation_generator_config"]["catalogue_selection"]["floor"] == 0.0
     assert convergence["status"] in {"CONVERGED", "NON_CONVERGED"}
     assert len(convergence["posterior_by_order"]) >= 2
 
