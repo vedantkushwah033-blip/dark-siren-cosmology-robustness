@@ -160,6 +160,8 @@ jobs:
           python scripts/audit_catalogue_thinning_audit.py artifacts/catalogue_thinning
       - name: Test fixed-basis Bayesian inclusion posterior importance sampler on all Python versions
         run: python -m pytest tests/test_bayesian_inclusion.py -q
+      - name: Test finite-validation H0 per-draw selection and marginalization
+        run: python -m pytest tests/test_finite_validation_h0.py -q
       - name: Test fixed-catalogue confirmatory analysis and independent arithmetic auditor
         run: python -m pytest tests/test_fixed_analysis_catalogue_analysis.py tests/test_fixed_analysis_catalogue_analysis_audit.py -q
       - name: Upload numerical diagnostic results
