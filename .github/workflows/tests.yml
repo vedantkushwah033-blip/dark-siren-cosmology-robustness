@@ -42,6 +42,10 @@ jobs:
         run: python scripts/run_synthetic_selection_experiment.py --seed 20261028 --n-parent 1200 --n-detected 25 --output-dir artifacts/synthetic_selection_smoke
       - name: Test bounded KDE host-density estimation and selection-weight correction
         run: python -m pytest tests/test_catalogue_density.py -q
+      - name: Test finite-validation inclusion fitting, disjoint sampling and IPW diagnostics
+        run: python -m pytest tests/test_estimated_inclusion.py tests/test_validation_design.py tests/test_inclusion_diagnostics.py tests/test_estimated_inclusion_benchmark.py -q
+      - name: Run paired finite-validation inclusion-probability smoke benchmark
+        run: python scripts/run_finite_validation_probability_benchmark.py --n-parent 1200 --replicates 3 --seed 20261108 --output artifacts/finite_validation_probability_smoke/replicates.csv
       - name: Test host-density-to-H0 benchmark
         run: python -m pytest tests/test_host_density_benchmark.py -q
       - name: Run small host-density-to-H0 benchmark smoke experiment
@@ -156,5 +160,6 @@ jobs:
             artifacts/calibration_grid_sensitivity/
             artifacts/multiseed_grid_sensitivity/
             artifacts/catalogue_thinning/
+            artifacts/finite_validation_probability_smoke/
           if-no-files-found: error
 
