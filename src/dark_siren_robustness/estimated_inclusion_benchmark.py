@@ -84,6 +84,13 @@ def run_probability_validation_benchmark(
                 holdout = parent.loc[
                     ~parent["object_id"].isin(split.validation_object_ids)
                 ].reset_index(drop=True)
+                # Oracle weights are scoring-only diagnostics; never supplied to the fitter.
+                truth_by_id = parent.set_index("object_id")
+                oracle_probability = truth_by_id.loc[
+                    split.analysis_object_ids, "inclusion_probability"
+                ].to_numpy()
+                oracle_weight = inverse_probability_weight_diagnostics(oracle_probability)
+
                 for degree in model_degrees:
                     fit = fit_inclusion_logistic(
                         split.validation["redshift"].to_numpy(),
@@ -106,6 +113,9 @@ def run_probability_validation_benchmark(
                         "validation_retained": fit.n_retained,
                         "validation_not_retained": fit.n_not_retained,
                         "n_analysis_catalogue": len(split.analysis_catalogue),
+                        "oracle_kish_ess": oracle_weight["kish_ess"],
+                        "oracle_entropy_ess": oracle_weight["entropy_ess"],
+                        "oracle_max_normalized_weight": oracle_weight["max_normalized_weight"],
                         "fit_status": fit.status,
                         "fit_message": fit.message,
                         "design_rank": fit.design_rank,
