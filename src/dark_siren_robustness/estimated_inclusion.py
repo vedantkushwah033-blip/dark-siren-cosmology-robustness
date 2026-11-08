@@ -139,7 +139,10 @@ def fit_inclusion_logistic(
             eigenvalues = np.linalg.eigvalsh(information)
             if not np.all(np.isfinite(eigenvalues)) or np.min(eigenvalues) <= 0:
                 break
-            direction = np.linalg.solve(information, score)
+            try:
+                direction = np.linalg.solve(information, score)
+            except np.linalg.LinAlgError:
+                break
             decrement = float(score @ direction)
             if not np.isfinite(decrement) or decrement <= 0:
                 break
