@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import platform
 import time
 from pathlib import Path
@@ -79,6 +80,8 @@ def main():
         "experiment": "finite_validation_probability_stage",
         "config": settings,
         "config_sha256": hashlib.sha256(config_bytes).hexdigest(),
+        "git_sha": os.environ.get("GITHUB_SHA"),
+        "git_ref": os.environ.get("GITHUB_REF"),
         "python_version": platform.python_version(),
         "numpy_version": np.__version__,
         "pandas_version": pd.__version__,
@@ -93,9 +96,13 @@ def main():
         "claim_limit": "Probability-stage pilot only; no host-KDE or H0 posterior claim.",
         "summary_file": args.output.name,
         "raw_file": args.raw_output.name,
+        "summary_bytes": args.output.stat().st_size,
+        "raw_bytes": args.raw_output.stat().st_size,
+        "summary_sha256": hashlib.sha256(args.output.read_bytes()).hexdigest(),
+        "raw_sha256": hashlib.sha256(args.raw_output.read_bytes()).hexdigest(),
     }
     manifest_path = args.output.parent / "run_manifest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"wrote {len(result)} attempt rows to {args.output}")
     print(f"wrote unit-level audit records to {args.raw_output}")
     print(result.groupby(
