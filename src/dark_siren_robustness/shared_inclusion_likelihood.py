@@ -84,7 +84,11 @@ def shared_inclusion_selected_log_likelihood(
     x = (z - inclusion_posterior.center) / inclusion_posterior.scale
     design = np.column_stack([x ** power for power in range(inclusion_posterior.degree + 1)])
     eta = design @ nodes.T
+    if not np.all(np.isfinite(eta)):
+        raise ArithmeticError("inclusion linear predictors are non-finite")
     log_probability = log_expit(eta)
+    if not np.all(np.isfinite(log_probability)):
+        raise ArithmeticError("log inclusion probabilities are non-finite; IPW weights are not evaluable")
     log_raw_weights = log_base[:, None] - log_probability
     log_normalizer = logsumexp(log_raw_weights, axis=0)
     log_host_weights = log_raw_weights - log_normalizer[None, :]
@@ -117,6 +121,8 @@ def shared_inclusion_selected_log_likelihood(
     # The generator accepts a noisy distance iff d_obs >= threshold. Use the
     # same weighted host population as the event mixture at each theta node.
     means = C_KM_S * z[None, :] / h0[:, None]
+    if not np.all(np.isfinite(means)):
+        raise ArithmeticError("predicted host distances are non-finite on the H0 grid")
     log_detection_by_host = log_ndtr((means - threshold) / event_sigmas[0])
     node_log_beta = np.empty((n_nodes, h0.size), dtype=float)
     for node_index in range(n_nodes):
@@ -124,6 +130,8 @@ def shared_inclusion_selected_log_likelihood(
             log_detection_by_host + log_host_weights[:, node_index][None, :], axis=1
         )
 
+    if not np.all(np.isfinite(node_log_beta)):
+        raise ArithmeticError("one-sided detection efficiency is non-finite")
     node_log_selected = node_log_likelihood - len(events) * node_log_beta
     marginal = log_marginalize_shared_parameter(node_log_selected, posterior_weights)
     kish_ess = 1.0 / np.sum(host_weights * host_weights, axis=0)
