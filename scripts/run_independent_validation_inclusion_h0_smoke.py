@@ -130,6 +130,26 @@ def main() -> None:
             detection_threshold_mpc=float(analysis["config"]["detection_threshold_mpc"]),
             population_base_weights=base_weights,
         )
+        coefficient_columns = {
+            f"theta_{index}": fit.nodes[:, index]
+            for index in range(fit.nodes.shape[1])
+        }
+        coefficient_columns["posterior_weight"] = fit.weights
+        pd.DataFrame(coefficient_columns).to_csv(
+            output / f"inclusion_quadrature_order_{order}.csv", index=False
+        )
+        node_count = fit.nodes.shape[0]
+        h0_count = h0_grid.size
+        likelihood_record = pd.DataFrame({
+            "node_index": np.repeat(np.arange(node_count), h0_count),
+            "H0": np.tile(h0_grid, node_count),
+            "node_log_selected_likelihood": likelihood.node_log_selected_likelihood.reshape(-1),
+            "node_log_detection_efficiency": likelihood.node_log_detection_efficiency.reshape(-1),
+            "marginal_log_likelihood": np.tile(likelihood.marginal_log_likelihood, node_count),
+        })
+        likelihood_record.to_csv(
+            output / f"selected_likelihood_order_{order}.csv", index=False
+        )
         h0_posterior = normalize_h0_posterior(
             h0_grid, likelihood.marginal_log_likelihood,
             prior_min=args.prior_min, prior_max=args.prior_max,
@@ -139,6 +159,8 @@ def main() -> None:
         ).tolist()
         posterior_records.append({
             "order": order,
+            "validation_center": fit.center,
+            "validation_scale": fit.scale,
             "posterior_mean_coefficients": fit.posterior_mean.tolist(),
             "posterior_covariance": fit.posterior_covariance.tolist(),
             "quadrature_ess": fit.quadrature_ess,
