@@ -490,16 +490,21 @@ def audit_artifact(artifact_dir: Path) -> dict:
     for expected,stored in zip(reconstructed_contrasts,stored_contrasts):
         for field in ("gamma","target_retention","n_validation","bandwidth_multiplier",
                       "degree","n_pairs","n_replicates_planned",
-                      "n_replicates_with_both_attempts","n_catalogue_only_success",
+                      "n_replicates_with_both_attempts","min_n_analysis_catalogue",
+                      "max_n_analysis_catalogue","n_catalogue_size_records","n_catalogue_only_success",
                       "n_catalogue_only_failed","n_catalogue_only_non_evaluable","n_catalogue_only_not_run",
                       "n_estimated_success","n_estimated_failed","n_estimated_non_evaluable","n_estimated_not_run",
                       "n_both_success","n_estimated_not_success_catalogue_success",
                       "n_catalogue_not_success_estimated_success","n_both_not_success"):
             if expected[field]!=stored[field]:
                 raise AssertionError(f"Paired contrast key mismatch: {field}")
-        for field in ("mean_difference","monte_carlo_se","conditional_pair_fraction_of_planned"):
+        for field in ("mean_n_analysis_catalogue","sd_n_analysis_catalogue",
+                      "mean_difference","monte_carlo_se","conditional_pair_fraction_of_planned"):
             a,b=expected[field],stored[field]
-            if a is not None and not np.isclose(a,b,rtol=1e-10,atol=1e-12):
+            if a is None or b is None:
+                if a is not None or b is not None:
+                    raise AssertionError(f"Paired contrast mismatch: {field}")
+            elif not np.isclose(a,b,rtol=1e-10,atol=1e-12):
                 raise AssertionError(f"Paired contrast mismatch: {field}")
         for field in ("bootstrap_95_interval","paired_t_95_interval"):
             a,b=expected[field],stored[field]
