@@ -73,3 +73,17 @@ def test_rejects_invalid_parent_size_and_validation_order():
         run_density_recovery_benchmark(
             n_replicates=1, n_parent=1200, validation_sizes=(300, 100),
         )
+
+
+def test_auditor_rejects_tampered_parent_unit_artifact(tmp_path):
+    attempts, units, summary = run_density_recovery_benchmark(
+        n_replicates=1, n_parent=1200, seed=303,
+        gamma_values=(0.0,), retention_values=(0.50,),
+        validation_sizes=(100,), degrees=(1,),
+        bandwidth_multipliers=(0.15,), grid_points=201,
+    )
+    write_artifacts(attempts, units, summary, tmp_path)
+    path = tmp_path / "parent_units.csv"
+    path.write_text(path.read_text(encoding="utf-8") + "\\n", encoding="utf-8")
+    with pytest.raises(AssertionError, match="byte count|checksum"):
+        audit_artifact(tmp_path)
