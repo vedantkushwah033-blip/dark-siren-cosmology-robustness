@@ -31,11 +31,11 @@ def _weight_stats(probability: np.ndarray) -> dict[str, float]:
         return {name: float("nan") for name in names}
     if not np.all(np.isfinite(p)) or np.any((p <= 0) | (p > 1)):
         raise ValueError("invalid inclusion probabilities in raw records")
-    w = 1.0 / p
-    q = w / np.sum(w)
+    scaled_w = float(np.min(p)) / p
+    q = scaled_w / np.sum(scaled_w)
     ordered = np.sort(q)[::-1]
     return {
-        "kish_ess": float(np.sum(w) ** 2 / np.sum(w ** 2)),
+        "kish_ess": float(np.sum(scaled_w) ** 2 / np.sum(scaled_w ** 2)),
         "entropy_ess": float(np.exp(-np.sum(q * np.log(q)))),
         "max_normalized_weight": float(np.max(q)),
         "top_1pct_weight_mass": float(np.sum(ordered[:max(1, int(np.ceil(.01 * len(q))))])),
