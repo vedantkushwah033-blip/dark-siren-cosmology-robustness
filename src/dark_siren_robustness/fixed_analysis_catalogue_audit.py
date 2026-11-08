@@ -182,7 +182,7 @@ def audit_fixed_catalogue_artifact(path):
   density=np.asarray(json.loads(row.density_json),float)
   rebuilt=_kde(grid,sample,prob,float(row.bandwidth_multiplier),merger)
   if not np.allclose(density,rebuilt,rtol=2e-8,atol=2e-8): raise AssertionError("KDE reconstruction mismatch")
-  if (int(row.replicate)==0 and int(row.n_validation)==manual_validation
+  if (int(row.n_validation)==manual_validation
       and np.isclose(float(row.bandwidth_multiplier),manual_bandwidth)):
    check_key=(float(row.gamma),str(row.arm))
    if check_key not in manual_checks:
