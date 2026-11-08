@@ -21,8 +21,8 @@ def catalogue_inclusion_probability(redshift: np.ndarray, *, floor: float = 0.10
     z = np.asarray(redshift, dtype=float)
     if z.ndim != 1 or not np.all(np.isfinite(z)) or np.any(z <= 0):
         raise ValueError("redshift must be a finite, positive one-dimensional array")
-    if not np.isfinite(floor) or not 0 < floor <= 1:
-        raise ValueError("floor must be in (0, 1]")
+    if not np.isfinite(floor) or not 0 <= floor <= 1:
+        raise ValueError("floor must be in [0, 1]")
     if not np.isfinite(midpoint) or midpoint <= 0:
         raise ValueError("midpoint must be finite and positive")
     if not np.isfinite(width) or width <= 0:
@@ -39,7 +39,7 @@ def _sample_from_density(n: int, rng: np.random.Generator, *, z_min: float, z_ma
     cdf /= cdf[-1]
     return np.interp(rng.random(n), cdf, grid)
 
-def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000, n_detected: int = 250, h0_true: float = 70.0, sigma_mpc: float = 140.0, detection_threshold_mpc: float = 250.0, z_min: float = 0.01, z_max: float = 0.40) -> dict[str, object]:
+def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000, n_detected: int = 250, h0_true: float = 70.0, sigma_mpc: float = 140.0, detection_threshold_mpc: float = 250.0, z_min: float = 0.01, z_max: float = 0.40, catalogue_floor: float = 0.10, catalogue_midpoint: float = 0.22, catalogue_width: float = 0.05) -> dict[str, object]:
     """Generate parent galaxies, an incomplete catalogue, and detected GW distances.
 
     catalogue_observed and gw_events_observed are observable tables. parent_truth
@@ -60,7 +60,10 @@ def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000
         raise ValueError("redshift bounds must satisfy 0 < z_min < z_max")
     rng = np.random.default_rng(int(seed))
     z_parent = _sample_from_density(n_parent, rng, z_min=z_min, z_max=z_max)
-    p_catalogue = catalogue_inclusion_probability(z_parent)
+    p_catalogue = catalogue_inclusion_probability(
+        z_parent, floor=catalogue_floor,
+        midpoint=catalogue_midpoint, width=catalogue_width,
+    )
     retained = rng.random(n_parent) < p_catalogue
     parent_truth = pd.DataFrame({
         "object_id": np.arange(n_parent, dtype=np.int64),
@@ -139,7 +142,12 @@ def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000
         "h0_true_km_s_mpc": float(h0_true), "sigma_mpc": float(sigma_mpc),
         "detection_threshold_mpc": float(detection_threshold_mpc),
         "redshift_domain": [float(z_min), float(z_max)],
-        "catalogue_selection": {"formula": "floor + (1-floor)/(1+exp((z-midpoint)/width))", "floor": 0.10, "midpoint": 0.22, "width": 0.05},
+        "catalogue_selection": {
+            "formula": "floor + (1-floor)/(1+exp((z-midpoint)/width))",
+            "floor": float(catalogue_floor),
+            "midpoint": float(catalogue_midpoint),
+            "width": float(catalogue_width),
+        },
         "merger_weight": "1 + 1.5*(z-z_min)/(z_max-z_min)",
         "distance_model": "d_obs ~ Normal(c*z/H0_true, sigma_mpc^2); detected iff d_obs >= threshold",
         "observable_files": ["observable/catalogue_observed.csv", "observable/gw_events_observed.csv"],
@@ -166,6 +174,9 @@ def generate_independent_validation_sample(
     n_validation: int = 300,
     z_min: float = 0.01,
     z_max: float = 0.40,
+    catalogue_floor: float = 0.10,
+    catalogue_midpoint: float = 0.22,
+    catalogue_width: float = 0.05,
 ) -> dict[str, object]:
     """Draw an SRS validation sample from a separately seeded parent frame.
 
@@ -185,7 +196,10 @@ def generate_independent_validation_sample(
     z_frame = _sample_from_density(
         n_validation_frame, rng, z_min=z_min, z_max=z_max
     )
-    probability = catalogue_inclusion_probability(z_frame)
+    probability = catalogue_inclusion_probability(
+        z_frame, floor=catalogue_floor,
+        midpoint=catalogue_midpoint, width=catalogue_width,
+    )
     retained = (rng.random(n_validation_frame) < probability).astype(np.int8)
     # A single random permutation makes samples nested across requested sizes
     # when the same seed and frame size are reused for paired validation studies.
@@ -215,6 +229,11 @@ def generate_independent_validation_sample(
             "retained", "selected_for_validation",
         ],
         "independent_frame": True,
+        "catalogue_selection": {
+            "floor": float(catalogue_floor),
+            "midpoint": float(catalogue_midpoint),
+            "width": float(catalogue_width),
+        },
     }
     return {
         "config": config,
