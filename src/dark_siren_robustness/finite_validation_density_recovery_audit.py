@@ -137,6 +137,7 @@ def _reconstruct_paired_contrasts(attempts, *, n_replicates, seed, bootstrap_res
                 "n_catalogue_only_success":int(cat_success.sum()),
                 "n_catalogue_only_failed":int(cat_status.eq("FAILED").sum()),
                 "n_catalogue_only_non_evaluable":int(cat_status.eq("NON_EVALUABLE").sum()),
+                "n_catalogue_only_not_run":int(cat_status.eq("NOT_RUN").sum()),
                 "n_estimated_success":int(est_success.sum()),
                 "n_estimated_failed":int(est_status.eq("FAILED").sum()),
                 "n_estimated_non_evaluable":int(est_status.eq("NON_EVALUABLE").sum()),
