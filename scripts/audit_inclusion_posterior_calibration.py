@@ -190,8 +190,8 @@ def audit(root: Path) -> dict:
             if len(pit_values) > 1 and not np.isclose(float(item["pit_variance"]), float(np.var(pit_values, ddof=1)), rtol=1e-10, atol=1e-10):
                 raise AssertionError(f"summary PIT variance mismatch for {key}")
             bins = len(item["pit_bin_counts"])
-            counts, _ = np.histogram(pit_values, bins=np.linspace(0.0, 1.0, bins + 1))
-            if not np.array_equal(counts, np.asarray(item["pit_bin_counts"], dtype=int)):
+            histogram_counts, _ = np.histogram(pit_values, bins=np.linspace(0.0, 1.0, bins + 1))
+            if not np.array_equal(histogram_counts, np.asarray(item["pit_bin_counts"], dtype=int)):
                 raise AssertionError(f"summary PIT histogram mismatch for {key}")
             for level in (68, 90, 95):
                 successes = int(successful[f"h0_pit_interval_included_{level}"].sum())
