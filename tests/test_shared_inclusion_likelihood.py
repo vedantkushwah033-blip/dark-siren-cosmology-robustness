@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
+from scipy.special import log_ndtr, logsumexp
 
+from dark_siren_robustness.dataset_likelihood import C_KM_S
 from dark_siren_robustness.inclusion_posterior import fit_inclusion_posterior_quadrature
 from dark_siren_robustness.shared_inclusion_likelihood import shared_inclusion_selected_log_likelihood
 
@@ -39,6 +41,15 @@ def test_shared_selected_likelihood_uses_node_specific_weights_and_marginalizes_
     assert np.all((result.node_kish_ess >= 1.0) & (result.node_kish_ess <= catalogue_z.size))
     assert np.all((result.node_maximum_normalized_weight > 0) & (result.node_maximum_normalized_weight <= 1))
     assert np.all(result.node_log_detection_efficiency <= 0.0)
+    # Independently reconstruct beta from the exact same node-specific host weights.
+    for node in range(n_nodes):
+        means = C_KM_S * catalogue_z[None, :] / h0[:, None]
+        expected_log_beta = logsumexp(
+            log_ndtr((means - 250.0) / 120.0)
+            + np.log(result.node_catalogue_weights[:, node])[None, :],
+            axis=1,
+        )
+        assert np.allclose(result.node_log_detection_efficiency[node], expected_log_beta)
 
 
 def test_shared_selected_likelihood_rejects_heterogeneous_noise_for_this_selection_model():
