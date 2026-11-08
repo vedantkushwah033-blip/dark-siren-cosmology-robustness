@@ -45,12 +45,14 @@ def run_fixed_catalogue_benchmark(*, n_replicates=20, n_analysis=4000,
     unit_rows=[]; attempt_rows=[]
     for rep in range(n_replicates):
       # Independent streams for the analysis and validation frames.
-      az=_draw_parent_redshifts(np.random.default_rng(seed+1000003*rep),n_analysis)
-      vz=_draw_parent_redshifts(np.random.default_rng(seed+2000003*rep),n_validation_max)
-      order=np.random.default_rng(seed+3000017*rep).permutation(n_validation_max)
+      def stream(stream_id):
+          return np.random.default_rng(np.random.SeedSequence([int(seed),int(rep),int(stream_id)]))
+      az=_draw_parent_redshifts(stream(1),n_analysis)
+      vz=_draw_parent_redshifts(stream(2),n_validation_max)
+      order=stream(3).permutation(n_validation_max)
       rank=np.empty(n_validation_max,dtype=int); rank[order]=np.arange(n_validation_max)
-      au=np.random.default_rng(seed+4000037*rep).random(n_analysis)
-      vu=np.random.default_rng(seed+5000081*rep).random(n_validation_max)
+      au=stream(4).random(n_analysis)
+      vu=stream(5).random(n_validation_max)
       for gamma in gamma_values:
        for retention in retention_values:
         alpha=_calibrate_intercept(float(gamma),float(retention),center)
@@ -141,6 +143,7 @@ def run_fixed_catalogue_benchmark(*, n_replicates=20, n_analysis=4000,
      "validation_sizes":list(validation_sizes),"gamma_values":list(gamma_values),
      "retention_values":list(retention_values),"degrees":list(degrees),
      "bandwidth_multipliers":list(bandwidth_multipliers),"seed_start":seed,
+     "rng_stream_protocol":"numpy SeedSequence([seed, replicate, stream_id]); stream 1=analysis redshifts, 2=validation redshifts, 3=validation permutation, 4=analysis retention uniforms, 5=validation retention uniforms",
      "grid":[Z_MIN,Z_MAX,grid_points],"curvature_center":center,
      "analytic_target_density":truth.tolist(),"attempt_count":len(attempts),
      "status_counts":status_counts,
