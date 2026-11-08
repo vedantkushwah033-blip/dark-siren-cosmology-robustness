@@ -188,3 +188,9 @@ def test_paired_contrasts_tolerate_cells_with_no_evaluable_posterior_columns():
     assert cell["excluded_pairs"] == 1
     assert cell["metrics"] == {}
 
+def test_prior_slope_multiplier_grid_requires_positive_unique_baseline():
+    assert MODULE._parse_prior_slope_multipliers("0.5,1,2") == (0.5, 1.0, 2.0)
+    for invalid in ("", "0.5,2", "1,1", "0,1", "-1,1", "nan,1", "one,1"):
+        with pytest.raises(ValueError):
+            MODULE._parse_prior_slope_multipliers(invalid)
+
