@@ -73,3 +73,19 @@ The DGP's exact fixed-basis coefficients, reconstructed from the stored true inc
 All six MCMC runs passed the declared Rhat/ESS software gates. For the correctly specified degree-2 model, the true coefficient vector lies inside the componentwise 95% intervals for all three prior scales. For degree 1, the model is misspecified and there is no true degree-1 coefficient vector to cover.
 
 **Interpretation restriction:** this is one validation sample from one simulation replicate. It shows modest prior sensitivity in posterior coefficient means and small changes in held-out probability scores; it does not establish prior robustness, posterior calibration, or a general predictive advantage. The prior-scale comparison must be repeated across independent validation replicates and checked against the weighted importance sampler before any confirmatory H0 use.
+
+
+---
+
+## Implementation status correction — 2026-11-08
+
+This note originally documented the sampler before downstream H0 propagation existed. The following components have since been implemented:
+
+- `finite_validation_h0.py` reconstructs merger-weighted IPW host-density draws from the weighted coefficient proposals, computes the event-mixture likelihood and GW detection efficiency separately for every proposal, marginalizes the selected likelihood in log space, and normalizes a declared-prior H0 posterior.
+- `finite_validation_h0_marginalization.py` provides a slower reference implementation based on the existing selection-aware toy likelihood.
+- Tests compare the vectorized and reference likelihoods and exercise a real weighted inclusion-posterior output through density reconstruction and H0 likelihood marginalization.
+- An end-to-end finite-parent smoke test covers disjoint validation/analysis sampling, Bayesian inclusion fitting, detected-event simulation, 1,000 proposal propagation, selection correction, and H0 posterior normalization.
+
+The full numerical-diagnostics and focused sampler CI matrices passed on Python 3.10, 3.11, and 3.12 at PR commit `dae374c17a462b65aec94c06ca05f730ac094e37` (runs `42482040471` and `42482040468`).
+
+The prior-scale table above remains a **single-replicate exploratory check**. No multi-replicate prior robustness, inclusion SBC, fixed-truth H0 coverage, or H0 calibration result is established. The repeated-sampling protocol is recorded in `docs/finite_validation_h0_repeated_sampling_protocol_2026-11-08.md`.
