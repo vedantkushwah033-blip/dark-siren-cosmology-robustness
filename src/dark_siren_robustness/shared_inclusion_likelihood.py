@@ -90,6 +90,12 @@ def shared_inclusion_selected_log_likelihood(
     log_host_weights = log_raw_weights - log_normalizer[None, :]
     host_weights = np.exp(log_host_weights)
 
+    event_sigmas = np.asarray([float(event["gw_sigma"]) for event in events], dtype=float)
+    if not np.all(np.isfinite(event_sigmas)) or np.any(event_sigmas <= 0):
+        raise ValueError("every event gw_sigma must be finite and positive")
+    if not np.allclose(event_sigmas, event_sigmas[0], rtol=1e-12, atol=0.0):
+        raise ValueError("this toy selection implementation requires a common gw_sigma across events")
+
     n_nodes = nodes.shape[0]
     node_log_likelihood = np.zeros((n_nodes, h0.size), dtype=float)
     for event_index, event in enumerate(events):
@@ -111,9 +117,7 @@ def shared_inclusion_selected_log_likelihood(
     # The generator accepts a noisy distance iff d_obs >= threshold. Use the
     # same weighted host population as the event mixture at each theta node.
     means = C_KM_S * z[None, :] / h0[:, None]
-    log_detection_by_host = log_ndtr((means - threshold) / np.asarray(
-        [float(event["gw_sigma"]) for event in events], dtype=float
-    )[0])
+    log_detection_by_host = log_ndtr((means - threshold) / event_sigmas[0])
     node_log_beta = np.empty((n_nodes, h0.size), dtype=float)
     for node_index in range(n_nodes):
         node_log_beta[node_index] = logsumexp(
