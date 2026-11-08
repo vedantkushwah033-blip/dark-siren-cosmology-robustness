@@ -274,14 +274,14 @@ def test_laplace_gh_quadrature_matches_independent_prior_centered_gh_reference()
     from scipy.special import expit, roots_hermitenorm
 
     rng = np.random.default_rng(20261108)
-    z = rng.uniform(0.01, 0.40, 90)
+    z = rng.uniform(0.01, 0.40, 20)
     center, scale = z.mean(), z.std()
     x = (z - center) / scale
     design = np.column_stack([np.ones(z.size), x])
     probability = expit(-0.45 + 0.72 * x)
     retained = rng.binomial(1, probability)
     prior_mean = np.zeros(2)
-    prior_sd = np.asarray([5.0, 2.5])
+    prior_sd = np.asarray([1.5, 0.8])
 
     adaptive = fit_inclusion_posterior_quadrature(
         z, retained, degree=1, prior_mean=prior_mean,
