@@ -65,6 +65,18 @@ Negative values favour estimated IPW on this density endpoint; positive values f
 
 These patterns are consistent with a finite-validation information-size effect under this particular synthetic design. Five replicates are far too few for confirmatory inference, stable failure-rate estimation, multiplicity-adjusted claims, or choosing a preferred model. The bandwidth multiplier is fixed at 0.15 and is not established as universally optimal.
 
+## Pilot estimate for the predeclared symmetric-curvature interaction
+
+At validation size 300 and degree 1, the replicate-level paired interaction
+[
+\Psi_r=\Delta_{r,+1.2}-\Delta_{r,-1.2}
+]
+was computed from the five complete replicate pairs. The pilot estimate was
+[
+\bar\Psi=0.3200,\qquad SE_{MC}=0.0112,\qquad n=5.
+]
+This is an exploratory, pilot-informed estimate, not a confirmatory result. It motivated the symmetric-curvature interaction as the single primary contrast in the 100-replicate analysis plan.
+
 ## What this does not establish
 
 - No H0 likelihood or posterior is evaluated.
