@@ -6,6 +6,7 @@ Parent truth is used only to generate the synthetic frame and score predictions
 on held-out objects; it is never passed to the fitter.
 """
 from __future__ import annotations
+import json
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -133,13 +134,15 @@ def run_probability_validation_benchmark(
                         "hessian_condition_number": fit.hessian_condition_number,
                         "max_abs_coefficient": fit.max_abs_coefficient,
                         "iterations": fit.iterations,
+                        "fit_center": fit.center,
+                        "fit_scale": fit.scale,
                         "coefficients_json": (
                             None if fit.coefficients is None
-                            else __import__("json").dumps(fit.coefficients.tolist())
+                            else json.dumps(fit.coefficients.tolist())
                         ),
                         "covariance_json": (
                             None if fit.covariance is None
-                            else __import__("json").dumps(fit.covariance.tolist())
+                            else json.dumps(fit.covariance.tolist())
                         ),
                     }
                     if fit.status == "SUCCESS":
