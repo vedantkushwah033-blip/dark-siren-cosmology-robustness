@@ -38,7 +38,8 @@ def test_posterior_pit_rejects_truth_outside_grid_and_invalid_density():
 def test_wilson_interval_contains_observed_proportion_and_is_bounded():
     low, high = MODULE._wilson_interval(68, 100)
     assert 0.0 <= low < 0.68 < high <= 1.0
-    assert MODULE._wilson_interval(0, 0) == (float("nan"), float("nan"))
+    empty = MODULE._wilson_interval(0, 0)
+    assert np.isnan(empty[0]) and np.isnan(empty[1])
 
 
 def test_seed_streams_are_deterministic_and_separated():
