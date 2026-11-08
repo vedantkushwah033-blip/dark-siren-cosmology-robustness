@@ -19,7 +19,7 @@ def _inputs():
     catalogue_z = np.linspace(0.02, 0.39, 30)
     h0 = np.linspace(55.0, 85.0, 41)
     events = [
-        {"gw_distance": 700.0, "gw_sigma": 120.0},
+        {"gw_distance": 700.0, "gw_sigma": 120.0, "event_id": "synthetic-001"},
         {"gw_distance": 1050.0, "gw_sigma": 120.0},
     ]
     return posterior, catalogue_z, h0, events
