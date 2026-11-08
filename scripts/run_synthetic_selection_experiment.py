@@ -17,10 +17,10 @@ def main() -> None:
     truth_dir = args.output_dir / "truth"
     observable_dir.mkdir(parents=True, exist_ok=True)
     truth_dir.mkdir(parents=True, exist_ok=True)
-    output["catalogue_observed"].to_csv(observable_dir / "catalogue_observed.csv", index=False)
-    output["gw_events_observed"].to_csv(observable_dir / "gw_events_observed.csv", index=False)
-    output["parent_truth"].to_csv(truth_dir / "parent_truth.csv", index=False)
-    output["gw_event_truth"].to_csv(truth_dir / "gw_event_truth.csv", index=False)
+    output["catalogue_observed"].to_csv(observable_dir / "catalogue_observed.csv", index=False, float_format="%.17g")
+    output["gw_events_observed"].to_csv(observable_dir / "gw_events_observed.csv", index=False, float_format="%.17g")
+    output["parent_truth"].to_csv(truth_dir / "parent_truth.csv", index=False, float_format="%.17g")
+    output["gw_event_truth"].to_csv(truth_dir / "gw_event_truth.csv", index=False, float_format="%.17g")
     output["gw_generation_trace_truth"].to_csv(
         truth_dir / "gw_generation_trace_truth.csv", index=False
     )
