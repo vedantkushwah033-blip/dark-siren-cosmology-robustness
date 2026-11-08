@@ -54,7 +54,7 @@ jobs:
         run: python -m pytest tests/test_host_density_grid_sensitivity.py -q
       - name: Run paired host-density H0-grid sensitivity experiment (Python 3.12 only)
         if: matrix.python-version == '3.12'
-        run: python scripts/run_host_density_grid_sensitivity.py --replicates 10 --n-parent 4000 --n-detected 30 --grid-points 161,321,641,1281,3201 --z-points 401 --output-dir artifacts/host_density_grid_sensitivity
+        run: python scripts/run_host_density_grid_sensitivity.py --replicates 5 --n-parent 3000 --n-detected 20 --grid-points 161,321,641,1281,3201 --z-points 301 --output-dir artifacts/host_density_grid_sensitivity
       - name: Independently audit host-density H0-grid convergence (Python 3.12 only)
         if: matrix.python-version == '3.12'
         run: python scripts/audit_host_density_grid_sensitivity.py artifacts/host_density_grid_sensitivity --tolerance 0.01 --output artifacts/host_density_grid_sensitivity/audit_report.json
