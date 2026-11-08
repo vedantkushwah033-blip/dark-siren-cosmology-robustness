@@ -1,4 +1,4 @@
-"""Run paired synthetic SBC/PIT and fixed-truth coverage experiments.
+"""Run conditional H0 prior-predictive PIT and fixed-truth coverage experiments.
 
 Each replicate holds its analysis catalogue and GW events fixed across nested
 validation sizes. Every cell is executed through the audited single-replicate
@@ -69,7 +69,7 @@ def _summarize(replicates: pd.DataFrame, bins: int) -> dict:
             "not_run": int((frame["status"] == "NOT_RUN").sum()),
             "evaluable_fraction": float(len(valid) / len(frame)) if len(frame) else float("nan"),
         }
-        if key[0] == "SBC" and len(valid):
+        if key[0] == "H0_PIT_FIXED_INCLUSION_TRUTH" and len(valid):
             pit = valid["pit"].to_numpy(dtype=float)
             counts, _ = np.histogram(pit, bins=np.linspace(0.0, 1.0, bins + 1))
             item.update({
@@ -107,7 +107,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--replicates", type=int, default=20)
     parser.add_argument("--seed", type=int, default=20261108)
-    parser.add_argument("--experiments", default="SBC,FIXED_TRUTH")
+    parser.add_argument("--experiments", default="H0_PIT_FIXED_INCLUSION_TRUTH,FIXED_TRUTH")
     parser.add_argument("--floors", default="0.0,0.10,0.25")
     parser.add_argument("--validation-sizes", default="100,300,1000")
     parser.add_argument("--n-validation-frame", type=int, default=4000)
@@ -135,8 +135,8 @@ def main() -> None:
     sizes = tuple(int(x) for x in args.validation_sizes.split(",") if x.strip())
     if args.replicates < 1 or args.seed < 0 or not experiments:
         parser.error("replicates and seed must be valid and experiments non-empty")
-    if set(experiments) - {"SBC", "FIXED_TRUTH"}:
-        parser.error("experiments may contain only SBC and FIXED_TRUTH")
+    if set(experiments) - {"H0_PIT_FIXED_INCLUSION_TRUTH", "FIXED_TRUTH"}:
+        parser.error("experiments may contain only H0_PIT_FIXED_INCLUSION_TRUTH and FIXED_TRUTH")
     if len(set(floors)) != len(floors) or any(not np.isfinite(x) or x < 0 or x >= 1 for x in floors):
         parser.error("floors must be distinct values in [0,1)")
     if len(set(sizes)) != len(sizes) or any(x < 5 or x > args.n_validation_frame for x in sizes):
@@ -172,7 +172,7 @@ def main() -> None:
                 validation_seed = _seed(args.seed, mode_id, floor_id, replicate, 1)
                 if analysis_seed == validation_seed:
                     validation_seed = (validation_seed + 1) % (2**32)
-                if experiment == "SBC":
+                if experiment == "H0_PIT_FIXED_INCLUSION_TRUTH":
                     rng = np.random.default_rng(_seed(args.seed, mode_id, floor_id, replicate, 2))
                     h0_true = float(rng.uniform(args.prior_min, args.prior_max))
                 else:
@@ -197,7 +197,7 @@ def main() -> None:
                 validation_seed = _seed(args.seed, mode_id, floor_id, replicate, 1)
                 if analysis_seed == validation_seed:
                     validation_seed = (validation_seed + 1) % (2**32)
-                if experiment == "SBC":
+                if experiment == "H0_PIT_FIXED_INCLUSION_TRUTH":
                     rng = np.random.default_rng(_seed(args.seed, mode_id, floor_id, replicate, 2))
                     h0_true = float(rng.uniform(args.prior_min, args.prior_max))
                 else:
@@ -311,7 +311,7 @@ def main() -> None:
                             row["coefficient_quadrature_ess"] = float(convergence["posterior_by_order"][-1]["quadrature_ess"])
                             row["minimum_catalogue_kish_ess"] = float(reference["minimum_catalogue_kish_ess"])
                             row["maximum_catalogue_normalized_weight"] = float(reference["maximum_catalogue_normalized_weight"])
-                            if experiment == "SBC":
+                            if experiment == "H0_PIT_FIXED_INCLUSION_TRUTH":
                                 row["pit"] = _posterior_pit(density, h0_true, column)
                                 for level, lower, upper in (
                                     (68, "h0_q16", "h0_q84"),
@@ -380,7 +380,8 @@ def main() -> None:
         "attempted": int((frame["status"] != "NOT_RUN").sum()),
         "status_counts": frame["status"].value_counts().to_dict(),
         "summary_by_cell": _summarize(frame, args.pit_bins),
-        "warning": "Pilot Monte Carlo summaries are descriptive. SBC/PIT and fixed-truth coverage are distinct; no real-data inference is implied.",
+        "pit_estimand": "H0 prior-predictive PIT conditional on fixed inclusion-truth parameters; not joint SBC because inclusion coefficients are not drawn from their inference prior.",
+        "warning": "PIT and fixed-truth coverage are distinct conditional diagnostics. No joint SBC or real-data inference is implied.",
     }
     (output / "calibration_summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True, allow_nan=True) + "\n",
