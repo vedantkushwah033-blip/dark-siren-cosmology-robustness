@@ -103,6 +103,27 @@ def test_full_selected_likelihood_matches_independent_nodewise_reconstruction():
     )
 
 
+def test_marginalized_shared_likelihood_produces_normalized_h0_posterior():
+    from dark_siren_robustness.h0_posterior import normalize_h0_posterior
+
+    posterior, catalogue_z, _, events = _inputs()
+    h0 = np.linspace(50.0, 90.0, 81)
+    likelihood = shared_inclusion_selected_log_likelihood(
+        h0, catalogue_z, events, posterior,
+        detection_threshold_mpc=250.0,
+    )
+    h0_posterior = normalize_h0_posterior(
+        h0, likelihood.marginal_log_likelihood,
+        prior_min=50.0, prior_max=90.0,
+    )
+    assert h0_posterior.grid[0] == 50.0
+    assert h0_posterior.grid[-1] == 90.0
+    assert np.all(np.isfinite(h0_posterior.density))
+    assert np.all(h0_posterior.density >= 0.0)
+    assert np.isclose(np.trapezoid(h0_posterior.density, h0_posterior.grid), 1.0)
+    assert 50.0 <= h0_posterior.quantile(0.05) < h0_posterior.quantile(0.95) <= 90.0
+
+
 def test_shared_selected_likelihood_rejects_heterogeneous_noise_for_this_selection_model():
     posterior, catalogue_z, h0, events = _inputs()
     events[1] = {"gw_distance": 1050.0, "gw_sigma": 150.0}
