@@ -73,6 +73,12 @@ def test_end_to_end_smoke_runner_writes_separate_and_checksummed_artifacts(
     summary = json.loads(
         (output_dir / "analysis" / "summary.json").read_text()
     )
+    audit = json.loads(
+        (output_dir / "analysis" / "independent_audit.json").read_text()
+    )
+    assert audit["status"] == "PASS"
+    assert audit["observable_only_reconstruction"] is True
+    assert audit["truth_used_only_after_reconstruction"] is True
     assert summary["status"] == "SMOKE_COMPLETE_NOT_CALIBRATION"
     assert summary["analysis_seed"] != summary["validation_seed"]
     assert summary["seeds_are_distinct"] is True
