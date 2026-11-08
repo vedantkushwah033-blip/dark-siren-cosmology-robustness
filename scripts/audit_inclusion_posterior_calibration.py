@@ -86,6 +86,17 @@ def _assert_nested_validation(artifact_dirs: list[Path]) -> dict[str, int]:
     return {"paired_sizes_checked": len(usable), "analysis_files_checked": len(analysis_files)}
 
 
+def _wilson(successes: int, trials: int) -> tuple[float, float]:
+    if trials <= 0:
+        return (float("nan"), float("nan"))
+    z = 1.959963984540054
+    p = successes / trials
+    denominator = 1.0 + z * z / trials
+    center = (p + z * z / (2.0 * trials)) / denominator
+    half = z * np.sqrt(p * (1.0 - p) / trials + z * z / (4.0 * trials * trials)) / denominator
+    return (max(0.0, center - half), min(1.0, center + half))
+
+
 def audit(root: Path) -> dict:
     root = root.resolve()
     planned = pd.read_csv(root / "planned_cells.csv")
@@ -176,15 +187,36 @@ def audit(root: Path) -> dict:
             pit_values = successful["pit"].to_numpy(dtype=float)
             if not np.isclose(float(item["pit_mean"]), float(np.mean(pit_values)), rtol=1e-10, atol=1e-10):
                 raise AssertionError(f"summary PIT mean mismatch for {key}")
+            if len(pit_values) > 1 and not np.isclose(float(item["pit_variance"]), float(np.var(pit_values, ddof=1)), rtol=1e-10, atol=1e-10):
+                raise AssertionError(f"summary PIT variance mismatch for {key}")
             bins = len(item["pit_bin_counts"])
             counts, _ = np.histogram(pit_values, bins=np.linspace(0.0, 1.0, bins + 1))
             if not np.array_equal(counts, np.asarray(item["pit_bin_counts"], dtype=int)):
                 raise AssertionError(f"summary PIT histogram mismatch for {key}")
-        if item["experiment"] == "FIXED_TRUTH" and len(successful):
             for level in (68, 90, 95):
-                rate = float(successful[f"covered_{level}"].mean())
+                successes = int(successful[f"h0_pit_interval_included_{level}"].sum())
+                rate = successes / len(successful)
+                if not np.isclose(rate, float(item[f"prior_predictive_interval_inclusion_{level}"]), rtol=1e-10, atol=1e-10):
+                    raise AssertionError(f"summary prior-predictive interval inclusion mismatch for {key}, level={level}")
+                interval = _wilson(successes, len(successful))
+                if not np.allclose(interval, item[f"prior_predictive_interval_inclusion_{level}_wilson95"], rtol=1e-10, atol=1e-10):
+                    raise AssertionError(f"summary PIT interval Wilson interval mismatch for {key}, level={level}")
+        if item["experiment"] == "FIXED_TRUTH" and len(successful):
+            bias = (successful["h0_median"] - successful["h0_true"]).to_numpy(dtype=float)
+            if not np.isclose(float(item["mean_posterior_median_bias"]), float(np.mean(bias)), rtol=1e-10, atol=1e-10):
+                raise AssertionError(f"summary posterior-median bias mismatch for {key}")
+            if not np.isclose(float(item["median_absolute_posterior_median_bias"]), float(np.median(np.abs(bias))), rtol=1e-10, atol=1e-10):
+                raise AssertionError(f"summary absolute median bias mismatch for {key}")
+            for level in (68, 90, 95):
+                successes = int(successful[f"covered_{level}"].sum())
+                rate = successes / len(successful)
                 if not np.isclose(rate, float(item[f"coverage_{level}"]), rtol=1e-10, atol=1e-10):
                     raise AssertionError(f"summary coverage mismatch for {key}, level={level}")
+                interval = _wilson(successes, len(successful))
+                if not np.allclose(interval, item[f"coverage_{level}_wilson95"], rtol=1e-10, atol=1e-10):
+                    raise AssertionError(f"summary coverage Wilson interval mismatch for {key}, level={level}")
+                if not np.isclose(float(successful[f"width_{level}"].median()), float(item[f"median_interval_width_{level}"]), rtol=1e-10, atol=1e-10):
+                    raise AssertionError(f"summary interval width mismatch for {key}, level={level}")
 
     return {
         "status": "PASS",
