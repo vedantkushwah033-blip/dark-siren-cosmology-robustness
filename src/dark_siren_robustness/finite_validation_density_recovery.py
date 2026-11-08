@@ -83,6 +83,22 @@ def _analytic_target(grid: np.ndarray) -> np.ndarray:
     return raw / trapezoid(raw, grid)
 
 
+def _weight_diagnostics(inclusion_probability: np.ndarray | None, n: int) -> dict:
+    weights = (np.ones(n, dtype=float) if inclusion_probability is None
+               else 1.0 / np.asarray(inclusion_probability, dtype=float))
+    scaled = weights / np.max(weights)
+    normalized = scaled / np.sum(scaled)
+    entropy = -float(np.sum(normalized * np.log(normalized)))
+    ordered = np.sort(normalized)[::-1]
+    return {
+        "kish_ess": float(np.sum(scaled)**2 / np.sum(scaled**2)),
+        "entropy_ess": float(np.exp(entropy)),
+        "max_normalized_weight": float(np.max(normalized)),
+        "top_1pct_weight_mass": float(np.sum(ordered[:max(1, int(np.ceil(0.01*n)))])),
+        "top_5pct_weight_mass": float(np.sum(ordered[:max(1, int(np.ceil(0.05*n)))])),
+    }
+
+
 def _density_iae(estimate: np.ndarray, truth: np.ndarray, grid: np.ndarray) -> float:
     return float(trapezoid(np.abs(estimate - truth), grid))
 
@@ -249,6 +265,8 @@ def run_density_recovery_benchmark(
                                 )
                             except (ValueError, ArithmeticError, np.linalg.LinAlgError) as exc:
                                 status, message = "NON_EVALUABLE", str(exc)
+                            weight_metrics = _weight_diagnostics(probabilities, int(sample.size))
+                            weight_metrics = _weight_diagnostics(estimated_pi, int(analysis_z.size)) if density is not None else {}
                             attempt_rows.append({
                                 "replicate": rep, "seed": seed + 1000003 * rep,
                                 "gamma": float(gamma), "target_retention": float(target_retention),
@@ -261,6 +279,11 @@ def run_density_recovery_benchmark(
                                         if density is not None else np.nan),
                                 "density_json": (json.dumps(density.tolist(), separators=(",", ":"))
                                                  if density is not None else ""),
+                                **weight_metrics,
+                                "ise": (float(trapezoid((density-truth)**2, grid))
+                                        if density is not None else np.nan),
+                                "max_abs_density_error": (float(np.max(np.abs(density-truth)))
+                                                          if density is not None else np.nan),
                                 "coefficients_json": "", "fit_status": "NOT_APPLICABLE",
                                 "fit_message": "",
                             })
@@ -288,6 +311,11 @@ def run_density_recovery_benchmark(
                                         if density is not None else np.nan),
                                 "density_json": (json.dumps(density.tolist(), separators=(",", ":"))
                                                  if density is not None else ""),
+                                **weight_metrics,
+                                "ise": (float(trapezoid((density-truth)**2, grid))
+                                        if density is not None else np.nan),
+                                "max_abs_density_error": (float(np.max(np.abs(density-truth)))
+                                                          if density is not None else np.nan),
                                 "coefficients_json": (
                                     json.dumps(fit.coefficients.tolist(), separators=(",", ":"))
                                     if fit.coefficients is not None else ""),
