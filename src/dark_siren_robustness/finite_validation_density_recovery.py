@@ -139,7 +139,8 @@ def run_density_recovery_benchmark(
         base_retention_uniform = np.random.default_rng(seed + 3000017 * rep).random(n_parent)
 
         for gamma in gamma_values:
-            alpha = _calibrate_intercept(float(gamma), PRIMARY_RETENTION, center)
+          for target_retention in retention_values:
+            alpha = _calibrate_intercept(float(gamma), float(target_retention), center)
             x_parent = (parent_z - Z_MIN) / (Z_MAX - Z_MIN)
             true_probability = expit(
                 alpha - x_parent + gamma * (x_parent**2 - center)
@@ -161,7 +162,7 @@ def run_density_recovery_benchmark(
                 for idx in range(n_parent):
                     unit_rows.append({
                         "replicate": rep, "gamma": float(gamma),
-                        "target_retention": PRIMARY_RETENTION,
+                        "target_retention": float(target_retention),
                         "n_validation": int(n_validation),
                         "object_id": int(object_ids[idx]),
                         "redshift": float(parent_z[idx]),
@@ -192,7 +193,7 @@ def run_density_recovery_benchmark(
                             status, message = "NON_EVALUABLE", str(exc)
                         attempt_rows.append({
                             "replicate": rep, "seed": seed + 1000003 * rep,
-                            "gamma": float(gamma), "target_retention": PRIMARY_RETENTION,
+                            "gamma": float(gamma), "target_retention": float(target_retention),
                             "n_validation": int(n_validation), "degree": 0,
                             "bandwidth_multiplier": float(multiplier), "arm": arm,
                             "status": status, "message": message,
@@ -261,7 +262,7 @@ def run_density_recovery_benchmark(
         "validation_sizes": list(validation_sizes), "degrees": list(degrees),
         "bandwidth_multipliers": list(bandwidth_multipliers),
         "grid": [Z_MIN, Z_MAX, grid_points],
-        "attempt_count": int(len(attempts)),
+        "analytic_target_density": truth.tolist(),\n        "analytic_target_sha256": hashlib.sha256(\n            json.dumps(truth.tolist(), separators=(",", ":")).encode("utf-8")\n        ).hexdigest(),\n        "attempt_count": int(len(attempts)),
         "status_counts": {str(k): int(v) for k, v in attempts.status.value_counts().items()},
         "success_count": int((attempts.status == "SUCCESS").sum()),
         "conditional_success_mean_iae": {
