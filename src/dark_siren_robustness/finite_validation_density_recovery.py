@@ -20,6 +20,7 @@ import pandas as pd
 from scipy.integrate import cumulative_trapezoid, trapezoid
 from scipy.optimize import brentq
 from scipy.special import expit
+from scipy.stats import t as student_t
 
 from dark_siren_robustness.catalogue_density import estimate_host_density
 from dark_siren_robustness.estimated_inclusion import fit_inclusion_logistic
@@ -91,6 +92,52 @@ def _safe_density(grid, sample, probabilities, merger, multiplier):
         grid, sample, inclusion_probability=probabilities,
         merger_weight=merger, scott_multiplier=multiplier,
     )
+
+
+def _paired_contrast_summary(attempts: pd.DataFrame, *, n_replicates: int,
+                             seed: int = 20261108, bootstrap_resamples: int = 2000) -> list[dict]:
+    """Summarize replicate-paired estimated-IPW minus catalogue-only IAE."""
+    results: list[dict] = []
+    group_keys = ["gamma", "target_retention", "n_validation", "bandwidth_multiplier"]
+    rng = np.random.default_rng(seed)
+    for key, group in attempts.groupby(group_keys, sort=True):
+        primary = group.loc[group.arm.isin(
+            ["catalogue_only", "estimated_degree_1_ipw", "estimated_degree_2_ipw"]
+        )]
+        wide = primary.pivot(index="replicate", columns="arm", values="iae")
+        if "catalogue_only" not in wide:
+            continue
+        for degree in (1, 2):
+            arm = f"estimated_degree_{degree}_ipw"
+            if arm not in wide:
+                continue
+            paired = wide[["catalogue_only", arm]].dropna()
+            difference = (paired[arm] - paired["catalogue_only"]).to_numpy(dtype=float)
+            n = int(difference.size)
+            record = {
+                "gamma": float(key[0]), "target_retention": float(key[1]),
+                "n_validation": int(key[2]), "bandwidth_multiplier": float(key[3]),
+                "degree": degree, "contrast": f"{arm}_minus_catalogue_only",
+                "n_pairs": n, "n_replicates_planned": int(n_replicates),
+                "mean_difference": float(np.mean(difference)) if n else None,
+                "monte_carlo_se": float(np.std(difference, ddof=1)/np.sqrt(n))
+                    if n > 1 else None,
+                "bootstrap_95_interval": None,
+                "paired_t_95_interval": None,
+            }
+            if n >= 2:
+                draws = rng.integers(0, n, size=(bootstrap_resamples, n))
+                boot_means = difference[draws].mean(axis=1)
+                record["bootstrap_95_interval"] = [
+                    float(np.quantile(boot_means, 0.025)),
+                    float(np.quantile(boot_means, 0.975)),
+                ]
+                se = float(np.std(difference, ddof=1)/np.sqrt(n))
+                critical = float(student_t.ppf(0.975, n-1))
+                mean = float(np.mean(difference))
+                record["paired_t_95_interval"] = [mean-critical*se, mean+critical*se]
+            results.append(record)
+    return results
 
 
 def run_density_recovery_benchmark(
@@ -284,6 +331,9 @@ def run_density_recovery_benchmark(
             str(k): float(v.iae.mean())
             for k, v in success.groupby("arm", sort=True)
         },
+        "paired_ipw_minus_catalogue_only_contrasts": _paired_contrast_summary(
+            attempts, n_replicates=n_replicates, seed=seed + 9109
+        ),
         "limitations": [
             "Synthetic low-redshift density recovery only; no H0 likelihood or posterior coverage.",
             "The 0.15 Scott multiplier is a frozen candidate from separate exploratory work, not universal.",
