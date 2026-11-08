@@ -414,7 +414,7 @@ def test_end_to_end_parent_frame_validation_to_h0_posterior_smoke():
     assert result.marginalization_mcse_status == "PASS"
     assert result.marginalization_log_likelihood_mcse.shape == (61,)
     assert result.marginalization_batch_ess.shape == (10,)
-    assert np.all(result.marginalization_batch_ess >= 10.0)
+    assert np.all(result.marginalization_batch_ess >= 20.0)
     assert np.all(np.isfinite(result.detection_efficiency_by_draw))
     assert np.all((result.detection_efficiency_by_draw > 0)
                   & (result.detection_efficiency_by_draw <= 1.0 + 1e-12))
