@@ -82,6 +82,13 @@ def audit(summary_path: Path, raw_path: Path, tolerance: float = 1e-10) -> dict:
         if not np.all(np.isfinite(units["p_true"])):
             raise ValueError(f"{key}: missing simulation truth probabilities")
         retained = units["retained"].to_numpy(dtype=int) == 1
+        oracle_stats = _weight_stats(
+            units.loc[retained, "p_true"].to_numpy(dtype=float)
+        )
+        oracle_estimates = {
+            "oracle_" + k: oracle_stats[k]
+            for k in ("kish_ess", "entropy_ess", "max_normalized_weight")
+        }
         if row.fit_status == "SUCCESS":
             p = units["p_hat"].to_numpy(dtype=float)
             if not np.all(np.isfinite(p)) or np.any((p <= 0) | (p >= 1)):
@@ -95,15 +102,11 @@ def audit(summary_path: Path, raw_path: Path, tolerance: float = 1e-10) -> dict:
                 ))),
             }
             estimates.update(_weight_stats(p[retained]))
-            estimates.update({
-                "oracle_" + k: v for k, v in _weight_stats(
-                    units.loc[retained, "p_true"].to_numpy(dtype=float)
-                ).items() if k in ("kish_ess", "entropy_ess", "max_normalized_weight")
-            })
         else:
             if units["p_hat"].notna().any():
                 raise ValueError(f"{key}: failed/non-evaluable fit has predicted probabilities")
-            estimates = {name: float("nan") for name in METRICS}
+            estimates = {name: float("nan") for name in METRICS if not name.startswith("oracle_")}
+        estimates.update(oracle_estimates)
         for name, estimate in estimates.items():
             reported = getattr(row, name)
             if np.isnan(estimate):
