@@ -209,6 +209,8 @@ def main() -> None:
             "minimum_predicted_inclusion_probability": fit.min_predicted_probability,
             "maximum_predicted_inclusion_probability": fit.max_predicted_probability,
             "h0_q05": h0_posterior.quantile(0.05),
+            "h0_q025": h0_posterior.quantile(0.025),
+            "h0_q975": h0_posterior.quantile(0.975),
             "h0_q16": h0_posterior.quantile(0.16),
             "h0_median": h0_posterior.quantile(0.50),
             "h0_q84": h0_posterior.quantile(0.84),
