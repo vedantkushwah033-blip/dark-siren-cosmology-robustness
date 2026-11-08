@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -153,3 +154,22 @@ def test_configured_runner_writes_provenance_manifest_and_auditable_artifacts(tm
     assert manifest["summary_sha256"] == hashlib.sha256(summary_path.read_bytes()).hexdigest()
     assert manifest["raw_sha256"] == hashlib.sha256(raw_path.read_bytes()).hexdigest()
     assert audit(summary_path, raw_path)["status"] == "PASS"
+
+
+
+def test_retention_fraction_scenarios_share_uniforms_and_validation_ids(tmp_path: Path):
+    raw_path = tmp_path / "raw_unit_records.csv"
+    run_probability_validation_benchmark(
+        n_parent=500, validation_sizes=(100,), curvature_values=(0.0,),
+        retention_fractions=(0.1, 0.5), degrees=(1,), replicates=1,
+        seed=97, raw_output=raw_path,
+    )
+    raw = pd.read_csv(raw_path)
+    low = raw.loc[raw["retention_target"] == 0.1].sort_values("object_id")
+    high = raw.loc[raw["retention_target"] == 0.5].sort_values("object_id")
+    assert low["object_id"].tolist() == high["object_id"].tolist()
+    assert low["redshift"].tolist() == high["redshift"].tolist()
+    low_validation = low.loc[low["split_role"] == "validation", "object_id"].tolist()
+    high_validation = high.loc[high["split_role"] == "validation", "object_id"].tolist()
+    assert low_validation == high_validation
+    assert np.all(low["retained"].to_numpy() <= high["retained"].to_numpy())
