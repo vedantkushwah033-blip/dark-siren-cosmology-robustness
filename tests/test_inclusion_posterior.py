@@ -351,7 +351,6 @@ def test_fixed_domain_coordinates_are_invariant_to_validation_sample_moments():
     assert fit_a.scale == fit_b.scale == 0.195
 
     prediction_z = np.linspace(0.01, 0.40, 51)
-    x = (prediction_z - 0.205) / 0.195
     fixed_draw = np.asarray([-0.4, 0.7])
     curve_a = 1.0 / (1.0 + np.exp(-(((prediction_z - fit_a.center) / fit_a.scale) * fixed_draw[1] + fixed_draw[0])))
     curve_b = 1.0 / (1.0 + np.exp(-(((prediction_z - fit_b.center) / fit_b.scale) * fixed_draw[1] + fixed_draw[0])))
