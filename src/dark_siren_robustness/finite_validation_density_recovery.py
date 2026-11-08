@@ -301,6 +301,16 @@ def run_density_recovery_benchmark(
                                     status, message = "NON_EVALUABLE", str(exc)
                             weight_metrics = (_weight_diagnostics(estimated_pi, int(analysis_z.size))
                                               if density is not None else {})
+                            fit_objective = np.nan
+                            if fit.coefficients is not None:
+                                fit_x = (val_z - fit.center) / fit.scale
+                                fit_design = np.column_stack([
+                                    fit_x**power for power in range(int(degree)+1)
+                                ])
+                                fit_eta = fit_design @ fit.coefficients
+                                fit_objective = float(np.sum(
+                                    np.logaddexp(0.0, fit_eta) - val_y * fit_eta
+                                ))
                             attempt_rows.append({
                                 "replicate": rep, "seed": seed + 1000003 * rep,
                                 "gamma": float(gamma), "target_retention": float(target_retention),
@@ -329,6 +339,7 @@ def run_density_recovery_benchmark(
                                 "fit_gradient_inf_norm": fit.gradient_inf_norm,
                                 "fit_hessian_condition_number": fit.hessian_condition_number,
                                 "fit_max_abs_coefficient": fit.max_abs_coefficient,
+                                "fit_objective": fit_objective,
                             })
 
     attempts = pd.DataFrame(attempt_rows)
