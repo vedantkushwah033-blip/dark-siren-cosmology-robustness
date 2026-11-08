@@ -79,6 +79,7 @@ def test_downstream_convergence_rejects_invalid_order_schedule():
     else:
         raise AssertionError("invalid quadrature order schedule was accepted")
 
+
 def test_downstream_convergence_preserves_fixed_domain_coordinates():
     validation_z, retained, h0, catalogue_z, events, base = _case()
     result = run_inclusion_h0_quadrature_convergence(
