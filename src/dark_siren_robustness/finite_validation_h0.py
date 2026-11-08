@@ -52,6 +52,7 @@ def reconstruct_host_density_draws(
     z_min: float = 0.01,
     z_max: float = 0.40,
     scott_multiplier: float = 0.15,
+    max_output_bytes: int = 1_000_000_000,
 ) -> NDArray[np.float64]:
     """Reconstruct one weighted-KDE host density for every coefficient proposal.
 
@@ -77,6 +78,26 @@ def reconstruct_host_density_draws(
         raise ValueError("merger_weight must be finite, positive and match redshift_grid")
     if not np.isfinite(scott_multiplier) or scott_multiplier <= 0:
         raise ValueError("scott_multiplier must be finite and positive")
+    if not np.isfinite(z_min) or not np.isfinite(z_max) or z_min >= z_max:
+        raise ValueError("fixed inclusion domain must be finite with z_min < z_max")
+    if not np.isclose(grid[0], z_min, rtol=0.0, atol=1e-12) or not np.isclose(
+        grid[-1], z_max, rtol=0.0, atol=1e-12
+    ):
+        raise ValueError("redshift_grid must span the full fixed inclusion-prior domain")
+    if (
+        isinstance(max_output_bytes, (bool, np.bool_))
+        or not isinstance(max_output_bytes, (int, np.integer))
+        or max_output_bytes < 1
+    ):
+        raise ValueError("max_output_bytes must be a positive integer")
+    estimated_bytes = 2 * coefficients.shape[0] * (
+        sample.size + grid.size
+    ) * np.dtype(float).itemsize
+    if estimated_bytes > max_output_bytes:
+        raise MemoryError(
+            f"Host-density draw arrays need about {estimated_bytes} bytes, "
+            f"above max_output_bytes={max_output_bytes}; reduce draws or grid size."
+        )
 
     analysis_design = fixed_redshift_design(
         sample, degree=degree, z_min=z_min, z_max=z_max
@@ -116,6 +137,7 @@ def selected_log_likelihood_by_draw(
     sigma: float,
     detection_threshold: float,
     h0_batch_size: int = 16,
+    max_output_bytes: int = 1_000_000_000,
 ) -> dict:
     """Evaluate unconditional and selection-conditioned log likelihood per draw.
 
@@ -143,6 +165,27 @@ def selected_log_likelihood_by_draw(
         raise ValueError("every supplied event must satisfy the detection threshold")
     if not isinstance(h0_batch_size, int) or h0_batch_size < 1:
         raise ValueError("h0_batch_size must be a positive integer")
+    if (
+        isinstance(max_output_bytes, (bool, np.bool_))
+        or not isinstance(max_output_bytes, (int, np.integer))
+        or max_output_bytes < 1
+    ):
+        raise ValueError("max_output_bytes must be a positive integer")
+    batch_size = min(h0_batch_size, h0.size)
+    output_elements = 3 * densities.shape[0] * h0.size
+    temporary_elements = (
+        2 * batch_size * d.size * z.size
+        + batch_size * d.size * densities.shape[0]
+        + 4 * batch_size * densities.shape[0]
+        + 2 * batch_size * z.size
+    )
+    estimated_bytes = (output_elements + temporary_elements) * np.dtype(float).itemsize
+    if estimated_bytes > max_output_bytes:
+        raise MemoryError(
+            f"Selected-likelihood arrays need about {estimated_bytes} bytes, "
+            f"above max_output_bytes={max_output_bytes}; reduce draws, grid size, "
+            "or h0_batch_size."
+        )
 
     quadrature = _trapezoid_weights(z)
     mass = densities * quadrature[None, :]
@@ -230,8 +273,8 @@ def normalize_h0_posterior(
     density = unnormalized / area
     cdf = np.r_[0.0, cumulative_trapezoid(density, h0)]
     cdf /= cdf[-1]
-    q16, median, q84 = (
-        float(np.interp(q, cdf, h0)) for q in (0.16, 0.50, 0.84)
+    q025, q16, median, q84, q975 = (
+        float(np.interp(q, cdf, h0)) for q in (0.025, 0.16, 0.50, 0.84, 0.975)
     )
     mean = float(trapezoid(h0 * density, h0))
     five_percent = 0.05 * (h0[-1] - h0[0])
@@ -245,5 +288,8 @@ def normalize_h0_posterior(
         "ci68_low": q16,
         "ci68_high": q84,
         "ci68_width": q84 - q16,
+        "ci95_low": q025,
+        "ci95_high": q975,
+        "ci95_width": q975 - q025,
         "boundary_mass_fraction": left_cdf + (1.0 - right_cdf),
     }
