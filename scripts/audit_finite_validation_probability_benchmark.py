@@ -18,6 +18,8 @@ KEYS = ["scenario_seed", "replicate", "gamma", "retention_target", "n_validation
 ROLES = {"validation", "analysis_catalogue", "nonretained_holdout"}
 METRICS = [
     "heldout_brier_score", "heldout_log_loss", "heldout_probability_rmse",
+    "heldout_calibration_ece_10", "heldout_calibration_max_gap_10",
+    "heldout_calibration_nonempty_bins_10",
     "kish_ess", "entropy_ess", "max_normalized_weight",
     "top_1pct_weight_mass", "top_5pct_weight_mass",
     "oracle_kish_ess", "oracle_entropy_ess", "oracle_max_normalized_weight",
@@ -43,6 +45,34 @@ def _weight_stats(probability: np.ndarray) -> dict[str, float]:
         "top_5pct_weight_mass": float(np.sum(ordered[:max(1, int(np.ceil(.05 * len(q))))])),
     }
 
+
+
+def _calibration_stats(retained: np.ndarray, probability: np.ndarray, n_bins: int = 10):
+    """Independent equal-frequency reliability-bin reconstruction."""
+    y = np.asarray(retained, dtype=float)
+    p = np.asarray(probability, dtype=float)
+    if y.ndim != 1 or p.ndim != 1 or y.shape != p.shape or y.size == 0:
+        raise ValueError("invalid held-out arrays for calibration reconstruction")
+    if not np.all(np.isfinite(y)) or np.any((y != 0) & (y != 1)):
+        raise ValueError("held-out labels must be finite and binary")
+    if not np.all(np.isfinite(p)) or np.any((p <= 0) | (p >= 1)):
+        raise ValueError("held-out probabilities must lie in (0, 1)")
+    edges = np.quantile(p, np.linspace(0.0, 1.0, n_bins + 1))
+    assignments = np.searchsorted(edges[1:-1], p, side="right")
+    gaps, counts = [], []
+    for index in range(n_bins):
+        mask = assignments == index
+        count = int(np.sum(mask))
+        if count:
+            gaps.append(abs(float(np.mean(y[mask]) - np.mean(p[mask]))))
+            counts.append(count)
+    return {
+        "heldout_calibration_ece_10": float(
+            np.dot(np.asarray(counts, dtype=float) / y.size, gaps)
+        ),
+        "heldout_calibration_max_gap_10": float(max(gaps)),
+        "heldout_calibration_nonempty_bins_10": float(len(gaps)),
+    }
 
 
 def _dgp_parameters(gamma: float, retention_target: float) -> tuple[float, float]:
@@ -168,6 +198,7 @@ def audit(summary_path: Path, raw_path: Path, tolerance: float = 1e-10) -> dict:
                     (p - holdout["p_true"].to_numpy(dtype=float)) ** 2
                 ))),
             }
+            estimates.update(_calibration_stats(y, p, n_bins=10))
             estimates.update(_weight_stats(analysis["p_hat"].to_numpy(dtype=float)))
             if pd.isna(row.coefficients_json) or pd.isna(row.covariance_json):
                 raise ValueError(f"{key}: successful fit missing coefficients/covariance")
