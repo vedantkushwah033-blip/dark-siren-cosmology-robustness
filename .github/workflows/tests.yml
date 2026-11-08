@@ -44,6 +44,12 @@ jobs:
         run: python -m pytest tests/test_catalogue_density.py -q
       - name: Test finite-validation inclusion fitting, disjoint sampling and IPW diagnostics
         run: python -m pytest tests/test_estimated_inclusion.py tests/test_validation_design.py tests/test_inclusion_diagnostics.py tests/test_estimated_inclusion_benchmark.py -q
+      - name: Test proper inclusion-coefficient posterior quadrature
+        run: python -m pytest tests/test_inclusion_posterior.py -q
+      - name: Test shared inclusion-selected likelihood and independent reconstruction
+        run: python -m pytest tests/test_shared_inclusion_likelihood.py -q
+      - name: Test normalized H0 posterior and grid-refinement diagnostics
+        run: python -m pytest tests/test_h0_posterior.py -q
       - name: Test independent finite-validation raw-record auditor
         run: python -m pytest tests/test_audit_finite_validation_probability_benchmark.py -q
       - name: Run paired finite-validation inclusion-probability smoke benchmark
