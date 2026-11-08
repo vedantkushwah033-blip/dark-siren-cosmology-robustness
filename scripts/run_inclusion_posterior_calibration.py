@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -156,6 +157,8 @@ def main() -> None:
     root = Path(__file__).resolve().parents[1]
     smoke_script = root / "scripts" / "run_independent_validation_inclusion_h0_smoke.py"
     audit_script = root / "scripts" / "audit_independent_validation_inclusion_h0_smoke.py"
+    child_env = os.environ.copy()
+    child_env["PYTHONPATH"] = str(root / "src") + os.pathsep + child_env.get("PYTHONPATH", "")
     output = args.output_dir.resolve()
     output.mkdir(parents=True, exist_ok=True)
     if any(output.iterdir()):
@@ -251,7 +254,7 @@ def main() -> None:
                     try:
                         artifact_dir.parent.mkdir(parents=True, exist_ok=True)
                         row["stage"] = "RUN_SMOKE"
-                        run = subprocess.run(command, cwd=root, capture_output=True, text=True, check=False)
+                        run = subprocess.run(command, cwd=root, env=child_env, capture_output=True, text=True, check=False)
                         (artifact_dir.parent / f"{cell}.runner.stdout.txt").write_text(run.stdout, encoding="utf-8")
                         (artifact_dir.parent / f"{cell}.runner.stderr.txt").write_text(run.stderr, encoding="utf-8")
                         if run.returncode != 0:
@@ -279,7 +282,7 @@ def main() -> None:
                         audit_path = artifact_dir / "audit_report.json"
                         audit = subprocess.run(
                             [sys.executable, str(audit_script), str(artifact_dir), "--output", str(audit_path)],
-                            cwd=root, capture_output=True, text=True, check=False,
+                            cwd=root, env=child_env, capture_output=True, text=True, check=False,
                         )
                         (artifact_dir.parent / f"{cell}.auditor.stdout.txt").write_text(audit.stdout, encoding="utf-8")
                         (artifact_dir.parent / f"{cell}.auditor.stderr.txt").write_text(audit.stderr, encoding="utf-8")
