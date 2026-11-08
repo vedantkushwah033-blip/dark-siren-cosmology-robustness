@@ -39,6 +39,8 @@ Use a proper, declared prior, for example a baseline independent
 \\(\\theta_j\\sim N(0,2.5^2)\\), with prior-scale sensitivity runs
 \\(1.5, 2.5, 5.0\\). These are candidate regularizing priors, not an assertion that one is uniquely correct. Report prior sensitivity, especially under near-separation and small validation sizes.
 
+**Important parameterization control:** the current plug-in fitter standardizes redshift using each validation sample's own mean and standard deviation. Applying the same independent coefficient prior after that sample-dependent transformation changes the implied prior over the physical inclusion curve across validation sizes and replicates. For a fair prior-sensitivity experiment, either define the Bayesian model in a fixed, predeclared redshift coordinate based on the simulation support, or transform a single prior specified in that fixed coordinate into each sample-standardized parameterization (including its induced covariance). Do not reuse identical numerical prior scales across changing standardizations and call the prior invariant.
+
 The coefficient posterior is
 
 \\[
