@@ -306,7 +306,10 @@ def test_end_to_end_parent_frame_validation_to_h0_posterior_smoke():
     intensity = parent_intensity(parent_grid)
     parent_cdf = np.r_[0.0, cumulative_trapezoid(intensity, parent_grid)]
     parent_cdf /= parent_cdf[-1]
-    parent_rng = np.random.default_rng(seed)
+    def stream(stream_id):
+        return np.random.default_rng(np.random.SeedSequence([seed, 0, stream_id]))
+
+    parent_rng = stream(1)
     parent_z = np.interp(parent_rng.random(n_parent), parent_cdf, parent_grid)
     x_parent = (parent_z - 0.01) / 0.39
     curvature_center = trapezoid(intensity * ((parent_grid - 0.01) / 0.39) ** 2,
@@ -320,7 +323,7 @@ def test_end_to_end_parent_frame_validation_to_h0_posterior_smoke():
 
     alpha = brentq(lambda value: mean_retention(value) - target_retention, -30.0, 30.0)
     true_probability = expit(alpha - x_parent + gamma * (x_parent**2 - curvature_center))
-    retention_rng = np.random.default_rng(seed + 1)
+    retention_rng = stream(3)
     retention_uniform = retention_rng.random(n_parent)
     retained = (retention_uniform < true_probability).astype(int)
     parent = pd.DataFrame({
@@ -329,7 +332,8 @@ def test_end_to_end_parent_frame_validation_to_h0_posterior_smoke():
         "retained": retained,
         "true_inclusion_probability": true_probability,
     })
-    split = split_disjoint_validation(parent, n_validation=n_validation, seed=seed + 2)
+    validation_seed = int(stream(2).integers(0, 2**32 - 1))
+    split = split_disjoint_validation(parent, n_validation=n_validation, seed=validation_seed)
     assert np.intersect1d(
         split.validation_object_ids, split.analysis_object_ids
     ).size == 0
@@ -342,7 +346,7 @@ def test_end_to_end_parent_frame_validation_to_h0_posterior_smoke():
         degree=2,
         prior_sd=1.0,
         n_draws=1000,
-        seed=seed + 3,
+        seed=int(stream(5).integers(0, 2**32 - 1)),
         min_ess=50,
         min_ess_fraction=0.01,
     )
@@ -353,7 +357,7 @@ def test_end_to_end_parent_frame_validation_to_h0_posterior_smoke():
     host_intensity = parent_intensity(host_grid) * merger_parent
     host_cdf = np.r_[0.0, cumulative_trapezoid(host_intensity, host_grid)]
     host_cdf /= host_cdf[-1]
-    event_rng = np.random.default_rng(seed + 4)
+    event_rng = stream(4)
     event_distances = []
     while len(event_distances) < 5:
         event_z = float(np.interp(event_rng.random(), host_cdf, host_grid))
