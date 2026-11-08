@@ -54,3 +54,33 @@ def test_independent_probability_auditor_rejects_tampered_summary(tmp_path: Path
     summary.to_csv(summary_path, index=False)
     with pytest.raises(ValueError, match="mismatch"):
         audit(summary_path, raw_path)
+
+
+
+def test_independent_probability_auditor_rejects_incomplete_parent_partition(tmp_path: Path):
+    raw_path = tmp_path / "raw_unit_records.csv"
+    summary_path = tmp_path / "replicates.csv"
+    summary = run_probability_validation_benchmark(
+        n_parent=500, validation_sizes=(100,), curvature_values=(0.0,),
+        degrees=(1,), replicates=1, seed=93, raw_output=raw_path,
+    )
+    summary.to_csv(summary_path, index=False)
+    raw = pd.read_csv(raw_path).iloc[1:]
+    raw.to_csv(raw_path, index=False)
+    with pytest.raises(ValueError, match="expected 500 parent records"):
+        audit(summary_path, raw_path)
+
+
+def test_independent_probability_auditor_rejects_prediction_not_from_coefficients(tmp_path: Path):
+    raw_path = tmp_path / "raw_unit_records.csv"
+    summary_path = tmp_path / "replicates.csv"
+    summary = run_probability_validation_benchmark(
+        n_parent=500, validation_sizes=(100,), curvature_values=(0.0,),
+        degrees=(1,), replicates=1, seed=94, raw_output=raw_path,
+    )
+    summary.to_csv(summary_path, index=False)
+    raw = pd.read_csv(raw_path)
+    raw.loc[0, "p_hat"] = min(0.999, raw.loc[0, "p_hat"] + 0.01)
+    raw.to_csv(raw_path, index=False)
+    with pytest.raises(ValueError, match="predicted probabilities do not match"):
+        audit(summary_path, raw_path)
