@@ -26,6 +26,12 @@ def estimate_host_density(
     positive: zero-probability regions cannot be recovered by inverse weights.
     Reflection reduces, but does not eliminate, KDE boundary bias. The final
     density is truncated and renormalized on the specified finite domain.
+
+    Important bandwidth semantics: a supplied ``bandwidth_factor`` is passed
+    directly as SciPy's scalar ``gaussian_kde(..., bw_method=...)`` covariance
+    factor. It is an absolute factor, not a multiplier of Scott's rule. Use
+    ``None`` for the weighted Scott factor. A Scott multiplier is not currently
+    exposed by this API.
     """
     grid = np.asarray(redshift_grid, dtype=float)
     sample = np.asarray(observed_redshift, dtype=float)
