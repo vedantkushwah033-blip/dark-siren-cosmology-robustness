@@ -30,7 +30,11 @@ def _wilson_interval(successes: int, trials: int, z: float = 1.959963984540054):
 def _posterior_pit(density_frame: pd.DataFrame, truth: float, density_column: str) -> float:
     grid = density_frame["H0"].to_numpy(dtype=float)
     density = density_frame[density_column].to_numpy(dtype=float)
-    if grid.ndim != 1 or density.shape != grid.shape or np.any(np.diff(grid) <= 0):
+    if (
+        grid.ndim != 1 or density.shape != grid.shape or grid.size < 2
+        or np.any(~np.isfinite(grid)) or np.any(~np.isfinite(density))
+        or np.any(np.diff(grid) <= 0) or np.any(density < 0)
+    ):
         raise ValueError("invalid posterior grid/density")
     if truth < grid[0] or truth > grid[-1]:
         raise ValueError("generating H0 lies outside posterior support")
