@@ -476,8 +476,8 @@ def audit_artifact(artifact_dir: Path) -> dict:
         for field in ("gamma","target_retention","n_validation","bandwidth_multiplier",
                       "degree","n_pairs","n_replicates_planned",
                       "n_replicates_with_both_attempts","n_catalogue_only_success",
-                      "n_catalogue_only_failed","n_catalogue_only_non_evaluable",
-                      "n_estimated_success","n_estimated_failed","n_estimated_non_evaluable",
+                      "n_catalogue_only_failed","n_catalogue_only_non_evaluable","n_catalogue_only_not_run",
+                      "n_estimated_success","n_estimated_failed","n_estimated_non_evaluable","n_estimated_not_run",
                       "n_both_success","n_estimated_not_success_catalogue_success",
                       "n_catalogue_not_success_estimated_success","n_both_not_success"):
             if expected[field]!=stored[field]:
