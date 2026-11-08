@@ -109,11 +109,11 @@ def main() -> None:
     validation_frame = validation["validation_observed"]
 
     # Inference input tables are deliberately stripped of all truth-only columns.
-    analysis_catalogue.to_csv(observable_dir / "analysis_catalogue.csv", index=False)
-    events_frame.to_csv(observable_dir / "gw_events_observed.csv", index=False)
-    validation_frame.to_csv(observable_dir / "validation_observed.csv", index=False)
-    analysis["parent_truth"].to_csv(truth_dir / "analysis_parent_truth.csv", index=False)
-    analysis["gw_event_truth"].to_csv(truth_dir / "gw_event_truth.csv", index=False)
+    analysis_catalogue.to_csv(observable_dir / "analysis_catalogue.csv", index=False, float_format="%.17g")
+    events_frame.to_csv(observable_dir / "gw_events_observed.csv", index=False, float_format="%.17g")
+    validation_frame.to_csv(observable_dir / "validation_observed.csv", index=False, float_format="%.17g")
+    analysis["parent_truth"].to_csv(truth_dir / "analysis_parent_truth.csv", index=False, float_format="%.17g")
+    analysis["gw_event_truth"].to_csv(truth_dir / "gw_event_truth.csv", index=False, float_format="%.17g")
     analysis["gw_generation_trace_truth"].to_csv(
         truth_dir / "gw_generation_trace_truth.csv", index=False
     )
@@ -131,7 +131,7 @@ def main() -> None:
             "gw_distance": float(row.distance_mpc),
             "gw_sigma": float(analysis["config"]["sigma_mpc"]),
         }
-        for row in events_frame.itertuples(index=False)
+        for row in events_frame.itertuples(index=False, float_format="%.17g")
     ]
     h0_grid = np.linspace(args.prior_min, args.prior_max, args.h0_points)
     # Record the coefficient prior explicitly so the posterior target is fully
@@ -292,7 +292,7 @@ def main() -> None:
     )
 
     status = "CONVERGED" if converged_at is not None else "NON_CONVERGED"
-    pd.DataFrame(density_columns).to_csv(output / "h0_posterior_density_by_order.csv", index=False)
+    pd.DataFrame(density_columns).to_csv(output / "h0_posterior_density_by_order.csv", index=False, float_format="%.17g")
     posterior_summary = {
         "status": status,
         "converged_at_order": converged_at,
