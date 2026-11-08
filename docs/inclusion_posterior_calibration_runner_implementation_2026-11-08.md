@@ -9,8 +9,12 @@
 single-replicate H0 runner and its independent artifact auditor. It keeps the
 calibration experiments separate:
 
-- `SBC`: draw each replicate's generating H0 from the same declared uniform
-  H0 prior used by inference, then calculate the posterior CDF at that truth.
+- `H0_PIT_FIXED_INCLUSION_TRUTH`: draw each replicate's generating H0 from the
+  same declared uniform H0 prior used by inference, while holding the catalogue
+  inclusion-truth parameters fixed, then calculate the posterior CDF at that
+  truth. This is an H0 prior-predictive PIT conditional on fixed inclusion truth,
+  **not joint SBC**, because inclusion coefficients are not drawn from their
+  inference prior.
 - `FIXED_TRUTH`: hold generating H0 at the declared fixed value (default 70)
   and calculate repeated-sampling equal-tail credible-interval coverage.
 
@@ -69,7 +73,7 @@ stdout and stderr are retained beside those directories.
 
 ## Outcomes
 
-SBC/PIT summaries include the empirical PIT mean, variance, fixed-bin counts,
+Conditional H0 prior-predictive PIT summaries include the empirical PIT mean, variance, fixed-bin counts,
 expected equal-bin count and Monte Carlo standard error. They also report
 prior-predictive inclusion rates for 68%, 90% and 95% equal-tail intervals,
 with Wilson uncertainty intervals. These are descriptive diagnostics, not a
