@@ -162,6 +162,9 @@ def audit(output_dir: Path) -> dict[str, object]:
     # reconstruction above. They are used for provenance/scoring checks only.
     parent_truth = pd.read_csv(output_dir / "truth" / "analysis_parent_truth.csv")
     event_truth = pd.read_csv(output_dir / "truth" / "gw_event_truth.csv")
+    generation_trace = pd.read_csv(
+        output_dir / "truth" / "gw_generation_trace_truth.csv"
+    )
     validation_truth = pd.read_csv(
         output_dir / "truth" / "validation_frame_truth.csv"
     )
@@ -172,6 +175,45 @@ def audit(output_dir: Path) -> dict[str, object]:
     _require(
         event_truth["host_object_id"].isin(parent_truth["object_id"]).all(),
         "event truth contains unknown parent host IDs",
+    )
+    _require(
+        len(generation_trace) == config["n_generation_attempts"],
+        "GW generation trace length does not match attempt count",
+    )
+    _require(
+        generation_trace["attempt_id"].is_unique
+        and np.array_equal(
+            generation_trace["attempt_id"].to_numpy(),
+            np.arange(len(generation_trace)),
+        ),
+        "GW generation trace attempt IDs are not unique and contiguous",
+    )
+    _require(
+        int(generation_trace["detected"].sum()) == config["n_detected_candidates"],
+        "GW generation trace detected count mismatch",
+    )
+    _require(
+        int(generation_trace["selected_as_event"].sum()) == len(events_table),
+        "GW generation trace selected-event count mismatch",
+    )
+    selected_trace = generation_trace.loc[
+        generation_trace["selected_as_event"].astype(bool)
+    ].reset_index(drop=True)
+    _require(
+        np.allclose(
+            selected_trace["distance_mpc"].to_numpy(),
+            events_table["distance_mpc"].to_numpy(),
+            rtol=0.0,
+            atol=1e-12,
+        ),
+        "observed event distances do not match selected generation trace",
+    )
+    _require(
+        np.array_equal(
+            selected_trace["host_object_id"].to_numpy(dtype=int),
+            event_truth["host_object_id"].to_numpy(dtype=int),
+        ),
+        "event truth host IDs do not match selected generation trace",
     )
     selected_ids = validation["validation_id"].to_numpy(dtype=int)
     truth_selected = validation_truth.set_index("frame_id").loc[selected_ids]
