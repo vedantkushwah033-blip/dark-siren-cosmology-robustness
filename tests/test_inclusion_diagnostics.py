@@ -3,6 +3,7 @@ import pytest
 from dark_siren_robustness.inclusion_diagnostics import (
     inverse_probability_weight_diagnostics,
     score_inclusion_predictions,
+    score_probability_calibration,
 )
 
 
@@ -46,3 +47,25 @@ def test_effective_sample_size_is_stable_for_extreme_but_representable_probabili
     assert result["max_normalized_weight"] == pytest.approx(
         1.0 / np.sum(np.min(probability) / probability)
     )
+
+
+def test_probability_calibration_reports_zero_gap_for_exact_predictions():
+    probability = np.linspace(0.05, 0.95, 1000)
+    retained = np.r_[np.zeros(50), np.ones(50)]
+    # Construct a perfectly balanced two-point prediction/label example.
+    probability = np.r_[np.full(50, 0.25), np.full(50, 0.75)]
+    retained = np.r_[np.zeros(50), np.ones(50)]
+    result = score_probability_calibration(retained, probability, n_bins=2)
+    assert result["calibration_ece"] == pytest.approx(0.25)
+    assert result["calibration_max_gap"] == pytest.approx(0.25)
+    assert result["calibration_nonempty_bins"] == 2
+
+
+def test_probability_calibration_handles_tied_predictions_and_rejects_bad_bins():
+    result = score_probability_calibration(
+        np.tile([0, 1], 20), np.full(40, 0.5), n_bins=10
+    )
+    assert result["calibration_nonempty_bins"] == 1
+    assert result["calibration_ece"] == pytest.approx(0.0)
+    with pytest.raises(ValueError):
+        score_probability_calibration([0, 1], [0.2, 0.8], n_bins=1)
