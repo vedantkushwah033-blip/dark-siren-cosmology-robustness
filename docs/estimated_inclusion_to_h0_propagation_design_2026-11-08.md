@@ -151,3 +151,25 @@ A failure in any required arm must remain in the attempt ledger. Report SUCCESS,
 Passing Gates A–D would support a controlled synthetic study of finite-validation uncertainty propagation. It would not establish real-survey validity or universal estimator superiority. Gate E is required before claiming that pre-posterior diagnostics predict posterior calibration failure.
 
 **Current status:** design only. No uncertainty-integrated estimated-inclusion H0 posterior has been implemented or validated.
+
+
+---
+
+## Implementation status correction — 2026-11-08
+
+The preceding sections are the original design gate and are retained as a historical record. Their final status paragraph is superseded by the implementation checkpoint below.
+
+At PR head `918a5d7339655ed7a18cbcb3b80665ae4584d3a0`, the following computational components are now implemented:
+
+- Fixed-basis proper-prior inclusion posterior approximation using weighted Student-t importance proposals in `bayesian_inclusion.py`.
+- Vectorized per-proposal IPW host-density reconstruction, event-mixture likelihood, and draw-specific GW detection efficiency in `finite_validation_h0.py`.
+- Weighted log-space marginalization and declared-prior H0 posterior normalization/summaries.
+- A separate slower reference path in `finite_validation_h0_marginalization.py`, cross-checked against the vectorized likelihood path.
+- An end-to-end synthetic smoke test that generates a finite parent frame, forms a disjoint validation/analysis split, fits the Bayesian inclusion model, generates threshold-detected events, propagates 1,000 weighted coefficient proposals, and normalizes an H0 posterior.
+- H0-specific likelihood-contribution ESS and batch MCSE diagnostics.
+
+The focused sampler workflow and full numerical-diagnostics workflow both passed on Python 3.10, 3.11, and 3.12 at commit `dae374c17a462b65aec94c06ca05f730ac094e37` (workflow runs `42482040468` and `42482040471`). The subsequent changes to this document and the repeated-sampling protocol are documentation-only.
+
+**Still not implemented or established:** a repeated-sampling H0 runner, raw H0 artifact schema, independent end-to-end H0 artifact auditor, multi-replicate prior sensitivity, matched-model inclusion SBC, fixed-truth H0 coverage, confirmatory H0 grid convergence, or held-out validation of predictive diagnostics.
+
+The next-stage experiment is specified in [`finite_validation_h0_repeated_sampling_protocol_2026-11-08.md`](finite_validation_h0_repeated_sampling_protocol_2026-11-08.md). Passing CI establishes current software-test gates only; it does not establish posterior calibration or scientific validity.
