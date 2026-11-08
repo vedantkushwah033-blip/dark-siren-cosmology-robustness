@@ -118,3 +118,17 @@ def test_end_to_end_smoke_runner_writes_separate_and_checksummed_artifacts(
             (output_dir / relative).read_bytes()
         ).hexdigest()
         assert digest == expected
+
+
+def test_fixed_seed_validation_samples_are_nested_across_sizes():
+    small = generate_independent_validation_sample(
+        seed=5511, n_validation_frame=1200, n_validation=100
+    )["validation_observed"]
+    large = generate_independent_validation_sample(
+        seed=5511, n_validation_frame=1200, n_validation=300
+    )["validation_observed"]
+    assert set(small["validation_id"]).issubset(set(large["validation_id"]))
+    indexed = large.set_index("validation_id")
+    for row in small.itertuples(index=False):
+        assert indexed.loc[row.validation_id, "redshift"] == row.redshift
+        assert indexed.loc[row.validation_id, "retained"] == row.retained
