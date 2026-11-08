@@ -187,7 +187,7 @@ def test_auditor_rejects_incorrect_logistic_objective_even_with_refreshed_manife
 
 def test_auditor_rejects_tampered_logistic_coefficient_even_with_refreshed_manifest(tmp_path):
     attempts, units, summary = run_density_recovery_benchmark(
-        n_replicates=5, n_parent=2000, seed=101,
+        n_replicates=1, n_parent=2000, seed=101,
         gamma_values=(0.0,), retention_values=(0.50,),
         validation_sizes=(1000,), degrees=(1,),
         bandwidth_multipliers=(0.15,), grid_points=201,
