@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 
 from dark_siren_robustness.finite_validation_density_recovery import (
+    _paired_contrast_summary,
     _calibrate_intercept,
     _curvature_center,
     _analytic_target,
@@ -57,6 +58,58 @@ def test_small_benchmark_has_comparison_arms_and_nested_splits():
     assert "SeedSequence([seed, replicate, stream_id])" in summary["rng_stream_protocol"]
     assert "no_H0_inference" in summary["status"]
     assert summary["paired_ipw_minus_catalogue_only_contrasts"]
+
+
+def test_paired_contrast_reports_failed_and_non_evaluable_attempts():
+    rows = []
+    statuses = {
+        0: ("SUCCESS", 0.10, "SUCCESS", 0.20),
+        1: ("SUCCESS", 0.11, "FAILED", np.nan),
+        2: ("FAILED", np.nan, "SUCCESS", 0.25),
+        3: ("NON_EVALUABLE", np.nan, "NON_EVALUABLE", np.nan),
+    }
+    for replicate, (cat_status, cat_iae, est_status, est_iae) in statuses.items():
+        rows.append({
+            "replicate": replicate, "gamma": 1.2, "target_retention": 0.25,
+            "n_validation": 100, "bandwidth_multiplier": 0.15,
+            "arm": "catalogue_only", "status": cat_status, "iae": cat_iae,
+        })
+        rows.append({
+            "replicate": replicate, "gamma": 1.2, "target_retention": 0.25,
+            "n_validation": 100, "bandwidth_multiplier": 0.15,
+            "arm": "estimated_degree_1_ipw", "status": est_status, "iae": est_iae,
+        })
+    result = _paired_contrast_summary(
+        pd.DataFrame(rows), n_replicates=4, bootstrap_resamples=100,
+    )[0]
+    assert result["n_pairs"] == 1
+    assert result["n_replicates_with_both_attempts"] == 4
+    assert result["n_catalogue_only_success"] == 2
+    assert result["n_catalogue_only_failed"] == 1
+    assert result["n_catalogue_only_non_evaluable"] == 1
+    assert result["n_estimated_success"] == 2
+    assert result["n_estimated_failed"] == 1
+    assert result["n_estimated_non_evaluable"] == 1
+    assert result["n_both_success"] == 1
+    assert result["n_estimated_not_success_catalogue_success"] == 1
+    assert result["n_catalogue_not_success_estimated_success"] == 1
+    assert result["n_both_not_success"] == 1
+    assert result["conditional_pair_fraction_of_planned"] == pytest.approx(0.25)
+
+
+def test_independent_auditor_rejects_tampered_attempt_status_summary(tmp_path):
+    attempts, units, summary = run_density_recovery_benchmark(
+        n_replicates=1, n_parent=1200, seed=20261109,
+        gamma_values=(0.0,), validation_sizes=(100,),
+        degrees=(1,), bandwidth_multipliers=(0.15,), grid_points=201,
+    )
+    write_artifacts(attempts, units, summary, tmp_path)
+    path = tmp_path / "summary.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["paired_ipw_minus_catalogue_only_contrasts"][0]["n_estimated_failed"] += 1
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    with pytest.raises(AssertionError, match="Paired contrast key mismatch"):
+        audit_artifact(tmp_path)
 
 
 def test_independent_auditor_reconstructs_smoke_artifact(tmp_path):
