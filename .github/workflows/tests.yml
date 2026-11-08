@@ -56,6 +56,12 @@ jobs:
       - name: Independently audit configured finite-validation probability pilot (Python 3.12 only)
         if: matrix.python-version == '3.12'
         run: python scripts/audit_finite_validation_probability_benchmark.py artifacts/finite_validation_probability_pilot --output artifacts/finite_validation_probability_pilot/audit_report.json
+      - name: Test finite-validation IPW host-density recovery and independent auditor
+        run: python -m pytest tests/test_finite_validation_density_recovery.py -q
+      - name: Run finite-validation density-recovery smoke benchmark
+        run: python scripts/run_finite_validation_density_recovery.py --replicates 1 --n-parent 1200 --grid-points 201 --output-dir artifacts/finite_validation_density_recovery_smoke
+      - name: Independently audit finite-validation density-recovery smoke artifacts
+        run: python scripts/audit_finite_validation_density_recovery.py --artifact-dir artifacts/finite_validation_density_recovery_smoke --output artifacts/finite_validation_density_recovery_smoke/audit_report.json
       - name: Test host-density-to-H0 benchmark
         run: python -m pytest tests/test_host_density_benchmark.py -q
       - name: Run small host-density-to-H0 benchmark smoke experiment
@@ -172,5 +178,6 @@ jobs:
             artifacts/catalogue_thinning/
             artifacts/finite_validation_probability_smoke/
             artifacts/finite_validation_probability_pilot/
+            artifacts/finite_validation_density_recovery_smoke/
           if-no-files-found: error
 
