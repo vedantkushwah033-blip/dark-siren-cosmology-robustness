@@ -74,3 +74,20 @@ The fixed-analysis-catalogue auditor now reconstructs all five declared SeedSequ
 It checks the reconstructed values against the raw frame-unit artifact, in addition to checking that Bernoulli labels follow the stored uniforms and DGP probabilities. This guards against a common failure mode in which a raw uniform or frame coordinate is altered while the corresponding Bernoulli label and manifest checksum are also updated.
 
 The regression suite includes an adversarial retention-uniform tampering test that refreshes the manifest hash and still requires the independent auditor to reject the artifact. The confirmatory artifact is not considered fully audited until this new check has passed on the full raw output.
+
+
+## Five-replicate fixed-catalogue pilot (2026-11-08; exploratory only)
+
+The repository-native five-replicate pilot completed on the corrected independent-stream auditor. Its artifact passed the auditor with 225/225 density estimates reconstructed, 15 frame/scenario partitions checked, and all five RNG stream sets independently reconstructed. All 225 attempts were SUCCESS; this is a small pilot and does not estimate rare failure probabilities reliably.
+
+At Scott multiplier 0.15, degree 1, and validation size 300, the paired estimated-IPW-minus-catalogue-only IAE contrasts were:
+
+| Curvature | Mean paired IAE difference | Paired MC SE | Complete pairs |
+|---:|---:|---:|---:|
+| -1.2 | -0.2776 | 0.0069 | 5 |
+| 0.0 | -0.0725 | 0.0221 | 5 |
+| +1.2 | +0.0424 | 0.0159 | 5 |
+
+The pilot primary interaction is approximately +0.3200, defined as the positive-curvature contrast minus the negative-curvature contrast. The sign pattern is consistent with the pilot-informed symmetric-curvature hypothesis: estimated IPW improved density IAE relative to catalogue-only at negative curvature, while it was slightly worse at positive curvature at n_validation=300.
+
+**Interpretation restriction:** n=5 is insufficient for a confirmatory conclusion, stable interval estimation, or a claim about posterior calibration. These values are used only to check that the predeclared 100-replicate analysis pipeline behaves as intended. The 100-replicate run on the corrected auditor/code remains the decision gate.
