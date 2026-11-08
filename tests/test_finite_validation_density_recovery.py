@@ -4,11 +4,13 @@ import json
 import numpy as np
 import pandas as pd
 import pytest
+from scipy.integrate import cumulative_trapezoid
 
 from dark_siren_robustness.finite_validation_density_recovery import (
     _calibrate_intercept,
     _curvature_center,
     _analytic_target,
+    parent_intensity,
     run_density_recovery_benchmark,
     write_artifacts,
 )
@@ -180,3 +182,32 @@ def test_auditor_rejects_tampered_logistic_coefficient_even_with_refreshed_manif
               "Fitted covariance reconstruction failed",
     ):
         audit_artifact(tmp_path)
+
+
+def test_parent_redshift_and_retention_rng_streams_are_independent():
+    _, units, _ = run_density_recovery_benchmark(
+        n_replicates=1, n_parent=1200, seed=20261108,
+        gamma_values=(0.0,), retention_values=(0.50,),
+        validation_sizes=(100,), degrees=(1,),
+        bandwidth_multipliers=(0.15,), grid_points=201,
+    )
+    parent = (
+        units.loc[units.n_validation == 100]
+        .drop_duplicates("object_id")
+        .sort_values("object_id")
+    )
+    grid = np.linspace(0.01, 0.40, 20001)
+    cdf = np.r_[0.0, cumulative_trapezoid(parent_intensity(grid), grid)]
+    cdf /= cdf[-1]
+    parent_probability_integral = np.interp(parent.redshift, grid, cdf)
+
+    retention_stream_correlation = np.corrcoef(
+        parent_probability_integral, parent.retention_uniform
+    )[0, 1]
+    assert abs(retention_stream_correlation) < 0.10
+
+    validation_rank_correlation = np.corrcoef(
+        parent_probability_integral, parent.validation_rank
+    )[0, 1]
+    assert abs(validation_rank_correlation) < 0.10
+\n
