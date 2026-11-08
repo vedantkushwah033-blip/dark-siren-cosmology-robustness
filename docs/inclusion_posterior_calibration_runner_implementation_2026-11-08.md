@@ -139,3 +139,9 @@ not causal effects and not a substitute for independent repeated-sampling
 coverage or PIT assessment. The per-cell artifact auditor verifies each
 replicate artifact; the aggregate contrast calculation is currently covered
 by unit tests and is not yet a separate independent summary-audit program.
+
+The orchestrator validates the prior-slope sensitivity grid before starting
+any replicate: values must be finite, positive, distinct, and include the
+baseline multiplier 1.0. This is required because the ledger's primary IPW
+stability diagnostics are taken from the baseline-prior fit; accepting a grid
+without that fit would otherwise fail partway through a long run.
