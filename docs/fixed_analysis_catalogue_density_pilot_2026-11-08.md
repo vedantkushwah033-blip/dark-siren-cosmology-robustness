@@ -1,9 +1,9 @@
 # Fixed-analysis-catalogue density-recovery pilot: corrected RNG run
 
-**Run:** 42475919045  
+**Run:** 42475939984  
 **Artifact:** `fixed-analysis-catalogue-density-pilot-py3.12`  
-**Artifact ID:** 13615247781  
-**Commit:** `823773fb37555ccfb2c26c05c8ce62b9d4b586e5`  
+**Artifact ID:** 13615252814  
+**Commit:** `a87a877db65835b390de8631d232f4e850e3c7e2`  
 **Disposition:** exploratory pilot; independent artifact audit PASS. This is not a confirmatory result.
 
 ## Design
@@ -33,7 +33,7 @@ Independent random streams use `SeedSequence([seed, replicate, stream_id])`; ana
 | Frame/scenario partitions checked | 15 |
 | Independent audit | PASS |
 
-The raw validation-frame correlations were also inspected after extraction. Across the 15 replicate/curvature frame records, the maximum absolute correlation between validation redshift and retention uniform was 0.0165; the maximum absolute correlation between validation redshift and validation rank was 0.0406. These are diagnostic checks, not proofs of independence.
+The corrected run also passed the RNG-stream regression test and the auditor's explicit RNG-protocol check. The raw validation-frame correlations were independently inspected after extraction. Across the 15 replicate/curvature frame records, the maximum absolute correlation between validation redshift and retention uniform was 0.0165; the maximum absolute correlation between validation redshift and validation rank was 0.0406. These are diagnostic checks, not proofs of independence.
 
 ## Paired density-recovery contrasts
 
