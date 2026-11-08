@@ -191,6 +191,13 @@ def _paired_validation_size_contrasts(replicates: pd.DataFrame) -> dict:
                         for level in (68, 90, 95)
                     })
                 for metric, (column, kind) in metrics.items():
+                    required_columns = [f"{column}_low", f"{column}_high"]
+                    if kind in ("signed_error", "absolute_error"):
+                        required_columns.extend(["h0_true_low", "h0_true_high"])
+                    elif kind is not None:
+                        required_columns.extend([f"{kind}_low", f"{kind}_high"])
+                    if not all(name in joined.columns for name in required_columns):
+                        continue
                     if kind == "signed_error":
                         low_values = valid[f"{column}_low"] - valid["h0_true_low"]
                         high_values = valid[f"{column}_high"] - valid["h0_true_high"]
