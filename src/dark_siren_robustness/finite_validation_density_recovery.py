@@ -265,7 +265,8 @@ def run_density_recovery_benchmark(
                                 )
                             except (ValueError, ArithmeticError, np.linalg.LinAlgError) as exc:
                                 status, message = "NON_EVALUABLE", str(exc)
-                            weight_metrics = (_weight_diagnostics(probabilities, int(sample.size))\n                                              if sample.size else {})
+                            weight_metrics = (_weight_diagnostics(probabilities, int(sample.size))
+                                              if sample.size else {})
                             attempt_rows.append({
                                 "replicate": rep, "seed": seed + 1000003 * rep,
                                 "gamma": float(gamma), "target_retention": float(target_retention),
