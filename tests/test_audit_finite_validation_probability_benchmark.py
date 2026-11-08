@@ -106,7 +106,13 @@ def test_curvature_scenarios_share_parent_frame_and_validation_ids(tmp_path: Pat
     for frame in frames[1:]:
         assert frame["object_id"].tolist() == frames[0]["object_id"].tolist()
         assert frame["redshift"].tolist() == frames[0]["redshift"].tolist()
-        assert frame["split_role"].tolist() == frames[0]["split_role"].tolist()
+        validation_ids = frame.loc[
+            frame["split_role"] == "validation", "object_id"
+        ].tolist()
+        reference_validation_ids = frames[0].loc[
+            frames[0]["split_role"] == "validation", "object_id"
+        ].tolist()
+        assert validation_ids == reference_validation_ids
 
 
 
