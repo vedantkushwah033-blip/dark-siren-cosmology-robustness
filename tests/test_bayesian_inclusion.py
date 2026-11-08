@@ -35,14 +35,18 @@ def test_importance_sampler_returns_normalized_weights_and_posterior_predictions
     assert np.all((predicted > 0) & (predicted < 1))
 
 
-def test_one_class_validation_is_non_evaluable_under_shared_lifecycle_ledger():
+def test_one_class_validation_has_a_proper_prior_posterior():
     z = np.linspace(0.01, 0.40, 40)
-    y = np.ones(z.size, dtype=int)
-    result = importance_sample_inclusion_posterior(
-        z, y, degree=1, n_draws=3000, seed=12, min_ess=50, min_ess_fraction=0.01
-    )
-    assert result.status == "NON_EVALUABLE"
-    assert result.coefficient_proposals is None
+    for outcome in (0, 1):
+        y = np.full(z.size, outcome, dtype=int)
+        result = importance_sample_inclusion_posterior(
+            z, y, degree=1, n_draws=5000, seed=12 + outcome,
+            min_ess=50, min_ess_fraction=0.01
+        )
+        assert result.status == "SUCCESS", result.message
+        assert result.coefficient_proposals.shape == (5000, 2)
+        assert np.all(np.isfinite(result.posterior_mean))
+        np.testing.assert_allclose(result.normalized_importance_weights.sum(), 1.0, atol=1e-12)
 
 
 def test_importance_sampler_matches_existing_multichain_mcmc_posterior():
