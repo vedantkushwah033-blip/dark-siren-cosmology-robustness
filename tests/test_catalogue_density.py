@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from scipy.integrate import trapezoid
+from scipy.integrate import trapezoid\nfrom scipy.stats import gaussian_kde
 
 from dark_siren_robustness.catalogue_density import estimate_host_density
 
@@ -67,3 +67,35 @@ def test_sample_outside_declared_domain_is_rejected():
     grid = np.linspace(0.01, 0.40, 101)
     with pytest.raises(ValueError, match="inside"):
         estimate_host_density(grid, np.linspace(0.0, 0.39, 20))
+
+
+
+def test_reflection_does_not_artificially_triple_effective_sample_size():
+    grid = np.linspace(0.01, 0.40, 301)
+    sample = np.linspace(0.012, 0.398, 80)
+    probability = 0.15 + 0.8 / (1.0 + np.exp((sample - 0.22) / 0.05))
+    weights = 1.0 / probability
+    augmented = np.concatenate((sample, 2 * grid[0] - sample, 2 * grid[-1] - sample))
+    augmented_weights = np.tile(weights / 3.0, 3)
+    original_neff = np.sum(weights) ** 2 / np.sum(weights ** 2)
+    reference_kde = gaussian_kde(
+        augmented, weights=augmented_weights,
+        bw_method=original_neff ** (-1.0 / 5.0),
+    )
+    reference = reference_kde(grid)
+    reference /= trapezoid(reference, grid)
+    actual = estimate_host_density(
+        grid, sample, inclusion_probability=probability
+    )
+    np.testing.assert_allclose(actual, reference, rtol=1e-12, atol=1e-12)
+
+
+def test_inverse_probability_overflow_fails_explicitly():
+    grid = np.linspace(0.01, 0.40, 101)
+    sample = np.linspace(0.02, 0.39, 20)
+    probability = np.full(sample.size, 0.5)
+    probability[0] = 1e-320
+    with pytest.raises(ValueError, match="overflow"):
+        estimate_host_density(
+            grid, sample, inclusion_probability=probability
+        )
