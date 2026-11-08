@@ -13,8 +13,9 @@ from collections.abc import Mapping, Sequence
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.special import log_expit, logsumexp, log_ndtr
+from scipy.stats import norm
 
-from .dataset_likelihood import C_KM_S, event_log_likelihood
+from .dataset_likelihood import C_KM_S
 from .inclusion_posterior import InclusionPosteriorQuadrature, log_marginalize_shared_parameter
 
 
@@ -89,15 +90,16 @@ def shared_inclusion_selected_log_likelihood(
     log_normalizer = logsumexp(log_raw_weights, axis=0)
     log_host_weights = log_raw_weights - log_normalizer[None, :]
     host_weights = np.exp(log_host_weights)
+    # Do not silently drop positive-mass hosts when exponentiating normalized
+    # log weights for the returned diagnostics. Event likelihood and beta are
+    # both evaluated from the same log weights below.
+    if np.any(np.isfinite(log_host_weights) & (host_weights == 0.0)):
+        raise ArithmeticError("normalized catalogue weight underflows float64; refusing support loss")
     weight_sums = host_weights.sum(axis=0)
     if not np.all(np.isfinite(weight_sums)) or np.any(weight_sums <= 0):
         raise ArithmeticError("normalized catalogue weights have invalid total mass")
-    host_weights /= weight_sums[None, :]
-    # Rebuild log weights from the representable normalized weights so the
-    # event mixture and beta use exactly the same floating-point support.
-    log_host_weights = np.full(host_weights.shape, -np.inf)
-    positive_host_weights = host_weights > 0
-    log_host_weights[positive_host_weights] = np.log(host_weights[positive_host_weights])
+    if not np.allclose(weight_sums, 1.0, rtol=1e-12, atol=1e-14):
+        raise ArithmeticError("log-normalized catalogue weights do not sum to one")
 
     for event_index, event in enumerate(events):
         if not isinstance(event, Mapping) or set(event) != {"gw_distance", "gw_sigma"}:
@@ -110,6 +112,9 @@ def shared_inclusion_selected_log_likelihood(
 
     n_nodes = nodes.shape[0]
     node_log_likelihood = np.zeros((n_nodes, h0.size), dtype=float)
+    means = C_KM_S * z[None, :] / h0[:, None]
+    if not np.all(np.isfinite(means)):
+        raise ArithmeticError("predicted host distances are non-finite on the H0 grid")
     for event_index, event in enumerate(events):
         distance = float(event["gw_distance"])
         sigma = float(event["gw_sigma"])
@@ -117,17 +122,14 @@ def shared_inclusion_selected_log_likelihood(
             raise ValueError(f"events[{event_index}] must be finite and satisfy the one-sided detection threshold")
         if not np.isfinite(sigma) or sigma <= 0:
             raise ValueError(f"events[{event_index}].gw_sigma must be finite and positive")
+        event_terms = norm.logpdf(distance, loc=means, scale=sigma)
         for node_index in range(n_nodes):
-            node_log_likelihood[node_index] += event_log_likelihood(
-                h0, redshifts=z, gw_distance=distance, gw_sigma=sigma,
-                weights=host_weights[:, node_index],
+            node_log_likelihood[node_index] += logsumexp(
+                event_terms + log_host_weights[:, node_index][None, :], axis=1
             )
 
     # The generator accepts a noisy distance iff d_obs >= threshold. Use the
     # same weighted host population as the event mixture at each theta node.
-    means = C_KM_S * z[None, :] / h0[:, None]
-    if not np.all(np.isfinite(means)):
-        raise ArithmeticError("predicted host distances are non-finite on the H0 grid")
     log_detection_by_host = log_ndtr((means - threshold) / event_sigmas[0])
     node_log_beta = np.empty((n_nodes, h0.size), dtype=float)
     for node_index in range(n_nodes):
