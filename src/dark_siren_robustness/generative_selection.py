@@ -168,6 +168,7 @@ def generate_independent_validation_sample(
     selected = rng.choice(n_validation_frame, size=n_validation, replace=False)
     observable = pd.DataFrame({
         "validation_id": np.arange(n_validation, dtype=np.int64),
+        "frame_id": selected.astype(np.int64),
         "redshift": z_frame[selected],
         "retained": retained[selected],
     })
@@ -185,7 +186,7 @@ def generate_independent_validation_sample(
         "n_validation_frame": int(n_validation_frame),
         "n_validation": int(n_validation),
         "sampling_design": "simple_random_sample_without_replacement_from_independent_parent_frame",
-        "validation_observable_columns": ["validation_id", "redshift", "retained"],
+        "validation_observable_columns": ["validation_id", "frame_id", "redshift", "retained"],
         "truth_only_columns": [
             "frame_id", "redshift", "inclusion_probability",
             "retained", "selected_for_validation",
