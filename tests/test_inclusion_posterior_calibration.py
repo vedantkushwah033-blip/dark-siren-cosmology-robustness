@@ -33,6 +33,10 @@ def test_posterior_pit_rejects_truth_outside_grid_and_invalid_density():
     bad["density"] = 0.0
     with pytest.raises(ValueError, match="invalid integrated mass"):
         MODULE._posterior_pit(bad, 60.0, "density")
+    negative = frame.copy()
+    negative["density"] = [0.1, -0.1, 0.1]
+    with pytest.raises(ValueError, match="invalid posterior grid/density"):
+        MODULE._posterior_pit(negative, 60.0, "density")
 
 
 def test_wilson_interval_contains_observed_proportion_and_is_bounded():
