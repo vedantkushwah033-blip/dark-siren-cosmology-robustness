@@ -16,7 +16,7 @@
   - Catalogue-only, known-inclusion IPW, estimated linear IPW, estimated quadratic IPW, and parent-sample KDE arms.
   - Frozen Scott multipliers 0.15, 0.40 and 1.00.
   - IAE, ISE, maximum absolute density error, Kish ESS, entropy ESS, maximum normalized weight, and top-1%/5% weight mass.
-  - Replicate-paired estimated-IPW minus catalogue-only contrasts, percentile bootstrap intervals and paired-(t) intervals.
+  - Replicate-paired estimated-IPW minus catalogue-only contrasts, percentile bootstrap intervals and paired t-based intervals.
   - Raw parent-unit records, attempt ledger, analytic target, immutable configuration and SHA-256 manifest.
 
 - `src/dark_siren_robustness/finite_validation_density_recovery_audit.py`
