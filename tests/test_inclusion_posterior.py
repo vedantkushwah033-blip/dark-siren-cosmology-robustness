@@ -141,6 +141,28 @@ def test_quadrature_ladder_reports_convergence_and_nonconvergence_explicitly():
     assert len(strict.fits) == 3
 
 
+
+def test_quadrature_ladder_requires_log_evidence_stability():
+    from dark_siren_robustness.inclusion_posterior import (
+        fit_inclusion_posterior_quadrature_ladder,
+    )
+
+    rng = np.random.default_rng(22062)
+    z = rng.uniform(0.01, 0.40, 300)
+    x = (z - z.mean()) / z.std()
+    retained = rng.binomial(1, 1.0 / (1.0 + np.exp(-(-0.2 + 0.55*x))))
+
+    result = fit_inclusion_posterior_quadrature_ladder(
+        z, retained, degree=1, orders=(5, 7, 9),
+        mean_tolerance=10.0, covariance_tolerance=10.0,
+        predictive_tolerance=10.0, log_evidence_tolerance=1e-15,
+        consecutive_passes=1,
+    )
+    assert result.status == "NON_CONVERGED"
+    assert len(result.log_evidence_abs_change) == 2
+    assert any(change > 1e-15 for change in result.log_evidence_abs_change)
+
+
 def test_quadrature_ladder_rejects_invalid_order_schedule():
     from dark_siren_robustness.inclusion_posterior import (
         fit_inclusion_posterior_quadrature_ladder,
