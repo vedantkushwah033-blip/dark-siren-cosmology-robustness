@@ -148,6 +148,16 @@ def _paired_contrast_summary(attempts: pd.DataFrame, *, n_replicates: int,
             cat_status = status_wide.get("catalogue_only", pd.Series(index=status_wide.index, dtype=object))
             est_status = status_wide.get(arm, pd.Series(index=status_wide.index, dtype=object))
             both_present = cat_status.notna() & est_status.notna()
+            if "n_analysis_catalogue" in primary:
+                catalogue_sizes = (
+                    primary.loc[primary.arm == "catalogue_only"]
+                    .set_index("replicate")["n_analysis_catalogue"]
+                    .reindex(status_wide.index)
+                    .dropna()
+                    .astype(float)
+                )
+            else:
+                catalogue_sizes = pd.Series(dtype=float)
             cat_success = cat_status.eq("SUCCESS")
             est_success = est_status.eq("SUCCESS")
             record = {
@@ -156,6 +166,11 @@ def _paired_contrast_summary(attempts: pd.DataFrame, *, n_replicates: int,
                 "degree": degree, "contrast": f"{arm}_minus_catalogue_only",
                 "n_pairs": n, "n_replicates_planned": int(n_replicates),
                 "n_replicates_with_both_attempts": int(both_present.sum()),
+                "mean_n_analysis_catalogue": float(catalogue_sizes.mean()) if len(catalogue_sizes) else None,
+                "sd_n_analysis_catalogue": float(catalogue_sizes.std(ddof=1)) if len(catalogue_sizes) > 1 else None,
+                "min_n_analysis_catalogue": int(catalogue_sizes.min()) if len(catalogue_sizes) else None,
+                "max_n_analysis_catalogue": int(catalogue_sizes.max()) if len(catalogue_sizes) else None,
+                "n_catalogue_size_records": int(len(catalogue_sizes)),
                 "n_catalogue_only_success": int(cat_success.sum()),
                 "n_catalogue_only_failed": int(cat_status.eq("FAILED").sum()),
                 "n_catalogue_only_non_evaluable": int(cat_status.eq("NON_EVALUABLE").sum()),
