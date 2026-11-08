@@ -84,3 +84,56 @@ def test_independent_validation_frame_is_reproducible_and_hides_truth():
     assert "inclusion_probability" in a["validation_frame_truth"].columns
     assert len(a["validation_frame_truth"]) == 1200
     assert a["validation_frame_truth"]["selected_for_validation"].sum() == 150
+
+
+def test_independent_validation_h0_runner_writes_auditable_artifacts(tmp_path):
+    import hashlib
+    import json
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    output = tmp_path / "independent-validation-smoke"
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(root / "src") + os.pathsep + env.get("PYTHONPATH", "")
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(root / "scripts" / "run_independent_validation_inclusion_h0_smoke.py"),
+            "--seed", "8811",
+            "--validation-seed", "9922",
+            "--n-parent", "1200",
+            "--n-detected", "4",
+            "--n-validation-frame", "1000",
+            "--n-validation", "150",
+            "--orders", "5,7,9,11",
+            "--h0-points", "41",
+            "--output-dir", str(output),
+        ],
+        cwd=root, env=env, text=True, capture_output=True, check=False,
+    )
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    config = json.loads((output / "config.json").read_text())
+    convergence = json.loads((output / "quadrature_convergence.json").read_text())
+    assert config["analysis_generator_config"]["seed"] != config["validation_generator_config"]["seed"]
+    assert config["truth_firewall"].startswith("Only validation")
+    assert convergence["status"] in {"CONVERGED", "NON_CONVERGED"}
+    assert len(convergence["posterior_by_order"]) >= 2
+
+    validation = pd.read_csv(output / "observable" / "validation_observed.csv")
+    catalogue = pd.read_csv(output / "observable" / "analysis_catalogue.csv")
+    events = pd.read_csv(output / "observable" / "gw_events_observed.csv")
+    assert list(validation.columns) == ["validation_id", "redshift", "retained"]
+    assert list(catalogue.columns) == ["object_id", "redshift"]
+    assert list(events.columns) == ["event_id", "distance_mpc", "detected"]
+    assert "inclusion_probability" not in validation.columns
+    assert "host_object_id" not in events.columns
+    density = pd.read_csv(output / "h0_posterior_density_by_order.csv")
+    assert "H0" in density.columns and len(density) == 41
+
+    manifest = json.loads((output / "manifest.json").read_text())
+    for relative_path, expected_digest in manifest.items():
+        digest = hashlib.sha256((output / relative_path).read_bytes()).hexdigest()
+        assert digest == expected_digest
