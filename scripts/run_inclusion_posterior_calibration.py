@@ -88,16 +88,17 @@ def _summarize(replicates: pd.DataFrame, bins: int) -> dict:
     grouped = replicates.groupby(["experiment", "catalogue_floor", "n_validation"], dropna=False)
     for key, frame in grouped:
         valid = frame[frame["status"] == "SUCCESS"]
+        attempted_frame = frame[frame["status"] != "NOT_RUN"]
         item = {
             "experiment": key[0],
             "catalogue_floor": float(key[1]),
             "n_validation": int(key[2]),
-            "attempted": int(len(frame)),
+            "attempted": int(len(attempted_frame)),
             "success": int(len(valid)),
             "non_evaluable": int((frame["status"] == "NON_EVALUABLE").sum()),
             "failed": int((frame["status"] == "FAILED").sum()),
             "not_run": int((frame["status"] == "NOT_RUN").sum()),
-            "evaluable_fraction": float(len(valid) / len(frame)) if len(frame) else float("nan"),
+            "evaluable_fraction": float(len(valid) / len(attempted_frame)) if len(attempted_frame) else float("nan"),
         }
         if key[0] == "H0_PIT_FIXED_INCLUSION_TRUTH" and len(valid):
             pit = valid["pit"].to_numpy(dtype=float)
