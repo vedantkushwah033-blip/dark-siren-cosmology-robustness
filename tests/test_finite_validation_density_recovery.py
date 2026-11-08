@@ -120,17 +120,23 @@ def test_auditor_rejects_missing_attempt_even_with_refreshed_manifest(tmp_path):
 
 def test_auditor_rejects_incorrect_logistic_objective_even_with_refreshed_manifest(tmp_path):
     attempts, units, summary = run_density_recovery_benchmark(
-        n_replicates=1, n_parent=1200, seed=707,
-        gamma_values=(0.0,), validation_sizes=(100,),
+        n_replicates=1, n_parent=1200, seed=101,
+        gamma_values=(0.0,), validation_sizes=(300,),
         degrees=(1,), bandwidth_multipliers=(0.15,), grid_points=201,
     )
     write_artifacts(attempts, units, summary, tmp_path)
     path = tmp_path / "attempt_metrics.csv"
     frame = pd.read_csv(path)
-    idx = frame.index[
+    successful = frame.loc[
         (frame["arm"] == "estimated_degree_1_ipw") &
         (frame["status"] == "SUCCESS")
-    ][0]
+    ]
+    assert not successful.empty, (
+        "Objective-tampering fixture did not produce a successful fitted-IPW arm: "
+        + frame.loc[frame["arm"] == "estimated_degree_1_ipw",
+                    ["status", "message", "fit_status", "fit_message"]].to_string(index=False)
+    )
+    idx = successful.index[0]
     frame.loc[idx, "fit_objective"] += 1.0
     frame.to_csv(path, index=False)
     _refresh_attempt_manifest(tmp_path)
