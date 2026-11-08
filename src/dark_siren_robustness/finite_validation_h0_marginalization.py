@@ -86,6 +86,7 @@ def propagate_inclusion_posterior_to_h0(
     scott_multiplier,
     sigma,
     detection_threshold,
+    max_output_bytes=1_000_000_000,
 ):
     """Build one IPW density and selected likelihood per weighted theta proposal.
 
@@ -149,6 +150,24 @@ def propagate_inclusion_posterior_to_h0(
         raise ValueError("distances must be a nonempty finite vector")
     if proposals.shape[1] != posterior.degree + 1:
         raise ValueError("proposal coefficient dimension does not match posterior degree")
+    if not np.isclose(z_grid[0], posterior.z_min, rtol=0.0, atol=1e-12) or not np.isclose(
+        z_grid[-1], posterior.z_max, rtol=0.0, atol=1e-12
+    ):
+        raise ValueError("redshift_grid must span the full fixed inclusion-prior domain")
+    if (
+        isinstance(max_output_bytes, (bool, np.bool_))
+        or not isinstance(max_output_bytes, (int, np.integer))
+        or max_output_bytes < 1
+    ):
+        raise ValueError("max_output_bytes must be a positive integer")
+    estimated_bytes = proposals.shape[0] * (
+        z_grid.size + 3 * h0_grid.size + 1
+    ) * np.dtype(float).itemsize
+    if estimated_bytes > max_output_bytes:
+        raise MemoryError(
+            f"Requested draw-level outputs need about {estimated_bytes} bytes, "
+            f"above max_output_bytes={max_output_bytes}; reduce proposal draws or grid size."
+        )
 
     design = fixed_redshift_design(
         catalogue,
