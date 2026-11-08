@@ -21,6 +21,9 @@ def main() -> None:
     output["gw_events_observed"].to_csv(observable_dir / "gw_events_observed.csv", index=False)
     output["parent_truth"].to_csv(truth_dir / "parent_truth.csv", index=False)
     output["gw_event_truth"].to_csv(truth_dir / "gw_event_truth.csv", index=False)
+    output["gw_generation_trace_truth"].to_csv(
+        truth_dir / "gw_generation_trace_truth.csv", index=False
+    )
     (args.output_dir / "config.json").write_text(json.dumps(output["config"], indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps({"status": output["config"]["status"], "n_parent": len(output["parent_truth"]), "n_catalogue_observed": len(output["catalogue_observed"]), "n_detected_events": len(output["gw_events_observed"]), "output_dir": str(args.output_dir), "truth_is_separate": True}, indent=2))
 
