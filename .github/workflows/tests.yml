@@ -60,6 +60,8 @@ jobs:
         run: python -m pytest tests/test_h0_posterior.py -q
       - name: Test downstream H0 likelihood convergence across inclusion quadrature orders
         run: python -m pytest tests/test_inclusion_h0_convergence.py -q
+      - name: Test inclusion-coefficient prior-scale sensitivity through H0
+        run: python -m pytest tests/test_inclusion_prior_sensitivity.py -q
       - name: Test independent finite-validation raw-record auditor
         run: python -m pytest tests/test_audit_finite_validation_probability_benchmark.py -q
       - name: Run paired finite-validation inclusion-probability smoke benchmark
