@@ -28,7 +28,7 @@ The two boundary truths, 50 and 90, are deliberate stress cases: a posterior is 
 
 Within each true-H₀ value, the catalogue seed and host-selection seed are held fixed across the four distance-uncertainty levels. The event-noise seed is also held fixed, so the same standardized Gaussian draw is reused when the uncertainty changes. This common-random-number design reduces Monte Carlo noise in comparisons between uncertainty levels. It does **not** make the four observations independent; they are paired by replicate. Analysis should compare matched replicate-level differences where possible.
 
-The common-random-number pairing is defined only across the four uncertainty levels for a fixed true-H₀ value and replicate. The simulator is called with each truth as `H0_true`, so this protocol does not assume that the realized catalogue, redshifts, or selected host are identical across different true-H₀ values. Cross-truth contrasts should therefore be treated as comparisons between truth-specific simulation conditions, not as fully paired host-level contrasts. Results remain conditional on this particular simulator and host-generation rule.
+Seed blocks are disjoint across the nine true-H₀ strata: the seed for truth index j and replicate r is `base_seed + j × replicates + r`. This avoids accidentally reusing identical redshift/luminosity catalogues and host draws across different truths. The pairing unit remains the replicate within one fixed truth across the four uncertainty levels; no cross-truth pairing is presumed. Results remain conditional on this particular simulator and host-generation rule.
 
 ## Quantities to report
 
@@ -63,7 +63,7 @@ In GitHub, open the repository's **Actions** tab, choose **known-host-calibratio
 - `replicates = 300`
 - `seed = 20261025`
 
-The workflow checks out the pinned simulator commit, executes the surface, independently audits it, renders the report, and uploads the result directory as the `known-host-calibration-surface` artifact. If changing the replicate count or seed for exploratory work, document the change and do not silently compare it as though it were the default protocol.
+The workflow checks out the pinned simulator commit, executes the surface, independently audits it, computes paired noise-level contrasts from the audited raw records, renders the report, and uploads the result directory—including paired-comparison CSV/JSON/Markdown outputs—as the `known-host-calibration-surface` artifact. If changing the replicate count or seed for exploratory work, document the change and do not silently compare it as though it were the default protocol.
 
 ## What this experiment cannot establish
 

@@ -37,9 +37,14 @@ def _vector(value, name, *, nonnegative=False, strictly_increasing=False, min_si
 def posterior_h0(
     H0_grid, redshifts, gw_distance, gw_sigma, weights=None,
     missing_weight=0.0, missing_redshifts=None, missing_weights=None,
-    prior_min=50.0, prior_max=90.0,
+    prior_min=50.0, prior_max=90.0, positive_truncated=False,
 ):
-    """Compute normalized H0 posterior for the synthetic low-z mixture model."""
+    """Compute a normalized H0 posterior for the synthetic low-z mixture model.
+
+    If ``positive_truncated`` is true, each host-specific Gaussian distance
+    likelihood is conditioned on an observed distance greater than zero.
+    This matches data generators that redraw non-positive Gaussian distances.
+    """
     grid = _vector(H0_grid, "H0_grid", strictly_increasing=True, min_size=2)
     if np.any(grid <= 0):
         raise ValueError("H0_grid must be positive.")
@@ -78,12 +83,16 @@ def posterior_h0(
         mw = np.array([], dtype=float)
 
     distance_grid = C_KM_S * z[None, :] / grid[:, None]
-    likelihood = np.sum(catalog_weights[None, :] * norm.pdf(distance, loc=distance_grid, scale=sigma), axis=1)
+    catalog_density = norm.pdf(distance, loc=distance_grid, scale=sigma)
+    if positive_truncated:
+        catalog_density = catalog_density / norm.cdf(distance_grid / sigma)
+    likelihood = np.sum(catalog_weights[None, :] * catalog_density, axis=1)
     if miss_fraction > 0:
         missing_distance_grid = C_KM_S * mz[None, :] / grid[:, None]
-        likelihood += miss_fraction * np.sum(
-            mw[None, :] * norm.pdf(distance, loc=missing_distance_grid, scale=sigma), axis=1
-        )
+        missing_density = norm.pdf(distance, loc=missing_distance_grid, scale=sigma)
+        if positive_truncated:
+            missing_density = missing_density / norm.cdf(missing_distance_grid / sigma)
+        likelihood += miss_fraction * np.sum(mw[None, :] * missing_density, axis=1)
 
     in_prior = (grid >= prior_lo) & (grid <= prior_hi)
     if np.count_nonzero(in_prior) < 2:

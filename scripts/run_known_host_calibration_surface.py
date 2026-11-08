@@ -28,7 +28,11 @@ def wilson_interval(successes: int, n: int, z: float = 1.959963984540054) -> tup
     denom = 1.0 + z2 / n
     center = (p + z2 / (2.0 * n)) / denom
     half = z * math.sqrt(p * (1.0 - p) / n + z2 / (4.0 * n * n)) / denom
-    return max(0.0, center - half), min(1.0, center + half)
+    # Avoid a tiny positive lower bound from floating-point cancellation at p=0,
+    # and make the complementary all-success boundary exact as well.
+    lower = 0.0 if successes == 0 else center - half
+    upper = 1.0 if successes == n else center + half
+    return max(0.0, lower), min(1.0, upper)
 
 
 def summarize_cell(rows: list[dict], true_h0: float, fractional_error: float) -> dict:
@@ -128,9 +132,13 @@ def main() -> None:
 
     grid = np.linspace(PRIOR_MIN, PRIOR_MAX, 1601)
     rows: list[dict] = []
-    for true_h0 in H0_TRUTHS:
+    for truth_index, true_h0 in enumerate(H0_TRUTHS):
         for replicate in range(args.replicates):
-            seed = args.seed + replicate
+            # Keep noise-level pairing within each truth/replicate, but use a
+            # disjoint seed block across truths to avoid accidental cross-truth
+            # reuse of identical catalogues and host draws. Each truth owns exactly
+            # args.replicates seeds, with replicate indices starting at zero.
+            seed = args.seed + truth_index * args.replicates + replicate
             # Reuse the same redshifts, luminosities, host draw and standardized
             # noise across the four error levels to improve paired comparisons.
             cat = simulate_galaxy_catalogue(n_galaxies=500, H0_true=true_h0, seed=seed)
@@ -198,7 +206,7 @@ def main() -> None:
         "prior": [PRIOR_MIN, PRIOR_MAX],
         "posterior_grid_points": len(grid),
         "seed": args.seed,
-        "paired_design": "Same catalogue seed, host selection, and standardized distance-noise draw across error levels within each truth/replicate.",
+        "paired_design": "Within each truth/replicate, reuse the catalogue seed, host selection, and standardized distance-noise draw across four error levels; use disjoint seed blocks across truths: base_seed + truth_index * replicates + replicate_index.",
         "interpretation_warning": "Synthetic one-host diagnostic under the matched low-redshift distance model. Boundary truths are intentionally included to expose prior-edge effects; not a real GW measurement.",
         "cells": summaries,
     }

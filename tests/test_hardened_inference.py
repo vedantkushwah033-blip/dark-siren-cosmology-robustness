@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from scipy.stats import norm
 
 from dark_siren_robustness.hardened_inference import posterior_h0, posterior_summary
 
@@ -72,6 +73,31 @@ def test_posterior_normalization_uses_only_prior_supported_grid():
     # The full-grid trapezoid would incorrectly add boundary half-bins because
     # the represented prior density jumps from nonzero to zero outside support.
     assert np.trapezoid(posterior, grid) > 1.0
+
+
+
+def test_positive_truncated_likelihood_matches_independent_formula():
+    grid = np.linspace(25.0, 125.0, 1001)
+    redshifts = np.array([0.02, 0.04])
+    distance, sigma = 100.0, 20.0
+    weights = np.array([0.6, 0.4])
+    means = 299792.458 * redshifts[None, :] / grid[:, None]
+    component_density = norm.pdf(distance, loc=means, scale=sigma) / norm.cdf(means / sigma)
+    expected = np.sum(weights[None, :] * component_density, axis=1)
+    support = (grid >= 50.0) & (grid <= 90.0)
+    expected[~support] = 0.0
+    expected /= np.trapezoid(expected[support], grid[support])
+
+    actual = posterior_h0(
+        grid, redshifts, distance, sigma, weights=weights,
+        prior_min=50.0, prior_max=90.0, positive_truncated=True,
+    )
+    untruncated = posterior_h0(
+        grid, redshifts, distance, sigma, weights=weights,
+        prior_min=50.0, prior_max=90.0,
+    )
+    assert actual == pytest.approx(expected, abs=1e-12)
+    assert not np.allclose(actual, untruncated, rtol=0.0, atol=1e-10)
 
 
 def test_posterior_summary_ignores_zero_density_outside_prior_support():
