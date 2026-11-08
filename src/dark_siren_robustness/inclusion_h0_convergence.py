@@ -50,6 +50,8 @@ def run_inclusion_h0_quadrature_convergence(
     degree: int = 1,
     prior_mean: ArrayLike | None = None,
     prior_sd: ArrayLike | None = None,
+    coordinate_center: float | None = None,
+    coordinate_scale: float | None = None,
     orders: tuple[int, ...] = (7, 11, 15, 19, 23),
     centered_log_likelihood_tolerance: float = 1e-3,
     posterior_density_tolerance: float = 1e-3,
@@ -101,7 +103,9 @@ def run_inclusion_h0_quadrature_convergence(
     for order in order_tuple:
         fit = fit_inclusion_posterior_quadrature(
             validation_redshift, retained, degree=degree,
-            prior_mean=prior_mean, prior_sd=prior_sd, order=order,
+            prior_mean=prior_mean, prior_sd=prior_sd,
+            coordinate_center=coordinate_center,
+            coordinate_scale=coordinate_scale, order=order,
         )
         likelihood = shared_inclusion_selected_log_likelihood(
             h0, catalogue_redshift, events, fit,
