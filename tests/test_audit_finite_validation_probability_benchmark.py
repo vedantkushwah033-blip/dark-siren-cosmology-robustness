@@ -1,4 +1,9 @@
 from pathlib import Path
+import hashlib
+import json
+import os
+import subprocess
+import sys
 
 import pandas as pd
 import pytest
@@ -102,3 +107,40 @@ def test_curvature_scenarios_share_parent_frame_and_validation_ids(tmp_path: Pat
         assert frame["object_id"].tolist() == frames[0]["object_id"].tolist()
         assert frame["redshift"].tolist() == frames[0]["redshift"].tolist()
         assert frame["split_role"].tolist() == frames[0]["split_role"].tolist()
+
+
+
+def test_configured_runner_writes_provenance_manifest_and_auditable_artifacts(tmp_path: Path):
+    root = Path(__file__).resolve().parents[1]
+    config_path = tmp_path / "pilot.json"
+    config_path.write_text(json.dumps({
+        "schema_version": 1,
+        "n_parent": 500,
+        "validation_sizes": [100],
+        "curvature_values": [0.0],
+        "model_degrees": [1, 2],
+        "replicates": 1,
+        "seed": 96,
+    }), encoding="utf-8")
+    summary_path = tmp_path / "output" / "replicates.csv"
+    raw_path = tmp_path / "output" / "raw_unit_records.csv"
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(root / "src") + os.pathsep + env.get("PYTHONPATH", "")
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(root / "scripts" / "run_finite_validation_probability_benchmark.py"),
+            "--config", str(config_path),
+            "--output", str(summary_path),
+            "--raw-output", str(raw_path),
+        ],
+        cwd=root, env=env, text=True, capture_output=True, check=False,
+    )
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    manifest_path = summary_path.parent / "run_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["summary_rows"] == 2
+    assert manifest["raw_unit_records"] == 1000
+    assert manifest["summary_sha256"] == hashlib.sha256(summary_path.read_bytes()).hexdigest()
+    assert manifest["raw_sha256"] == hashlib.sha256(raw_path.read_bytes()).hexdigest()
+    assert audit(summary_path, raw_path)["status"] == "PASS"
