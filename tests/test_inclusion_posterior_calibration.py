@@ -83,10 +83,10 @@ def test_conditional_h0_pit_summary_reports_interval_inclusion():
     frame = pd.DataFrame([
         {"experiment": "H0_PIT_FIXED_INCLUSION_TRUTH", "catalogue_floor": 0.1, "n_validation": 300,
          "status": "SUCCESS", "pit": 0.4,
-         "sbc_included_68": 1, "sbc_included_90": 1, "sbc_included_95": 1},
+         "h0_pit_interval_included_68": 1, "h0_pit_interval_included_90": 1, "h0_pit_interval_included_95": 1},
         {"experiment": "H0_PIT_FIXED_INCLUSION_TRUTH", "catalogue_floor": 0.1, "n_validation": 300,
          "status": "SUCCESS", "pit": 0.6,
-         "sbc_included_68": 0, "sbc_included_90": 1, "sbc_included_95": 1},
+         "h0_pit_interval_included_68": 0, "h0_pit_interval_included_90": 1, "h0_pit_interval_included_95": 1},
     ])
     cell = MODULE._summarize(frame, bins=5)["H0_PIT_FIXED_INCLUSION_TRUTH|floor=0.1|n=300"]
     assert cell["pit_mean"] == pytest.approx(0.5)
