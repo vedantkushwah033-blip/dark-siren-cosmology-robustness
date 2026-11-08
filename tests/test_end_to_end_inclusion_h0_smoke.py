@@ -137,3 +137,17 @@ def test_independent_validation_h0_runner_writes_auditable_artifacts(tmp_path):
     for relative_path, expected_digest in manifest.items():
         digest = hashlib.sha256((output / relative_path).read_bytes()).hexdigest()
         assert digest == expected_digest
+
+    audit = subprocess.run(
+        [
+            sys.executable,
+            str(root / "scripts" / "audit_independent_validation_inclusion_h0_smoke.py"),
+            str(output),
+        ],
+        cwd=root, env=env, text=True, capture_output=True, check=False,
+    )
+    assert audit.returncode == 0, audit.stdout + audit.stderr
+    audit_report = json.loads(audit.stdout)
+    assert audit_report["status"] == "PASS"
+    assert audit_report["generation_attempts_reconstructed"] > 0
+    assert audit_report["selected_events_reconstructed"] == 4
