@@ -52,6 +52,18 @@ def _parent_cdf_grid(points: int = 20001):
     return grid, cdf
 
 
+def _replicate_rng(seed: int, replicate: int, stream: int) -> np.random.Generator:
+    """Create independent deterministic RNG streams for each replicate/purpose.
+
+    Stream IDs: 0=parent redshifts, 1=validation permutation,
+    2=retention uniforms. SeedSequence avoids the replicate-zero collision
+    produced by seed + stream_offset * replicate.
+    """
+    return np.random.default_rng(np.random.SeedSequence(
+        [int(seed), int(replicate), int(stream)]
+    ))
+
+
 def _draw_parent_redshifts(rng: np.random.Generator, n: int) -> np.ndarray:
     grid, cdf = _parent_cdf_grid()
     return np.interp(rng.random(n), cdf, grid)
@@ -198,17 +210,17 @@ def run_density_recovery_benchmark(
     unit_rows: list[dict] = []
 
     for rep in range(n_replicates):
-        parent_rng = np.random.default_rng(seed + 1000003 * rep)
+        parent_rng = _replicate_rng(seed, rep, 0)
         parent_z = _draw_parent_redshifts(parent_rng, n_parent)
         object_ids = np.arange(n_parent, dtype=np.int64)
-        split_rng = np.random.default_rng(seed + 2000003 * rep)
+        split_rng = _replicate_rng(seed, rep, 1)
         validation_order = split_rng.permutation(n_parent)
         validation_rank = np.empty(n_parent, dtype=np.int64)
         validation_rank[validation_order] = np.arange(n_parent, dtype=np.int64)
         nested_validation = {
             n: np.sort(validation_order[:n]) for n in validation_sizes
         }
-        base_retention_uniform = np.random.default_rng(seed + 3000017 * rep).random(n_parent)
+        base_retention_uniform = _replicate_rng(seed, rep, 2).random(n_parent)
 
         for gamma in gamma_values:
             for target_retention in retention_values:
