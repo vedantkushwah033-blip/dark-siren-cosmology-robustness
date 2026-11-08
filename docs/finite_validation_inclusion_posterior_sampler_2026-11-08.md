@@ -40,3 +40,10 @@ This implementation does not yet:
 - produce (H_0) posteriors, SBC, or fixed-truth coverage.
 
 The existing MLE fitter and its inverse observed-information covariance remain separate. The sampler does not use that covariance as posterior draws. The provisional prior must be varied and justified before a confirmatory H0 study.
+
+
+## Relationship to the weighted importance sampler
+
+The production candidate for downstream marginalization is `bayesian_inclusion.py`, which uses a fixed-basis multivariate Student-t importance proposal and retains normalized/log importance weights. This file's `inclusion_posterior.py` random-walk Metropolis implementation is an **independent equal-weight reference sampler**, not the proposal distribution used by the H0 propagation pipeline. It exists to cross-check posterior coefficient means and selected-likelihood integrals on selected synthetic cases. Its chain draws must not be passed to the weighted importance-sampling API as if they carried importance weights.
+
+The dedicated test suite compares both samplers under the same fixed-domain Gaussian prior and checks a small toy likelihood integral. Agreement on those tests is a numerical cross-check, not proof of global sampler accuracy, tail adequacy, or posterior calibration.
