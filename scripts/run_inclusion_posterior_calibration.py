@@ -183,6 +183,7 @@ def main() -> None:
                         "pit": float("nan"),
                     }
                     try:
+                        artifact_dir.parent.mkdir(parents=True, exist_ok=True)
                         row["stage"] = "RUN_SMOKE"
                         run = subprocess.run(command, capture_output=True, text=True, check=False)
                         (artifact_dir.parent / f"{cell}.runner.stdout.txt").write_text(run.stdout, encoding="utf-8")
