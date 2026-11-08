@@ -99,3 +99,18 @@ the fitted degree-one logistic model; they are not a universal proxy for
 real-survey incompleteness. The benchmark is not LVK/GWTC analysis, real
 galaxy-survey validation, detector selection validation or an observational
 H0 measurement.
+
+
+## Failure-inclusive bounds
+
+For each binary interval-inclusion/coverage indicator, the summary now reports
+an additional all-attempt partial-identification interval. Successful,
+independently audited, numerically evaluable replicates contribute their
+observed 0/1 outcome. Failed and non-evaluable attempts are treated as unknown:
+the lower endpoint assigns all unknown outcomes 0, and the upper endpoint
+assigns all unknown outcomes 1. NOT_RUN cells are excluded because they were
+not attempted. These bounds make clear how much the successful-only coverage
+or interval-inclusion estimate could move if numerical failures are
+informative. They do not replace the evaluable-only estimate or its Wilson
+interval, and a wide bound is a warning that calibration conclusions are
+sensitive to evaluability.
