@@ -206,6 +206,9 @@ def main() -> None:
     analysis["gw_event_truth"].to_csv(
         truth_dir / "gw_event_truth.csv", index=False
     )
+    analysis["gw_generation_trace_truth"].to_csv(
+        truth_dir / "gw_generation_trace_truth.csv", index=False
+    )
     validation["validation_frame_truth"].to_csv(
         truth_dir / "validation_frame_truth.csv", index=False
     )
@@ -248,7 +251,7 @@ def main() -> None:
         ),
         "limitations": [
             "one synthetic replicate only",
-            "no independent auditor yet",
+            "posterior quadrature nodes are regenerated with the production fitter in the independent audit",
             "no SBC or fixed-truth coverage claim",
             "quadrature orders 5/7/9 are smoke-level only",
             "no prior-scale sensitivity in this runner",
