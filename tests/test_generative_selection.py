@@ -108,3 +108,48 @@ def test_zero_floor_is_exactly_logistic_and_positive_floor_is_misspecified():
         np.log(floor_misspecified / (1.0 - floor_misspecified)),
         np.log(exact_logistic / (1.0 - exact_logistic)),
     )
+
+
+def test_independent_validation_samples_are_nested_for_fixed_seed_and_frame():
+    from dark_siren_robustness.generative_selection import (
+        generate_independent_validation_sample,
+    )
+
+    common = {
+        "seed": 20261108,
+        "n_validation_frame": 1600,
+        "z_min": 0.01,
+        "z_max": 0.40,
+        "catalogue_floor": 0.10,
+        "catalogue_midpoint": 0.22,
+        "catalogue_width": 0.05,
+    }
+    small = generate_independent_validation_sample(
+        **common, n_validation=100
+    )
+    medium = generate_independent_validation_sample(
+        **common, n_validation=300
+    )
+    large = generate_independent_validation_sample(
+        **common, n_validation=1000
+    )
+
+    ids_small = set(small["validation_observed"]["validation_id"])
+    ids_medium = set(medium["validation_observed"]["validation_id"])
+    ids_large = set(large["validation_observed"]["validation_id"])
+    assert ids_small < ids_medium < ids_large
+    pd.testing.assert_frame_equal(
+        small["validation_frame_truth"], medium["validation_frame_truth"]
+    )
+    pd.testing.assert_frame_equal(
+        medium["validation_frame_truth"], large["validation_frame_truth"]
+    )
+    # The nested samples must be literal prefixes of the same randomized order.
+    np.testing.assert_array_equal(
+        small["validation_observed"]["validation_id"].to_numpy(),
+        medium["validation_observed"]["validation_id"].to_numpy()[:100],
+    )
+    np.testing.assert_array_equal(
+        medium["validation_observed"]["validation_id"].to_numpy(),
+        large["validation_observed"]["validation_id"].to_numpy()[:300],
+    )
