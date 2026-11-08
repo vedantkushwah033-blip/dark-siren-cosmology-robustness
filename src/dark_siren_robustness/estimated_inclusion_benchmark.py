@@ -8,6 +8,7 @@ on held-out objects; it is never passed to the fitter.
 from __future__ import annotations
 import numpy as np
 import pandas as pd
+from pathlib import Path
 from scipy.special import expit
 
 from dark_siren_robustness.estimated_inclusion import fit_inclusion_logistic
@@ -47,6 +48,7 @@ def run_probability_validation_benchmark(
     degrees=(1, 2),
     replicates: int = 20,
     seed: int = 20261108,
+    raw_output: str | Path | None = None,
 ) -> pd.DataFrame:
     """Run paired validation-size/model-specification probability experiments."""
     if not isinstance(n_parent, int) or n_parent < 100:
@@ -62,6 +64,7 @@ def run_probability_validation_benchmark(
         raise ValueError("degrees must contain only 1 or 2")
 
     rows = []
+    raw_rows = []
     for gamma_index, gamma in enumerate(gammas):
         for replicate in range(replicates):
             scenario_seed = int(seed + 10007 * gamma_index + replicate * 1009)
@@ -133,6 +136,31 @@ def run_probability_validation_benchmark(
                     }
                     if fit.status == "SUCCESS":
                         p_holdout = fit.predict(holdout["redshift"].to_numpy())
+                        p_analysis_raw = fit.predict(
+                            split.analysis_catalogue["redshift"].to_numpy()
+                        ) if len(split.analysis_catalogue) else np.array([], dtype=float)
+                    else:
+                        p_holdout = np.full(len(holdout), np.nan)
+                        p_analysis_raw = np.full(len(split.analysis_catalogue), np.nan)
+
+                    # Unit-level audit trail: every non-validation parent unit appears
+                    # exactly once, with held-out label, simulation truth, and fitted p.
+                    analysis_ids = set(split.analysis_object_ids.tolist())
+                    for position, unit in enumerate(holdout.itertuples(index=False)):
+                        raw_rows.append({
+                            "scenario_seed": scenario_seed,
+                            "replicate": replicate,
+                            "gamma": gamma,
+                            "n_validation": n_validation,
+                            "model_degree": degree,
+                            "record_type": "heldout_parent",
+                            "object_id": int(unit.object_id),
+                            "redshift": float(unit.redshift),
+                            "retained": int(unit.retained),
+                            "p_true": float(parent.loc[parent["object_id"] == unit.object_id, "inclusion_probability"].iloc[0]),
+                            "p_hat": float(p_holdout[position]),
+                        })
+                    if fit.status == "SUCCESS":
                         score = score_inclusion_predictions(
                             holdout["retained"].to_numpy(), p_holdout
                         )
@@ -172,4 +200,9 @@ def run_probability_validation_benchmark(
                             "top_5pct_weight_mass": np.nan,
                         })
                     rows.append(row)
-    return pd.DataFrame(rows)
+    summary = pd.DataFrame(rows)
+    if raw_output is not None:
+        raw_path = Path(raw_output)
+        raw_path.parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame(raw_rows).to_csv(raw_path, index=False)
+    return summary
