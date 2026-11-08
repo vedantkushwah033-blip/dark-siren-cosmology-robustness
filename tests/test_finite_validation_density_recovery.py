@@ -145,3 +145,36 @@ def test_auditor_rejects_incorrect_logistic_objective_even_with_refreshed_manife
     _refresh_attempt_manifest(tmp_path)
     with pytest.raises(AssertionError, match="Fitted logistic objective mismatch"):
         audit_artifact(tmp_path)
+
+
+def test_auditor_rejects_coefficients_that_fail_logistic_score(tmp_path):
+    attempts, units, summary = run_density_recovery_benchmark(
+        n_replicates=5, n_parent=2000, seed=101,
+        gamma_values=(0.0,), retention_values=(0.50,),
+        validation_sizes=(1000,), degrees=(1,),
+        bandwidth_multipliers=(0.15,), grid_points=201,
+    )
+    write_artifacts(attempts, units, summary, tmp_path)
+    path = tmp_path / "attempt_metrics.csv"
+    frame = pd.read_csv(path)
+    successful = frame.loc[
+        (frame["arm"] == "estimated_degree_1_ipw") &
+        (frame["status"] == "SUCCESS")
+    ]
+    assert not successful.empty, (
+        "Score-tampering fixture did not produce a successful fitted-IPW arm: "
+        + frame.loc[frame["arm"] == "estimated_degree_1_ipw",
+                    ["status", "message", "fit_status", "fit_message",
+                     "fit_max_abs_coefficient", "fit_hessian_condition_number",
+                     "fit_gradient_inf_norm"]].to_string(index=False)
+    )
+    idx = successful.index[0]
+    beta = np.asarray(json.loads(frame.loc[idx, "coefficients_json"]), dtype=float)
+    beta[0] += 0.25
+    frame.loc[idx, "coefficients_json"] = json.dumps(
+        beta.tolist(), separators=(",", ":")
+    )
+    frame.to_csv(path, index=False)
+    _refresh_attempt_manifest(tmp_path)
+    with pytest.raises(AssertionError, match="score"):
+        audit_artifact(tmp_path)
