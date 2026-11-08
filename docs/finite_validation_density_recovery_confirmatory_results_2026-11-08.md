@@ -161,3 +161,35 @@ This close agreement is encouraging as a robustness check across these two simul
 5. Validate grid convergence separately from posterior calibration. Then run fixed-truth SBC and repeated-sampling coverage experiments with explicit failure accounting.
 
 **Decision:** density-recovery stage = **completed for these two declared synthetic designs, with both raw artifacts independently audited**. (H_0) propagation and posterior-calibration stage = **not yet implemented/validated**.
+
+
+## Additional diagnostics and Bayesian-prior parameterization issue
+
+### Weight stability is not a sufficient diagnostic
+
+The fixed-catalogue raw attempt artifact shows a concrete case where weights look well behaved but density reconstruction still worsens. At gamma=+1.2, validation n=300, degree 1 and Scott multiplier 0.15:
+
+- Mean Kish ESS is approximately 991 out of approximately 1,002 analysis-catalogue objects.
+- Mean maximum normalized weight is approximately 0.0012.
+- Mean top-1% weight mass is approximately 0.0122.
+- Nevertheless, estimated-IPW minus catalogue-only IAE is +0.018627 (100 paired replicates).
+
+Thus high ESS and low weight concentration do not establish that the fitted inclusion function is correctly specified. Probability-model calibration and density recovery must remain separate audit dimensions.
+
+For degree 2 at gamma=-1.2 and validation n=100, the fixed-catalogue arm has mean Kish ESS about 683, minimum ESS about 40 across replicates, mean maximum normalized weight about 0.0072, and mean top-1% weight mass about 0.061. The degree-2 IAE contrast is -0.102249, less favourable than the degree-1 contrast -0.221862 in the same cell. This is consistent with greater finite-validation variability in the more flexible fit, but the present summaries do not by themselves identify a causal mechanism.
+
+### Prior basis must not inherit validation-sample scaling
+
+Code inspection of the current frequentist fitter confirms that its numerical design matrix uses the validation sample's own redshift mean and standard deviation. That is acceptable as an MLE parameterization. It is not appropriate to place the same fixed Gaussian prior directly on those sample-standardized coefficients across repeated validation samples: the induced prior on the redshift-domain inclusion curve would then vary with the realized validation sample.
+
+For Bayesian coefficient sampling, define a fixed domain coordinate
+[
+u=(z-z_{\min})/(z_{\max}-z_{\min})\in[0,1],
+]
+and place the prior on coefficients in the fixed basis `[1,u]` or `[1,u,u^2]`. An equivalent implementation may transform coefficients from the MLE's sample-standardized basis into this fixed basis before applying the prior. The prior and its scales must be declared before the H0 confirmatory experiment.
+
+### Independent arithmetic audit added
+
+A separate analysis auditor has now been added at `src/dark_siren_robustness/fixed_analysis_catalogue_analysis_audit.py`, with a CLI wrapper and adversarial tests. It independently reconstructs the primary interaction, bootstrap and paired-t intervals, all 18 secondary contrasts, and Holm adjustment from the raw attempt ledger. It does not import the production analysis function.
+
+The downloaded confirmatory analysis JSON was also independently recomputed locally from the raw CSV: the primary result and all secondary means, p-values and Holm-adjusted p-values matched to floating-point precision (maximum absolute discrepancy below 2.3e-16). The new automated auditor is wired into the fixed-catalogue workflow; its GitHub Actions result remains the final verification gate for the new code.
