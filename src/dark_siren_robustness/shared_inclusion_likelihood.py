@@ -39,7 +39,6 @@ def shared_inclusion_selected_log_likelihood(
     *,
     detection_threshold_mpc: float,
     population_base_weights: ArrayLike | None = None,
-    positive_truncated: bool = False,
 ) -> SharedInclusionLikelihoodResult:
     """Evaluate the selected joint likelihood at each shared theta node.
 
@@ -64,9 +63,6 @@ def shared_inclusion_selected_log_likelihood(
         raise ValueError("detection_threshold_mpc must be finite and positive")
     if not events:
         raise ValueError("at least one detected event is required")
-    if not isinstance(positive_truncated, (bool, np.bool_)):
-        raise ValueError("positive_truncated must be boolean")
-
     base = np.ones(z.size, dtype=float) if population_base_weights is None else np.asarray(population_base_weights, dtype=float)
     if base.shape != z.shape or not np.all(np.isfinite(base)) or np.any(base < 0) or not np.any(base > 0):
         raise ValueError("population_base_weights must be finite, non-negative, match catalogue, and have positive mass")
@@ -115,7 +111,6 @@ def shared_inclusion_selected_log_likelihood(
             node_log_likelihood[node_index] += event_log_likelihood(
                 h0, redshifts=z, gw_distance=distance, gw_sigma=sigma,
                 weights=host_weights[:, node_index],
-                positive_truncated=positive_truncated,
             )
 
     # The generator accepts a noisy distance iff d_obs >= threshold. Use the
