@@ -45,7 +45,7 @@ def selection_correct_each_draw(
         raise ValueError("draw-specific detection efficiencies must match likelihood shape")
     if not np.all(np.isfinite(log_likelihood)):
         raise ValueError("unconditional log likelihoods must be finite; invalid draws are not dropped")
-    if not np.all(np.isfinite(beta)) or np.any(beta <= 0) or np.any(beta > 1):
+    if not np.all(np.isfinite(beta)) or np.any(beta <= 0) or np.any(beta > 1.0 + 1e-12):
         raise ValueError("every draw-specific beta_GW must lie in (0,1]")
     if (
         isinstance(n_detected, (bool, np.bool_))
