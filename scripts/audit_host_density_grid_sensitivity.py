@@ -8,8 +8,6 @@ import json
 import math
 from pathlib import Path
 
-import numpy as np
-
 from audit_host_density_benchmark import audit_artifacts
 
 
@@ -104,8 +102,28 @@ def audit_grid_sensitivity(folder: Path, tolerance: float = 0.01) -> dict:
         raise ValueError("comparison CSV checksum mismatch")
     with comparison_path.open(newline="", encoding="utf-8") as handle:
         comparison_rows = list(csv.DictReader(handle))
-    if len(comparison_rows) != len(points) * len(reference_keys):
+    expected_comparison_count = len(points) * len(reference_keys)
+    if len(comparison_rows) != expected_comparison_count:
         raise ValueError("comparison CSV row count mismatch")
+    comparison_seen = set()
+    for row in comparison_rows:
+        grid = int(row["grid_points"])
+        key = (int(row["replicate"]), row["arm"])
+        combined_key = (grid, *key)
+        if combined_key in comparison_seen or grid not in by_grid or key not in reference_keys:
+            raise ValueError(f"duplicate or unexpected comparison key: {combined_key}")
+        comparison_seen.add(combined_key)
+        raw = by_grid[grid][key]
+        ref = by_grid[finest][key]
+        if int(row["seed"]) != int(raw["seed"]):
+            raise ValueError(f"comparison seed mismatch: {combined_key}")
+        for metric in METRICS:
+            if not math.isclose(float(row[metric]), float(raw[metric]), rel_tol=1e-10, abs_tol=1e-10):
+                raise ValueError(f"comparison metric mismatch for {combined_key}, {metric}")
+            expected_delta = abs(float(raw[metric]) - float(ref[metric]))
+            recorded_delta = float(row[f"abs_diff_vs_{finest}_{metric}"])
+            if not math.isclose(recorded_delta, expected_delta, rel_tol=1e-8, abs_tol=1e-10):
+                raise ValueError(f"comparison difference mismatch for {combined_key}, {metric}")
     return {
         "status": "PASS" if converged else "UNDERRESOLVED",
         "scope": "synthetic host-density H0-grid numerical sensitivity only",
