@@ -91,6 +91,10 @@ def audit_fixed_catalogue_artifact(path):
   # Same fixed catalogue is implied by one immutable analysis frame, irrespective of n.
   vv=vf[vf.validation_rank<int(row.n_validation)].sort_values("validation_rank")
   if len(vv)!=row.n_validation: raise AssertionError("Nested validation sample size mismatch")
+  if row.status!="SUCCESS":
+   if pd.notna(row.density_json) and str(row.density_json).strip():
+    raise AssertionError("Failed attempt contains density")
+   continue
   sample=None;prob=None
   if row.arm=="catalogue_only": sample=cat
   elif row.arm=="known_inclusion_ipw": sample=cat;prob=api
@@ -111,9 +115,6 @@ def audit_fixed_catalogue_artifact(path):
    if not np.isclose(obj,row.fit_objective,rtol=2e-8,atol=2e-8): raise AssertionError("Fitted logistic objective mismatch")
    xa=(cat-cfit)/sfit;prob=expit(np.column_stack([xa**j for j in range(d+1)])@beta)
   else: raise AssertionError("Unknown arm")
-  if row.status!="SUCCESS":
-   if row.density_json and isinstance(row.density_json,str): raise AssertionError("Failed attempt contains density")
-   continue
   density=np.asarray(json.loads(row.density_json),float)
   rebuilt=_kde(grid,sample,prob,float(row.bandwidth_multiplier),merger)
   if not np.allclose(density,rebuilt,rtol=2e-8,atol=2e-8): raise AssertionError("KDE reconstruction mismatch")
