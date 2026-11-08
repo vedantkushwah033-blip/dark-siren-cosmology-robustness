@@ -78,3 +78,23 @@ def test_downstream_convergence_rejects_invalid_order_schedule():
         assert "strictly increasing" in str(error)
     else:
         raise AssertionError("invalid quadrature order schedule was accepted")
+
+def test_downstream_convergence_preserves_fixed_domain_coordinates():
+    validation_z, retained, h0, catalogue_z, events, base = _case()
+    result = run_inclusion_h0_quadrature_convergence(
+        validation_z, retained, h0, catalogue_z, events,
+        detection_threshold_mpc=250.0,
+        population_base_weights=base,
+        degree=1,
+        coordinate_center=0.205,
+        coordinate_scale=0.195,
+        orders=(5, 7),
+        centered_log_likelihood_tolerance=1e6,
+        posterior_density_tolerance=1e6,
+        posterior_quantile_tolerance=1e6,
+        consecutive_passes=1,
+    )
+    assert result.orders == (5, 7)
+    assert all(np.isclose(fit.center, 0.205) for fit in result.fits)
+    assert all(np.isclose(fit.scale, 0.195) for fit in result.fits)
+
