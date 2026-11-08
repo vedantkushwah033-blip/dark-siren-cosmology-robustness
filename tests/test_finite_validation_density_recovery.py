@@ -136,3 +136,70 @@ def test_auditor_rejects_incorrect_logistic_objective_even_with_refreshed_manife
     _refresh_attempt_manifest(tmp_path)
     with pytest.raises(AssertionError, match="Fitted logistic objective mismatch"):
         audit_artifact(tmp_path)
+
+
+
+def _refresh_attempt_manifest(tmp_path):
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload = (tmp_path / "attempt_metrics.csv").read_bytes()
+    manifest["files"]["attempts"]["bytes"] = len(payload)
+    manifest["files"]["attempts"]["sha256"] = hashlib.sha256(payload).hexdigest()
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+                             encoding="utf-8")
+
+
+def test_auditor_rejects_missing_attempt_after_manifest_refresh(tmp_path):
+    attempts, units, summary = run_density_recovery_benchmark(
+        n_replicates=1, n_parent=1200, seed=606,
+        gamma_values=(0.0,), validation_sizes=(100,),
+        degrees=(1,), bandwidth_multipliers=(0.15,), grid_points=201,
+    )
+    write_artifacts(attempts, units, summary, tmp_path)
+    path = tmp_path / "attempt_metrics.csv"
+    pd.read_csv(path).iloc[1:].to_csv(path, index=False)
+    _refresh_attempt_manifest(tmp_path)
+    with pytest.raises(AssertionError, match="complete factorial design"):
+        audit_artifact(tmp_path)
+
+
+def test_auditor_rejects_coefficients_that_fail_logistic_score(tmp_path):
+    attempts, units, summary = run_density_recovery_benchmark(
+        n_replicates=1, n_parent=1200, seed=707,
+        gamma_values=(0.0,), validation_sizes=(100,),
+        degrees=(1,), bandwidth_multipliers=(0.15,), grid_points=201,
+    )
+    write_artifacts(attempts, units, summary, tmp_path)
+    path = tmp_path / "attempt_metrics.csv"
+    frame = pd.read_csv(path)
+    idx = frame.index[
+        (frame["arm"] == "estimated_degree_1_ipw") &
+        (frame["status"] == "SUCCESS")
+    ][0]
+    beta = np.asarray(json.loads(frame.loc[idx, "coefficients_json"]), dtype=float)
+    beta[0] += 0.25
+    frame.loc[idx, "coefficients_json"] = json.dumps(beta.tolist(), separators=(",", ":"))
+    frame.to_csv(path, index=False)
+    _refresh_attempt_manifest(tmp_path)
+    with pytest.raises(AssertionError, match="score"):
+        audit_artifact(tmp_path)
+
+
+def test_auditor_rejects_tampered_logistic_objective(tmp_path):
+    attempts, units, summary = run_density_recovery_benchmark(
+        n_replicates=1, n_parent=1200, seed=808,
+        gamma_values=(0.0,), validation_sizes=(100,),
+        degrees=(1,), bandwidth_multipliers=(0.15,), grid_points=201,
+    )
+    write_artifacts(attempts, units, summary, tmp_path)
+    path = tmp_path / "attempt_metrics.csv"
+    frame = pd.read_csv(path)
+    idx = frame.index[
+        (frame["arm"] == "estimated_degree_1_ipw") &
+        (frame["status"] == "SUCCESS")
+    ][0]
+    frame.loc[idx, "fit_objective"] += 1.0
+    frame.to_csv(path, index=False)
+    _refresh_attempt_manifest(tmp_path)
+    with pytest.raises(AssertionError, match="objective"):
+        audit_artifact(tmp_path)
