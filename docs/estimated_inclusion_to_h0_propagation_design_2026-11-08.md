@@ -1,3 +1,15 @@
+# Implementation update — 2026-11-08
+
+> **Status supersedes the original header below:** the core modular inclusion-posterior to selected-H0 software path is now implemented on the draft branch `research/inclusion-posterior-quadrature-prototype`. It includes a proper Gaussian-prior logistic validation posterior, shared-node multi-event selected likelihood, normalized H0 posterior, downstream H0 quadrature-order convergence, slope-prior sensitivity, and an independent-validation smoke runner with a raw-artifact auditor. The original sections below remain the motivating design and validation plan, not a statement that the work is still design-only.
+
+The current smoke uses **Design A**: a fixed analysis catalogue and an independently generated validation parent frame with a separate seed. This differs from the disjoint finite-parent split described in parts of the original design below. Validation retention labels are sampled by SRS from the independent frame and only validation redshifts/labels enter the inclusion posterior. Truth tables and the candidate-level GW generation trace are segregated for audit.
+
+One CI smoke artifact (analysis parent 1,200; observed catalogue 694; independent validation frame 1,500; validation SRS 200; four detected events) reached downstream H0 quadrature status **CONVERGED at order 9**, after two consecutive successful order transitions. The maximum successive H0 posterior-density difference was (2.89\times10^{-7}), and the maximum selected-quantile difference was (7.95\times10^{-5}). In the same single synthetic realization, slope-prior SD multipliers 0.5 and 2.0 shifted the H0 median by -0.445 and +0.120 relative to the multiplier-1 baseline. These are software smoke and prior-sensitivity diagnostics, **not** SBC, frequentist coverage, calibration, or evidence of estimator superiority.
+
+The inclusion DGP in this smoke is a sigmoid-with-floor curve, while the fitted model is polynomial-logit; this is intentionally misspecified. A correctly specified matched-logistic case is separately covered by unit tests, but a multi-replicate matched-model calibration study remains outstanding.
+
+---
+
 # Design gate: propagate finite-validation inclusion uncertainty into toy H0 inference
 
 **Date:** 2026-11-08  
