@@ -121,3 +121,16 @@ def test_conditional_h0_pit_summary_is_not_labelled_joint_sbc():
     cell = summary["H0_PIT_FIXED_INCLUSION_TRUTH|floor=0|n=100"]
     assert cell["pit_mean"] == pytest.approx(0.5)
     assert cell["pit_bin_counts"] == [1, 1]
+
+
+def test_all_attempt_binary_bounds_treat_failed_and_non_evaluable_as_unknown():
+    frame = pd.DataFrame([
+        {"status": "SUCCESS", "covered_68": 1},
+        {"status": "SUCCESS", "covered_68": 0},
+        {"status": "NON_EVALUABLE"},
+        {"status": "FAILED"},
+        {"status": "NOT_RUN"},
+    ])
+    lower, upper = MODULE._attempt_level_binary_bounds(frame, "covered_68")
+    assert lower == pytest.approx(1 / 4)
+    assert upper == pytest.approx(3 / 4)
