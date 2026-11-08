@@ -77,6 +77,9 @@ def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000
     accepted_distances: list[np.ndarray] = []
     n_accepted = 0
     attempts = 0
+    n_detected_candidates = 0
+    n_rejected_candidates = 0
+    n_excess_detected_candidates_discarded = 0
     max_attempts = max(100_000, n_detected * 2_000)
     while n_accepted < n_detected and attempts < max_attempts:
         batch = min(max(1000, 2 * (n_detected - n_accepted)), max_attempts - attempts)
@@ -84,12 +87,16 @@ def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000
         host_z = z_parent[host_ids]
         measured_distance = rng.normal(C_KM_S * host_z / h0_true, sigma_mpc)
         detected = measured_distance >= detection_threshold_mpc
-        if np.any(detected):
+        detected_count = int(np.count_nonzero(detected))
+        n_detected_candidates += detected_count
+        n_rejected_candidates += batch - detected_count
+        if detected_count:
             ids, distances = host_ids[detected], measured_distance[detected]
             take = min(n_detected - n_accepted, len(ids))
             accepted_ids.append(ids[:take])
             accepted_distances.append(distances[:take])
             n_accepted += take
+            n_excess_detected_candidates_discarded += len(ids) - take
         attempts += batch
     if n_accepted != n_detected:
         raise RuntimeError(f"Only generated {n_accepted}/{n_detected} detected events within {attempts} attempts")
@@ -113,6 +120,10 @@ def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000
         "seed": int(seed), "n_parent": int(n_parent),
         "n_catalogue_observed": int(len(catalogue_observed)),
         "n_detected_events": int(n_detected),
+        "n_generation_attempts": int(attempts),
+        "n_detected_candidates": int(n_detected_candidates),
+        "n_rejected_candidates": int(n_rejected_candidates),
+        "n_excess_detected_candidates_discarded": int(n_excess_detected_candidates_discarded),
         "h0_true_km_s_mpc": float(h0_true), "sigma_mpc": float(sigma_mpc),
         "detection_threshold_mpc": float(detection_threshold_mpc),
         "redshift_domain": [float(z_min), float(z_max)],
