@@ -333,9 +333,11 @@ def test_fixed_domain_coordinates_are_invariant_to_validation_sample_moments():
 
     rng = np.random.default_rng(20261108)
     z_a = rng.uniform(0.01, 0.40, 80)
-    z_b = np.clip(0.08 + 0.55 * (z_a - 0.01), 0.01, 0.40)
+    z_b = rng.uniform(0.07, 0.32, 40)
     y_a = rng.binomial(1, 1.0 / (1.0 + np.exp(-(-0.4 + 0.7 * (z_a - 0.205) / 0.195))))
     y_b = rng.binomial(1, 1.0 / (1.0 + np.exp(-(-0.4 + 0.7 * (z_b - 0.205) / 0.195))))
+    assert not np.isclose(np.mean(z_a), np.mean(z_b))
+    assert not np.isclose(np.std(z_a), np.std(z_b))
 
     fit_a = fit_inclusion_posterior_quadrature(
         z_a, y_a, degree=1, order=5,
@@ -350,10 +352,9 @@ def test_fixed_domain_coordinates_are_invariant_to_validation_sample_moments():
 
     prediction_z = np.linspace(0.01, 0.40, 51)
     x = (prediction_z - 0.205) / 0.195
-    design = np.column_stack([np.ones_like(x), x])
     fixed_draw = np.asarray([-0.4, 0.7])
-    curve_a = 1.0 / (1.0 + np.exp(-(design @ fixed_draw)))
-    curve_b = 1.0 / (1.0 + np.exp(-(design @ fixed_draw)))
+    curve_a = 1.0 / (1.0 + np.exp(-(((prediction_z - fit_a.center) / fit_a.scale) * fixed_draw[1] + fixed_draw[0])))
+    curve_b = 1.0 / (1.0 + np.exp(-(((prediction_z - fit_b.center) / fit_b.scale) * fixed_draw[1] + fixed_draw[0])))
     np.testing.assert_array_equal(curve_a, curve_b)
 
 
