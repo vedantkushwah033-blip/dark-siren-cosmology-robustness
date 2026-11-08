@@ -117,6 +117,18 @@ def test_independent_validation_h0_runner_writes_auditable_artifacts(tmp_path):
     assert completed.returncode == 0, completed.stdout + completed.stderr
     config = json.loads((output / "config.json").read_text())
     convergence = json.loads((output / "quadrature_convergence.json").read_text())
+    prior_sensitivity = json.loads(
+        (output / "prior_scale_sensitivity.json").read_text()
+    )
+    prior_density = pd.read_csv(output / "prior_scale_sensitivity_density.csv")
+    assert prior_sensitivity["slope_multipliers"] == [0.5, 1.0, 2.0]
+    assert len(prior_sensitivity["records"]) == 3
+    assert list(prior_density.columns) == [
+        "H0",
+        "density_slope_multiplier_0.5",
+        "density_slope_multiplier_1",
+        "density_slope_multiplier_2",
+    ]
     assert config["analysis_generator_config"]["seed"] != config["validation_generator_config"]["seed"]
     assert config["truth_firewall"].startswith("Only validation")
     assert convergence["status"] in {"CONVERGED", "NON_CONVERGED"}
@@ -153,3 +165,5 @@ def test_independent_validation_h0_runner_writes_auditable_artifacts(tmp_path):
     assert audit_report["selected_events_reconstructed"] == 4
     assert len(audit_report["independent_selected_likelihood_reconstruction_max_abs_density_differences"]) >= 2
     assert max(audit_report["independent_selected_likelihood_reconstruction_max_abs_density_differences"].values()) < 2e-8
+    assert len(audit_report["prior_scale_sensitivity_reconstruction_max_abs_density_differences"]) == 3
+    assert max(audit_report["prior_scale_sensitivity_reconstruction_max_abs_density_differences"].values()) < 2e-8
