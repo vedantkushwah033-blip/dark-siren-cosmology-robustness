@@ -108,6 +108,32 @@ def run_fixed_catalogue_benchmark(*, n_replicates=20, n_analysis=4000,
     expected=n_replicates*len(gamma_values)*len(retention_values)*len(validation_sizes)*len(bandwidth_multipliers)*(3+len(degrees))
     if len(attempts)!=expected: raise AssertionError("Internal attempt-factorial construction mismatch")
     status_counts={str(k):int(v) for k,v in attempts.status.value_counts().items()}
+    condition_status=[]
+    for key,group in attempts.groupby(["gamma","target_retention","n_validation","bandwidth_multiplier","arm"],sort=True):
+        condition_status.append({"gamma":float(key[0]),"target_retention":float(key[1]),
+         "n_validation":int(key[2]),"bandwidth_multiplier":float(key[3]),"arm":str(key[4]),
+         "n_planned":int(len(group)),"n_success":int((group.status=="SUCCESS").sum()),
+         "n_failed":int((group.status=="FAILED").sum()),
+         "n_non_evaluable":int((group.status=="NON_EVALUABLE").sum()),
+         "n_not_run":int((group.status=="NOT_RUN").sum()),
+         "success_rate":float((group.status=="SUCCESS").mean()),
+         "conditional_success_mean_iae":float(group.loc[group.status=="SUCCESS","iae"].mean())
+            if (group.status=="SUCCESS").any() else None})
+    paired_contrasts=[]
+    group_keys=["gamma","target_retention","n_validation","bandwidth_multiplier"]
+    for key,group in attempts.groupby(group_keys,sort=True):
+        wide=group.pivot(index="replicate",columns="arm",values="iae")
+        if "catalogue_only" not in wide: continue
+        for degree in degrees:
+            arm=f"estimated_degree_{degree}_ipw"
+            if arm not in wide: continue
+            pair=wide[["catalogue_only",arm]].dropna()
+            diff=(pair[arm]-pair["catalogue_only"]).to_numpy(float)
+            paired_contrasts.append({"gamma":float(key[0]),"target_retention":float(key[1]),
+             "n_validation":int(key[2]),"bandwidth_multiplier":float(key[3]),"degree":int(degree),
+             "n_pairs":int(len(diff)),"n_replicates_planned":int(n_replicates),
+             "mean_iae_difference":float(diff.mean()) if len(diff) else None,
+             "paired_mc_se":float(diff.std(ddof=1)/np.sqrt(len(diff))) if len(diff)>1 else None})
     summary={"artifact_schema_version":1,"design":"fixed_analysis_catalogue_independent_validation_frame",
      "status":"synthetic_density_recovery_no_H0_inference",
      "estimand":"analytic merger-weighted parent-host redshift density",
@@ -119,6 +145,7 @@ def run_fixed_catalogue_benchmark(*, n_replicates=20, n_analysis=4000,
      "analytic_target_density":truth.tolist(),"attempt_count":len(attempts),
      "status_counts":status_counts,
      "success_rate_by_arm":{str(k):float((v.status=="SUCCESS").mean()) for k,v in attempts.groupby("arm")},
+     "condition_status_ledger":condition_status,"paired_ipw_minus_catalogue_only":paired_contrasts,
      "conditional_success_mean_iae":{str(k):float(v.loc[v.status=="SUCCESS","iae"].mean())
        for k,v in attempts.groupby("arm") if (v.status=="SUCCESS").any()},
      "primary_interpretation":"Validation-size contrasts condition on the identical analysis catalogue within replicate and scenario.",
