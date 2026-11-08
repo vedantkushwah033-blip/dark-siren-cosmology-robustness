@@ -59,14 +59,14 @@ def audit_fixed_catalogue_artifact(path):
   vf=g[g.frame=="VALIDATION"].sort_values("object_id")
   if len(af)!=s["n_analysis_parent"] or len(vf)!=s["n_validation_max"]: raise AssertionError("Frame size mismatch")
   if af.object_id.nunique()!=len(af) or vf.object_id.nunique()!=len(vf): raise AssertionError("Frame IDs not unique")
-   # object_id is frame-local; the frame column provides the namespace.
-   for frame in (af,vf):
-    z=frame.redshift.to_numpy(float);y=frame.retained.to_numpy(int);uu=frame.retention_uniform.to_numpy(float)
-    if np.any((uu<0)|(uu>=1)) or np.any((y!=0)&(y!=1)): raise AssertionError("Invalid retention records")
-    gamma=float(keyval[1]);ret=float(keyval[2]);alpha=_alpha(gamma,ret,center)
-    x=(z-Z0)/(Z1-Z0);pi=expit(alpha-x+gamma*(x*x-center))
-    if not np.allclose(pi,frame.true_inclusion_probability,rtol=1e-11,atol=1e-12): raise AssertionError("DGP probability mismatch")
-    if not np.array_equal((uu<pi).astype(int),y): raise AssertionError("Retention label does not follow stored uniform/DGP")
+  # object_id is frame-local; the frame column provides the namespace.
+  for frame in (af,vf):
+   z=frame.redshift.to_numpy(float);y=frame.retained.to_numpy(int);uu=frame.retention_uniform.to_numpy(float)
+   if np.any((uu<0)|(uu>=1)) or np.any((y!=0)&(y!=1)): raise AssertionError("Invalid retention records")
+   gamma=float(keyval[1]);ret=float(keyval[2]);alpha=_alpha(gamma,ret,center)
+   x=(z-Z0)/(Z1-Z0);pi=expit(alpha-x+gamma*(x*x-center))
+   if not np.allclose(pi,frame.true_inclusion_probability,rtol=1e-11,atol=1e-12): raise AssertionError("DGP probability mismatch")
+   if not np.array_equal((uu<pi).astype(int),y): raise AssertionError("Retention label does not follow stored uniform/DGP")
   if vf.validation_rank.min()<0 or vf.validation_rank.max()>=len(vf) or vf.validation_rank.nunique()!=len(vf): raise AssertionError("Invalid validation rank permutation")
   groups[keyval]=(af,vf)
  # Exact planned factorial
