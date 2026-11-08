@@ -49,10 +49,8 @@ def test_effective_sample_size_is_stable_for_extreme_but_representable_probabili
     )
 
 
-def test_probability_calibration_reports_zero_gap_for_exact_predictions():
-    probability = np.linspace(0.05, 0.95, 1000)
-    retained = np.r_[np.zeros(50), np.ones(50)]
-    # Construct a perfectly balanced two-point prediction/label example.
+def test_probability_calibration_reports_expected_reliability_gap():
+    # Each equal-frequency bin has a 0.25 absolute calibration gap.
     probability = np.r_[np.full(50, 0.25), np.full(50, 0.75)]
     retained = np.r_[np.zeros(50), np.ones(50)]
     result = score_probability_calibration(retained, probability, n_bins=2)
