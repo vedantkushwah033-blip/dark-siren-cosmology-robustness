@@ -124,6 +124,10 @@ def audit_artifact(artifact_dir: Path) -> dict:
     units=pd.read_csv(artifact_dir/"parent_units.csv")
     summary=json.loads((artifact_dir/"summary.json").read_text(encoding="utf-8"))
     manifest=json.loads((artifact_dir/"manifest.json").read_text(encoding="utf-8"))
+    config=json.loads((artifact_dir/"config.json").read_text(encoding="utf-8"))
+    for key,value in config.items():
+        if key not in summary or summary[key]!=value:
+            raise AssertionError(f"Immutable config differs from summary: {key}")
     for name, record in manifest["files"].items():
         artifact_path=artifact_dir/record["path"]
         if not artifact_path.is_file():
