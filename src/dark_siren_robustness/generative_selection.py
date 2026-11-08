@@ -80,6 +80,7 @@ def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000
     n_detected_candidates = 0
     n_rejected_candidates = 0
     n_excess_detected_candidates_discarded = 0
+    generation_trace_parts: list[pd.DataFrame] = []
     max_attempts = max(100_000, n_detected * 2_000)
     while n_accepted < n_detected and attempts < max_attempts:
         batch = min(max(1000, 2 * (n_detected - n_accepted)), max_attempts - attempts)
@@ -90,13 +91,23 @@ def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000
         detected_count = int(np.count_nonzero(detected))
         n_detected_candidates += detected_count
         n_rejected_candidates += batch - detected_count
+        selected_as_event = np.zeros(batch, dtype=np.int8)
         if detected_count:
+            detected_positions = np.flatnonzero(detected)
             ids, distances = host_ids[detected], measured_distance[detected]
             take = min(n_detected - n_accepted, len(ids))
             accepted_ids.append(ids[:take])
             accepted_distances.append(distances[:take])
+            selected_as_event[detected_positions[:take]] = 1
             n_accepted += take
             n_excess_detected_candidates_discarded += len(ids) - take
+        generation_trace_parts.append(pd.DataFrame({
+            "attempt_id": np.arange(attempts, attempts + batch, dtype=np.int64),
+            "host_object_id": host_ids.astype(np.int64),
+            "distance_mpc": measured_distance.astype(float),
+            "detected": detected.astype(np.int8),
+            "selected_as_event": selected_as_event,
+        }))
         attempts += batch
     if n_accepted != n_detected:
         raise RuntimeError(f"Only generated {n_accepted}/{n_detected} detected events within {attempts} attempts")
@@ -114,6 +125,7 @@ def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000
         "host_redshift": host_z,
         "latent_mean_distance_mpc": C_KM_S * host_z / h0_true,
     })
+    gw_generation_trace_truth = pd.concat(generation_trace_parts, ignore_index=True)
     config = {
         "experiment": "synthetic_catalogue_and_gw_selection_separated",
         "status": "synthetic_design_not_real_data_or_cosmological_measurement",
@@ -131,10 +143,20 @@ def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000
         "merger_weight": "1 + 1.5*(z-z_min)/(z_max-z_min)",
         "distance_model": "d_obs ~ Normal(c*z/H0_true, sigma_mpc^2); detected iff d_obs >= threshold",
         "observable_files": ["observable/catalogue_observed.csv", "observable/gw_events_observed.csv"],
-        "truth_only_files": ["truth/parent_truth.csv", "truth/gw_event_truth.csv"],
+        "truth_only_files": [
+            "truth/parent_truth.csv", "truth/gw_event_truth.csv",
+            "truth/gw_generation_trace_truth.csv",
+        ],
         "scientific_limit": "Low-redshift Euclidean distance toy with fixed H0 and fixed Gaussian noise; not realistic GW inference or real survey data.",
     }
-    return {"config": config, "parent_truth": parent_truth, "catalogue_observed": catalogue_observed, "gw_events_observed": gw_events_observed, "gw_event_truth": gw_event_truth}
+    return {
+        "config": config,
+        "parent_truth": parent_truth,
+        "catalogue_observed": catalogue_observed,
+        "gw_events_observed": gw_events_observed,
+        "gw_event_truth": gw_event_truth,
+        "gw_generation_trace_truth": gw_generation_trace_truth,
+    }
 
 
 def generate_independent_validation_sample(
@@ -167,7 +189,7 @@ def generate_independent_validation_sample(
     retained = (rng.random(n_validation_frame) < probability).astype(np.int8)
     selected = rng.choice(n_validation_frame, size=n_validation, replace=False)
     observable = pd.DataFrame({
-        "validation_id": np.arange(n_validation, dtype=np.int64),
+        "validation_id": selected.astype(np.int64),
         "frame_id": selected.astype(np.int64),
         "redshift": z_frame[selected],
         "retained": retained[selected],
