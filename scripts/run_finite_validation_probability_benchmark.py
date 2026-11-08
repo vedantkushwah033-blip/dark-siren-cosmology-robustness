@@ -81,7 +81,7 @@ def main():
         else json.dumps(settings, sort_keys=True).encode("utf-8")
     )
     manifest = {
-        "artifact_schema_version": 1,
+        "artifact_schema_version": 2,
         "experiment": "finite_validation_probability_stage",
         "config": settings,
         "config_sha256": hashlib.sha256(config_bytes).hexdigest(),
