@@ -110,3 +110,22 @@ streams must remain fixed across the paired size conditions.
 This is separate from the sample-dependent prior-coordinate issue above.
 Both need resolution before attributing repeated-sampling differences cleanly
 to validation sample size.
+
+
+## Follow-up implementation status (2026-11-08)
+
+The pipeline-level correction is now implemented on the inclusion-posterior branch:
+
+- The H0 smoke runner sets coefficient coordinates from the fixed simulation domain, using center 0.205 and scale 0.195 for the [0.01, 0.40] redshift support.
+- The same fixed coordinates are passed to the posterior fitter at every quadrature order and to every prior-scale sensitivity refit.
+- The prior-sensitivity utility accepts explicit coordinate center/scale and forwards them to each fit.
+- A posterior test checks that the same fixed coefficient draw induces the same inclusion curve in that fixed basis.
+- A prior-sensitivity test now checks that the three prior-scale refits retain identical coordinate center/scale while only the slope prior scale changes.
+
+**Important scope:** the low-level fitter still permits its historical sample-standardized default when coordinate arguments are omitted. Therefore, callers conducting repeated-sampling comparisons must explicitly supply fixed coordinates. This is not silently changed for all existing callers.
+
+The validation sampling implementation now constructs one full random permutation of the independent validation frame and takes the requested prefix. A new test regenerates the frame with the same seed at sizes 100, 300, and 1000, and verifies identical truth frames and strict nested ID prefixes.
+
+These tests establish the intended code-level invariants; they do not constitute a completed multi-replicate experiment. The CI run for the latest branch head must pass before treating these tests as verified.
+
+The earlier paragraphs above document the original defects and remain as an audit trail. The nested-sample description refers to the pre-correction implementation, not the current permutation-prefix implementation.
