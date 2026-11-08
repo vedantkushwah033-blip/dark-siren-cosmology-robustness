@@ -45,6 +45,9 @@ def audit_fixed_catalogue_artifact(path):
   if hashlib.sha256(b).hexdigest()!=rec["sha256"]: raise AssertionError("Manifest checksum mismatch")
  if s["design"]!="fixed_analysis_catalogue_independent_validation_frame":
   raise AssertionError("Wrong design identifier")
+ expected_rng="numpy SeedSequence([seed, replicate, stream_id]); stream 1=analysis redshifts, 2=validation redshifts, 3=validation permutation, 4=analysis retention uniforms, 5=validation retention uniforms"
+ if s.get("rng_stream_protocol")!=expected_rng:
+  raise AssertionError("Independent RNG stream protocol mismatch")
  key=["replicate","gamma","target_retention","frame","object_id"]
  if u.duplicated(key).any(): raise AssertionError("Duplicate frame object key")
  attempt_key=["replicate","gamma","target_retention","n_validation","bandwidth_multiplier","degree","arm"]
