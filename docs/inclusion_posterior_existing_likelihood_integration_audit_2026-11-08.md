@@ -125,3 +125,10 @@ The prototype now includes a separate fixed-analysis-catalogue / independent-val
 - The independent artifact auditor verifies checksums, observable/truth separation, exact validation-SRS membership, analysis catalogue reconstruction, every candidate's threshold flag, candidate count identities, selected event identity/distance mapping, and H0 posterior normalization at every evaluated quadrature order.
 
 The smoke workflow is a software integration check. Even if all audits pass and the H0 quadrature ladder reports CONVERGED, it does not establish posterior calibration, simulation-based calibration, frequentist coverage, robustness to prior scales, or scientific validity. The sigmoid-with-floor inclusion DGP remains intentionally distinct from the fitted polynomial-logit model; this is a model-misspecification stress design, not a correctly specified logistic benchmark.
+
+
+## Validation-sample pairing refinement
+
+The independent validation-frame sampler now selects observations using a seeded full-frame permutation and takes the first requested number of rows. Consequently, repeated calls with the same seed and frame size produce nested validation samples as the requested sample size increases. This is preferable for paired validation-size sensitivity studies: the analysis catalogue and GW events can be held fixed while each larger validation sample adds information rather than replacing the earlier validation observations. A regression test checks the nesting and exact row consistency for 100 versus 300 validation observations.
+
+This nesting property applies only when the seed, parent-frame size, and validation-frame generation settings are held fixed. It does not make distinct independently seeded validation frames paired.
