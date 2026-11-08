@@ -141,11 +141,32 @@ def _paired_contrast_summary(attempts: pd.DataFrame, *, n_replicates: int,
             paired = wide[["catalogue_only", arm]].dropna()
             difference = (paired[arm] - paired["catalogue_only"]).to_numpy(dtype=float)
             n = int(difference.size)
+
+            # Keep conditional paired accuracy separate from attempt-level
+            # evaluability. A failed arm must not vanish from the report.
+            status_wide = primary.pivot(index="replicate", columns="arm", values="status")
+            cat_status = status_wide.get("catalogue_only", pd.Series(index=status_wide.index, dtype=object))
+            est_status = status_wide.get(arm, pd.Series(index=status_wide.index, dtype=object))
+            both_present = cat_status.notna() & est_status.notna()
+            cat_success = cat_status.eq("SUCCESS")
+            est_success = est_status.eq("SUCCESS")
             record = {
                 "gamma": float(key[0]), "target_retention": float(key[1]),
                 "n_validation": int(key[2]), "bandwidth_multiplier": float(key[3]),
                 "degree": degree, "contrast": f"{arm}_minus_catalogue_only",
                 "n_pairs": n, "n_replicates_planned": int(n_replicates),
+                "n_replicates_with_both_attempts": int(both_present.sum()),
+                "n_catalogue_only_success": int(cat_success.sum()),
+                "n_catalogue_only_failed": int(cat_status.eq("FAILED").sum()),
+                "n_catalogue_only_non_evaluable": int(cat_status.eq("NON_EVALUABLE").sum()),
+                "n_estimated_success": int(est_success.sum()),
+                "n_estimated_failed": int(est_status.eq("FAILED").sum()),
+                "n_estimated_non_evaluable": int(est_status.eq("NON_EVALUABLE").sum()),
+                "n_both_success": int((cat_success & est_success).sum()),
+                "n_estimated_not_success_catalogue_success": int((cat_success & ~est_success).sum()),
+                "n_catalogue_not_success_estimated_success": int((~cat_success & est_success).sum()),
+                "n_both_not_success": int((~cat_success & ~est_success).sum()),
+                "conditional_pair_fraction_of_planned": float(n / n_replicates) if n_replicates else None,
                 "mean_difference": float(np.mean(difference)) if n else None,
                 "monte_carlo_se": float(np.std(difference, ddof=1)/np.sqrt(n))
                     if n > 1 else None,
