@@ -25,6 +25,10 @@ class FiniteValidationH0Marginalization:
     marginalized_selected_log_likelihood: np.ndarray
     importance_ess: float
     max_normalized_importance_weight: float
+    marginalization_batch_log_likelihoods: np.ndarray | None
+    marginalization_log_likelihood_mcse: np.ndarray | None
+    marginalization_batch_ess: np.ndarray | None
+    marginalization_mcse_status: str
 
 
 def selection_correct_each_draw(
@@ -75,6 +79,74 @@ def marginalize_selected_draws(selected_log_likelihood, log_importance_weights):
     return weighted_log_marginal_likelihood(log_likelihood, log_weights)
 
 
+def marginalize_selected_draws_with_mcse(
+    selected_log_likelihood,
+    log_importance_weights,
+    *,
+    n_batches=10,
+    min_batch_ess=10.0,
+):
+    """Return the full SNIS estimate and a disjoint-batch log-scale MCSE.
+
+    Importance proposals are iid. Disjoint batches provide a Monte Carlo
+    stability diagnostic; the full-sample estimate remains the reported
+    marginalized likelihood.
+    """
+    log_likelihood = np.asarray(selected_log_likelihood, dtype=float)
+    log_weights = np.asarray(log_importance_weights, dtype=float)
+    if (
+        log_likelihood.ndim != 2
+        or log_likelihood.shape[0] < 1
+        or log_likelihood.shape[1] < 2
+    ):
+        raise ValueError("selected log likelihood must have shape (draws>=1, H0 grid>=2)")
+    if log_weights.ndim != 1 or log_weights.size != log_likelihood.shape[0]:
+        raise ValueError("log importance weights must match coefficient draws")
+    if not np.all(np.isfinite(log_likelihood)) or not np.all(np.isfinite(log_weights)):
+        raise ValueError("selected log likelihoods and log weights must be finite")
+    if (
+        isinstance(n_batches, (bool, np.bool_))
+        or not isinstance(n_batches, (int, np.integer))
+        or n_batches < 2
+    ):
+        raise ValueError("n_batches must be an integer >= 2")
+    if not np.isfinite(min_batch_ess) or min_batch_ess < 1:
+        raise ValueError("min_batch_ess must be finite and >= 1")
+
+    full_estimate = marginalize_selected_draws(log_likelihood, log_weights)
+    if log_likelihood.shape[0] < 2 * n_batches:
+        return {
+            "marginalized_selected_log_likelihood": full_estimate,
+            "batch_log_likelihoods": None,
+            "log_likelihood_mcse": None,
+            "batch_ess": None,
+            "status": "INSUFFICIENT_DRAWS",
+        }
+
+    batches = np.array_split(np.arange(log_likelihood.shape[0]), n_batches)
+    batch_values = []
+    batch_ess = []
+    for indices in batches:
+        batch_log_weights = log_weights[indices]
+        scaled = np.exp(batch_log_weights - np.max(batch_log_weights))
+        normalized = scaled / scaled.sum()
+        batch_ess.append(float(1.0 / np.sum(normalized**2)))
+        batch_values.append(
+            marginalize_selected_draws(log_likelihood[indices], batch_log_weights)
+        )
+    batch_values = np.asarray(batch_values, dtype=float)
+    batch_ess = np.asarray(batch_ess, dtype=float)
+    mcse = batch_values.std(axis=0, ddof=1) / np.sqrt(n_batches)
+    status = "PASS" if np.min(batch_ess) >= min_batch_ess else "LOW_BATCH_ESS"
+    return {
+        "marginalized_selected_log_likelihood": full_estimate,
+        "batch_log_likelihoods": batch_values,
+        "log_likelihood_mcse": mcse,
+        "batch_ess": batch_ess,
+        "status": status,
+    }
+
+
 def propagate_inclusion_posterior_to_h0(
     posterior: InclusionPosteriorApproximation,
     analysis_redshift,
@@ -87,6 +159,8 @@ def propagate_inclusion_posterior_to_h0(
     sigma,
     detection_threshold,
     max_output_bytes=1_000_000_000,
+    marginalization_batches=10,
+    min_batch_ess=10.0,
 ):
     """Build one IPW density and selected likelihood per weighted theta proposal.
 
@@ -163,6 +237,8 @@ def propagate_inclusion_posterior_to_h0(
     estimated_bytes = proposals.shape[0] * (
         z_grid.size + 3 * h0_grid.size + 1
     ) * np.dtype(float).itemsize
+    if proposals.shape[0] >= 2 * marginalization_batches:
+        estimated_bytes += marginalization_batches * h0_grid.size * np.dtype(float).itemsize
     if estimated_bytes > max_output_bytes:
         raise MemoryError(
             f"Requested draw-level outputs need about {estimated_bytes} bytes, "
@@ -201,7 +277,11 @@ def propagate_inclusion_posterior_to_h0(
     selected = selection_correct_each_draw(
         unconditional, efficiencies, n_detected=distances.size
     )
-    marginalized = marginalize_selected_draws(selected, log_weights)
+    marginalization = marginalize_selected_draws_with_mcse(
+        selected, log_weights, n_batches=marginalization_batches,
+        min_batch_ess=min_batch_ess,
+    )
+    marginalized = marginalization["marginalized_selected_log_likelihood"]
     return FiniteValidationH0Marginalization(
         host_density_draws=density_draws,
         unconditional_log_likelihood_by_draw=unconditional,
@@ -211,4 +291,8 @@ def propagate_inclusion_posterior_to_h0(
         marginalized_selected_log_likelihood=marginalized,
         importance_ess=float(1.0 / np.sum(weights**2)),
         max_normalized_importance_weight=float(np.max(weights)),
+        marginalization_batch_log_likelihoods=marginalization["batch_log_likelihoods"],
+        marginalization_log_likelihood_mcse=marginalization["log_likelihood_mcse"],
+        marginalization_batch_ess=marginalization["batch_ess"],
+        marginalization_mcse_status=marginalization["status"],
     )
