@@ -368,3 +368,22 @@ def test_fixed_coordinate_center_and_scale_must_be_supplied_together():
         fit_inclusion_posterior_quadrature(
             z, y, degree=1, order=3, coordinate_center=0.205
         )
+
+def test_quadrature_ladder_propagates_fixed_coefficient_coordinates():
+    from dark_siren_robustness.inclusion_posterior import (
+        fit_inclusion_posterior_quadrature_ladder,
+    )
+
+    z = np.linspace(0.01, 0.40, 90)
+    retained = (np.arange(z.size) % 3 != 0).astype(int)
+    ladder = fit_inclusion_posterior_quadrature_ladder(
+        z, retained, degree=1, orders=(3, 5),
+        coordinate_center=0.205, coordinate_scale=0.195,
+        predictive_redshift=np.linspace(0.01, 0.40, 11),
+        mean_tolerance=10.0, covariance_tolerance=10.0,
+        predictive_tolerance=10.0, log_evidence_tolerance=10.0,
+        consecutive_passes=1,
+    )
+    assert len(ladder.fits) == 2
+    assert all(fit.center == 0.205 for fit in ladder.fits)
+    assert all(fit.scale == 0.195 for fit in ladder.fits)
