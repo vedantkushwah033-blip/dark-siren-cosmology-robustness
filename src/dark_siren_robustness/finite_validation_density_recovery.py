@@ -381,7 +381,17 @@ def write_artifacts(attempts: pd.DataFrame, units: pd.DataFrame, summary: dict,
         "attempts": output_dir / "attempt_metrics.csv",
         "units": output_dir / "parent_units.csv",
         "summary": output_dir / "summary.json",
+        "config": output_dir / "config.json",
     }
+    config_keys = (
+        "artifact_schema_version", "status", "dgp", "n_replicates", "n_parent",
+        "seed_start", "gamma_values", "retention_values", "validation_sizes",
+        "degrees", "bandwidth_multipliers", "grid",
+    )
+    config = {key: summary[key] for key in config_keys}
+    paths["config"].write_text(
+        json.dumps(config, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     attempts.to_csv(paths["attempts"], index=False)
     units.to_csv(paths["units"], index=False)
     paths["summary"].write_text(
