@@ -305,6 +305,27 @@ def test_batch_mcse_reports_low_effective_batches_and_insufficient_draws():
     assert too_few["log_likelihood_mcse"] is None
 
 
+def test_likelihood_contribution_ess_detects_h0_specific_concentration():
+    from dark_siren_robustness.finite_validation_h0_marginalization import (
+        marginalize_selected_draws_with_mcse,
+    )
+
+    log_likelihood = np.zeros((100, 2))
+    log_likelihood[0, 1] = 30.0
+    result = marginalize_selected_draws_with_mcse(
+        log_likelihood,
+        np.zeros(100),
+        n_batches=10,
+        min_batch_ess=5,
+        min_contribution_ess=20,
+    )
+    assert result["status"] == "LOW_CONTRIBUTION_ESS"
+    assert result["likelihood_contribution_ess_by_h0"][0] == pytest.approx(100.0)
+    assert result["likelihood_contribution_ess_by_h0"][1] < 2.0
+    assert result["max_normalized_likelihood_contribution_by_h0"][1] > 0.99
+    assert result["batch_contribution_ess"].shape == (10, 2)
+
+
 def test_end_to_end_parent_frame_validation_to_h0_posterior_smoke():
     from scipy.integrate import cumulative_trapezoid, trapezoid
     from scipy.optimize import brentq
@@ -415,6 +436,9 @@ def test_end_to_end_parent_frame_validation_to_h0_posterior_smoke():
     assert result.marginalization_log_likelihood_mcse.shape == (61,)
     assert result.marginalization_batch_ess.shape == (10,)
     assert np.all(result.marginalization_batch_ess >= 20.0)
+    assert result.likelihood_contribution_ess_by_h0.shape == (61,)
+    assert result.max_normalized_likelihood_contribution_by_h0.shape == (61,)
+    assert result.marginalization_batch_contribution_ess.shape == (10, 61)
     assert np.all(np.isfinite(result.detection_efficiency_by_draw))
     assert np.all((result.detection_efficiency_by_draw > 0)
                   & (result.detection_efficiency_by_draw <= 1.0 + 1e-12))
