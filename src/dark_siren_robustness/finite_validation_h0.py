@@ -20,10 +20,12 @@ from dark_siren_robustness.catalogue_density import estimate_host_density
 from dark_siren_robustness.selection_toy import C_KM_S
 
 
-def _strict_grid(values: ArrayLike, name: str, *, positive: bool = False) -> NDArray[np.float64]:
+def _strict_grid(
+    values: ArrayLike, name: str, *, positive: bool = False, min_size: int = 3
+) -> NDArray[np.float64]:
     result = np.asarray(values, dtype=float)
-    if result.ndim != 1 or result.size < 3 or not np.all(np.isfinite(result)):
-        raise ValueError(f"{name} must be a finite 1D grid with at least three points")
+    if result.ndim != 1 or result.size < min_size or not np.all(np.isfinite(result)):
+        raise ValueError(f"{name} must be a finite 1D grid with at least {min_size} points")
     if np.any(np.diff(result) <= 0):
         raise ValueError(f"{name} must be strictly increasing")
     if positive and np.any(result <= 0):
@@ -122,7 +124,7 @@ def selected_log_likelihood_by_draw(
     before subtracting N_detected * log(beta_GW). No averaging of beta occurs.
     """
     z = _strict_grid(redshift_grid, "redshift_grid", positive=True)
-    h0 = _strict_grid(H0_grid, "H0_grid", positive=True)
+    h0 = _strict_grid(H0_grid, "H0_grid", positive=True, min_size=2)
     densities = np.asarray(host_density_draws, dtype=float)
     d = np.asarray(distances, dtype=float)
     sigma = float(sigma)
