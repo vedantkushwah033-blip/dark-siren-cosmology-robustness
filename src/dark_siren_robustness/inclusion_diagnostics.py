@@ -28,18 +28,22 @@ def inverse_probability_weight_diagnostics(probability: ArrayLike) -> dict[str, 
         raise ValueError("probability must be a nonempty finite 1D array")
     if np.any((p <= 0) | (p > 1)):
         raise ValueError("inclusion probabilities must lie in (0, 1]")
-    weights = 1.0 / p
-    normalized = weights / np.sum(weights)
+    # Scale inverse weights before summation to avoid overflow when p is small.
+    # q_i is unchanged because the common factor cancels during normalization.
+    scaled_weights = float(np.min(p)) / p
+    normalized = scaled_weights / np.sum(scaled_weights)
     positive = normalized[normalized > 0]
     entropy = -float(np.sum(positive * np.log(positive)))
+    with np.errstate(over="ignore"):
+        maximum_weight = float(1.0 / np.min(p))
     ordered = np.sort(normalized)[::-1]
     return {
         "n": int(p.size),
         "probability_min": float(np.min(p)),
         "probability_median": float(np.median(p)),
         "probability_max": float(np.max(p)),
-        "weight_max": float(np.max(weights)),
-        "kish_ess": float(np.sum(weights) ** 2 / np.sum(weights**2)),
+        "weight_max": maximum_weight,
+        "kish_ess": float(np.sum(scaled_weights) ** 2 / np.sum(scaled_weights**2)),
         "entropy_ess": float(np.exp(entropy)),
         "max_normalized_weight": float(np.max(normalized)),
         "top_1pct_weight_mass": float(np.sum(ordered[:max(1, int(np.ceil(0.01 * p.size)))])),
