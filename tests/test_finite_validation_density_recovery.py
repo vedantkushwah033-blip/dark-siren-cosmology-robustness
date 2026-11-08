@@ -100,7 +100,7 @@ def _refresh_manifest_file(tmp_path, key, filename):
     payload = (tmp_path / filename).read_bytes()
     manifest["files"][key]["bytes"] = len(payload)
     manifest["files"][key]["sha256"] = hashlib.sha256(payload).hexdigest()
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n",
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True),
                              encoding="utf-8")
 
 
