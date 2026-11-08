@@ -51,6 +51,7 @@ def test_small_benchmark_has_comparison_arms_and_nested_splits():
     assert small_ids.issubset(large_ids)
     assert summary["attempt_count"] == len(attempts)
     assert "no_H0_inference" in summary["status"]
+    assert summary["paired_ipw_minus_catalogue_only_contrasts"]
 
 
 def test_independent_auditor_reconstructs_smoke_artifact(tmp_path):
