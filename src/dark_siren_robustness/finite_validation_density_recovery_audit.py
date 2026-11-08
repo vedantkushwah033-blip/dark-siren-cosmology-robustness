@@ -137,6 +137,12 @@ def audit_artifact(artifact_dir: Path) -> dict:
         analysis=role=="ANALYSIS_CATALOGUE"
         gamma=float(row.gamma); nval=int(row.n_validation)
         sample=None; prob=None
+        if row.status!="SUCCESS":
+            if row.density_json and isinstance(row.density_json,str):
+                raise AssertionError(f"Failed attempt unexpectedly contains density: {key}")
+            if row.arm.startswith("estimated_degree_") and row.fit_status not in {"FAILED","NON_EVALUABLE"}:
+                raise AssertionError(f"Failed estimated arm has inconsistent fit status: {key}")
+            continue
         if row.arm=="catalogue_only":
             sample=z[analysis]
         elif row.arm=="known_inclusion_ipw":
@@ -165,10 +171,6 @@ def audit_artifact(artifact_dir: Path) -> dict:
         else:
             raise AssertionError(f"Unknown arm: {row.arm}")
 
-        if row.status!="SUCCESS":
-            if row.density_json and isinstance(row.density_json,str):
-                raise AssertionError(f"Failed attempt unexpectedly contains density: {key}")
-            continue
         density=np.asarray(json.loads(row.density_json),dtype=float)
         reconstructed=_independent_kde(
             grid,sample,prob,float(row.bandwidth_multiplier),merger
