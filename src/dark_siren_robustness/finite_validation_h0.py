@@ -163,7 +163,11 @@ def selected_log_likelihood_by_draw(
         raise ValueError("sigma must be positive and detection_threshold finite")
     if np.any(d < threshold):
         raise ValueError("every supplied event must satisfy the detection threshold")
-    if not isinstance(h0_batch_size, int) or h0_batch_size < 1:
+    if (
+        isinstance(h0_batch_size, (bool, np.bool_))
+        or not isinstance(h0_batch_size, (int, np.integer))
+        or h0_batch_size < 1
+    ):
         raise ValueError("h0_batch_size must be a positive integer")
     if (
         isinstance(max_output_bytes, (bool, np.bool_))
@@ -174,10 +178,12 @@ def selected_log_likelihood_by_draw(
     batch_size = min(h0_batch_size, h0.size)
     output_elements = 3 * densities.shape[0] * h0.size
     temporary_elements = (
-        2 * batch_size * d.size * z.size
+        densities.shape[0] * z.size + z.size
+        + 2 * batch_size * d.size * z.size
         + batch_size * d.size * densities.shape[0]
         + 4 * batch_size * densities.shape[0]
         + 2 * batch_size * z.size
+        + batch_size * d.size
     )
     estimated_bytes = (output_elements + temporary_elements) * np.dtype(float).itemsize
     if estimated_bytes > max_output_bytes:
