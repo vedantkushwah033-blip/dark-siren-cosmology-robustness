@@ -33,3 +33,16 @@ def test_invalid_probability_inputs_are_rejected():
         inverse_probability_weight_diagnostics([0.0, 0.5])
     with pytest.raises(ValueError):
         score_inclusion_predictions([0, 1], [0.0, 1.0])
+
+
+
+def test_effective_sample_size_is_stable_for_extreme_but_representable_probabilities():
+    probability = np.array([1e-250, 2e-250, 0.5, 0.9])
+    result = inverse_probability_weight_diagnostics(probability)
+    assert np.isfinite(result["kish_ess"])
+    assert np.isfinite(result["entropy_ess"])
+    assert result["kish_ess"] >= 1.0
+    assert result["kish_ess"] <= probability.size
+    assert result["max_normalized_weight"] == pytest.approx(
+        1.0 / np.sum(np.min(probability) / probability)
+    )
