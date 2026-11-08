@@ -13,8 +13,8 @@ The pilot uses a common bandwidth multiplier across the oracle-parent, catalogue
 ## Design
 
 - Parent size: 4,000 galaxies.
-- Training seeds: 11,000–11,009 (10 independent parent frames).
-- Held-out seeds: 21,000–21,009 (10 disjoint parent frames).
+- Training seeds: 11,000–11,049 (50 independent parent frames).
+- Held-out seeds: 21,000–21,049 (50 disjoint parent frames).
 - Redshift support: [0.01, 0.40].
 - Density evaluation grid: 201 points; parent sampling CDF evaluated on a 20,001-point grid.
 - Parent intensity:
@@ -26,7 +26,7 @@ The pilot uses a common bandwidth multiplier across the oracle-parent, catalogue
 - Candidate Scott multipliers: 0.15, 0.40, 1.00.
 - Score: integrated absolute error between estimated and analytic host density.
 
-The implementation was an isolated local mirror of the branch KDE algorithm and DGP, not an invocation of the repository's benchmark runner. It used the local environment's NumPy/SciPy versions and is not a substitute for repository CI.
+The implementation was an isolated local mirror of the branch KDE algorithm and DGP, not an invocation of the repository's benchmark runner. It used the local environment's NumPy/SciPy versions and is not a substitute for repository CI. The expanded 50/50 run wrote separate training and held-out metric CSVs in the local working environment.
 
 ## Training selection
 
@@ -34,25 +34,33 @@ Equal-weight mean IAE pooled across the three arms selected Scott multiplier **0
 
 | Scott multiplier | Pooled training mean IAE |
 |---:|---:|
-| 0.15 | 0.2197 |
-| 0.40 | 0.2572 |
-| 1.00 | 0.3486 |
+| 0.15 | 0.2179 |
+| 0.40 | 0.2575 |
+| 1.00 | 0.3487 |
+
+Training mean IAE by arm:
+
+| Arm | 0.15 | 0.40 | 1.00 |
+|---|---:|---:|---:|
+| Oracle parent KDE | 0.0438 | 0.0975 | 0.2674 |
+| Known-inclusion IPW KDE | 0.0698 | 0.1333 | 0.2915 |
+| Catalogue-only KDE | 0.5402 | 0.5416 | 0.4872 |
 
 The oracle-only training objective also selected 0.15. The known-IPW arm selected 0.15. The catalogue-only arm instead preferred 1.00, illustrating why arm-specific bandwidth tuning would make the comparison unfair and could let smoothing partially mask selection bias.
 
 ## Held-out results
 
-Mean IAE over the 10 held-out seeds:
+Mean IAE over the 50 held-out seeds:
 
 | Arm | Scott × 0.15 (selected) | Scott × 0.40 | Scott × 1.00 |
 |---|---:|---:|---:|
-| Oracle parent KDE | 0.0387 | 0.0942 | 0.2674 |
-| Known-inclusion IPW KDE | 0.0622 | 0.1279 | 0.2908 |
-| Catalogue-only KDE | 0.5342 | 0.5364 | 0.4846 |
+| Oracle parent KDE | 0.0435 | 0.0990 | 0.2681 |
+| Known-inclusion IPW KDE | 0.0652 | 0.1310 | 0.2912 |
+| Catalogue-only KDE | 0.5311 | 0.5324 | 0.4813 |
 
-At the training-selected multiplier 0.15, the paired held-out known-IPW minus catalogue-only IAE difference was **-0.4720** (10 paired seeds; percentile-bootstrap 95% interval [-0.4834, -0.4592]). Known-IPW minus oracle IAE was +0.0235 (95% interval [0.0200, 0.0274]).
+At the training-selected multiplier 0.15, the paired held-out known-IPW minus catalogue-only IAE difference was **-0.4659** (50 paired seeds; percentile-bootstrap 95% interval [-0.4712, -0.4605]). Known-IPW minus oracle IAE was +0.0217 (95% interval [0.0179, 0.0258]).
 
-At Scott multiplier 1.00, known-IPW minus catalogue-only was -0.1937 (95% interval [-0.2010, -0.1863]). In this one controlled DGP, the common narrow multiplier substantially improved recovery for oracle and known-IPW densities, while catalogue-only remained biased by the redshift-dependent thinning.
+At Scott multiplier 1.00, known-IPW minus catalogue-only was -0.1900 (95% interval [-0.1940, -0.1861]). In this one controlled DGP, the common narrow multiplier substantially improved recovery for oracle and known-IPW densities, while catalogue-only remained biased by the redshift-dependent thinning.
 
 ## Interpretation
 
@@ -64,7 +72,7 @@ At Scott multiplier 1.00, known-IPW minus catalogue-only was -0.1937 (95% interv
 
 ## Limitations and next gate
 
-Only 10 training and 10 held-out seeds, one parent law, one catalogue-inclusion law, one parent size, and three candidate multipliers were tested. The 201-point density grid is a pilot numerical resolution. The intervals quantify only seed variation within this small pilot and should not be treated as confirmatory uncertainty.
+Only 50 training and 50 held-out seeds, one parent law, one catalogue-inclusion law, one parent size, and three candidate multipliers were tested. The 201-point density grid is a pilot numerical resolution. The intervals quantify only seed variation within this small pilot and should not be treated as confirmatory uncertainty.
 
 Before adopting a default bandwidth rule:
 - increase training and held-out seed counts;
