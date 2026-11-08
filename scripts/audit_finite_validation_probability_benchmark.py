@@ -1,17 +1,19 @@
-"""Independently reconstruct finite-validation probability and IPW summaries.
+"""Independent reconstruction of finite-validation probability/IPW artifacts.
 
-The auditor consumes the unit-level non-validation parent records and the
-summary CSV. It does not import the benchmark or fitter implementation.
+This auditor deliberately does not import the benchmark or estimator. It
+verifies the complete parent-frame partition and recomputes all reported scores.
 """
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 KEYS = ["scenario_seed", "replicate", "gamma", "n_validation", "model_degree"]
+ROLES = {"validation", "analysis_catalogue", "nonretained_holdout"}
 METRICS = [
     "heldout_brier_score", "heldout_log_loss", "heldout_probability_rmse",
     "kish_ess", "entropy_ess", "max_normalized_weight",
@@ -22,11 +24,10 @@ METRICS = [
 
 def _weight_stats(probability: np.ndarray) -> dict[str, float]:
     p = np.asarray(probability, dtype=float)
+    names = ("kish_ess", "entropy_ess", "max_normalized_weight",
+             "top_1pct_weight_mass", "top_5pct_weight_mass")
     if p.size == 0:
-        return {name: float("nan") for name in (
-            "kish_ess", "entropy_ess", "max_normalized_weight",
-            "top_1pct_weight_mass", "top_5pct_weight_mass",
-        )}
+        return {name: float("nan") for name in names}
     if not np.all(np.isfinite(p)) or np.any((p <= 0) | (p > 1)):
         raise ValueError("invalid inclusion probabilities in raw records")
     w = 1.0 / p
@@ -44,9 +45,12 @@ def _weight_stats(probability: np.ndarray) -> dict[str, float]:
 def audit(summary_path: Path, raw_path: Path, tolerance: float = 1e-10) -> dict:
     summary = pd.read_csv(summary_path)
     raw = pd.read_csv(raw_path)
-    required_summary = set(KEYS + ["fit_status", "n_parent", "n_analysis_catalogue"] + METRICS)
+    required_summary = set(KEYS + [
+        "fit_status", "n_parent", "n_validation", "n_analysis_catalogue",
+        "coefficients_json", "covariance_json",
+    ] + METRICS)
     required_raw = set(KEYS + [
-        "record_type", "object_id", "redshift", "retained", "p_true", "p_hat"
+        "split_role", "object_id", "redshift", "retained", "p_true", "p_hat"
     ])
     if not required_summary.issubset(summary.columns):
         raise ValueError(f"summary missing columns: {sorted(required_summary - set(summary.columns))}")
@@ -54,10 +58,10 @@ def audit(summary_path: Path, raw_path: Path, tolerance: float = 1e-10) -> dict:
         raise ValueError(f"raw file missing columns: {sorted(required_raw - set(raw.columns))}")
     if summary.duplicated(KEYS).any():
         raise ValueError("duplicate summary experiment keys")
-    if raw["record_type"].ne("heldout_parent").any():
-        raise ValueError("unexpected raw record_type")
     if raw.duplicated(KEYS + ["object_id"]).any():
         raise ValueError("duplicate object within an experiment")
+    if not set(raw["split_role"].dropna().unique()).issubset(ROLES):
+        raise ValueError("unexpected split_role in raw records")
     if not raw["retained"].isin([0, 1]).all():
         raise ValueError("raw retained labels must be binary")
     if not np.isfinite(raw[["redshift", "p_true"]].to_numpy()).all():
@@ -74,41 +78,71 @@ def audit(summary_path: Path, raw_path: Path, tolerance: float = 1e-10) -> dict:
         for k, value in key.items():
             mask &= raw[k].to_numpy() == value
         units = raw.loc[mask].sort_values("object_id")
-        expected_n = int(row.n_parent) - int(row.n_validation)
-        if len(units) != expected_n:
-            raise ValueError(f"{key}: expected {expected_n} non-validation units, got {len(units)}")
-        if units["object_id"].nunique() != expected_n:
+        n_parent = int(row.n_parent)
+        if len(units) != n_parent:
+            raise ValueError(f"{key}: expected {n_parent} parent records, got {len(units)}")
+        ids = units["object_id"].to_numpy(dtype=int)
+        if not np.array_equal(np.sort(ids), np.arange(n_parent)):
+            raise ValueError(f"{key}: object IDs do not form the complete parent frame")
+        if units["object_id"].nunique() != n_parent:
             raise ValueError(f"{key}: object IDs are not unique")
-        if ((units["object_id"] < 0) | (units["object_id"] >= int(row.n_parent))).any():
-            raise ValueError(f"{key}: object ID outside parent-frame range")
-        if int(units["retained"].sum()) != int(row.n_analysis_catalogue):
-            raise ValueError(f"{key}: retained holdout count differs from analysis-catalogue size")
-        if not np.all(np.isfinite(units["p_true"])):
-            raise ValueError(f"{key}: missing simulation truth probabilities")
-        retained = units["retained"].to_numpy(dtype=int) == 1
-        oracle_stats = _weight_stats(
-            units.loc[retained, "p_true"].to_numpy(dtype=float)
-        )
+
+        validation = units.loc[units["split_role"] == "validation"]
+        analysis = units.loc[units["split_role"] == "analysis_catalogue"]
+        nonretained = units.loc[units["split_role"] == "nonretained_holdout"]
+        if len(validation) != int(row.n_validation):
+            raise ValueError(f"{key}: validation count does not match design")
+        if len(analysis) != int(row.n_analysis_catalogue):
+            raise ValueError(f"{key}: analysis-catalogue count does not match summary")
+        if not (validation["retained"].isin([0, 1]).all()
+                and (analysis["retained"] == 1).all()
+                and (nonretained["retained"] == 0).all()):
+            raise ValueError(f"{key}: split roles disagree with retention labels")
+        if len(validation) + len(analysis) + len(nonretained) != n_parent:
+            raise ValueError(f"{key}: split roles do not partition parent frame")
+        if len(analysis) != int(units.loc[units["split_role"] != "validation", "retained"].sum()):
+            raise ValueError(f"{key}: retained non-validation units disagree with analysis set")
+
+        oracle_stats = _weight_stats(analysis["p_true"].to_numpy(dtype=float))
         oracle_estimates = {
             "oracle_" + k: oracle_stats[k]
             for k in ("kish_ess", "entropy_ess", "max_normalized_weight")
         }
         if row.fit_status == "SUCCESS":
-            p = units["p_hat"].to_numpy(dtype=float)
-            if not np.all(np.isfinite(p)) or np.any((p <= 0) | (p >= 1)):
-                raise ValueError(f"{key}: successful fit has invalid predicted probabilities")
-            y = units["retained"].to_numpy(dtype=float)
+            p_all = units["p_hat"].to_numpy(dtype=float)
+            if not np.all(np.isfinite(p_all)) or np.any((p_all <= 0) | (p_all >= 1)):
+                raise ValueError(f"{key}: successful fit has invalid predictions")
+            holdout = units.loc[units["split_role"] != "validation"]
+            p = holdout["p_hat"].to_numpy(dtype=float)
+            y = holdout["retained"].to_numpy(dtype=float)
             estimates = {
                 "heldout_brier_score": float(np.mean((p - y) ** 2)),
                 "heldout_log_loss": float(-np.mean(y * np.log(p) + (1-y) * np.log1p(-p))),
                 "heldout_probability_rmse": float(np.sqrt(np.mean(
-                    (p - units["p_true"].to_numpy(dtype=float)) ** 2
+                    (p - holdout["p_true"].to_numpy(dtype=float)) ** 2
                 ))),
             }
-            estimates.update(_weight_stats(p[retained]))
+            estimates.update(_weight_stats(analysis["p_hat"].to_numpy(dtype=float)))
+            if pd.isna(row.coefficients_json) or pd.isna(row.covariance_json):
+                raise ValueError(f"{key}: successful fit missing coefficients/covariance")
+            beta = np.asarray(json.loads(row.coefficients_json), dtype=float)
+            covariance = np.asarray(json.loads(row.covariance_json), dtype=float)
+            expected_dimension = int(row.model_degree) + 1
+            if beta.shape != (expected_dimension,) or covariance.shape != (
+                expected_dimension, expected_dimension
+            ):
+                raise ValueError(f"{key}: coefficient/covariance dimensions invalid")
+            if not np.all(np.isfinite(beta)) or not np.all(np.isfinite(covariance)):
+                raise ValueError(f"{key}: non-finite coefficient/covariance")
+            if not np.allclose(covariance, covariance.T, rtol=0, atol=1e-10):
+                raise ValueError(f"{key}: covariance is not symmetric")
+            if np.min(np.linalg.eigvalsh(covariance)) <= 0:
+                raise ValueError(f"{key}: covariance is not positive definite")
         else:
             if units["p_hat"].notna().any():
-                raise ValueError(f"{key}: failed/non-evaluable fit has predicted probabilities")
+                raise ValueError(f"{key}: unsuccessful fit has predicted probabilities")
+            if not pd.isna(row.coefficients_json) or not pd.isna(row.covariance_json):
+                raise ValueError(f"{key}: unsuccessful fit must not report coefficients")
             estimates = {name: float("nan") for name in METRICS if not name.startswith("oracle_")}
         estimates.update(oracle_estimates)
         for name, estimate in estimates.items():
@@ -122,13 +156,15 @@ def audit(summary_path: Path, raw_path: Path, tolerance: float = 1e-10) -> dict:
                 )
         reconstructed += 1
 
-    if len(summary) != len(raw.groupby(KEYS, dropna=False)):
+    raw_groups = len(raw.groupby(KEYS, dropna=False))
+    if len(summary) != raw_groups:
         raise ValueError("summary/raw experiment-group counts differ")
     return {
         "status": "PASS",
         "experiments_reconstructed": reconstructed,
         "raw_unit_records": int(len(raw)),
         "summary_rows": int(len(summary)),
+        "complete_parent_partitions": reconstructed,
         "tolerance": tolerance,
         "claim_limit": "Numerical reconstruction only; no estimator superiority or H0 calibration claim.",
     }
@@ -145,11 +181,10 @@ def main() -> None:
         args.directory / "raw_unit_records.csv",
         tolerance=args.tolerance,
     )
-    import json
     rendered = json.dumps(report, indent=2)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(rendered + "\n", encoding="utf-8")
+        args.output.write_text(rendered + "\\n", encoding="utf-8")
     print(rendered)
 
 
