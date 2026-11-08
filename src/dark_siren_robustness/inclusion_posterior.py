@@ -161,12 +161,10 @@ def sample_inclusion_posterior(
             degree, z_min, z_max, prior_sd, None, None, None, None, None, None,
             rank, condition, warmup, draws_per_chain, seed,
         )
-    if np.unique(y).size < 2:
-        return InclusionPosterior(
-            "NON_EVALUABLE", "Validation labels contain only one outcome class.",
-            degree, z_min, z_max, prior_sd, None, None, None, None, None, None,
-            rank, condition, warmup, draws_per_chain, seed,
-        )
+    # The proper Gaussian prior regularizes complete/quasi separation,
+    # including all-zero or all-one validation labels. Posterior diagnostics
+    # below determine evaluability; a single observed class is not itself a
+    # mathematical failure of this Bayesian model.
 
     prior_precision = 1.0 / prior_sd**2
 
