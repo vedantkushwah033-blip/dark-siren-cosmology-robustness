@@ -187,7 +187,9 @@ def generate_independent_validation_sample(
     )
     probability = catalogue_inclusion_probability(z_frame)
     retained = (rng.random(n_validation_frame) < probability).astype(np.int8)
-    selected = rng.choice(n_validation_frame, size=n_validation, replace=False)
+    # A single random permutation makes samples nested across requested sizes
+    # when the same seed and frame size are reused for paired validation studies.
+    selected = rng.permutation(n_validation_frame)[:n_validation]
     observable = pd.DataFrame({
         "validation_id": selected.astype(np.int64),
         "redshift": z_frame[selected],
