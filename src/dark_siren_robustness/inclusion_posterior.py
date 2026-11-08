@@ -333,3 +333,83 @@ def fit_inclusion_posterior_quadrature_ladder(
         covariance_max_abs_change=tuple(covariance_changes),
         predictive_max_abs_change=tuple(predictive_changes),
     )
+
+
+@dataclass(frozen=True)
+class NodeSpecificHostWeights:
+    """Stable inverse-inclusion weights and diagnostics for each posterior node."""
+
+    inclusion_probability: np.ndarray
+    raw_inverse_weight: np.ndarray
+    normalized_weight: np.ndarray
+    kish_ess: np.ndarray
+    entropy_ess: np.ndarray
+    maximum_normalized_weight: np.ndarray
+    top_one_percent_mass: np.ndarray
+    top_five_percent_mass: np.ndarray
+    minimum_inclusion_probability: np.ndarray
+    maximum_raw_inverse_weight: np.ndarray
+
+
+def build_node_specific_host_weights(
+    quadrature: InclusionPosteriorQuadrature,
+    catalogue_redshift: ArrayLike,
+) -> NodeSpecificHostWeights:
+    """Construct untruncated IPW host weights for every validation-posterior node.
+
+    Normalization is performed in log space. Raw inverse weights are retained
+    as diagnostics; if they cannot be represented in float64, the routine
+    fails explicitly rather than clipping probabilities or weights.
+    """
+    z = np.asarray(catalogue_redshift, dtype=float)
+    if z.ndim != 1 or z.size == 0 or not np.all(np.isfinite(z)):
+        raise ValueError("catalogue_redshift must be a non-empty finite 1D array")
+    if quadrature.nodes.ndim != 2 or quadrature.weights.shape != (quadrature.nodes.shape[0],):
+        raise ValueError("quadrature nodes and weights have inconsistent shapes")
+    if quadrature.nodes.shape[1] != quadrature.degree + 1:
+        raise ValueError("quadrature coefficient dimension does not match degree")
+    if np.any(~np.isfinite(quadrature.nodes)) or np.any(~np.isfinite(quadrature.weights)):
+        raise ValueError("quadrature nodes and weights must be finite")
+    if np.any(quadrature.weights < 0) or not np.isclose(quadrature.weights.sum(), 1.0):
+        raise ValueError("quadrature weights must be non-negative and sum to one")
+
+    x = (z - quadrature.center) / quadrature.scale
+    design = np.column_stack([x ** power for power in range(quadrature.degree + 1)])
+    eta = quadrature.nodes @ design.T
+    log_probability = -np.logaddexp(0.0, -eta)
+    log_raw = -log_probability
+    log_float_max = math.log(np.finfo(float).max)
+    log_float_tiny = math.log(np.nextafter(0.0, 1.0))
+    if np.any(log_probability < log_float_tiny):
+        raise ArithmeticError("inclusion probability underflows float64; refusing to clip")
+    if np.any(log_raw > log_float_max):
+        raise ArithmeticError("raw inverse-inclusion weight overflows float64; refusing to clip")
+
+    probability = np.exp(log_probability)
+    raw = np.exp(log_raw)
+    log_normalizer = logsumexp(log_raw, axis=1, keepdims=True)
+    normalized = np.exp(log_raw - log_normalizer)
+    kish = 1.0 / np.sum(normalized * normalized, axis=1)
+    entropy = -np.sum(
+        np.where(normalized > 0, normalized * np.log(np.maximum(normalized, np.finfo(float).tiny)), 0.0),
+        axis=1,
+    )
+    entropy_ess = np.exp(entropy)
+    maximum = np.max(normalized, axis=1)
+    n = z.size
+    k1 = max(1, int(math.ceil(0.01 * n)))
+    k5 = max(1, int(math.ceil(0.05 * n)))
+    top1 = np.sum(np.partition(normalized, n-k1, axis=1)[:, -k1:], axis=1)
+    top5 = np.sum(np.partition(normalized, n-k5, axis=1)[:, -k5:], axis=1)
+    return NodeSpecificHostWeights(
+        inclusion_probability=probability,
+        raw_inverse_weight=raw,
+        normalized_weight=normalized,
+        kish_ess=kish,
+        entropy_ess=entropy_ess,
+        maximum_normalized_weight=maximum,
+        top_one_percent_mass=top1,
+        top_five_percent_mass=top5,
+        minimum_inclusion_probability=np.min(probability, axis=1),
+        maximum_raw_inverse_weight=np.max(raw, axis=1),
+    )
