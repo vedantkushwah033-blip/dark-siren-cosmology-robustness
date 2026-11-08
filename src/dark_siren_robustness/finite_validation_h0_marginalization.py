@@ -268,7 +268,7 @@ def propagate_inclusion_posterior_to_h0(
     ):
         raise ValueError("max_output_bytes must be a positive integer")
     estimated_bytes = (
-        proposals.shape[0] * (z_grid.size + 3 * h0_grid.size + 1)
+        proposals.shape[0] * (z_grid.size + 5 * h0_grid.size + 1)
         + 3 * h0_grid.size
     ) * np.dtype(float).itemsize
     if proposals.shape[0] >= 2 * marginalization_batches:
