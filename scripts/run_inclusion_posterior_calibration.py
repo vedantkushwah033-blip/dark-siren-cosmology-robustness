@@ -133,17 +133,19 @@ def main() -> None:
     experiments = tuple(x.strip().upper() for x in args.experiments.split(",") if x.strip())
     floors = tuple(float(x) for x in args.floors.split(",") if x.strip())
     sizes = tuple(int(x) for x in args.validation_sizes.split(",") if x.strip())
-    if args.replicates < 1 or args.seed < 0 or not experiments:
-        parser.error("replicates and seed must be valid and experiments non-empty")
+    if args.replicates < 1 or args.seed < 0 or not experiments or len(set(experiments)) != len(experiments):
+        parser.error("replicates/seed must be valid and experiments non-empty and unique")
     if set(experiments) - {"H0_PIT_FIXED_INCLUSION_TRUTH", "FIXED_TRUTH"}:
         parser.error("experiments may contain only H0_PIT_FIXED_INCLUSION_TRUTH and FIXED_TRUTH")
-    if len(set(floors)) != len(floors) or any(not np.isfinite(x) or x < 0 or x >= 1 for x in floors):
+    if not floors or len(set(floors)) != len(floors) or any(not np.isfinite(x) or x < 0 or x >= 1 for x in floors):
         parser.error("floors must be distinct values in [0,1)")
-    if len(set(sizes)) != len(sizes) or any(x < 5 or x > args.n_validation_frame for x in sizes):
+    if not sizes or len(set(sizes)) != len(sizes) or any(x < 5 or x > args.n_validation_frame for x in sizes):
         parser.error("validation sizes must be distinct and within [5, frame size]")
     if tuple(sorted(sizes)) != sizes:
         parser.error("validation sizes must be increasing so the paired design is explicit")
-    if args.prior_min >= args.prior_max or not args.prior_min < args.fixed_h0 < args.prior_max:
+    if (not np.isfinite(args.prior_min) or not np.isfinite(args.prior_max)
+        or not np.isfinite(args.fixed_h0) or args.prior_min >= args.prior_max
+        or not args.prior_min < args.fixed_h0 < args.prior_max):
         parser.error("H0 prior bounds must contain the fixed truth in their interior")
     if args.pit_bins < 2:
         parser.error("pit-bins must be at least 2")
@@ -387,7 +389,7 @@ def main() -> None:
         json.dumps(summary, indent=2, sort_keys=True, allow_nan=True) + "\n",
         encoding="utf-8",
     )
-    print(json.dumps({"attempted": len(frame), "status_counts": summary["status_counts"], "summary_path": str(output / "calibration_summary.json")}, indent=2))
+    print(json.dumps({"attempted": summary["attempted"], "planned_cells": summary["planned_cells"], "status_counts": summary["status_counts"], "summary_path": str(output / "calibration_summary.json")}, indent=2))
 
 
 if __name__ == "__main__":
