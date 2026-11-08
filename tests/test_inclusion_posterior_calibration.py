@@ -92,3 +92,16 @@ def test_sbc_summary_reports_pit_and_prior_predictive_interval_inclusion():
     assert cell["pit_mean"] == pytest.approx(0.5)
     assert cell["prior_predictive_interval_inclusion_68"] == pytest.approx(0.5)
     assert cell["prior_predictive_interval_inclusion_90"] == pytest.approx(1.0)
+
+
+def test_conditional_h0_pit_summary_is_not_labelled_joint_sbc():
+    frame = pd.DataFrame([
+        {"experiment": "H0_PIT_FIXED_INCLUSION_TRUTH", "catalogue_floor": 0.0,
+         "n_validation": 100, "status": "SUCCESS", "pit": 0.25},
+        {"experiment": "H0_PIT_FIXED_INCLUSION_TRUTH", "catalogue_floor": 0.0,
+         "n_validation": 100, "status": "SUCCESS", "pit": 0.75},
+    ])
+    summary = MODULE._summarize(frame, bins=2)
+    cell = summary["H0_PIT_FIXED_INCLUSION_TRUTH|floor=0|n=100"]
+    assert cell["pit_mean"] == pytest.approx(0.5)
+    assert cell["pit_bin_counts"] == [1, 1]
