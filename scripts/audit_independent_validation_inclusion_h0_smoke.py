@@ -1,0 +1,168 @@
+"""Independently reconstruct the independent-validation H0 smoke artifacts."""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+
+def audit(artifact_dir: Path) -> dict[str, object]:
+    root = artifact_dir.resolve()
+    config = json.loads((root / "config.json").read_text(encoding="utf-8"))
+    convergence = json.loads((root / "quadrature_convergence.json").read_text(encoding="utf-8"))
+    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+
+    checksum_failures = []
+    for relative, expected in manifest.items():
+        path = root / relative
+        if not path.is_file():
+            checksum_failures.append(relative)
+            continue
+        actual = hashlib.sha256(path.read_bytes()).hexdigest()
+        if actual != expected:
+            checksum_failures.append(relative)
+    if checksum_failures:
+        raise AssertionError(f"artifact checksum failures: {checksum_failures}")
+
+    analysis_cfg = config["analysis_generator_config"]
+    validation_cfg = config["validation_generator_config"]
+    if analysis_cfg["seed"] == validation_cfg["seed"]:
+        raise AssertionError("analysis and validation seeds must be distinct")
+    if not validation_cfg.get("independent_frame", False):
+        raise AssertionError("validation frame is not declared independent")
+
+    catalogue = pd.read_csv(root / "observable" / "analysis_catalogue.csv")
+    events = pd.read_csv(root / "observable" / "gw_events_observed.csv")
+    validation = pd.read_csv(root / "observable" / "validation_observed.csv")
+    parent = pd.read_csv(root / "truth" / "analysis_parent_truth.csv")
+    event_truth = pd.read_csv(root / "truth" / "gw_event_truth.csv")
+    trace = pd.read_csv(root / "truth" / "gw_generation_trace_truth.csv")
+    validation_truth = pd.read_csv(root / "truth" / "validation_frame_truth.csv")
+
+    if list(catalogue.columns) != ["object_id", "redshift"]:
+        raise AssertionError("analysis catalogue exposes unexpected columns")
+    if list(events.columns) != ["event_id", "distance_mpc", "detected"]:
+        raise AssertionError("GW observable table exposes unexpected columns")
+    if list(validation.columns) != ["validation_id", "redshift", "retained"]:
+        raise AssertionError("validation observable table exposes unexpected columns")
+    if "inclusion_probability" in validation.columns or "host_object_id" in events.columns:
+        raise AssertionError("truth fields leaked into observable inputs")
+
+    expected_catalogue = parent.loc[parent["retained"] == 1, ["object_id", "redshift"]]
+    expected_catalogue = expected_catalogue.sort_values("object_id").reset_index(drop=True)
+    observed_catalogue = catalogue.sort_values("object_id").reset_index(drop=True)
+    pd.testing.assert_frame_equal(
+        observed_catalogue, expected_catalogue, check_dtype=False, atol=1e-14, rtol=1e-14
+    )
+
+    frame_ids = validation_truth.loc[
+        validation_truth["selected_for_validation"] == 1, "frame_id"
+    ].to_numpy(dtype=int)
+    if not np.array_equal(np.sort(frame_ids), np.sort(validation["validation_id"].to_numpy(dtype=int))):
+        raise AssertionError("validation SRS IDs do not match truth-frame selection flags")
+    selected_validation_truth = validation_truth.set_index("frame_id").loc[
+        validation["validation_id"].to_numpy(dtype=int)
+    ].reset_index()
+    if not np.allclose(selected_validation_truth["redshift"], validation["redshift"], rtol=0, atol=1e-14):
+        raise AssertionError("validation redshifts do not reconstruct from raw frame")
+    if not np.array_equal(selected_validation_truth["retained"].to_numpy(), validation["retained"].to_numpy()):
+        raise AssertionError("validation retention labels do not reconstruct from raw frame")
+
+    threshold = float(analysis_cfg["detection_threshold_mpc"])
+    if not np.all(np.isfinite(trace["distance_mpc"])):
+        raise AssertionError("generation trace has non-finite distances")
+    expected_detected = (trace["distance_mpc"].to_numpy() >= threshold).astype(int)
+    if not np.array_equal(expected_detected, trace["detected"].to_numpy(dtype=int)):
+        raise AssertionError("generation trace detection flags do not match threshold rule")
+    if np.any(trace["selected_as_event"].to_numpy(dtype=int) > expected_detected):
+        raise AssertionError("a rejected candidate was marked as a selected event")
+    if trace["attempt_id"].duplicated().any() or not np.array_equal(
+        trace["attempt_id"].to_numpy(dtype=int), np.arange(len(trace), dtype=int)
+    ):
+        raise AssertionError("attempt IDs are not a contiguous unique sequence")
+    if not set(trace["host_object_id"]).issubset(set(parent["object_id"])):
+        raise AssertionError("generation trace references unknown parent objects")
+
+    n_attempts = len(trace)
+    n_detected = int(expected_detected.sum())
+    n_rejected = int((expected_detected == 0).sum())
+    n_selected = int(trace["selected_as_event"].sum())
+    n_excess = n_detected - n_selected
+    reconstructed = {
+        "n_generation_attempts": n_attempts,
+        "n_detected_candidates": n_detected,
+        "n_rejected_candidates": n_rejected,
+        "n_excess_detected_candidates_discarded": n_excess,
+        "n_detected_events": n_selected,
+    }
+    for key, value in reconstructed.items():
+        if int(analysis_cfg[key]) != value:
+            raise AssertionError(f"generator config mismatch for {key}: {analysis_cfg[key]} != {value}")
+    if n_attempts != n_detected + n_rejected:
+        raise AssertionError("attempt count does not equal detected plus rejected candidates")
+
+    selected_trace = trace.loc[trace["selected_as_event"] == 1].reset_index(drop=True)
+    if len(selected_trace) != len(events) or len(event_truth) != len(events):
+        raise AssertionError("selected candidate, observed event, and event truth counts differ")
+    if not np.array_equal(selected_trace["host_object_id"], event_truth["host_object_id"]):
+        raise AssertionError("selected generation hosts do not match event truth table")
+    if not np.allclose(selected_trace["distance_mpc"], events["distance_mpc"], rtol=0, atol=1e-12):
+        raise AssertionError("selected candidate distances do not match observed GW events")
+    if not np.array_equal(events["event_id"].to_numpy(), event_truth["event_id"].to_numpy()):
+        raise AssertionError("event IDs do not align between observed and truth tables")
+    if not np.all(events["distance_mpc"].to_numpy() >= threshold):
+        raise AssertionError("an observed event violates the GW threshold")
+
+    density = pd.read_csv(root / "h0_posterior_density_by_order.csv")
+    orders = convergence["orders_evaluated"]
+    expected_columns = ["H0"] + [f"density_order_{order}" for order in orders]
+    if list(density.columns) != expected_columns:
+        raise AssertionError("posterior density columns do not match evaluated quadrature orders")
+    h0 = density["H0"].to_numpy(dtype=float)
+    if not np.all(np.isfinite(h0)) or np.any(np.diff(h0) <= 0):
+        raise AssertionError("H0 grid is invalid")
+    for order in orders:
+        values = density[f"density_order_{order}"].to_numpy(dtype=float)
+        if not np.all(np.isfinite(values)) or np.any(values < 0):
+            raise AssertionError(f"invalid H0 posterior density at quadrature order {order}")
+        if not np.isclose(np.trapezoid(values, h0), 1.0, rtol=1e-8, atol=1e-8):
+            raise AssertionError(f"H0 posterior at order {order} is not normalized")
+
+    return {
+        "status": "PASS",
+        "artifact_dir": str(root),
+        "manifest_files_verified": len(manifest),
+        "analysis_parent_count": int(len(parent)),
+        "analysis_catalogue_count": int(len(catalogue)),
+        "validation_frame_count": int(len(validation_truth)),
+        "validation_srs_count": int(len(validation)),
+        "generation_attempts_reconstructed": n_attempts,
+        "detected_candidates_reconstructed": n_detected,
+        "rejected_candidates_reconstructed": n_rejected,
+        "selected_events_reconstructed": n_selected,
+        "quadrature_orders": orders,
+        "h0_posterior_normalization_checks": len(orders),
+        "quadrature_status": convergence["status"],
+        "scientific_claim_limit": "Artifact and arithmetic integrity only; not calibration, SBC, coverage, or real-data validation.",
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("artifact_dir", type=Path)
+    parser.add_argument("--output", type=Path, default=None)
+    args = parser.parse_args()
+    report = audit(args.artifact_dir)
+    rendered = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    if args.output is not None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(rendered, encoding="utf-8")
+    print(rendered)
+
+
+if __name__ == "__main__":
+    main()
