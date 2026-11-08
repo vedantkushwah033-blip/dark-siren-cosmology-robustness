@@ -14,7 +14,7 @@ Keep the following outcomes separate:
 2. **IPW stability:** Kish/entropy ESS, maximum normalized host weight, and top-tail weight concentration.
 3. **Quadrature convergence:** stability of coefficient moments and validation posterior predictions.
 4. **Downstream numerical convergence:** stability of the shared-node selected H0 log-likelihood shape and normalized posterior across quadrature orders and H0 grids.
-5. **SBC/PIT:** prior-predictive calibration under the declared H0 prior.
+5. **Conditional H0 PIT:** prior-predictive PIT over H0 conditional on fixed inclusion-truth parameters. This is not joint SBC.
 6. **Fixed-truth coverage:** repeated-sampling coverage at predeclared H0 values.
 7. **Failure/evaluability:** proportion of attempted replicates that produce a valid, numerically converged posterior.
 
@@ -94,9 +94,9 @@ These are proposed starting settings. Freeze the final configuration and toleran
 
 ## 4. Two distinct calibration experiments
 
-### A. Prior-predictive SBC/PIT
+### A. Conditional H0 prior-predictive PIT (fixed inclusion truth)
 
-For each replicate, draw (H_0^{true}sim Uniform(50,90)), then generate the analysis population, validation sample, and detected events conditional on that same (H_0^{true}).
+For each replicate, draw (H_0^{true}sim Uniform(50,90)), then generate the analysis population, validation sample, and detected events conditional on that same (H_0^{true}). Hold the inclusion-truth parameters fixed within each catalogue-floor cell, as in the current runner.
 
 Compute the posterior CDF at the generating value:
 
@@ -124,7 +124,7 @@ For 68%, 90%, and 95% equal-tail credible intervals, report:
 - Posterior median bias.
 - Evaluability and failure rates.
 
-Do not call SBC/PIT a coverage experiment or coverage a calibration proof.
+Do not call conditional H0 PIT a joint SBC experiment, do not call PIT a coverage experiment, and do not call coverage a calibration proof.
 
 ## 5. Replication and uncertainty
 
@@ -183,7 +183,7 @@ Truth-only columns must never enter non-oracle fitting or likelihood calculation
 - No universal IPW superiority claim follows.
 - No real galaxy survey, detector, LVK/GWTC event, or observational H0 claim follows from this synthetic experiment.
 
-**Go/no-go:** run a small smoke and independent audit first. Start confirmatory SBC/coverage only after the generator/inference selection match, raw-artifact reconstruction, prior sensitivity, downstream quadrature convergence, and failure ledger are all verified.
+**Go/no-go:** run a small smoke and independent audit first. Start any confirmatory conditional-PIT, joint-SBC, or coverage experiment only after the generator/inference selection match, raw-artifact reconstruction, prior sensitivity, downstream quadrature convergence, and failure ledger are all verified.
 
 
 ## 9. Prior-coordinate correction (2026-11-08)
@@ -204,3 +204,26 @@ fixed values explicitly.
 
 This correction is a prerequisite for interpretable repeated-sampling
 Bayesian comparisons. It does not itself establish calibration or coverage.
+
+
+## 10. Distinguish the implemented conditional PIT from future joint SBC
+
+The current orchestration runner now labels its randomized-H0 arm
+`H0_PIT_FIXED_INCLUSION_TRUTH`. It draws H0 from the inference H0 prior but
+holds the inclusion DGP parameters fixed. This is a conditional H0
+prior-predictive PIT, not joint SBC for (H0, inclusion coefficients).
+
+In the floor-zero reference, the fixed inclusion truth in the declared
+fixed-coordinate basis is (theta_0, theta_1)=(0.30, -3.90), while inference
+uses independent Gaussian coefficient priors with standard deviations
+(5.0, 2.5). The coefficient truth is therefore not drawn from the inference
+prior. Positive catalogue floors additionally introduce functional-form
+misspecification.
+
+A genuine joint or modular-SBC design requires an explicit prior draw for
+the generating inclusion coefficients, a matched logistic DGP, and a precise
+definition of the target posterior. Because the current method is modular/cut
+and deliberately prevents GW data from updating inclusion coefficients,
+ordinary full-joint SBC uniformity must not be presumed for that target.
+See `conditional_h0_pit_vs_joint_sbc_audit_2026-11-08.md` for the detailed
+derivation and proposed requirements.
