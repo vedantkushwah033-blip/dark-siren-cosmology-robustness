@@ -81,10 +81,10 @@ def test_paired_contrast_reports_failed_and_non_evaluable_attempts():
             "arm": "estimated_degree_1_ipw", "status": est_status, "iae": est_iae,
         })
     result = _paired_contrast_summary(
-        pd.DataFrame(rows), n_replicates=4, bootstrap_resamples=100,
+        pd.DataFrame(rows), n_replicates=5, bootstrap_resamples=100,
     )[0]
     assert result["n_pairs"] == 1
-    assert result["n_replicates_with_both_attempts"] == 4
+    assert result["n_replicates_with_both_attempts"] == 5
     assert result["n_catalogue_only_success"] == 2
     assert result["n_catalogue_only_failed"] == 1
     assert result["n_catalogue_only_non_evaluable"] == 1
