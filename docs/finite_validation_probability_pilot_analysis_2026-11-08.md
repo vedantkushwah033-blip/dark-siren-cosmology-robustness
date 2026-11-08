@@ -63,3 +63,15 @@ Across retention targets, the average held-out RMSE was 0.0292, 0.0398, and 0.05
 **NO-GO:** claims of estimated-inclusion benefit, H0 calibration degradation, calibrated coverage, or a validated uncertainty-propagation method.
 
 The defensible project claim remains a planned synthetic benchmark of finite-validation uncertainty and misspecification. No posterior-calibration result has yet been established for estimated inclusion probabilities.
+
+
+## Post-pilot Newton-polish verification (local, 2026-11-08)
+
+After adding the damped-Newton fallback and its regression test:
+
+- Ran the seven tests in the isolated local copy of `tests/test_estimated_inclusion.py`: **7 passed**.
+- Refit all 450 validation groups from the downloaded raw pilot records using the updated fitter: **450 SUCCESS, 0 FAILED, 0 NON_EVALUABLE**.
+- The two prior precision-loss failures were recovered. Their final score infinity norms were (2.61\times10^{-10}) and (3.29\times10^{-14}).
+- For the other 448 groups, the maximum absolute difference between updated predictions and the predictions stored by the original pilot was (6.68\times10^{-9}).
+
+This is a targeted local verification of the estimator module and the 450 pilot validation subsets. It is **not** a full repository test-suite run, a rerun of the benchmark/auditor pipeline, or GitHub Actions validation of the new commits. The original artifact's independent audit remains valid for the original BFGS outputs; a new full workflow artifact is still required to verify the modified source end to end.
