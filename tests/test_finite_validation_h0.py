@@ -148,3 +148,66 @@ def test_density_and_likelihood_draws_have_full_domain_and_memory_guards():
             np.array([270.0, 330.0, 410.0]), sigma=140.0,
             detection_threshold=250.0, max_output_bytes=100,
         )
+
+
+def test_real_weighted_inclusion_posterior_reaches_normalized_h0_posterior():
+    from scipy.special import expit
+    from dark_siren_robustness.bayesian_inclusion import (
+        importance_sample_inclusion_posterior,
+    )
+
+    rng = np.random.default_rng(910)
+    validation_z = rng.uniform(0.01, 0.40, 160)
+    validation_u = (validation_z - 0.01) / 0.39
+    validation_labels = rng.binomial(1, expit(-0.8 - 0.7 * validation_u))
+    inclusion_posterior = importance_sample_inclusion_posterior(
+        validation_z,
+        validation_labels,
+        degree=1,
+        prior_sd=1.0,
+        n_draws=1000,
+        seed=12,
+        min_ess=30,
+        min_ess_fraction=0.01,
+    )
+    assert inclusion_posterior.status == "SUCCESS", inclusion_posterior.message
+
+    analysis_parent_z = rng.uniform(0.01, 0.40, 400)
+    analysis_u = (analysis_parent_z - 0.01) / 0.39
+    analysis_labels = rng.binomial(1, expit(-0.8 - 0.7 * analysis_u))
+    analysis_catalogue = analysis_parent_z[analysis_labels == 1]
+    assert analysis_catalogue.size >= 20
+
+    z_grid = np.linspace(0.01, 0.40, 101)
+    h0_grid = np.linspace(55.0, 85.0, 41)
+    merger = 1.0 + 1.5 * (z_grid - 0.01) / 0.39
+    density_draws = reconstruct_host_density_draws(
+        z_grid,
+        analysis_catalogue,
+        inclusion_posterior.coefficient_proposals,
+        degree=1,
+        merger_weight=merger,
+        scott_multiplier=0.3,
+    )
+    likelihood = selected_log_likelihood_by_draw(
+        z_grid,
+        density_draws,
+        h0_grid,
+        np.array([330.0, 410.0, 520.0]),
+        sigma=120.0,
+        detection_threshold=250.0,
+        h0_batch_size=8,
+    )
+    log_marginal = marginalize_selection_conditioned_likelihood(
+        likelihood["selected_log_likelihoods"],
+        inclusion_posterior.log_importance_weights,
+    )
+    posterior = normalize_h0_posterior(
+        h0_grid, log_marginal, prior_density=np.ones_like(h0_grid)
+    )
+    assert density_draws.shape == (1000, 101)
+    assert likelihood["selected_log_likelihoods"].shape == (1000, 41)
+    assert abs(posterior["posterior_integral"] - 1.0) < 1e-10
+    assert posterior["ci95_low"] < posterior["ci68_low"]
+    assert posterior["ci95_high"] > posterior["ci68_high"]
+    assert 0.0 <= posterior["boundary_mass_fraction"] <= 1.0
