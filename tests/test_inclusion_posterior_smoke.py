@@ -132,3 +132,59 @@ def test_fixed_seed_validation_samples_are_nested_across_sizes():
     for row in small.itertuples(index=False):
         assert indexed.loc[row.validation_id, "redshift"] == row.redshift
         assert indexed.loc[row.validation_id, "retained"] == row.retained
+
+
+def test_independent_validation_h0_runner_records_prior_and_passes_independent_audit(
+    tmp_path: Path,
+):
+    root = Path(__file__).resolve().parents[1]
+    output_dir = tmp_path / "independent_h0"
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(root / "src") + os.pathsep + env.get("PYTHONPATH", "")
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(root / "scripts" / "run_independent_validation_inclusion_h0_smoke.py"),
+            "--seed", "812",
+            "--validation-seed", "913",
+            "--n-parent", "800",
+            "--n-detected", "3",
+            "--n-validation-frame", "500",
+            "--n-validation", "80",
+            "--orders", "3,5",
+            "--h0-points", "21",
+            "--prior-slope-multipliers", "0.5,1.0,2.0",
+            "--output-dir", str(output_dir),
+        ],
+        cwd=root,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+
+    config = json.loads((output_dir / "config.json").read_text())
+    prior = config["inference"]["coefficient_prior"]
+    assert prior["family"] == "independent_normal"
+    assert prior["mean"] == [0.0, 0.0]
+    assert prior["sd"] == [5.0, 2.5]
+
+    audited = subprocess.run(
+        [
+            sys.executable,
+            str(root / "scripts" / "audit_independent_validation_inclusion_h0_smoke.py"),
+            str(output_dir),
+        ],
+        cwd=root,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert audited.returncode == 0, audited.stdout + audited.stderr
+    report = json.loads(audited.stdout)
+    assert report["status"] == "PASS"
+    assert report["manifest_files_verified"] > 0
+    assert report["h0_posterior_normalization_checks"] == 2
+    assert report["quadrature_orders"] == [3, 5]
