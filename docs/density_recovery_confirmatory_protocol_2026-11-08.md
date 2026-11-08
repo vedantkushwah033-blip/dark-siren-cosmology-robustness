@@ -303,3 +303,23 @@ The paired density-contrast summary has also been extended to report attempt-lev
 The independent auditor reconstructs these counts from the raw attempt ledger and compares them with the stored summary. The conditional mean contrast and its intervals remain explicitly conditional on both arms being successful; failure counts are not folded into an arbitrary numerical IAE penalty.
 
 This extension improves transparency but does not yet define a single composite utility for comparing accuracy and failure probability. Both dimensions must be reported separately.
+
+
+### Allocation interpretation: validation size also changes catalogue size
+
+The primary design is a **fixed-parent-frame allocation experiment**, not a pure experiment that changes validation information while holding the analysis catalogue fixed. Because validation units are excluded from the analysis catalogue, increasing (n_V) changes both:
+
+1. the amount of information available to estimate the inclusion curve; and
+2. the number of parent-frame units still eligible to appear in the analysis catalogue.
+
+At target parent retention (r=0.25) and (N=4{,}000), the expected analysis-catalogue sizes are approximately
+[
+E[n_C\mid n_V]=r(N-n_V),
+]
+giving 975, 925, and 750 retained analysis objects for (n_V=100,300,1000), respectively. These are expectations, not fixed counts; the realized counts must be reported per replicate.
+
+Consequently, a trend across validation sizes in absolute density error is the **net effect of the allocation trade-off**: better validation information may be offset by fewer catalogue hosts. It must not be interpreted as the isolated causal effect of increasing validation sample size on logistic-fit precision.
+
+The primary paired contrasts (estimated-IPW minus catalogue-only at the same (n_V), parent frame, retention realization, and bandwidth) remain interpretable as the incremental effect of applying the estimated correction under that allocation. The known-inclusion-IPW contrast separately diagnoses the potential value of oracle correction under the same reduced catalogue. Report the realized analysis-catalogue size alongside every density and weight diagnostic.
+
+A separate experiment that holds analysis-catalogue size fixed while varying validation size would answer a different question. It would require a larger or independently sampled validation frame, or a deliberately controlled sampling design. It is not part of this primary confirmatory block and must not be silently mixed into its results.
