@@ -23,7 +23,7 @@ def test_catalogue_selection_decreases_with_redshift() -> None:
 def test_generator_is_reproducible_and_separates_truth() -> None:
     kwargs = {"seed": 9127, "n_parent": 1800, "n_detected": 35}
     first, second = generate_synthetic_population(**kwargs), generate_synthetic_population(**kwargs)
-    for key in ("parent_truth", "catalogue_observed", "gw_events_observed", "gw_event_truth"):
+    for key in ("parent_truth", "catalogue_observed", "gw_events_observed", "gw_event_truth", "gw_generation_trace_truth"):
         pd.testing.assert_frame_equal(first[key], second[key])
     assert list(first["catalogue_observed"].columns) == ["object_id", "redshift"]
     assert list(first["gw_events_observed"].columns) == ["event_id", "distance_mpc", "detected"]
@@ -47,6 +47,12 @@ def test_detected_events_obey_threshold_and_truth_ids_match_parent() -> None:
         config["n_detected_events"] + config["n_excess_detected_candidates_discarded"]
     )
     assert config["n_rejected_candidates"] > 0
+    trace = first["gw_generation_trace_truth"]
+    assert len(trace) == config["n_generation_attempts"]
+    assert int(trace["detected"].sum()) == config["n_detected_candidates"]
+    assert int((trace["detected"] == 0).sum()) == config["n_rejected_candidates"]
+    assert int(trace["selected_as_event"].sum()) == config["n_detected_events"]
+    assert int((trace["detected"] == 1).sum() - trace["selected_as_event"].sum()) == config["n_excess_detected_candidates_discarded"]
 
 def test_invalid_configuration_is_rejected() -> None:
     with pytest.raises(ValueError):
