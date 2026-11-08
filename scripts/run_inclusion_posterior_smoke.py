@@ -10,6 +10,8 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import subprocess
+import sys
 
 import numpy as np
 import pandas as pd
@@ -267,6 +269,14 @@ def main() -> None:
     (output / "sha256_manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
+    )
+    subprocess.run(
+        [
+            sys.executable,
+            str(Path(__file__).with_name("audit_inclusion_posterior_smoke.py")),
+            str(output),
+        ],
+        check=True,
     )
     print(json.dumps({
         "status": summary["status"],
