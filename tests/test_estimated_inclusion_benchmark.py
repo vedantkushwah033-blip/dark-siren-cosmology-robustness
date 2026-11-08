@@ -22,6 +22,10 @@ def test_probability_benchmark_preserves_full_paired_denominator():
         ["gamma", "replicate", "n_validation"]
     )["model_degree"].nunique().eq(2).all()
     successful = result.loc[result["fit_status"] == "SUCCESS"]
+    assert len(successful) > 0
+    assert {"correctly_specified", "deliberately_misspecified"}.issubset(
+        set(result["model_specification"])
+    )
     assert np.all(np.isfinite(successful["heldout_brier_score"]))
     assert np.all(successful["heldout_brier_score"] >= 0)
     assert np.all(successful["kish_ess"] > 0)
