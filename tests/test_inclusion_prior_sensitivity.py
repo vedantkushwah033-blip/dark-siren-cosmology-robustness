@@ -90,3 +90,28 @@ def test_prior_scale_sensitivity_rejects_nonpositive_multiplier():
             slope_multipliers=(0.0, 1.0, 2.0),
             order=5,
         )
+
+
+def test_prior_scale_sensitivity_preserves_fixed_domain_coordinates():
+    validation_z, retained, catalogue_z, events, base, h0 = _case()
+    result = run_inclusion_prior_scale_sensitivity(
+        validation_z,
+        retained,
+        h0,
+        catalogue_z,
+        events,
+        detection_threshold_mpc=250.0,
+        population_base_weights=base,
+        degree=1,
+        coordinate_center=0.205,
+        coordinate_scale=0.195,
+        slope_multipliers=(0.5, 1.0, 2.0),
+        order=5,
+    )
+    for record in result.records:
+        assert record.inclusion_posterior.center == 0.205
+        assert record.inclusion_posterior.scale == 0.195
+        assert record.prior_sd[0] == 5.0
+        assert np.isclose(
+            record.prior_sd[1], 2.5 * record.slope_multiplier
+        )
