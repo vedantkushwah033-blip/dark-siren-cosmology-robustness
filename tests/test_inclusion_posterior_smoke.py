@@ -149,6 +149,7 @@ def test_independent_validation_h0_runner_records_prior_and_passes_independent_a
             "--validation-seed", "913",
             "--n-parent", "800",
             "--n-detected", "3",
+            "--h0-true", "72.5",
             "--n-validation-frame", "500",
             "--n-validation", "80",
             "--orders", "3,5",
@@ -165,6 +166,7 @@ def test_independent_validation_h0_runner_records_prior_and_passes_independent_a
     assert completed.returncode == 0, completed.stdout + completed.stderr
 
     config = json.loads((output_dir / "config.json").read_text())
+    assert config["analysis_generator_config"]["h0_true"] == pytest.approx(72.5)
     prior = config["inference"]["coefficient_prior"]
     assert prior["family"] == "independent_normal"
     assert prior["mean"] == [0.0, 0.0]
