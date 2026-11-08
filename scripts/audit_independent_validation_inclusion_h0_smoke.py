@@ -10,6 +10,32 @@ import numpy as np
 import pandas as pd
 
 
+def _validate_event_truth_against_parent(
+    event_truth: pd.DataFrame,
+    parent: pd.DataFrame,
+    *,
+    h0_true: float,
+    c_km_s: float = 299_792.458,
+) -> None:
+    """Check event-host redshifts and latent distances against parent truth."""
+    if not np.isfinite(h0_true) or h0_true <= 0:
+        raise AssertionError("generating H0 truth must be finite and positive")
+    if parent["object_id"].duplicated().any():
+        raise AssertionError("parent truth contains duplicate object IDs")
+    host_ids = event_truth["host_object_id"].to_numpy(dtype=int)
+    parent_by_id = parent.set_index("object_id")
+    if not np.isin(host_ids, parent_by_id.index.to_numpy()).all():
+        raise AssertionError("event truth references unknown parent hosts")
+    expected_redshift = parent_by_id.loc[host_ids, "redshift"].to_numpy(dtype=float)
+    observed_redshift = event_truth["host_redshift"].to_numpy(dtype=float)
+    if not np.allclose(observed_redshift, expected_redshift, rtol=0.0, atol=1e-14):
+        raise AssertionError("event-host redshifts do not match parent truth")
+    expected_mean_distance = c_km_s * expected_redshift / h0_true
+    observed_mean_distance = event_truth["latent_mean_distance_mpc"].to_numpy(dtype=float)
+    if not np.allclose(observed_mean_distance, expected_mean_distance, rtol=1e-13, atol=1e-12):
+        raise AssertionError("event latent mean distances do not match parent redshifts and generating H0")
+
+
 def audit(artifact_dir: Path) -> dict[str, object]:
     root = artifact_dir.resolve()
     config = json.loads((root / "config.json").read_text(encoding="utf-8"))
@@ -157,6 +183,12 @@ def audit(artifact_dir: Path) -> dict[str, object]:
         raise AssertionError("selected candidate distances do not match observed GW events")
     if not np.array_equal(events["event_id"].to_numpy(), event_truth["event_id"].to_numpy()):
         raise AssertionError("event IDs do not align between observed and truth tables")
+    from dark_siren_robustness.dataset_likelihood import C_KM_S
+    _validate_event_truth_against_parent(
+        event_truth, parent,
+        h0_true=float(analysis_cfg["h0_true_km_s_mpc"]),
+        c_km_s=C_KM_S,
+    )
     if not np.all(events["distance_mpc"].to_numpy() >= threshold):
         raise AssertionError("an observed event violates the GW threshold")
 
