@@ -74,3 +74,23 @@ The density-recovery auditor was strengthened before launching the full design:
 A separate workflow, `.github/workflows/finite-validation-density-confirmatory.yml`, has been added for the predeclared 100-replicate primary density-recovery design (N=4,000; gamma -1.2, 0, +1.2; retention 0.25; validation sizes 100, 300, 1,000; linear/quadratic fits; Scott multipliers 0.15, 0.40, 1.00; 801-point density grid). It runs the focused tests, generates the full raw artifact, independently audits it, and uploads the result. The workflow is isolated from the general test matrix and can also be manually dispatched.
 
 **Status at documentation time:** the workflow has been added but the full 100-replicate experiment has not yet completed. The additional completeness/objective tests and the confirmatory workflow must pass before the density stage is declared complete. This remains a density-recovery experiment only; it does not implement H0 inference or posterior calibration.
+
+
+## Critical RNG-stream defect discovered and corrected (2026-11-08)
+
+Inspection of the Python 3.12 CI smoke artifact exposed a design-breaking defect in the original replicate seeding:
+
+`default_rng(seed + stream_offset * replicate)` gives the **same seed for every stream at replicate 0**, because every offset is multiplied by zero. In the smoke artifact, parent redshifts and retention uniforms consequently had Pearson correlation 0.9969 and Spearman correlation 1.0. All 54 estimated-IPW attempts failed with enormous fitted coefficients; there were zero paired estimated-IPW/catalogue-only pairs. The independent artifact auditor had previously passed because it checked DGP label consistency and common-random-number pairing, but did not independently reconstruct the seed streams.
+
+This is not a benign optimizer failure. The validation/retention design for replicate 0 was not independent, so the smoke artifact cannot support density-recovery conclusions. The same defect affects replicate 0 in the pre-fix 100-replicate workflow run #42474967403 (head `0b637c3cf93c673aee9dcb6b0d046ffd1e6f9b6d`); that run must be treated as **invalid for confirmatory interpretation**, even if its old auditor later reports PASS.
+
+The runner now uses disjoint deterministic streams:
+- `SeedSequence([seed, replicate, 1])`: parent redshifts;
+- `SeedSequence([seed, replicate, 2])`: validation permutation;
+- `SeedSequence([seed, replicate, 3])`: retention uniforms.
+
+The independent auditor separately reconstructs all three streams from the declared seed protocol and verifies every parent redshift, validation rank, and retention uniform against the raw artifact. The stream protocol is recorded in both the immutable config and summary. An adversarial test modifies a raw uniform while preserving its Bernoulli label and refreshing the manifest; the auditor must still reject it.
+
+The objective/coefficient tampering fixtures have been returned to a single replicate because the corrected stream protocol removes the replicate-zero collision; they no longer rely on five replicate attempts to find a successful fit.
+
+**Next gate:** run the focused tests on the corrected code, then rerun the full 100-replicate experiment and inspect its independent RNG-stream audit report. No pre-fix density-recovery results should be pooled with the corrected experiment.
