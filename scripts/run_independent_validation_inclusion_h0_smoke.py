@@ -131,7 +131,7 @@ def main() -> None:
             "gw_distance": float(row.distance_mpc),
             "gw_sigma": float(analysis["config"]["sigma_mpc"]),
         }
-        for row in events_frame.itertuples(index=False, float_format="%.17g")
+        for row in events_frame.itertuples(index=False)
     ]
     h0_grid = np.linspace(args.prior_min, args.prior_max, args.h0_points)
     # Record the coefficient prior explicitly so the posterior target is fully
