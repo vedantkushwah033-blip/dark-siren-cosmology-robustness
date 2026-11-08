@@ -158,6 +158,42 @@ def audit_artifact(artifact_dir: Path) -> dict:
                          "degree","bandwidth_multiplier","arm"]
     if attempts.duplicated(attempt_key_columns).any():
         raise AssertionError("Duplicate attempt key")
+
+    # Reconstruct the complete planned factorial attempt set. A CSV that has
+    # internally consistent summaries but silently omits difficult attempts
+    # must fail the independent audit.
+    expected_attempt_keys=set()
+    for rep in range(int(summary["n_replicates"])):
+        for gamma in summary["gamma_values"]:
+            for retention in summary["retention_values"]:
+                for nval in summary["validation_sizes"]:
+                    for multiplier in summary["bandwidth_multipliers"]:
+                        for arm in ("catalogue_only","known_inclusion_ipw","parent_sample_kde"):
+                            expected_attempt_keys.add((
+                                rep,float(gamma),float(retention),int(nval),0,
+                                float(multiplier),arm,
+                            ))
+                        for degree in summary["degrees"]:
+                            expected_attempt_keys.add((
+                                rep,float(gamma),float(retention),int(nval),int(degree),
+                                float(multiplier),f"estimated_degree_{int(degree)}_ipw",
+                            ))
+    actual_attempt_keys={
+        (int(row.replicate),float(row.gamma),float(row.target_retention),
+         int(row.n_validation),int(row.degree),float(row.bandwidth_multiplier),
+         str(row.arm))
+        for row in attempts.itertuples(index=False)
+    }
+    missing_attempts=expected_attempt_keys-actual_attempt_keys
+    unexpected_attempts=actual_attempt_keys-expected_attempt_keys
+    if missing_attempts or unexpected_attempts:
+        raise AssertionError(
+            "Attempt design mismatch: "
+            f"{len(missing_attempts)} missing, {len(unexpected_attempts)} unexpected"
+        )
+    allowed_statuses={"SUCCESS","NON_EVALUABLE","FAILED","NOT_RUN"}
+    if not set(attempts.status).issubset(allowed_statuses):
+        raise AssertionError("Unknown attempt lifecycle status")
     center=_center()
     checked_partitions=0
     for key, group in units.groupby(["replicate","gamma","target_retention","n_validation"],sort=False):
@@ -213,15 +249,21 @@ def audit_artifact(artifact_dir: Path) -> dict:
             if not validation_sets[small].issubset(validation_sets[large]):
                 raise AssertionError(f"Validation samples are not nested: {key}")
 
-    attempt_keys=["replicate","gamma","target_retention","n_validation"]
+    # Index parent partitions once. Re-scanning the entire raw-unit table for
+    # every attempt would make the full confirmatory audit quadratic in the
+    # number of scenarios and prohibitively expensive.
+    unit_group_lookup={
+        (int(key[0]),float(key[1]),float(key[2]),int(key[3])):
+            group.sort_values("object_id")
+        for key,group in units.groupby(
+            ["replicate","gamma","target_retention","n_validation"],sort=False
+        )
+    }
     checked_densities=0
     for row in attempts.itertuples(index=False):
-        key=(row.replicate,row.gamma,row.target_retention,row.n_validation)
-        mask=np.ones(len(units),dtype=bool)
-        for col,val in zip(attempt_keys,key):
-            mask &= units[col].to_numpy()==val
-        frame=units.loc[mask].sort_values("object_id")
-        if frame.empty:
+        key=(int(row.replicate),float(row.gamma),float(row.target_retention),int(row.n_validation))
+        frame=unit_group_lookup.get(key)
+        if frame is None or frame.empty:
             raise AssertionError(f"Attempt has no parent-unit records: {key}")
         z=frame.redshift.to_numpy(dtype=float)
         y=frame.retained.to_numpy(dtype=int)
@@ -292,6 +334,14 @@ def audit_artifact(artifact_dir: Path) -> dict:
                 raise AssertionError(f"Fitted information condition number mismatch: {key}")
             if not np.isclose(float(np.max(np.abs(beta))),float(row.fit_max_abs_coefficient),rtol=2e-5,atol=2e-8):
                 raise AssertionError(f"Maximum coefficient diagnostic mismatch: {key}")
+            if int(np.linalg.matrix_rank(design))!=int(row.fit_design_rank):
+                raise AssertionError(f"Fitted design-rank diagnostic mismatch: {key}")
+            design_condition=float(np.linalg.cond(design))
+            if not np.isclose(design_condition,float(row.fit_design_condition_number),rtol=2e-5,atol=2e-8):
+                raise AssertionError(f"Fitted design-condition diagnostic mismatch: {key}")
+            objective=float(np.sum(np.logaddexp(0.0,design@beta)-validation_y*(design@beta)))
+            if not np.isclose(objective,float(row.fit_objective),rtol=2e-8,atol=2e-8):
+                raise AssertionError(f"Fitted logistic objective mismatch: {key}")
             if int(row.n_analysis_catalogue)!=int(np.sum(analysis)):
                 raise AssertionError(f"Analysis-catalogue size mismatch: {key}")
             if int(row.n_validation_actual)!=int(np.sum(valmask)):
