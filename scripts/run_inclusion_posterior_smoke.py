@@ -208,10 +208,7 @@ def main() -> None:
         truth_dir / "validation_frame_truth.csv", index=False
     )
 
-    for fit in fits:
-        fit["h0_posterior"].__class__
-    fine["h0_posterior"]
-    pd.DataFrame({
+    # The highest-order fit supplies the archived posterior curve.\n    pd.DataFrame({
         "H0_km_s_Mpc": fine["h0_posterior"].grid,
         "posterior_density": fine["h0_posterior"].density,
         "posterior_cdf": fine["h0_posterior"].cdf,
