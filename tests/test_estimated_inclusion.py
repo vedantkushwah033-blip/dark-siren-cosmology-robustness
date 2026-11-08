@@ -40,8 +40,9 @@ def test_single_class_validation_is_non_evaluable():
 
 def test_rank_deficient_design_is_failed():
     z = np.repeat(0.2, 20)
-    with pytest.raises(ValueError, match="variation"):
-        fit_inclusion_logistic(z, np.tile([0, 1], 10))
+    fit = fit_inclusion_logistic(z, np.tile([0, 1], 10))
+    assert fit.status == "FAILED"
+    assert "rank deficient" in fit.message
 
 
 def test_invalid_inputs_are_rejected():
