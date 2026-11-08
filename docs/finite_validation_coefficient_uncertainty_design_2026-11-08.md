@@ -86,7 +86,7 @@ Let \\(\\mathcal L(H_0;f_b)\\) denote the existing event likelihood evaluated us
 \\[
 \\mathcal L_{\\mathrm{marg}}(H_0)
 =\\int \\mathcal L(H_0;f_\\theta)
-p(\\theta\\mid V)\\,d\\theta
+\\,p(\\theta\\mid V)\\,d\\theta
 \\approx
 \\frac{1}{B}\\sum_{b=1}^{B}
 \\mathcal L(H_0;f_b).
