@@ -108,6 +108,12 @@ def test_independent_auditor_rejects_tampered_attempt_status_summary(tmp_path):
     payload = json.loads(path.read_text(encoding="utf-8"))
     payload["paired_ipw_minus_catalogue_only_contrasts"][0]["n_estimated_failed"] += 1
     path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    summary_bytes = path.read_bytes()
+    manifest["files"]["summary"]["bytes"] = len(summary_bytes)
+    manifest["files"]["summary"]["sha256"] = hashlib.sha256(summary_bytes).hexdigest()
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
     with pytest.raises(AssertionError, match="Paired contrast key mismatch"):
         audit_artifact(tmp_path)
 
