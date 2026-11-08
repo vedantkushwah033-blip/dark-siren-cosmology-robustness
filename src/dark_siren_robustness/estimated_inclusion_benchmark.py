@@ -7,9 +7,10 @@ on held-out objects; it is never passed to the fitter.
 """
 from __future__ import annotations
 import json
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from pathlib import Path
 from scipy.special import expit
 
 from dark_siren_robustness.estimated_inclusion import fit_inclusion_logistic
@@ -45,7 +46,7 @@ def run_probability_validation_benchmark(
     *,
     n_parent: int = 4000,
     validation_sizes=(100, 300, 1000),
-    curvature_values=(0.0, 1.2),
+    curvature_values=(-2.0, -1.2, 0.0, 1.2, 2.0),
     degrees=(1, 2),
     replicates: int = 20,
     seed: int = 20261108,
