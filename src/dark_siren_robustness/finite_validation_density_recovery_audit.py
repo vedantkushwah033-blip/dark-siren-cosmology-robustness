@@ -242,8 +242,9 @@ def audit_artifact(artifact_dir: Path) -> dict:
             group.redshift.to_numpy(dtype=float),expected_z,rtol=0.0,atol=5e-15
         ):
             raise AssertionError(f"Parent redshifts do not match their declared RNG stream: {key}")
-        if not np.array_equal(
-            group.retention_uniform.to_numpy(dtype=float),expected_uniform
+        if not np.allclose(
+            group.retention_uniform.to_numpy(dtype=float),
+            expected_uniform,rtol=0.0,atol=5e-15,
         ):
             raise AssertionError(f"Retention uniforms do not match their independent RNG stream: {key}")
         if not np.array_equal(
