@@ -67,6 +67,16 @@ def audit_artifact(artifact_dir: Path) -> dict:
     attempts=pd.read_csv(artifact_dir/"attempt_metrics.csv")
     units=pd.read_csv(artifact_dir/"parent_units.csv")
     summary=json.loads((artifact_dir/"summary.json").read_text(encoding="utf-8"))
+    manifest=json.loads((artifact_dir/"manifest.json").read_text(encoding="utf-8"))
+    for name, record in manifest["files"].items():
+        artifact_path=artifact_dir/record["path"]
+        if not artifact_path.is_file():
+            raise AssertionError(f"Manifest file missing: {record['path']}")
+        payload=artifact_path.read_bytes()
+        if len(payload)!=int(record["bytes"]):
+            raise AssertionError(f"Manifest byte count mismatch: {record['path']}")
+        if hashlib.sha256(payload).hexdigest()!=record["sha256"]:
+            raise AssertionError(f"Manifest checksum mismatch: {record['path']}")
     grid_spec=summary["grid"]
     grid=np.linspace(float(grid_spec[0]),float(grid_spec[1]),int(grid_spec[2]))
     merger=1.0+1.5*(grid-Z_MIN)/(Z_MAX-Z_MIN)
@@ -196,6 +206,7 @@ def audit_artifact(artifact_dir: Path) -> dict:
         "checked_density_estimates":checked_densities,
         "attempt_count":int(len(attempts)),
         "status_counts":observed_counts,
+        "manifest_files_verified":int(len(manifest["files"])),
         "limitations":[
             "Numerical artifact reconstruction is not scientific validation of the DGP.",
             "No H0 likelihood, posterior calibration, or coverage is audited.",
