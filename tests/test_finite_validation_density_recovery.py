@@ -74,17 +74,24 @@ def test_paired_contrast_reports_failed_and_non_evaluable_attempts():
             "replicate": replicate, "gamma": 1.2, "target_retention": 0.25,
             "n_validation": 100, "bandwidth_multiplier": 0.15,
             "arm": "catalogue_only", "status": cat_status, "iae": cat_iae,
+            "n_analysis_catalogue": 1000 - 100 * replicate,
         })
         rows.append({
             "replicate": replicate, "gamma": 1.2, "target_retention": 0.25,
             "n_validation": 100, "bandwidth_multiplier": 0.15,
             "arm": "estimated_degree_1_ipw", "status": est_status, "iae": est_iae,
+            "n_analysis_catalogue": 1000 - 100 * replicate,
         })
     result = _paired_contrast_summary(
         pd.DataFrame(rows), n_replicates=5, bootstrap_resamples=100,
     )[0]
     assert result["n_pairs"] == 1
     assert result["n_replicates_with_both_attempts"] == 5
+    assert result["mean_n_analysis_catalogue"] == pytest.approx(800.0)
+    assert result["sd_n_analysis_catalogue"] == pytest.approx(np.std([1000, 900, 800, 700, 600], ddof=1))
+    assert result["min_n_analysis_catalogue"] == 600
+    assert result["max_n_analysis_catalogue"] == 1000
+    assert result["n_catalogue_size_records"] == 5
     assert result["n_catalogue_only_success"] == 2
     assert result["n_catalogue_only_failed"] == 1
     assert result["n_catalogue_only_non_evaluable"] == 1
