@@ -123,3 +123,59 @@ def test_explicit_bandwidth_factor_is_absolute_scipy_covariance_factor():
         bandwidth_factor=0.8,
     )
     np.testing.assert_allclose(actual, reference, rtol=1e-12, atol=1e-12)
+
+
+
+def test_scott_multiplier_one_matches_weighted_scott_default():
+    grid = np.linspace(0.01, 0.40, 501)
+    sample = np.linspace(0.012, 0.398, 120) ** 1.0
+    probability = 0.12 + 0.82 / (1.0 + np.exp((sample - 0.22) / 0.05))
+    default = estimate_host_density(
+        grid, sample, inclusion_probability=probability
+    )
+    explicit = estimate_host_density(
+        grid, sample, inclusion_probability=probability,
+        scott_multiplier=1.0,
+    )
+    np.testing.assert_allclose(explicit, default, rtol=1e-12, atol=1e-12)
+
+
+def test_scott_multiplier_uses_original_weighted_sample_effective_size():
+    grid = np.linspace(0.01, 0.40, 501)
+    sample = np.linspace(0.012, 0.398, 120)
+    probability = 0.12 + 0.82 / (1.0 + np.exp((sample - 0.22) / 0.05))
+    weights = 1.0 / probability
+    scaled = weights / np.max(weights)
+    neff = np.sum(scaled) ** 2 / np.sum(scaled ** 2)
+    augmented = np.concatenate((
+        sample, 2.0 * grid[0] - sample, 2.0 * grid[-1] - sample,
+    ))
+    augmented_weights = np.tile(scaled / 3.0, 3)
+    expected_kde = gaussian_kde(
+        augmented, weights=augmented_weights,
+        bw_method=0.5 * neff ** (-1.0 / 5.0),
+    )
+    expected = expected_kde(grid)
+    expected /= trapezoid(expected, grid)
+    actual = estimate_host_density(
+        grid, sample, inclusion_probability=probability,
+        scott_multiplier=0.5,
+    )
+    np.testing.assert_allclose(actual, expected, rtol=1e-12, atol=1e-12)
+
+
+def test_absolute_bandwidth_and_scott_multiplier_are_mutually_exclusive():
+    grid = np.linspace(0.01, 0.40, 101)
+    sample = np.linspace(0.02, 0.39, 20)
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        estimate_host_density(
+            grid, sample, bandwidth_factor=0.8, scott_multiplier=0.8
+        )
+
+
+@pytest.mark.parametrize("multiplier", [0.0, -0.1, np.nan, np.inf])
+def test_invalid_scott_multiplier_is_rejected(multiplier):
+    grid = np.linspace(0.01, 0.40, 101)
+    sample = np.linspace(0.02, 0.39, 20)
+    with pytest.raises(ValueError, match="scott_multiplier"):
+        estimate_host_density(grid, sample, scott_multiplier=multiplier)
