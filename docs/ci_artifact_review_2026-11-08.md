@@ -133,3 +133,28 @@ Checks:
 The raw partition totals were 210,000 validation records, 452,824 analysis-catalogue records, and 1,137,176 non-retained holdout records. The manifest SHA-256 hashes for both raw and summary CSV files were also independently recomputed and matched.
 
 This materially strengthens confidence in the probability-stage artifact's numerical integrity. It does not change the pilot's scientific status: five replicates per cell remain exploratory, and the probability-stage results still do not establish downstream H0 calibration or estimator superiority.
+
+
+## 10. Descriptive structure in the five-replicate probability pilot
+
+The independently reconstructed summary also permits a descriptive check of finite-sample model-complexity effects. Across all retention targets and five replicates per cell, held-out RMSE by curvature and validation size was:
+
+| True curvature | n=100: linear / quadratic | n=300: linear / quadratic | n=1,000: linear / quadratic |
+|---:|---:|---:|---:|
+| -2.0 | 0.0598 / 0.0671 | 0.0365 / 0.0442 | 0.0238 / 0.0182 |
+| -1.2 | 0.0627 / 0.0743 | 0.0304 / 0.0404 | 0.0187 / 0.0188 |
+| 0.0 | 0.0581 / 0.0766 | 0.0275 / 0.0418 | 0.0130 / 0.0158 |
+| +1.2 | 0.0591 / 0.0712 | 0.0351 / 0.0449 | 0.0198 / 0.0189 |
+| +2.0 | 0.0566 / 0.0705 | 0.0386 / 0.0421 | 0.0269 / 0.0191 |
+
+Across these pilot cells, the quadratic fit's held-out RMSE was descriptively higher at n=100 and n=300, while the gap narrowed or sometimes reversed at n=1,000. At zero curvature, the simpler linear model also performed better in this pilot, consistent with the extra quadratic coefficient adding finite-sample variance when it is unnecessary. This is a useful candidate bias-variance pattern, not a reliable model-selection conclusion: each gamma × validation-size × retention × degree cell has only five replicates.
+
+Because validation objects are excluded from the analysis catalogue, larger validation samples also leave fewer analysis objects. Absolute ESS therefore should not be compared without accounting for the analysis-catalogue size. The mean Kish ESS fraction (Kish ESS divided by analysis-catalogue size) was:
+
+| Retention target | n=100 | n=300 | n=1,000 |
+|---:|---:|---:|---:|
+| 0.10 | 0.750 | 0.827 | 0.854 |
+| 0.25 | 0.860 | 0.881 | 0.890 |
+| 0.50 | 0.884 | 0.938 | 0.945 |
+
+The corresponding mean analysis-catalogue sizes fell as validation size increased (for example, at target retention 0.10: 406, 384 and 310). Thus the rising ESS fraction indicates less concentrated estimated weights relative to the remaining catalogue in these cells, not a larger absolute effective sample. This is descriptive and still needs more replicates and held-out scenario validation.
