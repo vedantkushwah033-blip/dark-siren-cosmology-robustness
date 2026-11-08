@@ -30,7 +30,9 @@ python scripts/run_inclusion_posterior_calibration.py \
 
 This default design plans 360 independently audited replicate-size runs. It is
 intentionally a long-running pilot; increase replication only after reviewing
-runtime, numerical evaluability and the audit trail.
+runtime, numerical evaluability and the audit trail. The output directory must
+be new or empty; choose a fresh path for every run so prior artifacts are never
+overwritten.
 
 ## Pairing and seeds
 
