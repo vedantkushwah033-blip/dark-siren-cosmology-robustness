@@ -11,9 +11,10 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.optimize import brentq
 from scipy.special import expit
 
-KEYS = ["scenario_seed", "replicate", "gamma", "n_validation", "model_degree"]
+KEYS = ["scenario_seed", "replicate", "gamma", "retention_target", "n_validation", "model_degree"]
 ROLES = {"validation", "analysis_catalogue", "nonretained_holdout"}
 METRICS = [
     "heldout_brier_score", "heldout_log_loss", "heldout_probability_rmse",
@@ -43,11 +44,32 @@ def _weight_stats(probability: np.ndarray) -> dict[str, float]:
     }
 
 
+
+def _dgp_parameters(gamma: float, retention_target: float) -> tuple[float, float]:
+    z_grid = np.linspace(0.01, 0.40, 20001)
+    intensity = (
+        1.0
+        + 2.2 * np.exp(-0.5 * ((z_grid - 0.105) / 0.025) ** 2)
+        + 1.6 * np.exp(-0.5 * ((z_grid - 0.275) / 0.040) ** 2)
+    )
+    x = (z_grid - 0.01) / 0.39
+    center = float(np.trapezoid(intensity * x**2, z_grid) / np.trapezoid(intensity, z_grid))
+    base = -x + gamma * (x**2 - center)
+    alpha = float(brentq(
+        lambda a: np.trapezoid(intensity * expit(a + base), z_grid)
+        / np.trapezoid(intensity, z_grid) - retention_target,
+        -30.0, 30.0,
+    ))
+    return alpha, center
+
+
 def audit(summary_path: Path, raw_path: Path, tolerance: float = 1e-10) -> dict:
     summary = pd.read_csv(summary_path)
     raw = pd.read_csv(raw_path)
     required_summary = set(KEYS + [
         "fit_status", "n_parent", "n_validation", "n_analysis_catalogue",
+        "retention_realized_parent", "mean_true_probability", "true_alpha",
+        "true_beta", "true_gamma", "curvature_center",
         "coefficients_json", "covariance_json", "fit_center", "fit_scale",
     ] + METRICS)
     required_raw = set(KEYS + [
@@ -87,6 +109,29 @@ def audit(summary_path: Path, raw_path: Path, tolerance: float = 1e-10) -> dict:
             raise ValueError(f"{key}: object IDs do not form the complete parent frame")
         if units["object_id"].nunique() != n_parent:
             raise ValueError(f"{key}: object IDs are not unique")
+        expected_alpha, expected_center = _dgp_parameters(
+            float(row.gamma), float(row.retention_target)
+        )
+        if abs(float(row.true_alpha) - expected_alpha) > 1e-10:
+            raise ValueError(f"{key}: true intercept does not match target retention")
+        if abs(float(row.curvature_center) - expected_center) > 1e-10:
+            raise ValueError(f"{key}: curvature center does not match parent law")
+        if abs(float(row.true_beta) + 1.0) > 1e-12 or abs(float(row.true_gamma) - float(row.gamma)) > 1e-12:
+            raise ValueError(f"{key}: DGP slope/curvature metadata mismatch")
+        x_parent = (units["redshift"].to_numpy(dtype=float) - 0.01) / 0.39
+        p_true_rebuilt = expit(
+            expected_alpha - x_parent
+            + float(row.gamma) * (x_parent**2 - expected_center)
+        )
+        if not np.allclose(
+            units["p_true"].to_numpy(dtype=float), p_true_rebuilt,
+            rtol=1e-12, atol=1e-14,
+        ):
+            raise ValueError(f"{key}: stored truth probabilities do not match DGP")
+        if abs(float(units["p_true"].mean()) - float(row.mean_true_probability)) > tolerance:
+            raise ValueError(f"{key}: mean true probability summary mismatch")
+        if abs(float(units["retained"].mean()) - float(row.retention_realized_parent)) > tolerance:
+            raise ValueError(f"{key}: realized parent retention summary mismatch")
 
         validation = units.loc[units["split_role"] == "validation"]
         analysis = units.loc[units["split_role"] == "analysis_catalogue"]
