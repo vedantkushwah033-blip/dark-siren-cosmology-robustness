@@ -83,3 +83,22 @@ Before adopting a default bandwidth rule:
 - run the same protocol on estimated-inclusion arms only after the probability-stage model is properly validated.
 
 **Decision:** the result supports proceeding with a larger training/held-out density-recovery study. It does not justify changing the production benchmark's bandwidth default yet.
+
+
+## 7. Additional held-out parent-law stress
+
+After selecting 0.15 on the original two-overdensity training DGP, I evaluated the frozen candidate on 50 new seeds (31,000–31,049) under a different parent intensity:
+`0.8 + 3.0 exp(-0.5((z-0.18)/0.018)^2) + 0.5 exp(-0.5((z-0.32)/0.06)^2)`.
+The inclusion curve, merger weight, n_parent=4,000, redshift support, grid and candidate multipliers were unchanged. This is a stress check, not another tuning set.
+
+Mean IAE on the alternative parent law:
+
+| Arm | Scott × 0.15 | Scott × 0.40 | Scott × 1.00 |
+|---|---:|---:|---:|
+| Oracle parent KDE | 0.0580 | 0.1415 | 0.2664 |
+| Known-inclusion IPW KDE | 0.0867 | 0.1775 | 0.2854 |
+| Catalogue-only KDE | 0.5061 | 0.5030 | 0.5128 |
+
+At multiplier 0.15, the paired known-IPW minus catalogue-only IAE difference was -0.4194 (50 seeds; percentile-bootstrap 95% interval [-0.4258, -0.4127]); known-IPW minus oracle was +0.0287 (95% interval [0.0254, 0.0321]).
+
+The frozen 0.15 candidate remained best among these three tested values for oracle and known-IPW density recovery under this alternative parent law. Catalogue-only again preferred a broader setting. This is encouraging but not a universal bandwidth result: only two parent laws, one inclusion curve, one parent size and three candidate multipliers have been examined.
