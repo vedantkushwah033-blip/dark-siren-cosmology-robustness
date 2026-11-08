@@ -218,3 +218,6 @@ The H0 propagation layer now also reports disjoint-batch Monte Carlo diagnostics
 Focused workflow [#42480779870](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/42480779870) passed on Python 3.10, 3.11 and 3.12 at PR head `54ac5a99eba3e8cef3eaffee9a492c6dcf91628e`, including the end-to-end smoke, vectorized/reference likelihood equivalence, per-draw selection-order test, posterior normalization, batch MCSE, and memory-guard checks.
 
 **Still not a scientific H0 result:** this is a single synthetic computational smoke, not a confirmatory repeated-sampling experiment. No SBC, PIT calibration, fixed-truth H0 coverage, prior-scale sensitivity study, or real-data inference has been completed.
+
+
+The broader numerical-diagnostics workflow [#42480407551](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/42480407551) subsequently completed successfully on Python 3.10, 3.11 and 3.12. The dedicated finite-validation posterior/H0 workflow [#42480779870](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/42480779870) also passed all three versions, including the end-to-end DGP smoke, batch-based H0 marginalization MCSE and memory checks. Neither workflow evaluates repeated-sampling H0 calibration or coverage.
