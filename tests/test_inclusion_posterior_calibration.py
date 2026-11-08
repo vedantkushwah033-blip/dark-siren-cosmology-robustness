@@ -77,3 +77,18 @@ def test_summary_keeps_non_evaluable_and_failed_attempts_visible():
     assert cell["coverage_68"] == pytest.approx(1.0)
     assert cell["mean_posterior_median_bias"] == pytest.approx(1.0)
     assert cell["median_minimum_catalogue_kish_ess"] == pytest.approx(500.0)
+
+
+def test_sbc_summary_reports_pit_and_prior_predictive_interval_inclusion():
+    frame = pd.DataFrame([
+        {"experiment": "SBC", "catalogue_floor": 0.1, "n_validation": 300,
+         "status": "SUCCESS", "pit": 0.4,
+         "sbc_included_68": 1, "sbc_included_90": 1, "sbc_included_95": 1},
+        {"experiment": "SBC", "catalogue_floor": 0.1, "n_validation": 300,
+         "status": "SUCCESS", "pit": 0.6,
+         "sbc_included_68": 0, "sbc_included_90": 1, "sbc_included_95": 1},
+    ])
+    cell = MODULE._summarize(frame, bins=5)["SBC|floor=0.1|n=300"]
+    assert cell["pit_mean"] == pytest.approx(0.5)
+    assert cell["prior_predictive_interval_inclusion_68"] == pytest.approx(0.5)
+    assert cell["prior_predictive_interval_inclusion_90"] == pytest.approx(1.0)
