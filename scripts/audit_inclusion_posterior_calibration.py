@@ -115,9 +115,9 @@ def audit(root: Path) -> dict:
     attempted = int((ledger["status"] != "NOT_RUN").sum())
     if int(summary["attempted"]) != attempted:
         raise AssertionError("summary attempted count is incorrect")
-    counts = ledger["status"].value_counts().to_dict()
+    status_counts = ledger["status"].value_counts().to_dict()
     if {str(k): int(v) for k, v in summary["status_counts"].items()} != {
-        str(k): int(v) for k, v in counts.items()
+        str(k): int(v) for k, v in status_counts.items()
     }:
         raise AssertionError("summary status counts do not match replicate ledger")
 
@@ -222,7 +222,7 @@ def audit(root: Path) -> dict:
         "status": "PASS",
         "planned_cells": int(len(planned)),
         "attempted_cells": attempted,
-        "status_counts": {str(k): int(v) for k, v in counts.items()},
+        "status_counts": {str(k): int(v) for k, v in status_counts.items()},
         "per_replicate_audits_passed": per_replicate_audits,
         "paired_design_blocks_checked": paired_blocks,
         "scientific_limit": "Orchestration and arithmetic integrity only; conditional H0 PIT and fixed-truth coverage are not joint SBC or real-data validation.",
