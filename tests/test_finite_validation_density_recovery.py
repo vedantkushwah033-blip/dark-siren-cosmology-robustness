@@ -194,7 +194,7 @@ def test_auditor_allows_subtolerance_csv_float_roundtrip(tmp_path):
     )
     idx = int(np.flatnonzero(margin > 1e-8)[0])
     original = float(frame.loc[idx, "retention_uniform"])
-    frame.loc[idx, "retention_uniform"] = np.nextafter(original, 1.0)
+    frame.loc[idx, "retention_uniform"] = np.nextafter(original, 0.0)
     frame.to_csv(path, index=False)
     _refresh_unit_manifest(tmp_path)
     report = audit_artifact(tmp_path)
