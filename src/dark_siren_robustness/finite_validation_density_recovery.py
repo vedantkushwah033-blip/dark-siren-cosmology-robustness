@@ -131,7 +131,6 @@ def run_density_recovery_benchmark(
     merger = 1.0 + 1.5 * (grid - Z_MIN) / (Z_MAX - Z_MIN)
     truth = _analytic_target(grid)
     center = _curvature_center()
-    max_validation = max(validation_sizes)
     attempt_rows: list[dict] = []
     unit_rows: list[dict] = []
 
@@ -149,110 +148,110 @@ def run_density_recovery_benchmark(
         base_retention_uniform = np.random.default_rng(seed + 3000017 * rep).random(n_parent)
 
         for gamma in gamma_values:
-          for target_retention in retention_values:
-            alpha = _calibrate_intercept(float(gamma), float(target_retention), center)
-            x_parent = (parent_z - Z_MIN) / (Z_MAX - Z_MIN)
-            true_probability = expit(
-                alpha - x_parent + gamma * (x_parent**2 - center)
-            )
-            retained = (base_retention_uniform < true_probability).astype(np.int8)
-            for n_validation in validation_sizes:
-                validation_idx = nested_validation[n_validation]
-                is_validation = np.zeros(n_parent, dtype=bool)
-                is_validation[validation_idx] = True
-                analysis_mask = (~is_validation) & (retained == 1)
-                analysis_idx = np.flatnonzero(analysis_mask)
-                val_z = parent_z[validation_idx]
-                val_y = retained[validation_idx]
-                analysis_z = parent_z[analysis_idx]
-                analysis_pi = true_probability[analysis_idx]
+            for target_retention in retention_values:
+                alpha = _calibrate_intercept(float(gamma), float(target_retention), center)
+                x_parent = (parent_z - Z_MIN) / (Z_MAX - Z_MIN)
+                true_probability = expit(
+                    alpha - x_parent + gamma * (x_parent**2 - center)
+                )
+                retained = (base_retention_uniform < true_probability).astype(np.int8)
+                for n_validation in validation_sizes:
+                    validation_idx = nested_validation[n_validation]
+                    is_validation = np.zeros(n_parent, dtype=bool)
+                    is_validation[validation_idx] = True
+                    analysis_mask = (~is_validation) & (retained == 1)
+                    analysis_idx = np.flatnonzero(analysis_mask)
+                    val_z = parent_z[validation_idx]
+                    val_y = retained[validation_idx]
+                    analysis_z = parent_z[analysis_idx]
+                    analysis_pi = true_probability[analysis_idx]
 
-                # One raw parent row per object/scenario/split size makes the
-                # disjoint partition and oracle truth independently inspectable.
-                for idx in range(n_parent):
-                    unit_rows.append({
-                        "replicate": rep, "gamma": float(gamma),
-                        "target_retention": float(target_retention),
-                        "n_validation": int(n_validation),
-                        "object_id": int(object_ids[idx]),
-                        "redshift": float(parent_z[idx]),
-                        "true_inclusion_probability": float(true_probability[idx]),
-                        "retention_uniform": float(base_retention_uniform[idx]),
-                        "validation_rank": int(validation_rank[idx]),
-                        "retained": int(retained[idx]),
-                        "role": ("VALIDATION" if is_validation[idx]
-                                 else ("ANALYSIS_CATALOGUE" if retained[idx]
-                                       else "NON_RETAINED_HOLDOUT")),
-                    })
-
-                base_arms = {
-                    "catalogue_only": (analysis_z, None),
-                    "known_inclusion_ipw": (analysis_z, analysis_pi),
-                    "parent_sample_kde": (parent_z, None),
-                }
-                fits = {
-                    degree: fit_inclusion_logistic(val_z, val_y, degree=degree)
-                    for degree in degrees
-                }
-                for multiplier in bandwidth_multipliers:
-                    for arm, (sample, probabilities) in base_arms.items():
-                        status, message, density = "SUCCESS", "", None
-                        try:
-                            density = _safe_density(
-                                grid, sample, probabilities, merger, multiplier
-                            )
-                        except (ValueError, ArithmeticError, np.linalg.LinAlgError) as exc:
-                            status, message = "NON_EVALUABLE", str(exc)
-                        attempt_rows.append({
-                            "replicate": rep, "seed": seed + 1000003 * rep,
-                            "gamma": float(gamma), "target_retention": float(target_retention),
-                            "n_validation": int(n_validation), "degree": 0,
-                            "bandwidth_multiplier": float(multiplier), "arm": arm,
-                            "status": status, "message": message,
-                            "n_parent": n_parent, "n_validation_actual": n_validation,
-                            "n_analysis_catalogue": int(analysis_z.size),
-                            "iae": (_density_iae(density, truth, grid)
-                                    if density is not None else np.nan),
-                            "density_json": (json.dumps(density.tolist(), separators=(",", ":"))
-                                             if density is not None else ""),
-                            "coefficients_json": "", "fit_status": "NOT_APPLICABLE",
-                            "fit_message": "",
+                    # One raw parent row per object/scenario/split size makes the
+                    # disjoint partition and oracle truth independently inspectable.
+                    for idx in range(n_parent):
+                        unit_rows.append({
+                            "replicate": rep, "gamma": float(gamma),
+                            "target_retention": float(target_retention),
+                            "n_validation": int(n_validation),
+                            "object_id": int(object_ids[idx]),
+                            "redshift": float(parent_z[idx]),
+                            "true_inclusion_probability": float(true_probability[idx]),
+                            "retention_uniform": float(base_retention_uniform[idx]),
+                            "validation_rank": int(validation_rank[idx]),
+                            "retained": int(retained[idx]),
+                            "role": ("VALIDATION" if is_validation[idx]
+                                     else ("ANALYSIS_CATALOGUE" if retained[idx]
+                                           else "NON_RETAINED_HOLDOUT")),
                         })
-                    for degree, fit in fits.items():
-                        arm = f"estimated_degree_{degree}_ipw"
-                        status, message, density = fit.status, fit.message, None
-                        if fit.status == "SUCCESS":
+
+                    base_arms = {
+                        "catalogue_only": (analysis_z, None),
+                        "known_inclusion_ipw": (analysis_z, analysis_pi),
+                        "parent_sample_kde": (parent_z, None),
+                    }
+                    fits = {
+                        degree: fit_inclusion_logistic(val_z, val_y, degree=degree)
+                        for degree in degrees
+                    }
+                    for multiplier in bandwidth_multipliers:
+                        for arm, (sample, probabilities) in base_arms.items():
+                            status, message, density = "SUCCESS", "", None
                             try:
-                                estimated_pi = fit.predict(analysis_z)
                                 density = _safe_density(
-                                    grid, analysis_z, estimated_pi, merger, multiplier
+                                    grid, sample, probabilities, merger, multiplier
                                 )
-                                status, message = "SUCCESS", ""
                             except (ValueError, ArithmeticError, np.linalg.LinAlgError) as exc:
                                 status, message = "NON_EVALUABLE", str(exc)
-                        attempt_rows.append({
-                            "replicate": rep, "seed": seed + 1000003 * rep,
-                            "gamma": float(gamma), "target_retention": PRIMARY_RETENTION,
-                            "n_validation": int(n_validation), "degree": int(degree),
-                            "bandwidth_multiplier": float(multiplier), "arm": arm,
-                            "status": status, "message": message,
-                            "n_parent": n_parent, "n_validation_actual": n_validation,
-                            "n_analysis_catalogue": int(analysis_z.size),
-                            "iae": (_density_iae(density, truth, grid)
-                                    if density is not None else np.nan),
-                            "density_json": (json.dumps(density.tolist(), separators=(",", ":"))
-                                             if density is not None else ""),
-                            "coefficients_json": (
-                                json.dumps(fit.coefficients.tolist(), separators=(",", ":"))
-                                if fit.coefficients is not None else ""),
-                            "fit_status": fit.status, "fit_message": fit.message,
-                            "fit_center": fit.center, "fit_scale": fit.scale,
-                            "fit_covariance_json": (
-                                json.dumps(fit.covariance.tolist(), separators=(",", ":"))
-                                if fit.covariance is not None else ""),
-                            "fit_gradient_inf_norm": fit.gradient_inf_norm,
-                            "fit_hessian_condition_number": fit.hessian_condition_number,
-                        })
+                            attempt_rows.append({
+                                "replicate": rep, "seed": seed + 1000003 * rep,
+                                "gamma": float(gamma), "target_retention": float(target_retention),
+                                "n_validation": int(n_validation), "degree": 0,
+                                "bandwidth_multiplier": float(multiplier), "arm": arm,
+                                "status": status, "message": message,
+                                "n_parent": n_parent, "n_validation_actual": n_validation,
+                                "n_analysis_catalogue": int(analysis_z.size),
+                                "iae": (_density_iae(density, truth, grid)
+                                        if density is not None else np.nan),
+                                "density_json": (json.dumps(density.tolist(), separators=(",", ":"))
+                                                 if density is not None else ""),
+                                "coefficients_json": "", "fit_status": "NOT_APPLICABLE",
+                                "fit_message": "",
+                            })
+                        for degree, fit in fits.items():
+                            arm = f"estimated_degree_{degree}_ipw"
+                            status, message, density = fit.status, fit.message, None
+                            if fit.status == "SUCCESS":
+                                try:
+                                    estimated_pi = fit.predict(analysis_z)
+                                    density = _safe_density(
+                                        grid, analysis_z, estimated_pi, merger, multiplier
+                                    )
+                                    status, message = "SUCCESS", ""
+                                except (ValueError, ArithmeticError, np.linalg.LinAlgError) as exc:
+                                    status, message = "NON_EVALUABLE", str(exc)
+                            attempt_rows.append({
+                                "replicate": rep, "seed": seed + 1000003 * rep,
+                                "gamma": float(gamma), "target_retention": PRIMARY_RETENTION,
+                                "n_validation": int(n_validation), "degree": int(degree),
+                                "bandwidth_multiplier": float(multiplier), "arm": arm,
+                                "status": status, "message": message,
+                                "n_parent": n_parent, "n_validation_actual": n_validation,
+                                "n_analysis_catalogue": int(analysis_z.size),
+                                "iae": (_density_iae(density, truth, grid)
+                                        if density is not None else np.nan),
+                                "density_json": (json.dumps(density.tolist(), separators=(",", ":"))
+                                                 if density is not None else ""),
+                                "coefficients_json": (
+                                    json.dumps(fit.coefficients.tolist(), separators=(",", ":"))
+                                    if fit.coefficients is not None else ""),
+                                "fit_status": fit.status, "fit_message": fit.message,
+                                "fit_center": fit.center, "fit_scale": fit.scale,
+                                "fit_covariance_json": (
+                                    json.dumps(fit.covariance.tolist(), separators=(",", ":"))
+                                    if fit.covariance is not None else ""),
+                                "fit_gradient_inf_norm": fit.gradient_inf_norm,
+                                "fit_hessian_condition_number": fit.hessian_condition_number,
+                            })
 
     attempts = pd.DataFrame(attempt_rows)
     units = pd.DataFrame(unit_rows)
