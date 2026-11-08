@@ -129,6 +129,8 @@ def test_quadrature_ladder_reports_convergence_and_nonconvergence_explicitly():
     assert permissive.status == "CONVERGED"
     assert len(permissive.fits) >= 2
     assert len(permissive.mean_max_abs_change) == len(permissive.fits) - 1
+    assert len(permissive.log_evidence_abs_change) == len(permissive.fits) - 1
+    assert np.all(np.isfinite(permissive.log_evidence_abs_change))
 
     strict = fit_inclusion_posterior_quadrature_ladder(
         z, retained, degree=1, orders=(5, 7, 9),
