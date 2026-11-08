@@ -122,7 +122,7 @@ def run_density_recovery_benchmark(
         raise ValueError("gamma_values must be nonempty and finite")
     if tuple(sorted(set(validation_sizes))) != tuple(validation_sizes):
         raise ValueError("validation_sizes must be unique and increasing")
-    if any(d not in (1, 2) for d in degrees):
+    if not degrees or any(d not in (1, 2) for d in degrees):
         raise ValueError("degrees must contain only 1 and/or 2")
     if any(b <= 0 or not np.isfinite(b) for b in bandwidth_multipliers):
         raise ValueError("bandwidth multipliers must be finite and positive")
@@ -231,7 +231,7 @@ def run_density_recovery_benchmark(
                                     status, message = "NON_EVALUABLE", str(exc)
                             attempt_rows.append({
                                 "replicate": rep, "seed": seed + 1000003 * rep,
-                                "gamma": float(gamma), "target_retention": PRIMARY_RETENTION,
+                                "gamma": float(gamma), "target_retention": float(target_retention),
                                 "n_validation": int(n_validation), "degree": int(degree),
                                 "bandwidth_multiplier": float(multiplier), "arm": arm,
                                 "status": status, "message": message,
@@ -265,7 +265,7 @@ def run_density_recovery_benchmark(
             "parent_intensity": "1 + 2.2*N(0.105,0.025^2) + 1.6*N(0.275,0.040^2), unnormalised",
             "curvature_center": center,
             "inclusion_model": "expit(alpha - x + gamma*(x^2-c))",
-            "intercept_calibration": "parent-intensity weighted quadrature to retention 0.25",
+            "intercept_calibration": "parent-intensity weighted quadrature to each declared retention target",
             "validation_design": "nested SRS from complete parent frame, independent of retention",
         },
         "n_replicates": n_replicates, "n_parent": n_parent, "seed_start": seed,
