@@ -6,6 +6,12 @@ on:
       - research/independent-posterior-audit-claim-fix
     paths:
       - .github/workflows/finite-validation-density-confirmatory.yml
+      - src/dark_siren_robustness/finite_validation_density_recovery.py
+      - src/dark_siren_robustness/finite_validation_density_recovery_audit.py
+      - src/dark_siren_robustness/catalogue_density.py
+      - scripts/run_finite_validation_density_recovery.py
+      - scripts/audit_finite_validation_density_recovery.py
+      - tests/test_finite_validation_density_recovery.py
   workflow_dispatch:
 
 permissions:
