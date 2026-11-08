@@ -328,6 +328,7 @@ def run_density_recovery_benchmark(
                                     if fit.covariance is not None else ""),
                                 "fit_gradient_inf_norm": fit.gradient_inf_norm,
                                 "fit_hessian_condition_number": fit.hessian_condition_number,
+                                "fit_max_abs_coefficient": fit.max_abs_coefficient,
                             })
 
     attempts = pd.DataFrame(attempt_rows)
