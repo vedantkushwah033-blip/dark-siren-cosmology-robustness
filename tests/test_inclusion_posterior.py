@@ -43,13 +43,18 @@ def test_proper_prior_regularizes_complete_separation():
     assert fit.draws is not None
 
 
-def test_one_class_validation_is_non_evaluable():
+def test_one_class_validation_has_a_proper_prior_posterior():
     z = np.linspace(0.01, 0.40, 100)
-    fit = sample_inclusion_posterior(
-        z, np.ones(100), degree=1, warmup=500, draws_per_chain=500
-    )
-    assert fit.status == "NON_EVALUABLE"
-    assert fit.draws is None
+    for outcome in (0, 1):
+        fit = sample_inclusion_posterior(
+            z, np.full(100, outcome), degree=1,
+            warmup=1000, draws_per_chain=1000, seed=41 + outcome
+        )
+        assert fit.status == "SUCCESS", fit.message
+        assert fit.draws.shape == (4, 1000, 2)
+        assert np.all(np.isfinite(fit.draws))
+        assert np.max(fit.rhat) < 1.05
+        assert np.min(fit.ess) >= 100
 
 
 def test_rank_deficient_validation_is_non_evaluable():
