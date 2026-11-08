@@ -39,11 +39,27 @@ def test_posterior_pit_rejects_truth_outside_grid_and_invalid_density():
         MODULE._posterior_pit(negative, 60.0, "density")
 
 
+def test_posterior_pit_rejects_nonfinite_generating_h0():
+    frame = pd.DataFrame({"H0": [50.0, 60.0, 70.0], "density": [0.1, 0.1, 0.1]})
+    with pytest.raises(ValueError, match="must be finite"):
+        MODULE._posterior_pit(frame, float("nan"), "density")
+    with pytest.raises(ValueError, match="must be finite"):
+        MODULE._posterior_pit(frame, float("inf"), "density")
+
+
 def test_wilson_interval_contains_observed_proportion_and_is_bounded():
     low, high = MODULE._wilson_interval(68, 100)
     assert 0.0 <= low < 0.68 < high <= 1.0
     empty = MODULE._wilson_interval(0, 0)
     assert np.isnan(empty[0]) and np.isnan(empty[1])
+
+
+def test_wilson_interval_rejects_invalid_counts_and_z_score():
+    for successes, trials in ((-1, 10), (11, 10), (1, -1), (1.5, 10)):
+        with pytest.raises(ValueError):
+            MODULE._wilson_interval(successes, trials)
+    with pytest.raises(ValueError, match="finite and positive"):
+        MODULE._wilson_interval(1, 10, z=float("nan"))
 
 
 def test_seed_streams_are_deterministic_and_separated():
