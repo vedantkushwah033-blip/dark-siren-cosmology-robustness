@@ -142,3 +142,35 @@ def test_all_attempt_binary_bounds_treat_failed_and_non_evaluable_as_unknown():
     lower, upper = MODULE._attempt_level_binary_bounds(frame, "covered_68")
     assert lower == pytest.approx(1 / 4)
     assert upper == pytest.approx(3 / 4)
+
+def test_paired_validation_size_contrasts_match_replicates_and_exclude_unevaluable_pairs():
+    frame = pd.DataFrame([
+        {"experiment": "FIXED_TRUTH", "catalogue_floor": 0.0, "replicate": 0,
+         "n_validation": 100, "status": "SUCCESS", "h0_true": 70.0,
+         "h0_median": 71.0, "h0_q16": 66.0, "h0_q84": 76.0,
+         "h0_q05": 62.0, "h0_q95": 82.0, "h0_q025": 60.0, "h0_q975": 85.0,
+         "covered_68": 1, "covered_90": 1, "covered_95": 1},
+        {"experiment": "FIXED_TRUTH", "catalogue_floor": 0.0, "replicate": 0,
+         "n_validation": 300, "status": "SUCCESS", "h0_true": 70.0,
+         "h0_median": 70.0, "h0_q16": 66.0, "h0_q84": 74.0,
+         "h0_q05": 64.0, "h0_q95": 78.0, "h0_q025": 62.0, "h0_q975": 80.0,
+         "covered_68": 0, "covered_90": 1, "covered_95": 1},
+        {"experiment": "FIXED_TRUTH", "catalogue_floor": 0.0, "replicate": 1,
+         "n_validation": 100, "status": "SUCCESS", "h0_true": 70.0,
+         "h0_median": 69.0, "h0_q16": 64.0, "h0_q84": 74.0,
+         "h0_q05": 60.0, "h0_q95": 80.0, "h0_q025": 58.0, "h0_q975": 82.0,
+         "covered_68": 1, "covered_90": 1, "covered_95": 1},
+        {"experiment": "FIXED_TRUTH", "catalogue_floor": 0.0, "replicate": 1,
+         "n_validation": 300, "status": "NON_EVALUABLE", "h0_true": 70.0},
+    ])
+    result = MODULE._paired_validation_size_contrasts(frame)
+    cell = result["FIXED_TRUTH|floor=0|100->300"]
+    assert cell["attempted_common_replicates"] == 2
+    assert cell["evaluable_pairs"] == 1
+    assert cell["excluded_pairs"] == 1
+    assert cell["metrics"]["posterior_median"]["mean_delta"] == pytest.approx(-1.0)
+    assert cell["metrics"]["signed_median_error"]["mean_delta"] == pytest.approx(-1.0)
+    assert cell["metrics"]["absolute_median_error"]["mean_delta"] == pytest.approx(-1.0)
+    assert cell["metrics"]["width_68"]["mean_delta"] == pytest.approx(-2.0)
+    assert cell["metrics"]["coverage_68"]["mean_delta"] == pytest.approx(-1.0)
+
