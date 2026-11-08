@@ -113,9 +113,13 @@ def test_conditional_h0_pit_summary_reports_interval_inclusion():
 def test_conditional_h0_pit_summary_is_not_labelled_joint_sbc():
     frame = pd.DataFrame([
         {"experiment": "H0_PIT_FIXED_INCLUSION_TRUTH", "catalogue_floor": 0.0,
-         "n_validation": 100, "status": "SUCCESS", "pit": 0.25},
+         "n_validation": 100, "status": "SUCCESS", "pit": 0.25,
+         "h0_pit_interval_included_68": 1, "h0_pit_interval_included_90": 1,
+         "h0_pit_interval_included_95": 1},
         {"experiment": "H0_PIT_FIXED_INCLUSION_TRUTH", "catalogue_floor": 0.0,
-         "n_validation": 100, "status": "SUCCESS", "pit": 0.75},
+         "n_validation": 100, "status": "SUCCESS", "pit": 0.75,
+         "h0_pit_interval_included_68": 0, "h0_pit_interval_included_90": 1,
+         "h0_pit_interval_included_95": 1},
     ])
     summary = MODULE._summarize(frame, bins=2)
     cell = summary["H0_PIT_FIXED_INCLUSION_TRUTH|floor=0|n=100"]
