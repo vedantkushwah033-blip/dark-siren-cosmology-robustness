@@ -47,7 +47,7 @@ def test_detected_events_obey_threshold_and_truth_ids_match_parent() -> None:
         config["n_detected_events"] + config["n_excess_detected_candidates_discarded"]
     )
     assert config["n_rejected_candidates"] > 0
-    trace = first["gw_generation_trace_truth"]
+    trace = result["gw_generation_trace_truth"]
     assert len(trace) == config["n_generation_attempts"]
     assert int(trace["detected"].sum()) == config["n_detected_candidates"]
     assert int((trace["detected"] == 0).sum()) == config["n_rejected_candidates"]
@@ -78,11 +78,13 @@ def test_runner_writes_separate_observable_and_truth_artifacts(tmp_path: Path) -
     assert config["n_parent"] == 1200
     assert config["n_detected_events"] == 25
     assert config["observable_files"] == ["observable/catalogue_observed.csv", "observable/gw_events_observed.csv"]
-    assert config["truth_only_files"] == ["truth/parent_truth.csv", "truth/gw_event_truth.csv"]
+    assert config["truth_only_files"] == ["truth/parent_truth.csv", "truth/gw_event_truth.csv", "truth/gw_generation_trace_truth.csv"]
     observed_events = pd.read_csv(output_dir / "observable" / "gw_events_observed.csv")
     truth_events = pd.read_csv(output_dir / "truth" / "gw_event_truth.csv")
+    trace = pd.read_csv(output_dir / "truth" / "gw_generation_trace_truth.csv")
     assert list(observed_events.columns) == ["event_id", "distance_mpc", "detected"]
     assert "host_redshift" in truth_events.columns
     assert len(observed_events) == len(truth_events) == 25
+    assert int(trace["selected_as_event"].sum()) == 25
     assert not (output_dir / "observable" / "gw_event_truth.csv").exists()
     assert not (output_dir / "truth" / "gw_events_observed.csv").exists()
