@@ -154,3 +154,55 @@ def test_pipeline_rejects_truncated_redshift_domain_and_oversized_output():
         )
     with pytest.raises(MemoryError, match="reduce proposal draws or grid size"):
         propagate_inclusion_posterior_to_h0(**arguments, max_output_bytes=100)
+
+
+def test_real_importance_posterior_flows_through_density_and_selected_likelihood():
+    from scipy.special import expit
+    from dark_siren_robustness.bayesian_inclusion import (
+        importance_sample_inclusion_posterior,
+    )
+
+    rng = np.random.default_rng(910)
+    validation_z = rng.uniform(0.01, 0.40, 160)
+    validation_u = (validation_z - 0.01) / 0.39
+    validation_probability = expit(-0.8 - 0.7 * validation_u)
+    validation_labels = rng.binomial(1, validation_probability)
+    posterior = importance_sample_inclusion_posterior(
+        validation_z,
+        validation_labels,
+        degree=1,
+        prior_sd=1.0,
+        n_draws=1000,
+        seed=12,
+        min_ess=30,
+        min_ess_fraction=0.01,
+    )
+    assert posterior.status == "SUCCESS", posterior.message
+
+    analysis_parent_z = rng.uniform(0.01, 0.40, 400)
+    analysis_u = (analysis_parent_z - 0.01) / 0.39
+    analysis_probability = expit(-0.8 - 0.7 * analysis_u)
+    analysis_retained = rng.binomial(1, analysis_probability)
+    analysis_catalogue = analysis_parent_z[analysis_retained == 1]
+    assert analysis_catalogue.size >= 20
+
+    redshift_grid = np.linspace(0.01, 0.40, 101)
+    h0_grid = np.linspace(55.0, 85.0, 41)
+    merger = 1.0 + 1.5 * (redshift_grid - 0.01) / 0.39
+    distances = np.array([330.0, 410.0, 520.0])
+    result = propagate_inclusion_posterior_to_h0(
+        posterior,
+        analysis_catalogue,
+        redshift_grid,
+        h0_grid,
+        distances,
+        merger_weight=merger,
+        scott_multiplier=0.3,
+        sigma=120.0,
+        detection_threshold=250.0,
+    )
+    assert result.host_density_draws.shape == (1000, 101)
+    assert result.selected_log_likelihood_by_draw.shape == (1000, 41)
+    assert np.all(np.isfinite(result.marginalized_selected_log_likelihood))
+    assert result.importance_ess >= 30
+    assert result.max_normalized_importance_weight < 1.0
