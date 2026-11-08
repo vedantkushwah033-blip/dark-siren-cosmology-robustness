@@ -26,9 +26,12 @@ def test_validation_is_parent_srs_and_disjoint_from_analysis_catalogue():
     assert set(split.analysis_catalogue.columns) == {"object_id", "redshift"}
     assert set(split.validation.columns) == {"object_id", "redshift", "retained"}
     assert len(split.validation_object_ids) == len(np.unique(split.validation_object_ids))
-    assert len(split.analysis_object_ids) == int(
-        np.sum(parent["retained"]) - np.sum(parent.iloc[split.validation.index]["retained"])
-    ) or len(split.analysis_catalogue) <= int(np.sum(parent["retained"]))
+    expected = parent.loc[
+        (parent["retained"] == 1)
+        & (~parent["object_id"].isin(split.validation_object_ids)),
+        "object_id",
+    ].to_numpy()
+    assert np.array_equal(np.sort(split.analysis_object_ids), np.sort(expected))
 
 
 def test_split_is_reproducible_and_ignores_hidden_probability_column():
