@@ -38,7 +38,11 @@ class InclusionPosteriorQuadrature:
     max_predicted_probability: float
 
 
-def _validation_inputs(redshift: ArrayLike, retained: ArrayLike, degree: int):
+def _validation_inputs(
+    redshift: ArrayLike, retained: ArrayLike, degree: int,
+    coordinate_center: float | None = None,
+    coordinate_scale: float | None = None,
+):
     z = np.asarray(redshift, dtype=float)
     raw = np.asarray(retained)
     if z.ndim != 1 or raw.ndim != 1 or z.shape != raw.shape or z.size < 5:
@@ -49,10 +53,16 @@ def _validation_inputs(redshift: ArrayLike, retained: ArrayLike, degree: int):
         raise ValueError("retained labels must be binary")
     if degree not in (1, 2):
         raise ValueError("degree must be 1 or 2")
-    center = float(np.mean(z))
-    scale = float(np.std(z, ddof=0))
-    if not np.isfinite(scale) or scale <= 0:
-        raise ValueError("validation redshifts must have positive finite spread")
+    if (coordinate_center is None) != (coordinate_scale is None):
+        raise ValueError("coordinate_center and coordinate_scale must be supplied together")
+    if coordinate_center is None:
+        center = float(np.mean(z))
+        scale = float(np.std(z, ddof=0))
+    else:
+        center = float(coordinate_center)
+        scale = float(coordinate_scale)
+    if not np.isfinite(center) or not np.isfinite(scale) or scale <= 0:
+        raise ValueError("coefficient coordinate center/scale must be finite with positive scale")
     x = (z - center) / scale
     design = np.column_stack([x ** power for power in range(degree + 1)])
     if np.linalg.matrix_rank(design) != degree + 1:
@@ -89,6 +99,8 @@ def fit_inclusion_posterior_quadrature(
     degree: int = 1,
     prior_mean: ArrayLike | None = None,
     prior_sd: ArrayLike | None = None,
+    coordinate_center: float | None = None,
+    coordinate_scale: float | None = None,
     order: int = 15,
     max_iterations: int = 2000,
 ) -> InclusionPosteriorQuadrature:
@@ -98,7 +110,9 @@ def fit_inclusion_posterior_quadrature(
     space. This is intended for the project's 2- or 3-parameter models.
     """
     z, y, design, center, scale = _validation_inputs(
-        validation_redshift, retained, degree
+        validation_redshift, retained, degree,
+        coordinate_center=coordinate_center,
+        coordinate_scale=coordinate_scale,
     )
     if isinstance(order, bool) or not isinstance(order, int) or order < 3:
         raise ValueError("order must be an integer >= 3")
