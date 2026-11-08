@@ -250,6 +250,7 @@ class InclusionPosteriorQuadratureLadder:
     mean_max_abs_change: tuple[float, ...]
     covariance_max_abs_change: tuple[float, ...]
     predictive_max_abs_change: tuple[float, ...]
+    log_evidence_abs_change: tuple[float, ...]
 
 
 def fit_inclusion_posterior_quadrature_ladder(
@@ -264,6 +265,7 @@ def fit_inclusion_posterior_quadrature_ladder(
     mean_tolerance: float = 1e-3,
     covariance_tolerance: float = 1e-3,
     predictive_tolerance: float = 1e-3,
+    log_evidence_tolerance: float = 1e-3,
     consecutive_passes: int = 2,
 ) -> InclusionPosteriorQuadratureLadder:
     """Fit increasing tensor-GH orders and require repeated summary stability.
@@ -282,6 +284,7 @@ def fit_inclusion_posterior_quadrature_ladder(
         (mean_tolerance, "mean_tolerance"),
         (covariance_tolerance, "covariance_tolerance"),
         (predictive_tolerance, "predictive_tolerance"),
+        (log_evidence_tolerance, "log_evidence_tolerance"),
     ):
         if not np.isfinite(value) or value <= 0:
             raise ValueError(f"{label} must be positive and finite")
@@ -300,6 +303,7 @@ def fit_inclusion_posterior_quadrature_ladder(
     mean_changes = []
     covariance_changes = []
     predictive_changes = []
+    evidence_changes = []
     passing_streak = 0
     converged = False
     for order_value in order_tuple:
@@ -317,10 +321,19 @@ def fit_inclusion_posterior_quadrature_ladder(
             posterior_predictive_inclusion(current, prediction_grid)
             - posterior_predictive_inclusion(previous, prediction_grid)
         )))
+        de = float(abs(
+            current.log_evidence_unnormalized - previous.log_evidence_unnormalized
+        ))
         mean_changes.append(dm)
         covariance_changes.append(dc)
         predictive_changes.append(dp)
-        passed = dm <= mean_tolerance and dc <= covariance_tolerance and dp <= predictive_tolerance
+        evidence_changes.append(de)
+        passed = (
+            dm <= mean_tolerance
+            and dc <= covariance_tolerance
+            and dp <= predictive_tolerance
+            and de <= log_evidence_tolerance
+        )
         passing_streak = passing_streak + 1 if passed else 0
         if passing_streak >= consecutive_passes:
             converged = True
@@ -332,6 +345,7 @@ def fit_inclusion_posterior_quadrature_ladder(
         mean_max_abs_change=tuple(mean_changes),
         covariance_max_abs_change=tuple(covariance_changes),
         predictive_max_abs_change=tuple(predictive_changes),
+        log_evidence_abs_change=tuple(evidence_changes),
     )
 
 
