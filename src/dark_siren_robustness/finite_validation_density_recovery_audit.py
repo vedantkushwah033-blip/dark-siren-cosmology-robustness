@@ -154,6 +154,43 @@ def audit_artifact(artifact_dir: Path) -> dict:
                          "degree","bandwidth_multiplier","arm"]
     if attempts.duplicated(attempt_key_columns).any():
         raise AssertionError("Duplicate attempt key")
+
+    # Reconstruct the complete planned attempt-key set from the immutable design
+    # recorded in summary.json. A self-consistent but incomplete CSV must fail.
+    expected_attempt_keys=set()
+    base_arms=("catalogue_only","known_inclusion_ipw","parent_sample_kde")
+    for rep in range(int(summary["n_replicates"])):
+        for gamma in summary["gamma_values"]:
+            for retention in summary["retention_values"]:
+                for nval in summary["validation_sizes"]:
+                    for multiplier in summary["bandwidth_multipliers"]:
+                        for arm in base_arms:
+                            expected_attempt_keys.add((
+                                rep,float(gamma),float(retention),int(nval),
+                                0,float(multiplier),arm,
+                            ))
+                        for degree in summary["degrees"]:
+                            expected_attempt_keys.add((
+                                rep,float(gamma),float(retention),int(nval),
+                                int(degree),float(multiplier),
+                                f"estimated_degree_{int(degree)}_ipw",
+                            ))
+    actual_attempt_keys={
+        (int(row.replicate),float(row.gamma),float(row.target_retention),
+         int(row.n_validation),int(row.degree),float(row.bandwidth_multiplier),
+         str(row.arm))
+        for row in attempts.itertuples(index=False)
+    }
+    missing_attempts=expected_attempt_keys-actual_attempt_keys
+    unexpected_attempts=actual_attempt_keys-expected_attempt_keys
+    if missing_attempts or unexpected_attempts:
+        raise AssertionError(
+            "Attempt design mismatch: "
+            f"{len(missing_attempts)} missing, {len(unexpected_attempts)} unexpected"
+        )
+    allowed_statuses={"SUCCESS","NON_EVALUABLE","FAILED","NOT_RUN"}
+    if not set(attempts.status).issubset(allowed_statuses):
+        raise AssertionError("Unknown attempt lifecycle status")
     center=_center()
     checked_partitions=0
     for key, group in units.groupby(["replicate","gamma","target_retention","n_validation"],sort=False):
@@ -236,11 +273,36 @@ def audit_artifact(artifact_dir: Path) -> dict:
             sample=z[analysis]
             beta=np.asarray(json.loads(row.coefficients_json),dtype=float)
             center_fit=float(row.fit_center); scale_fit=float(row.fit_scale)
+            if beta.ndim!=1 or beta.size not in (2,3) or not np.all(np.isfinite(beta)):
+                raise AssertionError(f"Invalid fitted coefficient vector: {key}")
             xv=(z[valmask]-center_fit)/scale_fit
             design=np.column_stack([xv**j for j in range(len(beta))])
-            pval=expit(design@beta)
+            yval=y[valmask].astype(float)
+            if np.linalg.matrix_rank(design)!=len(beta):
+                raise AssertionError(f"Validation design is rank deficient: {key}")
+            design_condition=float(np.linalg.cond(design))
+            if not np.isfinite(design_condition) or design_condition>1e10:
+                raise AssertionError(f"Validation design is ill-conditioned: {key}")
+            eta=design@beta
+            pval=expit(eta)
             if not np.all(np.isfinite(pval)):
                 raise AssertionError(f"Non-finite fitted validation probabilities: {key}")
+            # Independently verify the actual unpenalized logistic score and
+            # objective, rather than accepting a covariance consistent with
+            # arbitrary stored coefficients.
+            score=design.T@(pval-yval)
+            score_inf=float(np.linalg.norm(score,ord=np.inf))
+            objective=float(np.sum(np.logaddexp(0.0,eta)-yval*eta))
+            if score_inf>1e-6:
+                raise AssertionError(f"Logistic score tolerance failed: {key} ({score_inf})")
+            if not np.isclose(score_inf,float(row.fit_gradient_inf_norm),rtol=2e-4,atol=2e-8):
+                raise AssertionError(f"Stored logistic score diagnostic mismatch: {key}")
+            if not np.isclose(objective,float(row.fit_objective),rtol=2e-8,atol=2e-8):
+                raise AssertionError(f"Stored logistic objective mismatch: {key}")
+            if int(row.fit_design_rank)!=int(np.linalg.matrix_rank(design)):
+                raise AssertionError(f"Stored logistic design-rank mismatch: {key}")
+            if not np.isclose(design_condition,float(row.fit_design_condition_number),rtol=2e-6,atol=2e-8):
+                raise AssertionError(f"Stored logistic design-condition mismatch: {key}")
             xa=(sample-center_fit)/scale_fit
             design_a=np.column_stack([xa**j for j in range(len(beta))])
             prob=expit(design_a@beta)
@@ -303,7 +365,7 @@ def audit_artifact(artifact_dir: Path) -> dict:
                 raise AssertionError(f"Paired contrast interval mismatch: {field}")
     return {
         "status":"PASS",
-        "audit_scope":"raw partition, DGP probabilities, retention labels, nested validation, fitted covariance, KDE, IAE, summary ledger",
+        "audit_scope":"raw partition, DGP probabilities, retention labels, nested validation, complete attempt design, logistic score/objective/design/covariance, KDE, density metrics, summary ledger",
         "checked_parent_partitions":checked_partitions,
         "checked_density_estimates":checked_densities,
         "attempt_count":int(len(attempts)),
