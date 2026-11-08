@@ -83,6 +83,8 @@ def test_summary_keeps_non_evaluable_and_failed_attempts_visible():
          "status": "NON_EVALUABLE"},
         {"experiment": "FIXED_TRUTH", "catalogue_floor": 0.0, "n_validation": 100,
          "status": "FAILED"},
+        {"experiment": "FIXED_TRUTH", "catalogue_floor": 0.0, "n_validation": 100,
+         "status": "NOT_RUN"},
     ])
     summary = MODULE._summarize(frame, bins=10)
     cell = summary["FIXED_TRUTH|floor=0|n=100"]
@@ -90,6 +92,8 @@ def test_summary_keeps_non_evaluable_and_failed_attempts_visible():
     assert cell["success"] == 1
     assert cell["non_evaluable"] == 1
     assert cell["failed"] == 1
+    assert cell["not_run"] == 1
+    assert cell["evaluable_fraction"] == pytest.approx(1 / 3)
     assert cell["coverage_68"] == pytest.approx(1.0)
     assert cell["mean_posterior_median_bias"] == pytest.approx(1.0)
     assert cell["median_minimum_catalogue_kish_ess"] == pytest.approx(500.0)
