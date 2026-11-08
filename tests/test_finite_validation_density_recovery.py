@@ -145,3 +145,38 @@ def test_auditor_rejects_incorrect_logistic_objective_even_with_refreshed_manife
     _refresh_attempt_manifest(tmp_path)
     with pytest.raises(AssertionError, match="Fitted logistic objective mismatch"):
         audit_artifact(tmp_path)
+
+
+def test_auditor_rejects_tampered_logistic_coefficient_even_with_refreshed_manifest(tmp_path):
+    attempts, units, summary = run_density_recovery_benchmark(
+        n_replicates=5, n_parent=2000, seed=101,
+        gamma_values=(0.0,), retention_values=(0.50,),
+        validation_sizes=(1000,), degrees=(1,),
+        bandwidth_multipliers=(0.15,), grid_points=201,
+    )
+    write_artifacts(attempts, units, summary, tmp_path)
+    path = tmp_path / "attempt_metrics.csv"
+    frame = pd.read_csv(path)
+    successful = frame.loc[
+        (frame["arm"] == "estimated_degree_1_ipw") &
+        (frame["status"] == "SUCCESS")
+    ]
+    assert not successful.empty, (
+        "Coefficient-tampering fixture did not produce a successful fitted-IPW arm."
+    )
+    idx = successful.index[0]
+    coefficients = np.asarray(
+        json.loads(frame.loc[idx, "coefficients_json"]), dtype=float
+    )
+    coefficients[0] += 0.05
+    frame.loc[idx, "coefficients_json"] = json.dumps(
+        coefficients.tolist(), separators=(",", ":")
+    )
+    frame.to_csv(path, index=False)
+    _refresh_attempt_manifest(tmp_path)
+    with pytest.raises(
+        AssertionError,
+        match="Fitted logistic score mismatch|Fitted logistic objective mismatch|"
+              "Fitted covariance reconstruction failed",
+    ):
+        audit_artifact(tmp_path)
