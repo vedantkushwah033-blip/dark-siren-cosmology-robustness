@@ -134,6 +134,10 @@ def main() -> None:
         for row in events_frame.itertuples(index=False)
     ]
     h0_grid = np.linspace(args.prior_min, args.prior_max, args.h0_points)
+    # Fixed domain-based coordinates keep the coefficient prior identical
+    # across validation replicates and sample sizes.
+    coordinate_center = 0.5 * (z_min + z_max)
+    coordinate_scale = 0.5 * (z_max - z_min)
     # Record the coefficient prior explicitly so the posterior target is fully
     # specified in the artifact rather than relying on library defaults.
     coefficient_prior_mean = np.zeros(args.degree + 1, dtype=float)
@@ -153,7 +157,10 @@ def main() -> None:
         fit = fit_inclusion_posterior_quadrature(
             z_validation, retained_validation,
             degree=args.degree, prior_mean=coefficient_prior_mean,
-            prior_sd=coefficient_prior_sd, order=order,
+            prior_sd=coefficient_prior_sd,
+            coordinate_center=coordinate_center,
+            coordinate_scale=coordinate_scale,
+            order=order,
         )
         likelihood = shared_inclusion_selected_log_likelihood(
             h0_grid, z_catalogue, events, fit,
@@ -239,6 +246,8 @@ def main() -> None:
         degree=args.degree,
         prior_mean=coefficient_prior_mean,
         prior_sd=coefficient_prior_sd,
+        coordinate_center=coordinate_center,
+        coordinate_scale=coordinate_scale,
         slope_multipliers=prior_slope_multipliers,
         order=last_fit.order,
         prior_min=args.prior_min,
@@ -316,6 +325,12 @@ def main() -> None:
         "validation_generator_config": validation["config"],
         "inference": {
             "degree": args.degree,
+            "coefficient_coordinates": {
+                "basis": "fixed_domain_standardization",
+                "center": coordinate_center,
+                "scale": coordinate_scale,
+                "redshift_domain": [z_min, z_max],
+            },
             "coefficient_prior": {
                 "family": "independent_normal",
                 "mean": coefficient_prior_mean.tolist(),
