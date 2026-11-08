@@ -23,7 +23,7 @@ Example pilot command (20 replicates per experiment × floor × validation size)
 ```bash
 python scripts/run_inclusion_posterior_calibration.py \
   --replicates 20 \
-  --experiments SBC,FIXED_TRUTH \
+  --experiments H0_PIT_FIXED_INCLUSION_TRUTH,FIXED_TRUTH \
   --floors 0.0,0.10,0.25 \
   --validation-sizes 100,300,1000 \
   --n-validation-frame 4000 \
@@ -41,7 +41,7 @@ overwritten.
 ## Pairing and seeds
 
 For each experiment/floor/replicate, the runner derives deterministic,
-separate analysis, validation and SBC-truth seed streams using
+separate analysis, validation and H0-prior-truth seed streams using
 `numpy.random.SeedSequence`. The same analysis and validation seeds are reused
 across the requested validation sizes. The single-replicate generator creates
 one independent validation frame and selects prefixes of one random
