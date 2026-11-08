@@ -12,6 +12,7 @@ on:
       - scripts/run_finite_validation_density_recovery.py
       - scripts/audit_finite_validation_density_recovery.py
       - tests/test_finite_validation_density_recovery.py
+      - docs/density_recovery_confirmatory_protocol_2026-11-08.md
   workflow_dispatch:
 
 permissions:
