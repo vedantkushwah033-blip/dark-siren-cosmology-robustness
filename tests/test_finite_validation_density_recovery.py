@@ -4,10 +4,11 @@ import pytest
 from dark_siren_robustness.finite_validation_density_recovery import (
     _calibrate_intercept,
     _curvature_center,
-    _draw_parent_redshifts,
     _analytic_target,
     run_density_recovery_benchmark,
+    write_artifacts,
 )
+from dark_siren_robustness.finite_validation_density_recovery_audit import audit_artifact
 
 
 def test_parent_curvature_center_uses_declared_nonuniform_parent_law():
@@ -30,7 +31,7 @@ def test_analytic_target_is_normalized_and_positive():
     assert np.trapezoid(target, grid) == pytest.approx(1.0, abs=1e-10)
 
 
-def test_small_benchmark_has_all_four_comparison_arms_and_nested_splits():
+def test_small_benchmark_has_comparison_arms_and_nested_splits():
     attempts, units, summary = run_density_recovery_benchmark(
         n_replicates=1, n_parent=1200, seed=101,
         gamma_values=(0.0,), validation_sizes=(100, 300),
@@ -48,8 +49,21 @@ def test_small_benchmark_has_all_four_comparison_arms_and_nested_splits():
     small_ids = set(small.loc[small.role == "VALIDATION", "object_id"])
     large_ids = set(large.loc[large.role == "VALIDATION", "object_id"])
     assert small_ids.issubset(large_ids)
-    assert summary["attempt_count"] == len(attempts)
+    summary["attempt_count"] == len(attempts)
     assert "no_H0_inference" in summary["status"]
+
+
+def test_independent_auditor_reconstructs_smoke_artifact(tmp_path):
+    attempts, units, summary = run_density_recovery_benchmark(
+        n_replicates=1, n_parent=1200, seed=202,
+        gamma_values=(0.0,), validation_sizes=(100,),
+        degrees=(1, 2), bandwidth_multipliers=(0.15,), grid_points=201,
+    )
+    write_artifacts(attempts, units, summary, tmp_path)
+    report = audit_artifact(tmp_path)
+    assert report["status"] == "PASS"
+    assert report["checked_parent_partitions"] == 1
+    assert report["checked_density_estimates"] >= 3
 
 
 def test_rejects_invalid_parent_size_and_validation_order():
