@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
-from scipy.special import expit
+from scipy.special import expit, logsumexp
 
 from dark_siren_robustness.bayesian_inclusion import (
     InclusionPosteriorApproximation,
@@ -28,6 +28,9 @@ class FiniteValidationH0Marginalization:
     marginalization_batch_log_likelihoods: np.ndarray | None
     marginalization_log_likelihood_mcse: np.ndarray | None
     marginalization_batch_ess: np.ndarray | None
+    likelihood_contribution_ess_by_h0: np.ndarray
+    max_normalized_likelihood_contribution_by_h0: np.ndarray
+    marginalization_batch_contribution_ess: np.ndarray | None
     marginalization_mcse_status: str
 
 
@@ -85,8 +88,9 @@ def marginalize_selected_draws_with_mcse(
     *,
     n_batches=10,
     min_batch_ess=20.0,
+    min_contribution_ess=5.0,
 ):
-    """Return the full SNIS estimate and a disjoint-batch log-scale MCSE.
+    """Return SNIS, integrand ESS and a disjoint-batch log-scale MCSE.
 
     Importance proposals are iid. Disjoint batches provide a Monte Carlo
     stability diagnostic; the full-sample estimate remains the reported
@@ -112,20 +116,31 @@ def marginalize_selected_draws_with_mcse(
         raise ValueError("n_batches must be an integer >= 2")
     if not np.isfinite(min_batch_ess) or min_batch_ess < 1:
         raise ValueError("min_batch_ess must be finite and >= 1")
+    if not np.isfinite(min_contribution_ess) or min_contribution_ess < 1:
+        raise ValueError("min_contribution_ess must be finite and >= 1")
 
     full_estimate = marginalize_selected_draws(log_likelihood, log_weights)
+    log_contribution = log_weights[:, None] + log_likelihood
+    log_contribution_normalizer = logsumexp(log_contribution, axis=0)
+    contribution_weights = np.exp(log_contribution - log_contribution_normalizer[None, :])
+    contribution_ess = 1.0 / np.sum(contribution_weights**2, axis=0)
+    max_contribution_weight = np.max(contribution_weights, axis=0)
     if log_likelihood.shape[0] < 2 * n_batches:
         return {
             "marginalized_selected_log_likelihood": full_estimate,
             "batch_log_likelihoods": None,
             "log_likelihood_mcse": None,
             "batch_ess": None,
+            "likelihood_contribution_ess_by_h0": contribution_ess,
+            "max_normalized_likelihood_contribution_by_h0": max_contribution_weight,
+            "batch_contribution_ess": None,
             "status": "INSUFFICIENT_DRAWS",
         }
 
     batches = np.array_split(np.arange(log_likelihood.shape[0]), n_batches)
     batch_values = []
     batch_ess = []
+    batch_contribution_ess = []
     for indices in batches:
         batch_log_weights = log_weights[indices]
         scaled = np.exp(batch_log_weights - np.max(batch_log_weights))
@@ -134,15 +149,32 @@ def marginalize_selected_draws_with_mcse(
         batch_values.append(
             marginalize_selected_draws(log_likelihood[indices], batch_log_weights)
         )
+        batch_log_contribution = batch_log_weights[:, None] + log_likelihood[indices]
+        batch_log_normalizer = logsumexp(batch_log_contribution, axis=0)
+        batch_contribution_weights = np.exp(
+            batch_log_contribution - batch_log_normalizer[None, :]
+        )
+        batch_contribution_ess.append(
+            1.0 / np.sum(batch_contribution_weights**2, axis=0)
+        )
     batch_values = np.asarray(batch_values, dtype=float)
     batch_ess = np.asarray(batch_ess, dtype=float)
+    batch_contribution_ess = np.asarray(batch_contribution_ess, dtype=float)
     mcse = batch_values.std(axis=0, ddof=1) / np.sqrt(n_batches)
-    status = "PASS" if np.min(batch_ess) >= min_batch_ess else "LOW_BATCH_ESS"
+    if np.min(batch_ess) < min_batch_ess:
+        status = "LOW_BATCH_ESS"
+    elif np.min(contribution_ess) < min_contribution_ess:
+        status = "LOW_CONTRIBUTION_ESS"
+    else:
+        status = "PASS"
     return {
         "marginalized_selected_log_likelihood": full_estimate,
         "batch_log_likelihoods": batch_values,
         "log_likelihood_mcse": mcse,
         "batch_ess": batch_ess,
+        "likelihood_contribution_ess_by_h0": contribution_ess,
+        "max_normalized_likelihood_contribution_by_h0": max_contribution_weight,
+        "batch_contribution_ess": batch_contribution_ess,
         "status": status,
     }
 
@@ -161,6 +193,7 @@ def propagate_inclusion_posterior_to_h0(
     max_output_bytes=1_000_000_000,
     marginalization_batches=10,
     min_batch_ess=20.0,
+    min_contribution_ess=5.0,
 ):
     """Build one IPW density and selected likelihood per weighted theta proposal.
 
@@ -234,11 +267,14 @@ def propagate_inclusion_posterior_to_h0(
         or max_output_bytes < 1
     ):
         raise ValueError("max_output_bytes must be a positive integer")
-    estimated_bytes = proposals.shape[0] * (
-        z_grid.size + 3 * h0_grid.size + 1
+    estimated_bytes = (
+        proposals.shape[0] * (z_grid.size + 3 * h0_grid.size + 1)
+        + 3 * h0_grid.size
     ) * np.dtype(float).itemsize
     if proposals.shape[0] >= 2 * marginalization_batches:
-        estimated_bytes += marginalization_batches * h0_grid.size * np.dtype(float).itemsize
+        estimated_bytes += (
+            2 * marginalization_batches * h0_grid.size + marginalization_batches
+        ) * np.dtype(float).itemsize
     if estimated_bytes > max_output_bytes:
         raise MemoryError(
             f"Requested draw-level outputs need about {estimated_bytes} bytes, "
@@ -280,6 +316,7 @@ def propagate_inclusion_posterior_to_h0(
     marginalization = marginalize_selected_draws_with_mcse(
         selected, log_weights, n_batches=marginalization_batches,
         min_batch_ess=min_batch_ess,
+        min_contribution_ess=min_contribution_ess,
     )
     marginalized = marginalization["marginalized_selected_log_likelihood"]
     return FiniteValidationH0Marginalization(
@@ -294,5 +331,8 @@ def propagate_inclusion_posterior_to_h0(
         marginalization_batch_log_likelihoods=marginalization["batch_log_likelihoods"],
         marginalization_log_likelihood_mcse=marginalization["log_likelihood_mcse"],
         marginalization_batch_ess=marginalization["batch_ess"],
+        likelihood_contribution_ess_by_h0=marginalization["likelihood_contribution_ess_by_h0"],
+        max_normalized_likelihood_contribution_by_h0=marginalization["max_normalized_likelihood_contribution_by_h0"],
+        marginalization_batch_contribution_ess=marginalization["batch_contribution_ess"],
         marginalization_mcse_status=marginalization["status"],
     )
