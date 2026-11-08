@@ -139,13 +139,18 @@ def fit_inclusion_logistic(
             "Possible complete/quasi separation or weak identification; "
             "unpenalized covariance is not reliable.", **common,
         )
-    if not fit.success or not np.all(np.isfinite(beta)) or grad_norm > 1e-6:
-        return failed(f"Optimizer did not meet convergence criteria: {fit.message}", **common)
+    if not np.all(np.isfinite(beta)) or grad_norm > 1e-6:
+        return failed(f"Score convergence criterion not met: {fit.message}", **common)
     if np.min(eigenvalues) <= 0 or not np.all(np.isfinite(eigenvalues)):
         return failed("Observed information matrix is not positive definite.", **common)
 
     covariance = np.linalg.inv(hessian)
+    convergence_message = (
+        "Converged unpenalized logistic MLE."
+        if fit.success
+        else f"Accepted by score tolerance despite optimizer message: {fit.message}"
+    )
     return InclusionFit(
-        status="SUCCESS", message="Converged unpenalized logistic MLE.",
+        status="SUCCESS", message=convergence_message,
         **(empty | {"coefficients": beta.copy(), "covariance": covariance, **common}),
     )
