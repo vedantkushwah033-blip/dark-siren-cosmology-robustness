@@ -28,6 +28,7 @@ def main():
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--validation-sizes", type=str, default=None)
     parser.add_argument("--curvatures", type=str, default=None)
+    parser.add_argument("--retention-fractions", type=str, default=None)
     parser.add_argument("--degrees", type=str, default=None)
     args = parser.parse_args()
 
@@ -37,6 +38,7 @@ def main():
         "seed": 20261108,
         "validation_sizes": (100, 300, 1000),
         "curvature_values": (-2.0, -1.2, 0.0, 1.2, 2.0),
+        "retention_fractions": (0.1, 0.25, 0.5),
         "degrees": (1, 2),
     }
     if args.config is not None:
@@ -49,6 +51,7 @@ def main():
             "seed": config["seed"],
             "validation_sizes": tuple(config["validation_sizes"]),
             "curvature_values": tuple(config["curvature_values"]),
+            "retention_fractions": tuple(config["retention_fractions"]),
             "degrees": tuple(config["model_degrees"]),
         })
     for name in ("n_parent", "replicates", "seed"):
@@ -59,6 +62,8 @@ def main():
         settings["validation_sizes"] = tuple(int(v) for v in args.validation_sizes.split(","))
     if args.curvatures is not None:
         settings["curvature_values"] = tuple(float(v) for v in args.curvatures.split(","))
+    if args.retention_fractions is not None:
+        settings["retention_fractions"] = tuple(float(v) for v in args.retention_fractions.split(","))
     if args.degrees is not None:
         settings["degrees"] = tuple(int(v) for v in args.degrees.split(","))
 
