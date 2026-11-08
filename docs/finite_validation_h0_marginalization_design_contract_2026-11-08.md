@@ -28,6 +28,8 @@ $$
 
 A proper prior p(theta) must be declared before simulation. The modular validation posterior is p(theta|V) proportional to L_V(theta)p(theta). This is a cut construction: GW data do not update inclusion coefficients. It is not automatically the full joint posterior of a generative model.
 
+**Fixed-basis prior requirement:** the current MLE fitter standardizes redshift using the realized validation sample's mean and standard deviation. That is a numerical MLE parameterization, but a fixed prior placed naively on those sample-standardized coefficients would induce a validation-sample-dependent prior on the inclusion curve. Define the Bayesian prior in a fixed domain coordinate such as u=(z-z_min)/(z_max-z_min) in [0,1], using basis [1,u] or [1,u,u^2], or transform the MLE coefficients into that fixed basis before applying the prior. Declare prior location and scale before confirmatory simulation.
+
 The inverse observed-information covariance from the current MLE fitter is an asymptotic covariance estimate, not a Bayesian posterior. It must not be silently relabelled as posterior uncertainty or treated as exact posterior draws. A downstream implementation must use a declared posterior sampler/approximation, assess convergence and tails, and retain failed/non-evaluable draws. A Laplace approximation may be a separately labelled sensitivity arm only after comparison against a more reliable reference on selected cases.
 
 ## 3. Density for each coefficient draw
