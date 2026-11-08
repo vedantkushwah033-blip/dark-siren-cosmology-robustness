@@ -26,7 +26,10 @@ def test_fixed_catalogue_smoke_and_independent_audit(tmp_path):
  assert len(a)==2*1*1*3*1*(3+1)
  assert s["design"]=="fixed_analysis_catalogue_independent_validation_frame"
  assert set(u.frame)=={"ANALYSIS","VALIDATION"}
- assert audit_fixed_catalogue_artifact(tmp_path)["status"]=="PASS"
+ audit=audit_fixed_catalogue_artifact(tmp_path)
+ assert audit["status"]=="PASS"
+ assert audit["manual_gaussian_kde_crosschecks"]==5
+ assert audit["manual_max_density_abs_difference"]<1e-10
  validation=u[(u.replicate==0)&(u.gamma==0.0)&(u.frame=="VALIDATION")].sort_values("validation_rank")
  assert abs(validation.redshift.corr(validation.retention_uniform)) < 0.12
  assert abs(validation.redshift.corr(validation.validation_rank)) < 0.12
