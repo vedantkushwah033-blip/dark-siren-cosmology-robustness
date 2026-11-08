@@ -279,3 +279,27 @@ This protocol does not authorize:
 - A second missing-host mixture correction on top of IPW.
 
 The subsequent H0 stage must separately derive the selection-conditioned likelihood and a justified uncertainty model for inclusion coefficients. Only after that should posterior calibration and repeated-sampling coverage be studied.
+
+## 13. Audit follow-up: CSV round-trip tolerance and failure-aware contrasts (2026-11-08)
+
+A historical CI failure in the independent retention-stream audit was traced to an overly strict comparison, not to a demonstrated RNG-stream reuse:
+
+- At failed commit `758ba999443133a9703b2bc1d8206592612202a9`, the auditor compared the stored CSV `retention_uniform` values with regenerated NumPy doubles using `np.array_equal`.
+- The same auditor already used an absolute tolerance for the stored parent-redshift values, but required bitwise equality for retention uniforms.
+- The runner serializes these floating-point values to CSV and the auditor reads them back. Decimal serialization/parsing need not preserve the exact binary floating-point bit pattern, even when the stored value is numerically equivalent to the generated value.
+- The current auditor uses `np.allclose(stored, expected, rtol=0.0, atol=5e-15)` for retention uniforms, matching the explicit round-trip tolerance policy used for parent redshifts. The adversarial test still changes a uniform by a material amount and must be rejected.
+
+This is a numerical serialization-tolerance correction. It does not establish that the old smoke artifact was scientifically valid, nor does it excuse a mismatch larger than the declared tolerance. The exact current-head CI run must still pass before this fix is marked validated.
+
+The paired density-contrast summary has also been extended to report attempt-level lifecycle outcomes alongside conditional paired IAE:
+
+- successful, failed and non-evaluable attempts for each arm;
+- replicates with both attempts present;
+- both-success pairs;
+- cases where estimated IPW is not successful but catalogue-only succeeds, and the reverse;
+- cases where neither arm succeeds; and
+- the evaluable-pair fraction relative to the planned replicate count.
+
+The independent auditor reconstructs these counts from the raw attempt ledger and compares them with the stored summary. The conditional mean contrast and its intervals remain explicitly conditional on both arms being successful; failure counts are not folded into an arbitrary numerical IAE penalty.
+
+This extension improves transparency but does not yet define a single composite utility for comparing accuracy and failure probability. Both dimensions must be reported separately.
