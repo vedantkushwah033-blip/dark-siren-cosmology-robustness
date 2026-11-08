@@ -119,11 +119,32 @@ def _reconstruct_paired_contrasts(attempts, *, n_replicates, seed, bootstrap_res
             paired=wide[["catalogue_only",arm]].dropna()
             diff=(paired[arm]-paired["catalogue_only"]).to_numpy(dtype=float)
             n=int(diff.size)
+
+            # Independently reconstruct attempt-status overlap as well as
+            # conditional paired accuracy; failed attempts remain visible.
+            status_wide=selected.pivot(index="replicate",columns="arm",values="status")
+            cat_status=status_wide["catalogue_only"] if "catalogue_only" in status_wide else pd.Series(index=status_wide.index,dtype=object)
+            est_status=status_wide[arm] if arm in status_wide else pd.Series(index=status_wide.index,dtype=object)
+            both_present=cat_status.notna() & est_status.notna()
+            cat_success=cat_status.eq("SUCCESS")
+            est_success=est_status.eq("SUCCESS")
             item={
                 "gamma":float(key[0]),"target_retention":float(key[1]),
                 "n_validation":int(key[2]),"bandwidth_multiplier":float(key[3]),
                 "degree":degree,"contrast":f"{arm}_minus_catalogue_only",
                 "n_pairs":n,"n_replicates_planned":int(n_replicates),
+                "n_replicates_with_both_attempts":int(both_present.sum()),
+                "n_catalogue_only_success":int(cat_success.sum()),
+                "n_catalogue_only_failed":int(cat_status.eq("FAILED").sum()),
+                "n_catalogue_only_non_evaluable":int(cat_status.eq("NON_EVALUABLE").sum()),
+                "n_estimated_success":int(est_success.sum()),
+                "n_estimated_failed":int(est_status.eq("FAILED").sum()),
+                "n_estimated_non_evaluable":int(est_status.eq("NON_EVALUABLE").sum()),
+                "n_both_success":int((cat_success & est_success).sum()),
+                "n_estimated_not_success_catalogue_success":int((cat_success & ~est_success).sum()),
+                "n_catalogue_not_success_estimated_success":int((~cat_success & est_success).sum()),
+                "n_both_not_success":int((~cat_success & ~est_success).sum()),
+                "conditional_pair_fraction_of_planned":float(n/n_replicates) if n_replicates else None,
                 "mean_difference":float(np.mean(diff)) if n else None,
                 "monte_carlo_se":float(np.std(diff,ddof=1)/np.sqrt(n)) if n>1 else None,
                 "bootstrap_95_interval":None,"paired_t_95_interval":None,
@@ -451,10 +472,15 @@ def audit_artifact(artifact_dir: Path) -> dict:
         raise AssertionError("Paired contrast count differs from independent reconstruction")
     for expected,stored in zip(reconstructed_contrasts,stored_contrasts):
         for field in ("gamma","target_retention","n_validation","bandwidth_multiplier",
-                      "degree","n_pairs","n_replicates_planned"):
+                      "degree","n_pairs","n_replicates_planned",
+                      "n_replicates_with_both_attempts","n_catalogue_only_success",
+                      "n_catalogue_only_failed","n_catalogue_only_non_evaluable",
+                      "n_estimated_success","n_estimated_failed","n_estimated_non_evaluable",
+                      "n_both_success","n_estimated_not_success_catalogue_success",
+                      "n_catalogue_not_success_estimated_success","n_both_not_success"):
             if expected[field]!=stored[field]:
                 raise AssertionError(f"Paired contrast key mismatch: {field}")
-        for field in ("mean_difference","monte_carlo_se"):
+        for field in ("mean_difference","monte_carlo_se","conditional_pair_fraction_of_planned"):
             a,b=expected[field],stored[field]
             if a is not None and not np.isclose(a,b,rtol=1e-10,atol=1e-12):
                 raise AssertionError(f"Paired contrast mismatch: {field}")
