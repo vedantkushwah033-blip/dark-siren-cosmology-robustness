@@ -178,3 +178,19 @@ that the same physical coefficient draw induces the same inclusion curve.
 This test and the end-to-end artifact-audit test have been committed, but
 current-head CI has not yet been observed. Therefore the implementation is
 committed, not yet CI-verified.
+
+## H0 convergence-ladder coordinate propagation (2026-11-08)
+
+A final API-path audit found that `run_inclusion_h0_quadrature_convergence`
+previously called the posterior fitter without exposing its optional fixed
+coordinate arguments. Thus a caller could use fixed coordinates in the main
+smoke runner but accidentally fall back to sample-standardized coordinates
+when using the standalone downstream convergence utility.
+
+The convergence utility now accepts `coordinate_center` and
+`coordinate_scale` and forwards both to every quadrature-order fit. A
+regression test supplies the declared domain values (0.205, 0.195) and checks
+that every fit in the ladder retains them.
+
+This closes the identified coordinate-propagation gap in that API. The new
+regression test is committed but has not yet been observed passing in CI.
