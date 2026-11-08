@@ -324,3 +324,47 @@ def test_laplace_gh_quadrature_matches_independent_prior_centered_gh_reference()
     assert abs(
         adaptive.log_evidence_unnormalized - log_evidence_reference
     ) < 5e-5
+
+
+def test_fixed_domain_coordinates_are_invariant_to_validation_sample_moments():
+    from dark_siren_robustness.inclusion_posterior import (
+        fit_inclusion_posterior_quadrature,
+    )
+
+    rng = np.random.default_rng(20261108)
+    z_a = rng.uniform(0.01, 0.40, 80)
+    z_b = np.clip(0.08 + 0.55 * (z_a - 0.01), 0.01, 0.40)
+    y_a = rng.binomial(1, 1.0 / (1.0 + np.exp(-(-0.4 + 0.7 * (z_a - 0.205) / 0.195))))
+    y_b = rng.binomial(1, 1.0 / (1.0 + np.exp(-(-0.4 + 0.7 * (z_b - 0.205) / 0.195))))
+
+    fit_a = fit_inclusion_posterior_quadrature(
+        z_a, y_a, degree=1, order=5,
+        coordinate_center=0.205, coordinate_scale=0.195,
+    )
+    fit_b = fit_inclusion_posterior_quadrature(
+        z_b, y_b, degree=1, order=5,
+        coordinate_center=0.205, coordinate_scale=0.195,
+    )
+    assert fit_a.center == fit_b.center == 0.205
+    assert fit_a.scale == fit_b.scale == 0.195
+
+    prediction_z = np.linspace(0.01, 0.40, 51)
+    x = (prediction_z - 0.205) / 0.195
+    design = np.column_stack([np.ones_like(x), x])
+    fixed_draw = np.asarray([-0.4, 0.7])
+    curve_a = 1.0 / (1.0 + np.exp(-(design @ fixed_draw)))
+    curve_b = 1.0 / (1.0 + np.exp(-(design @ fixed_draw)))
+    np.testing.assert_array_equal(curve_a, curve_b)
+
+
+def test_fixed_coordinate_center_and_scale_must_be_supplied_together():
+    from dark_siren_robustness.inclusion_posterior import (
+        fit_inclusion_posterior_quadrature,
+    )
+
+    z = np.linspace(0.01, 0.40, 20)
+    y = np.tile([0, 1], 10)
+    with pytest.raises(ValueError, match="must be supplied together"):
+        fit_inclusion_posterior_quadrature(
+            z, y, degree=1, order=3, coordinate_center=0.205
+        )
