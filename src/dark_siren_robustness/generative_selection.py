@@ -135,3 +135,65 @@ def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000
         "scientific_limit": "Low-redshift Euclidean distance toy with fixed H0 and fixed Gaussian noise; not realistic GW inference or real survey data.",
     }
     return {"config": config, "parent_truth": parent_truth, "catalogue_observed": catalogue_observed, "gw_events_observed": gw_events_observed, "gw_event_truth": gw_event_truth}
+
+
+def generate_independent_validation_sample(
+    *,
+    seed: int,
+    n_validation_frame: int = 4000,
+    n_validation: int = 300,
+    z_min: float = 0.01,
+    z_max: float = 0.40,
+) -> dict[str, object]:
+    """Draw an SRS validation sample from a separately seeded parent frame.
+
+    The returned observable validation table contains only redshift and the
+    Bernoulli catalogue-retention outcome. Inclusion probabilities and the
+    unobserved frame remain in a separate truth table for simulation auditing.
+    This frame is independent of the analysis-population generator when a
+    distinct seed is supplied.
+    """
+    if not isinstance(seed, (int, np.integer)) or isinstance(seed, (bool, np.bool_)) or seed < 0:
+        raise ValueError("seed must be a non-negative integer")
+    if n_validation_frame < 5 or n_validation < 5 or n_validation > n_validation_frame:
+        raise ValueError("validation sizes must satisfy 5 <= n_validation <= n_validation_frame")
+    if not (0 < z_min < z_max):
+        raise ValueError("redshift bounds must satisfy 0 < z_min < z_max")
+    rng = np.random.default_rng(int(seed))
+    z_frame = _sample_from_density(
+        n_validation_frame, rng, z_min=z_min, z_max=z_max
+    )
+    probability = catalogue_inclusion_probability(z_frame)
+    retained = (rng.random(n_validation_frame) < probability).astype(np.int8)
+    selected = rng.choice(n_validation_frame, size=n_validation, replace=False)
+    observable = pd.DataFrame({
+        "validation_id": np.arange(n_validation, dtype=np.int64),
+        "redshift": z_frame[selected],
+        "retained": retained[selected],
+    })
+    truth = pd.DataFrame({
+        "frame_id": np.arange(n_validation_frame, dtype=np.int64),
+        "redshift": z_frame,
+        "inclusion_probability": probability,
+        "retained": retained,
+        "selected_for_validation": np.isin(
+            np.arange(n_validation_frame), selected
+        ).astype(np.int8),
+    })
+    config = {
+        "seed": int(seed),
+        "n_validation_frame": int(n_validation_frame),
+        "n_validation": int(n_validation),
+        "sampling_design": "simple_random_sample_without_replacement_from_independent_parent_frame",
+        "validation_observable_columns": ["validation_id", "redshift", "retained"],
+        "truth_only_columns": [
+            "frame_id", "redshift", "inclusion_probability",
+            "retained", "selected_for_validation",
+        ],
+        "independent_frame": True,
+    }
+    return {
+        "config": config,
+        "validation_observed": observable,
+        "validation_frame_truth": truth,
+    }
