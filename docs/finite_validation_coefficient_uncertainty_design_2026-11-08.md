@@ -113,6 +113,50 @@ Numerical requirements:
 4. Keep the GW detection-selection factor \\(\\beta_{\\mathrm{GW}}(H_0)\\) distinct from catalogue inclusion \\(\\pi(z;\\theta)\\). IPW corrects the catalogue sampling mechanism; it must not trigger a second missing-host mixture correction unless a separate likelihood derivation explicitly requires one.
 5. Never average already-normalized H0 posteriors and call that the marginal likelihood. Average likelihoods over the coefficient posterior first, then normalize the H0 posterior.
 
+
+## 4A. Repository-specific H0 likelihood adapter contract
+
+The existing repository adapter for the intended synthetic fixed-count selection experiment is
+`selection_aware_toy_likelihood` in `src/dark_siren_robustness/selection_toy.py`, not the minimal `dataset_likelihood.dataset_posterior_h0` prototype. The latter explicitly excludes selection conditioning and shared nuisance-parameter marginalization.
+
+For each coefficient draw, pass:
+- the fixed redshift grid;
+- that draw's already normalized merger-weighted host density (f_b(z));
+- the common H0 grid;
+- the same detected-distance vector for every draw;
+- the predeclared fixed Gaussian distance scale and detection threshold.
+
+The adapter returns the unconditional joint event log likelihood, \\(\\beta_{\\rm GW}(H_0;f_b)\\), and the selected fixed-count log likelihood
+\\[
+\\ell_b(H_0)=
+\\log p(d_{1:N}\\mid H_0,f_b)
+-N\\log\\beta_{\\rm GW}(H_0;f_b).
+\\]
+It computes the event numerator and the detection efficiency using the **same supplied host density** and the same Gaussian noise/threshold assumptions. The generated event distances must all satisfy the declared detection rule. This is a toy fixed-count conditional likelihood; it does not model event rates or a realistic detector.
+
+Therefore the coefficient-marginalized selected likelihood is
+\\[
+\\log \\mathcal L_{\\rm marg,sel}(H_0)
+=\\operatorname{logsumexp}_{b=1}^{B}
+[\\ell_b(H_0)]-\\log B.
+\\]
+Do not average the unconditional event likelihoods and detection efficiencies separately, and do not evaluate a single selection factor from the posterior-mean density. In general,
+\\[
+E_{\\theta\\mid V}
+\\left[
+\\frac{L_{\\rm uncond}(H_0;f_\\theta)}
+{\\beta_{\\rm GW}(H_0;f_\\theta)^N}
+\\right]
+\\ne
+\\frac{E[L_{\\rm uncond}(H_0;f_\\theta)]}
+{E[\\beta_{\\rm GW}(H_0;f_\\theta)]^N}.
+\\]
+The nonlinear selection correction must remain inside each draw's likelihood before the likelihoods are averaged.
+
+The H0 posterior is then formed by applying the declared H0 prior once to this marginalized selected likelihood and normalizing over the exact prior interval. Reuse the same coefficient draws at all H0 grid points. The event vector, noise scale, threshold, merger-weight convention, and H0/redshift grids remain fixed across paired arms so that this stage isolates coefficient uncertainty rather than changing the event model.
+
+The existing host-density benchmark used a legacy absolute SciPy bandwidth factor of 0.8. That value is not to be reused as a Scott multiplier. The density-recovery benchmark's explicit `scott_multiplier` protocol is the current path; any H0 adapter must consume the resulting normalized density without silently applying another merger weight or smoothing operation.
+
 ## 5. Required comparison arms
 
 For every paired simulated event realization, compare:
