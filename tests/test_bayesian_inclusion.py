@@ -3,6 +3,7 @@ import pytest
 from scipy.integrate import trapezoid
 from scipy.special import expit
 
+from dark_siren_robustness.inclusion_posterior import sample_inclusion_posterior
 from dark_siren_robustness.bayesian_inclusion import (
     fixed_redshift_design,
     importance_sample_inclusion_posterior,
@@ -34,15 +35,32 @@ def test_importance_sampler_returns_normalized_weights_and_posterior_predictions
     assert np.all((predicted > 0) & (predicted < 1))
 
 
-def test_proper_prior_keeps_one_class_validation_posterior_evaluable():
+def test_one_class_validation_is_non_evaluable_under_shared_lifecycle_ledger():
     z = np.linspace(0.01, 0.40, 40)
     y = np.ones(z.size, dtype=int)
     result = importance_sample_inclusion_posterior(
         z, y, degree=1, n_draws=3000, seed=12, min_ess=50, min_ess_fraction=0.01
     )
-    assert result.status == "SUCCESS"
-    assert np.all(np.isfinite(result.posterior_mean))
-    assert result.importance_ess > 50
+    assert result.status == "NON_EVALUABLE"
+    assert result.coefficient_proposals is None
+
+
+def test_importance_sampler_matches_existing_multichain_mcmc_posterior():
+    rng = np.random.default_rng(81)
+    z = np.linspace(0.01, 0.40, 160)
+    u = (z - 0.01) / 0.39
+    y = rng.binomial(1, expit(-0.7 - 0.8 * u))
+    mcmc = sample_inclusion_posterior(
+        z, y, degree=1, warmup=1000, draws_per_chain=1000, seed=82
+    )
+    importance = importance_sample_inclusion_posterior(
+        z, y, degree=1, n_draws=20000, seed=83, min_ess=200,
+        min_ess_fraction=0.05
+    )
+    assert mcmc.status == "SUCCESS", mcmc.message
+    assert importance.status == "SUCCESS", importance.message
+    mcmc_mean = mcmc.draws.mean(axis=(0, 1))
+    np.testing.assert_allclose(importance.posterior_mean, mcmc_mean, atol=0.12, rtol=0)
 
 
 def test_importance_sampler_matches_two_dimensional_grid_quadrature():
