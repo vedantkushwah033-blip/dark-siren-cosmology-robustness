@@ -329,6 +329,21 @@ def run_density_recovery_benchmark(
                                 "fit_gradient_inf_norm": fit.gradient_inf_norm,
                                 "fit_hessian_condition_number": fit.hessian_condition_number,
                                 "fit_max_abs_coefficient": fit.max_abs_coefficient,
+                                "fit_design_rank": fit.design_rank,
+                                "fit_design_condition_number": fit.design_condition_number,
+                                "fit_objective": (
+                                    float(np.sum(
+                                        np.logaddexp(0.0, np.column_stack([
+                                            ((val_z-fit.center)/fit.scale)**power
+                                            for power in range(int(degree)+1)
+                                        ]) @ fit.coefficients)
+                                        - val_y * (np.column_stack([
+                                            ((val_z-fit.center)/fit.scale)**power
+                                            for power in range(int(degree)+1)
+                                        ]) @ fit.coefficients)
+                                    ))
+                                    if fit.coefficients is not None else np.nan
+                                ),
                             })
 
     attempts = pd.DataFrame(attempt_rows)
