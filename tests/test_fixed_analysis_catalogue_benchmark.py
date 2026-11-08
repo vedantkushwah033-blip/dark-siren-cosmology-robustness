@@ -63,7 +63,7 @@ def test_auditor_rejects_tampered_rng_stream_with_refreshed_hash(tmp_path):
  f.to_csv(path,index=False)
  mp=tmp_path/"manifest.json";m=json.loads(mp.read_text());payload=path.read_bytes()
  m["files"]["units"]["bytes"]=len(payload);m["files"]["units"]["sha256"]=hashlib.sha256(payload).hexdigest()
- mp.write_text(json.dumps(m,indent=2,sort_keys=True)+"\\n")
+ mp.write_text(json.dumps(m,indent=2,sort_keys=True)+"\n")
  with pytest.raises(AssertionError,match="Independent RNG stream mismatch"):
   audit_fixed_catalogue_artifact(tmp_path)
 
