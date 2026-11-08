@@ -138,6 +138,89 @@ def _summarize(replicates: pd.DataFrame, bins: int) -> dict:
     return result
 
 
+def _paired_validation_size_contrasts(replicates: pd.DataFrame) -> dict:
+    """Summarize within-replicate larger-minus-smaller validation-size contrasts."""
+    output = {}
+    for (experiment, floor), group in replicates.groupby(
+        ["experiment", "catalogue_floor"], dropna=False
+    ):
+        sizes = sorted(int(value) for value in group["n_validation"].dropna().unique())
+        for low_index, low_size in enumerate(sizes):
+            for high_size in sizes[low_index + 1:]:
+                low = group[group["n_validation"] == low_size]
+                high = group[group["n_validation"] == high_size]
+                joined = low.merge(
+                    high, on="replicate", how="inner", suffixes=("_low", "_high"),
+                    validate="one_to_one",
+                )
+                paired_success = (
+                    (joined["status_low"] == "SUCCESS")
+                    & (joined["status_high"] == "SUCCESS")
+                )
+                valid = joined[paired_success]
+                key = f"{experiment}|floor={float(floor):g}|{low_size}->{high_size}"
+                item = {
+                    "experiment": experiment,
+                    "catalogue_floor": float(floor),
+                    "smaller_validation_size": low_size,
+                    "larger_validation_size": high_size,
+                    "attempted_common_replicates": int(len(joined)),
+                    "evaluable_pairs": int(len(valid)),
+                    "excluded_pairs": int(len(joined) - len(valid)),
+                    "difference_convention": "larger_validation_size_minus_smaller_validation_size",
+                    "metrics": {},
+                }
+                metrics = {
+                    "posterior_median": ("h0_median", None),
+                    "signed_median_error": ("h0_median", "signed_error"),
+                    "absolute_median_error": ("h0_median", "absolute_error"),
+                    "width_68": ("h0_q84", "h0_q16"),
+                    "width_90": ("h0_q95", "h0_q05"),
+                    "width_95": ("h0_q975", "h0_q025"),
+                }
+                if experiment == "H0_PIT_FIXED_INCLUSION_TRUTH":
+                    metrics["pit"] = ("pit", None)
+                    metrics.update({
+                        f"prior_predictive_interval_inclusion_{level}":
+                            (f"h0_pit_interval_included_{level}", None)
+                        for level in (68, 90, 95)
+                    })
+                elif experiment == "FIXED_TRUTH":
+                    metrics.update({
+                        f"coverage_{level}": (f"covered_{level}", None)
+                        for level in (68, 90, 95)
+                    })
+                for metric, (column, kind) in metrics.items():
+                    if kind == "signed_error":
+                        low_values = valid[f"{column}_low"] - valid["h0_true_low"]
+                        high_values = valid[f"{column}_high"] - valid["h0_true_high"]
+                    elif kind == "absolute_error":
+                        low_values = (valid[f"{column}_low"] - valid["h0_true_low"]).abs()
+                        high_values = (valid[f"{column}_high"] - valid["h0_true_high"]).abs()
+                    elif kind is not None:
+                        low_values = valid[f"{column}_low"] - valid[f"{kind}_low"]
+                        high_values = valid[f"{column}_high"] - valid[f"{kind}_high"]
+                    else:
+                        low_values = valid[f"{column}_low"]
+                        high_values = valid[f"{column}_high"]
+                    delta = (high_values - low_values).to_numpy(dtype=float)
+                    delta = delta[np.isfinite(delta)]
+                    n = int(delta.size)
+                    mean = float(np.mean(delta)) if n else None
+                    se = float(np.std(delta, ddof=1) / math.sqrt(n)) if n > 1 else None
+                    item["metrics"][metric] = {
+                        "n_pairs": n,
+                        "mean_delta": mean,
+                        "paired_mc_se": se,
+                        "normal_approx_95_interval": (
+                            [mean - 1.959963984540054 * se, mean + 1.959963984540054 * se]
+                            if mean is not None and se is not None else None
+                        ),
+                    }
+                output[key] = item
+    return output
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--replicates", type=int, default=20)
@@ -417,6 +500,7 @@ def main() -> None:
         "attempted": int((frame["status"] != "NOT_RUN").sum()),
         "status_counts": frame["status"].value_counts().to_dict(),
         "summary_by_cell": _summarize(frame, args.pit_bins),
+        "paired_validation_size_contrasts": _paired_validation_size_contrasts(frame),
         "pit_estimand": "H0 prior-predictive PIT conditional on fixed inclusion-truth parameters; not joint SBC because inclusion coefficients are not drawn from their inference prior.",
         "warning": "PIT and fixed-truth coverage are distinct conditional diagnostics. No joint SBC or real-data inference is implied.",
     }
