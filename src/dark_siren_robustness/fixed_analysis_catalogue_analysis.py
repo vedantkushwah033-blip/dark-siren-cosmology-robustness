@@ -77,24 +77,24 @@ def analyze_fixed_catalogue_attempts(attempts:pd.DataFrame,*,planned_replicates:
   crit=float(student_t.ppf(.975,len(interaction)-1));mean=float(interaction.mean())
   primary_result["paired_t_95_interval"]=[mean-crit*se,mean+crit*se]
  secondary=[]
- for (gamma,nval,degree),g in attempts[
-  (attempts.n_validation.isin([100,300,1000]))&
-  (np.isclose(attempts.bandwidth_multiplier,PRIMARY_BANDWIDTH))&
-  (attempts.arm.isin(["catalogue_only","estimated_degree_1_ipw","estimated_degree_2_ipw"]))
- ].groupby(["gamma","n_validation","degree"],sort=True):
-  if int(degree)==0:continue
-  arm=f"estimated_degree_{int(degree)}_ipw"
-  diff=_paired_difference(g,arm).to_numpy(float)
-  n=len(diff);mean=float(diff.mean()) if n else None
-  se=float(diff.std(ddof=1)/np.sqrt(n)) if n>1 else None
-  if n>1:
-   crit=float(student_t.ppf(.975,n-1));lo=mean-crit*se;hi=mean+crit*se
-   pval=float(2*student_t.sf(abs(mean/se),n-1)) if se>0 else (0.0 if mean else 1.0)
-  else:lo=hi=pval=None
-  secondary.append({"gamma":float(gamma),"n_validation":int(nval),"degree":int(degree),
-   "n_pairs":int(n),"n_replicates_planned":int(planned_replicates),
-   "mean_iae_difference":mean,"monte_carlo_se":se,
-   "paired_t_95_interval":[lo,hi] if lo is not None else None,"p_value":pval})
+ for gamma in sorted(attempts.gamma.unique()):
+  for nval in (100,300,1000):
+   for degree in (1,2):
+    arm=f"estimated_degree_{degree}_ipw"
+    g=attempts[(attempts.gamma==gamma)&(attempts.n_validation==nval)&
+     (np.isclose(attempts.bandwidth_multiplier,PRIMARY_BANDWIDTH))&
+     (attempts.arm.isin(["catalogue_only",arm]))]
+    diff=_paired_difference(g,arm).to_numpy(float)
+    n=len(diff);mean=float(diff.mean()) if n else None
+    se=float(diff.std(ddof=1)/np.sqrt(n)) if n>1 else None
+    if n>1:
+     crit=float(student_t.ppf(.975,n-1));lo=mean-crit*se;hi=mean+crit*se
+     pval=float(2*student_t.sf(abs(mean/se),n-1)) if se>0 else (0.0 if mean else 1.0)
+    else:lo=hi=pval=None
+    secondary.append({"gamma":float(gamma),"n_validation":int(nval),"degree":int(degree),
+     "n_pairs":int(n),"n_replicates_planned":int(planned_replicates),
+     "mean_iae_difference":mean,"monte_carlo_se":se,
+     "paired_t_95_interval":[lo,hi] if lo is not None else None,"p_value":pval})
  adjusted=_holm_adjust([x["p_value"] if x["p_value"] is not None else np.nan for x in secondary])
  for item,p in zip(secondary,adjusted):
   item["holm_adjusted_p_value"]=float(p) if np.isfinite(p) else None
