@@ -22,6 +22,16 @@ def _alpha(g,r,c):
 def _target(z):
  m=1+1.5*(z-Z0)/(Z1-Z0);v=_lam(z)*m
  return v/trapezoid(v,z)
+def _expected_rng_frames(seed,replicate,n_analysis,n_validation):
+ grid=np.linspace(Z0,Z1,20001);intensity=_lam(grid)
+ cdf=np.r_[0.0,cumulative_trapezoid(intensity,grid)];cdf/=cdf[-1]
+ def stream(stream_id):
+  return np.random.default_rng(np.random.SeedSequence([int(seed),int(replicate),int(stream_id)]))
+ az=np.interp(stream(1).random(n_analysis),cdf,grid)
+ vz=np.interp(stream(2).random(n_validation),cdf,grid)
+ order=stream(3).permutation(n_validation)
+ rank=np.empty(n_validation,dtype=np.int64);rank[order]=np.arange(n_validation,dtype=np.int64)
+ return az,vz,rank,stream(4).random(n_analysis),stream(5).random(n_validation)
 def _kde(grid,sample,prob,h,merger):
  sample=np.asarray(sample,float)
  if sample.size<2: raise AssertionError("Insufficient sample for successful KDE")
@@ -54,6 +64,10 @@ def audit_fixed_catalogue_artifact(path):
  if a.duplicated(attempt_key).any(): raise AssertionError("Duplicate attempt key")
  center=_center()
  if not np.isclose(center,s["curvature_center"],rtol=1e-12,atol=1e-12): raise AssertionError("Curvature center mismatch")
+ expected_frames={
+  rep:_expected_rng_frames(s["seed_start"],rep,s["n_analysis_parent"],s["n_validation_max"])
+  for rep in range(int(s["n_replicates"]))
+ }
  grid=np.linspace(*s["grid"]);truth=_target(grid);merger=1+1.5*(grid-Z0)/(Z1-Z0)
  if not np.allclose(truth,s["analytic_target_density"],rtol=1e-10,atol=1e-12): raise AssertionError("Analytic target mismatch")
  groups={}
@@ -62,6 +76,16 @@ def audit_fixed_catalogue_artifact(path):
   vf=g[g.frame=="VALIDATION"].sort_values("object_id")
   if len(af)!=s["n_analysis_parent"] or len(vf)!=s["n_validation_max"]: raise AssertionError("Frame size mismatch")
   if af.object_id.nunique()!=len(af) or vf.object_id.nunique()!=len(vf): raise AssertionError("Frame IDs not unique")
+  ez_a,ez_v,erank,eu_a,eu_v=expected_frames[int(keyval[0])]
+  checks=((af.redshift.to_numpy(float),ez_a,"analysis redshifts"),
+          (vf.redshift.to_numpy(float),ez_v,"validation redshifts"),
+          (af.retention_uniform.to_numpy(float),eu_a,"analysis retention uniforms"),
+          (vf.retention_uniform.to_numpy(float),eu_v,"validation retention uniforms"))
+  for observed,expected,label in checks:
+   if not np.allclose(observed,expected,rtol=0.0,atol=5e-15):
+    raise AssertionError(f"Independent RNG stream mismatch: {label}")
+  if not np.array_equal(vf.validation_rank.to_numpy(int),erank):
+   raise AssertionError("Independent RNG stream mismatch: validation permutation")
   # object_id is frame-local; the frame column provides the namespace.
   for frame in (af,vf):
    z=frame.redshift.to_numpy(float);y=frame.retained.to_numpy(int);uu=frame.retention_uniform.to_numpy(float)
@@ -178,8 +202,8 @@ def audit_fixed_catalogue_artifact(path):
  if rates.keys()!=s["success_rate_by_arm"].keys(): raise AssertionError("Success-rate keys mismatch")
  for k,v in rates.items():
   if not np.isclose(v,s["success_rate_by_arm"][k]): raise AssertionError("Success rate mismatch")
- return {"status":"PASS","design":s["design"],"checked_frame_scenarios":len(groups),
-  "checked_density_estimates":checked,"attempt_count":len(a),"status_counts":counts,
+ return {"status":"PASS","design":s["design"],"checked_rng_stream_sets":len(expected_frames),
+  "checked_frame_scenarios":len(groups),"checked_density_estimates":checked,"attempt_count":len(a),"status_counts":counts,
   "limitations":["Synthetic density recovery only; no H0 posterior calibration.",
    "Shares SciPy gaussian_kde primitive with production KDE implementation.",
    "Independent validation frame assumes complete binary retention-label ascertainment."]}
