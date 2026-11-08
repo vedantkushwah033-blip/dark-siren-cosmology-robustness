@@ -21,7 +21,7 @@
     1,
     2
   ],
-  "replicates": 10,
+  "replicates": 5,
   "seed": 20261108,
   "validation_design": "simple_random_sample_without_replacement_from_full_parent_before_retention",
   "validation_excluded_from_analysis_catalogue": true,
@@ -32,6 +32,11 @@
     "FAILED",
     "NOT_RUN"
   ],
-  "claim_limit": "10-replicate implementation pilot only; not confirmatory and no H0 claim",
-  "storage": "one raw unit record per parent object per fit arm; estimate artifact size before increasing replicates"
+  "claim_limit": "5-replicate probability-stage implementation pilot across retention fractions; not confirmatory and no H0 claim",
+  "storage": "one raw unit record per parent object per fit arm; estimate artifact size before increasing replicates",
+  "retention_fractions": [
+    0.1,
+    0.25,
+    0.5
+  ]
 }
