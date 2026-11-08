@@ -206,3 +206,77 @@ def test_real_importance_posterior_flows_through_density_and_selected_likelihood
     assert np.all(np.isfinite(result.marginalized_selected_log_likelihood))
     assert result.importance_ess >= 30
     assert result.max_normalized_importance_weight < 1.0
+
+
+def test_loop_reference_pipeline_matches_independent_vectorized_h0_likelihood():
+    from dark_siren_robustness.finite_validation_h0 import (
+        selected_log_likelihood_by_draw as vectorized_selected_likelihood,
+    )
+
+    proposals = np.array([[-0.5, -0.8], [0.2, -1.1]])
+    weights = np.array([0.3, 0.7])
+    posterior = InclusionPosteriorApproximation(
+        status="SUCCESS",
+        message="cross-implementation fixture",
+        degree=1,
+        z_min=0.01,
+        z_max=0.40,
+        prior_mean=np.zeros(2),
+        prior_sd=np.ones(2),
+        map_coefficients=np.zeros(2),
+        laplace_covariance=np.eye(2),
+        coefficient_proposals=proposals,
+        normalized_importance_weights=weights,
+        log_importance_weights=np.log(weights),
+        posterior_mean=np.zeros(2),
+        posterior_covariance=np.eye(2),
+        importance_ess=float(1 / np.sum(weights**2)),
+        max_normalized_weight=float(np.max(weights)),
+        log_evidence_estimate=0.0,
+        log_evidence_relative_mcse=0.0,
+        n_draws=2,
+        newton_iterations=1,
+    )
+    catalogue = np.linspace(0.02, 0.39, 80)
+    z_grid = np.linspace(0.01, 0.40, 101)
+    h0_grid = np.linspace(55.0, 85.0, 31)
+    merger = 1.0 + 1.5 * (z_grid - 0.01) / 0.39
+    distances = np.array([330.0, 410.0, 520.0])
+    loop_result = propagate_inclusion_posterior_to_h0(
+        posterior,
+        catalogue,
+        z_grid,
+        h0_grid,
+        distances,
+        merger_weight=merger,
+        scott_multiplier=0.3,
+        sigma=120.0,
+        detection_threshold=250.0,
+    )
+    vectorized = vectorized_selected_likelihood(
+        z_grid,
+        loop_result.host_density_draws,
+        h0_grid,
+        distances,
+        sigma=120.0,
+        detection_threshold=250.0,
+        h0_batch_size=7,
+    )
+    np.testing.assert_allclose(
+        loop_result.unconditional_log_likelihood_by_draw,
+        vectorized["unconditional_log_likelihoods"],
+        rtol=1e-10,
+        atol=1e-10,
+    )
+    np.testing.assert_allclose(
+        loop_result.detection_efficiency_by_draw,
+        vectorized["detection_efficiencies"],
+        rtol=1e-10,
+        atol=1e-12,
+    )
+    np.testing.assert_allclose(
+        loop_result.selected_log_likelihood_by_draw,
+        vectorized["selected_log_likelihoods"],
+        rtol=1e-10,
+        atol=1e-10,
+    )
