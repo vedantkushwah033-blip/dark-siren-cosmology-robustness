@@ -174,3 +174,17 @@ def test_paired_validation_size_contrasts_match_replicates_and_exclude_unevaluab
     assert cell["metrics"]["width_68"]["mean_delta"] == pytest.approx(-2.0)
     assert cell["metrics"]["coverage_68"]["mean_delta"] == pytest.approx(-1.0)
 
+def test_paired_contrasts_tolerate_cells_with_no_evaluable_posterior_columns():
+    frame = pd.DataFrame([
+        {"experiment": "FIXED_TRUTH", "catalogue_floor": 0.25, "replicate": 0,
+         "n_validation": 100, "status": "FAILED"},
+        {"experiment": "FIXED_TRUTH", "catalogue_floor": 0.25, "replicate": 0,
+         "n_validation": 300, "status": "NON_EVALUABLE"},
+    ])
+    result = MODULE._paired_validation_size_contrasts(frame)
+    cell = result["FIXED_TRUTH|floor=0.25|100->300"]
+    assert cell["attempted_common_replicates"] == 1
+    assert cell["evaluable_pairs"] == 0
+    assert cell["excluded_pairs"] == 1
+    assert cell["metrics"] == {}
+
