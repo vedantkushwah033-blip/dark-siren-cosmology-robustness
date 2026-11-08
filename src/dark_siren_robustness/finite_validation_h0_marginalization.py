@@ -84,7 +84,7 @@ def marginalize_selected_draws_with_mcse(
     log_importance_weights,
     *,
     n_batches=10,
-    min_batch_ess=10.0,
+    min_batch_ess=20.0,
 ):
     """Return the full SNIS estimate and a disjoint-batch log-scale MCSE.
 
@@ -160,7 +160,7 @@ def propagate_inclusion_posterior_to_h0(
     detection_threshold,
     max_output_bytes=1_000_000_000,
     marginalization_batches=10,
-    min_batch_ess=10.0,
+    min_batch_ess=20.0,
 ):
     """Build one IPW density and selected likelihood per weighted theta proposal.
 
