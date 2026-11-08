@@ -195,5 +195,6 @@ jobs:
             artifacts/finite_validation_probability_smoke/
             artifacts/finite_validation_probability_pilot/
             artifacts/finite_validation_density_recovery_smoke/
+            artifacts/independent_validation_inclusion_h0_smoke/
           if-no-files-found: error
 
