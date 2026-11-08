@@ -266,3 +266,61 @@ def test_node_specific_host_weights_refuse_underflow_without_clipping():
     extreme = replace(posterior, nodes=extreme_nodes)
     with pytest.raises(ArithmeticError, match="underflows"):
         build_node_specific_host_weights(extreme, np.asarray([0.2]))
+
+
+
+def test_laplace_gh_quadrature_matches_independent_prior_centered_gh_reference():
+    """Cross-check moments and evidence using a different quadrature measure."""
+    from scipy.special import expit, roots_hermitenorm
+
+    rng = np.random.default_rng(20261108)
+    z = rng.uniform(0.01, 0.40, 90)
+    center, scale = z.mean(), z.std()
+    x = (z - center) / scale
+    design = np.column_stack([np.ones(z.size), x])
+    probability = expit(-0.45 + 0.72 * x)
+    retained = rng.binomial(1, probability)
+    prior_mean = np.zeros(2)
+    prior_sd = np.asarray([5.0, 2.5])
+
+    adaptive = fit_inclusion_posterior_quadrature(
+        z, retained, degree=1, prior_mean=prior_mean,
+        prior_sd=prior_sd, order=15,
+    )
+
+    # Independent tensor GH directly under the Gaussian prior, rather than
+    # the implementation's Laplace-centered Gaussian importance proposal.
+    nodes_1d, weights_1d = roots_hermitenorm(100)
+    standard_weights = weights_1d / np.sqrt(2.0 * np.pi)
+    theta0, theta1 = np.meshgrid(
+        prior_mean[0] + prior_sd[0] * nodes_1d,
+        prior_mean[1] + prior_sd[1] * nodes_1d,
+        indexing="ij",
+    )
+    theta = np.column_stack([theta0.ravel(), theta1.ravel()])
+    log_prior_quadrature = np.log(
+        np.outer(standard_weights, standard_weights).ravel()
+    )
+    eta = design @ theta.T
+    log_likelihood = np.sum(
+        retained[:, None] * eta - np.logaddexp(0.0, eta), axis=0
+    )
+    log_mass = log_prior_quadrature + log_likelihood
+    log_evidence_reference = float(logsumexp(log_mass))
+    reference_weights = np.exp(log_mass - log_evidence_reference)
+    reference_mean = reference_weights @ theta
+    centered = theta - reference_mean
+    reference_covariance = (
+        centered * reference_weights[:, None]
+    ).T @ centered
+
+    np.testing.assert_allclose(
+        adaptive.posterior_mean, reference_mean, rtol=2e-5, atol=2e-5
+    )
+    np.testing.assert_allclose(
+        adaptive.posterior_covariance, reference_covariance,
+        rtol=5e-5, atol=5e-5,
+    )
+    assert abs(
+        adaptive.log_evidence_unnormalized - log_evidence_reference
+    ) < 5e-5
