@@ -132,3 +132,25 @@ Statistical validation:
 8. Run SBC and fixed-truth coverage only after sampler, density, likelihood, selection and numerical-convergence gates pass.
 
 **State at creation:** finite-validation probability and density-recovery stages exist. The finite-validation H0 marginalization described here is not yet implemented or validated.
+
+
+## Candidate fixed-basis prior and prior-predictive check (exploratory)
+
+The DGP's true inclusion model, expressed in the fixed coordinate u=(z-0.01)/0.39, has coefficients
+
+| Curvature gamma | Intercept in fixed basis | Linear coefficient | Quadratic coefficient |
+|---:|---:|---:|---:|
+| -1.2 | -0.3201 | -1.0 | -1.2 |
+| 0.0 | -0.6259 | -1.0 | 0.0 |
+| +1.2 | -0.9841 | -1.0 | +1.2 |
+
+A candidate weakly regularizing prior for the Bayesian stage is independent Normal(0, s^2) coefficients in the fixed [1,u] or [1,u,u^2] basis, with s=1.0 as the candidate reference and s in {0.75,1.5} as prior-sensitivity arms. This is **not yet a frozen confirmatory prior**.
+
+A reproducible prior-predictive simulation used 500,000 coefficient draws per degree/scale and evaluated probabilities on 101 equally spaced u values. For the degree-2 model:
+- s=0.75: fraction of prior-predictive grid probabilities outside [0.01,0.99] = 0.0000273.
+- s=1.00: fraction = 0.0009129; central 95% probability range at u=0 is [0.1242,0.8766] and at u=1 is [0.0325,0.9676].
+- s=1.50: fraction = 0.0176122; central 95% ranges are [0.0505,0.9501] at u=0 and [0.0062,0.9941] at u=1.
+
+For degree 1, the corresponding extreme-grid fractions are 0.0000010, 0.0001792, and 0.0095059 for s=0.75, 1.00, and 1.50. These are prior-predictive diagnostics, not posterior calibration results. The candidate s=1.0 prior covers the DGP coefficient magnitudes in this benchmark without placing much prior mass on near-deterministic inclusion across the domain. Prior sensitivity remains mandatory, and the candidate must be evaluated for separation regimes and coefficient-posterior calibration before confirmatory use.
+
+The sampler implementation should use the fixed basis directly. It should not assign an identical Normal prior to the current fitter's validation-sample-standardized coefficients.
