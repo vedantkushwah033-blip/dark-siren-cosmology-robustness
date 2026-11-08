@@ -112,6 +112,10 @@ def run_density_recovery_benchmark(
         raise ValueError("require replicates >= 1, parent size >= 1100, grid >= 201")
     if any(n < 5 or n >= n_parent for n in validation_sizes):
         raise ValueError("validation sizes must be >=5 and smaller than parent size")
+    if not retention_values or any(not 0.0 < r < 1.0 for r in retention_values):
+        raise ValueError("retention_values must be nonempty and lie strictly between 0 and 1")
+    if not gamma_values or any(not np.isfinite(g) for g in gamma_values):
+        raise ValueError("gamma_values must be nonempty and finite")
     if tuple(sorted(set(validation_sizes))) != tuple(validation_sizes):
         raise ValueError("validation_sizes must be unique and increasing")
     if any(d not in (1, 2) for d in degrees):
@@ -133,6 +137,8 @@ def run_density_recovery_benchmark(
         object_ids = np.arange(n_parent, dtype=np.int64)
         split_rng = np.random.default_rng(seed + 2000003 * rep)
         validation_order = split_rng.permutation(n_parent)
+        validation_rank = np.empty(n_parent, dtype=np.int64)
+        validation_rank[validation_order] = np.arange(n_parent, dtype=np.int64)
         nested_validation = {
             n: np.sort(validation_order[:n]) for n in validation_sizes
         }
@@ -167,6 +173,8 @@ def run_density_recovery_benchmark(
                         "object_id": int(object_ids[idx]),
                         "redshift": float(parent_z[idx]),
                         "true_inclusion_probability": float(true_probability[idx]),
+                        "retention_uniform": float(base_retention_uniform[idx]),
+                        "validation_rank": int(validation_rank[idx]),
                         "retained": int(retained[idx]),
                         "role": ("VALIDATION" if is_validation[idx]
                                  else ("ANALYSIS_CATALOGUE" if retained[idx]
