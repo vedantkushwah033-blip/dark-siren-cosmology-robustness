@@ -15,7 +15,7 @@ import pandas as pd
 from scipy.integrate import cumulative_trapezoid, trapezoid
 from scipy.optimize import brentq
 from scipy.special import expit
-from scipy.stats import gaussian_kde
+from scipy.stats import gaussian_kde, t as student_t
 
 
 Z_MIN, Z_MAX = 0.01, 0.40
@@ -61,6 +61,47 @@ def _independent_kde(grid, sample, probability, multiplier, merger):
     kde=gaussian_kde(augmented,weights=augmented_weights,bw_method=lambda _kde:factor)
     raw=np.asarray(kde(grid))*merger
     return raw/trapezoid(raw,grid)
+
+
+def _reconstruct_paired_contrasts(attempts, *, n_replicates, seed, bootstrap_resamples=2000):
+    results=[]
+    rng=np.random.default_rng(seed)
+    keys=["gamma","target_retention","n_validation","bandwidth_multiplier"]
+    for key,group in attempts.groupby(keys,sort=True):
+        selected=group.loc[group.arm.isin(
+            ["catalogue_only","estimated_degree_1_ipw","estimated_degree_2_ipw"]
+        )]
+        wide=selected.pivot(index="replicate",columns="arm",values="iae")
+        if "catalogue_only" not in wide:
+            continue
+        for degree in (1,2):
+            arm=f"estimated_degree_{degree}_ipw"
+            if arm not in wide:
+                continue
+            paired=wide[["catalogue_only",arm]].dropna()
+            diff=(paired[arm]-paired["catalogue_only"]).to_numpy(dtype=float)
+            n=int(diff.size)
+            item={
+                "gamma":float(key[0]),"target_retention":float(key[1]),
+                "n_validation":int(key[2]),"bandwidth_multiplier":float(key[3]),
+                "degree":degree,"contrast":f"{arm}_minus_catalogue_only",
+                "n_pairs":n,"n_replicates_planned":int(n_replicates),
+                "mean_difference":float(np.mean(diff)) if n else None,
+                "monte_carlo_se":float(np.std(diff,ddof=1)/np.sqrt(n)) if n>1 else None,
+                "bootstrap_95_interval":None,"paired_t_95_interval":None,
+            }
+            if n>=2:
+                draws=rng.integers(0,n,size=(bootstrap_resamples,n))
+                boot=diff[draws].mean(axis=1)
+                item["bootstrap_95_interval"]=[
+                    float(np.quantile(boot,0.025)),float(np.quantile(boot,0.975))
+                ]
+                se=float(np.std(diff,ddof=1)/np.sqrt(n))
+                crit=float(student_t.ppf(0.975,n-1))
+                mean=float(np.mean(diff))
+                item["paired_t_95_interval"]=[mean-crit*se,mean+crit*se]
+            results.append(item)
+    return results
 
 
 def audit_artifact(artifact_dir: Path) -> dict:
@@ -199,6 +240,26 @@ def audit_artifact(artifact_dir: Path) -> dict:
     observed_counts={str(k):int(v) for k,v in attempts.status.value_counts().items()}
     if observed_counts!=summary["status_counts"]:
         raise AssertionError("Attempt status ledger differs from summary")
+    reconstructed_contrasts=_reconstruct_paired_contrasts(
+        attempts,n_replicates=int(summary["n_replicates"]),
+        seed=int(summary["seed_start"])+9109,
+    )
+    stored_contrasts=summary["paired_ipw_minus_catalogue_only_contrasts"]
+    if len(reconstructed_contrasts)!=len(stored_contrasts):
+        raise AssertionError("Paired contrast count differs from independent reconstruction")
+    for expected,stored in zip(reconstructed_contrasts,stored_contrasts):
+        for field in ("gamma","target_retention","n_validation","bandwidth_multiplier",
+                      "degree","n_pairs","n_replicates_planned"):
+            if expected[field]!=stored[field]:
+                raise AssertionError(f"Paired contrast key mismatch: {field}")
+        for field in ("mean_difference","monte_carlo_se"):
+            a,b=expected[field],stored[field]
+            if a is not None and not np.isclose(a,b,rtol=1e-10,atol=1e-12):
+                raise AssertionError(f"Paired contrast mismatch: {field}")
+        for field in ("bootstrap_95_interval","paired_t_95_interval"):
+            a,b=expected[field],stored[field]
+            if a is not None and not np.allclose(a,b,rtol=1e-10,atol=1e-12):
+                raise AssertionError(f"Paired contrast interval mismatch: {field}")
     return {
         "status":"PASS",
         "audit_scope":"raw partition, DGP probabilities, retention labels, nested validation, fitted covariance, KDE, IAE, summary ledger",
