@@ -108,3 +108,44 @@ def test_log_marginalization_validates_weights_and_log_likelihoods():
         log_marginalize_shared_parameter(np.asarray([0.0, np.nan]), np.asarray([0.5, 0.5]))
     with pytest.raises(ValueError, match="match posterior weights"):
         log_marginalize_shared_parameter(np.zeros((3, 2)), np.asarray([0.5, 0.5]))
+
+
+def test_quadrature_ladder_reports_convergence_and_nonconvergence_explicitly():
+    from dark_siren_robustness.inclusion_posterior import (
+        fit_inclusion_posterior_quadrature_ladder,
+    )
+
+    rng = np.random.default_rng(22061)
+    z = rng.uniform(0.01, 0.40, 350)
+    x = (z - z.mean()) / z.std()
+    p = 1.0 / (1.0 + np.exp(-(-0.25 + 0.7 * x)))
+    retained = rng.binomial(1, p)
+
+    permissive = fit_inclusion_posterior_quadrature_ladder(
+        z, retained, degree=1, orders=(5, 7, 9),
+        mean_tolerance=1.0, covariance_tolerance=1.0,
+        predictive_tolerance=1.0, consecutive_passes=1,
+    )
+    assert permissive.status == "CONVERGED"
+    assert len(permissive.fits) >= 2
+    assert len(permissive.mean_max_abs_change) == len(permissive.fits) - 1
+
+    strict = fit_inclusion_posterior_quadrature_ladder(
+        z, retained, degree=1, orders=(5, 7, 9),
+        mean_tolerance=1e-14, covariance_tolerance=1e-14,
+        predictive_tolerance=1e-14, consecutive_passes=2,
+    )
+    assert strict.status == "NON_CONVERGED"
+    assert len(strict.fits) == 3
+
+
+def test_quadrature_ladder_rejects_invalid_order_schedule():
+    from dark_siren_robustness.inclusion_posterior import (
+        fit_inclusion_posterior_quadrature_ladder,
+    )
+
+    with pytest.raises(ValueError, match="strictly increasing"):
+        fit_inclusion_posterior_quadrature_ladder(
+            np.linspace(0.01, 0.4, 30), np.arange(30) % 2,
+            orders=(7, 7, 11),
+        )
