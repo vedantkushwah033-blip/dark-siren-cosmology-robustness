@@ -207,3 +207,14 @@ The historical status sentence above reflects the state when the density-recover
 Focused workflow [#42479890034](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/42479890034) passed the inclusion-posterior and H0 propagation test suite on Python 3.10, 3.11 and 3.12 at PR head `c47ab95e26adaede691f0d71306eaf3b517fa892`. The tests include a real weighted importance-posterior object passed through the density and selected-likelihood pipeline. The general numerical-diagnostics workflow for that head was cancelled, so no full-repository CI pass is claimed.
 
 **Revised status:** H0 propagation code exists and its focused computational tests pass. There is still no confirmatory finite-validation H0 experiment, no SBC, no fixed-truth H0 coverage study, and no evidence that estimated-inclusion IPW improves H0 calibration. The prior scale remains provisional. The project is therefore at **implementation/smoke-validation**, not scientific calibration or coverage.
+
+
+### End-to-end DGP smoke and H0 marginalization Monte Carlo diagnostics
+
+A further end-to-end smoke test now constructs a finite parent frame, calibrates the synthetic quadratic inclusion law, draws an outcome-independent validation sample, excludes validation units from the analysis catalogue, fits the proper-prior inclusion posterior, simulates threshold-detected GW distances from the known synthetic host law, propagates 1,000 weighted coefficient proposals through IPW KDE and the draw-specific GW selection correction, and normalizes the resulting H0 posterior under an explicit flat-on-H0 grid prior. It asserts partition disjointness, non-evaluable lifecycle checks, finite efficiencies, normalized posterior density and sensible interval ordering. It does **not** use the single smoke posterior as a coverage result.
+
+The H0 propagation layer now also reports disjoint-batch Monte Carlo diagnostics for the marginalized selected log likelihood: 10 batch estimates, per-batch importance ESS, log-scale batch MCSE, and explicit `PASS` / `LOW_BATCH_ESS` / `INSUFFICIENT_DRAWS` status. The default minimum batch ESS is 20. This is separate from the importance sampler's validation-evidence MCSE.
+
+Focused workflow [#42480779870](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/42480779870) passed on Python 3.10, 3.11 and 3.12 at PR head `54ac5a99eba3e8cef3eaffee9a492c6dcf91628e`, including the end-to-end smoke, vectorized/reference likelihood equivalence, per-draw selection-order test, posterior normalization, batch MCSE, and memory-guard checks.
+
+**Still not a scientific H0 result:** this is a single synthetic computational smoke, not a confirmatory repeated-sampling experiment. No SBC, PIT calibration, fixed-truth H0 coverage, prior-scale sensitivity study, or real-data inference has been completed.
