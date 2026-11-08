@@ -138,12 +138,26 @@ def test_independent_validation_samples_are_nested_for_fixed_seed_and_frame():
     ids_medium = set(medium["validation_observed"]["validation_id"])
     ids_large = set(large["validation_observed"]["validation_id"])
     assert ids_small < ids_medium < ids_large
+    # The underlying generated frame must be identical across requested
+    # validation sizes. The truth-only selection indicator is expected to
+    # differ because it records which prefix was selected at each size.
+    frame_columns = ["frame_id", "redshift", "inclusion_probability", "retained"]
     pd.testing.assert_frame_equal(
-        small["validation_frame_truth"], medium["validation_frame_truth"]
+        small["validation_frame_truth"][frame_columns],
+        medium["validation_frame_truth"][frame_columns],
     )
     pd.testing.assert_frame_equal(
-        medium["validation_frame_truth"], large["validation_frame_truth"]
+        medium["validation_frame_truth"][frame_columns],
+        large["validation_frame_truth"][frame_columns],
     )
+    for sample, selected_ids in (
+        (small, ids_small), (medium, ids_medium), (large, ids_large)
+    ):
+        truth = sample["validation_frame_truth"].set_index("frame_id")
+        expected = truth.index.isin(selected_ids).astype(np.int8)
+        np.testing.assert_array_equal(
+            truth["selected_for_validation"].to_numpy(), expected
+        )
     # The nested samples must be literal prefixes of the same randomized order.
     np.testing.assert_array_equal(
         small["validation_observed"]["validation_id"].to_numpy(),
