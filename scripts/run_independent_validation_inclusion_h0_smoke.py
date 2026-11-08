@@ -278,7 +278,7 @@ def main() -> None:
         "warning": "Sensitivity is not evidence of calibration or coverage.",
     }
     (output / "prior_scale_sensitivity.json").write_text(
-        json.dumps(prior_sensitivity_summary, indent=2, sort_keys=True) + "\\n",
+        json.dumps(prior_sensitivity_summary, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
 
