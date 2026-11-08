@@ -59,3 +59,18 @@ The 0.15 Scott multiplier is a frozen candidate from a separate training/held-ou
 ## CI status
 
 The workflow was extended to run the focused tests, a small density-recovery smoke experiment, and the independent artifact auditor, and to upload the resulting smoke artifact. A workflow run associated with an intermediate branch head was later reported as cancelled with no job records. The final branch head has not yet returned a completed CI result. Therefore the new implementation is **not reported as tested or passed** until a completed Actions run and audit artifact are inspected.
+
+
+## Independent-audit completeness and confirmatory execution gate (2026-11-08)
+
+The density-recovery auditor was strengthened before launching the full design:
+
+- It now reconstructs the complete expected factorial attempt-key set from the immutable summary design and rejects missing, duplicate, or unexpected attempts.
+- It accepts only the declared attempt lifecycle states: SUCCESS, NON_EVALUABLE, FAILED, and NOT_RUN.
+- Successful estimated-inclusion attempts now store the logistic negative log-likelihood objective, design rank, and design condition number. The auditor independently recomputes these from raw validation labels and stored coefficients, alongside the score, observed information, covariance, and fitted-probability diagnostics.
+- Parent-unit partitions are indexed once by experiment key before iterating through attempt rows. This avoids repeatedly scanning the entire multi-million-row raw table for each KDE attempt and makes the full audit computationally feasible in principle.
+- Adversarial tests now remove an expected attempt while refreshing the manifest and alter a fitted objective while refreshing the manifest; both must be rejected by the auditor.
+
+A separate workflow, `.github/workflows/finite-validation-density-confirmatory.yml`, has been added for the predeclared 100-replicate primary density-recovery design (N=4,000; gamma -1.2, 0, +1.2; retention 0.25; validation sizes 100, 300, 1,000; linear/quadratic fits; Scott multipliers 0.15, 0.40, 1.00; 801-point density grid). It runs the focused tests, generates the full raw artifact, independently audits it, and uploads the result. The workflow is isolated from the general test matrix and can also be manually dispatched.
+
+**Status at documentation time:** the workflow has been added but the full 100-replicate experiment has not yet completed. The additional completeness/objective tests and the confirmatory workflow must pass before the density stage is declared complete. This remains a density-recovery experiment only; it does not implement H0 inference or posterior calibration.
