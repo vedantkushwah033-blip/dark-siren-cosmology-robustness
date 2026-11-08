@@ -169,6 +169,10 @@ def test_independent_validation_h0_runner_records_prior_and_passes_independent_a
     assert prior["family"] == "independent_normal"
     assert prior["mean"] == [0.0, 0.0]
     assert prior["sd"] == [5.0, 2.5]
+    coordinates = config["inference"]["coefficient_coordinates"]
+    assert coordinates["basis"] == "fixed_domain_standardization"
+    assert coordinates["center"] == 0.205
+    assert coordinates["scale"] == 0.195
 
     audited = subprocess.run(
         [
