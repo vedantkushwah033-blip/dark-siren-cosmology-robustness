@@ -86,10 +86,16 @@ def run_probability_validation_benchmark(
                 ].reset_index(drop=True)
                 # Oracle weights are scoring-only diagnostics; never supplied to the fitter.
                 truth_by_id = parent.set_index("object_id")
-                oracle_probability = truth_by_id.loc[
-                    split.analysis_object_ids, "inclusion_probability"
-                ].to_numpy()
-                oracle_weight = inverse_probability_weight_diagnostics(oracle_probability)
+                if len(split.analysis_catalogue):
+                    oracle_probability = truth_by_id.loc[
+                        split.analysis_object_ids, "inclusion_probability"
+                    ].to_numpy()
+                    oracle_weight = inverse_probability_weight_diagnostics(oracle_probability)
+                else:
+                    oracle_weight = {
+                        "kish_ess": np.nan, "entropy_ess": np.nan,
+                        "max_normalized_weight": np.nan,
+                    }
 
                 for degree in model_degrees:
                     fit = fit_inclusion_logistic(
@@ -130,10 +136,18 @@ def run_probability_validation_benchmark(
                         score = score_inclusion_predictions(
                             holdout["retained"].to_numpy(), p_holdout
                         )
-                        p_analysis = fit.predict(
-                            split.analysis_catalogue["redshift"].to_numpy()
-                        )
-                        weight = inverse_probability_weight_diagnostics(p_analysis)
+                        if len(split.analysis_catalogue):
+                            p_analysis = fit.predict(
+                                split.analysis_catalogue["redshift"].to_numpy()
+                            )
+                            weight = inverse_probability_weight_diagnostics(p_analysis)
+                        else:
+                            weight = {
+                                "kish_ess": np.nan, "entropy_ess": np.nan,
+                                "max_normalized_weight": np.nan,
+                                "top_1pct_weight_mass": np.nan,
+                                "top_5pct_weight_mass": np.nan,
+                            }
                         row.update({
                             "heldout_brier_score": score["brier_score"],
                             "heldout_log_loss": score["log_loss"],
