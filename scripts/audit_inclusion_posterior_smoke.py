@@ -14,6 +14,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.integrate import cumulative_trapezoid
 from scipy.special import expit, log_ndtr, logsumexp
 from scipy.stats import norm
 
@@ -135,7 +136,7 @@ def audit(output_dir: Path) -> dict[str, object]:
     _require(np.isfinite(area) and area > 0, "independent H0 normalization failed")
     density = unnormalized / area
     cdf = np.concatenate((
-        [0.0], np.cumulative_trapezoid(density, h0)
+        [0.0], cumulative_trapezoid(density, h0)
     ))
     cdf /= cdf[-1]
 
