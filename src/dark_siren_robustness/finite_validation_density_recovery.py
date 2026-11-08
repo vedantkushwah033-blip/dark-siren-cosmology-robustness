@@ -265,8 +265,7 @@ def run_density_recovery_benchmark(
                                 )
                             except (ValueError, ArithmeticError, np.linalg.LinAlgError) as exc:
                                 status, message = "NON_EVALUABLE", str(exc)
-                            weight_metrics = _weight_diagnostics(probabilities, int(sample.size))
-                            weight_metrics = _weight_diagnostics(estimated_pi, int(analysis_z.size)) if density is not None else {}
+                            weight_metrics = (_weight_diagnostics(probabilities, int(sample.size))\n                                              if sample.size else {})
                             attempt_rows.append({
                                 "replicate": rep, "seed": seed + 1000003 * rep,
                                 "gamma": float(gamma), "target_retention": float(target_retention),
@@ -299,6 +298,8 @@ def run_density_recovery_benchmark(
                                     status, message = "SUCCESS", ""
                                 except (ValueError, ArithmeticError, np.linalg.LinAlgError) as exc:
                                     status, message = "NON_EVALUABLE", str(exc)
+                            weight_metrics = (_weight_diagnostics(estimated_pi, int(analysis_z.size))
+                                              if density is not None else {})
                             attempt_rows.append({
                                 "replicate": rep, "seed": seed + 1000003 * rep,
                                 "gamma": float(gamma), "target_retention": float(target_retention),
