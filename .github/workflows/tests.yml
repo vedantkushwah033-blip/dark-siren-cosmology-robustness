@@ -54,6 +54,8 @@ jobs:
         run: python scripts/run_independent_validation_inclusion_h0_smoke.py --n-parent 1200 --n-detected 4 --n-validation-frame 1500 --n-validation 200 --orders 5,7,9,11 --h0-points 41 --output-dir artifacts/independent_validation_inclusion_h0_smoke
       - name: Test normalized H0 posterior and grid-refinement diagnostics
         run: python -m pytest tests/test_h0_posterior.py -q
+      - name: Test downstream H0 likelihood convergence across inclusion quadrature orders
+        run: python -m pytest tests/test_inclusion_h0_convergence.py -q
       - name: Test independent finite-validation raw-record auditor
         run: python -m pytest tests/test_audit_finite_validation_probability_benchmark.py -q
       - name: Run paired finite-validation inclusion-probability smoke benchmark
