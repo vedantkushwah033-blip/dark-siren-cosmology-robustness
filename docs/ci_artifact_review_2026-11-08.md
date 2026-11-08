@@ -104,3 +104,32 @@ These new source and test commits are **not covered by run #42455270698**. Do no
 - **NEXT:** validate the new bandwidth API, design training/held-out density-recovery bandwidth selection, then re-run oracle and known-inclusion H0 baselines before connecting finite-validation estimates to H0.
 
 No default-branch changes or PR merges were made.
+
+
+## 9. Additional independent reconstruction performed during review
+
+After downloading the Python 3.12 artifact, I independently re-read the 1,800,000-row raw probability-stage CSV and reconstructed all 450 experiment/model groups directly from the unit records. This calculation used a separate analysis script and did not import the repository benchmark or auditor.
+
+Checks:
+- Every group had exactly 4,000 parent-frame records.
+- Validation count matched its declared size (100, 300 or 1,000); all remaining objects were partitioned into analysis-catalogue or non-retained holdout roles.
+- All 450 fitted-model groups were marked SUCCESS.
+- Held-out Brier score, log loss, probability RMSE, 10-bin ECE, maximum calibration-bin gap, and the five estimated-IPW weight diagnostics were independently recomputed.
+- The independently recomputed metrics agreed with the stored summary to the following maximum absolute differences:
+
+| Metric | Maximum absolute difference |
+|---|---:|
+| Held-out Brier score | 1.11e-16 |
+| Held-out log loss | 1.50e-15 |
+| Held-out probability RMSE | 1.11e-16 |
+| 10-bin ECE | 1.39e-16 |
+| Maximum 10-bin gap | 1.67e-16 |
+| Kish ESS | 1.79e-12 |
+| Entropy ESS | 6.59e-12 |
+| Maximum normalized weight | 2.18e-15 |
+| Top-1% weight mass | 1.45e-14 |
+| Top-5% weight mass | 1.31e-14 |
+
+The raw partition totals were 210,000 validation records, 452,824 analysis-catalogue records, and 1,137,176 non-retained holdout records. The manifest SHA-256 hashes for both raw and summary CSV files were also independently recomputed and matched.
+
+This materially strengthens confidence in the probability-stage artifact's numerical integrity. It does not change the pilot's scientific status: five replicates per cell remain exploratory, and the probability-stage results still do not establish downstream H0 calibration or estimator superiority.
