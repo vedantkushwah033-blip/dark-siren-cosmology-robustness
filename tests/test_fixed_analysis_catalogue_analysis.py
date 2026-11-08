@@ -20,7 +20,7 @@ def test_primary_curvature_interaction_and_holm_secondary_family():
   bootstrap_resamples=1000,bootstrap_seed=3)
  primary=result["primary_interaction"]
  assert primary["n_complete_pairs"]==5
- assert primary["mean_interaction"]==0.32
+ assert abs(primary["mean_interaction"]-0.32)<1e-12
  assert len(result["secondary_contrasts"])==18
  assert all(x["n_pairs"]==5 for x in result["secondary_contrasts"])
  adjusted=[x["holm_adjusted_p_value"] for x in result["secondary_contrasts"]]
