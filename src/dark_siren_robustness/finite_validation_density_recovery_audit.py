@@ -86,6 +86,40 @@ def _independent_kde(grid, sample, probability, multiplier, merger):
     return raw/trapezoid(raw,grid)
 
 
+def _manual_gaussian_kde(grid, sample, probability, multiplier, merger):
+    """Direct weighted Gaussian-kernel sum, independent of scipy.gaussian_kde."""
+    sample=np.asarray(sample,dtype=float)
+    weights=np.ones(sample.size,dtype=float) if probability is None else 1.0/np.asarray(probability,dtype=float)
+    if sample.ndim!=1 or sample.size<2 or weights.shape!=sample.shape:
+        raise AssertionError("Manual KDE received invalid sample or weights")
+    if not np.all(np.isfinite(weights)) or np.any(weights<=0):
+        raise AssertionError("Manual KDE received nonpositive/nonfinite weights")
+    scaled=weights/np.max(weights)
+    neff=float(np.sum(scaled)**2/np.sum(scaled**2))
+    augmented=np.concatenate((sample,2.0*grid[0]-sample,2.0*grid[-1]-sample))
+    augmented_weights=np.tile(scaled/3.0,3)
+    probability_aug=augmented_weights/np.sum(augmented_weights)
+    mean=float(probability_aug@augmented)
+    denominator=1.0-float(probability_aug@probability_aug)
+    if not np.isfinite(denominator) or denominator<=0:
+        raise AssertionError("Manual KDE weighted covariance is undefined")
+    variance=float(np.sum(probability_aug*(augmented-mean)**2)/denominator)
+    bandwidth=float(multiplier)*neff**(-0.2)*np.sqrt(variance)
+    if not np.isfinite(bandwidth) or bandwidth<=0:
+        raise AssertionError("Manual KDE bandwidth is invalid")
+    raw=np.empty(grid.size,dtype=float)
+    normalizer=np.sqrt(2.0*np.pi)*bandwidth
+    for start in range(0,grid.size,128):
+        stop=min(start+128,grid.size)
+        standardized=(grid[start:stop,None]-augmented[None,:])/bandwidth
+        raw[start:stop]=np.exp(-0.5*standardized**2)@probability_aug/normalizer
+    weighted=raw*np.asarray(merger,dtype=float)
+    area=float(trapezoid(weighted,grid))
+    if not np.isfinite(area) or area<=0:
+        raise AssertionError("Manual KDE normalization failed")
+    return weighted/area
+
+
 def _reconstruct_weight_diagnostics(probability, n):
     weights=np.ones(n,dtype=float) if probability is None else 1.0/np.asarray(probability,dtype=float)
     scaled=weights/np.max(weights)
@@ -347,6 +381,9 @@ def audit_artifact(artifact_dir: Path) -> dict:
         )
     }
     checked_densities=0
+    manual_checks={}
+    manual_validation=min(int(value) for value in summary["validation_sizes"])
+    manual_bandwidth=min(float(value) for value in summary["bandwidth_multipliers"])
     for row in attempts.itertuples(index=False):
         if int(row.seed)!=int(summary["seed_start"]):
             raise AssertionError("Attempt root-seed label differs from immutable design seed")
@@ -451,6 +488,17 @@ def audit_artifact(artifact_dir: Path) -> dict:
         max_error=float(np.max(np.abs(density-target)))
         if not np.isclose(iae,float(row.iae),rtol=TOL,atol=TOL):
             raise AssertionError(f"IAE reconstruction failed: {key}/{row.arm}")
+        if (int(row.n_validation)==manual_validation
+            and np.isclose(float(row.bandwidth_multiplier),manual_bandwidth)):
+            check_key=(float(row.gamma),str(row.arm))
+            if check_key not in manual_checks:
+                direct=_manual_gaussian_kde(
+                    grid,sample,prob,float(row.bandwidth_multiplier),merger
+                )
+                direct_error=float(np.max(np.abs(density-direct)))
+                if not np.allclose(density,direct,rtol=2e-10,atol=2e-10):
+                    raise AssertionError(f"Independent direct Gaussian-kernel spot check failed: {key}/{row.arm}")
+                manual_checks[check_key]=direct_error
         if not np.isclose(ise,float(row.ise),rtol=TOL,atol=TOL):
             raise AssertionError(f"ISE reconstruction failed: {key}/{row.arm}")
         if not np.isclose(max_error,float(row.max_abs_density_error),rtol=TOL,atol=TOL):
@@ -519,10 +567,16 @@ def audit_artifact(artifact_dir: Path) -> dict:
         "attempt_count":int(len(attempts)),
         "status_counts":observed_counts,
         "manifest_files_verified":int(len(manifest["files"])),
+        "manual_gaussian_kde_crosschecks":int(len(manual_checks)),
+        "manual_max_density_abs_difference":max(manual_checks.values()) if manual_checks else None,
+        "manual_crosscheck_cells":[
+            {"gamma":key[0],"arm":key[1],"max_abs_difference":value}
+            for key,value in sorted(manual_checks.items())
+        ],
         "limitations":[
             "Numerical artifact reconstruction is not scientific validation of the DGP.",
             "No H0 likelihood, posterior calibration, or coverage is audited.",
-            "The auditor independently implements the declared KDE protocol but shares SciPy's gaussian_kde primitive.",
+            "Bulk KDE reconstruction uses SciPy gaussian_kde; one deterministic direct Gaussian-kernel cross-check is run per curvature-by-arm cell.",
         ],
     }
 
