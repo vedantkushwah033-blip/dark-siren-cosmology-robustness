@@ -33,6 +33,17 @@ PRIMARY_DEGREES = (1, 2)
 PRIMARY_MULTIPLIER = 0.15
 SENSITIVITY_MULTIPLIERS = (0.40, 1.00)
 
+def _rng_stream(seed: int, replicate: int, stream_id: int) -> np.random.Generator:
+    """Create a reproducible, non-overlapping RNG stream for one design component.
+
+    Stream IDs are fixed by the experiment protocol: 1=parent redshifts,
+    2=validation permutation, 3=retention uniforms. In particular, streams
+    remain distinct for replicate zero; seed + offset * replicate does not.
+    """
+    sequence = np.random.SeedSequence([int(seed), int(replicate), int(stream_id)])
+    return np.random.default_rng(sequence)
+
+
 
 def parent_intensity(z: np.ndarray) -> np.ndarray:
     """Unnormalised, declared two-overdensity parent intensity."""
@@ -198,17 +209,17 @@ def run_density_recovery_benchmark(
     unit_rows: list[dict] = []
 
     for rep in range(n_replicates):
-        parent_rng = np.random.default_rng(seed + 1000003 * rep)
+        parent_rng = _rng_stream(seed, rep, 1)
         parent_z = _draw_parent_redshifts(parent_rng, n_parent)
         object_ids = np.arange(n_parent, dtype=np.int64)
-        split_rng = np.random.default_rng(seed + 2000003 * rep)
+        split_rng = _rng_stream(seed, rep, 2)
         validation_order = split_rng.permutation(n_parent)
         validation_rank = np.empty(n_parent, dtype=np.int64)
         validation_rank[validation_order] = np.arange(n_parent, dtype=np.int64)
         nested_validation = {
             n: np.sort(validation_order[:n]) for n in validation_sizes
         }
-        base_retention_uniform = np.random.default_rng(seed + 3000017 * rep).random(n_parent)
+        base_retention_uniform = _rng_stream(seed, rep, 3).random(n_parent)
 
         for gamma in gamma_values:
             for target_retention in retention_values:
@@ -362,6 +373,10 @@ def run_density_recovery_benchmark(
             "validation_design": "nested SRS from complete parent frame, independent of retention",
         },
         "n_replicates": n_replicates, "n_parent": n_parent, "seed_start": seed,
+        "rng_stream_protocol": (
+            "numpy SeedSequence([seed, replicate, stream_id]); "
+            "stream_id 1=parent redshifts, 2=validation permutation, 3=retention uniforms"
+        ),
         "gamma_values": list(gamma_values), "retention_values": list(retention_values),
         "validation_sizes": list(validation_sizes), "degrees": list(degrees),
         "bandwidth_multipliers": list(bandwidth_multipliers),
@@ -401,7 +416,7 @@ def write_artifacts(attempts: pd.DataFrame, units: pd.DataFrame, summary: dict,
     }
     config_keys = (
         "artifact_schema_version", "status", "dgp", "n_replicates", "n_parent",
-        "seed_start", "gamma_values", "retention_values", "validation_sizes",
+        "seed_start", "rng_stream_protocol", "gamma_values", "retention_values", "validation_sizes",
         "degrees", "bandwidth_multipliers", "grid",
     )
     config = {key: summary[key] for key in config_keys}
