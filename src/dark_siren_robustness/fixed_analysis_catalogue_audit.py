@@ -122,6 +122,53 @@ def audit_fixed_catalogue_artifact(path):
   checked+=1
  counts={str(k):int(v) for k,v in a.status.value_counts().items()}
  if counts!=s["status_counts"]: raise AssertionError("Status ledger mismatch")
+ if not set(a.status).issubset({"SUCCESS","FAILED","NON_EVALUABLE","NOT_RUN"}):
+  raise AssertionError("Unknown attempt status")
+ expected_ledger=[]
+ for key,g in a.groupby(["gamma","target_retention","n_validation","bandwidth_multiplier","arm"],sort=True):
+  expected_ledger.append({"gamma":float(key[0]),"target_retention":float(key[1]),
+   "n_validation":int(key[2]),"bandwidth_multiplier":float(key[3]),"arm":str(key[4]),
+   "n_planned":int(len(g)),"n_success":int((g.status=="SUCCESS").sum()),
+   "n_failed":int((g.status=="FAILED").sum()),
+   "n_non_evaluable":int((g.status=="NON_EVALUABLE").sum()),
+   "n_not_run":int((g.status=="NOT_RUN").sum()),
+   "success_rate":float((g.status=="SUCCESS").mean()),
+   "conditional_success_mean_iae":float(g.loc[g.status=="SUCCESS","iae"].mean())
+     if (g.status=="SUCCESS").any() else None})
+ if len(expected_ledger)!=len(s["condition_status_ledger"]):
+  raise AssertionError("Condition failure-ledger size mismatch")
+ for x,y in zip(expected_ledger,s["condition_status_ledger"]):
+  for k,v in x.items():
+   w=y[k]
+   if v is None:
+    if w is not None: raise AssertionError("Condition failure-ledger null mismatch")
+   elif isinstance(v,float):
+    if not np.isclose(v,w,rtol=1e-10,atol=1e-12): raise AssertionError("Condition failure-ledger value mismatch")
+   elif v!=w: raise AssertionError("Condition failure-ledger value mismatch")
+ expected_contrasts=[]
+ for key,g in a.groupby(["gamma","target_retention","n_validation","bandwidth_multiplier"],sort=True):
+  wide=g.pivot(index="replicate",columns="arm",values="iae")
+  if "catalogue_only" not in wide: continue
+  for degree in s["degrees"]:
+   arm=f"estimated_degree_{degree}_ipw"
+   if arm not in wide: continue
+   pair=wide[["catalogue_only",arm]].dropna()
+   diff=(pair[arm]-pair["catalogue_only"]).to_numpy(float)
+   expected_contrasts.append({"gamma":float(key[0]),"target_retention":float(key[1]),
+    "n_validation":int(key[2]),"bandwidth_multiplier":float(key[3]),"degree":int(degree),
+    "n_pairs":int(len(diff)),"n_replicates_planned":int(s["n_replicates"]),
+    "mean_iae_difference":float(diff.mean()) if len(diff) else None,
+    "paired_mc_se":float(diff.std(ddof=1)/np.sqrt(len(diff))) if len(diff)>1 else None})
+ if len(expected_contrasts)!=len(s["paired_ipw_minus_catalogue_only"]):
+  raise AssertionError("Paired contrast count mismatch")
+ for x,y in zip(expected_contrasts,s["paired_ipw_minus_catalogue_only"]):
+  for k,v in x.items():
+   w=y[k]
+   if v is None:
+    if w is not None: raise AssertionError("Paired contrast null mismatch")
+   elif isinstance(v,float):
+    if not np.isclose(v,w,rtol=1e-10,atol=1e-12): raise AssertionError("Paired contrast mismatch")
+   elif v!=w: raise AssertionError("Paired contrast mismatch")
  rates={str(k):float((v.status=="SUCCESS").mean()) for k,v in a.groupby("arm")}
  if rates.keys()!=s["success_rate_by_arm"].keys(): raise AssertionError("Success-rate keys mismatch")
  for k,v in rates.items():
