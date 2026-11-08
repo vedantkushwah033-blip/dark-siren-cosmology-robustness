@@ -1,124 +1,107 @@
-# Existing event-likelihood interface audit for inclusion-posterior propagation
+# Integration audit: inclusion-posterior quadrature and shared H0 likelihood
 
-**Status:** source-level interface audit; no end-to-end integration or calibration result is claimed.  
+**Status:** source-level integration review; no multi-event calibration or coverage result is claimed.  
 **Target branch:** `research/inclusion-posterior-quadrature-prototype`  
-**Scope:** synthetic low-redshift Euclidean model only.
+**Scope:** synthetic low-redshift Euclidean methodology only.
 
-## 1. Files inspected
+## 1. Review update
 
-The audit inspected the current base-branch implementations of:
+The first version of this note recorded the pre-integration base-branch API. The target branch has since added:
 
-- `src/dark_siren_robustness/inference.py`
-- `src/dark_siren_robustness/hardened_inference.py`
-- `src/dark_siren_robustness/selection.py`
-- `scripts/run_selected_likelihood_sbc.py`
-- `docs/joint_selection_incompleteness_likelihood_derivation_2026-10-25.md`
+- `src/dark_siren_robustness/shared_inclusion_likelihood.py`
+- `src/dark_siren_robustness/h0_posterior.py`
+- corresponding tests.
 
-The same interfaces must be rechecked on the target branch before implementation; this note does not assume that a later branch has identical source.
+The earlier statement that the target branch had no shared multi-event likelihood is therefore superseded. This revision reviews the new implementation and its remaining validation gap.
 
-## 2. What the existing API actually provides
+## 2. Implemented shared-node likelihood
 
-### Unselected single-event likelihood/posterior
+`shared_inclusion_selected_log_likelihood` now:
 
-`hardened_inference.posterior_h0` accepts one observed GW distance, a host-redshift vector, and optional host weights. Internally it forms the host-mixture log likelihood
+1. Takes one validation-posterior quadrature object, a fixed discrete catalogue, and multiple event records.
+2. Builds node-specific normalized host weights from the same inclusion-probability nodes:
+   `w[j,k] ∝ base_weight[j] / pi(z[j]; theta[k])`.
+3. Computes each event's raw Gaussian host-mixture log likelihood conditional on each shared coefficient node.
+4. Sums event log likelihoods at fixed node k.
+5. Computes a node-specific one-sided detection efficiency from those same host weights.
+6. Subtracts `N_events * log(beta)` at each node.
+7. Marginalizes the joint selected likelihood once over the validation-posterior node weights using log-sum-exp.
 
-```
-log L_e(H0; theta) =
-    logsumexp_j[
-        log(w_j(theta)) +
-        NormalLogPDF(d_e; c z_j / H0, sigma)
-    ].
-```
+This is the correct shared-nuisance factorization for its declared common-noise, common-threshold, fixed-size toy sample. It does not independently marginalize each event. The optional `population_base_weights` are part of the population-mixture assumption and must be declared and matched to the generator.
 
-It then applies a uniform H0 prior on the requested support and normalizes the posterior density numerically. The function is a single-event posterior routine, not a multi-event joint log-likelihood API.
+`normalize_h0_posterior` then applies the uniform H0 prior and normalizes the already marginalized log likelihood. Its boundary interpolation is a useful improvement over silently truncating the prior interval to interior grid points.
 
-`inference.posterior_h0_low_z` is an older/simpler single-event routine. Its docstring explicitly says it omits GW detection-selection normalization. It is not the integration target for a selection-aware analysis.
+## 3. Selection-rule compatibility: the critical remaining gate
 
-### Event-selection normalization
-
-`selection.detection_efficiency_h0` computes the finite-interval detection efficiency for the toy rule
+The new shared-likelihood function explicitly implements a **one-sided** selection rule:
 
 ```
-d_min < d_obs < d_max,
-d_obs | (H0, host j) ~ Normal(c z_j / H0, sigma^2).
+d_obs >= detection_threshold_mpc
+beta(H0; theta_k) =
+    sum_j w[j,k] * Phi((c*z[j]/H0 - threshold)/sigma).
 ```
 
-For a normalized host mixture, it calculates
+This agrees algebraically with the one-sided `dataset_likelihood.event_detection_efficiency` helper, which also uses `P(d >= threshold)`.
+
+It does **not** agree with `scripts/run_selected_likelihood_sbc.py`, whose generator and inference use the finite open interval
 
 ```
-beta(H0; theta) =
-    sum_j w_j(theta) * [
-        Phi((d_max - c*z_j/H0)/sigma)
-      - Phi((d_min - c*z_j/H0)/sigma)
-    ].
+DETECTION_MIN < d_obs < DETECTION_MAX
 ```
 
-This is the appropriate structural beta for that finite-interval generator, provided the exact same redshifts, normalized population weights, noise scale and open interval are used. It is not interchangeable with a one-sided threshold.
+and whose current experiment contains one event per replicate. The finite-interval `selection.detection_efficiency_h0` and `selection.posterior_h0_selected` are a distinct model. Their results cannot be used as calibration evidence for the new one-sided multi-event likelihood.
 
-`selection.posterior_h0_selected` takes one observed event, calls the single-event posterior routine, divides the resulting density by beta, and renormalizes it. It therefore provides a single-event selected posterior, not the joint likelihood needed when many events share one uncertain inclusion-coefficient vector.
+The current branch tests reconstruct the one-sided beta and event likelihood algebra independently at fixed nodes. In the source paths inspected for this review, no multi-event prior-predictive generator was found that generates several detected events under the exact one-sided rule and shared population model. Therefore the one-sided generator/inference match is **not yet established** by the existing one-event finite-interval SBC runner.
 
-### Generator
+Before calibration, implement or identify a multi-event generator that:
+- draws one H0 once per replicate;
+- draws multiple hosts and noisy distances conditional on that same H0;
+- applies exactly the one-sided `d_obs >= threshold` rule to each event;
+- uses the same host population and declared base weights assumed by inference;
+- records all event-level raw values, seed provenance and rejection counts;
+- leaves validation data independent and uses the true inclusion law only for generation/scoring, never as an inference input.
 
-`scripts/run_selected_likelihood_sbc.py` draws H0 once per replicate, then repeatedly draws a host and noisy distance conditional on that fixed H0 until the distance lies inside the finite detection interval. This is the matched one-event prior-predictive calibration design. A multi-event extension must keep H0 fixed across all events in a replicate and apply the same declared selection rule to each event.
+Alternatively, change the likelihood to the finite interval and match a generator to that rule. Do not mix the two conventions.
 
-## 3. Integration gap
+## 4. Existing test coverage and missing tests
 
-The current API does **not** expose a raw event log likelihood for a vector of events and does not provide a joint selected log likelihood over a shared coefficient node. Calling `posterior_h0_selected` separately for each event and multiplying its outputs would be wrong for the intended shared-`theta` modular posterior: it would normalize each event posterior separately and, if each event were independently marginalized over quadrature nodes, would effectively give each event a different inclusion model.
+The target branch currently has tests for:
+- node-specific host-weight normalization and diagnostics;
+- independent reconstruction of per-node multi-event log likelihoods;
+- independent reconstruction of one-sided beta from the same node-specific weights;
+- shared-node log-sum-exp marginalization;
+- normalized H0 posterior construction;
+- rejection of heterogeneous event noise under the common-beta implementation;
+- rejection of events below the one-sided detection threshold.
 
-The correct implementation boundary is a new raw-likelihood layer, not a wrapper around already normalized posterior densities.
+Still required before a scientific result:
+1. **Full shared-node factorization adversary:** explicitly compare the implemented shared-node marginal likelihood with the incorrect product of event-wise marginalized likelihoods on a small two-node/two-event fixture.
+2. **Event-order and node-order invariance:** permute events, and separately permute nodes together with their posterior weights.
+3. **Single-event reduction:** compare the one-node shared likelihood and resulting posterior with the existing one-event one-sided selected-likelihood calculation.
+4. **No-selection limit:** increase the threshold's acceptance probability toward one and verify beta tends to one and selected/unselected results coincide.
+5. **Independent finite-host enumeration:** verify event numerator and beta on a tiny catalogue without importing the production helper.
+6. **Matched multi-event SBC:** run a small smoke generator first; independently audit the raw data and PITs before scaling.
+7. **H0 grid refinement after node marginalization:** compare final posterior densities and quantiles on nested grids.
+8. **Quadrature refinement after likelihood propagation:** compare the final H0 log marginal likelihood across orders, not just coefficient moments/evidence/predictions.
+9. **Prior-scale sensitivity:** halve/double slope prior scales and quantify effects on host weights and H0 posterior.
+10. **Failure accounting:** preserve non-converged quadrature, invalid beta, underflow, and optimizer failures as explicit non-success attempts.
 
-## 4. Required shared-node calculation
+The existing unit tests establish algebraic consistency of the implemented primitive; they do not establish calibration, coverage, or robustness across the planned design.
 
-For quadrature node k, first build the normalized host weights from that same node's fitted inclusion probabilities:
+## 5. Source-level cautions
 
-```
-w_jk = (1 / pi(z_j; theta_k)) /
-       sum_l (1 / pi(z_l; theta_k)).
-```
+- The new function rejects heterogeneous event noise because its selection denominator uses a single common sigma. This is explicit and preferable to silently applying one beta to heterogeneous events.
+- The event distance is checked against the one-sided threshold, but the inference function alone cannot establish that the data were generated by that exact rule.
+- The node-specific weights used for event likelihood and beta are derived from the same log-weight matrix, which avoids a separate normalization mismatch.
+- The optional base weights must be justified as population mass/rate weights, not tuned after looking at H0 results.
+- A high quadrature ESS is not proof of quadrature convergence; final H0 likelihood stability is a separate requirement.
+- The modular/cut interpretation remains: validation data determine the inclusion-coefficient posterior; GW events do not update those coefficients.
+- The construction is not an event-rate likelihood and does not establish a real detector selection function or real survey completeness model.
 
-For event e, H0 grid point h and node k, compute the **raw** host-mixture event log likelihood:
+## 6. Decision
 
-```
-ell[e,k,h] = logsumexp_j(
-    log(w[j,k]) +
-    NormalLogPDF(d[e]; c*z[j]/H0[h], sigma[e])
-).
-```
+**Software direction: conditional GO.** The target branch now contains a mathematically coherent shared-node multi-event likelihood primitive for a one-sided, common-noise toy selection rule, with node-specific IPW weights reused in both the event mixture and beta.
 
-For the current common-noise toy model, if all events share sigma and the same open detection interval, calculate beta[k,h] with `selection.detection_efficiency_h0` using the identical node-specific weights. The conditional joint selected log likelihood is then
+**Calibration direction: NO-GO for confirmatory claims.** First establish a matched multi-event generator, complete the missing adversarial/limiting-case tests, add downstream H0 quadrature convergence, and independently audit a smoke artifact. Until then, describe this as a source-level likelihood prototype with unit-level algebraic tests—not as validated H0 posterior propagation.
 
-```
-joint[k,h] = sum_e ell[e,k,h] - N_events * log(beta[k,h]).
-```
-
-Finally marginalize **once** over the validation-posterior quadrature nodes:
-
-```
-log_marginal[h] = logsumexp_k(log(a[k]) + joint[k,h]).
-```
-
-If event-specific noise or event-specific detection regions are introduced, beta becomes event-specific and the denominator must be derived as the corresponding sum of log efficiencies. Do not retain the `N_events * log(beta)` shortcut without the common-selection assumptions.
-
-The current `log_marginalize_shared_parameter` helper can perform the final node integration, but the raw event terms and beta arrays must be built first. The node-specific host-weight matrix must be the common source for both event likelihood and beta; independently normalizing or reconstructing weights in the two paths risks a silent mismatch.
-
-## 5. Required numerical and compatibility tests before a simulation
-
-1. **Single-event reduction:** one event and one quadrature node reproduce the existing `posterior_h0_selected` density after applying the same prior and grid normalization.
-2. **Fixed-node multi-event product:** at a fixed theta node, the joint numerator equals the product of the event-level host-mixture likelihoods, evaluated in log space.
-3. **Shared-node distinction:** a two-node/two-event fixture must show that one marginalization of the joint product differs from multiplying event-wise marginalized likelihoods.
-4. **Selection match:** beta computed from the same node-specific weights agrees with direct finite-host summation of Gaussian interval probabilities.
-5. **Complete-catalogue / no-IPW limit:** constant inclusion probabilities produce uniform normalized host weights and recover the catalogue-only selected likelihood.
-6. **No-selection limit:** as the detection interval captures essentially all probability, beta tends to one and the selected result approaches the unselected joint result.
-7. **Event-order invariance:** permuting events leaves the joint likelihood unchanged.
-8. **Node-order invariance:** permuting quadrature nodes and their weights leaves the marginalized likelihood unchanged.
-9. **Numerical stability:** compare direct log-sum-exp calculations with independent small-host enumeration; reject non-positive/non-finite beta rather than replacing it by machine tiny.
-10. **Prior and grid handling:** apply the H0 prior once, after joint likelihood marginalization, and normalize once on the actual supported grid.
-
-The one-event SBC runner is not a substitute for a multi-event shared-nuisance calibration study. Once the raw joint likelihood is implemented and independently checked, the next calibration design should draw one H0 per replicate, one shared validation dataset and inclusion-posterior node distribution per replicate, then multiple conditionally independent detected events under that fixed H0. Report PIT/SBC separately from fixed-truth repeated-sampling coverage.
-
-## 6. Stop conditions and claim boundary
-
-- Do not connect the current quadrature prototype to `posterior_h0_selected` by multiplying normalized per-event posterior densities.
-- Do not claim shared-coefficient uncertainty propagation until the raw joint likelihood and beta use the same node-specific population weights.
-- Do not run a large calibration matrix before the single-event reduction, multi-event factorization, selection-match and independent-enumeration tests pass.
-- A successful implementation would remain a modular/cut posterior conditional on the validation data and the declared synthetic finite-interval selection model. It would not be a full joint posterior, real detector model, LVK/GWTC analysis, or observational H0 measurement.
+No LVK/GWTC analysis, real observational H0 measurement, real detector validation, or universal estimator-superiority claim follows from this implementation.
