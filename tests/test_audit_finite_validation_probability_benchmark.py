@@ -50,6 +50,7 @@ def test_independent_probability_auditor_rejects_tampered_summary(tmp_path: Path
         n_parent=500,
         validation_sizes=(100,),
         curvature_values=(0.0,),
+        retention_fractions=(0.5,),
         degrees=(1,),
         replicates=1,
         seed=92,
@@ -81,7 +82,8 @@ def test_independent_probability_auditor_rejects_prediction_not_from_coefficient
     summary_path = tmp_path / "replicates.csv"
     summary = run_probability_validation_benchmark(
         n_parent=500, validation_sizes=(100,), curvature_values=(0.0,),
-        degrees=(1,), replicates=1, seed=94, raw_output=raw_path,
+        retention_fractions=(0.5,), degrees=(1,), replicates=1, seed=94,
+        raw_output=raw_path,
     )
     summary.to_csv(summary_path, index=False)
     raw = pd.read_csv(raw_path)
