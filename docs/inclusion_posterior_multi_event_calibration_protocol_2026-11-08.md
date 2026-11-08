@@ -69,7 +69,7 @@ This is the fixed-analysis-catalogue design. Do not remove validation units from
 ### Primary inclusion model
 
 - Logistic polynomial degree 1.
-- Proper independent Gaussian coefficient prior with intercept SD 5 and slope SD 2.5 on the validation-standardized covariate scale.
+- Proper independent Gaussian coefficient prior with intercept SD 5 and slope SD 2.5 on a fixed domain-standardized covariate, (x=(z-0.205)/0.195) for the declared redshift domain [0.01, 0.40]. The coordinate origin and scale are fixed before validation sampling and are identical across replicates and validation sizes.
 - Slope-prior sensitivity multipliers: 0.5, 1.0, 2.0; hold the intercept prior fixed.
 - No weight clipping in the primary analysis.
 - Same node-specific normalized IPW host weights in every event mixture and the one-sided beta selection factor.
@@ -184,3 +184,23 @@ Truth-only columns must never enter non-oracle fitting or likelihood calculation
 - No real galaxy survey, detector, LVK/GWTC event, or observational H0 claim follows from this synthetic experiment.
 
 **Go/no-go:** run a small smoke and independent audit first. Start confirmatory SBC/coverage only after the generator/inference selection match, raw-artifact reconstruction, prior sensitivity, downstream quadrature convergence, and failure ledger are all verified.
+
+
+## 9. Prior-coordinate correction (2026-11-08)
+
+The earlier sample-standardized coefficient prior made its implied prior over
+physical-redshift inclusion curves depend on the realized validation sample
+mean and standard deviation. That is unsuitable for clean comparisons across
+replicates and validation sizes.
+
+The H0 propagation runner now uses fixed domain-based coordinates:
+`x=(z-z_mid)/z_half_range`, with center 0.205 and scale 0.195 for the
+declared [0.01, 0.40] redshift domain. The coordinate specification is
+recorded in the artifact configuration and checked by the independent auditor.
+The posterior fitter and quadrature ladder retain sample-standardization as
+their backward-compatible default, but accept an explicit fixed coordinate
+center and scale; the H0 propagation and prior-sensitivity path passes these
+fixed values explicitly.
+
+This correction is a prerequisite for interpretable repeated-sampling
+Bayesian comparisons. It does not itself establish calibration or coverage.
