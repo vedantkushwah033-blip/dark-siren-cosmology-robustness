@@ -100,3 +100,26 @@ def test_inverse_probability_overflow_fails_explicitly():
         estimate_host_density(
             grid, sample, inclusion_probability=probability
         )
+
+
+def test_explicit_bandwidth_factor_is_absolute_scipy_covariance_factor():
+    grid = np.linspace(0.01, 0.40, 301)
+    sample = np.linspace(0.012, 0.398, 80)
+    probability = 0.15 + 0.8 / (1.0 + np.exp((sample - 0.22) / 0.05))
+    weights = 1.0 / probability
+    augmented = np.concatenate((
+        sample,
+        2.0 * grid[0] - sample,
+        2.0 * grid[-1] - sample,
+    ))
+    augmented_weights = np.tile(weights / 3.0, 3)
+    reference_kde = gaussian_kde(
+        augmented, weights=augmented_weights, bw_method=0.8
+    )
+    reference = reference_kde(grid)
+    reference /= trapezoid(reference, grid)
+    actual = estimate_host_density(
+        grid, sample, inclusion_probability=probability,
+        bandwidth_factor=0.8,
+    )
+    np.testing.assert_allclose(actual, reference, rtol=1e-12, atol=1e-12)
