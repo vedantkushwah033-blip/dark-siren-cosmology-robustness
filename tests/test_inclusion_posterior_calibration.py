@@ -58,7 +58,11 @@ def test_summary_keeps_non_evaluable_and_failed_attempts_visible():
     frame = pd.DataFrame([
         {"experiment": "FIXED_TRUTH", "catalogue_floor": 0.0, "n_validation": 100,
          "status": "SUCCESS", "covered_68": 1, "covered_90": 1, "covered_95": 1,
-         "width_68": 10.0, "width_90": 20.0, "width_95": 25.0},
+         "width_68": 10.0, "width_90": 20.0, "width_95": 25.0,
+         "h0_median": 71.0, "h0_true": 70.0,
+         "coefficient_quadrature_ess": 20.0,
+         "minimum_catalogue_kish_ess": 500.0,
+         "maximum_catalogue_normalized_weight": 0.02},
         {"experiment": "FIXED_TRUTH", "catalogue_floor": 0.0, "n_validation": 100,
          "status": "NON_EVALUABLE"},
         {"experiment": "FIXED_TRUTH", "catalogue_floor": 0.0, "n_validation": 100,
@@ -71,3 +75,5 @@ def test_summary_keeps_non_evaluable_and_failed_attempts_visible():
     assert cell["non_evaluable"] == 1
     assert cell["failed"] == 1
     assert cell["coverage_68"] == pytest.approx(1.0)
+    assert cell["mean_posterior_median_bias"] == pytest.approx(1.0)
+    assert cell["median_minimum_catalogue_kish_ess"] == pytest.approx(500.0)
