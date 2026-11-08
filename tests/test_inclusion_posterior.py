@@ -149,3 +149,50 @@ def test_quadrature_ladder_rejects_invalid_order_schedule():
             np.linspace(0.01, 0.4, 30), np.arange(30) % 2,
             orders=(7, 7, 11),
         )
+
+
+def test_log_target_gradient_and_hessian_match_finite_differences():
+    from dark_siren_robustness.inclusion_posterior import (
+        _log_target, _prior_vectors,
+    )
+
+    rng = np.random.default_rng(7712)
+    z = rng.uniform(0.01, 0.40, 70)
+    x = (z - z.mean()) / z.std()
+    design = np.column_stack([np.ones(z.size), x, x*x])
+    y = rng.binomial(1, 1.0 / (1.0 + np.exp(-(-0.3 + 0.5*x - 0.2*x*x))))
+    mu, sd = _prior_vectors(3, None, None)
+    precision = 1.0 / sd**2
+    theta = np.asarray([0.2, -0.4, 0.15])
+    eps = 2e-5
+
+    def objective(b):
+        return -_log_target(b, design, y, mu, sd)
+
+    def gradient(b):
+        from scipy.special import expit
+        return design.T @ (expit(design @ b) - y) + (b-mu)*precision
+
+    p = 3
+    numerical_gradient = np.empty(p)
+    numerical_hessian = np.empty((p, p))
+    for j in range(p):
+        step = np.zeros(p)
+        step[j] = eps
+        numerical_gradient[j] = (objective(theta+step)-objective(theta-step))/(2*eps)
+        numerical_hessian[:, j] = (gradient(theta+step)-gradient(theta-step))/(2*eps)
+
+    from scipy.special import expit
+    probability = expit(design @ theta)
+    analytic_hessian = design.T @ (
+        (probability*(1-probability))[:, None] * design
+    ) + np.diag(precision)
+    assert np.allclose(numerical_gradient, gradient(theta), rtol=2e-6, atol=2e-6)
+    assert np.allclose(numerical_hessian, analytic_hessian, rtol=2e-6, atol=2e-6)
+
+
+def test_shared_node_marginalization_constant_likelihood_is_exact():
+    log_likelihood = np.full((7, 4), -3.75)
+    weights = np.asarray([0.02, 0.08, 0.1, 0.2, 0.25, 0.15, 0.2])
+    result = log_marginalize_shared_parameter(log_likelihood, weights)
+    assert np.allclose(result, -3.75, rtol=0, atol=1e-14)
