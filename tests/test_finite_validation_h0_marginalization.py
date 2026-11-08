@@ -283,6 +283,28 @@ def test_loop_reference_pipeline_matches_independent_vectorized_h0_likelihood():
     )
 
 
+def test_batch_mcse_reports_low_effective_batches_and_insufficient_draws():
+    from dark_siren_robustness.finite_validation_h0_marginalization import (
+        marginalize_selected_draws_with_mcse,
+    )
+
+    log_likelihood = np.zeros((100, 11))
+    concentrated_weights = np.full(100, -20.0)
+    concentrated_weights[0] = 0.0
+    low_ess = marginalize_selected_draws_with_mcse(
+        log_likelihood, concentrated_weights, n_batches=10, min_batch_ess=10
+    )
+    assert low_ess["status"] == "LOW_BATCH_ESS"
+    assert low_ess["batch_ess"].shape == (10,)
+    assert low_ess["log_likelihood_mcse"].shape == (11,)
+
+    too_few = marginalize_selected_draws_with_mcse(
+        np.zeros((2, 11)), np.zeros(2), n_batches=10
+    )
+    assert too_few["status"] == "INSUFFICIENT_DRAWS"
+    assert too_few["log_likelihood_mcse"] is None
+
+
 def test_end_to_end_parent_frame_validation_to_h0_posterior_smoke():
     from scipy.integrate import cumulative_trapezoid, trapezoid
     from scipy.optimize import brentq
@@ -389,6 +411,10 @@ def test_end_to_end_parent_frame_validation_to_h0_posterior_smoke():
     )
     assert result.host_density_draws.shape == (1000, 101)
     assert result.selected_log_likelihood_by_draw.shape == (1000, 61)
+    assert result.marginalization_mcse_status == "PASS"
+    assert result.marginalization_log_likelihood_mcse.shape == (61,)
+    assert result.marginalization_batch_ess.shape == (10,)
+    assert np.all(result.marginalization_batch_ess >= 10.0)
     assert np.all(np.isfinite(result.detection_efficiency_by_draw))
     assert np.all((result.detection_efficiency_by_draw > 0)
                   & (result.detection_efficiency_by_draw <= 1.0 + 1e-12))
