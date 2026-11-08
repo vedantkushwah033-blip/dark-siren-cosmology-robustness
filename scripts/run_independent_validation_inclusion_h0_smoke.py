@@ -45,6 +45,7 @@ def main() -> None:
     parser.add_argument("--validation-seed", type=int, default=20261109)
     parser.add_argument("--n-parent", type=int, default=2400)
     parser.add_argument("--n-detected", type=int, default=8)
+    parser.add_argument("--h0-true", type=float, default=70.0)
     parser.add_argument("--n-validation-frame", type=int, default=4000)
     parser.add_argument("--n-validation", type=int, default=300)
     parser.add_argument("--degree", type=int, choices=(1, 2), default=1)
@@ -81,6 +82,8 @@ def main() -> None:
         parser.error("validation sizes must satisfy 5 <= n_validation <= n_validation_frame")
     if args.h0_points < 11 or args.prior_min >= args.prior_max:
         parser.error("invalid H0 grid or prior bounds")
+    if not np.isfinite(args.h0_true) or args.h0_true <= 0:
+        parser.error("--h0-true must be finite and positive")
 
     output = args.output_dir
     observable_dir = output / "observable"
@@ -90,6 +93,7 @@ def main() -> None:
 
     analysis = generate_synthetic_population(
         seed=args.seed, n_parent=args.n_parent, n_detected=args.n_detected,
+        h0_true=args.h0_true,
         catalogue_floor=args.catalogue_floor,
         catalogue_midpoint=args.catalogue_midpoint,
         catalogue_width=args.catalogue_width,
