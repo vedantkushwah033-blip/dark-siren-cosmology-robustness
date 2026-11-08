@@ -109,7 +109,7 @@ def sample_inclusion_posterior(
     retained,
     *,
     degree=1,
-    prior_sd=2.5,
+    prior_sd=1.0,
     z_min=0.01,
     z_max=0.40,
     n_chains=4,
