@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from scipy.integrate import trapezoid
-from scipy.special import expit
+from scipy.special import expit, logsumexp
 
 from dark_siren_robustness.inclusion_posterior import sample_inclusion_posterior
 from dark_siren_robustness.bayesian_inclusion import (
@@ -61,6 +61,20 @@ def test_importance_sampler_matches_existing_multichain_mcmc_posterior():
     assert importance.status == "SUCCESS", importance.message
     mcmc_mean = mcmc.draws.mean(axis=(0, 1))
     np.testing.assert_allclose(importance.posterior_mean, mcmc_mean, atol=0.12, rtol=0)
+
+    def toy_log_likelihood(beta):
+        return np.column_stack([
+            -0.5 * (beta[:, 0] - 0.2) ** 2 - 0.2 * (beta[:, 1] + 0.6) ** 2,
+            -0.5 * (beta[:, 0] + 0.5) ** 2 - 0.15 * (beta[:, 1] - 0.1) ** 2,
+        ])
+
+    mcmc_beta = mcmc.draws.reshape(-1, 2)
+    mcmc_log_marginal = logsumexp(toy_log_likelihood(mcmc_beta), axis=0) - np.log(len(mcmc_beta))
+    importance_log_marginal = weighted_log_marginal_likelihood(
+        toy_log_likelihood(importance.coefficient_proposals),
+        importance.log_importance_weights,
+    )
+    np.testing.assert_allclose(importance_log_marginal, mcmc_log_marginal, atol=0.10, rtol=0)
 
 
 def test_rank_deficient_validation_design_is_non_evaluable():
