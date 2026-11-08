@@ -48,7 +48,7 @@ def _design(redshift: NDArray[np.float64], degree: int):
     center = float(np.mean(redshift))
     scale = float(np.std(redshift, ddof=0))
     if not np.isfinite(scale) or scale <= 0:
-        raise ValueError("validation redshift must have positive finite variation")
+        scale = 1.0
     x = (redshift - center) / scale
     return np.column_stack([x**power for power in range(degree + 1)]), center, scale
 
