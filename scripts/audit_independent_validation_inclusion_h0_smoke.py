@@ -186,6 +186,21 @@ def audit(artifact_dir: Path) -> dict[str, object]:
         fit_inclusion_posterior_quadrature,
     )
 
+    coordinate_config = config["inference"].get("coefficient_coordinates")
+    if not isinstance(coordinate_config, dict) or coordinate_config.get("basis") != "fixed_domain_standardization":
+        raise AssertionError("fixed-domain coefficient coordinate specification is missing")
+    domain = np.asarray(analysis_cfg["redshift_domain"], dtype=float)
+    expected_center = float(0.5 * (domain[0] + domain[1]))
+    expected_scale = float(0.5 * (domain[1] - domain[0]))
+    coordinate_center = float(coordinate_config.get("center", np.nan))
+    coordinate_scale = float(coordinate_config.get("scale", np.nan))
+    if not np.isclose(coordinate_center, expected_center, rtol=0, atol=1e-14):
+        raise AssertionError("coefficient coordinate center does not match fixed domain")
+    if not np.isclose(coordinate_scale, expected_scale, rtol=0, atol=1e-14):
+        raise AssertionError("coefficient coordinate scale does not match fixed domain")
+    if not np.allclose(np.asarray(coordinate_config.get("redshift_domain"), dtype=float), domain, rtol=0, atol=0):
+        raise AssertionError("coefficient coordinate domain does not match generator domain")
+
     coefficient_prior = config["inference"].get("coefficient_prior")
     if not isinstance(coefficient_prior, dict) or coefficient_prior.get("family") != "independent_normal":
         raise AssertionError("coefficient prior family is missing or unsupported")
@@ -212,6 +227,8 @@ def audit(artifact_dir: Path) -> dict[str, object]:
             degree=int(config["inference"]["degree"]),
             prior_mean=prior_mean,
             prior_sd=prior_sd,
+            coordinate_center=coordinate_center,
+            coordinate_scale=coordinate_scale,
             order=int(order),
         )
         x = (z_catalogue - fit.center) / fit.scale
@@ -379,6 +396,8 @@ def audit(artifact_dir: Path) -> dict[str, object]:
             degree=int(config["inference"]["degree"]),
             prior_mean=prior_mean,
             prior_sd=scaled_sd,
+            coordinate_center=coordinate_center,
+            coordinate_scale=coordinate_scale,
             order=int(prior_summary["quadrature_order"]),
         )
         x = (z_catalogue - fit.center) / fit.scale
