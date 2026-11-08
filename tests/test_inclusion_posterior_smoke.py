@@ -175,6 +175,9 @@ def test_independent_validation_h0_runner_records_prior_and_passes_independent_a
     assert coordinates["basis"] == "fixed_domain_standardization"
     assert coordinates["center"] == 0.205
     assert coordinates["scale"] == 0.195
+    convergence = json.loads((output_dir / "quadrature_convergence.json").read_text())
+    for record in convergence["posterior_by_order"]:
+        assert 50.0 <= record["h0_q025"] <= record["h0_q975"] <= 90.0
 
     audited = subprocess.run(
         [
