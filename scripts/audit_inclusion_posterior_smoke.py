@@ -73,7 +73,7 @@ def audit(output_dir: Path) -> dict[str, object]:
     _require(len(events_table) == config["n_detected_events"], "event count mismatch")
     _require(len(validation) == validation_config["n_validation"], "validation count mismatch")
     _require(
-        set(validation.columns) == {"validation_id", "frame_id", "redshift", "retained"},
+        set(validation.columns) == {"validation_id", "redshift", "retained"},
         "unexpected validation observable schema",
     )
     _require(
@@ -173,7 +173,7 @@ def audit(output_dir: Path) -> dict[str, object]:
         event_truth["host_object_id"].isin(parent_truth["object_id"]).all(),
         "event truth contains unknown parent host IDs",
     )
-    selected_ids = validation["frame_id"].to_numpy(dtype=int)
+    selected_ids = validation["validation_id"].to_numpy(dtype=int)
     truth_selected = validation_truth.set_index("frame_id").loc[selected_ids]
     _require(
         np.allclose(
