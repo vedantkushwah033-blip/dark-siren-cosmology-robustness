@@ -91,6 +91,9 @@ def main() -> None:
     validation_frame.to_csv(observable_dir / "validation_observed.csv", index=False)
     analysis["parent_truth"].to_csv(truth_dir / "analysis_parent_truth.csv", index=False)
     analysis["gw_event_truth"].to_csv(truth_dir / "gw_event_truth.csv", index=False)
+    analysis["gw_generation_trace_truth"].to_csv(
+        truth_dir / "gw_generation_trace_truth.csv", index=False
+    )
     validation["validation_frame_truth"].to_csv(
         truth_dir / "validation_frame_truth.csv", index=False
     )
