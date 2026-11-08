@@ -1,0 +1,35 @@
+import numpy as np
+import pytest
+from dark_siren_robustness.inclusion_diagnostics import (
+    inverse_probability_weight_diagnostics,
+    score_inclusion_predictions,
+)
+
+
+def test_equal_probabilities_give_equal_weights_and_full_ess():
+    result = inverse_probability_weight_diagnostics(np.full(100, 0.5))
+    assert result["kish_ess"] == pytest.approx(100.0)
+    assert result["entropy_ess"] == pytest.approx(100.0)
+    assert result["max_normalized_weight"] == pytest.approx(0.01)
+    assert result["top_5pct_weight_mass"] == pytest.approx(0.05)
+
+
+def test_concentrated_weights_reduce_effective_sample_size():
+    p = np.r_[np.full(99, 0.9), 0.01]
+    result = inverse_probability_weight_diagnostics(p)
+    assert result["kish_ess"] < 10
+    assert result["top_1pct_weight_mass"] > 0.5
+
+
+def test_probability_scores_match_direct_calculation():
+    result = score_inclusion_predictions([0, 1, 1], [0.2, 0.8, 0.6])
+    assert result["brier_score"] == pytest.approx((0.04 + 0.04 + 0.16) / 3)
+    assert result["log_loss"] > 0
+    assert result["n"] == 3
+
+
+def test_invalid_probability_inputs_are_rejected():
+    with pytest.raises(ValueError):
+        inverse_probability_weight_diagnostics([0.0, 0.5])
+    with pytest.raises(ValueError):
+        score_inclusion_predictions([0, 1], [0.0, 1.0])
