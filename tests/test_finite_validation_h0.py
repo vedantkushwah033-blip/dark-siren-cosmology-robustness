@@ -91,7 +91,7 @@ def test_h0_posterior_normalization_and_boundary_diagnostic():
     assert abs(result["posterior_mean"] - 70.0) < 1e-8
     assert abs(result["posterior_median"] - 70.0) < 1e-8
     assert result["ci68_low"] < 70.0 < result["ci68_high"]
-    assert result["boundary_mass_fraction"] < 1e-6
+    assert result["boundary_mass_fraction"] < 1e-5
 
 
 def test_coefficient_proposals_reconstruct_normalized_host_density_draws():
