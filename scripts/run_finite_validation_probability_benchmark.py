@@ -111,7 +111,7 @@ def main():
     print(f"wrote {len(result)} attempt rows to {args.output}")
     print(f"wrote unit-level audit records to {args.raw_output}")
     print(result.groupby(
-        ["gamma", "n_validation", "model_degree", "fit_status"],
+        ["retention_target", "gamma", "n_validation", "model_degree", "fit_status"],
         dropna=False,
     ).size().to_string())
 
