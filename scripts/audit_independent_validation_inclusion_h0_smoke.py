@@ -132,6 +132,98 @@ def audit(artifact_dir: Path) -> dict[str, object]:
         if not np.isclose(np.trapezoid(values, h0), 1.0, rtol=1e-8, atol=1e-8):
             raise AssertionError(f"H0 posterior at order {order} is not normalized")
 
+    # Reconstruct each shared-node selected likelihood from observable inputs.
+    # The inclusion quadrature is regenerated with the production fitter; the
+    # event-mixture and one-sided beta calculations below are independently
+    # implemented here rather than calling the production likelihood function.
+    from scipy.special import log_ndtr, logsumexp
+    from scipy.stats import norm
+    from dark_siren_robustness.dataset_likelihood import C_KM_S
+    from dark_siren_robustness.inclusion_posterior import (
+        fit_inclusion_posterior_quadrature,
+    )
+
+    z_catalogue = catalogue["redshift"].to_numpy(dtype=float)
+    z_min, z_max = analysis_cfg["redshift_domain"]
+    base_weights = 1.0 + 1.5 * (z_catalogue - z_min) / (z_max - z_min)
+    h0_grid = density["H0"].to_numpy(dtype=float)
+    means = C_KM_S * z_catalogue[None, :] / h0_grid[:, None]
+    sigma = float(analysis_cfg["sigma_mpc"])
+    node_reconstruction_differences = {}
+
+    for order in orders:
+        fit = fit_inclusion_posterior_quadrature(
+            validation["redshift"].to_numpy(dtype=float),
+            validation["retained"].to_numpy(dtype=int),
+            degree=int(config["inference"]["degree"]),
+            order=int(order),
+        )
+        x = (z_catalogue - fit.center) / fit.scale
+        design = np.column_stack(
+            [x ** power for power in range(fit.degree + 1)]
+        )
+        log_inclusion = -np.logaddexp(
+            0.0, -(design @ fit.nodes.T)
+        )
+        log_raw = np.log(base_weights)[:, None] - log_inclusion
+        log_host_weights = log_raw - logsumexp(
+            log_raw, axis=0, keepdims=True
+        )
+
+        node_log_joint = np.zeros(
+            (fit.nodes.shape[0], h0_grid.size), dtype=float
+        )
+        for event in events.itertuples(index=False):
+            event_terms = norm.logpdf(
+                float(event.distance_mpc), loc=means, scale=sigma
+            )
+            for node in range(fit.nodes.shape[0]):
+                node_log_joint[node] += logsumexp(
+                    event_terms + log_host_weights[:, node][None, :],
+                    axis=1,
+                )
+
+        log_detect_by_host = log_ndtr(
+            (means - threshold) / sigma
+        )
+        node_log_beta = np.empty_like(node_log_joint)
+        for node in range(fit.nodes.shape[0]):
+            node_log_beta[node] = logsumexp(
+                log_detect_by_host + log_host_weights[:, node][None, :],
+                axis=1,
+            )
+        node_log_selected = (
+            node_log_joint - len(events) * node_log_beta
+        )
+        marginal_log_likelihood = logsumexp(
+            node_log_selected + np.log(fit.weights)[:, None],
+            axis=0,
+        )
+        shifted = marginal_log_likelihood - np.max(marginal_log_likelihood)
+        reconstructed_unnormalized = np.exp(shifted)
+        reconstructed_area = float(
+            np.trapezoid(reconstructed_unnormalized, h0_grid)
+        )
+        if not np.isfinite(reconstructed_area) or reconstructed_area <= 0:
+            raise AssertionError(
+                f"independent H0 normalization failed at order {order}"
+            )
+        reconstructed_density = (
+            reconstructed_unnormalized / reconstructed_area
+        )
+        archived_density = density[f"density_order_{order}"].to_numpy(
+            dtype=float
+        )
+        difference = float(
+            np.max(np.abs(reconstructed_density - archived_density))
+        )
+        node_reconstruction_differences[str(order)] = difference
+        if difference >= 2e-8:
+            raise AssertionError(
+                f"independent selected-likelihood reconstruction mismatch "
+                f"at order {order}: {difference}"
+            )
+
     return {
         "status": "PASS",
         "artifact_dir": str(root),
@@ -146,6 +238,8 @@ def audit(artifact_dir: Path) -> dict[str, object]:
         "selected_events_reconstructed": n_selected,
         "quadrature_orders": orders,
         "h0_posterior_normalization_checks": len(orders),
+        "independent_selected_likelihood_reconstruction_max_abs_density_differences": node_reconstruction_differences,
+        "likelihood_reconstruction": "shared-node event mixtures and one-sided detection efficiency independently recomputed from observable inputs; quadrature regenerated with production fitter",
         "quadrature_status": convergence["status"],
         "scientific_claim_limit": "Artifact and arithmetic integrity only; not calibration, SBC, coverage, or real-data validation.",
     }
