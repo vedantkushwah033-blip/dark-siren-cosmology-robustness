@@ -23,6 +23,9 @@ from dark_siren_robustness.h0_posterior import (
     normalize_h0_posterior,
 )
 from dark_siren_robustness.inclusion_posterior import fit_inclusion_posterior_quadrature
+from dark_siren_robustness.inclusion_prior_sensitivity import (
+    run_inclusion_prior_scale_sensitivity,
+)
 from dark_siren_robustness.shared_inclusion_likelihood import (
     shared_inclusion_selected_log_likelihood,
 )
@@ -52,10 +55,21 @@ def main() -> None:
     parser.add_argument("--density-tolerance", type=float, default=1e-3)
     parser.add_argument("--quantile-tolerance", type=float, default=0.05)
     parser.add_argument("--consecutive-passes", type=int, default=2)
+    parser.add_argument("--prior-slope-multipliers", default="0.5,1.0,2.0")
     parser.add_argument("--output-dir", type=Path, default=Path("artifacts/inclusion_h0_smoke"))
     args = parser.parse_args()
 
     orders = tuple(int(item) for item in args.orders.split(",") if item.strip())
+    prior_slope_multipliers = tuple(
+        float(item) for item in args.prior_slope_multipliers.split(",") if item.strip()
+    )
+    if (
+        len(prior_slope_multipliers) < 2
+        or len(set(prior_slope_multipliers)) != len(prior_slope_multipliers)
+        or any(not np.isfinite(value) or value <= 0 for value in prior_slope_multipliers)
+        or 1.0 not in prior_slope_multipliers
+    ):
+        parser.error("--prior-slope-multipliers must be distinct positive values including 1.0")
     if len(orders) < 2 or any(b <= a for a, b in zip(orders, orders[1:])):
         parser.error("--orders must contain at least two strictly increasing integers")
     if args.seed == args.validation_seed:
@@ -203,6 +217,71 @@ def main() -> None:
         if converged_at is not None:
             break
 
+    if last_fit is None:
+        raise RuntimeError("no inclusion posterior fit was completed")
+    prior_sensitivity = run_inclusion_prior_scale_sensitivity(
+        z_validation,
+        retained_validation,
+        h0_grid,
+        z_catalogue,
+        events,
+        detection_threshold_mpc=float(analysis["config"]["detection_threshold_mpc"]),
+        population_base_weights=base_weights,
+        degree=args.degree,
+        prior_mean=coefficient_prior_mean,
+        prior_sd=coefficient_prior_sd,
+        slope_multipliers=prior_slope_multipliers,
+        order=last_fit.order,
+        prior_min=args.prior_min,
+        prior_max=args.prior_max,
+    )
+    sensitivity_density = {"H0": h0_grid.tolist()}
+    sensitivity_records = []
+    for record, density_difference, quantile_shift in zip(
+        prior_sensitivity.records,
+        prior_sensitivity.max_abs_density_difference_from_reference,
+        prior_sensitivity.quantile_shift_from_reference,
+    ):
+        sensitivity_density[
+            f"density_slope_multiplier_{record.slope_multiplier:g}"
+        ] = np.interp(
+            h0_grid,
+            record.h0_posterior.grid,
+            record.h0_posterior.density,
+        ).tolist()
+        sensitivity_records.append({
+            "slope_multiplier": record.slope_multiplier,
+            "prior_mean": record.prior_mean.tolist(),
+            "prior_sd": record.prior_sd.tolist(),
+            "posterior_mean_coefficients": record.inclusion_posterior.posterior_mean.tolist(),
+            "posterior_covariance": record.inclusion_posterior.posterior_covariance.tolist(),
+            "quadrature_ess": record.inclusion_posterior.quadrature_ess,
+            "minimum_catalogue_kish_ess": record.minimum_catalogue_kish_ess,
+            "median_catalogue_kish_ess": record.median_catalogue_kish_ess,
+            "maximum_catalogue_normalized_weight": record.maximum_catalogue_normalized_weight,
+            "h0_quantiles": record.h0_quantiles,
+            "max_abs_density_difference_from_reference": density_difference,
+            "quantile_shift_from_reference": quantile_shift,
+        })
+    pd.DataFrame(sensitivity_density).to_csv(
+        output / "prior_scale_sensitivity_density.csv", index=False
+    )
+    prior_sensitivity_summary = {
+        "reference_multiplier": prior_sensitivity.reference_multiplier,
+        "quadrature_order": last_fit.order,
+        "slope_multipliers": list(prior_slope_multipliers),
+        "records": sensitivity_records,
+        "interpretation": (
+            "Prior sensitivity only: all observable data, catalogue, events, "
+            "selection rule, H0 grid and base population weights are held fixed."
+        ),
+        "warning": "Sensitivity is not evidence of calibration or coverage.",
+    }
+    (output / "prior_scale_sensitivity.json").write_text(
+        json.dumps(prior_sensitivity_summary, indent=2, sort_keys=True) + "\\n",
+        encoding="utf-8",
+    )
+
     status = "CONVERGED" if converged_at is not None else "NON_CONVERGED"
     pd.DataFrame(density_columns).to_csv(output / "h0_posterior_density_by_order.csv", index=False)
     posterior_summary = {
@@ -233,6 +312,7 @@ def main() -> None:
                 "mean": coefficient_prior_mean.tolist(),
                 "sd": coefficient_prior_sd.tolist(),
             },
+            "prior_slope_multipliers": list(prior_slope_multipliers),
             "quadrature_orders_requested": list(orders),
             "h0_grid_points": args.h0_points,
             "uniform_h0_prior": [args.prior_min, args.prior_max],
