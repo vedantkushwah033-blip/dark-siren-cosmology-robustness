@@ -193,3 +193,17 @@ and place the prior on coefficients in the fixed basis `[1,u]` or `[1,u,u^2]`. A
 A separate analysis auditor has now been added at `src/dark_siren_robustness/fixed_analysis_catalogue_analysis_audit.py`, with a CLI wrapper and adversarial tests. It independently reconstructs the primary interaction, bootstrap and paired-t intervals, all 18 secondary contrasts, and Holm adjustment from the raw attempt ledger. It does not import the production analysis function.
 
 The downloaded confirmatory analysis JSON was also independently recomputed locally from the raw CSV: the primary result and all secondary means, p-values and Holm-adjusted p-values matched to floating-point precision (maximum absolute discrepancy below 2.3e-16). The new automated auditor is wired into the fixed-catalogue workflow; its GitHub Actions result remains the final verification gate for the new code.
+
+
+## Downstream implementation status update (2026-11-08)
+
+The historical status sentence above reflects the state when the density-recovery results were first written. Since then, finite-validation coefficient-to-H0 propagation has been implemented as **focused, test-covered research software**:
+
+- A fixed-basis proper-prior logistic posterior is available through both a multi-chain MCMC sampler and a separate Student-t importance sampler.
+- Weighted coefficient proposals now flow through IPW host-density reconstruction, event-mixture likelihood evaluation, draw-specific GW detection efficiency, per-draw selection correction, and self-normalized marginalization.
+- The vectorized likelihood implementation is tested against the existing single-density selection-likelihood function. Tests explicitly reject the average-beta shortcut.
+- H0 posterior normalization requires an explicit prior density and reports 68%/95% intervals and a boundary-mass diagnostic.
+
+Focused workflow [#42479890034](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/42479890034) passed the inclusion-posterior and H0 propagation test suite on Python 3.10, 3.11 and 3.12 at PR head `c47ab95e26adaede691f0d71306eaf3b517fa892`. The tests include a real weighted importance-posterior object passed through the density and selected-likelihood pipeline. The general numerical-diagnostics workflow for that head was cancelled, so no full-repository CI pass is claimed.
+
+**Revised status:** H0 propagation code exists and its focused computational tests pass. There is still no confirmatory finite-validation H0 experiment, no SBC, no fixed-truth H0 coverage study, and no evidence that estimated-inclusion IPW improves H0 calibration. The prior scale remains provisional. The project is therefore at **implementation/smoke-validation**, not scientific calibration or coverage.
