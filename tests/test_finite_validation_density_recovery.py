@@ -161,6 +161,8 @@ def test_independent_auditor_reconstructs_smoke_artifact(tmp_path):
     assert report["checked_parent_partitions"] == 1
     assert report["checked_rng_streams"] == 1
     assert report["checked_density_estimates"] >= 3
+    assert report["manual_gaussian_kde_crosschecks"] == 5
+    assert report["manual_max_density_abs_difference"] < 1e-10
 
 
 def test_rejects_invalid_parent_size_and_validation_order():
