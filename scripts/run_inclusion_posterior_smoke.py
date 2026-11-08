@@ -264,7 +264,7 @@ def main() -> None:
     )
     files = sorted(
         path for path in output.rglob("*")
-        if path.is_file() and path.name != "sha256_manifest.json"
+        if path.is_file() and path.name not in {"sha256_manifest.json", "independent_audit.json"}
     )
     manifest = {
         str(path.relative_to(output)): _sha256(path)
