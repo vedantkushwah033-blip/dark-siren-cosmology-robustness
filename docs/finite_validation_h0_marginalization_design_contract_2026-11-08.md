@@ -77,12 +77,15 @@ $$
 
 ## 5. Marginalization
 
-Given B approximately independent draws theta_b from p(theta|V), estimate
+Given proposal draws theta_b from a declared proposal q(theta), with unnormalized importance weights w_b proportional to L_V(theta_b)p(theta_b)/q(theta_b), estimate the validation-posterior expectation by self-normalized importance sampling:
 
 $$
-\log L_{marg}(H_0)=logsumexp_b\{\ell_b(H_0)\}-\log B.
+\log L_{marg}(H_0)\approx
+logsumexp_b\{\ell_b(H_0)+\log w_b\}
+-logsumexp_b\{\log w_b\}.
 $$
 
+The current implementation candidate uses a multivariate Student-t proposal centered at the fixed-basis posterior mode, with shape based on the inverse posterior Hessian. Its coefficient proposals are **not equally weighted posterior draws**; normalized importance weights must be retained for every downstream expectation. Report importance ESS, maximum normalized weight, and Monte Carlo error, and mark low-ESS cases NON_EVALUABLE rather than silently proceeding. Exact/effectively exact posterior draws are a separate possible implementation and recover the unweighted log-mean-exp formula as the special case of equal weights.
 Then p(H0|d,V,C) is proportional to p(H0) exp(log L_marg(H0)). Declare the H0 prior explicitly; a flat prior in H0 is not flat in a transformed parameter. Check that posterior mass is not truncated at either grid boundary.
 
 Do not replace this with a plug-in likelihood at posterior-mean coefficients, an MLE plus plug-in covariance, an average beta followed by one selection correction, an average unconditional likelihood followed by a selection correction, or an average of normalized per-draw posteriors when the target is the marginal likelihood above.
