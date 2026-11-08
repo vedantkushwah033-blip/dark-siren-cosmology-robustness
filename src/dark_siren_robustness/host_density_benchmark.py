@@ -1,6 +1,6 @@
 """Exploratory synthetic comparison of host-density estimates in toy H0 inference."""
 from __future__ import annotations
-import argparse, json
+import argparse, hashlib, json
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -21,7 +21,9 @@ def posterior_summary(grid, loglike):
     q16, q50, q84 = (float(np.interp(q, cdf, grid)) for q in (0.16, 0.50, 0.84))
     return {"posterior_mean": float(trapezoid(grid*density, grid)),
             "posterior_median": q50, "ci68_low": q16, "ci68_high": q84,
-            "ci68_width": q84-q16, "posterior_integral": float(trapezoid(density, grid))}
+            "ci68_width": q84-q16, "posterior_integral": float(trapezoid(density, grid)),
+            "_posterior_grid": np.asarray(grid, dtype=float).tolist(),
+            "_posterior_density": density.tolist()}
 
 def run_benchmark(*, n_replicates=10, n_parent=6000, n_detected=40, seed=20261028,
                   h0_true=70.0, sigma_mpc=140.0, detection_threshold_mpc=250.0,
@@ -51,10 +53,14 @@ def run_benchmark(*, n_replicates=10, n_parent=6000, n_detected=40, seed=2026102
             like = selection_aware_toy_likelihood(z, host, h0, distances, sigma=sigma_mpc,
                                                   detection_threshold=detection_threshold_mpc)
             s = posterior_summary(h0, like["selected_log_likelihood"])
+            grid_json = json.dumps(s.pop("_posterior_grid"), separators=(",", ":"))
+            density_json = json.dumps(s.pop("_posterior_density"), separators=(",", ":"))
+            density_sha256 = hashlib.sha256(density_json.encode("utf-8")).hexdigest()
             rows.append({"replicate": rep, "seed": seed+rep, "arm": arm, "h0_true": h0_true,
                 "n_parent": len(parent_z), "n_catalogue_observed": len(observed_z),
                 "n_detected": len(distances), "min_detection_efficiency": float(np.min(like["detection_efficiency"])),
-                **s, "covered_68": bool(s["ci68_low"] <= h0_true <= s["ci68_high"])})
+                "posterior_grid_json": grid_json, "posterior_density_json": density_json,
+                "posterior_density_sha256": density_sha256, **s, "covered_68": bool(s["ci68_low"] <= h0_true <= s["ci68_high"])})
     frame = pd.DataFrame(rows)
     aggregate = []
     for arm, group in frame.groupby("arm", sort=False):
@@ -63,7 +69,9 @@ def run_benchmark(*, n_replicates=10, n_parent=6000, n_detected=40, seed=2026102
             "rmse": float(np.sqrt(np.mean(errors**2))), "empirical_68_coverage": float(group.covered_68.mean()),
             "mean_68_interval_width": float(group.ci68_width.mean()),
             "mean_posterior_mean": float(group.posterior_mean.mean())})
-    summary = {"status": "synthetic_exploratory_benchmark_not_real_H0_measurement",
+    summary = {"artifact_schema_version": 2,
+        "posterior_artifact_encoding": "JSON arrays in replicate_metrics.csv; density SHA-256 over exact UTF-8 JSON field",
+        "status": "synthetic_exploratory_benchmark_not_real_H0_measurement",
         "method": "paired seeds; fixed H0; Gaussian distance noise; fixed-threshold detection",
         "n_replicates": n_replicates, "n_parent": n_parent, "n_detected": n_detected,
         "seed_start": seed, "h0_true_km_s_mpc": h0_true, "sigma_mpc": sigma_mpc,

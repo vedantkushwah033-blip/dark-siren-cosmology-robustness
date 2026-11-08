@@ -18,6 +18,7 @@ def estimate_host_density(
     inclusion_probability: ArrayLike | None = None,
     merger_weight: ArrayLike | None = None,
     bandwidth_factor: float | None = None,
+    scott_multiplier: float | None = None,
 ) -> NDArray[np.float64]:
     """Estimate a normalized host-redshift density on a bounded grid.
 
@@ -26,6 +27,14 @@ def estimate_host_density(
     positive: zero-probability regions cannot be recovered by inverse weights.
     Reflection reduces, but does not eliminate, KDE boundary bias. The final
     density is truncated and renormalized on the specified finite domain.
+
+    Bandwidth semantics are intentionally explicit:
+    - ``bandwidth_factor`` is an absolute SciPy covariance factor, not a
+      multiplier of Scott's rule.
+    - ``scott_multiplier`` multiplies the weighted Scott factor computed
+      from the original (unreflected) sample and its effective sample size.
+    - If both are omitted, the weighted Scott factor is used.
+    - The two explicit options are mutually exclusive.
     """
     grid = np.asarray(redshift_grid, dtype=float)
     sample = np.asarray(observed_redshift, dtype=float)
@@ -48,18 +57,44 @@ def estimate_host_density(
             raise ValueError("inclusion_probability must be finite and match observed_redshift")
         if np.any((probability <= 0) | (probability > 1)):
             raise ValueError("inclusion_probability must lie in (0, 1]")
-        weights = 1.0 / probability
+        with np.errstate(over="ignore", divide="ignore"):
+            weights = 1.0 / probability
+        if not np.all(np.isfinite(weights)):
+            raise ValueError("inverse inclusion weights overflow; positivity is numerically unusable")
+    if bandwidth_factor is not None and scott_multiplier is not None:
+        raise ValueError("bandwidth_factor and scott_multiplier are mutually exclusive")
     if bandwidth_factor is not None and (
         not np.isfinite(bandwidth_factor) or bandwidth_factor <= 0
     ):
         raise ValueError("bandwidth_factor must be finite and positive when supplied")
+    if scott_multiplier is not None and (
+        not np.isfinite(scott_multiplier) or scott_multiplier <= 0
+    ):
+        raise ValueError("scott_multiplier must be finite and positive when supplied")
 
     left = 2.0 * grid[0] - sample
     right = 2.0 * grid[-1] - sample
     augmented_sample = np.concatenate((sample, left, right))
-    augmented_weights = np.tile(weights / 3.0, 3)
+    # A common scale does not change normalized weighted KDEs. Scale before
+    # squaring so large but representable inverse probabilities do not overflow.
+    scaled_weights = weights / np.max(weights)
+    augmented_weights = np.tile(scaled_weights / 3.0, 3)
+    if bandwidth_factor is None:
+        # Splitting each original weight over its three reflected copies changes
+        # scipy's augmented-sample neff by a factor of three. Preserve the
+        # original weighted-sample Scott factor instead of shrinking bandwidth
+        # merely because each observation was reflected twice.
+        original_neff = float(
+            np.sum(scaled_weights) ** 2 / np.sum(scaled_weights ** 2)
+        )
+        weighted_scott_factor = original_neff ** (-1.0 / 5.0)
+        multiplier = 1.0 if scott_multiplier is None else float(scott_multiplier)
+        bw_method = lambda _kde: multiplier * weighted_scott_factor
+    else:
+        # Preserve the legacy absolute-factor behavior for existing callers.
+        bw_method = bandwidth_factor
     kde = gaussian_kde(
-        augmented_sample, weights=augmented_weights, bw_method=bandwidth_factor
+        augmented_sample, weights=augmented_weights, bw_method=bw_method
     )
     galaxy_density = np.asarray(kde(grid), dtype=float)
 

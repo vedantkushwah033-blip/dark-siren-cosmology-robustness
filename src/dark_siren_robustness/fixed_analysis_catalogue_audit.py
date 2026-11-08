@@ -1,0 +1,266 @@
+"""Independent audit for fixed-analysis-catalogue artifacts; no production runner imports."""
+from __future__ import annotations
+import argparse,hashlib,json
+from pathlib import Path
+import numpy as np
+import pandas as pd
+from scipy.integrate import cumulative_trapezoid,trapezoid
+from scipy.optimize import brentq
+from scipy.special import expit
+from scipy.stats import gaussian_kde
+
+Z0,Z1=0.01,0.40
+def _lam(z):
+ z=np.asarray(z,float)
+ return 1+2.2*np.exp(-.5*((z-.105)/.025)**2)+1.6*np.exp(-.5*((z-.275)/.040)**2)
+def _center():
+ z=np.linspace(Z0,Z1,20001);x=(z-Z0)/(Z1-Z0)
+ return float(trapezoid(_lam(z)*x*x,z)/trapezoid(_lam(z),z))
+def _alpha(g,r,c):
+ z=np.linspace(Z0,Z1,20001);x=(z-Z0)/(Z1-Z0);l=_lam(z);den=trapezoid(l,z)
+ return float(brentq(lambda a:trapezoid(l*expit(a-x+g*(x*x-c)),z)/den-r,-30,30))
+def _target(z):
+ m=1+1.5*(z-Z0)/(Z1-Z0);v=_lam(z)*m
+ return v/trapezoid(v,z)
+def _expected_rng_frames(seed,replicate,n_analysis,n_validation):
+ grid=np.linspace(Z0,Z1,20001);intensity=_lam(grid)
+ cdf=np.r_[0.0,cumulative_trapezoid(intensity,grid)];cdf/=cdf[-1]
+ def stream(stream_id):
+  return np.random.default_rng(np.random.SeedSequence([int(seed),int(replicate),int(stream_id)]))
+ az=np.interp(stream(1).random(n_analysis),cdf,grid)
+ vz=np.interp(stream(2).random(n_validation),cdf,grid)
+ order=stream(3).permutation(n_validation)
+ rank=np.empty(n_validation,dtype=np.int64);rank[order]=np.arange(n_validation,dtype=np.int64)
+ return az,vz,rank,stream(4).random(n_analysis),stream(5).random(n_validation)
+def _kde(grid,sample,prob,h,merger):
+ sample=np.asarray(sample,float)
+ if sample.size<2: raise AssertionError("Insufficient sample for successful KDE")
+ w=np.ones(sample.size) if prob is None else 1/np.asarray(prob,float)
+ w=w/w.max();neff=w.sum()**2/(w@w)
+ aug=np.r_[sample,2*grid[0]-sample,2*grid[-1]-sample]
+ aw=np.tile(w/3,3)
+ factor=h*neff**(-.2)
+ raw=gaussian_kde(aug,weights=aw,bw_method=lambda k:factor)(grid)*merger
+ return raw/trapezoid(raw,grid)
+def _manual_gaussian_kde(grid, sample, prob, multiplier, merger):
+ """Direct weighted Gaussian-kernel sum, independent of scipy.gaussian_kde."""
+ sample = np.asarray(sample, dtype=float)
+ if sample.ndim != 1 or sample.size < 2:
+  raise AssertionError("Manual KDE requires at least two sample values")
+ weights = np.ones(sample.size, dtype=float) if prob is None else 1.0 / np.asarray(prob, dtype=float)
+ if weights.shape != sample.shape or not np.all(np.isfinite(weights)) or np.any(weights <= 0):
+  raise AssertionError("Manual KDE received invalid inverse-inclusion weights")
+ scaled = weights / np.max(weights)
+ effective_n = float(np.sum(scaled) ** 2 / np.sum(scaled ** 2))
+ augmented = np.concatenate((sample, 2.0 * grid[0] - sample, 2.0 * grid[-1] - sample))
+ augmented_weights = np.tile(scaled / 3.0, 3)
+ probability = augmented_weights / np.sum(augmented_weights)
+ mean = float(probability @ augmented)
+ variance_denominator = 1.0 - float(probability @ probability)
+ if not np.isfinite(variance_denominator) or variance_denominator <= 0:
+  raise AssertionError("Manual KDE weighted covariance is undefined")
+ variance = float(np.sum(probability * (augmented - mean) ** 2) / variance_denominator)
+ bandwidth = float(multiplier) * effective_n ** (-0.2) * np.sqrt(variance)
+ if not np.isfinite(bandwidth) or bandwidth <= 0:
+  raise AssertionError("Manual KDE bandwidth is invalid")
+ raw = np.empty(grid.size, dtype=float)
+ normalizer = np.sqrt(2.0 * np.pi) * bandwidth
+ for start in range(0, grid.size, 128):
+  stop = min(start + 128, grid.size)
+  standardized = (grid[start:stop, None] - augmented[None, :]) / bandwidth
+  raw[start:stop] = np.exp(-0.5 * standardized ** 2) @ probability / normalizer
+ weighted = raw * np.asarray(merger, dtype=float)
+ area = float(trapezoid(weighted, grid))
+ if not np.isfinite(area) or area <= 0:
+  raise AssertionError("Manual KDE normalization failed")
+ return weighted / area
+
+
+def audit_fixed_catalogue_artifact(path):
+ path=Path(path)
+ a=pd.read_csv(path/"attempt_metrics.csv");u=pd.read_csv(path/"frame_units.csv")
+ s=json.loads((path/"summary.json").read_text());c=json.loads((path/"config.json").read_text())
+ for k,v in c.items():
+  if s.get(k)!=v: raise AssertionError(f"Config-summary mismatch: {k}")
+ m=json.loads((path/"manifest.json").read_text())
+ for rec in m["files"].values():
+  p=path/rec["path"];b=p.read_bytes()
+  if len(b)!=rec["bytes"]: raise AssertionError("Manifest byte count mismatch")
+  if hashlib.sha256(b).hexdigest()!=rec["sha256"]: raise AssertionError("Manifest checksum mismatch")
+ if s["design"]!="fixed_analysis_catalogue_independent_validation_frame":
+  raise AssertionError("Wrong design identifier")
+ expected_rng="numpy SeedSequence([seed, replicate, stream_id]); stream 1=analysis redshifts, 2=validation redshifts, 3=validation permutation, 4=analysis retention uniforms, 5=validation retention uniforms"
+ if s.get("rng_stream_protocol")!=expected_rng:
+  raise AssertionError("Independent RNG stream protocol mismatch")
+ key=["replicate","gamma","target_retention","frame","object_id"]
+ if u.duplicated(key).any(): raise AssertionError("Duplicate frame object key")
+ attempt_key=["replicate","gamma","target_retention","n_validation","bandwidth_multiplier","degree","arm"]
+ if a.duplicated(attempt_key).any(): raise AssertionError("Duplicate attempt key")
+ center=_center()
+ if not np.isclose(center,s["curvature_center"],rtol=1e-12,atol=1e-12): raise AssertionError("Curvature center mismatch")
+ expected_frames={
+  rep:_expected_rng_frames(s["seed_start"],rep,s["n_analysis_parent"],s["n_validation_max"])
+  for rep in range(int(s["n_replicates"]))
+ }
+ grid=np.linspace(*s["grid"]);truth=_target(grid);merger=1+1.5*(grid-Z0)/(Z1-Z0)
+ if not np.allclose(truth,s["analytic_target_density"],rtol=1e-10,atol=1e-12): raise AssertionError("Analytic target mismatch")
+ groups={}
+ for keyval,g in u.groupby(["replicate","gamma","target_retention"],sort=False):
+  af=g[g.frame=="ANALYSIS"].sort_values("object_id")
+  vf=g[g.frame=="VALIDATION"].sort_values("object_id")
+  if len(af)!=s["n_analysis_parent"] or len(vf)!=s["n_validation_max"]: raise AssertionError("Frame size mismatch")
+  if af.object_id.nunique()!=len(af) or vf.object_id.nunique()!=len(vf): raise AssertionError("Frame IDs not unique")
+  ez_a,ez_v,erank,eu_a,eu_v=expected_frames[int(keyval[0])]
+  checks=((af.redshift.to_numpy(float),ez_a,"analysis redshifts"),
+          (vf.redshift.to_numpy(float),ez_v,"validation redshifts"),
+          (af.retention_uniform.to_numpy(float),eu_a,"analysis retention uniforms"),
+          (vf.retention_uniform.to_numpy(float),eu_v,"validation retention uniforms"))
+  for observed,expected,label in checks:
+   if not np.allclose(observed,expected,rtol=0.0,atol=5e-15):
+    raise AssertionError(f"Independent RNG stream mismatch: {label}")
+  if not np.array_equal(vf.validation_rank.to_numpy(int),erank):
+   raise AssertionError("Independent RNG stream mismatch: validation permutation")
+  # object_id is frame-local; the frame column provides the namespace.
+  for frame in (af,vf):
+   z=frame.redshift.to_numpy(float);y=frame.retained.to_numpy(int);uu=frame.retention_uniform.to_numpy(float)
+   if np.any((uu<0)|(uu>=1)) or np.any((y!=0)&(y!=1)): raise AssertionError("Invalid retention records")
+   gamma=float(keyval[1]);ret=float(keyval[2]);alpha=_alpha(gamma,ret,center)
+   x=(z-Z0)/(Z1-Z0);pi=expit(alpha-x+gamma*(x*x-center))
+   if not np.allclose(pi,frame.true_inclusion_probability,rtol=1e-11,atol=1e-12): raise AssertionError("DGP probability mismatch")
+   if not np.array_equal((uu<pi).astype(int),y): raise AssertionError("Retention label does not follow stored uniform/DGP")
+  if vf.validation_rank.min()<0 or vf.validation_rank.max()>=len(vf) or vf.validation_rank.nunique()!=len(vf): raise AssertionError("Invalid validation rank permutation")
+  groups[keyval]=(af,vf)
+ # Exact planned factorial
+ expected=set()
+ for rep in range(s["n_replicates"]):
+  for g in s["gamma_values"]:
+   for ret in s["retention_values"]:
+    for n in s["validation_sizes"]:
+     for h in s["bandwidth_multipliers"]:
+      for arm in ("catalogue_only","known_inclusion_ipw","parent_sample_kde"):
+       expected.add((rep,float(g),float(ret),int(n),float(h),0,arm))
+      for d in s["degrees"]:
+       expected.add((rep,float(g),float(ret),int(n),float(h),int(d),f"estimated_degree_{d}_ipw"))
+ actual={(int(x.replicate),float(x.gamma),float(x.target_retention),int(x.n_validation),
+          float(x.bandwidth_multiplier),int(x.degree),str(x.arm)) for x in a.itertuples()}
+ if actual!=expected: raise AssertionError(f"Attempt design mismatch: missing={len(expected-actual)}, extra={len(actual-expected)}")
+ checked=0
+ manual_checks={}
+ manual_validation=min(int(value) for value in s["validation_sizes"])
+ manual_bandwidth=min(float(value) for value in s["bandwidth_multipliers"])
+ for row in a.itertuples():
+  k=(int(row.replicate),float(row.gamma),float(row.target_retention))
+  af,vf=groups[k];az=af.redshift.to_numpy(float);ay=af.retained.to_numpy(int)
+  ac=af[af.retained==1];cat=ac.redshift.to_numpy(float);api=ac.true_inclusion_probability.to_numpy(float)
+  # Same fixed catalogue is implied by one immutable analysis frame, irrespective of n.
+  vv=vf[vf.validation_rank<int(row.n_validation)].sort_values("validation_rank")
+  if len(vv)!=row.n_validation: raise AssertionError("Nested validation sample size mismatch")
+  if row.status!="SUCCESS":
+   if pd.notna(row.density_json) and str(row.density_json).strip():
+    raise AssertionError("Failed attempt contains density")
+   continue
+  sample=None;prob=None
+  if row.arm=="catalogue_only": sample=cat
+  elif row.arm=="known_inclusion_ipw": sample=cat;prob=api
+  elif row.arm=="parent_sample_kde": sample=az
+  elif row.arm.startswith("estimated_degree_"):
+   sample=cat;d=int(row.degree);beta=np.asarray(json.loads(row.coefficients_json),float)
+   if row.fit_status!="SUCCESS" or beta.shape!=(d+1,): raise AssertionError("Successful fit record malformed")
+   vz=vv.redshift.to_numpy(float);vy=vv.retained.to_numpy(float)
+   cfit=float(row.fit_center);sfit=float(row.fit_scale)
+   if not np.isclose(cfit,vz.mean(),rtol=1e-12,atol=1e-12): raise AssertionError("Fit center mismatch")
+   sd=float(vz.std());sd=sd if sd>0 else 1.
+   if not np.isclose(sfit,sd,rtol=1e-12,atol=1e-12): raise AssertionError("Fit scale mismatch")
+   x=(vz-cfit)/sfit;X=np.column_stack([x**j for j in range(d+1)])
+   p=expit(X@beta);score=X.T@(p-vy)
+   if np.linalg.norm(score,np.inf)>1e-6 or not np.isclose(np.linalg.norm(score,np.inf),row.fit_gradient_inf_norm,rtol=2e-5,atol=2e-8):
+    raise AssertionError("Fitted logistic score mismatch")
+   obj=float(np.sum(np.logaddexp(0,X@beta)-vy*(X@beta)))
+   if not np.isclose(obj,row.fit_objective,rtol=2e-8,atol=2e-8): raise AssertionError("Fitted logistic objective mismatch")
+   xa=(cat-cfit)/sfit;prob=expit(np.column_stack([xa**j for j in range(d+1)])@beta)
+  else: raise AssertionError("Unknown arm")
+  density=np.asarray(json.loads(row.density_json),float)
+  rebuilt=_kde(grid,sample,prob,float(row.bandwidth_multiplier),merger)
+  if not np.allclose(density,rebuilt,rtol=2e-8,atol=2e-8): raise AssertionError("KDE reconstruction mismatch")
+  if (int(row.n_validation)==manual_validation
+      and np.isclose(float(row.bandwidth_multiplier),manual_bandwidth)):
+   check_key=(float(row.gamma),str(row.arm))
+   if check_key not in manual_checks:
+    direct=_manual_gaussian_kde(grid,sample,prob,float(row.bandwidth_multiplier),merger)
+    max_error=float(np.max(np.abs(density-direct)))
+    if not np.allclose(density,direct,rtol=2e-10,atol=2e-10):
+     raise AssertionError("Independent direct Gaussian-kernel spot check mismatch")
+    manual_checks[check_key]=max_error
+  iae=float(trapezoid(abs(density-truth),grid))
+  if not np.isclose(iae,row.iae,rtol=2e-8,atol=2e-8): raise AssertionError("IAE mismatch")
+  if int(row.n_analysis_catalogue)!=len(cat): raise AssertionError("Analysis catalogue count changed across n")
+  checked+=1
+ counts={str(k):int(v) for k,v in a.status.value_counts().items()}
+ if counts!=s["status_counts"]: raise AssertionError("Status ledger mismatch")
+ if not set(a.status).issubset({"SUCCESS","FAILED","NON_EVALUABLE","NOT_RUN"}):
+  raise AssertionError("Unknown attempt status")
+ expected_ledger=[]
+ for key,g in a.groupby(["gamma","target_retention","n_validation","bandwidth_multiplier","arm"],sort=True):
+  expected_ledger.append({"gamma":float(key[0]),"target_retention":float(key[1]),
+   "n_validation":int(key[2]),"bandwidth_multiplier":float(key[3]),"arm":str(key[4]),
+   "n_planned":int(len(g)),"n_success":int((g.status=="SUCCESS").sum()),
+   "n_failed":int((g.status=="FAILED").sum()),
+   "n_non_evaluable":int((g.status=="NON_EVALUABLE").sum()),
+   "n_not_run":int((g.status=="NOT_RUN").sum()),
+   "success_rate":float((g.status=="SUCCESS").mean()),
+   "conditional_success_mean_iae":float(g.loc[g.status=="SUCCESS","iae"].mean())
+     if (g.status=="SUCCESS").any() else None})
+ if len(expected_ledger)!=len(s["condition_status_ledger"]):
+  raise AssertionError("Condition failure-ledger size mismatch")
+ for x,y in zip(expected_ledger,s["condition_status_ledger"]):
+  for k,v in x.items():
+   w=y[k]
+   if v is None:
+    if w is not None: raise AssertionError("Condition failure-ledger null mismatch")
+   elif isinstance(v,float):
+    if not np.isclose(v,w,rtol=1e-10,atol=1e-12): raise AssertionError("Condition failure-ledger value mismatch")
+   elif v!=w: raise AssertionError("Condition failure-ledger value mismatch")
+ expected_contrasts=[]
+ for key,g in a.groupby(["gamma","target_retention","n_validation","bandwidth_multiplier"],sort=True):
+  wide=g.pivot(index="replicate",columns="arm",values="iae")
+  if "catalogue_only" not in wide: continue
+  for degree in s["degrees"]:
+   arm=f"estimated_degree_{degree}_ipw"
+   if arm not in wide: continue
+   pair=wide[["catalogue_only",arm]].dropna()
+   diff=(pair[arm]-pair["catalogue_only"]).to_numpy(float)
+   expected_contrasts.append({"gamma":float(key[0]),"target_retention":float(key[1]),
+    "n_validation":int(key[2]),"bandwidth_multiplier":float(key[3]),"degree":int(degree),
+    "n_pairs":int(len(diff)),"n_replicates_planned":int(s["n_replicates"]),
+    "mean_iae_difference":float(diff.mean()) if len(diff) else None,
+    "paired_mc_se":float(diff.std(ddof=1)/np.sqrt(len(diff))) if len(diff)>1 else None})
+ if len(expected_contrasts)!=len(s["paired_ipw_minus_catalogue_only"]):
+  raise AssertionError("Paired contrast count mismatch")
+ for x,y in zip(expected_contrasts,s["paired_ipw_minus_catalogue_only"]):
+  for k,v in x.items():
+   w=y[k]
+   if v is None:
+    if w is not None: raise AssertionError("Paired contrast null mismatch")
+   elif isinstance(v,float):
+    if not np.isclose(v,w,rtol=1e-10,atol=1e-12): raise AssertionError("Paired contrast mismatch")
+   elif v!=w: raise AssertionError("Paired contrast mismatch")
+ rates={str(k):float((v.status=="SUCCESS").mean()) for k,v in a.groupby("arm")}
+ if rates.keys()!=s["success_rate_by_arm"].keys(): raise AssertionError("Success-rate keys mismatch")
+ for k,v in rates.items():
+  if not np.isclose(v,s["success_rate_by_arm"][k]): raise AssertionError("Success rate mismatch")
+ return {"status":"PASS","design":s["design"],"checked_rng_stream_sets":len(expected_frames),
+  "checked_frame_scenarios":len(groups),"checked_density_estimates":checked,"attempt_count":len(a),"status_counts":counts,
+  "manual_gaussian_kde_crosschecks":len(manual_checks),
+  "manual_max_density_abs_difference":max(manual_checks.values()) if manual_checks else None,
+  "manual_crosscheck_cells":[{"gamma":key[0],"arm":key[1],"max_abs_difference":value}
+   for key,value in sorted(manual_checks.items())],
+  "limitations":["Synthetic density recovery only; no H0 posterior calibration.",
+   "Bulk KDE reconstruction uses SciPy gaussian_kde; one deterministic direct Gaussian-kernel cross-check is run per curvature-by-arm cell.",
+   "Independent validation frame assumes complete binary retention-label ascertainment."]}
+def main():
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument("--artifact-dir",type=Path,required=True)
+ p.add_argument("--output",type=Path);x=p.parse_args();r=audit_fixed_catalogue_artifact(x.artifact_dir)
+ out=json.dumps(r,indent=2,sort_keys=True)+"\n"
+ if x.output:x.output.write_text(out)
+ print(out)
+if __name__=="__main__":main()

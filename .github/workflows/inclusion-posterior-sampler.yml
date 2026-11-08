@@ -1,0 +1,48 @@
+name: inclusion-posterior-sampler
+
+on:
+  push:
+    branches:
+      - research/independent-posterior-audit-claim-fix
+    paths:
+      - .github/workflows/inclusion-posterior-sampler.yml
+      - src/dark_siren_robustness/inclusion_posterior.py
+      - src/dark_siren_robustness/bayesian_inclusion.py
+      - src/dark_siren_robustness/finite_validation_h0.py
+      - tests/test_inclusion_posterior.py
+      - tests/test_bayesian_inclusion.py
+      - tests/test_finite_validation_h0.py
+      - tests/test_finite_validation_h0_marginalization.py
+      - src/dark_siren_robustness/finite_validation_h0_marginalization.py
+  pull_request:
+    branches:
+      - experiment/catalogue-density-estimators
+    paths:
+      - .github/workflows/inclusion-posterior-sampler.yml
+      - src/dark_siren_robustness/inclusion_posterior.py
+      - tests/test_inclusion_posterior.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: inclusion-posterior-sampler-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  sampler-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Test proper-prior finite-validation inclusion posterior sampler
+        run: python -m pytest tests/test_inclusion_posterior.py tests/test_bayesian_inclusion.py tests/test_finite_validation_h0_marginalization.py tests/test_finite_validation_h0.py -q

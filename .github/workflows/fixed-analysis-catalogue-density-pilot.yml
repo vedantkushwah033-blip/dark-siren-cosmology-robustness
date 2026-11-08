@@ -1,0 +1,52 @@
+name: fixed-analysis-catalogue-density-pilot
+on:
+  push:
+    branches:
+      - research/independent-posterior-audit-claim-fix
+    paths:
+      - .github/workflows/fixed-analysis-catalogue-density-pilot.yml
+      - src/dark_siren_robustness/fixed_analysis_catalogue_benchmark.py
+      - src/dark_siren_robustness/fixed_analysis_catalogue_audit.py
+      - tests/test_fixed_analysis_catalogue_benchmark.py
+      - scripts/run_fixed_analysis_catalogue_benchmark.py
+      - scripts/audit_fixed_analysis_catalogue_benchmark.py
+      - src/dark_siren_robustness/finite_validation_density_recovery.py
+      - src/dark_siren_robustness/catalogue_density.py
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fixed-analysis-catalogue-density-pilot
+  cancel-in-progress: false
+jobs:
+  fixed-catalogue-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run fixed-catalogue unit and adversarial tests
+        run: python -m pytest tests/test_fixed_analysis_catalogue_benchmark.py -q
+      - name: Run five-replicate factorial pilot
+        run: |
+          python scripts/run_fixed_analysis_catalogue_benchmark.py \
+            --replicates 5 --n-analysis 4000 --n-validation-max 1000 \
+            --seed 20261109 --grid-points 801 \
+            --output-dir artifacts/fixed_analysis_catalogue_density_pilot
+      - name: Independently audit pilot artifact
+        run: |
+          python scripts/audit_fixed_analysis_catalogue_benchmark.py \
+            --artifact-dir artifacts/fixed_analysis_catalogue_density_pilot \
+            --output artifacts/fixed_analysis_catalogue_density_pilot/audit_report.json
+      - name: Upload audited pilot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixed-analysis-catalogue-density-pilot-py3.12
+          path: artifacts/fixed_analysis_catalogue_density_pilot/
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 30

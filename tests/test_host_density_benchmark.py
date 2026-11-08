@@ -15,6 +15,10 @@ def test_three_arms_share_each_replicate_and_return_valid_posteriors():
     assert set(rows.arm) == {"oracle", "catalogue_only", "known_completeness"}
     assert len(rows) == 3
     assert rows.posterior_integral.between(0.999999, 1.000001).all()
+    assert rows.posterior_grid_json.map(lambda value: isinstance(value, str)).all()
+    assert rows.posterior_density_json.map(lambda value: isinstance(value, str)).all()
+    assert rows.posterior_density_sha256.str.fullmatch(r"[0-9a-f]{64}").all()
+    assert summary["artifact_schema_version"] == 2
     assert rows.ci68_width.gt(0).all()
     assert len(summary["aggregate_metrics"]) == 3
     assert summary["status"] == "synthetic_exploratory_benchmark_not_real_H0_measurement"

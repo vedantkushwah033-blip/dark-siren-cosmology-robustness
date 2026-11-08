@@ -1,0 +1,55 @@
+name: finite-validation-density-confirmatory
+
+on:
+  push:
+    branches:
+      - research/independent-posterior-audit-claim-fix
+    paths:
+      - .github/workflows/finite-validation-density-confirmatory.yml
+      - src/dark_siren_robustness/finite_validation_density_recovery.py
+      - src/dark_siren_robustness/finite_validation_density_recovery_audit.py
+      - src/dark_siren_robustness/catalogue_density.py
+      - scripts/run_finite_validation_density_recovery.py
+      - scripts/audit_finite_validation_density_recovery.py
+      - tests/test_finite_validation_density_recovery.py
+      - docs/density_recovery_confirmatory_protocol_2026-11-08.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: finite-validation-density-confirmatory
+  cancel-in-progress: false
+
+jobs:
+  primary-density-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run focused density-recovery and independent-auditor tests
+        run: python -m pytest tests/test_finite_validation_density_recovery.py -q
+      - name: Run the predeclared 100-replicate primary density-recovery design
+        run: |
+          python scripts/run_finite_validation_density_recovery.py \
+            --replicates 100 --n-parent 4000 --seed 20261108 --grid-points 801 \
+            --output-dir artifacts/finite_validation_density_recovery_confirmatory
+      - name: Independently audit the complete raw density-recovery artifact
+        run: |
+          python scripts/audit_finite_validation_density_recovery.py \
+            --artifact-dir artifacts/finite_validation_density_recovery_confirmatory \
+            --output artifacts/finite_validation_density_recovery_confirmatory/audit_report.json
+      - name: Upload confirmatory density-recovery artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: finite-validation-density-recovery-confirmatory-py3.12
+          path: artifacts/finite_validation_density_recovery_confirmatory/
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 30
