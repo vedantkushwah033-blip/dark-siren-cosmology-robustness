@@ -48,3 +48,10 @@ The importance sampler's weights are self-normalized. Zero-valued normalized wei
 The propagation function now rejects redshift grids that do not span the complete fixed prior domain. It also estimates the memory needed for the returned density, unconditional-likelihood, beta, and selected-likelihood draw arrays before allocation. The default one-gigabyte guard fails early with an actionable message rather than risking an uncontrolled allocation; callers can reduce proposal draws or grid resolution and must still establish Monte Carlo/grid convergence separately.
 
 A regression test covers both the full-domain requirement and the pre-allocation memory guard.
+
+
+## Relationship to the vectorized H0 implementation
+
+The primary implementation is now `finite_validation_h0.py`, which reconstructs density draws, evaluates event mixtures and per-draw selection efficiencies in H0 batches, performs weighted marginalization, and normalizes a declared-prior H0 posterior. This module remains a deliberately slower loop-based reference path: it calls the established `selection_aware_toy_likelihood` once per coefficient proposal. A cross-implementation regression test compares its unconditional likelihoods, beta curves, and selected likelihoods against the vectorized implementation using the same host-density draws.
+
+The reference path is useful for small independent numerical checks, not for large proposal counts. Its one-gigabyte guard estimates returned draw-array storage; it is not a strict peak-memory bound. The vectorized implementation has separate output/temporary allocation guards.
