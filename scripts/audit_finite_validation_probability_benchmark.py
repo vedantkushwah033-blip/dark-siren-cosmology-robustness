@@ -81,7 +81,7 @@ def audit(summary_path: Path, raw_path: Path, tolerance: float = 1e-10) -> dict:
             raise ValueError(f"{key}: object IDs are not unique")
         if ((units["object_id"] < 0) | (units["object_id"] >= int(row.n_parent))).any():
             raise ValueError(f"{key}: object ID outside parent-frame range")
-        if int(retained.sum()) != int(row.n_analysis_catalogue):
+        if int(units["retained"].sum()) != int(row.n_analysis_catalogue):
             raise ValueError(f"{key}: retained holdout count differs from analysis-catalogue size")
         if not np.all(np.isfinite(units["p_true"])):
             raise ValueError(f"{key}: missing simulation truth probabilities")
