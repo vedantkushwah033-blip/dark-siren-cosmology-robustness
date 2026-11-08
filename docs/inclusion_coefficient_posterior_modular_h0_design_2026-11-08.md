@@ -157,3 +157,17 @@ Density recovery, numerical quadrature convergence, H0-grid convergence, posteri
 ## 9. Explicit claim boundary
 
 A successful implementation would establish only that a declared proper validation posterior can be numerically propagated through this synthetic, low-redshift, Euclidean toy likelihood under stated assumptions. It would not establish performance on LVK/GWTC data, a real galaxy survey, a real detector-selection function, or a measured H0 value. No novelty or estimator-superiority claim follows automatically.
+
+
+## 10. Prototype implementation snapshot (2026-11-08)
+
+The current prototype branch now contains the following implementation pieces:
+
+- `inclusion_posterior.py`: a proper Gaussian-prior logistic validation posterior, adaptive tensor Gauss-Hermite importance quadrature, node-weight diagnostics, and a single canonical order ladder. The ladder checks posterior means, covariance, posterior-predictive inclusion probabilities, and the log evidence normalizer. It requires two consecutive passing order transitions by default; quadrature ESS and maximum node mass are diagnostics, not convergence criteria.
+- `shared_inclusion_likelihood.py`: a discrete catalogue host-mixture likelihood with one shared inclusion-coefficient node across all events. Event likelihoods and the one-sided detection efficiency use the same node-specific log-normalized IPW host weights. The current selection implementation deliberately requires a common Gaussian distance-noise scale across events and uses the one-sided rule (d_{\rm obs}\geq d_{\rm threshold}).
+- `h0_posterior.py`: normalization of the marginalized log likelihood under a declared uniform H0 prior, explicit inclusion of prior boundaries in the integration grid, posterior quantiles, and a coarse/fine density-and-quantile comparison utility.
+- Tests include finite-difference checks for the logistic target derivatives, shared-parameter marginalization checks, independent reconstruction of the nodewise selected likelihood and its posterior-node marginalization, and constant-likelihood recovery of a uniform H0 prior.
+
+The duplicate quadrature-ladder module was removed in favor of the canonical implementation inside `inclusion_posterior.py). The canonical ladder now includes log-evidence stability in its convergence decision.
+
+**Validation status:** these are implemented prototype components and authored tests, not yet a validated end-to-end inference pipeline. The latest branch head has not reported a CI run or combined status check at the time of this update. The previously successful workflow runs correspond to earlier commits and do not validate the current branch head. No full synthetic H0 calibration, SBC, frequentist coverage, prior-scale sensitivity, or independent end-to-end raw-artifact audit has been completed. The code remains limited to the declared synthetic toy model.
