@@ -196,3 +196,49 @@ def test_shared_node_marginalization_constant_likelihood_is_exact():
     weights = np.asarray([0.02, 0.08, 0.1, 0.2, 0.25, 0.15, 0.2])
     result = log_marginalize_shared_parameter(log_likelihood, weights)
     assert np.allclose(result, -3.75, rtol=0, atol=1e-14)
+
+
+def test_node_specific_host_weights_are_normalized_and_report_diagnostics():
+    from dark_siren_robustness.inclusion_posterior import (
+        build_node_specific_host_weights,
+    )
+
+    rng = np.random.default_rng(3107)
+    z_validation = rng.uniform(0.01, 0.40, 180)
+    x = (z_validation-z_validation.mean())/z_validation.std()
+    p = 1.0/(1.0+np.exp(-(-0.3+0.65*x)))
+    retained = rng.binomial(1, p)
+    posterior = fit_inclusion_posterior_quadrature(
+        z_validation, retained, degree=1, order=9,
+    )
+    catalogue = np.linspace(0.012, 0.398, 250)
+    host = build_node_specific_host_weights(posterior, catalogue)
+
+    assert host.inclusion_probability.shape == (9**2, 250)
+    assert host.raw_inverse_weight.shape == (9**2, 250)
+    assert host.normalized_weight.shape == (9**2, 250)
+    assert np.all((host.inclusion_probability > 0) & (host.inclusion_probability < 1))
+    assert np.all(host.raw_inverse_weight >= 1)
+    assert np.allclose(host.normalized_weight.sum(axis=1), 1.0)
+    assert np.all((host.kish_ess >= 1) & (host.kish_ess <= 250))
+    assert np.all((host.entropy_ess >= 1) & (host.entropy_ess <= 250))
+    assert np.all(host.maximum_normalized_weight <= 1)
+    assert np.all(host.top_one_percent_mass <= host.top_five_percent_mass + 1e-14)
+    assert np.all(host.minimum_inclusion_probability > 0)
+
+
+def test_node_specific_host_weights_refuse_underflow_without_clipping():
+    from dataclasses import replace
+    from dark_siren_robustness.inclusion_posterior import (
+        build_node_specific_host_weights,
+    )
+
+    z = np.linspace(0.01, 0.40, 40)
+    posterior = fit_inclusion_posterior_quadrature(
+        z, np.zeros(z.size, dtype=int), degree=1, order=5,
+    )
+    extreme_nodes = posterior.nodes.copy()
+    extreme_nodes[:, 0] = -1000.0
+    extreme = replace(posterior, nodes=extreme_nodes)
+    with pytest.raises(ArithmeticError, match="underflows"):
+        build_node_specific_host_weights(extreme, np.asarray([0.2]))
