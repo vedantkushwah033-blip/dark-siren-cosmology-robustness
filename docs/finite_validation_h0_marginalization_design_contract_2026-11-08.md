@@ -157,3 +157,35 @@ A reproducible prior-predictive simulation used 500,000 coefficient draws per de
 For degree 1, the corresponding extreme-grid fractions are 0.0000010, 0.0001792, and 0.0095059 for s=0.75, 1.00, and 1.50. These are prior-predictive diagnostics, not posterior calibration results. The candidate s=1.0 prior covers the DGP coefficient magnitudes in this benchmark without placing much prior mass on near-deterministic inclusion across the domain. Prior sensitivity remains mandatory, and the candidate must be evaluated for separation regimes and coefficient-posterior calibration before confirmatory use.
 
 The sampler implementation should use the fixed basis directly. It should not assign an identical Normal prior to the current fitter's validation-sample-standardized coefficients.
+
+
+## Implementation update (2026-11-08; focused CI verified)
+
+The initial implementation-order list above records the plan at document creation. The following software components have since been added on the research branch:
+
+1. `inclusion_posterior.py`: four-chain proper-prior logistic posterior sampler in the fixed domain basis, with split-Rhat and effective-sample-size diagnostics.
+2. `bayesian_inclusion.py`: independent multivariate-Student-t importance sampler around the fixed-basis posterior mode. It retains normalized importance weights and reports importance ESS, maximum weight and relative evidence Monte Carlo error. It is not treated as an equal-weight posterior sample.
+3. `finite_validation_h0_marginalization.py`: high-level propagation from coefficient proposals through IPW host-density reconstruction, per-draw unconditional event likelihood, per-draw GW detection efficiency, draw-specific selection correction, and weighted marginalization.
+4. `finite_validation_h0.py`: batched/vectorized likelihood evaluation, explicit H0-prior posterior normalization, 68% and 95% intervals, and a boundary-mass diagnostic. The vectorized likelihood is checked against the existing single-density selection-likelihood implementation.
+
+The fixed-basis importance sampler was tested against two-dimensional numerical quadrature and the existing multi-chain MCMC posterior. The H0 pipeline tests include an actual weighted inclusion-posterior output passed through host-density reconstruction and selected-likelihood marginalization, and an explicit test showing that the average-beta shortcut differs from the correct per-draw selection correction.
+
+**Focused CI:** inclusion-posterior workflow [#42479890034](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/42479890034) completed successfully on Python 3.10, 3.11 and 3.12 at PR head `c47ab95e26adaede691f0d71306eaf3b517fa892`. The focused sampler, vectorized H0 likelihood, posterior normalization, and finite-validation propagation tests passed in all three jobs.
+
+The general numerical-diagnostics workflow for that exact head (#42479890015) was cancelled, so this is **not** a claim that the entire repository test matrix passed at that head. Earlier, the fixed-catalogue independent-analysis-auditor tests passed on Python 3.10, 3.11 and 3.12 in workflow #42478908404. The full confirmatory artifact's saved contrast JSON was independently recomputed locally from the raw attempt CSV and matched to floating-point precision.
+
+### Still not established
+
+- No confirmatory H0 simulation has been run through the new pipeline.
+- No SBC, fixed-truth H0 coverage, PIT assessment, or posterior predictive validation has been performed for finite-validation inclusion uncertainty.
+- The candidate Gaussian prior scale s=1.0 and sensitivity values 0.75/1.5 have not yet been compared in an H0 experiment; the prior remains provisional.
+- The importance-sampling approximation has not yet been stress-tested across the full planned curvature/validation-size/separation design.
+- No claim of improved H0 calibration or coverage is warranted.
+
+### Next gates
+
+1. Create a small reproducible end-to-end H0 pilot runner with a raw artifact, immutable config, manifest and independent auditor.
+2. Compare the MCMC and Student-t importance posterior summaries and the marginalized H0 likelihood on the same validation datasets; report Monte Carlo uncertainty and ESS.
+3. Freeze the prior only after the prior-scale sensitivity and prior-predictive checks are reviewed.
+4. Establish redshift-grid, H0-grid, coefficient-draw and KDE-bandwidth convergence separately.
+5. Only then predeclare and run SBC and repeated fixed-truth coverage experiments with complete SUCCESS/NON_EVALUABLE/FAILED/NOT_RUN accounting.
