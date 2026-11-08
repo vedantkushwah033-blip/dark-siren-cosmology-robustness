@@ -42,6 +42,10 @@ def test_independent_probability_auditor_reconstructs_raw_records(tmp_path: Path
         "scenario_seed", "replicate", "gamma", "retention_target",
         "n_validation", "model_degree",
     ]).size() == 500).all()
+    successful = summary.loc[summary["fit_status"] == "SUCCESS"]
+    assert successful["heldout_calibration_ece_10"].between(0.0, 1.0).all()
+    assert successful["heldout_calibration_max_gap_10"].between(0.0, 1.0).all()
+    assert successful["heldout_calibration_nonempty_bins_10"].between(1, 10).all()
 
 
 def test_independent_probability_auditor_rejects_tampered_summary(tmp_path: Path):
