@@ -250,6 +250,8 @@ def audit(output_dir: Path) -> dict[str, object]:
         "max_abs_posterior_cdf_difference": max_cdf_difference,
         "validation_rows_crosschecked_against_truth": int(len(validation)),
         "event_host_ids_crosschecked": int(len(event_truth)),
+        "generation_trace_attempts_crosschecked": int(len(generation_trace)),
+        "selected_events_crosschecked": int(generation_trace["selected_as_event"].sum()),
         "limitations": [
             "one synthetic replicate only",
             "posterior quadrature nodes are regenerated with the production fitter",
