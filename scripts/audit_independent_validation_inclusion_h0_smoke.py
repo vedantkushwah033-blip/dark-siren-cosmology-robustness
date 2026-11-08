@@ -35,6 +35,19 @@ def audit(artifact_dir: Path) -> dict[str, object]:
     if not validation_cfg.get("independent_frame", False):
         raise AssertionError("validation frame is not declared independent")
 
+    analysis_selection = analysis_cfg["catalogue_selection"]
+    validation_selection = validation_cfg["catalogue_selection"]
+    for parameter in ("floor", "midpoint", "width"):
+        if not np.isclose(
+            float(analysis_selection[parameter]),
+            float(validation_selection[parameter]),
+            rtol=0.0,
+            atol=0.0,
+        ):
+            raise AssertionError(
+                f"analysis and validation catalogue-selection {parameter} differ"
+            )
+
     catalogue = pd.read_csv(root / "observable" / "analysis_catalogue.csv")
     events = pd.read_csv(root / "observable" / "gw_events_observed.csv")
     validation = pd.read_csv(root / "observable" / "validation_observed.csv")
@@ -42,6 +55,36 @@ def audit(artifact_dir: Path) -> dict[str, object]:
     event_truth = pd.read_csv(root / "truth" / "gw_event_truth.csv")
     trace = pd.read_csv(root / "truth" / "gw_generation_trace_truth.csv")
     validation_truth = pd.read_csv(root / "truth" / "validation_frame_truth.csv")
+
+    floor = float(analysis_selection["floor"])
+    midpoint = float(analysis_selection["midpoint"])
+    width = float(analysis_selection["width"])
+    if not (0.0 <= floor <= 1.0 and midpoint > 0.0 and width > 0.0):
+        raise AssertionError("catalogue-selection parameters are outside their domain")
+    expected_parent_probability = floor + (1.0 - floor) / (
+        1.0 + np.exp(
+            (parent["redshift"].to_numpy(dtype=float) - midpoint) / width
+        )
+    )
+    expected_validation_probability = floor + (1.0 - floor) / (
+        1.0 + np.exp(
+            (validation_truth["redshift"].to_numpy(dtype=float) - midpoint) / width
+        )
+    )
+    if not np.allclose(
+        parent["inclusion_probability"].to_numpy(dtype=float),
+        expected_parent_probability,
+        rtol=1e-13,
+        atol=1e-14,
+    ):
+        raise AssertionError("analysis parent inclusion probabilities do not match configured DGP")
+    if not np.allclose(
+        validation_truth["inclusion_probability"].to_numpy(dtype=float),
+        expected_validation_probability,
+        rtol=1e-13,
+        atol=1e-14,
+    ):
+        raise AssertionError("validation inclusion probabilities do not match configured DGP")
 
     if list(catalogue.columns) != ["object_id", "redshift"]:
         raise AssertionError("analysis catalogue exposes unexpected columns")
