@@ -27,7 +27,7 @@ def test_independent_probability_auditor_reconstructs_raw_records(tmp_path: Path
     assert report["status"] == "PASS"
     assert report["experiments_reconstructed"] == len(summary)
     raw = pd.read_csv(raw_path)
-    assert raw["record_type"].eq("heldout_parent").all()
+    assert set(raw["split_role"]) == {"validation", "analysis_catalogue", "nonretained_holdout"}
     assert not raw.duplicated([
         "scenario_seed", "replicate", "gamma", "n_validation",
         "model_degree", "object_id",
@@ -35,7 +35,7 @@ def test_independent_probability_auditor_reconstructs_raw_records(tmp_path: Path
     assert (raw.groupby([
         "scenario_seed", "replicate", "gamma", "n_validation",
         "model_degree",
-    ]).size() == 400).all()
+    ]).size() == 500).all()
 
 
 def test_independent_probability_auditor_rejects_tampered_summary(tmp_path: Path):
