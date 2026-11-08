@@ -73,19 +73,25 @@ The target branch currently has tests for:
 - rejection of heterogeneous event noise under the common-beta implementation;
 - rejection of events below the one-sided detection threshold.
 
-Still required before a scientific result:
-1. **Full shared-node factorization adversary:** explicitly compare the implemented shared-node marginal likelihood with the incorrect product of event-wise marginalized likelihoods on a small two-node/two-event fixture.
-2. **Event-order and node-order invariance:** permute events, and separately permute nodes together with their posterior weights.
-3. **Single-event reduction:** compare the one-node shared likelihood and resulting posterior with the existing one-event one-sided selected-likelihood calculation.
-4. **No-selection limit:** increase the threshold's acceptance probability toward one and verify beta tends to one and selected/unselected results coincide.
-5. **Independent finite-host enumeration:** verify event numerator and beta on a tiny catalogue without importing the production helper.
-6. **Matched multi-event SBC:** run a small smoke generator first; independently audit the raw data and PITs before scaling.
-7. **H0 grid refinement after node marginalization:** compare final posterior densities and quantiles on nested grids.
-8. **Quadrature refinement after likelihood propagation:** compare the final H0 log marginal likelihood across orders, not just coefficient moments/evidence/predictions.
-9. **Prior-scale sensitivity:** halve/double slope prior scales and quantify effects on host weights and H0 posterior.
-10. **Failure accounting:** preserve non-converged quadrature, invalid beta, underflow, and optimizer failures as explicit non-success attempts.
+The following regression tests were added to `tests/test_shared_inclusion_likelihood.py` after the initial review:
+1. **Event-order invariance** of node-conditional and marginalized likelihoods.
+2. **Joint node-order invariance** when nodes and their posterior weights are permuted together.
+3. **Single-event reduction** against the existing one-sided `dataset_likelihood.event_log_likelihood`, `event_detection_efficiency`, and `selection_conditioned_log_likelihood` helpers.
+4. **No-selection limit** with a high-acceptance regime where beta tends to one and selected/unselected joint likelihoods agree.
+5. **Full shared-node factorization adversary** showing the shared-node marginal differs from the incorrect sum of event-wise marginalized likelihoods.
 
-The existing unit tests establish algebraic consistency of the implemented primitive; they do not establish calibration, coverage, or robustness across the planned design.
+These tests are committed but have **not** been executed locally or verified by current-head CI in this session.
+
+Still required before a scientific result:
+1. **Independent finite-host enumeration** in a tiny catalogue, with calculations implemented separately from production helpers.
+2. **Matched multi-event prior-predictive generator and raw-artifact auditor** for the exact one-sided threshold and common-noise model. The existing finite-interval, single-event SBC runner is not a match.
+3. **H0 grid refinement after node marginalization:** compare final posterior densities and quantiles on nested grids.
+4. **Quadrature refinement after likelihood propagation:** compare the final H0 log marginal likelihood across orders, not just coefficient moments/evidence/predictions.
+5. **Prior-scale sensitivity:** halve/double slope prior scales and quantify effects on host weights and H0 posterior.
+6. **Failure accounting:** preserve non-converged quadrature, invalid beta, underflow, and optimizer failures as explicit non-success attempts.
+7. **Population-model justification:** verify the base weights and fixed catalogue used for beta represent the same declared event-generating population.
+
+The current tests establish algebraic consistency and several invariance/limiting-case properties of the primitive. They do not establish a matched multi-event generator, calibration, coverage, or robustness across the planned design.
 
 ## 5. Source-level cautions
 
