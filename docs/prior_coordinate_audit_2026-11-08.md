@@ -79,3 +79,34 @@ explicit prior-coordinate decision.
 
 No calibration, simulation-based calibration, frequentist coverage, or
 real-data conclusion follows from this audit.
+
+
+## Additional finding: validation samples are not nested across requested sizes
+
+The current `generate_independent_validation_sample` implementation selects rows with
+
+```python
+selected = rng.choice(n_validation_frame, size=n_validation, replace=False)
+```
+
+Reinitializing the generator with the same seed but changing `size` does not
+guarantee that the smaller selected set is a subset of the larger selected set.
+A direct NumPy check with frame size 4000 and seed 123 produced different first
+10 selected IDs for requested sizes 100, 300, and 1000. Therefore, the PR-body
+claim that same-seed larger SRS samples retain all earlier validation
+observations is not supported by this implementation.
+
+Each requested size is individually an SRS, but comparisons across sizes are
+not paired by nested validation information. This matters if the experiment
+interprets size contrasts as adding observations to an otherwise fixed
+validation sample.
+
+**Correction:** generate one full random permutation (or one maximum-size SRS
+ordering) from the validation-frame RNG and take prefixes for each requested
+sample size. Persist the ordering/selection IDs and independently audit the
+subset relation. The analysis frame, validation frame, and all other random
+streams must remain fixed across the paired size conditions.
+
+This is separate from the sample-dependent prior-coordinate issue above.
+Both need resolution before attributing repeated-sampling differences cleanly
+to validation sample size.
