@@ -34,12 +34,12 @@ def test_independent_probability_auditor_reconstructs_raw_records(tmp_path: Path
     raw = pd.read_csv(raw_path)
     assert set(raw["split_role"]) == {"validation", "analysis_catalogue", "nonretained_holdout"}
     assert not raw.duplicated([
-        "scenario_seed", "replicate", "gamma", "n_validation",
-        "model_degree", "object_id",
+        "scenario_seed", "replicate", "gamma", "retention_target",
+        "n_validation", "model_degree", "object_id",
     ]).any()
     assert (raw.groupby([
-        "scenario_seed", "replicate", "gamma", "n_validation",
-        "model_degree",
+        "scenario_seed", "replicate", "gamma", "retention_target",
+        "n_validation", "model_degree",
     ]).size() == 500).all()
 
 
@@ -96,7 +96,7 @@ def test_curvature_scenarios_share_parent_frame_and_validation_ids(tmp_path: Pat
     raw_path = tmp_path / "raw_unit_records.csv"
     run_probability_validation_benchmark(
         n_parent=500, validation_sizes=(100,), curvature_values=(-1.2, 0.0, 1.2),
-        degrees=(1,), replicates=1, seed=95, raw_output=raw_path,
+        degrees=(1,), retention_fractions=(0.1,), replicates=1, seed=95, raw_output=raw_path,
     )
     raw = pd.read_csv(raw_path)
     frames = []
@@ -124,6 +124,7 @@ def test_configured_runner_writes_provenance_manifest_and_auditable_artifacts(tm
         "n_parent": 500,
         "validation_sizes": [100],
         "curvature_values": [0.0],
+        "retention_fractions": [0.5],
         "model_degrees": [1, 2],
         "replicates": 1,
         "seed": 96,
