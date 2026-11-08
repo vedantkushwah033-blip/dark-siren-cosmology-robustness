@@ -8,7 +8,7 @@ from dark_siren_robustness.fixed_analysis_catalogue_audit import audit_fixed_cat
 
 def _smoke(tmp_path):
  a,u,s=run_fixed_catalogue_benchmark(n_replicates=2,n_analysis=1200,
-  n_validation_max=300,validation_sizes=(100,300),gamma_values=(0.0,),
+  n_validation_max=1000,validation_sizes=(100,300,1000),gamma_values=(0.0,),
   retention_values=(0.5,),degrees=(1,),bandwidth_multipliers=(0.15,),
   grid_points=201,seed=1911)
  write_fixed_catalogue_artifacts(a,u,s,tmp_path)
@@ -23,10 +23,15 @@ def _refresh_attempt_hash(path):
 
 def test_fixed_catalogue_smoke_and_independent_audit(tmp_path):
  a,u,s=_smoke(tmp_path)
- assert len(a)==2*1*1*2*1*(3+1)
+ assert len(a)==2*1*1*3*1*(3+1)
  assert s["design"]=="fixed_analysis_catalogue_independent_validation_frame"
  assert set(u.frame)=={"ANALYSIS","VALIDATION"}
  assert audit_fixed_catalogue_artifact(tmp_path)["status"]=="PASS"
+ validation=u[(u.replicate==0)&(u.gamma==0.0)&(u.frame=="VALIDATION")].sort_values("validation_rank")
+ assert abs(validation.redshift.corr(validation.retention_uniform)) < 0.12
+ assert abs(validation.redshift.corr(validation.validation_rank)) < 0.12
+ analysis=u[(u.replicate==0)&(u.gamma==0.0)&(u.frame=="ANALYSIS")]
+ assert abs(analysis.redshift.corr(analysis.retention_uniform)) < 0.12
 
 def test_analysis_catalogue_is_frozen_across_validation_sizes(tmp_path):
  a,u,s=_smoke(tmp_path)
