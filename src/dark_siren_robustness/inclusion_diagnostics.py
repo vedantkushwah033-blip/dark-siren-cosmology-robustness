@@ -49,3 +49,45 @@ def inverse_probability_weight_diagnostics(probability: ArrayLike) -> dict[str, 
         "top_1pct_weight_mass": float(np.sum(ordered[:max(1, int(np.ceil(0.01 * p.size)))])),
         "top_5pct_weight_mass": float(np.sum(ordered[:max(1, int(np.ceil(0.05 * p.size)))])),
     }
+
+
+def score_probability_calibration(
+    retained: ArrayLike,
+    probability: ArrayLike,
+    *,
+    n_bins: int = 10,
+) -> dict[str, float]:
+    """Return equal-frequency reliability-bin gaps on held-out binary labels.
+
+    Bin edges are quantiles of predicted probabilities. Tied predictions are
+    kept in the same bin; empty bins are omitted. ECE is weighted by each
+    nonempty bin's share of held-out records. These are descriptive diagnostics,
+    not a formal test of calibration.
+    """
+    y = np.asarray(retained, dtype=float)
+    p = np.asarray(probability, dtype=float)
+    if y.ndim != 1 or p.ndim != 1 or y.shape != p.shape or y.size == 0:
+        raise ValueError("retained and probability must be nonempty matching 1D arrays")
+    if not np.all(np.isfinite(y)) or np.any((y != 0) & (y != 1)):
+        raise ValueError("retained labels must be finite and binary")
+    if not np.all(np.isfinite(p)) or np.any((p <= 0) | (p >= 1)):
+        raise ValueError("probabilities must be finite and strictly between zero and one")
+    if isinstance(n_bins, bool) or not isinstance(n_bins, int) or n_bins < 2:
+        raise ValueError("n_bins must be an integer >= 2")
+
+    edges = np.quantile(p, np.linspace(0.0, 1.0, n_bins + 1))
+    assignments = np.searchsorted(edges[1:-1], p, side="right")
+    gaps = []
+    counts = []
+    for index in range(n_bins):
+        mask = assignments == index
+        count = int(np.sum(mask))
+        if count:
+            gaps.append(abs(float(np.mean(y[mask]) - np.mean(p[mask]))))
+            counts.append(count)
+    ece = float(np.dot(np.asarray(counts, dtype=float) / y.size, gaps))
+    return {
+        "calibration_ece": ece,
+        "calibration_max_gap": float(max(gaps)),
+        "calibration_nonempty_bins": int(len(gaps)),
+    }
