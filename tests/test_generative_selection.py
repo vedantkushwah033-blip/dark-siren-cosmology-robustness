@@ -88,3 +88,23 @@ def test_runner_writes_separate_observable_and_truth_artifacts(tmp_path: Path) -
     assert int(trace["selected_as_event"].sum()) == 25
     assert not (output_dir / "observable" / "gw_event_truth.csv").exists()
     assert not (output_dir / "truth" / "gw_events_observed.csv").exists()
+
+
+def test_zero_floor_is_exactly_logistic_and_positive_floor_is_misspecified():
+    z = np.linspace(0.01, 0.40, 101)
+    midpoint, width = 0.22, 0.05
+    exact_logistic = catalogue_inclusion_probability(
+        z, floor=0.0, midpoint=midpoint, width=width
+    )
+    expected = 1.0 / (1.0 + np.exp((z - midpoint) / width))
+    np.testing.assert_allclose(exact_logistic, expected, rtol=1e-14, atol=1e-14)
+
+    floor_misspecified = catalogue_inclusion_probability(
+        z, floor=0.10, midpoint=midpoint, width=width
+    )
+    assert np.all(floor_misspecified > exact_logistic)
+    assert np.all(floor_misspecified <= 1.0)
+    assert not np.allclose(
+        np.log(floor_misspecified / (1.0 - floor_misspecified)),
+        np.log(exact_logistic / (1.0 - exact_logistic)),
+    )
