@@ -155,3 +155,26 @@ sample-standardized coordinates when the optional fixed coordinates are
 omitted. Repeated-sampling and validation-size experiments must explicitly
 supply the fixed domain coordinates; callers that omit them retain the
 sample-dependent prior-coordinate behavior.
+
+
+## Implementation status update
+
+The sample-dependent-prior finding above has been addressed in the independent
+validation to H0 propagation path. The fitter now accepts an explicit fixed
+coordinate center and scale, and the H0 runner sets them from the predeclared
+redshift domain [0.01, 0.40]: center 0.205 and scale 0.195. The same coordinates
+are propagated through slope-prior sensitivity, recorded in the run
+configuration, and checked by the independent artifact auditor. The
+quadrature-ladder API also accepts these explicit coordinates.
+
+The fitter's historical sample-standardization behavior remains the default
+for backward compatibility in unrelated analyses. It must not be used with a
+fixed diagonal coefficient prior in cross-replicate Bayesian comparisons
+unless that sample-dependent prior is itself the declared estimand.
+
+A regression test now fits validation samples with different sizes and
+different sample moments under the same fixed coordinate system, and checks
+that the same physical coefficient draw induces the same inclusion curve.
+This test and the end-to-end artifact-audit test have been committed, but
+current-head CI has not yet been observed. Therefore the implementation is
+committed, not yet CI-verified.
