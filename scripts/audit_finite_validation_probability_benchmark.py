@@ -11,6 +11,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.special import expit
 
 KEYS = ["scenario_seed", "replicate", "gamma", "n_validation", "model_degree"]
 ROLES = {"validation", "analysis_catalogue", "nonretained_holdout"}
@@ -47,7 +48,7 @@ def audit(summary_path: Path, raw_path: Path, tolerance: float = 1e-10) -> dict:
     raw = pd.read_csv(raw_path)
     required_summary = set(KEYS + [
         "fit_status", "n_parent", "n_validation", "n_analysis_catalogue",
-        "coefficients_json", "covariance_json",
+        "coefficients_json", "covariance_json", "fit_center", "fit_scale",
     ] + METRICS)
     required_raw = set(KEYS + [
         "split_role", "object_id", "redshift", "retained", "p_true", "p_hat"
@@ -138,6 +139,29 @@ def audit(summary_path: Path, raw_path: Path, tolerance: float = 1e-10) -> dict:
                 raise ValueError(f"{key}: covariance is not symmetric")
             if np.min(np.linalg.eigvalsh(covariance)) <= 0:
                 raise ValueError(f"{key}: covariance is not positive definite")
+            if not np.isfinite(row.fit_center) or not np.isfinite(row.fit_scale) or row.fit_scale <= 0:
+                raise ValueError(f"{key}: invalid standardization metadata")
+            x = (validation["redshift"].to_numpy(dtype=float) - float(row.fit_center)) / float(row.fit_scale)
+            design = np.column_stack([x ** power for power in range(expected_dimension)])
+            y_validation = validation["retained"].to_numpy(dtype=float)
+            p_validation = expit(design @ beta)
+            score = design.T @ (p_validation - y_validation)
+            if np.linalg.norm(score, ord=np.inf) > 1e-6:
+                raise ValueError(f"{key}: stored coefficients fail independent score check")
+            information = design.T @ ((p_validation * (1.0 - p_validation))[:, None] * design)
+            if np.min(np.linalg.eigvalsh(information)) <= 0:
+                raise ValueError(f"{key}: reconstructed observed information is not positive definite")
+            covariance_rebuilt = np.linalg.inv(information)
+            if not np.allclose(covariance, covariance_rebuilt, rtol=1e-7, atol=1e-9):
+                raise ValueError(f"{key}: covariance does not match reconstructed information")
+            prediction_rebuilt = expit(
+                ((units["redshift"].to_numpy(dtype=float) - float(row.fit_center))
+                 / float(row.fit_scale))[:, None]
+                ** np.arange(expected_dimension) @ beta
+            )
+            if not np.allclose(units["p_hat"].to_numpy(dtype=float), prediction_rebuilt,
+                               rtol=1e-10, atol=1e-12):
+                raise ValueError(f"{key}: raw predicted probabilities do not match fitted coefficients")
         else:
             if units["p_hat"].notna().any():
                 raise ValueError(f"{key}: unsuccessful fit has predicted probabilities")
