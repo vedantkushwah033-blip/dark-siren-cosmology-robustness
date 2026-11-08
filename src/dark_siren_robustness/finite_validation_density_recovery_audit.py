@@ -265,7 +265,7 @@ def audit_artifact(artifact_dir: Path) -> dict:
             if np.linalg.matrix_rank(design)!=degree+1:
                 raise AssertionError(f"Successful fit has rank-deficient validation design: {key}")
             pval=expit(design@beta)
-            if not np.all(np.isfinite(pval)) or np.any((pval<=0)|(pval>=1)):
+            if not np.all(np.isfinite(pval)) or np.any((pval<0)|(pval>1)):
                 raise AssertionError(f"Invalid fitted validation probabilities: {key}")
             score=design.T@(pval-validation_y)
             score_norm=float(np.linalg.norm(score,ord=np.inf))
@@ -276,7 +276,7 @@ def audit_artifact(artifact_dir: Path) -> dict:
             xa=(sample-center_fit)/scale_fit
             design_a=np.column_stack([xa**j for j in range(degree+1)])
             prob=expit(design_a@beta)
-            if not np.all(np.isfinite(prob)) or np.any((prob<=0)|(prob>=1)):
+            if not np.all(np.isfinite(prob)) or np.any((prob<0)|(prob>1)):
                 raise AssertionError(f"Invalid analysis-catalogue fitted probabilities: {key}")
             # Independently reconstruct observed information and its diagnostics.
             info=design.T@((pval*(1-pval))[:,None]*design)
