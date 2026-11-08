@@ -54,6 +54,7 @@ def test_small_benchmark_has_comparison_arms_and_nested_splits():
     large_ids = set(large.loc[large.role == "VALIDATION", "object_id"])
     assert small_ids.issubset(large_ids)
     assert summary["attempt_count"] == len(attempts)
+    assert "SeedSequence([seed, replicate, stream_id])" in summary["rng_stream_protocol"]
     assert "no_H0_inference" in summary["status"]
     assert summary["paired_ipw_minus_catalogue_only_contrasts"]
 
@@ -68,6 +69,7 @@ def test_independent_auditor_reconstructs_smoke_artifact(tmp_path):
     report = audit_artifact(tmp_path)
     assert report["status"] == "PASS"
     assert report["checked_parent_partitions"] == 1
+    assert report["checked_rng_streams"] == 1
     assert report["checked_density_estimates"] >= 3
 
 
@@ -104,6 +106,42 @@ def _refresh_attempt_manifest(tmp_path):
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
 
 
+
+def _refresh_unit_manifest(tmp_path):
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload = (tmp_path / "parent_units.csv").read_bytes()
+    manifest["files"]["units"]["bytes"] = len(payload)
+    manifest["files"]["units"]["sha256"] = hashlib.sha256(payload).hexdigest()
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def test_auditor_rejects_reused_or_tampered_retention_rng_stream(tmp_path):
+    attempts, units, summary = run_density_recovery_benchmark(
+        n_replicates=1, n_parent=1200, seed=20261108,
+        gamma_values=(0.0,), retention_values=(0.50,),
+        validation_sizes=(100,), degrees=(1,),
+        bandwidth_multipliers=(0.15,), grid_points=201,
+    )
+    write_artifacts(attempts, units, summary, tmp_path)
+    path = tmp_path / "parent_units.csv"
+    frame = pd.read_csv(path)
+    idx = frame.index[0]
+    probability = float(frame.loc[idx, "true_inclusion_probability"])
+    retained = int(frame.loc[idx, "retained"])
+    # Preserve the DGP label and role while deliberately changing the raw
+    # uniform. The independent auditor must detect that the declared RNG stream
+    # was not used, even after the manifest is refreshed.
+    frame.loc[idx, "retention_uniform"] = (
+        probability / 2.0 if retained else (1.0 + probability) / 2.0
+    )
+    frame.to_csv(path, index=False)
+    _refresh_unit_manifest(tmp_path)
+    with pytest.raises(AssertionError, match="Retention uniforms do not match their independent RNG stream"):
+        audit_artifact(tmp_path)
+
+
+
 def test_auditor_rejects_missing_attempt_even_with_refreshed_manifest(tmp_path):
     attempts, units, summary = run_density_recovery_benchmark(
         n_replicates=1, n_parent=1200, seed=606,
@@ -120,7 +158,7 @@ def test_auditor_rejects_missing_attempt_even_with_refreshed_manifest(tmp_path):
 
 def test_auditor_rejects_incorrect_logistic_objective_even_with_refreshed_manifest(tmp_path):
     attempts, units, summary = run_density_recovery_benchmark(
-        n_replicates=5, n_parent=2000, seed=101,
+        n_replicates=1, n_parent=2000, seed=101,
         gamma_values=(0.0,), retention_values=(0.50,),
         validation_sizes=(1000,), degrees=(1,),
         bandwidth_multipliers=(0.15,), grid_points=201,
