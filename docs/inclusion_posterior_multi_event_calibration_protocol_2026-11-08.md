@@ -227,3 +227,24 @@ and deliberately prevents GW data from updating inclusion coefficients,
 ordinary full-joint SBC uniformity must not be presumed for that target.
 See `conditional_h0_pit_vs_joint_sbc_audit_2026-11-08.md` for the detailed
 derivation and proposed requirements.
+
+## 10. Calibration estimand and experiment-level audit clarification
+
+The executable experiment distinguishes two modes:
+
+- `H0_PIT_FIXED_INCLUSION_TRUTH`: draw H0 from the declared uniform H0 prior while holding the inclusion-truth parameters fixed at the selected floor/midpoint/width. This is a **conditional H0 prior-predictive PIT diagnostic**. It is not joint SBC for the complete hierarchical model, because the inclusion-truth coefficients are not drawn from the inference prior.
+- `FIXED_TRUTH`: hold H0 at the declared fixed value and repeat the complete synthetic data-generation process. This is a fixed-truth repeated-sampling credible-interval coverage experiment.
+
+Do not label the first mode "joint SBC". The floor-zero inclusion curve is exactly logistic under the declared degree-one fit; positive floors create the particular nonlinear-logit misspecification induced by the floor-plus-sigmoid DGP. These are controlled synthetic regimes, not generic misspecification classes.
+
+An experiment-level auditor now checks:
+- planned-cell/ledger one-to-one accounting and status totals;
+- per-replicate audit attestations and recorded configuration checksums;
+- H0 quantiles, PIT values, interval inclusion, coverage flags and interval widths against saved replicate artifacts;
+- fixed analysis catalogue and event files across validation sizes;
+- identical validation parent frames and literal nested permutation-prefix validation samples;
+- PIT/coverage summary values, histograms and Wilson intervals.
+
+This audit checks orchestration and arithmetic across replicate artifacts. It does not independently re-derive the coefficient posterior quadrature: the per-replicate raw auditor currently regenerates coefficient quadrature with the production fitter, while independently reconstructing the event-mixture likelihood and detection-efficiency calculations. A separate prior-measure quadrature reference remains a unit-level cross-check for the degree-one fitter, not a complete independent end-to-end posterior implementation.
+
+The experiment-level auditor and its tests have been added to the test workflow. No execution result or calibration conclusion is claimed until the workflow or an equivalent local run succeeds and the resulting artifacts are inspected.
