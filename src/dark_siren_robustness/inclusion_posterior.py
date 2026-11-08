@@ -275,6 +275,8 @@ def fit_inclusion_posterior_quadrature_ladder(
     degree: int = 1,
     prior_mean: ArrayLike | None = None,
     prior_sd: ArrayLike | None = None,
+    coordinate_center: float | None = None,
+    coordinate_scale: float | None = None,
     predictive_redshift: ArrayLike | None = None,
     mean_tolerance: float = 1e-3,
     covariance_tolerance: float = 1e-3,
@@ -323,7 +325,8 @@ def fit_inclusion_posterior_quadrature_ladder(
     for order_value in order_tuple:
         fit = fit_inclusion_posterior_quadrature(
             validation_redshift, retained, degree=degree, prior_mean=prior_mean,
-            prior_sd=prior_sd, order=order_value,
+            prior_sd=prior_sd, coordinate_center=coordinate_center,
+            coordinate_scale=coordinate_scale, order=order_value,
         )
         fits.append(fit)
         if len(fits) == 1:
