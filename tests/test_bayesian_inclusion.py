@@ -63,6 +63,16 @@ def test_importance_sampler_matches_existing_multichain_mcmc_posterior():
     np.testing.assert_allclose(importance.posterior_mean, mcmc_mean, atol=0.12, rtol=0)
 
 
+def test_rank_deficient_validation_design_is_non_evaluable():
+    z = np.full(30, 0.2)
+    y = np.tile([0, 1], 15)
+    result = importance_sample_inclusion_posterior(
+        z, y, degree=1, n_draws=3000, seed=13
+    )
+    assert result.status == "NON_EVALUABLE"
+    assert result.coefficient_proposals is None
+
+
 def test_importance_sampler_matches_two_dimensional_grid_quadrature():
     rng = np.random.default_rng(202)
     z = np.linspace(0.01, 0.40, 36)
