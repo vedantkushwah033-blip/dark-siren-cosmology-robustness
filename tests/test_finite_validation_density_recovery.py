@@ -49,7 +49,7 @@ def test_small_benchmark_has_comparison_arms_and_nested_splits():
     small_ids = set(small.loc[small.role == "VALIDATION", "object_id"])
     large_ids = set(large.loc[large.role == "VALIDATION", "object_id"])
     assert small_ids.issubset(large_ids)
-    summary["attempt_count"] == len(attempts)
+    assert summary["attempt_count"] == len(attempts)
     assert "no_H0_inference" in summary["status"]
 
 
