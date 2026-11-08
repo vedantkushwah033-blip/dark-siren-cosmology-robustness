@@ -12,7 +12,7 @@ u_j=(z_j-z_{\min})/(z_{\max}-z_{\min}),
 \]
 For this synthetic project, the fixed domain is \([z_{\min},z_{\max}]=[0.01,0.40]\). The sampler uses the proper independent Gaussian prior
 \[
-\theta_k\sim\mathcal N(0,2.5^2).
+\theta_k\sim\mathcal N(0,1.0^2).
 \]
 The prior is defined on the fixed-domain polynomial coefficients and therefore does not change when the realized validation sample's mean or standard deviation changes. This is important: applying the same numerical prior to sample-standardized coefficients would induce a validation-sample-dependent prior on the inclusion curve.
 
