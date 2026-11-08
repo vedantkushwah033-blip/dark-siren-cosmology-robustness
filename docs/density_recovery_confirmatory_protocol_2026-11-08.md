@@ -312,11 +312,7 @@ The primary design is a **fixed-parent-frame allocation experiment**, not a pure
 1. the amount of information available to estimate the inclusion curve; and
 2. the number of parent-frame units still eligible to appear in the analysis catalogue.
 
-At target parent retention (r=0.25) and (N=4{,}000), the expected analysis-catalogue sizes are approximately
-[
-E[n_C\mid n_V]=r(N-n_V),
-]
-giving 975, 925, and 750 retained analysis objects for (n_V=100,300,1000), respectively. These are expectations, not fixed counts; the realized counts must be reported per replicate.
+At target parent retention `r = 0.25` and parent size `N = 4,000`, the expected analysis-catalogue size is `E[n_C | n_V] = r (N - n_V)`, giving 975, 925, and 750 retained analysis objects for `n_V = 100, 300, 1,000`, respectively. These are expectations, not fixed counts; the realized counts must be reported per replicate.
 
 Consequently, a trend across validation sizes in absolute density error is the **net effect of the allocation trade-off**: better validation information may be offset by fewer catalogue hosts. It must not be interpreted as the isolated causal effect of increasing validation sample size on logistic-fit precision.
 
