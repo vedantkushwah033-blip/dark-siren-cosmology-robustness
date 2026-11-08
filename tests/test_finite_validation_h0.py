@@ -90,6 +90,8 @@ def test_h0_posterior_normalization_and_boundary_diagnostic():
     assert abs(result["posterior_mean"] - 70.0) < 1e-8
     assert abs(result["posterior_median"] - 70.0) < 1e-8
     assert result["ci68_low"] < 70.0 < result["ci68_high"]
+    assert result["ci95_low"] < 70.0 < result["ci95_high"]
+    assert result["ci95_width"] > result["ci68_width"]
     assert result["boundary_mass_fraction"] < 1e-5
 
 
@@ -116,3 +118,33 @@ def test_invalid_selection_inputs_are_rejected():
         )
     with pytest.raises(ValueError):
         normalize_h0_posterior(h0, np.zeros(9), prior_density=np.ones(10))
+
+
+
+def test_density_and_likelihood_draws_have_full_domain_and_memory_guards():
+    rng = np.random.default_rng(101)
+    analysis_z = rng.uniform(0.01, 0.40, 80)
+    z_grid = np.linspace(0.01, 0.40, 201)
+    merger = 1.0 + 1.5 * (z_grid - z_grid[0]) / (z_grid[-1] - z_grid[0])
+    coefficients = np.array([[-0.7, -0.8], [-0.5, -0.6]])
+    with pytest.raises(ValueError, match="full fixed inclusion-prior domain"):
+        reconstruct_host_density_draws(
+            z_grid[1:], analysis_z, coefficients, degree=1,
+            merger_weight=merger[1:], scott_multiplier=0.15,
+        )
+    with pytest.raises(MemoryError, match="reduce draws or grid size"):
+        reconstruct_host_density_draws(
+            z_grid, analysis_z, coefficients, degree=1,
+            merger_weight=merger, scott_multiplier=0.15, max_output_bytes=100,
+        )
+
+    densities = reconstruct_host_density_draws(
+        z_grid, analysis_z, coefficients, degree=1,
+        merger_weight=merger, scott_multiplier=0.15,
+    )
+    with pytest.raises(MemoryError, match="reduce draws, grid size"):
+        selected_log_likelihood_by_draw(
+            z_grid, densities, np.linspace(55.0, 85.0, 21),
+            np.array([270.0, 330.0, 410.0]), sigma=140.0,
+            detection_threshold=250.0, max_output_bytes=100,
+        )
