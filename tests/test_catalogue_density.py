@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from scipy.integrate import trapezoid\nfrom scipy.stats import gaussian_kde
+from scipy.integrate import trapezoid
+from scipy.stats import gaussian_kde
 
 from dark_siren_robustness.catalogue_density import estimate_host_density
 
