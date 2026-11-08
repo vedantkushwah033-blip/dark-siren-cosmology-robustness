@@ -246,21 +246,56 @@ def audit_artifact(artifact_dir: Path) -> dict:
         elif row.arm.startswith("estimated_degree_"):
             sample=z[analysis]
             beta=np.asarray(json.loads(row.coefficients_json),dtype=float)
+            degree=int(row.degree)
+            if row.fit_status!="SUCCESS" or beta.shape!=(degree+1,):
+                raise AssertionError(f"Successful estimated arm has inconsistent fit record: {key}")
+            validation_z=z[valmask]
+            validation_y=y[valmask].astype(float)
             center_fit=float(row.fit_center); scale_fit=float(row.fit_scale)
-            xv=(z[valmask]-center_fit)/scale_fit
-            design=np.column_stack([xv**j for j in range(len(beta))])
+            expected_center=float(np.mean(validation_z))
+            expected_scale=float(np.std(validation_z,ddof=0))
+            if expected_scale<=0:
+                expected_scale=1.0
+            if not np.isclose(center_fit,expected_center,rtol=1e-12,atol=1e-12):
+                raise AssertionError(f"Fitted redshift center mismatch: {key}")
+            if not np.isclose(scale_fit,expected_scale,rtol=1e-12,atol=1e-12):
+                raise AssertionError(f"Fitted redshift scale mismatch: {key}")
+            xv=(validation_z-center_fit)/scale_fit
+            design=np.column_stack([xv**j for j in range(degree+1)])
+            if np.linalg.matrix_rank(design)!=degree+1:
+                raise AssertionError(f"Successful fit has rank-deficient validation design: {key}")
             pval=expit(design@beta)
-            if not np.all(np.isfinite(pval)):
-                raise AssertionError(f"Non-finite fitted validation probabilities: {key}")
+            if not np.all(np.isfinite(pval)) or np.any((pval<=0)|(pval>=1)):
+                raise AssertionError(f"Invalid fitted validation probabilities: {key}")
+            score=design.T@(pval-validation_y)
+            score_norm=float(np.linalg.norm(score,ord=np.inf))
+            if not np.isclose(score_norm,float(row.fit_gradient_inf_norm),rtol=2e-5,atol=2e-8):
+                raise AssertionError(f"Fitted logistic score mismatch: {key}")
+            if score_norm>1e-6:
+                raise AssertionError(f"Successful fit fails independent score tolerance: {key}")
             xa=(sample-center_fit)/scale_fit
-            design_a=np.column_stack([xa**j for j in range(len(beta))])
+            design_a=np.column_stack([xa**j for j in range(degree+1)])
             prob=expit(design_a@beta)
-            # Independently reconstruct the observed-information covariance.
+            if not np.all(np.isfinite(prob)) or np.any((prob<=0)|(prob>=1)):
+                raise AssertionError(f"Invalid analysis-catalogue fitted probabilities: {key}")
+            # Independently reconstruct observed information and its diagnostics.
             info=design.T@((pval*(1-pval))[:,None]*design)
+            eigenvalues=np.linalg.eigvalsh(info)
+            if np.min(eigenvalues)<=0:
+                raise AssertionError(f"Successful fit has non-positive information: {key}")
             cov=np.linalg.inv(info)
             stored_cov=np.asarray(json.loads(row.fit_covariance_json),dtype=float)
             if not np.allclose(cov,stored_cov,rtol=2e-6,atol=2e-8):
                 raise AssertionError(f"Fitted covariance reconstruction failed: {key}")
+            hessian_condition=float(np.max(eigenvalues)/np.min(eigenvalues))
+            if not np.isclose(hessian_condition,float(row.fit_hessian_condition_number),rtol=2e-5,atol=2e-8):
+                raise AssertionError(f"Fitted information condition number mismatch: {key}")
+            if not np.isclose(float(np.max(np.abs(beta))),float(row.fit_max_abs_coefficient),rtol=2e-5,atol=2e-8):
+                raise AssertionError(f"Maximum coefficient diagnostic mismatch: {key}")
+            if int(row.n_analysis_catalogue)!=int(np.sum(analysis)):
+                raise AssertionError(f"Analysis-catalogue size mismatch: {key}")
+            if int(row.n_validation_actual)!=int(np.sum(valmask)):
+                raise AssertionError(f"Validation sample size mismatch: {key}")
         else:
             raise AssertionError(f"Unknown arm: {row.arm}")
 
