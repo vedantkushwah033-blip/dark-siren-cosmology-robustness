@@ -151,3 +151,5 @@ def test_independent_validation_h0_runner_writes_auditable_artifacts(tmp_path):
     assert audit_report["status"] == "PASS"
     assert audit_report["generation_attempts_reconstructed"] > 0
     assert audit_report["selected_events_reconstructed"] == 4
+    assert len(audit_report["independent_selected_likelihood_reconstruction_max_abs_density_differences"]) >= 2
+    assert max(audit_report["independent_selected_likelihood_reconstruction_max_abs_density_differences"].values()) < 2e-8
