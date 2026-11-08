@@ -309,6 +309,8 @@ def audit_artifact(artifact_dir: Path) -> dict:
     }
     checked_densities=0
     for row in attempts.itertuples(index=False):
+        if int(row.seed)!=int(summary["seed_start"]):
+            raise AssertionError("Attempt root-seed label differs from immutable design seed")
         key=(int(row.replicate),float(row.gamma),float(row.target_retention),int(row.n_validation))
         frame=unit_group_lookup.get(key)
         if frame is None or frame.empty:
