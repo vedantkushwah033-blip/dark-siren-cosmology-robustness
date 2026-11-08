@@ -18,13 +18,21 @@ def _paired_difference(group,arm):
  return (wide[arm]-wide["catalogue_only"]).dropna()
 
 def _holm_adjust(pvalues):
- values=np.asarray(pvalues,float);out=np.full(values.shape,np.nan)
- valid=np.flatnonzero(np.isfinite(values))
- if not len(valid):return out
- order=valid[np.argsort(values[valid])]
- running=0.0;m=len(order)
+ """Holm adjustment over the full predeclared family.
+
+ Unavailable tests are assigned p=1 *for adjustment only*; their raw p-value
+ remains null and their contrast remains explicitly non-evaluable. This keeps
+ missing tests from silently shrinking the multiplicity family.
+ """
+ values=np.asarray(pvalues,float)
+ if values.ndim!=1:raise ValueError("pvalues must be one-dimensional")
+ if np.any(np.isfinite(values)&((values<0)|(values>1))):
+  raise ValueError("finite p-values must lie in [0,1]")
+ safe=np.where(np.isfinite(values),values,1.0)
+ out=np.empty(safe.shape,float)
+ order=np.argsort(safe);running=0.0;m=len(order)
  for rank,idx in enumerate(order):
-  adjusted=min(1.0,(m-rank)*values[idx])
+  adjusted=min(1.0,(m-rank)*safe[idx])
   running=max(running,adjusted);out[idx]=running
  return out
 
@@ -100,11 +108,15 @@ def analyze_fixed_catalogue_attempts(attempts:pd.DataFrame,*,planned_replicates:
   item["holm_adjusted_p_value"]=float(p) if np.isfinite(p) else None
  return {"analysis":"predeclared_fixed_analysis_catalogue_confirmatory_analysis",
   "primary_interaction":primary_result,"secondary_contrasts":secondary,
-  "secondary_multiplicity":"Holm adjustment across the 18 degree x curvature x validation-size contrasts; intervals are pointwise paired-t intervals.",
+  "secondary_multiplicity":"Holm adjustment across the full predeclared 18-test degree x curvature x validation-size family; unavailable tests retain null raw p-values and are assigned p=1 only for multiplicity adjustment, so missing contrasts cannot shrink the family. Intervals are pointwise paired-t intervals.",
+  "n_secondary_tests_predeclared":18,
+  "n_secondary_tests_evaluable":int(sum(x["p_value"] is not None for x in secondary)),
+  "n_secondary_tests_non_evaluable":int(sum(x["p_value"] is None for x in secondary)),
   "limitations":["All estimates concern synthetic density recovery only.",
    "The primary interaction is pilot-informed and must not be described as independent hypothesis generation.",
    "Bootstrap resamples replicate IDs, preserving the within-replicate curvature pairing.",
-   "Failures are reported separately; no numeric IAE penalty is imputed."]}
+   "Failures are reported separately; no numeric IAE penalty is imputed.",
+   "The Holm family always contains all 18 predeclared contrasts; unavailable tests have null raw p-values and use p=1 only as a conservative adjustment placeholder."]}
 
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument("--attempts-csv",type=Path,required=True)
