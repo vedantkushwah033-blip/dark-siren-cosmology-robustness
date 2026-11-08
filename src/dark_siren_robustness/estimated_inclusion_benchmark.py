@@ -18,6 +18,7 @@ from dark_siren_robustness.estimated_inclusion import fit_inclusion_logistic
 from dark_siren_robustness.inclusion_diagnostics import (
     inverse_probability_weight_diagnostics,
     score_inclusion_predictions,
+    score_probability_calibration,
 )
 from dark_siren_robustness.validation_design import split_disjoint_validation
 
@@ -227,6 +228,9 @@ def run_probability_validation_benchmark(
                             score = score_inclusion_predictions(
                                 holdout["retained"].to_numpy(), p_holdout
                             )
+                            calibration = score_probability_calibration(
+                                holdout["retained"].to_numpy(), p_holdout, n_bins=10
+                            )
                             if len(split.analysis_catalogue):
                                 p_analysis = fit.predict(
                                     split.analysis_catalogue["redshift"].to_numpy()
@@ -245,6 +249,9 @@ def run_probability_validation_benchmark(
                                 "heldout_probability_rmse": float(np.sqrt(np.mean(
                                     (p_holdout - holdout["inclusion_probability"].to_numpy())**2
                                 ))),
+                                "heldout_calibration_ece_10": calibration["calibration_ece"],
+                                "heldout_calibration_max_gap_10": calibration["calibration_max_gap"],
+                                "heldout_calibration_nonempty_bins_10": calibration["calibration_nonempty_bins"],
                                 "kish_ess": weight["kish_ess"],
                                 "entropy_ess": weight["entropy_ess"],
                                 "max_normalized_weight": weight["max_normalized_weight"],
@@ -256,6 +263,9 @@ def run_probability_validation_benchmark(
                                 "heldout_brier_score": np.nan,
                                 "heldout_log_loss": np.nan,
                                 "heldout_probability_rmse": np.nan,
+                                "heldout_calibration_ece_10": np.nan,
+                                "heldout_calibration_max_gap_10": np.nan,
+                                "heldout_calibration_nonempty_bins_10": np.nan,
                                 "kish_ess": np.nan,
                                 "entropy_ess": np.nan,
                                 "max_normalized_weight": np.nan,
