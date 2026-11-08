@@ -78,6 +78,11 @@ def _summarize(replicates: pd.DataFrame, bins: int) -> dict:
                 "pit_bin_expected": float(len(pit) / bins),
                 "pit_mean_mc_se": float(np.std(pit, ddof=1) / math.sqrt(len(pit))) if len(pit) > 1 else None,
             })
+            for level, column in ((68, "sbc_included_68"), (90, "sbc_included_90"), (95, "sbc_included_95")):
+                successes = int(valid[column].sum())
+                lo, hi = _wilson_interval(successes, len(valid))
+                item[f"prior_predictive_interval_inclusion_{level}"] = successes / len(valid)
+                item[f"prior_predictive_interval_inclusion_{level}_wilson95"] = [lo, hi]
         elif key[0] == "FIXED_TRUTH" and len(valid):
             for level, column in ((68, "covered_68"), (90, "covered_90"), (95, "covered_95")):
                 successes = int(valid[column].sum())
@@ -89,6 +94,10 @@ def _summarize(replicates: pd.DataFrame, bins: int) -> dict:
                 )
                 width_col = f"width_{level}"
                 item[f"median_interval_width_{level}"] = float(valid[width_col].median())
+            item["mean_posterior_median_bias"] = float((valid["h0_median"] - valid["h0_true"]).mean())
+            item["median_absolute_posterior_median_bias"] = float((valid["h0_median"] - valid["h0_true"]).abs().median())
+            for diagnostic in ("coefficient_quadrature_ess", "minimum_catalogue_kish_ess", "maximum_catalogue_normalized_weight"):
+                item[f"median_{diagnostic}"] = float(valid[diagnostic].median())
         result[f"{key[0]}|floor={key[1]:g}|n={key[2]}"] = item
     return result
 
@@ -294,8 +303,19 @@ def main() -> None:
                             row["h0_q84"] = float(convergence["posterior_by_order"][-1]["h0_q84"])
                             row["h0_q95"] = float(convergence["posterior_by_order"][-1]["h0_q95"])
                             row["h0_q975"] = float(convergence["posterior_by_order"][-1]["h0_q975"])
+                            sensitivity = json.loads((artifact_dir / "prior_scale_sensitivity.json").read_text(encoding="utf-8"))
+                            reference = next(record for record in sensitivity["records"] if np.isclose(record["slope_multiplier"], 1.0))
+                            row["coefficient_quadrature_ess"] = float(convergence["posterior_by_order"][-1]["quadrature_ess"])
+                            row["minimum_catalogue_kish_ess"] = float(reference["minimum_catalogue_kish_ess"])
+                            row["maximum_catalogue_normalized_weight"] = float(reference["maximum_catalogue_normalized_weight"])
                             if experiment == "SBC":
                                 row["pit"] = _posterior_pit(density, h0_true, column)
+                                for level, lower, upper in (
+                                    (68, "h0_q16", "h0_q84"),
+                                    (90, "h0_q05", "h0_q95"),
+                                    (95, "h0_q025", "h0_q975"),
+                                ):
+                                    row[f"sbc_included_{level}"] = int(row[lower] <= h0_true <= row[upper])
                             else:
                                 for level, lower, upper in (
                                     (68, "h0_q16", "h0_q84"),
