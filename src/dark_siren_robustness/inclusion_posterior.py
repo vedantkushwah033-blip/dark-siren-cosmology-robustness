@@ -239,3 +239,97 @@ def log_marginalize_shared_parameter(
     return logsumexp(log_likelihood + log_weights.reshape(
         (weights.size,) + (1,) * (log_likelihood.ndim - 1)
     ), axis=0)
+
+
+@dataclass(frozen=True)
+class InclusionPosteriorQuadratureLadder:
+    """Order-refinement record; CONVERGED is a numerical, not scientific, claim."""
+
+    fits: tuple[InclusionPosteriorQuadrature, ...]
+    status: str
+    mean_max_abs_change: tuple[float, ...]
+    covariance_max_abs_change: tuple[float, ...]
+    predictive_max_abs_change: tuple[float, ...]
+
+
+def fit_inclusion_posterior_quadrature_ladder(
+    validation_redshift: ArrayLike,
+    retained: ArrayLike,
+    *,
+    orders: tuple[int, ...] = (7, 11, 15, 19, 23),
+    degree: int = 1,
+    prior_mean: ArrayLike | None = None,
+    prior_sd: ArrayLike | None = None,
+    predictive_redshift: ArrayLike | None = None,
+    mean_tolerance: float = 1e-3,
+    covariance_tolerance: float = 1e-3,
+    predictive_tolerance: float = 1e-3,
+    consecutive_passes: int = 2,
+) -> InclusionPosteriorQuadratureLadder:
+    """Fit increasing tensor-GH orders and require repeated summary stability.
+
+    The convergence decision compares posterior coefficient moments and
+    posterior-mean inclusion probabilities on a fixed prediction grid. It does
+    not establish convergence of a downstream H0 likelihood; that must be
+    checked after the shared-event likelihood is implemented.
+    """
+    order_tuple = tuple(orders)
+    if len(order_tuple) < 2 or any(
+        isinstance(o, bool) or not isinstance(o, int) or o < 3 for o in order_tuple
+    ) or any(b <= a for a, b in zip(order_tuple, order_tuple[1:])):
+        raise ValueError("orders must be a strictly increasing tuple of integers >= 3")
+    for value, label in (
+        (mean_tolerance, "mean_tolerance"),
+        (covariance_tolerance, "covariance_tolerance"),
+        (predictive_tolerance, "predictive_tolerance"),
+    ):
+        if not np.isfinite(value) or value <= 0:
+            raise ValueError(f"{label} must be positive and finite")
+    if isinstance(consecutive_passes, bool) or not isinstance(consecutive_passes, int) or consecutive_passes < 1:
+        raise ValueError("consecutive_passes must be a positive integer")
+
+    z = np.asarray(validation_redshift, dtype=float)
+    prediction_grid = (
+        np.linspace(float(np.min(z)), float(np.max(z)), 101)
+        if predictive_redshift is None else np.asarray(predictive_redshift, dtype=float)
+    )
+    if prediction_grid.ndim != 1 or not np.all(np.isfinite(prediction_grid)):
+        raise ValueError("predictive_redshift must be a finite one-dimensional array")
+
+    fits = []
+    mean_changes = []
+    covariance_changes = []
+    predictive_changes = []
+    passing_streak = 0
+    converged = False
+    for order_value in order_tuple:
+        fit = fit_inclusion_posterior_quadrature(
+            validation_redshift, retained, degree=degree, prior_mean=prior_mean,
+            prior_sd=prior_sd, order=order_value,
+        )
+        fits.append(fit)
+        if len(fits) == 1:
+            continue
+        previous, current = fits[-2], fits[-1]
+        dm = float(np.max(np.abs(current.posterior_mean - previous.posterior_mean)))
+        dc = float(np.max(np.abs(current.posterior_covariance - previous.posterior_covariance)))
+        dp = float(np.max(np.abs(
+            posterior_predictive_inclusion(current, prediction_grid)
+            - posterior_predictive_inclusion(previous, prediction_grid)
+        )))
+        mean_changes.append(dm)
+        covariance_changes.append(dc)
+        predictive_changes.append(dp)
+        passed = dm <= mean_tolerance and dc <= covariance_tolerance and dp <= predictive_tolerance
+        passing_streak = passing_streak + 1 if passed else 0
+        if passing_streak >= consecutive_passes:
+            converged = True
+            break
+
+    return InclusionPosteriorQuadratureLadder(
+        fits=tuple(fits),
+        status="CONVERGED" if converged else "NON_CONVERGED",
+        mean_max_abs_change=tuple(mean_changes),
+        covariance_max_abs_change=tuple(covariance_changes),
+        predictive_max_abs_change=tuple(predictive_changes),
+    )
