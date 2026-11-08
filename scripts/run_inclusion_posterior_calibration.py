@@ -64,6 +64,25 @@ def _seed(master: int, mode_id: int, floor_id: int, replicate: int, stream: int)
     return int(state.generate_state(1, dtype=np.uint32)[0])
 
 
+
+def _attempt_level_binary_bounds(frame: pd.DataFrame, column: str) -> tuple[float, float]:
+    """Bound an all-attempt binary rate when failed/non-evaluable outcomes are unknown.
+
+    SUCCESS rows contribute their observed indicator. FAILED and NON_EVALUABLE
+    rows are left unknown, yielding sharp worst/best-case bounds over attempted
+    cells. NOT_RUN rows are excluded because no attempt occurred.
+    """
+    attempted = frame[frame["status"] != "NOT_RUN"]
+    if attempted.empty:
+        return (float("nan"), float("nan"))
+    successful = attempted[attempted["status"] == "SUCCESS"]
+    observed_successes = int(successful[column].sum()) if len(successful) else 0
+    unknown = int(len(attempted) - len(successful))
+    denominator = len(attempted)
+    return (observed_successes / denominator,
+            (observed_successes + unknown) / denominator)
+
+
 def _summarize(replicates: pd.DataFrame, bins: int) -> dict:
     result = {}
     grouped = replicates.groupby(["experiment", "catalogue_floor", "n_validation"], dropna=False)
@@ -95,6 +114,8 @@ def _summarize(replicates: pd.DataFrame, bins: int) -> dict:
                 lo, hi = _wilson_interval(successes, len(valid))
                 item[f"prior_predictive_interval_inclusion_{level}"] = successes / len(valid)
                 item[f"prior_predictive_interval_inclusion_{level}_wilson95"] = [lo, hi]
+                lower_bound, upper_bound = _attempt_level_binary_bounds(frame, column)
+                item[f"prior_predictive_interval_inclusion_{level}_all_attempt_bounds"] = [lower_bound, upper_bound]
         elif key[0] == "FIXED_TRUTH" and len(valid):
             for level, column in ((68, "covered_68"), (90, "covered_90"), (95, "covered_95")):
                 successes = int(valid[column].sum())
@@ -104,6 +125,8 @@ def _summarize(replicates: pd.DataFrame, bins: int) -> dict:
                 item[f"coverage_{level}_mc_se"] = math.sqrt(
                     (successes / len(valid)) * (1.0 - successes / len(valid)) / len(valid)
                 )
+                lower_bound, upper_bound = _attempt_level_binary_bounds(frame, column)
+                item[f"coverage_{level}_all_attempt_bounds"] = [lower_bound, upper_bound]
                 width_col = f"width_{level}"
                 item[f"median_interval_width_{level}"] = float(valid[width_col].median())
             item["mean_posterior_median_bias"] = float((valid["h0_median"] - valid["h0_true"]).mean())
