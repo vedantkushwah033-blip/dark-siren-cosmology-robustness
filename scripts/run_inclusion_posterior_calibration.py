@@ -20,7 +20,16 @@ import pandas as pd
 
 
 def _wilson_interval(successes: int, trials: int, z: float = 1.959963984540054):
-    if trials <= 0:
+    if isinstance(successes, bool) or isinstance(trials, bool):
+        raise ValueError("successes and trials must be integers")
+    if int(successes) != successes or int(trials) != trials:
+        raise ValueError("successes and trials must be integers")
+    successes, trials = int(successes), int(trials)
+    if trials < 0 or successes < 0 or successes > trials:
+        raise ValueError("require 0 <= successes <= trials")
+    if not np.isfinite(z) or z <= 0:
+        raise ValueError("z must be finite and positive")
+    if trials == 0:
         return (float("nan"), float("nan"))
     p = successes / trials
     denom = 1.0 + z * z / trials
@@ -38,6 +47,8 @@ def _posterior_pit(density_frame: pd.DataFrame, truth: float, density_column: st
         or np.any(np.diff(grid) <= 0) or np.any(density < 0)
     ):
         raise ValueError("invalid posterior grid/density")
+    if not np.isfinite(truth):
+        raise ValueError("generating H0 must be finite")
     if truth < grid[0] or truth > grid[-1]:
         raise ValueError("generating H0 lies outside posterior support")
     increments = 0.5 * (density[1:] + density[:-1]) * np.diff(grid)
