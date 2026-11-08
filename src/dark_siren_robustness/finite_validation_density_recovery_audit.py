@@ -47,6 +47,29 @@ def _truth(grid):
     return raw/trapezoid(raw,grid)
 
 
+def _expected_rng_frame(seed, replicate, n_parent):
+    """Independently reconstruct the three declared, disjoint RNG streams."""
+    parent_grid=np.linspace(Z_MIN,Z_MAX,20001)
+    intensity=_lambda(parent_grid)
+    cdf=np.r_[0.0,cumulative_trapezoid(intensity,parent_grid)]
+    cdf/=cdf[-1]
+    parent_rng=np.random.default_rng(
+        np.random.SeedSequence([int(seed),int(replicate),1])
+    )
+    expected_redshift=np.interp(parent_rng.random(n_parent),cdf,parent_grid)
+    split_rng=np.random.default_rng(
+        np.random.SeedSequence([int(seed),int(replicate),2])
+    )
+    validation_order=split_rng.permutation(n_parent)
+    expected_rank=np.empty(n_parent,dtype=np.int64)
+    expected_rank[validation_order]=np.arange(n_parent,dtype=np.int64)
+    retention_rng=np.random.default_rng(
+        np.random.SeedSequence([int(seed),int(replicate),3])
+    )
+    expected_uniform=retention_rng.random(n_parent)
+    return expected_redshift,expected_uniform,expected_rank
+
+
 def _independent_kde(grid, sample, probability, multiplier, merger):
     sample=np.asarray(sample,dtype=float)
     if probability is None:
@@ -194,14 +217,39 @@ def audit_artifact(artifact_dir: Path) -> dict:
     allowed_statuses={"SUCCESS","NON_EVALUABLE","FAILED","NOT_RUN"}
     if not set(attempts.status).issubset(allowed_statuses):
         raise AssertionError("Unknown attempt lifecycle status")
+    expected_rng_protocol=(
+        "numpy SeedSequence([seed, replicate, stream_id]); "
+        "stream_id 1=parent redshifts, 2=validation permutation, 3=retention uniforms"
+    )
+    if summary.get("rng_stream_protocol")!=expected_rng_protocol:
+        raise AssertionError("Unknown or missing independent RNG stream protocol")
     center=_center()
     checked_partitions=0
+    expected_frames={
+        rep:_expected_rng_frame(
+            int(summary["seed_start"]),int(rep),int(summary["n_parent"])
+        )
+        for rep in range(int(summary["n_replicates"]))
+    }
     for key, group in units.groupby(["replicate","gamma","target_retention","n_validation"],sort=False):
         if len(group)!=int(summary["n_parent"]) or group.object_id.nunique()!=len(group):
             raise AssertionError(f"Incomplete parent frame: {key}")
         group=group.sort_values("object_id")
         if not np.array_equal(group.object_id.to_numpy(),np.arange(len(group))):
             raise AssertionError(f"Parent IDs are not complete and contiguous: {key}")
+        expected_z,expected_uniform,expected_rank=expected_frames[int(key[0])]
+        if not np.allclose(
+            group.redshift.to_numpy(dtype=float),expected_z,rtol=0.0,atol=5e-15
+        ):
+            raise AssertionError(f"Parent redshifts do not match their declared RNG stream: {key}")
+        if not np.array_equal(
+            group.retention_uniform.to_numpy(dtype=float),expected_uniform
+        ):
+            raise AssertionError(f"Retention uniforms do not match their independent RNG stream: {key}")
+        if not np.array_equal(
+            group.validation_rank.to_numpy(dtype=int),expected_rank
+        ):
+            raise AssertionError(f"Validation permutation does not match its independent RNG stream: {key}")
         rank=group.validation_rank.to_numpy(dtype=int)
         if not np.array_equal(np.sort(rank),np.arange(len(group))):
             raise AssertionError(f"Validation ranks are not a permutation: {key}")
@@ -413,7 +461,8 @@ def audit_artifact(artifact_dir: Path) -> dict:
                 raise AssertionError(f"Paired contrast interval mismatch: {field}")
     return {
         "status":"PASS",
-        "audit_scope":"raw partition, DGP probabilities, retention labels, nested validation, fitted covariance, KDE, IAE, summary ledger",
+        "audit_scope":"independent RNG streams, raw partition, DGP probabilities, retention labels, nested validation, fitted covariance, KDE, IAE, summary ledger",
+        "checked_rng_streams":int(len(expected_frames)),
         "checked_parent_partitions":checked_partitions,
         "checked_density_estimates":checked_densities,
         "attempt_count":int(len(attempts)),
