@@ -150,6 +150,10 @@ def audit_artifact(artifact_dir: Path) -> dict:
         raise AssertionError(f"Missing raw-unit columns: {sorted(required-units.columns)}")
     if units.duplicated(["replicate","gamma","target_retention","n_validation","object_id"]).any():
         raise AssertionError("Duplicate parent object key")
+    attempt_key_columns=["replicate","gamma","target_retention","n_validation",
+                         "degree","bandwidth_multiplier","arm"]
+    if attempts.duplicated(attempt_key_columns).any():
+        raise AssertionError("Duplicate attempt key")
     center=_center()
     checked_partitions=0
     for key, group in units.groupby(["replicate","gamma","target_retention","n_validation"],sort=False):
@@ -175,6 +179,18 @@ def audit_artifact(artifact_dir: Path) -> dict:
         if int(np.sum(expected_role=="VALIDATION"))!=nval:
             raise AssertionError(f"Validation sample size mismatch: {key}")
         checked_partitions+=1
+
+    # Common random numbers require parent frames, retention uniforms and
+    # validation ranks to be identical across gamma/retention scenarios.
+    for rep, block in units.groupby("replicate",sort=False):
+        reference=None
+        for _, scenario in block.groupby(["gamma","target_retention","n_validation"],sort=False):
+            ordered=scenario.sort_values("object_id")
+            values=ordered[["redshift","retention_uniform","validation_rank"]].to_numpy()
+            if reference is None:
+                reference=values
+            elif not np.array_equal(reference,values):
+                raise AssertionError(f"Common-random-number frame mismatch in replicate {rep}")
 
     # Nested validation sets must agree across n values for each parent scenario.
     for key, block in units.groupby(["replicate","gamma","target_retention"],sort=False):
