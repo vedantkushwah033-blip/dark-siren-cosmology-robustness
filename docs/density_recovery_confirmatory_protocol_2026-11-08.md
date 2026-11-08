@@ -84,11 +84,13 @@ Use:
 - Replicates: 100 per curvature condition.
 - Random seeds: deterministic and recorded in the run manifest.
 
-This yields 1,800 model-fit attempts:
+This yields **1,800 logistic model-fit attempts**:
 
 \[
 3\times 3\times 2\times100=1,800.
 \]
+
+The runner evaluates five density arms (catalogue-only, known-inclusion IPW, parent-sample KDE, estimated degree-1 IPW and estimated degree-2 IPW) at each of three bandwidth multipliers. Thus the full primary block plans **13,500 density-arm attempts** (`3 gamma × 3 validation sizes × 100 replicates × 3 bandwidths × 5 arms`) and **3.6 million parent-unit rows** (`3 gamma × 3 validation sizes × 100 replicates × 4,000 units`) before CSV compression. The 1,800 figure counts logistic fits only; it is not the total density-attempt count.
 
 The three validation sizes should be **nested within each replicate** using one random permutation of parent IDs: the first 100 validation IDs are contained in the first 300, which are contained in the first 1,000. This preserves pairing across validation sizes. Use one parent redshift frame and one vector of retention uniforms per replicate, shared across curvature scenarios where common random numbers are intended. Record the exact seed and ID mapping.
 
@@ -161,20 +163,21 @@ Primary contrasts are paired replicate-level differences:
 
 Negative values favor estimated IPW; positive values mean estimated IPW is worse.
 
-### Secondary outcomes
+### Secondary outcomes implemented by the current density-recovery runner
+
+The current runner and independent auditor emit:
 
 - Integrated squared error (ISE).
-- Boundary-region IAE, with boundary regions declared before execution.
-- Density normalization error before final normalization.
 - Maximum absolute density error.
-- Density error by redshift subregion.
-- Probability RMSE, Brier score and log loss from the validation model.
-- Equal-frequency reliability-bin ECE and maximum bin gap.
-- Kish ESS and entropy ESS as fractions of analysis-catalogue size.
+- Kish ESS and entropy ESS.
 - Maximum normalized weight.
 - Top 1% and top 5% normalized weight mass.
-- Weight quantiles and fraction of fitted probabilities below declared numerical thresholds.
-- Fit failure and non-evaluable rates.
+- Fit and density-attempt statuses, including failure/non-evaluable counts in paired summaries.
+- Coefficient, optimizer, design-rank and conditioning diagnostics for fitted logistic models.
+
+The current density-recovery artifact does **not** yet emit boundary-region IAE, density error by redshift subregion, pre-normalization density error, weight quantiles, or fractions below fitted-probability thresholds. Those metrics are deferred and must not be described as measured in this confirmatory run.
+
+Held-out probability RMSE, Brier score, log loss and reliability-bin ECE are implemented in the separate finite-validation probability-stage benchmark and its raw-record auditor. They are not currently recomputed within this density-recovery artifact. If probability metrics are needed for the exact density-stage replicates, add a separately specified and independently audited extension before execution; do not infer them from the five-replicate probability pilot.
 
 ESS is a weight-concentration diagnostic, not a density-accuracy measure. Probability calibration metrics are not posterior calibration metrics.
 
@@ -231,7 +234,7 @@ The auditor must not import the benchmark runner, estimator or scoring functions
 7. Reconstruct catalogue-only and IPW weights.
 8. Independently reconstruct weighted KDEs using the declared reflection and bandwidth semantics.
 9. Verify density normalization and recompute the analytic target.
-10. Recompute IAE, ISE, boundary metrics, weight diagnostics and paired replicate contrasts.
+10. Recompute IAE, ISE, maximum absolute density error, implemented weight diagnostics and paired replicate contrasts. Boundary-region and redshift-subregion metrics are outside this artifact schema.
 11. Verify every summary against raw records within predeclared numerical tolerances.
 12. Verify configuration and artifact hashes.
 13. Verify failed/non-evaluable attempts have not disappeared from the ledger.
