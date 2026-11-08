@@ -159,3 +159,153 @@ def test_shared_selected_likelihood_rejects_events_below_detection_threshold():
         shared_inclusion_selected_log_likelihood(
             h0, catalogue_z, events, posterior, detection_threshold_mpc=250.0
         )
+
+
+def test_shared_likelihood_is_invariant_to_event_order():
+    posterior, catalogue_z, h0, events = _inputs()
+    forward = shared_inclusion_selected_log_likelihood(
+        h0, catalogue_z, events, posterior, detection_threshold_mpc=250.0
+    )
+    reverse = shared_inclusion_selected_log_likelihood(
+        h0, catalogue_z, list(reversed(events)), posterior,
+        detection_threshold_mpc=250.0,
+    )
+    assert np.allclose(
+        forward.node_log_selected_likelihood,
+        reverse.node_log_selected_likelihood,
+        rtol=1e-13, atol=1e-13,
+    )
+    assert np.allclose(
+        forward.marginal_log_likelihood,
+        reverse.marginal_log_likelihood,
+        rtol=1e-13, atol=1e-13,
+    )
+
+
+def test_shared_likelihood_is_invariant_to_joint_node_permutation():
+    from dataclasses import replace
+
+    posterior, catalogue_z, h0, events = _inputs()
+    original = shared_inclusion_selected_log_likelihood(
+        h0, catalogue_z, events, posterior, detection_threshold_mpc=250.0
+    )
+    permutation = np.arange(posterior.nodes.shape[0])[::-1]
+    permuted_posterior = replace(
+        posterior,
+        nodes=posterior.nodes[permutation],
+        weights=posterior.weights[permutation],
+    )
+    permuted = shared_inclusion_selected_log_likelihood(
+        h0, catalogue_z, events, permuted_posterior,
+        detection_threshold_mpc=250.0,
+    )
+    assert np.allclose(
+        permuted.node_log_selected_likelihood,
+        original.node_log_selected_likelihood[permutation],
+        rtol=1e-13, atol=1e-13,
+    )
+    assert np.allclose(
+        permuted.marginal_log_likelihood,
+        original.marginal_log_likelihood,
+        rtol=1e-13, atol=1e-13,
+    )
+
+
+def test_one_event_shared_node_reduces_to_dataset_one_event_selection_helpers():
+    from dataclasses import replace
+    from dark_siren_robustness.dataset_likelihood import (
+        event_detection_efficiency,
+        event_log_likelihood,
+        selection_conditioned_log_likelihood,
+    )
+
+    posterior, catalogue_z, h0, events = _inputs()
+    one_node = replace(
+        posterior, nodes=posterior.nodes[:1], weights=np.asarray([1.0])
+    )
+    event = events[0]
+    result = shared_inclusion_selected_log_likelihood(
+        h0, catalogue_z, [event], one_node,
+        detection_threshold_mpc=250.0,
+    )
+    host_weights = result.node_catalogue_weights[:, 0]
+    numerator = event_log_likelihood(
+        h0,
+        redshifts=catalogue_z,
+        gw_distance=event["gw_distance"],
+        gw_sigma=event["gw_sigma"],
+        weights=host_weights,
+    )
+    beta = event_detection_efficiency(
+        h0,
+        redshifts=catalogue_z,
+        gw_sigma=event["gw_sigma"],
+        detection_distance_min=250.0,
+        weights=host_weights,
+    )
+    expected = selection_conditioned_log_likelihood(
+        numerator, beta, n_events=1
+    )
+    assert np.allclose(
+        result.node_log_selected_likelihood[0], expected,
+        rtol=2e-12, atol=2e-12,
+    )
+
+
+def test_no_selection_limit_recovers_unselected_joint_likelihood():
+    posterior, catalogue_z, h0, _ = _inputs()
+    events = [
+        {"gw_distance": 100.0, "gw_sigma": 0.01},
+        {"gw_distance": 150.0, "gw_sigma": 0.01},
+    ]
+    threshold = 0.001
+    result = shared_inclusion_selected_log_likelihood(
+        h0, catalogue_z, events, posterior,
+        detection_threshold_mpc=threshold,
+    )
+    assert np.allclose(result.node_log_detection_efficiency, 0.0, atol=1e-12)
+
+    means = C_KM_S * catalogue_z[None, :] / h0[:, None]
+    unselected = np.zeros_like(result.node_log_selected_likelihood)
+    for node in range(posterior.nodes.shape[0]):
+        logw = np.log(result.node_catalogue_weights[:, node])
+        for event in events:
+            unselected[node] += logsumexp(
+                norm.logpdf(event["gw_distance"], loc=means, scale=event["gw_sigma"])
+                + logw[None, :],
+                axis=1,
+            )
+    assert np.allclose(
+        result.node_log_selected_likelihood, unselected,
+        rtol=1e-12, atol=1e-12,
+    )
+
+
+def test_full_shared_marginalization_differs_from_eventwise_node_marginalization():
+    posterior, catalogue_z, h0, events = _inputs()
+    result = shared_inclusion_selected_log_likelihood(
+        h0, catalogue_z, events, posterior,
+        detection_threshold_mpc=250.0,
+    )
+    means = C_KM_S * catalogue_z[None, :] / h0[:, None]
+    eventwise_marginal_sum = np.zeros(h0.size)
+    for event in events:
+        per_node = np.empty((posterior.nodes.shape[0], h0.size))
+        for node in range(posterior.nodes.shape[0]):
+            logw = np.log(result.node_catalogue_weights[:, node])
+            event_loglike = logsumexp(
+                norm.logpdf(
+                    event["gw_distance"], loc=means, scale=event["gw_sigma"]
+                ) + logw[None, :],
+                axis=1,
+            )
+            # Each event is conditioned on detection at this same node.
+            per_node[node] = (
+                event_loglike - result.node_log_detection_efficiency[node]
+            )
+        eventwise_marginal_sum += logsumexp(
+            per_node + np.log(posterior.weights)[:, None], axis=0
+        )
+    assert np.max(np.abs(
+        result.marginal_log_likelihood - eventwise_marginal_sum
+    )) > 1e-8
