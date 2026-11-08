@@ -273,6 +273,10 @@ def audit_artifact(artifact_dir: Path) -> dict:
                 raise AssertionError(f"Fitted logistic score mismatch: {key}")
             if score_norm>1e-6:
                 raise AssertionError(f"Successful fit fails independent score tolerance: {key}")
+            eta=design@beta
+            objective=float(np.sum(np.logaddexp(0.0,eta)-validation_y*eta))
+            if not np.isclose(objective,float(row.fit_objective),rtol=2e-8,atol=2e-8):
+                raise AssertionError(f"Fitted logistic objective mismatch: {key}")
             xa=(sample-center_fit)/scale_fit
             design_a=np.column_stack([xa**j for j in range(degree+1)])
             prob=expit(design_a@beta)
