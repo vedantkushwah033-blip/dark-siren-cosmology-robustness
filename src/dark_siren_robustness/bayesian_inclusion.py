@@ -172,6 +172,8 @@ def importance_sample_inclusion_posterior(
 
     design = fixed_redshift_design(z, degree=degree, z_min=z_min, z_max=z_max)
     labels = raw_labels.astype(float)
+    design_rank = int(np.linalg.matrix_rank(design))
+    design_condition = float(np.linalg.cond(design))
     dimension = degree + 1
     mean = (
         np.zeros(dimension, dtype=float)
@@ -183,6 +185,17 @@ def importance_sample_inclusion_posterior(
         raise ValueError("prior_mean and prior_sd must match the coefficient dimension")
     if not np.all(np.isfinite(mean)) or not np.all(np.isfinite(sd)) or np.any(sd <= 0):
         raise ValueError("prior parameters must be finite and prior_sd strictly positive")
+    if design_rank != dimension or not np.isfinite(design_condition) or design_condition > 1e10:
+        return InclusionPosteriorApproximation(
+            status="NON_EVALUABLE", message="Validation design is rank deficient or ill-conditioned.",
+            degree=degree, z_min=float(z_min), z_max=float(z_max),
+            prior_mean=mean.copy(), prior_sd=sd.copy(), map_coefficients=None,
+            laplace_covariance=None, coefficient_proposals=None,
+            normalized_importance_weights=None, log_importance_weights=None,
+            posterior_mean=None, posterior_covariance=None, importance_ess=0.0,
+            max_normalized_weight=float("inf"), log_evidence_estimate=float("nan"),
+            log_evidence_relative_mcse=float("inf"), n_draws=n_draws, newton_iterations=0,
+        )
     if np.unique(labels).size < 2:
         return InclusionPosteriorApproximation(
             status="NON_EVALUABLE", message="Validation labels contain only one outcome class.",
