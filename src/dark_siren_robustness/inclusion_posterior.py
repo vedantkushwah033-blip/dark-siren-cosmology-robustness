@@ -58,6 +58,8 @@ def _validation_inputs(
     if coordinate_center is None:
         center = float(np.mean(z))
         scale = float(np.std(z, ddof=0))
+        if not np.isfinite(scale) or scale <= 0:
+            raise ValueError("validation redshift must have positive finite spread")
     else:
         center = float(coordinate_center)
         scale = float(coordinate_scale)
