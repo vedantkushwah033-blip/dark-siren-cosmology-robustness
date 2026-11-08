@@ -63,6 +63,21 @@ def _independent_kde(grid, sample, probability, multiplier, merger):
     return raw/trapezoid(raw,grid)
 
 
+def _reconstruct_weight_diagnostics(probability, n):
+    weights=np.ones(n,dtype=float) if probability is None else 1.0/np.asarray(probability,dtype=float)
+    scaled=weights/np.max(weights)
+    normalized=scaled/np.sum(scaled)
+    entropy=-float(np.sum(normalized*np.log(normalized)))
+    ordered=np.sort(normalized)[::-1]
+    return {
+        "kish_ess":float(np.sum(scaled)**2/np.sum(scaled**2)),
+        "entropy_ess":float(np.exp(entropy)),
+        "max_normalized_weight":float(np.max(normalized)),
+        "top_1pct_weight_mass":float(np.sum(ordered[:max(1,int(np.ceil(0.01*n)))])),
+        "top_5pct_weight_mass":float(np.sum(ordered[:max(1,int(np.ceil(0.05*n)))])),
+    }
+
+
 def _reconstruct_paired_contrasts(attempts, *, n_replicates, seed, bootstrap_resamples=2000):
     results=[]
     rng=np.random.default_rng(seed)
@@ -231,8 +246,18 @@ def audit_artifact(artifact_dir: Path) -> dict:
         if not np.isclose(trapezoid(density,grid),1.0,rtol=1e-9,atol=1e-9):
             raise AssertionError(f"Density normalization failed: {key}/{row.arm}")
         iae=float(trapezoid(np.abs(density-target),grid))
+        ise=float(trapezoid((density-target)**2,grid))
+        max_error=float(np.max(np.abs(density-target)))
         if not np.isclose(iae,float(row.iae),rtol=TOL,atol=TOL):
             raise AssertionError(f"IAE reconstruction failed: {key}/{row.arm}")
+        if not np.isclose(ise,float(row.ise),rtol=TOL,atol=TOL):
+            raise AssertionError(f"ISE reconstruction failed: {key}/{row.arm}")
+        if not np.isclose(max_error,float(row.max_abs_density_error),rtol=TOL,atol=TOL):
+            raise AssertionError(f"Maximum density error reconstruction failed: {key}/{row.arm}")
+        weight_metrics=_reconstruct_weight_diagnostics(prob,len(sample))
+        for metric,value in weight_metrics.items():
+            if not np.isclose(value,float(getattr(row,metric)),rtol=TOL,atol=TOL):
+                raise AssertionError(f"Weight diagnostic reconstruction failed: {key}/{row.arm}/{metric}")
         checked_densities+=1
 
     if len(attempts)!=int(summary["attempt_count"]):
