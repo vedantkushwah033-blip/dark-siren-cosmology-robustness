@@ -163,3 +163,6 @@ A failure in any required arm must remain in the attempt ledger. Report SUCCESS,
 Passing Gates A–D would support a controlled synthetic study of finite-validation uncertainty propagation. It would not establish real-survey validity or universal estimator superiority. Gate E is required before claiming that pre-posterior diagnostics predict posterior calibration failure.
 
 **Current status:** design only. No uncertainty-integrated estimated-inclusion H0 posterior has been implemented or validated.
+
+
+**Cross-version audit (current prototype head, 2026-11-08):** the full 78-step numerical-diagnostics workflow completed successfully on Python 3.10, 3.11, and 3.12. The independent-validation H0 smoke artifacts were byte-checked by their manifest and independently audited on each runtime. Reconstructed selected-likelihood/H0-density differences were at or below (1.9\times10^{-16}); prior-scale sensitivity density reconstruction differences were also at or below (1.95\times10^{-16}). The quadrature-convergence summary, prior-sensitivity summary, and audit report were numerically identical across all three Python versions (recursive JSON comparison at (10^{-13}) relative / (10^{-14}) absolute tolerance found no differences). This establishes repeatable software behavior for this fixed smoke seed, not statistical calibration.
