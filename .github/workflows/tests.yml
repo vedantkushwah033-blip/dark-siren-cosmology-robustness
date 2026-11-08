@@ -44,8 +44,12 @@ jobs:
         run: python -m pytest tests/test_catalogue_density.py -q
       - name: Test finite-validation inclusion fitting, disjoint sampling and IPW diagnostics
         run: python -m pytest tests/test_estimated_inclusion.py tests/test_validation_design.py tests/test_inclusion_diagnostics.py tests/test_estimated_inclusion_benchmark.py -q
+      - name: Test independent finite-validation raw-record auditor
+        run: python -m pytest tests/test_audit_finite_validation_probability_benchmark.py -q
       - name: Run paired finite-validation inclusion-probability smoke benchmark
-        run: python scripts/run_finite_validation_probability_benchmark.py --n-parent 1200 --replicates 3 --seed 20261108 --output artifacts/finite_validation_probability_smoke/replicates.csv
+        run: python scripts/run_finite_validation_probability_benchmark.py --n-parent 1200 --replicates 3 --seed 20261108 --output artifacts/finite_validation_probability_smoke/replicates.csv --raw-output artifacts/finite_validation_probability_smoke/raw_unit_records.csv
+      - name: Independently reconstruct finite-validation scores and IPW diagnostics
+        run: python scripts/audit_finite_validation_probability_benchmark.py artifacts/finite_validation_probability_smoke --output artifacts/finite_validation_probability_smoke/audit_report.json
       - name: Test host-density-to-H0 benchmark
         run: python -m pytest tests/test_host_density_benchmark.py -q
       - name: Run small host-density-to-H0 benchmark smoke experiment
