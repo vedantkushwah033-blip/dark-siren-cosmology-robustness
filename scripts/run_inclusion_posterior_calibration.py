@@ -83,6 +83,23 @@ def _attempt_level_binary_bounds(frame: pd.DataFrame, column: str) -> tuple[floa
             (observed_successes + unknown) / denominator)
 
 
+def _parse_prior_slope_multipliers(value: str) -> tuple[float, ...]:
+    """Parse the sensitivity grid and require its baseline fit at multiplier 1."""
+    try:
+        values = tuple(float(token.strip()) for token in value.split(",") if token.strip())
+    except ValueError as exc:
+        raise ValueError("prior slope multipliers must be comma-separated numbers") from exc
+    if (
+        not values or len(set(values)) != len(values)
+        or any(not np.isfinite(item) or item <= 0 for item in values)
+        or not any(np.isclose(item, 1.0, rtol=0.0, atol=1e-12) for item in values)
+    ):
+        raise ValueError(
+            "prior slope multipliers must be distinct, finite, positive, and include 1.0"
+        )
+    return values
+
+
 def _summarize(replicates: pd.DataFrame, bins: int) -> dict:
     result = {}
     grouped = replicates.groupby(["experiment", "catalogue_floor", "n_validation"], dropna=False)
@@ -272,6 +289,14 @@ def main() -> None:
         or not np.isfinite(args.fixed_h0) or args.prior_min >= args.prior_max
         or not args.prior_min < args.fixed_h0 < args.prior_max):
         parser.error("H0 prior bounds must contain the fixed truth in their interior")
+    try:
+        prior_slope_multipliers = _parse_prior_slope_multipliers(
+            args.prior_slope_multipliers
+        )
+    except ValueError as exc:
+        parser.error(str(exc))
+    if args.n_parent < 100 or args.n_detected < 1:
+        parser.error("n-parent must be at least 100 and n-detected must be positive")
     if args.pit_bins < 2:
         parser.error("pit-bins must be at least 2")
     if not np.isfinite(args.catalogue_midpoint) or args.catalogue_midpoint <= 0:
@@ -498,7 +523,7 @@ def main() -> None:
             "inclusion_degree": args.degree,
             "catalogue_midpoint": args.catalogue_midpoint,
             "catalogue_width": args.catalogue_width,
-            "prior_slope_multipliers": args.prior_slope_multipliers,
+            "prior_slope_multipliers": list(prior_slope_multipliers),
             "h0_grid_points": args.h0_points,
             "master_seed": args.seed,
             "paired_design": "same analysis and validation seeds within replicate/floor/experiment; validation samples are permutation prefixes",
