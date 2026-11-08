@@ -280,3 +280,113 @@ def test_loop_reference_pipeline_matches_independent_vectorized_h0_likelihood():
         rtol=1e-10,
         atol=1e-10,
     )
+
+
+def test_end_to_end_parent_frame_validation_to_h0_posterior_smoke():
+    from scipy.integrate import cumulative_trapezoid, trapezoid
+    from scipy.optimize import brentq
+    from scipy.special import expit
+
+    from dark_siren_robustness.bayesian_inclusion import importance_sample_inclusion_posterior
+    from dark_siren_robustness.finite_validation_density_recovery import parent_intensity
+    from dark_siren_robustness.finite_validation_h0 import normalize_h0_posterior
+    from dark_siren_robustness.selection_toy import C_KM_S
+    from dark_siren_robustness.validation_design import split_disjoint_validation
+
+    seed = 20261108
+    n_parent = 1500
+    n_validation = 200
+    gamma = 1.2
+    target_retention = 0.25
+    h0_true = 70.0
+    sigma = 140.0
+    threshold = 250.0
+
+    parent_grid = np.linspace(0.01, 0.40, 20001)
+    intensity = parent_intensity(parent_grid)
+    parent_cdf = np.r_[0.0, cumulative_trapezoid(intensity, parent_grid)]
+    parent_cdf /= parent_cdf[-1]
+    parent_rng = np.random.default_rng(seed)
+    parent_z = np.interp(parent_rng.random(n_parent), parent_cdf, parent_grid)
+    x_parent = (parent_z - 0.01) / 0.39
+    curvature_center = trapezoid(intensity * ((parent_grid - 0.01) / 0.39) ** 2,
+                                 parent_grid) / trapezoid(intensity, parent_grid)
+
+    def mean_retention(alpha):
+        probability = expit(alpha - (parent_grid - 0.01) / 0.39
+                            + gamma * (((parent_grid - 0.01) / 0.39) ** 2
+                                       - curvature_center))
+        return trapezoid(intensity * probability, parent_grid) / trapezoid(intensity, parent_grid)
+
+    alpha = brentq(lambda value: mean_retention(value) - target_retention, -30.0, 30.0)
+    true_probability = expit(alpha - x_parent + gamma * (x_parent**2 - curvature_center))
+    retention_rng = np.random.default_rng(seed + 1)
+    retention_uniform = retention_rng.random(n_parent)
+    retained = (retention_uniform < true_probability).astype(int)
+    parent = pd.DataFrame({
+        "object_id": np.arange(n_parent),
+        "redshift": parent_z,
+        "retained": retained,
+        "true_inclusion_probability": true_probability,
+    })
+    split = split_disjoint_validation(parent, n_validation=n_validation, seed=seed + 2)
+    assert np.intersect1d(
+        split.validation_object_ids, split.analysis_object_ids
+    ).size == 0
+    assert split.validation.retained.nunique() == 2
+    assert len(split.analysis_catalogue) >= 20
+
+    inclusion_posterior = importance_sample_inclusion_posterior(
+        split.validation.redshift.to_numpy(),
+        split.validation.retained.to_numpy(),
+        degree=2,
+        prior_sd=1.0,
+        n_draws=1000,
+        seed=seed + 3,
+        min_ess=50,
+        min_ess_fraction=0.01,
+    )
+    assert inclusion_posterior.status == "SUCCESS", inclusion_posterior.message
+
+    host_grid = np.linspace(0.01, 0.40, 20001)
+    merger_parent = 1.0 + 1.5 * (host_grid - 0.01) / 0.39
+    host_intensity = parent_intensity(host_grid) * merger_parent
+    host_cdf = np.r_[0.0, cumulative_trapezoid(host_intensity, host_grid)]
+    host_cdf /= host_cdf[-1]
+    event_rng = np.random.default_rng(seed + 4)
+    event_distances = []
+    while len(event_distances) < 5:
+        event_z = float(np.interp(event_rng.random(), host_cdf, host_grid))
+        observed_distance = float(
+            C_KM_S * event_z / h0_true + event_rng.normal(0.0, sigma)
+        )
+        if observed_distance >= threshold:
+            event_distances.append(observed_distance)
+
+    z_grid = np.linspace(0.01, 0.40, 101)
+    h0_grid = np.linspace(55.0, 85.0, 61)
+    merger = 1.0 + 1.5 * (z_grid - 0.01) / 0.39
+    result = propagate_inclusion_posterior_to_h0(
+        inclusion_posterior,
+        split.analysis_catalogue.redshift.to_numpy(),
+        z_grid,
+        h0_grid,
+        np.asarray(event_distances),
+        merger_weight=merger,
+        scott_multiplier=0.15,
+        sigma=sigma,
+        detection_threshold=threshold,
+    )
+    h0_posterior = normalize_h0_posterior(
+        h0_grid,
+        result.marginalized_selected_log_likelihood,
+        prior_density=np.ones_like(h0_grid),
+    )
+    assert result.host_density_draws.shape == (1000, 101)
+    assert result.selected_log_likelihood_by_draw.shape == (1000, 61)
+    assert np.all(np.isfinite(result.detection_efficiency_by_draw))
+    assert np.all((result.detection_efficiency_by_draw > 0)
+                  & (result.detection_efficiency_by_draw <= 1.0 + 1e-12))
+    assert abs(h0_posterior["posterior_integral"] - 1.0) < 1e-10
+    assert h0_posterior["ci95_width"] > h0_posterior["ci68_width"]
+    assert 0.0 <= h0_posterior["boundary_mass_fraction"] <= 1.0
