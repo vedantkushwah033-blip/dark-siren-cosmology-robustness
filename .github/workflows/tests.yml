@@ -62,6 +62,10 @@ jobs:
         run: python -m pytest tests/test_inclusion_h0_convergence.py -q
       - name: Test inclusion-coefficient prior-scale sensitivity through H0
         run: python -m pytest tests/test_inclusion_prior_sensitivity.py -q
+      - name: Test multi-replicate inclusion posterior calibration utilities
+        run: python -m pytest tests/test_inclusion_posterior_calibration.py -q
+      - name: Validate calibration runner command-line interface
+        run: python scripts/run_inclusion_posterior_calibration.py --help
       - name: Test independent finite-validation raw-record auditor
         run: python -m pytest tests/test_audit_finite_validation_probability_benchmark.py -q
       - name: Run paired finite-validation inclusion-probability smoke benchmark
