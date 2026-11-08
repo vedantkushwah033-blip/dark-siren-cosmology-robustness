@@ -30,7 +30,7 @@ def test_independent_validation_sampler_is_reproducible_and_separates_truth():
         first["validation_frame_truth"], second["validation_frame_truth"]
     )
     assert list(first["validation_observed"].columns) == [
-        "validation_id", "redshift", "retained"
+        "validation_id", "frame_id", "redshift", "retained"
     ]
     assert "inclusion_probability" not in first["validation_observed"].columns
     assert len(first["validation_observed"]) == 120
