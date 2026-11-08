@@ -68,10 +68,10 @@ def _summarize(replicates: pd.DataFrame, bins: int) -> dict:
             counts, _ = np.histogram(pit, bins=np.linspace(0.0, 1.0, bins + 1))
             item.update({
                 "pit_mean": float(np.mean(pit)),
-                "pit_variance": float(np.var(pit, ddof=1)) if len(pit) > 1 else float("nan"),
+                "pit_variance": float(np.var(pit, ddof=1)) if len(pit) > 1 else None,
                 "pit_bin_counts": counts.tolist(),
                 "pit_bin_expected": float(len(pit) / bins),
-                "pit_mean_mc_se": float(np.std(pit, ddof=1) / math.sqrt(len(pit))) if len(pit) > 1 else float("nan"),
+                "pit_mean_mc_se": float(np.std(pit, ddof=1) / math.sqrt(len(pit))) if len(pit) > 1 else None,
             })
         elif key[0] == "FIXED_TRUTH" and len(valid):
             for level, column in ((68, "covered_68"), (90, "covered_90"), (95, "covered_95")):
