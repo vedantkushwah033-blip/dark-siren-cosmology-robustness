@@ -105,6 +105,13 @@ def main() -> None:
     parser.add_argument("--n-detected", type=int, default=8)
     parser.add_argument("--h0-points", type=int, default=81)
     parser.add_argument("--orders", default="7,11,15,19")
+    parser.add_argument("--degree", type=int, choices=(1, 2), default=1)
+    parser.add_argument("--catalogue-midpoint", type=float, default=0.22)
+    parser.add_argument("--catalogue-width", type=float, default=0.05)
+    parser.add_argument("--prior-slope-multipliers", default="0.5,1.0,2.0")
+    parser.add_argument("--density-tolerance", type=float, default=1e-3)
+    parser.add_argument("--quantile-tolerance", type=float, default=0.05)
+    parser.add_argument("--consecutive-passes", type=int, default=2)
     parser.add_argument("--prior-min", type=float, default=50.0)
     parser.add_argument("--prior-max", type=float, default=90.0)
     parser.add_argument("--fixed-h0", type=float, default=70.0)
@@ -130,6 +137,12 @@ def main() -> None:
         parser.error("H0 prior bounds must contain the fixed truth in their interior")
     if args.pit_bins < 2:
         parser.error("pit-bins must be at least 2")
+    if not np.isfinite(args.catalogue_midpoint) or args.catalogue_midpoint <= 0:
+        parser.error("catalogue midpoint must be finite and positive")
+    if not np.isfinite(args.catalogue_width) or args.catalogue_width <= 0:
+        parser.error("catalogue width must be finite and positive")
+    if args.consecutive_passes < 1 or args.density_tolerance <= 0 or args.quantile_tolerance <= 0:
+        parser.error("quadrature convergence tolerances and pass count must be positive")
 
     root = Path(__file__).resolve().parents[1]
     smoke_script = root / "scripts" / "run_independent_validation_inclusion_h0_smoke.py"
@@ -192,6 +205,13 @@ def main() -> None:
                         "--n-validation-frame", str(args.n_validation_frame),
                         "--n-validation", str(n_validation),
                         "--catalogue-floor", repr(floor),
+                        "--catalogue-midpoint", repr(args.catalogue_midpoint),
+                        "--catalogue-width", repr(args.catalogue_width),
+                        "--degree", str(args.degree),
+                        "--prior-slope-multipliers", args.prior_slope_multipliers,
+                        "--density-tolerance", repr(args.density_tolerance),
+                        "--quantile-tolerance", repr(args.quantile_tolerance),
+                        "--consecutive-passes", str(args.consecutive_passes),
                         "--orders", args.orders,
                         "--h0-points", str(args.h0_points),
                         "--prior-min", repr(args.prior_min),
@@ -322,6 +342,13 @@ def main() -> None:
             "h0_prior": [args.prior_min, args.prior_max],
             "fixed_h0_truth": args.fixed_h0,
             "quadrature_orders": args.orders,
+            "quadrature_density_tolerance": args.density_tolerance,
+            "quadrature_quantile_tolerance": args.quantile_tolerance,
+            "quadrature_required_consecutive_passes": args.consecutive_passes,
+            "inclusion_degree": args.degree,
+            "catalogue_midpoint": args.catalogue_midpoint,
+            "catalogue_width": args.catalogue_width,
+            "prior_slope_multipliers": args.prior_slope_multipliers,
             "h0_grid_points": args.h0_points,
             "master_seed": args.seed,
             "paired_design": "same analysis and validation seeds within replicate/floor/experiment; validation samples are permutation prefixes",
