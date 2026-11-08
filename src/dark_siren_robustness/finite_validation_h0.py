@@ -151,8 +151,6 @@ def selected_log_likelihood_by_draw(
     unconditional = np.empty((n_draws, h0.size), dtype=float)
     beta_all = np.empty((n_draws, h0.size), dtype=float)
     selected = np.empty((n_draws, h0.size), dtype=float)
-    mass_transpose = mass.T
-
     for start in range(0, h0.size, h0_batch_size):
         stop = min(start + h0_batch_size, h0.size)
         batch_h0 = h0[start:stop]
