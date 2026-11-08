@@ -1,6 +1,8 @@
 """Run the finite-validation inclusion-probability benchmark."""
 from __future__ import annotations
+
 import argparse
+import json
 from pathlib import Path
 
 from dark_siren_robustness.estimated_inclusion_benchmark import (
@@ -11,16 +13,53 @@ from dark_siren_robustness.estimated_inclusion_benchmark import (
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--n-parent", type=int, default=4000)
-    parser.add_argument("--replicates", type=int, default=20)
-    parser.add_argument("--seed", type=int, default=20261108)
     parser.add_argument("--raw-output", type=Path, required=True)
+    parser.add_argument("--config", type=Path, default=None)
+    parser.add_argument("--n-parent", type=int, default=None)
+    parser.add_argument("--replicates", type=int, default=None)
+    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--validation-sizes", type=str, default=None)
+    parser.add_argument("--curvatures", type=str, default=None)
+    parser.add_argument("--degrees", type=str, default=None)
     args = parser.parse_args()
+
+    settings = {
+        "n_parent": 4000,
+        "replicates": 20,
+        "seed": 20261108,
+        "validation_sizes": (100, 300, 1000),
+        "curvature_values": (-2.0, -1.2, 0.0, 1.2, 2.0),
+        "degrees": (1, 2),
+    }
+    if args.config is not None:
+        config = json.loads(args.config.read_text(encoding="utf-8"))
+        if config.get("schema_version") != 1:
+            raise ValueError("unsupported finite-validation config schema_version")
+        settings.update({
+            "n_parent": config["n_parent"],
+            "replicates": config["replicates"],
+            "seed": config["seed"],
+            "validation_sizes": tuple(config["validation_sizes"]),
+            "curvature_values": tuple(config["curvature_values"]),
+            "degrees": tuple(config["model_degrees"]),
+        })
+    for name in ("n_parent", "replicates", "seed"):
+        value = getattr(args, name)
+        if value is not None:
+            settings[name] = value
+    if args.validation_sizes is not None:
+        settings["validation_sizes"] = tuple(int(v) for v in args.validation_sizes.split(","))
+    if args.curvatures is not None:
+        settings["curvature_values"] = tuple(float(v) for v in args.curvatures.split(","))
+    if args.degrees is not None:
+        settings["degrees"] = tuple(int(v) for v in args.degrees.split(","))
+
     result = run_probability_validation_benchmark(
-        n_parent=args.n_parent, replicates=args.replicates, seed=args.seed,
+        **settings,
         raw_output=args.raw_output,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.raw_output.parent.mkdir(parents=True, exist_ok=True)
     result.to_csv(args.output, index=False)
     print(f"wrote {len(result)} attempt rows to {args.output}")
     print(f"wrote unit-level audit records to {args.raw_output}")
