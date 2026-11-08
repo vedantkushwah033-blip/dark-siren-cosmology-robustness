@@ -129,3 +129,29 @@ The validation sampling implementation now constructs one full random permutatio
 These tests establish the intended code-level invariants; they do not constitute a completed multi-replicate experiment. The CI run for the latest branch head must pass before treating these tests as verified.
 
 The earlier paragraphs above document the original defects and remain as an audit trail. The nested-sample description refers to the pre-correction implementation, not the current permutation-prefix implementation.
+
+
+## Follow-up status at current branch head (2026-11-08)
+
+The two findings above were addressed in subsequent branch commits after the
+initial audit:
+
+- `fit_inclusion_posterior_quadrature` now accepts an explicit fixed
+  `coordinate_center` and `coordinate_scale`. The independent-validation
+  H0 smoke runner uses the midpoint and half-range of the declared redshift
+  domain, records the coordinate definition and coefficient prior, and the
+  independent artifact auditor checks that metadata and regenerates the
+  posterior using the same fixed coordinate definition.
+- `generate_independent_validation_sample` now selects a prefix of one
+  seeded random permutation. Repeated calls with the same frame seed and
+  frame size therefore produce nested validation samples. A regression test
+  checks subset inclusion, identical validation-frame truth, and literal
+  prefix ordering for n=100, 300, and 1000.
+
+These are implementation-level resolutions in the current branch snapshot;
+they are not yet evidence of passing CI because current-head workflow/check
+results have not been returned. Also, the lower-level fitter still supports
+sample-standardized coordinates when the optional fixed coordinates are
+omitted. Repeated-sampling and validation-size experiments must explicitly
+supply the fixed domain coordinates; callers that omit them retain the
+sample-dependent prior-coordinate behavior.
