@@ -56,6 +56,9 @@ def main() -> None:
     parser.add_argument("--quantile-tolerance", type=float, default=0.05)
     parser.add_argument("--consecutive-passes", type=int, default=2)
     parser.add_argument("--prior-slope-multipliers", default="0.5,1.0,2.0")
+    parser.add_argument("--catalogue-floor", type=float, default=0.10)
+    parser.add_argument("--catalogue-midpoint", type=float, default=0.22)
+    parser.add_argument("--catalogue-width", type=float, default=0.05)
     parser.add_argument("--output-dir", type=Path, default=Path("artifacts/inclusion_h0_smoke"))
     args = parser.parse_args()
 
@@ -87,6 +90,9 @@ def main() -> None:
 
     analysis = generate_synthetic_population(
         seed=args.seed, n_parent=args.n_parent, n_detected=args.n_detected,
+        catalogue_floor=args.catalogue_floor,
+        catalogue_midpoint=args.catalogue_midpoint,
+        catalogue_width=args.catalogue_width,
     )
     validation = generate_independent_validation_sample(
         seed=args.validation_seed,
@@ -94,6 +100,9 @@ def main() -> None:
         n_validation=args.n_validation,
         z_min=analysis["config"]["redshift_domain"][0],
         z_max=analysis["config"]["redshift_domain"][1],
+        catalogue_floor=args.catalogue_floor,
+        catalogue_midpoint=args.catalogue_midpoint,
+        catalogue_width=args.catalogue_width,
     )
     analysis_catalogue = analysis["catalogue_observed"]
     events_frame = analysis["gw_events_observed"]
