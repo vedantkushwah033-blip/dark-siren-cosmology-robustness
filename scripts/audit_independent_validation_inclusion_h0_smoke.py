@@ -298,6 +298,108 @@ def audit(artifact_dir: Path) -> dict[str, object]:
                 f"at order {order}: {difference}"
             )
 
+    # Independently reconstruct the slope-prior sensitivity outputs.
+    prior_summary = json.loads(
+        (root / "prior_scale_sensitivity.json").read_text(encoding="utf-8")
+    )
+    prior_density = pd.read_csv(
+        root / "prior_scale_sensitivity_density.csv"
+    )
+    prior_cfg = config["inference"]["coefficient_prior"]
+    prior_mean = np.asarray(prior_cfg["mean"], dtype=float)
+    prior_sd = np.asarray(prior_cfg["sd"], dtype=float)
+    multipliers = [float(value) for value in prior_summary["slope_multipliers"]]
+    expected_density_columns = ["H0"] + [
+        f"density_slope_multiplier_{value:g}" for value in multipliers
+    ]
+    if list(prior_density.columns) != expected_density_columns:
+        raise AssertionError("prior sensitivity density columns do not match summary")
+    prior_h0 = prior_density["H0"].to_numpy(dtype=float)
+    if not np.allclose(prior_h0, h0_grid, rtol=0, atol=1e-12):
+        raise AssertionError("prior sensitivity H0 grid differs from inference grid")
+    if prior_summary["quadrature_order"] not in orders:
+        raise AssertionError("prior sensitivity order was not in the convergence run")
+    prior_sensitivity_differences = {}
+    prior_records = {
+        float(record["slope_multiplier"]): record
+        for record in prior_summary["records"]
+    }
+    if set(prior_records) != set(multipliers):
+        raise AssertionError("prior sensitivity records do not match multipliers")
+
+    for multiplier in multipliers:
+        scaled_sd = prior_sd.copy()
+        scaled_sd[1:] *= multiplier
+        fit = fit_inclusion_posterior_quadrature(
+            validation["redshift"].to_numpy(dtype=float),
+            validation["retained"].to_numpy(dtype=int),
+            degree=int(config["inference"]["degree"]),
+            prior_mean=prior_mean,
+            prior_sd=scaled_sd,
+            order=int(prior_summary["quadrature_order"]),
+        )
+        x = (z_catalogue - fit.center) / fit.scale
+        design = np.column_stack(
+            [x ** power for power in range(fit.degree + 1)]
+        )
+        log_inclusion = -np.logaddexp(0.0, -(design @ fit.nodes.T))
+        log_raw = np.log(base_weights)[:, None] - log_inclusion
+        log_host_weights = log_raw - logsumexp(
+            log_raw, axis=0, keepdims=True
+        )
+        node_log_joint = np.zeros(
+            (fit.nodes.shape[0], h0_grid.size), dtype=float
+        )
+        for event in events.itertuples(index=False):
+            event_terms = norm.logpdf(
+                float(event.distance_mpc), loc=means, scale=sigma
+            )
+            for node in range(fit.nodes.shape[0]):
+                node_log_joint[node] += logsumexp(
+                    event_terms + log_host_weights[:, node][None, :],
+                    axis=1,
+                )
+        log_detect_by_host = log_ndtr((means - threshold) / sigma)
+        node_log_beta = np.empty_like(node_log_joint)
+        for node in range(fit.nodes.shape[0]):
+            node_log_beta[node] = logsumexp(
+                log_detect_by_host + log_host_weights[:, node][None, :],
+                axis=1,
+            )
+        node_log_selected = (
+            node_log_joint - len(events) * node_log_beta
+        )
+        marginal = logsumexp(
+            node_log_selected + np.log(fit.weights)[:, None],
+            axis=0,
+        )
+        shifted = marginal - np.max(marginal)
+        unnormalized = np.exp(shifted)
+        area = float(np.trapezoid(unnormalized, h0_grid))
+        if not np.isfinite(area) or area <= 0:
+            raise AssertionError(
+                f"prior sensitivity posterior normalization failed for {multiplier}"
+            )
+        reconstructed_density = unnormalized / area
+        archived_density = prior_density[
+            f"density_slope_multiplier_{multiplier:g}"
+        ].to_numpy(dtype=float)
+        difference = float(np.max(np.abs(
+            reconstructed_density - archived_density
+        )))
+        prior_sensitivity_differences[str(multiplier)] = difference
+        if difference >= 2e-8:
+            raise AssertionError(
+                f"prior sensitivity reconstruction mismatch for {multiplier}: {difference}"
+            )
+        if not np.allclose(
+            prior_records[multiplier]["prior_sd"], scaled_sd,
+            rtol=0, atol=1e-14,
+        ):
+            raise AssertionError(
+                f"recorded coefficient prior scales mismatch for {multiplier}"
+            )
+
     return {
         "status": "PASS",
         "artifact_dir": str(root),
@@ -315,6 +417,7 @@ def audit(artifact_dir: Path) -> dict[str, object]:
         "independent_selected_likelihood_reconstruction_max_abs_density_differences": node_reconstruction_differences,
         "likelihood_reconstruction": "shared-node event mixtures and one-sided detection efficiency independently recomputed from observable inputs; quadrature regenerated with production fitter",
         "quadrature_status": convergence["status"],
+        "prior_scale_sensitivity_reconstruction_max_abs_density_differences": prior_sensitivity_differences,
         "scientific_claim_limit": "Artifact and arithmetic integrity only; not calibration, SBC, coverage, or real-data validation.",
     }
 
