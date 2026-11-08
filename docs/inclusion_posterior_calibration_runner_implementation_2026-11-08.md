@@ -119,3 +119,23 @@ The per-cell `attempted` count and `evaluable_fraction` denominator exclude
 planned `NOT_RUN` rows; the separate `not_run` count preserves those planned
 but unexecuted cells. This avoids understating evaluability when an experiment
 is interrupted before all planned cells are reached.
+
+## Paired validation-size contrast output
+
+The orchestrator now emits `paired_validation_size_contrasts` in
+`calibration_summary.json`. For every experiment/floor cell and every pair of
+requested validation sizes, it matches rows by replicate ID and reports the
+number of common attempted replicates, the number evaluable at both sizes,
+and excluded pairs. For successful matched pairs it reports larger-minus-
+smaller validation-size contrasts in posterior median, signed and absolute
+median error, equal-tail interval widths, and (as applicable) conditional PIT
+or fixed-truth interval inclusion/coverage. Paired Monte Carlo standard errors
+and normal-approximation intervals are reported when at least two pairs are
+evaluable.
+
+These contrasts exploit the deliberately nested validation design and common
+analysis catalogue/GW-event seeds. They are descriptive Monte Carlo summaries,
+not causal effects and not a substitute for independent repeated-sampling
+coverage or PIT assessment. The per-cell artifact auditor verifies each
+replicate artifact; the aggregate contrast calculation is currently covered
+by unit tests and is not yet a separate independent summary-audit program.
