@@ -196,17 +196,10 @@ def importance_sample_inclusion_posterior(
             max_normalized_weight=float("inf"), log_evidence_estimate=float("nan"),
             log_evidence_relative_mcse=float("inf"), n_draws=n_draws, newton_iterations=0,
         )
-    if np.unique(labels).size < 2:
-        return InclusionPosteriorApproximation(
-            status="NON_EVALUABLE", message="Validation labels contain only one outcome class.",
-            degree=degree, z_min=float(z_min), z_max=float(z_max),
-            prior_mean=mean.copy(), prior_sd=sd.copy(), map_coefficients=None,
-            laplace_covariance=None, coefficient_proposals=None,
-            normalized_importance_weights=None, log_importance_weights=None,
-            posterior_mean=None, posterior_covariance=None, importance_ess=0.0,
-            max_normalized_weight=float("inf"), log_evidence_estimate=float("nan"),
-            log_evidence_relative_mcse=float("inf"), n_draws=n_draws, newton_iterations=0,
-        )
+    # A proper Gaussian coefficient prior makes the posterior proper even if
+    # all validation labels are identical. Such samples can be weakly
+    # informative, but must be assessed through posterior/importance diagnostics
+    # rather than rejected solely because the unpenalized MLE would separate.
 
     try:
         mode, information, iterations = _find_map(
