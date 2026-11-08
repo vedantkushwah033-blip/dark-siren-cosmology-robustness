@@ -67,6 +67,7 @@ def test_paired_contrast_reports_failed_and_non_evaluable_attempts():
         1: ("SUCCESS", 0.11, "FAILED", np.nan),
         2: ("FAILED", np.nan, "SUCCESS", 0.25),
         3: ("NON_EVALUABLE", np.nan, "NON_EVALUABLE", np.nan),
+        4: ("NOT_RUN", np.nan, "NOT_RUN", np.nan),
     }
     for replicate, (cat_status, cat_iae, est_status, est_iae) in statuses.items():
         rows.append({
@@ -87,14 +88,16 @@ def test_paired_contrast_reports_failed_and_non_evaluable_attempts():
     assert result["n_catalogue_only_success"] == 2
     assert result["n_catalogue_only_failed"] == 1
     assert result["n_catalogue_only_non_evaluable"] == 1
+    assert result["n_catalogue_only_not_run"] == 1
     assert result["n_estimated_success"] == 2
     assert result["n_estimated_failed"] == 1
     assert result["n_estimated_non_evaluable"] == 1
+    assert result["n_estimated_not_run"] == 1
     assert result["n_both_success"] == 1
     assert result["n_estimated_not_success_catalogue_success"] == 1
     assert result["n_catalogue_not_success_estimated_success"] == 1
-    assert result["n_both_not_success"] == 1
-    assert result["conditional_pair_fraction_of_planned"] == pytest.approx(0.25)
+    assert result["n_both_not_success"] == 2
+    assert result["conditional_pair_fraction_of_planned"] == pytest.approx(0.20)
 
 
 def test_independent_auditor_rejects_tampered_attempt_status_summary(tmp_path):
