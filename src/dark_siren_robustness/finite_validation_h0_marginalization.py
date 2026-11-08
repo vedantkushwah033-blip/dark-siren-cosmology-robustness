@@ -12,7 +12,7 @@ from dark_siren_robustness.bayesian_inclusion import (
     weighted_log_marginal_likelihood,
 )
 from dark_siren_robustness.catalogue_density import estimate_host_density
-from dark_siren_robustness.selection_toy import selection_aware_toy_likelihood
+from dark_siren_robustness.finite_validation_h0 import selected_log_likelihood_by_draw
 
 
 @dataclass(frozen=True)
@@ -176,8 +176,6 @@ def propagate_inclusion_posterior_to_h0(
         z_max=posterior.z_max,
     )
     density_draws = []
-    unconditional = []
-    efficiencies = []
     for coefficients in proposals:
         inclusion_probability = expit(design @ coefficients)
         density = estimate_host_density(
@@ -187,21 +185,19 @@ def propagate_inclusion_posterior_to_h0(
             merger_weight=merger,
             scott_multiplier=scott_multiplier,
         )
-        likelihood = selection_aware_toy_likelihood(
-            z_grid,
-            density,
-            h0_grid,
-            distances,
-            sigma=sigma,
-            detection_threshold=detection_threshold,
-        )
         density_draws.append(density)
-        unconditional.append(likelihood["unconditional_log_likelihood"])
-        efficiencies.append(likelihood["detection_efficiency"])
 
     density_draws = np.asarray(density_draws)
-    unconditional = np.asarray(unconditional)
-    efficiencies = np.asarray(efficiencies)
+    likelihood_draws = selected_log_likelihood_by_draw(
+        z_grid,
+        density_draws,
+        h0_grid,
+        distances,
+        sigma=sigma,
+        detection_threshold=detection_threshold,
+    )
+    unconditional = likelihood_draws["unconditional_log_likelihoods"]
+    efficiencies = likelihood_draws["detection_efficiencies"]
     selected = selection_correct_each_draw(
         unconditional, efficiencies, n_detected=distances.size
     )
