@@ -145,7 +145,6 @@ def run_probability_validation_benchmark(
 
                     # Unit-level audit trail: every non-validation parent unit appears
                     # exactly once, with held-out label, simulation truth, and fitted p.
-                    analysis_ids = set(split.analysis_object_ids.tolist())
                     for position, unit in enumerate(holdout.itertuples(index=False)):
                         raw_rows.append({
                             "scenario_seed": scenario_seed,
@@ -157,7 +156,7 @@ def run_probability_validation_benchmark(
                             "object_id": int(unit.object_id),
                             "redshift": float(unit.redshift),
                             "retained": int(unit.retained),
-                            "p_true": float(parent.loc[parent["object_id"] == unit.object_id, "inclusion_probability"].iloc[0]),
+                            "p_true": float(truth_by_id.loc[unit.object_id, "inclusion_probability"]),
                             "p_hat": float(p_holdout[position]),
                         })
                     if fit.status == "SUCCESS":
