@@ -58,3 +58,31 @@ def test_complete_separation_is_not_reported_as_success():
     fit = fit_inclusion_logistic(z, labels)
     assert fit.status == "FAILED"
     assert fit.coefficients is None
+
+
+def test_precision_loss_is_recovered_by_damped_newton_polish(monkeypatch):
+    from types import SimpleNamespace
+    import dark_siren_robustness.estimated_inclusion as inclusion_module
+
+    rng = np.random.default_rng(731)
+    z = rng.uniform(0.01, 0.40, 600)
+    x = (z - z.mean()) / z.std()
+    labels = rng.binomial(1, expit(-0.3 + 0.65 * x))
+
+    # Simulate BFGS returning a finite but not fully converged point with a
+    # precision-loss status. The analytic Newton fallback should finish it.
+    monkeypatch.setattr(
+        inclusion_module,
+        "minimize",
+        lambda *args, **kwargs: SimpleNamespace(
+            x=np.zeros(2), success=False,
+            message="Desired error not necessarily achieved due to precision loss.",
+            nit=3,
+        ),
+    )
+    fit = fit_inclusion_logistic(z, labels, degree=1)
+    assert fit.status == "SUCCESS"
+    assert fit.gradient_inf_norm <= 1e-10
+    assert fit.iterations > 3
+    assert fit.coefficients is not None
+    assert fit.covariance is not None
