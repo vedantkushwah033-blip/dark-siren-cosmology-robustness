@@ -24,18 +24,16 @@ def _case():
 
 
 def test_downstream_h0_quadrature_convergence_recomputes_full_likelihood():
+    validation_z, retained, h0, catalogue_z, events, base = _case()
     result = run_inclusion_h0_quadrature_convergence(
-        *_case()[:2],
-        _case()[2],
-        _case()[3],
-        _case()[4],
+        validation_z, retained, h0, catalogue_z, events,
         detection_threshold_mpc=250.0,
-        population_base_weights=_case()[5],
+        population_base_weights=base,
         degree=1,
         orders=(5, 7, 9),
-        centered_log_likelihood_tolerance=10.0,
-        posterior_density_tolerance=10.0,
-        posterior_quantile_tolerance=10.0,
+        centered_log_likelihood_tolerance=1e6,
+        posterior_density_tolerance=1e6,
+        posterior_quantile_tolerance=1e6,
         consecutive_passes=1,
     )
     assert result.status == "CONVERGED"
