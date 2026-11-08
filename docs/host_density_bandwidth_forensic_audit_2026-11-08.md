@@ -107,3 +107,34 @@ These results explain the H0 sensitivity: broad kernels erase the narrow overden
 **GO for a dedicated KDE bandwidth forensic and density-recovery phase.**
 
 The probability-stage finite-validation pilot remains independently audited. This bandwidth issue is a separate downstream host-density problem and does not invalidate the raw-record audit of that probability-stage experiment.
+
+
+## IPW density-recovery diagnostic under finite validation
+
+A second local experiment used 20 paired parent frames, (n_{parent}=4{,}000), (n_{val}=300), target retention 0.25, and curvature (gamma\in\{-1.2,0,1.2\}). Validation was sampled SRS from the full parent frame and excluded from the retained analysis catalogue. Linear and quadratic inclusion models were fitted only on validation labels. Each estimated/known IPW host density was compared with the analytic parent-host density using integrated absolute error (IAE).
+
+Mean IAE by absolute SciPy bandwidth factor:
+
+| Curvature | Arm | Factor 0.03 | Factor 0.05 | Factor 0.80 |
+|---:|---|---:|---:|---:|
+| -1.2 | Catalogue-only | 0.3716 | 0.3712 | 0.3104 |
+| -1.2 | Known inclusion IPW | 0.0977 | 0.0888 | 0.3132 |
+| -1.2 | Estimated degree-1 IPW | 0.1564 | 0.1465 | 0.3135 |
+| -1.2 | Estimated degree-2 IPW | 0.1871 | 0.1781 | 0.3138 |
+| 0.0 | Catalogue-only | 0.1760 | 0.1723 | 0.3115 |
+| 0.0 | Known inclusion IPW | 0.0849 | 0.0779 | 0.3131 |
+| 0.0 | Estimated degree-1 IPW | 0.1289 | 0.1200 | 0.3135 |
+| 0.0 | Estimated degree-2 IPW | 0.1571 | 0.1485 | 0.3135 |
+| +1.2 | Catalogue-only | 0.1030 | 0.0988 | 0.3134 |
+| +1.2 | Known inclusion IPW | 0.0790 | 0.0709 | 0.3131 |
+| +1.2 | Estimated degree-1 IPW | 0.1182 | 0.1123 | 0.3131 |
+| +1.2 | Estimated degree-2 IPW | 0.1304 | 0.1215 | 0.3132 |
+
+Interpretation:
+
+- At factors 0.03 and 0.05, known-inclusion IPW improved density recovery relative to catalogue-only in all three tested curvature scenarios.
+- Estimated inclusion was less accurate than known inclusion, as expected with finite validation. In the (gamma=+1.2) scenario, both estimated models were worse than catalogue-only at these settings; this is a useful candidate failure condition, but only a 20-replicate pilot.
+- At factor 0.80, every arm had IAE around 0.31, and differences between catalogue-only, known, and estimated IPW were almost completely erased by smoothing.
+- The lower IAE at factor 0.03/0.05 does not establish those as universally optimal bandwidths. They must be evaluated on held-out seeds and alternative parent laws.
+
+This directly demonstrates that the current factor-0.8 smoothing choice can mask the very IPW differences the project is designed to measure. A density-recovery bandwidth audit is therefore a prerequisite, not a cosmetic sensitivity check.
