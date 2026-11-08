@@ -68,6 +68,37 @@ jobs:
         run: python -m pytest tests/test_inclusion_posterior_calibration.py -q
       - name: Validate calibration runner command-line interface
         run: python scripts/run_inclusion_posterior_calibration.py --help
+      - name: Run and verify tiny conditional H0 PIT and fixed-truth calibration orchestration (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python scripts/run_inclusion_posterior_calibration.py \
+            --replicates 1 \
+            --experiments H0_PIT_FIXED_INCLUSION_TRUTH,FIXED_TRUTH \
+            --floors 0.0 \
+            --validation-sizes 80 \
+            --n-validation-frame 500 \
+            --n-parent 800 --n-detected 3 \
+            --orders 3,5,7,9 --h0-points 21 \
+            --density-tolerance 0.01 --quantile-tolerance 0.5 \
+            --consecutive-passes 1 \
+            --output-dir artifacts/inclusion_posterior_calibration_smoke
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path("artifacts/inclusion_posterior_calibration_smoke")
+          planned = pd.read_csv(root / "planned_cells.csv")
+          ledger = pd.read_csv(root / "replicate_ledger.csv")
+          summary = json.loads((root / "calibration_summary.json").read_text())
+          assert len(planned) == 2
+          assert len(ledger) == 2
+          assert summary["planned_cells"] == 2
+          assert summary["attempted"] == 2
+          assert set(ledger["status"]) <= {"SUCCESS", "NON_EVALUABLE"}
+          assert (ledger["audit_status"] == "PASS").all()
+          assert summary["pit_estimand"].startswith("H0 prior-predictive PIT")
+          PY
       - name: Test independent finite-validation raw-record auditor
         run: python -m pytest tests/test_audit_finite_validation_probability_benchmark.py -q
       - name: Run paired finite-validation inclusion-probability smoke benchmark
@@ -204,5 +235,6 @@ jobs:
             artifacts/finite_validation_probability_pilot/
             artifacts/finite_validation_density_recovery_smoke/
             artifacts/independent_validation_inclusion_h0_smoke/
+            artifacts/inclusion_posterior_calibration_smoke/
           if-no-files-found: error
 
