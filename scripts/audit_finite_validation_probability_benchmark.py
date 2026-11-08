@@ -44,7 +44,7 @@ def _weight_stats(probability: np.ndarray) -> dict[str, float]:
 def audit(summary_path: Path, raw_path: Path, tolerance: float = 1e-10) -> dict:
     summary = pd.read_csv(summary_path)
     raw = pd.read_csv(raw_path)
-    required_summary = set(KEYS + ["fit_status", "n_parent"] + METRICS)
+    required_summary = set(KEYS + ["fit_status", "n_parent", "n_analysis_catalogue"] + METRICS)
     required_raw = set(KEYS + [
         "record_type", "object_id", "redshift", "retained", "p_true", "p_hat"
     ])
@@ -79,6 +79,10 @@ def audit(summary_path: Path, raw_path: Path, tolerance: float = 1e-10) -> dict:
             raise ValueError(f"{key}: expected {expected_n} non-validation units, got {len(units)}")
         if units["object_id"].nunique() != expected_n:
             raise ValueError(f"{key}: object IDs are not unique")
+        if ((units["object_id"] < 0) | (units["object_id"] >= int(row.n_parent))).any():
+            raise ValueError(f"{key}: object ID outside parent-frame range")
+        if int(retained.sum()) != int(row.n_analysis_catalogue):
+            raise ValueError(f"{key}: retained holdout count differs from analysis-catalogue size")
         if not np.all(np.isfinite(units["p_true"])):
             raise ValueError(f"{key}: missing simulation truth probabilities")
         retained = units["retained"].to_numpy(dtype=int) == 1
