@@ -178,6 +178,29 @@ def _refresh_unit_manifest(tmp_path):
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
 
 
+def test_auditor_allows_subtolerance_csv_float_roundtrip(tmp_path):
+    attempts, units, summary = run_density_recovery_benchmark(
+        n_replicates=1, n_parent=1200, seed=20261110,
+        gamma_values=(0.0,), retention_values=(0.50,),
+        validation_sizes=(100,), degrees=(1,),
+        bandwidth_multipliers=(0.15,), grid_points=201,
+    )
+    write_artifacts(attempts, units, summary, tmp_path)
+    path = tmp_path / "parent_units.csv"
+    frame = pd.read_csv(path)
+    margin = np.abs(
+        frame["retention_uniform"].to_numpy(dtype=float)
+        - frame["true_inclusion_probability"].to_numpy(dtype=float)
+    )
+    idx = int(np.flatnonzero(margin > 1e-8)[0])
+    original = float(frame.loc[idx, "retention_uniform"])
+    frame.loc[idx, "retention_uniform"] = np.nextafter(original, 1.0)
+    frame.to_csv(path, index=False)
+    _refresh_unit_manifest(tmp_path)
+    report = audit_artifact(tmp_path)
+    assert report["status"] == "PASS"
+
+
 def test_auditor_rejects_reused_or_tampered_retention_rng_stream(tmp_path):
     attempts, units, summary = run_density_recovery_benchmark(
         n_replicates=1, n_parent=1200, seed=20261108,
