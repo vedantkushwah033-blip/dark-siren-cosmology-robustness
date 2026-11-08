@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "experiment": "finite_validation_probability_stage",
+  "scope": "synthetic_low_z_euclidean_only",
+  "n_parent": 4000,
+  "redshift_min": 0.01,
+  "redshift_max": 0.4,
+  "validation_sizes": [
+    100,
+    300,
+    1000
+  ],
+  "curvature_values": [
+    -2,
+    -1.2,
+    0,
+    1.2,
+    2
+  ],
+  "model_degrees": [
+    1,
+    2
+  ],
+  "replicates": 30,
+  "seed": 20261108,
+  "validation_design": "simple_random_sample_without_replacement_from_full_parent_before_retention",
+  "validation_excluded_from_analysis_catalogue": true,
+  "truth_probabilities": "scoring_only_not_passed_to_fitter",
+  "attempt_statuses": [
+    "SUCCESS",
+    "NON_EVALUABLE",
+    "FAILED",
+    "NOT_RUN"
+  ],
+  "claim_limit": "pilot_probability_and_weight_diagnostics_only_no_H0_claim",
+  "storage": "one raw unit record per parent object per fit arm; estimate artifact size before increasing replicates"
+}
