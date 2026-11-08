@@ -75,3 +75,18 @@ After adding the damped-Newton fallback and its regression test:
 - For the other 448 groups, the maximum absolute difference between updated predictions and the predictions stored by the original pilot was (6.68\times10^{-9}).
 
 This is a targeted local verification of the estimator module and the 450 pilot validation subsets. It is **not** a full repository test-suite run, a rerun of the benchmark/auditor pipeline, or GitHub Actions validation of the new commits. The original artifact's independent audit remains valid for the original BFGS outputs; a new full workflow artifact is still required to verify the modified source end to end.
+
+
+## Exploratory reliability-bin calibration (post-hoc raw-record analysis)
+
+I additionally calculated equal-frequency, 10-bin reliability diagnostics from the 448 successful groups in the downloaded raw artifact. The auditor's independent reconstruction algorithm was separately checked against the scoring implementation on all 448 groups.
+
+| Validation size | Mean 10-bin ECE | Mean maximum bin gap |
+|---:|---:|---:|
+| 100 | 0.0562 | 0.1213 |
+| 300 | 0.0370 | 0.0798 |
+| 1,000 | 0.0238 | 0.0553 |
+
+These descriptive values decrease with validation size in this pilot. ECE is binning-dependent and sample-dependent; five replicates per cell are not enough to establish a general calibration law. It is also not H0 posterior calibration.
+
+The current branch now adds these reliability-bin metrics to the next probability-stage summary and independently recomputes them from raw held-out labels/predictions in the auditor. The corresponding diagnostics tests were added. **These latest calibration-metric source changes have not yet been run through the full repository suite or GitHub Actions.**
