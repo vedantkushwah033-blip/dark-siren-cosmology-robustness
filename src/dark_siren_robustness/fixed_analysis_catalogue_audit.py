@@ -42,6 +42,40 @@ def _kde(grid,sample,prob,h,merger):
  factor=h*neff**(-.2)
  raw=gaussian_kde(aug,weights=aw,bw_method=lambda k:factor)(grid)*merger
  return raw/trapezoid(raw,grid)
+def _manual_gaussian_kde(grid, sample, prob, multiplier, merger):
+ """Direct weighted Gaussian-kernel sum, independent of scipy.gaussian_kde."""
+ sample = np.asarray(sample, dtype=float)
+ if sample.ndim != 1 or sample.size < 2:
+  raise AssertionError("Manual KDE requires at least two sample values")
+ weights = np.ones(sample.size, dtype=float) if prob is None else 1.0 / np.asarray(prob, dtype=float)
+ if weights.shape != sample.shape or not np.all(np.isfinite(weights)) or np.any(weights <= 0):
+  raise AssertionError("Manual KDE received invalid inverse-inclusion weights")
+ scaled = weights / np.max(weights)
+ effective_n = float(np.sum(scaled) ** 2 / np.sum(scaled ** 2))
+ augmented = np.concatenate((sample, 2.0 * grid[0] - sample, 2.0 * grid[-1] - sample))
+ augmented_weights = np.tile(scaled / 3.0, 3)
+ probability = augmented_weights / np.sum(augmented_weights)
+ mean = float(probability @ augmented)
+ variance_denominator = 1.0 - float(probability @ probability)
+ if not np.isfinite(variance_denominator) or variance_denominator <= 0:
+  raise AssertionError("Manual KDE weighted covariance is undefined")
+ variance = float(np.sum(probability * (augmented - mean) ** 2) / variance_denominator)
+ bandwidth = float(multiplier) * effective_n ** (-0.2) * np.sqrt(variance)
+ if not np.isfinite(bandwidth) or bandwidth <= 0:
+  raise AssertionError("Manual KDE bandwidth is invalid")
+ raw = np.empty(grid.size, dtype=float)
+ normalizer = np.sqrt(2.0 * np.pi) * bandwidth
+ for start in range(0, grid.size, 128):
+  stop = min(start + 128, grid.size)
+  standardized = (grid[start:stop, None] - augmented[None, :]) / bandwidth
+  raw[start:stop] = np.exp(-0.5 * standardized ** 2) @ probability / normalizer
+ weighted = raw * np.asarray(merger, dtype=float)
+ area = float(trapezoid(weighted, grid))
+ if not np.isfinite(area) or area <= 0:
+  raise AssertionError("Manual KDE normalization failed")
+ return weighted / area
+
+
 def audit_fixed_catalogue_artifact(path):
  path=Path(path)
  a=pd.read_csv(path/"attempt_metrics.csv");u=pd.read_csv(path/"frame_units.csv")
@@ -111,6 +145,9 @@ def audit_fixed_catalogue_artifact(path):
           float(x.bandwidth_multiplier),int(x.degree),str(x.arm)) for x in a.itertuples()}
  if actual!=expected: raise AssertionError(f"Attempt design mismatch: missing={len(expected-actual)}, extra={len(actual-expected)}")
  checked=0
+ manual_checks={}
+ manual_validation=min(int(value) for value in s["validation_sizes"])
+ manual_bandwidth=min(float(value) for value in s["bandwidth_multipliers"])
  for row in a.itertuples():
   k=(int(row.replicate),float(row.gamma),float(row.target_retention))
   af,vf=groups[k];az=af.redshift.to_numpy(float);ay=af.retained.to_numpy(int)
@@ -145,6 +182,15 @@ def audit_fixed_catalogue_artifact(path):
   density=np.asarray(json.loads(row.density_json),float)
   rebuilt=_kde(grid,sample,prob,float(row.bandwidth_multiplier),merger)
   if not np.allclose(density,rebuilt,rtol=2e-8,atol=2e-8): raise AssertionError("KDE reconstruction mismatch")
+  if (int(row.replicate)==0 and int(row.n_validation)==manual_validation
+      and np.isclose(float(row.bandwidth_multiplier),manual_bandwidth)):
+   check_key=(float(row.gamma),str(row.arm))
+   if check_key not in manual_checks:
+    direct=_manual_gaussian_kde(grid,sample,prob,float(row.bandwidth_multiplier),merger)
+    max_error=float(np.max(np.abs(density-direct)))
+    if not np.allclose(density,direct,rtol=2e-10,atol=2e-10):
+     raise AssertionError("Independent direct Gaussian-kernel spot check mismatch")
+    manual_checks[check_key]=max_error
   iae=float(trapezoid(abs(density-truth),grid))
   if not np.isclose(iae,row.iae,rtol=2e-8,atol=2e-8): raise AssertionError("IAE mismatch")
   if int(row.n_analysis_catalogue)!=len(cat): raise AssertionError("Analysis catalogue count changed across n")
@@ -204,8 +250,12 @@ def audit_fixed_catalogue_artifact(path):
   if not np.isclose(v,s["success_rate_by_arm"][k]): raise AssertionError("Success rate mismatch")
  return {"status":"PASS","design":s["design"],"checked_rng_stream_sets":len(expected_frames),
   "checked_frame_scenarios":len(groups),"checked_density_estimates":checked,"attempt_count":len(a),"status_counts":counts,
+  "manual_gaussian_kde_crosschecks":len(manual_checks),
+  "manual_max_density_abs_difference":max(manual_checks.values()) if manual_checks else None,
+  "manual_crosscheck_cells":[{"gamma":key[0],"arm":key[1],"max_abs_difference":value}
+   for key,value in sorted(manual_checks.items())],
   "limitations":["Synthetic density recovery only; no H0 posterior calibration.",
-   "Shares SciPy gaussian_kde primitive with production KDE implementation.",
+   "Bulk KDE reconstruction uses SciPy gaussian_kde; one deterministic direct Gaussian-kernel cross-check is run per curvature-by-arm cell.",
    "Independent validation frame assumes complete binary retention-label ascertainment."]}
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument("--artifact-dir",type=Path,required=True)
