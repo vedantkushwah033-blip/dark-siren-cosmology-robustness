@@ -67,13 +67,17 @@ def run_probability_validation_benchmark(
 
     rows = []
     raw_rows = []
-    for gamma_index, gamma in enumerate(gammas):
-        for replicate in range(replicates):
-            scenario_seed = int(seed + 10007 * gamma_index + replicate * 1009)
-            rng = np.random.default_rng(scenario_seed)
-            z, z_grid, intensity = _draw_parent_redshifts(n_parent, rng)
+    # Common random numbers across curvature scenarios: each replicate uses
+    # one parent frame and one vector of retention uniforms for every gamma.
+    for replicate in range(replicates):
+        scenario_seed = int(seed + replicate * 1009)
+        rng = np.random.default_rng(scenario_seed)
+        z, z_grid, intensity = _draw_parent_redshifts(n_parent, rng)
+        retention_uniform = rng.random(n_parent)
+
+        for gamma in gammas:
             p_true = _true_inclusion_probability(z, gamma, z_grid, intensity)
-            retained = rng.binomial(1, p_true)
+            retained = (retention_uniform < p_true).astype(np.int8)
             parent = pd.DataFrame({
                 "object_id": np.arange(n_parent, dtype=np.int64),
                 "redshift": z,
