@@ -41,3 +41,10 @@ The importance sampler's weights are self-normalized. Zero-valued normalized wei
 - Prior sensitivity (candidate scales 0.75, 1.0, 1.5) remains mandatory.
 - Redshift-grid and H0-grid convergence must be established before fixed-truth coverage or SBC.
 - The fixed-count toy selection rule is not a real GW detector model.
+
+
+## Additional resource and support guards
+
+The propagation function now rejects redshift grids that do not span the complete fixed prior domain. It also estimates the memory needed for the returned density, unconditional-likelihood, beta, and selected-likelihood draw arrays before allocation. The default one-gigabyte guard fails early with an actionable message rather than risking an uncontrolled allocation; callers can reduce proposal draws or grid resolution and must still establish Monte Carlo/grid convergence separately.
+
+A regression test covers both the full-domain requirement and the pre-allocation memory guard.
