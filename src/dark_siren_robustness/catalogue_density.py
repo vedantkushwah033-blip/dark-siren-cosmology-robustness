@@ -58,8 +58,17 @@ def estimate_host_density(
     right = 2.0 * grid[-1] - sample
     augmented_sample = np.concatenate((sample, left, right))
     augmented_weights = np.tile(weights / 3.0, 3)
+    if bandwidth_factor is None:
+        # Splitting each original weight over its three reflected copies changes
+        # scipy's augmented-sample neff by a factor of three. Preserve the
+        # original weighted-sample Scott factor instead of shrinking bandwidth
+        # merely because each observation was reflected twice.
+        original_neff = float(np.sum(weights) ** 2 / np.sum(weights ** 2))
+        bw_method = lambda _kde: original_neff ** (-1.0 / 5.0)
+    else:
+        bw_method = bandwidth_factor
     kde = gaussian_kde(
-        augmented_sample, weights=augmented_weights, bw_method=bandwidth_factor
+        augmented_sample, weights=augmented_weights, bw_method=bw_method
     )
     galaxy_density = np.asarray(kde(grid), dtype=float)
 
