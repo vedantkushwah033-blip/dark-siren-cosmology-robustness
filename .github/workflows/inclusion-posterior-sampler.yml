@@ -8,8 +8,10 @@ on:
       - .github/workflows/inclusion-posterior-sampler.yml
       - src/dark_siren_robustness/inclusion_posterior.py
       - src/dark_siren_robustness/bayesian_inclusion.py
+      - src/dark_siren_robustness/finite_validation_h0.py
       - tests/test_inclusion_posterior.py
       - tests/test_bayesian_inclusion.py
+      - tests/test_finite_validation_h0.py
       - tests/test_finite_validation_h0_marginalization.py
       - src/dark_siren_robustness/finite_validation_h0_marginalization.py
   pull_request:
