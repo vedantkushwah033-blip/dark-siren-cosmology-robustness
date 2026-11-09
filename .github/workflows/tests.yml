@@ -219,6 +219,7 @@ jobs:
           python scripts/run_catalogue_thinning_audit.py --n-parent 40000 --seed 20261028 --output-dir artifacts/catalogue_thinning
           python scripts/audit_catalogue_thinning_audit.py artifacts/catalogue_thinning
       - name: Upload numerical diagnostic results
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: numerical-diagnostics-py${{ matrix.python-version }}
@@ -241,5 +242,5 @@ jobs:
             artifacts/finite_validation_density_recovery_smoke/
             artifacts/independent_validation_inclusion_h0_smoke/
             artifacts/inclusion_posterior_calibration_smoke/
-          if-no-files-found: error
+          if-no-files-found: warn
 
