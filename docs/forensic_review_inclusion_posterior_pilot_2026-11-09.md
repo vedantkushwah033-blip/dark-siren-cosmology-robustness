@@ -133,3 +133,12 @@ The most defensible possible contribution is an independently audited comparison
 ## Immediate next action
 
 Retrieve and inspect the raw artifact for run 42505936771, resolve the failed replicate's cause without deleting or replacing its attempt, and upgrade the independent auditor so it reconstructs the likelihood and posterior from raw inputs. Only after those steps should the matched five-arm H0-grid-converged pilot be expanded.
+
+
+## Integration and branch-stack finding
+
+The reviewed PR is not based directly on `main`. PR #38 targets `research/independent-posterior-audit-claim-fix` (PR #26), and PR #26 itself targets `experiment/catalogue-density-estimators`. PR #37 also targets the PR #26 branch. Therefore, PR #38's passing CI and implementation must not be described as integrated into the default branch. Its PR metadata currently reports `mergeable=false`; this is a further reason not to merge or retarget it without a deliberate stack reconciliation.
+
+The current default branch is `main` at `690f8970ec53271377a3d245ee6011b91083307e`. The default-branch README describes the broader synthetic framework and explicitly says it is not a complete observational inference pipeline. The new finite-validation probability benchmark is present in recent default-branch commits, but the inclusion-posterior quadrature and shared-inclusion H0 modules inspected here are on PR #38's research branch. The repository therefore has a branch-integration problem in addition to the scientific validation gaps.
+
+**Required integration procedure:** first compare the PR #26 base branch with current `main`, identify the minimal dependency set for PR #38, reconcile overlapping changes, and run the full CI matrix on a single integration branch. Keep all draft PRs unmerged until that integration branch has passed code review, independent tests, and the stated scientific release gates.
