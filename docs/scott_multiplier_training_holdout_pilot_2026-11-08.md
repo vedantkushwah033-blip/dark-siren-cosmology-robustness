@@ -1,5 +1,8 @@
 # Training/held-out Scott-multiplier bandwidth pilot
 
+> **Methodology status update (2026-11-09): SUPERSEDED PENDING RERUN.** The Scott-multiplier training/holdout pilot used the earlier reflected-sample covariance convention. Its bandwidth selection and held-out IAE values therefore do not validate the documented original-sample physical Scott bandwidth. Draft PR #39 corrects that convention; rerun the training/holdout selection with the corrected estimator and independent reconstruction before reusing the selected multiplier or any reported performance comparison. Results below are retained for provenance only.
+
+
 **Date:** 2026-11-08  
 **Status:** isolated local pilot; not a repository benchmark, not CI-verified, not confirmatory  
 **Scope:** synthetic parent-host density recovery only; no H0 likelihood or real survey.
