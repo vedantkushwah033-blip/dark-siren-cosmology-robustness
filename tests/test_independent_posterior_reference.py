@@ -91,7 +91,7 @@ def test_reference_posterior_matches_independent_tensor_legendre_integral():
         prior_sd=prior_sd,
         center=center,
         scale=scale,
-        order=19,
+        order=31,
     )
 
     # Independent tensor Gauss-Legendre integration in standardized prior
