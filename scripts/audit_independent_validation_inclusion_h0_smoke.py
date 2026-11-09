@@ -207,10 +207,12 @@ def audit(artifact_dir: Path) -> dict[str, object]:
         if not np.isclose(np.trapezoid(values, h0), 1.0, rtol=1e-8, atol=1e-8):
             raise AssertionError(f"H0 posterior at order {order} is not normalized")
 
-    # Reconstruct each shared-node selected likelihood from observable inputs.
-    # The inclusion quadrature is regenerated with the production fitter; the
-    # event-mixture and one-sided beta calculations below are independently
-    # implemented here rather than calling the production likelihood function.
+    # Reconstruct the validation posterior and each shared-node selected
+    # likelihood from raw observable inputs. The coefficient posterior is
+    # rebuilt by a separate BFGS reference implementation in
+    # independent_posterior_reference.py; it does not call the production
+    # inclusion-posterior fitter. Event-mixture and beta calculations are also
+    # implemented directly below rather than calling production likelihoods.
     from scipy.special import log_ndtr, logsumexp
     from scipy.stats import norm
     from dark_siren_robustness.dataset_likelihood import C_KM_S
