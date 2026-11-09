@@ -79,9 +79,25 @@ def test_reflection_does_not_artificially_triple_effective_sample_size():
     augmented = np.concatenate((sample, 2 * grid[0] - sample, 2 * grid[-1] - sample))
     augmented_weights = np.tile(weights / 3.0, 3)
     original_neff = np.sum(weights) ** 2 / np.sum(weights ** 2)
+    original_probability = weights / np.sum(weights)
+    original_mean = float(original_probability @ sample)
+    original_denom = 1.0 - float(original_probability @ original_probability)
+    original_variance = float(
+        np.sum(original_probability * (sample - original_mean) ** 2)
+        / original_denom
+    )
+    augmented_probability = augmented_weights / np.sum(augmented_weights)
+    augmented_mean = float(augmented_probability @ augmented)
+    augmented_denom = 1.0 - float(augmented_probability @ augmented_probability)
+    augmented_variance = float(
+        np.sum(augmented_probability * (augmented - augmented_mean) ** 2)
+        / augmented_denom
+    )
+    adjusted_factor = original_neff ** (-1.0 / 5.0) * np.sqrt(
+        original_variance / augmented_variance
+    )
     reference_kde = gaussian_kde(
-        augmented, weights=augmented_weights,
-        bw_method=original_neff ** (-1.0 / 5.0),
+        augmented, weights=augmented_weights, bw_method=adjusted_factor,
     )
     reference = reference_kde(grid)
     reference /= trapezoid(reference, grid)
