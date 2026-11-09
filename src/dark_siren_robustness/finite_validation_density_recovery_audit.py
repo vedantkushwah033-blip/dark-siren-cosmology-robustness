@@ -80,7 +80,23 @@ def _independent_kde(grid, sample, probability, multiplier, merger):
     augmented=np.concatenate((sample,2*grid[0]-sample,2*grid[-1]-sample))
     augmented_weights=np.tile(scaled/3.0,3)
     neff=float(np.sum(scaled)**2/np.sum(scaled**2))
-    factor=float(multiplier)*neff**(-1.0/5.0)
+    original_probability=scaled/np.sum(scaled)
+    original_mean=float(original_probability@sample)
+    original_denom=1.0-float(original_probability@original_probability)
+    original_variance=float(
+        np.sum(original_probability*(sample-original_mean)**2)/original_denom
+    )
+    augmented_probability=augmented_weights/np.sum(augmented_weights)
+    augmented_mean=float(augmented_probability@augmented)
+    augmented_denom=1.0-float(augmented_probability@augmented_probability)
+    augmented_variance=float(
+        np.sum(augmented_probability*(augmented-augmented_mean)**2)/augmented_denom
+    )
+    if min(original_variance,augmented_variance)<=0:
+        raise AssertionError("Independent KDE covariance is undefined")
+    factor=float(multiplier)*neff**(-1.0/5.0)*np.sqrt(
+        original_variance/augmented_variance
+    )
     kde=gaussian_kde(augmented,weights=augmented_weights,bw_method=lambda _kde:factor)
     raw=np.asarray(kde(grid))*merger
     return raw/trapezoid(raw,grid)
@@ -99,12 +115,18 @@ def _manual_gaussian_kde(grid, sample, probability, multiplier, merger):
     augmented=np.concatenate((sample,2.0*grid[0]-sample,2.0*grid[-1]-sample))
     augmented_weights=np.tile(scaled/3.0,3)
     probability_aug=augmented_weights/np.sum(augmented_weights)
-    mean=float(probability_aug@augmented)
     denominator=1.0-float(probability_aug@probability_aug)
     if not np.isfinite(denominator) or denominator<=0:
         raise AssertionError("Manual KDE weighted covariance is undefined")
-    variance=float(np.sum(probability_aug*(augmented-mean)**2)/denominator)
-    bandwidth=float(multiplier)*neff**(-0.2)*np.sqrt(variance)
+    original_probability=scaled/np.sum(scaled)
+    original_mean=float(original_probability@sample)
+    original_denominator=1.0-float(original_probability@original_probability)
+    if not np.isfinite(original_denominator) or original_denominator<=0:
+        raise AssertionError("Original-sample weighted covariance is undefined")
+    original_variance=float(
+        np.sum(original_probability*(sample-original_mean)**2)/original_denominator
+    )
+    bandwidth=float(multiplier)*neff**(-0.2)*np.sqrt(original_variance)
     if not np.isfinite(bandwidth) or bandwidth<=0:
         raise AssertionError("Manual KDE bandwidth is invalid")
     raw=np.empty(grid.size,dtype=float)
