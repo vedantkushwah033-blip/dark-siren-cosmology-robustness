@@ -105,3 +105,51 @@ Mean IAE on the alternative parent law:
 At multiplier 0.15, the paired known-IPW minus catalogue-only IAE difference was -0.4194 (50 seeds; percentile-bootstrap 95% interval [-0.4258, -0.4127]); known-IPW minus oracle was +0.0287 (95% interval [0.0254, 0.0321]).
 
 The frozen 0.15 candidate remained best among these three tested values for oracle and known-IPW density recovery under this alternative parent law. Catalogue-only again preferred a broader setting. This is encouraging but not a universal bandwidth result: only two parent laws, one inclusion curve, one parent size and three candidate multipliers have been examined.
+
+
+## Repository-native corrected-bandwidth rerun protocol (pre-registration)
+
+This section supersedes the isolated local numerical results above as the operational plan. It is a protocol, not a report of completed runs. The corrected reflected-KDE implementation is available on draft PR #39 at commit `a657333f47048bc9ace3bf273cb78beabe798c5c`; its exact-head Python 3.10/3.11/3.12 CI matrix passed. The rerun must use that implementation and its independent auditor.
+
+### Phase A: frozen training and held-out partitions
+
+- Invoke the repository-native `run_density_recovery_benchmark`; do not use the old local mirror.
+- Parent size: 4,000; redshift support: [0.01, 0.40]; density grid: 801 points.
+- DGP: the runner's declared two-overdensity parent intensity, merger weight, calibrated inclusion intercept, and gamma values -1.2, 0, +1.2 at retention 0.25.
+- Nested validation sizes: 100, 300, 1,000; fitted inclusion degrees: 1 and 2.
+- Candidate physical Scott multipliers: 0.15, 0.40, 1.00. Treat all as unselected candidates before training.
+- Training root seeds: 11,000–11,049 (50 independent replicates).
+- Held-out root seeds: 21,000–21,049 (50 disjoint independent replicates).
+- Preserve the runner's SeedSequence stream protocol. The independent auditor must reconstruct the raw parent frames and all candidate densities from each partition.
+
+### Phase B: common-bandwidth selection rule
+
+Use a single common multiplier across all arms; never optimize a separate bandwidth for each arm. The predeclared arms are parent-sample KDE (finite-sample oracle diagnostic), catalogue-only KDE, known-inclusion IPW, estimated degree-1 IPW, and estimated degree-2 IPW. The parent-sample KDE is not an operational comparator.
+
+For each candidate, first compute replicate-mean IAE within each prespecified (gamma, validation-size, reference-arm) cell. Then average the cell means with equal cell weights. The **primary selection objective** is the equal-cell mean over the two simulation-only reference arms: parent-sample KDE and known-inclusion IPW. These are oracle diagnostics available only because this is a synthetic benchmark with a known parent frame and known inclusion probabilities; they are not proposed as operational procedures for real catalogues. This choice prevents the strongly biased catalogue-only arm, or the estimated-inclusion arms under study, from determining the smoothing level used to judge those methods. Report an all-five-arm equal-cell objective and an estimated-IPW-only objective as explicitly secondary sensitivity summaries; neither may replace the primary choice after results are seen.
+
+A candidate is eligible for selection only if every planned training cell in both primary reference arms has all 50 replicate attempts represented and evaluable for that candidate. If any attempt is FAILED, NON_EVALUABLE, or NOT_RUN, do not silently drop it or calculate a successful-only selection score: mark selection blocked, report the complete failure ledger, diagnose the cause, and rerun under a new documented protocol/version if necessary. The selected multiplier is the eligible candidate with the smallest primary equal-cell objective; ties within numerical tolerance are resolved in favour of the broader multiplier. Freeze the selected value and the full candidate table before opening held-out summaries.
+
+### Phase C: held-out evaluation
+
+Evaluate all three candidate multipliers on the untouched held-out seeds, while clearly labelling the training-selected multiplier. Do not reselect, retune, or change the candidate set using held-out outcomes. Report per-cell mean IAE, paired replicate contrasts, Monte Carlo standard errors, and paired intervals for:
+- estimated degree-1 IPW minus catalogue-only;
+- estimated degree-2 IPW minus catalogue-only;
+- known-inclusion IPW minus catalogue-only;
+- each estimated-IPW arm minus known-inclusion IPW.
+
+Report all attempt states and planned denominators alongside conditional paired accuracy. A conditional paired contrast is not a replacement for the attempt-level failure rate. Preserve the disjoint-validation interpretation: increasing validation size also reduces the analysis-catalogue size, so this design combines validation information with fewer available analysis hosts. Do not describe its size trend as a pure validation-information effect.
+
+### Phase D: independent audit and decision gate
+
+The auditor must independently verify:
+1. non-overlapping train/held-out seed ranges and the declared RNG streams;
+2. complete planned design keys, raw parent partitions, nested validation ranks, and catalogue/validation disjointness;
+3. truth probabilities, calibrated intercepts, fitted inclusion probabilities, and weight diagnostics;
+4. corrected original-sample physical Scott bandwidth and every candidate density reconstruction;
+5. attempt statuses, complete denominators, equal-cell training objective, selected multiplier, and frozen held-out evaluation;
+6. artifact byte counts and SHA-256 hashes.
+
+The auditor must not import the production runner, fitter, or KDE estimator. A PASS establishes artifact and arithmetic integrity only. It does not establish H0 posterior calibration, a causal effect of validation size, or superiority of estimated IPW.
+
+**Stop rule:** do not launch a large confirmatory run or interpret the superseded positive-curvature failure regime until the corrected training/held-out density study passes its independent audit. Only then proceed to a separately designed H0-stage experiment with grid convergence and fixed-truth calibration/coverage audits.
