@@ -141,9 +141,34 @@ def fit_inclusion_posterior_quadrature(
         method="trust-exact", options={"maxiter": max_iterations, "gtol": 1e-10},
     )
     mode = np.asarray(result.x, dtype=float)
-    score_norm = float(np.linalg.norm(gradient(mode), ord=np.inf))
+    score_norm = (
+        float(np.linalg.norm(gradient(mode), ord=np.inf))
+        if np.all(np.isfinite(mode)) else float("inf")
+    )
+    # trust-exact can stop with "bad approximation" after reaching a mode
+    # whose score is just above the strict acceptance threshold. Retry from
+    # that point with a line-search method before classifying the replicate as
+    # failed; the exact Hessian is still recomputed below for the Laplace
+    # proposal. This is a numerical fallback, not a change to the posterior.
+    if not np.isfinite(score_norm) or score_norm > 1e-6:
+        fallback = minimize(
+            objective, mode if np.all(np.isfinite(mode)) else mu.copy(),
+            jac=gradient, method="L-BFGS-B",
+            options={"maxiter": max_iterations, "ftol": 1e-15, "gtol": 1e-10, "maxls": 50},
+        )
+        fallback_mode = np.asarray(fallback.x, dtype=float)
+        fallback_score = (
+            float(np.linalg.norm(gradient(fallback_mode), ord=np.inf))
+            if np.all(np.isfinite(fallback_mode)) else float("inf")
+        )
+        if np.isfinite(fallback_score) and fallback_score < score_norm:
+            mode, score_norm = fallback_mode, fallback_score
+            result = fallback
     if not np.all(np.isfinite(mode)) or not np.isfinite(score_norm) or score_norm > 1e-6:
-        raise ArithmeticError(f"posterior mode did not converge: {result.message}; score={score_norm}")
+        raise ArithmeticError(
+            f"posterior mode did not converge after trust-exact/L-BFGS-B: "
+            f"{result.message}; score={score_norm}"
+        )
     information = hessian(mode)
     eigenvalues = np.linalg.eigvalsh(information)
     if not np.all(np.isfinite(eigenvalues)) or np.min(eigenvalues) <= 0:
