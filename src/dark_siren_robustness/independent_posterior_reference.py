@@ -103,11 +103,45 @@ def reconstruct_logistic_posterior(
         options={"gtol": 1e-10, "maxiter": 5000},
     )
     mode = np.asarray(result.x, dtype=np.float64)
-    score_norm = float(np.linalg.norm(score(mode), ord=np.inf))
-    if not np.all(np.isfinite(mode)) or not np.isfinite(score_norm) or score_norm > 2e-7:
+    initial_score = float(np.linalg.norm(score(mode), ord=np.inf))
+    if not np.all(np.isfinite(mode)) or not np.isfinite(initial_score) or initial_score > 1e-4:
         raise ArithmeticError(
-            f"independent BFGS mode failed score check: success={result.success}, "
-            f"message={result.message}, score_inf={score_norm:.6g}"
+            f"independent BFGS mode failed preliminary score check: "
+            f"success={result.success}, message={result.message}, "
+            f"score_inf={initial_score:.6g}"
+        )
+
+    # Polish the independently found BFGS mode with full Newton steps. This
+    # reduces solver-specific mode differences before comparing archived
+    # production nodes, while keeping the reference optimization path distinct.
+    for _ in range(20):
+        p = expit(design @ mode)
+        information_now = (
+            design.T @ ((p * (1.0 - p))[:, None] * design)
+            + np.diag(precision)
+        )
+        current_score = score(mode)
+        if np.linalg.norm(current_score, ord=np.inf) <= 5e-13:
+            break
+        step = np.linalg.solve(information_now, current_score)
+        old_value = negative_log_posterior(mode)
+        fraction = 1.0
+        accepted = False
+        while fraction >= 2.0**-20:
+            candidate = mode - fraction * step
+            if negative_log_posterior(candidate) <= old_value:
+                mode = candidate
+                accepted = True
+                break
+            fraction *= 0.5
+        if not accepted:
+            break
+
+    score_norm = float(np.linalg.norm(score(mode), ord=np.inf))
+    if not np.isfinite(score_norm) or score_norm > 1e-9:
+        raise ArithmeticError(
+            f"independent BFGS/Newton mode failed final score check: "
+            f"score_inf={score_norm:.6g}"
         )
 
     probability = expit(design @ mode)
