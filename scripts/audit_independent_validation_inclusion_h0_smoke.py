@@ -214,8 +214,8 @@ def audit(artifact_dir: Path) -> dict[str, object]:
     from scipy.special import log_ndtr, logsumexp
     from scipy.stats import norm
     from dark_siren_robustness.dataset_likelihood import C_KM_S
-    from dark_siren_robustness.inclusion_posterior import (
-        fit_inclusion_posterior_quadrature,
+    from dark_siren_robustness.independent_posterior_reference import (
+        reconstruct_logistic_posterior,
     )
 
     coordinate_config = config["inference"].get("coefficient_coordinates")
@@ -253,14 +253,14 @@ def audit(artifact_dir: Path) -> dict[str, object]:
     node_reconstruction_differences = {}
 
     for order in orders:
-        fit = fit_inclusion_posterior_quadrature(
+        fit = reconstruct_logistic_posterior(
             validation["redshift"].to_numpy(dtype=float),
             validation["retained"].to_numpy(dtype=int),
             degree=int(config["inference"]["degree"]),
             prior_mean=prior_mean,
             prior_sd=prior_sd,
-            coordinate_center=coordinate_center,
-            coordinate_scale=coordinate_scale,
+            center=coordinate_center,
+            scale=coordinate_scale,
             order=int(order),
         )
         x = (z_catalogue - fit.center) / fit.scale
