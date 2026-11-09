@@ -67,3 +67,83 @@ def test_reference_posterior_reconstructs_production_rule(
         rtol=3e-5,
         atol=3e-7,
     )
+
+
+def test_reference_posterior_matches_independent_tensor_legendre_integral():
+    """Compare the Laplace-Hermite rule with a separate prior-coordinate integral."""
+    from scipy.special import expit, logsumexp, roots_legendre
+
+    rng = np.random.default_rng(914207)
+    redshift = rng.uniform(0.01, 0.40, 95)
+    center, scale = 0.205, 0.195
+    x = (redshift - center) / scale
+    design = np.column_stack((np.ones_like(x), x))
+    truth = np.array([-0.35, 0.85])
+    retained = rng.binomial(1, expit(design @ truth))
+    prior_mean = np.array([0.0, 0.0])
+    prior_sd = np.array([3.0, 1.8])
+
+    reference = reconstruct_logistic_posterior(
+        redshift,
+        retained,
+        degree=1,
+        prior_mean=prior_mean,
+        prior_sd=prior_sd,
+        center=center,
+        scale=scale,
+        order=19,
+    )
+
+    # Independent tensor Gauss-Legendre integration in standardized prior
+    # coordinates. This does not use the Laplace proposal or Hermite nodes.
+    abscissa, weights_1d = roots_legendre(260)
+    standardized = 8.0 * abscissa
+    quadrature_weights = 8.0 * weights_1d
+    u0, u1 = np.meshgrid(standardized, standardized, indexing="ij")
+    beta0 = prior_mean[0] + prior_sd[0] * u0
+    beta1 = prior_mean[1] + prior_sd[1] * u1
+    eta = (
+        design[:, 0, None, None] * beta0[None, :, :]
+        + design[:, 1, None, None] * beta1[None, :, :]
+    )
+    log_likelihood = np.sum(
+        retained[:, None, None] * eta - np.logaddexp(0.0, eta),
+        axis=0,
+    )
+    # Standard-normal prior density in u coordinates; the Jacobian cancels
+    # the coefficient-scale factors exactly.
+    log_integrand = (
+        log_likelihood
+        - 0.5 * (u0 * u0 + u1 * u1)
+        - np.log(2.0 * np.pi)
+    )
+    log_measure = (
+        np.log(quadrature_weights[:, None])
+        + np.log(quadrature_weights[None, :])
+    )
+    log_mass = log_integrand + log_measure
+    log_evidence = float(logsumexp(log_mass))
+    normalized_mass = np.exp(log_mass - log_evidence)
+
+    direct_mean = np.array([
+        np.sum(normalized_mass * beta0),
+        np.sum(normalized_mass * beta1),
+    ])
+    centered0 = beta0 - direct_mean[0]
+    centered1 = beta1 - direct_mean[1]
+    direct_covariance = np.array([
+        [
+            np.sum(normalized_mass * centered0 * centered0),
+            np.sum(normalized_mass * centered0 * centered1),
+        ],
+        [
+            np.sum(normalized_mass * centered1 * centered0),
+            np.sum(normalized_mass * centered1 * centered1),
+        ],
+    ])
+
+    np.testing.assert_allclose(reference.log_normalizer, log_evidence, rtol=0, atol=3e-5)
+    np.testing.assert_allclose(reference.posterior_mean, direct_mean, rtol=0, atol=3e-4)
+    np.testing.assert_allclose(
+        reference.posterior_covariance, direct_covariance, rtol=0, atol=5e-4
+    )
