@@ -96,7 +96,7 @@ def test_reference_posterior_matches_independent_tensor_legendre_integral():
 
     # Independent tensor Gauss-Legendre integration in standardized prior
     # coordinates. This does not use the Laplace proposal or Hermite nodes.
-    abscissa, weights_1d = roots_legendre(260)
+    abscissa, weights_1d = roots_legendre(420)
     standardized = 8.0 * abscissa
     quadrature_weights = 8.0 * weights_1d
     u0, u1 = np.meshgrid(standardized, standardized, indexing="ij")
