@@ -151,9 +151,26 @@ def test_scott_multiplier_uses_original_weighted_sample_effective_size():
         sample, 2.0 * grid[0] - sample, 2.0 * grid[-1] - sample,
     ))
     augmented_weights = np.tile(scaled / 3.0, 3)
+    original_probability = scaled / np.sum(scaled)
+    original_mean = float(original_probability @ sample)
+    original_denom = 1.0 - float(original_probability @ original_probability)
+    original_variance = float(
+        np.sum(original_probability * (sample - original_mean) ** 2)
+        / original_denom
+    )
+    augmented_probability = augmented_weights / np.sum(augmented_weights)
+    augmented_mean = float(augmented_probability @ augmented)
+    augmented_denom = 1.0 - float(augmented_probability @ augmented_probability)
+    augmented_variance = float(
+        np.sum(augmented_probability * (augmented - augmented_mean) ** 2)
+        / augmented_denom
+    )
+    expected_factor = (
+        0.5 * neff ** (-1.0 / 5.0)
+        * np.sqrt(original_variance / augmented_variance)
+    )
     expected_kde = gaussian_kde(
-        augmented, weights=augmented_weights,
-        bw_method=0.5 * neff ** (-1.0 / 5.0),
+        augmented, weights=augmented_weights, bw_method=expected_factor,
     )
     expected = expected_kde(grid)
     expected /= trapezoid(expected, grid)
@@ -162,6 +179,12 @@ def test_scott_multiplier_uses_original_weighted_sample_effective_size():
         scott_multiplier=0.5,
     )
     np.testing.assert_allclose(actual, expected, rtol=1e-12, atol=1e-12)
+
+    # Verify the physical kernel SD, not merely scipy's covariance factor.
+    assert np.sqrt(expected_kde.covariance[0, 0]) == pytest.approx(
+        0.5 * neff ** (-1.0 / 5.0) * np.sqrt(original_variance),
+        rel=1e-12,
+    )
 
 
 def test_absolute_bandwidth_and_scott_multiplier_are_mutually_exclusive():
