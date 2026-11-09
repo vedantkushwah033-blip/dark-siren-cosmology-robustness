@@ -1,5 +1,8 @@
 # Exploratory finite-validation IPW host-density recovery pilot
 
+> **Methodology status update (2026-11-09): SUPERSEDED PENDING RERUN.** The KDE implementation used for the numerical results below computed the Scott covariance scale from the reflected/augmented sample. That does not match the documented physical bandwidth definition based on the original unreflected weighted sample. A correction is under review in draft PR #39. Until the corrected implementation and independent auditor pass CI and this experiment is rerun from raw seeds, the numerical IAE values, paired contrasts, and the candidate positive-curvature failure regime below must not be treated as validated evidence. The design description remains a record of the earlier exploratory protocol; the results are retained for provenance only.
+
+
 **Date:** 2026-11-08  
 **Status:** isolated local pilot; not a repository benchmark, not CI-verified, not confirmatory  
 **Scope:** synthetic parent-host density recovery only; no H0 posterior was computed.
