@@ -424,14 +424,14 @@ def audit(artifact_dir: Path) -> dict[str, object]:
     for multiplier in multipliers:
         scaled_sd = prior_sd.copy()
         scaled_sd[1:] *= multiplier
-        fit = fit_inclusion_posterior_quadrature(
+        fit = reconstruct_logistic_posterior(
             validation["redshift"].to_numpy(dtype=float),
             validation["retained"].to_numpy(dtype=int),
             degree=int(config["inference"]["degree"]),
             prior_mean=prior_mean,
             prior_sd=scaled_sd,
-            coordinate_center=coordinate_center,
-            coordinate_scale=coordinate_scale,
+            center=coordinate_center,
+            scale=coordinate_scale,
             order=int(prior_summary["quadrature_order"]),
         )
         x = (z_catalogue - fit.center) / fit.scale
@@ -511,7 +511,7 @@ def audit(artifact_dir: Path) -> dict[str, object]:
         "quadrature_orders": orders,
         "h0_posterior_normalization_checks": len(orders),
         "independent_selected_likelihood_reconstruction_max_abs_density_differences": node_reconstruction_differences,
-        "likelihood_reconstruction": "shared-node event mixtures and one-sided detection efficiency independently recomputed from observable inputs; quadrature regenerated with production fitter",
+        "likelihood_reconstruction": "shared-node event mixtures, one-sided detection efficiency, and validation coefficient posterior independently reconstructed from observable inputs; production fitter is not called",
         "quadrature_status": convergence["status"],
         "prior_scale_sensitivity_reconstruction_max_abs_density_differences": prior_sensitivity_differences,
         "scientific_claim_limit": "Artifact and arithmetic integrity only; not calibration, SBC, coverage, or real-data validation.",
