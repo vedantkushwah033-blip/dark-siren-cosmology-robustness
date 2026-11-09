@@ -30,8 +30,7 @@ PRIMARY_GAMMA = (-1.2, 0.0, 1.2)
 PRIMARY_RETENTION = 0.25
 PRIMARY_VALIDATION_SIZES = (100, 300, 1000)
 PRIMARY_DEGREES = (1, 2)
-PRIMARY_MULTIPLIER = 0.15
-SENSITIVITY_MULTIPLIERS = (0.40, 1.00)
+DEFAULT_BANDWIDTH_MULTIPLIERS = (0.15, 0.40, 1.00)
 
 def _rng_stream(seed: int, replicate: int, stream_id: int) -> np.random.Generator:
     """Create a reproducible, non-overlapping RNG stream for one design component.
@@ -214,7 +213,7 @@ def run_density_recovery_benchmark(
     retention_values: tuple[float, ...] = (PRIMARY_RETENTION,),
     validation_sizes: tuple[int, ...] = PRIMARY_VALIDATION_SIZES,
     degrees: tuple[int, ...] = PRIMARY_DEGREES,
-    bandwidth_multipliers: tuple[float, ...] = (PRIMARY_MULTIPLIER, *SENSITIVITY_MULTIPLIERS),
+    bandwidth_multipliers: tuple[float, ...] = DEFAULT_BANDWIDTH_MULTIPLIERS,
     grid_points: int = 801,
 ) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     """Run paired density-recovery experiments and retain parent-level raw data.
@@ -435,7 +434,7 @@ def run_density_recovery_benchmark(
         ),
         "limitations": [
             "Synthetic low-redshift density recovery only; no H0 likelihood or posterior coverage.",
-            "The 0.15 Scott multiplier is a frozen candidate from separate exploratory work, not universal.",
+            "The listed Scott multipliers are unselected sensitivity candidates; no preferred multiplier has been validated after the reflected-bandwidth correction.",
             "Parent-sample KDE is a finite-sample diagnostic, not the analytic target.",
             "Model-based inverse-information covariance is not a Bayesian posterior.",
         ],
