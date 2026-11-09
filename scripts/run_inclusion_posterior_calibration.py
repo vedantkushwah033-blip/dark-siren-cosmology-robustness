@@ -491,7 +491,8 @@ def main() -> None:
                             raise
                     ledger.append(row)
                     pd.DataFrame(ledger).to_csv(output / "replicate_ledger.csv", index=False)
-                    print(f"[{attempt}/{planned}] {cell}: {row['status']} ({row['stage']})", flush=True)
+                    detail = f" — {row['error']}" if row["status"] == "FAILED" and row["error"] else ""
+                    print(f"[{attempt}/{planned}] {cell}: {row['status']} ({row['stage']}){detail}", flush=True)
 
     completed_cells = {row["cell_id"] for row in ledger}
     for planned_row in planned_rows:

@@ -207,15 +207,17 @@ def audit(artifact_dir: Path) -> dict[str, object]:
         if not np.isclose(np.trapezoid(values, h0), 1.0, rtol=1e-8, atol=1e-8):
             raise AssertionError(f"H0 posterior at order {order} is not normalized")
 
-    # Reconstruct each shared-node selected likelihood from observable inputs.
-    # The inclusion quadrature is regenerated with the production fitter; the
-    # event-mixture and one-sided beta calculations below are independently
-    # implemented here rather than calling the production likelihood function.
+    # Reconstruct the validation posterior and each shared-node selected
+    # likelihood from raw observable inputs. The coefficient posterior is
+    # rebuilt by a separate BFGS reference implementation in
+    # independent_posterior_reference.py; it does not call the production
+    # inclusion-posterior fitter. Event-mixture and beta calculations are also
+    # implemented directly below rather than calling production likelihoods.
     from scipy.special import log_ndtr, logsumexp
     from scipy.stats import norm
     from dark_siren_robustness.dataset_likelihood import C_KM_S
-    from dark_siren_robustness.inclusion_posterior import (
-        fit_inclusion_posterior_quadrature,
+    from dark_siren_robustness.independent_posterior_reference import (
+        reconstruct_logistic_posterior,
     )
 
     coordinate_config = config["inference"].get("coefficient_coordinates")
@@ -253,14 +255,14 @@ def audit(artifact_dir: Path) -> dict[str, object]:
     node_reconstruction_differences = {}
 
     for order in orders:
-        fit = fit_inclusion_posterior_quadrature(
+        fit = reconstruct_logistic_posterior(
             validation["redshift"].to_numpy(dtype=float),
             validation["retained"].to_numpy(dtype=int),
             degree=int(config["inference"]["degree"]),
             prior_mean=prior_mean,
             prior_sd=prior_sd,
-            coordinate_center=coordinate_center,
-            coordinate_scale=coordinate_scale,
+            center=coordinate_center,
+            scale=coordinate_scale,
             order=int(order),
         )
         x = (z_catalogue - fit.center) / fit.scale
@@ -311,9 +313,9 @@ def audit(artifact_dir: Path) -> dict[str, object]:
         ]
         archived_nodes = quadrature_table[theta_columns].to_numpy(dtype=float)
         archived_weights = quadrature_table["posterior_weight"].to_numpy(dtype=float)
-        if not np.allclose(archived_nodes, fit.nodes, rtol=1e-11, atol=1e-12):
+        if not np.allclose(archived_nodes, fit.nodes, rtol=2e-6, atol=2e-7):
             raise AssertionError(f"archived quadrature nodes differ at order {order}")
-        if not np.allclose(archived_weights, fit.weights, rtol=1e-11, atol=1e-14):
+        if not np.allclose(archived_weights, fit.weights, rtol=2e-5, atol=2e-8):
             raise AssertionError(f"archived quadrature weights differ at order {order}")
 
         archived_likelihood = pd.read_csv(
@@ -342,12 +344,12 @@ def audit(artifact_dir: Path) -> dict[str, object]:
         ].to_numpy(dtype=float).reshape(fit.nodes.shape[0], h0_grid.size)
         if not np.allclose(
             archived_node_selected, node_log_selected,
-            rtol=1e-10, atol=1e-10,
+            rtol=2e-7, atol=2e-7,
         ):
             raise AssertionError(f"archived nodewise selected likelihood differs at order {order}")
         if not np.allclose(
             archived_node_beta, node_log_beta,
-            rtol=1e-10, atol=1e-10,
+            rtol=2e-7, atol=2e-7,
         ):
             raise AssertionError(f"archived nodewise detection efficiency differs at order {order}")
 
@@ -372,7 +374,7 @@ def audit(artifact_dir: Path) -> dict[str, object]:
         ].to_numpy(dtype=float).reshape(fit.nodes.shape[0], h0_grid.size)[0]
         if not np.allclose(
             archived_marginal, marginal_log_likelihood,
-            rtol=1e-10, atol=1e-10,
+            rtol=2e-7, atol=2e-7,
         ):
             raise AssertionError(
                 f"archived marginal log likelihood differs at order {order}"
@@ -384,7 +386,7 @@ def audit(artifact_dir: Path) -> dict[str, object]:
             np.max(np.abs(reconstructed_density - archived_density))
         )
         node_reconstruction_differences[str(order)] = difference
-        if difference >= 2e-8:
+        if difference >= 2e-6:
             raise AssertionError(
                 f"independent selected-likelihood reconstruction mismatch "
                 f"at order {order}: {difference}"
@@ -422,14 +424,14 @@ def audit(artifact_dir: Path) -> dict[str, object]:
     for multiplier in multipliers:
         scaled_sd = prior_sd.copy()
         scaled_sd[1:] *= multiplier
-        fit = fit_inclusion_posterior_quadrature(
+        fit = reconstruct_logistic_posterior(
             validation["redshift"].to_numpy(dtype=float),
             validation["retained"].to_numpy(dtype=int),
             degree=int(config["inference"]["degree"]),
             prior_mean=prior_mean,
             prior_sd=scaled_sd,
-            coordinate_center=coordinate_center,
-            coordinate_scale=coordinate_scale,
+            center=coordinate_center,
+            scale=coordinate_scale,
             order=int(prior_summary["quadrature_order"]),
         )
         x = (z_catalogue - fit.center) / fit.scale
@@ -509,7 +511,7 @@ def audit(artifact_dir: Path) -> dict[str, object]:
         "quadrature_orders": orders,
         "h0_posterior_normalization_checks": len(orders),
         "independent_selected_likelihood_reconstruction_max_abs_density_differences": node_reconstruction_differences,
-        "likelihood_reconstruction": "shared-node event mixtures and one-sided detection efficiency independently recomputed from observable inputs; quadrature regenerated with production fitter",
+        "likelihood_reconstruction": "shared-node event mixtures, one-sided detection efficiency, and validation coefficient posterior independently reconstructed from observable inputs; production fitter is not called",
         "quadrature_status": convergence["status"],
         "prior_scale_sensitivity_reconstruction_max_abs_density_differences": prior_sensitivity_differences,
         "scientific_claim_limit": "Artifact and arithmetic integrity only; not calibration, SBC, coverage, or real-data validation.",
