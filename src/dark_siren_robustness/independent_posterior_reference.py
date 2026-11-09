@@ -125,11 +125,24 @@ def reconstruct_logistic_posterior(
             break
         step = np.linalg.solve(information_now, current_score)
         old_value = negative_log_posterior(mode)
+        old_score_norm = float(np.linalg.norm(current_score, ord=np.inf))
         fraction = 1.0
         accepted = False
-        while fraction >= 2.0**-20:
+        while fraction >= 2.0**-30:
             candidate = mode - fraction * step
-            if negative_log_posterior(candidate) <= old_value:
+            candidate_value = negative_log_posterior(candidate)
+            candidate_score_norm = float(
+                np.linalg.norm(score(candidate), ord=np.inf)
+            )
+            # Near convergence, objective changes can fall below floating-point
+            # resolution even while the Newton step materially reduces the score.
+            # Accept either a genuine objective decrease or a strict score decrease.
+            objective_decreased = candidate_value < old_value
+            score_decreased = (
+                np.isfinite(candidate_score_norm)
+                and candidate_score_norm < old_score_norm * (1.0 - 1e-4 * fraction)
+            )
+            if objective_decreased or score_decreased:
                 mode = candidate
                 accepted = True
                 break
