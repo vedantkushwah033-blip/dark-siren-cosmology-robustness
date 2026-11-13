@@ -110,6 +110,10 @@ def audit(root: Path) -> dict:
     events = pd.read_csv(root / "observable" / "gw_events_observed.csv")
     validation_truth = pd.read_csv(root / "truth" / "validation_frame_truth.csv")
     event_truth = pd.read_csv(root / "truth" / "gw_event_truth.csv")
+    generation_trace = pd.read_csv(root / "truth" / "gw_generation_trace_truth.csv")
+    selected_trace = generation_trace.loc[
+        generation_trace["selected_as_event"] == 1
+    ].sort_values("attempt_id")
     if len(events) != int(config["n_detected"]) or len(event_truth) != len(events):
         raise AssertionError("detected-event observable/truth row counts differ")
     if np.any(events["distance_mpc"].to_numpy(float) < threshold):
@@ -121,6 +125,18 @@ def audit(root: Path) -> dict:
         raise AssertionError("observable catalogue does not match retained parent IDs")
     if not np.array_equal(events["event_id"].to_numpy(int), event_truth["event_id"].to_numpy(int)):
         raise AssertionError("GW event observable/truth IDs differ")
+    if len(selected_trace) != len(events):
+        raise AssertionError("selected generation-trace rows do not match detected-event count")
+    _assert_close(
+        events["distance_mpc"].to_numpy(float),
+        selected_trace["distance_mpc"].to_numpy(float),
+        "observed GW distances versus selected generation trace",
+    )
+    if not np.array_equal(
+        event_truth["host_object_id"].to_numpy(int),
+        selected_trace["host_object_id"].to_numpy(int),
+    ):
+        raise AssertionError("GW event host IDs disagree with selected generation trace")
     event_join = event_truth.merge(
         parent[["object_id", "redshift"]],
         left_on="host_object_id", right_on="object_id",
