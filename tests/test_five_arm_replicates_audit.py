@@ -138,6 +138,27 @@ def _valid_artifact(root: Path) -> None:
     }), encoding="utf-8")
 
 
+
+
+def _refresh_manifest(root: Path) -> None:
+    import hashlib
+    paths = sorted(
+        path for path in root.rglob("*")
+        if path.is_file() and path.name not in {"manifest.json", "independent_audit.json"}
+    )
+    (root / "manifest.json").write_text(json.dumps({
+        "status": "PASS",
+        "file_count": len(paths),
+        "files": {
+            str(path.relative_to(root)): {
+                "bytes": path.stat().st_size,
+                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            }
+            for path in paths
+        },
+    }), encoding="utf-8")
+
+
 def test_valid_lifecycle_and_aggregate_artifacts_pass(tmp_path: Path):
     root = tmp_path / "valid"
     _valid_artifact(root)
@@ -152,6 +173,7 @@ def test_auditor_rejects_missing_lifecycle_cell(tmp_path: Path):
     _valid_artifact(root)
     ledger = pd.read_csv(root / "replicate_ledger.csv").iloc[:-1]
     ledger.to_csv(root / "replicate_ledger.csv", index=False)
+    _refresh_manifest(root)
     with pytest.raises(AssertionError, match="lifecycle key set mismatch"):
         AUDITOR.audit(root)
 
@@ -162,6 +184,7 @@ def test_auditor_rejects_summary_median_error_mismatch(tmp_path: Path):
     summary = pd.read_csv(root / "replicate_posterior_summaries.csv")
     summary.loc[0, "median_error"] += 0.5
     summary.to_csv(root / "replicate_posterior_summaries.csv", index=False)
+    _refresh_manifest(root)
     with pytest.raises(AssertionError, match="median error"):
         AUDITOR.audit(root)
 
