@@ -7,6 +7,7 @@ and failure-inclusive metric bounds from saved raw posterior summaries.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -121,6 +122,25 @@ def _assert_frame_equal(actual: pd.DataFrame, expected: pd.DataFrame, label: str
 
 
 def audit(root: Path) -> dict[str, object]:
+    manifest_path = root / "manifest.json"
+    if not manifest_path.exists():
+        raise AssertionError("top-level SHA-256 manifest is missing")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("status") != "PASS":
+        raise AssertionError("top-level manifest status is not PASS")
+    listed = manifest.get("files", {})
+    actual = {str(path.relative_to(root)) for path in root.rglob("*")
+              if path.is_file() and path.name != "manifest.json"}
+    if set(listed) != actual or int(manifest.get("file_count", -1)) != len(actual):
+        raise AssertionError("top-level manifest file set/count mismatch")
+    for relative, metadata in listed.items():
+        path = root / relative
+        if path.stat().st_size != int(metadata["bytes"]):
+            raise AssertionError(f"top-level manifest size mismatch: {relative}")
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        if digest != metadata["sha256"]:
+            raise AssertionError(f"top-level manifest SHA-256 mismatch: {relative}")
+
     config = json.loads((root / "config.json").read_text(encoding="utf-8"))
     if config.get("status") != "engineering_pilot_not_confirmatory_not_observational":
         raise AssertionError("unexpected experiment status")
