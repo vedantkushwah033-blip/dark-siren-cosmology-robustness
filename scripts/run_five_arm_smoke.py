@@ -227,7 +227,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "h0_grid_points": args.h0_points,
         "redshift_grid_points": len(redshift_grid),
         "scott_multiplier": args.scott_multiplier,
-        "bandwidth_selection_status": "fixed_absolute_factor_for_engineering_smoke_only_not_training_holdout_selected",
+        "bandwidth_selection_status": "weighted_scott_smoke_multiplier_only_not_training_holdout_selected",
         "quadrature_order": args.quadrature_order,
         "sigma_mpc": args.sigma_mpc,
         "detection_threshold_mpc": args.detection_threshold_mpc,
