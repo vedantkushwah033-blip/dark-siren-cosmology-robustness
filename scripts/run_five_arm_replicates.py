@@ -132,6 +132,8 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     sizes = args.validation_sizes
     if sizes[-1] > args.validation_frame:
         raise ValueError("largest validation size cannot exceed validation frame")
+    if not 50.0 <= float(args.h0_true) <= 90.0:
+        raise ValueError("failure-inclusive bounds require h0_true within the declared [50, 90] H0 prior support")
     seed_pairs = _seed_schedule(args.master_seed, args.replicates)
     ledger_rows: list[dict[str, object]] = []
     summary_parts: list[pd.DataFrame] = []
@@ -217,7 +219,11 @@ def run(args: argparse.Namespace) -> dict[str, object]:
                 })
     ledger = pd.DataFrame(ledger_rows)
     summaries = pd.concat(summary_parts, ignore_index=True) if summary_parts else pd.DataFrame(
-        columns=["replicate", "analysis_seed", "validation_seed", "validation_size", "arm", "status"]
+        columns=[
+            "replicate", "analysis_seed", "validation_seed", "validation_size", "arm",
+            "status", "audit_status", "h0_true", "median_error", "posterior_median",
+            "q025", "q05", "q16", "q84", "q95", "q975",
+        ]
     )
     aggregate, contrasts = _aggregate(summaries, ledger, args.replicates)
     ledger.to_csv(output / "replicate_ledger.csv", index=False)
