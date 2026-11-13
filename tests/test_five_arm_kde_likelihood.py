@@ -29,7 +29,7 @@ def test_kde_five_arm_likelihoods_use_normalized_densities_and_common_grids():
     rate = 1 + 1.5 * (z - 0.01) / 0.39
     result = matched_five_arm_kde_selected_log_likelihood(
         h0, arms, events, detection_threshold_mpc=250,
-        redshift_grid=z, merger_weight=rate, bandwidth_factor=0.7,
+        redshift_grid=z, merger_weight=rate, scott_multiplier=0.7,
     )
     assert result.arm_a_log_likelihood.shape == h0.shape
     assert result.arm_e_node_log_likelihood.shape == (arms.arm_e_node_weights.shape[0], h0.size)
@@ -43,8 +43,8 @@ def test_kde_five_arm_likelihoods_use_normalized_densities_and_common_grids():
 def test_kde_likelihood_rejects_invalid_bandwidth_and_rate():
     arms, events = _fixture()
     z = np.linspace(0.01, 0.40, 101)
-    with pytest.raises(ValueError, match="bandwidth_factor"):
+    with pytest.raises(ValueError, match="scott_multiplier"):
         matched_five_arm_kde_selected_log_likelihood(
             [60, 70], arms, events, detection_threshold_mpc=250,
-            redshift_grid=z, merger_weight=np.ones_like(z), bandwidth_factor=0,
+            redshift_grid=z, merger_weight=np.ones_like(z), scott_multiplier=0,
         )
