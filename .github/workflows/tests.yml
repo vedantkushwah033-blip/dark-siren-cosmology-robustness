@@ -248,5 +248,6 @@ jobs:
             artifacts/independent_validation_inclusion_h0_smoke/
             artifacts/inclusion_posterior_calibration_smoke/
             artifacts/five_arm_smoke/
+            artifacts/five_arm_smoke_audit.json
           if-no-files-found: error
 
