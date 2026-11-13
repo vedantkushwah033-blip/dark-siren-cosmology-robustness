@@ -130,7 +130,7 @@ def audit(root: Path) -> dict[str, object]:
         raise AssertionError("top-level manifest status is not PASS")
     listed = manifest.get("files", {})
     actual = {str(path.relative_to(root)) for path in root.rglob("*")
-              if path.is_file() and path.name != "manifest.json"}
+              if path.is_file() and path.name not in {"manifest.json", "independent_audit.json"}}
     if set(listed) != actual or int(manifest.get("file_count", -1)) != len(actual):
         raise AssertionError("top-level manifest file set/count mismatch")
     for relative, metadata in listed.items():
