@@ -61,7 +61,7 @@ def _expected_contrasts(summary: pd.DataFrame) -> pd.DataFrame:
     ])
 
 
-def _expected_aggregate(summary: pd.DataFrame, ledger: pd.DataFrame, replicates: int) -> pd.DataFrame:
+def _expected_aggregate(summary: pd.DataFrame, ledger: pd.DataFrame, replicates: int, *, max_abs_error: float) -> pd.DataFrame:
     rows = []
     for n_validation in sorted(ledger.validation_size.unique()):
         for arm in ARMS:
@@ -95,9 +95,9 @@ def _expected_aggregate(summary: pd.DataFrame, ledger: pd.DataFrame, replicates:
                 "failure_inclusive_coverage_lower": float(np.sum(covered) / replicates),
                 "failure_inclusive_coverage_upper": float((np.sum(covered) + failures) / replicates),
                 "failure_inclusive_rmse_lower": float(np.sqrt(squared_sum / replicates)),
-                "failure_inclusive_rmse_upper": float(np.sqrt((squared_sum + failures * 400.0) / replicates)),
+                "failure_inclusive_rmse_upper": float(np.sqrt((squared_sum + failures * max_abs_error**2) / replicates)),
                 "failure_inclusive_abs_error_lower": float(absolute_sum / replicates),
-                "failure_inclusive_abs_error_upper": float((absolute_sum + failures * 20.0) / replicates),
+                "failure_inclusive_abs_error_upper": float((absolute_sum + failures * max_abs_error) / replicates),
                 "failure_inclusive_bias_lower": float((np.sum(errors) - failures * 20.0) / replicates),
                 "failure_inclusive_bias_upper": float((np.sum(errors) + failures * 20.0) / replicates),
             })
@@ -148,8 +148,10 @@ def audit(root: Path) -> dict[str, object]:
     sizes = [int(value) for value in config["validation_sizes"]]
     if replicates < 1 or int(config["master_seed"]) < 0:
         raise AssertionError("invalid replicate count or master seed")
-    if not 50.0 <= float(config["h0_true"]) <= 90.0:
+    h0_true = float(config["h0_true"])
+    if not 50.0 <= h0_true <= 90.0:
         raise AssertionError("true H0 lies outside the prior support used for failure bounds")
+    max_abs_median_error = max(abs(50.0 - h0_true), abs(90.0 - h0_true))
     if not sizes or sorted(set(sizes)) != sizes or sizes[0] < 5:
         raise AssertionError("validation sizes are not unique increasing values >= 5")
     if sizes[-1] > int(config["validation_frame"]):
@@ -157,8 +159,8 @@ def audit(root: Path) -> dict[str, object]:
     bound_contract = config.get("failure_bound_assumptions", {})
     expected_bounds = {
         "h0_prior_support": [50.0, 90.0],
-        "absolute_median_error_max": 20.0,
-        "squared_median_error_max": 400.0,
+        "absolute_median_error_max": max_abs_median_error,
+        "squared_median_error_max": max_abs_median_error**2,
         "coverage_failure_indicator_bounds": [0, 1],
         "interval_width_bounds": [0.0, 40.0],
     }
@@ -291,7 +293,7 @@ def audit(root: Path) -> dict[str, object]:
         if not np.all(np.isfinite(summary[["median_error", "q16", "q84"]].to_numpy(float))):
             raise AssertionError("non-finite posterior summary value")
 
-    expected_aggregate = _expected_aggregate(summary, ledger, replicates)
+    expected_aggregate = _expected_aggregate(summary, ledger, replicates, max_abs_error=max_abs_median_error)
     actual_aggregate = pd.read_csv(root / "aggregate_metrics.csv")
     _assert_frame_equal(actual_aggregate, expected_aggregate, "aggregate metrics")
     expected_contrasts = _expected_contrasts(summary)

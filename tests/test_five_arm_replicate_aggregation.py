@@ -50,7 +50,7 @@ def test_failure_inclusive_bounds_and_paired_contrasts():
         })
     summary = pd.DataFrame(summary_rows)
     ledger = pd.DataFrame(ledger_rows)
-    aggregate, contrasts = _aggregate(summary, ledger, replicates=2)
+    aggregate, contrasts = _aggregate(summary, ledger, replicates=2, max_abs_error=20.0)
     row = aggregate.loc[aggregate.arm == "A_catalogue_only"].iloc[0]
     assert row.successful_replicates == 1
     assert row.failed_or_non_evaluable == 1
@@ -80,3 +80,31 @@ def test_all_failed_empty_summary_retains_aggregate_cells():
     assert (aggregate.successful_replicates == 0).all()
     assert (aggregate.failed_or_non_evaluable == 2).all()
     assert contrasts.empty
+
+
+def test_failure_bounds_expand_when_true_h0_is_off_centre():
+    summary = pd.DataFrame([{
+        "replicate": 1,
+        "validation_size": 100,
+        "arm": "A_catalogue_only",
+        "status": "SUCCESS",
+        "h0_true": 60.0,
+        "median_error": 1.0,
+        "posterior_median": 61.0,
+        "q16": 55.0,
+        "q84": 65.0,
+    }])
+    ledger = pd.DataFrame([
+        {"replicate": 1, "validation_size": 100, "arm": "A_catalogue_only", "status": "SUCCESS"},
+        {"replicate": 2, "validation_size": 100, "arm": "A_catalogue_only", "status": "FAILED"},
+    ])
+    # With H0_true=60 and prior [50, 90], the maximum absolute median error
+    # is 30, not 20. The aggregation must use that actual support-derived bound.
+    aggregate, _ = _aggregate(
+        summary, ledger, replicates=2, max_abs_error=30.0
+    )
+    row = aggregate.iloc[0]
+    assert row.failure_inclusive_rmse_upper == np.sqrt(450.5)
+    assert row.failure_inclusive_abs_error_upper == 15.5
+    assert row.failure_inclusive_bias_lower == -14.5
+    assert row.failure_inclusive_bias_upper == 15.5
