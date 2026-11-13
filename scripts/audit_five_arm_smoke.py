@@ -17,7 +17,7 @@ import numpy as np
 from scipy.integrate import trapezoid
 import pandas as pd
 from scipy.special import expit, log_ndtr, logsumexp
-from scipy.stats import norm
+from scipy.stats import gaussian_kde, norm
 
 C_KM_S = 299_792.458
 ARM_KEYS = {
@@ -43,32 +43,47 @@ def _assert_close(actual, expected, label: str, *, atol: float = 2e-10) -> None:
         raise AssertionError(f"{label} differs; maximum absolute difference={difference}")
 
 
-def _selected_log_likelihood(
-    grid: np.ndarray,
-    redshift: np.ndarray,
-    raw_weights: np.ndarray,
-    distances: np.ndarray,
-    sigma: float,
-    threshold: float,
+def _independent_density(
+    z_grid: np.ndarray, sample: np.ndarray, probability: np.ndarray | None,
+    rate: np.ndarray, bandwidth_factor: float,
+) -> np.ndarray:
+    """Independent reflected weighted KDE reconstruction; no production imports."""
+    if probability is None:
+        raw = np.ones(sample.size, dtype=float)
+    else:
+        raw = 1.0 / np.asarray(probability, dtype=float)
+    scaled = raw / np.max(raw)
+    reflected = np.concatenate((
+        sample, 2.0 * z_grid[0] - sample, 2.0 * z_grid[-1] - sample,
+    ))
+    reflected_weights = np.tile(scaled / 3.0, 3)
+    estimator = gaussian_kde(
+        reflected, weights=reflected_weights, bw_method=float(bandwidth_factor)
+    )
+    unnormalized = estimator(z_grid) * rate
+    area = float(trapezoid(unnormalized, z_grid))
+    if not np.isfinite(area) or area <= 0:
+        raise AssertionError("independent KDE has invalid normalization")
+    density = unnormalized / area
+    if not np.isclose(trapezoid(density, z_grid), 1.0, rtol=1e-10, atol=1e-10):
+        raise AssertionError("independent KDE failed unit-integral check")
+    return density
+
+
+def _selected_kde_log_likelihood(
+    h0_grid: np.ndarray, z_grid: np.ndarray, density: np.ndarray,
+    distances: np.ndarray, sigma: float, threshold: float,
 ) -> tuple[np.ndarray, np.ndarray]:
-    log_weights = np.log(raw_weights)
-    log_weights -= logsumexp(log_weights)
-    means = C_KM_S * redshift[None, :] / grid[:, None]
-    event_log_mix = []
-    event_log_beta = []
+    means = C_KM_S * z_grid[None, :] / h0_grid[:, None]
+    event_log_mix, event_log_beta = [], []
     for distance in distances:
-        event_log_mix.append(logsumexp(
-            log_weights[None, :] + norm.logpdf(distance, loc=means, scale=sigma),
-            axis=1,
-        ))
-        event_log_beta.append(logsumexp(
-            log_weights[None, :] + log_ndtr((means - threshold) / sigma),
-            axis=1,
-        ))
+        numerator = density[None, :] * norm.pdf(distance, loc=means, scale=sigma)
+        efficiency = density[None, :] * np.exp(log_ndtr((means - threshold) / sigma))
+        event_log_mix.append(np.log(trapezoid(numerator, z_grid, axis=1)))
+        event_log_beta.append(np.log(trapezoid(efficiency, z_grid, axis=1)))
     event_log_mix = np.asarray(event_log_mix)
     event_log_beta = np.asarray(event_log_beta)
     return np.sum(event_log_mix - event_log_beta, axis=0), event_log_beta
-
 
 def _posterior_quantile(grid: np.ndarray, log_likelihood: np.ndarray, q: float) -> float:
     shifted = np.exp(log_likelihood - np.max(log_likelihood))
@@ -176,8 +191,13 @@ def audit(root: Path) -> dict:
     catalogue_base = 1.0 + 1.5 * (catalogue_z - 0.01) / 0.39
     distances = events["distance_mpc"].to_numpy(float)
     grid = np.linspace(50.0, 90.0, int(config["h0_grid_points"]))
+    z_grid = np.linspace(0.01, 0.40, int(config["redshift_grid_points"]))
+    rate_grid = 1.0 + 1.5 * (z_grid - 0.01) / 0.39
+    bandwidth_factor = float(config["bandwidth_factor"])
     archive = np.load(root / "results" / "log_likelihoods.npz")
     _assert_close(archive["H0_grid"], grid, "H0 grid")
+    _assert_close(archive["redshift_grid"], z_grid, "redshift grid")
+    _assert_close(archive["merger_weight_grid"], rate_grid, "merger weight grid")
     stored_summary = pd.read_csv(root / "results" / "posterior_summaries.csv")
 
     validation_sizes = [int(value) for value in config["validation_sizes"]]
@@ -227,25 +247,40 @@ def audit(root: Path) -> dict:
             raise AssertionError(f"non-positive estimated inclusion probability at n={n}")
 
         arm_inputs = {
-            "A_catalogue_only": (catalogue_z, catalogue_base),
-            "B_parent_oracle": (parent_z, parent_base),
-            "C_known_probability_ipw": (catalogue_z, catalogue_base / true_probability),
-            "D_map_plugin_ipw": (catalogue_z, catalogue_base / p_map),
+            "A_catalogue_only": (catalogue_z, None),
+            "B_parent_oracle": (parent_z, None),
+            "C_known_probability_ipw": (catalogue_z, true_probability),
+            "D_map_plugin_ipw": (catalogue_z, p_map),
         }
         reconstructed = {}
-        for arm, (z_host, weights) in arm_inputs.items():
-            reconstructed[arm], _ = _selected_log_likelihood(
-                grid, z_host, weights, distances, sigma, threshold
+        for arm, (z_host, probability) in arm_inputs.items():
+            p_host = _independent_density(
+                z_grid, z_host, probability, rate_grid, bandwidth_factor
+            )
+            _assert_close(
+                archive[f"density_{arm}_n{n}"], p_host,
+                f"{arm} independently reconstructed KDE n={n}",
+            )
+            reconstructed[arm], _ = _selected_kde_log_likelihood(
+                grid, z_grid, p_host, distances, sigma, threshold
             )
         node_likelihoods = []
         node_efficiencies = []
+        node_densities = []
         for probability in p_nodes:
-            ll, efficiency = _selected_log_likelihood(
-                grid, catalogue_z, catalogue_base / probability,
-                distances, sigma, threshold,
+            p_host = _independent_density(
+                z_grid, catalogue_z, probability, rate_grid, bandwidth_factor
+            )
+            node_densities.append(p_host)
+            ll, efficiency = _selected_kde_log_likelihood(
+                grid, z_grid, p_host, distances, sigma, threshold,
             )
             node_likelihoods.append(ll)
             node_efficiencies.append(efficiency)
+        _assert_close(
+            archive[f"density_E_nodes_n{n}"], np.asarray(node_densities),
+            f"E node KDEs n={n}",
+        )
         node_likelihoods = np.asarray(node_likelihoods)
         node_efficiencies = np.asarray(node_efficiencies)
         positive = quadrature > 0
