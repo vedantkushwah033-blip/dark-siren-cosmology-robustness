@@ -23,6 +23,46 @@ ARMS = [
 ]
 
 
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _audit_manifest(root: Path) -> int:
+    manifest_path = root / "manifest.json"
+    if not manifest_path.is_file():
+        raise AssertionError("top-level artifact manifest is missing")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("status") != "PASS":
+        raise AssertionError("top-level artifact manifest status is not PASS")
+    declared = manifest.get("files")
+    if not isinstance(declared, dict):
+        raise AssertionError("top-level artifact manifest files field is invalid")
+    actual_paths = {
+        str(path.relative_to(root))
+        for path in root.rglob("*")
+        if path.is_file() and path.name != "manifest.json"
+    }
+    if set(declared) != actual_paths:
+        missing = len(actual_paths - set(declared))
+        unexpected = len(set(declared) - actual_paths)
+        raise AssertionError(
+            f"artifact manifest path set mismatch: {missing} missing, {unexpected} unexpected"
+        )
+    if int(manifest.get("file_count", -1)) != len(actual_paths):
+        raise AssertionError("artifact manifest file_count mismatch")
+    for relative, metadata in declared.items():
+        path = root / relative
+        if int(metadata.get("bytes", -1)) != path.stat().st_size:
+            raise AssertionError(f"artifact manifest byte-count mismatch: {relative}")
+        if metadata.get("sha256") != _sha256(path):
+            raise AssertionError(f"artifact manifest SHA-256 mismatch: {relative}")
+    return len(actual_paths)
+
+
 def _seed_schedule(master_seed: int, replicates: int) -> list[tuple[int, int]]:
     children = np.random.SeedSequence(master_seed).spawn(2 * replicates)
     values = [int(child.generate_state(1, dtype=np.uint32)[0]) for child in children]
@@ -82,7 +122,8 @@ def _expected_aggregate(summary: pd.DataFrame, ledger: pd.DataFrame, replicates:
             rows.append({
                 "validation_size": int(n_validation),
                 "arm": arm,
-                "planned_replicates": replicates,
+                "manifest_files_verified": manifest_files_verified,
+        "planned_replicates": replicates,
                 "successful_replicates": len(observed),
                 "failed_or_non_evaluable": failures,
                 "success_only_bias": float(np.mean(errors)) if len(errors) else np.nan,
@@ -141,6 +182,7 @@ def audit(root: Path) -> dict[str, object]:
         if digest != metadata["sha256"]:
             raise AssertionError(f"top-level manifest SHA-256 mismatch: {relative}")
 
+    manifest_files_verified = _audit_manifest(root)
     config = json.loads((root / "config.json").read_text(encoding="utf-8"))
     if config.get("status") != "engineering_pilot_not_confirmatory_not_observational":
         raise AssertionError("unexpected experiment status")
@@ -166,6 +208,25 @@ def audit(root: Path) -> dict[str, object]:
         raise AssertionError(f"ledger has {len(ledger)} rows; expected {expected_cells}")
     if ledger.duplicated(["replicate", "validation_size", "arm"]).any():
         raise AssertionError("duplicate lifecycle ledger cells")
+    if replicates < 1 or not sizes or sorted(set(sizes)) != sizes or sizes[0] < 5:
+        raise AssertionError("invalid replicate count or validation-size design in config")
+    if int(config["validation_frame"]) < sizes[-1]:
+        raise AssertionError("largest validation size exceeds validation frame")
+    expected_ledger_keys = {
+        (replicate, size, arm)
+        for replicate in range(1, replicates + 1)
+        for size in sizes
+        for arm in ARMS
+    }
+    observed_ledger_keys = set(
+        zip(ledger.replicate.astype(int), ledger.validation_size.astype(int), ledger.arm.astype(str))
+    )
+    if observed_ledger_keys != expected_ledger_keys:
+        missing = len(expected_ledger_keys - observed_ledger_keys)
+        unexpected = len(observed_ledger_keys - expected_ledger_keys)
+        raise AssertionError(
+            f"lifecycle key set mismatch: {missing} missing, {unexpected} unexpected"
+        )
     if set(ledger.status) - {"SUCCESS", "FAILED", "NON_EVALUABLE"}:
         raise AssertionError("unknown lifecycle status")
     if set(ledger.audit_status) - {"PASS", "NOT_RUN", "NOT_PASS"}:
@@ -178,6 +239,8 @@ def audit(root: Path) -> dict[str, object]:
             raise AssertionError(f"replicate {index} ledger is incomplete")
         if set(rows.analysis_seed) != {analysis_seed} or set(rows.validation_seed) != {validation_seed}:
             raise AssertionError(f"replicate {index} seed mismatch")
+        if len(set(rows.status)) != 1 or len(set(rows.audit_status)) != 1:
+            raise AssertionError(f"replicate {index} has inconsistent lifecycle/audit status")
         if set(rows.status) == {"SUCCESS"} and set(rows.audit_status) == {"PASS"}:
             successful_replicates += 1
             rep_summary = summary.loc[summary.replicate == index]
@@ -247,6 +310,46 @@ def audit(root: Path) -> dict[str, object]:
     ]
     if audits.status.tolist() != expected_audit_status:
         raise AssertionError("replicate audit statuses disagree with lifecycle ledger")
+
+    successful_keys = {
+        (int(row.replicate), int(row.validation_size), str(row.arm))
+        for row in ledger.loc[ledger.status == "SUCCESS"].itertuples(index=False)
+    }
+    summary_keys = {
+        (int(row.replicate), int(row.validation_size), str(row.arm))
+        for row in summary.itertuples(index=False)
+    }
+    if summary_keys != successful_keys:
+        missing = len(successful_keys - summary_keys)
+        unexpected = len(summary_keys - successful_keys)
+        raise AssertionError(
+            f"posterior-summary key set mismatch: {missing} missing, {unexpected} unexpected"
+        )
+    if len(summary):
+        for row in summary.itertuples(index=False):
+            ledger_row = ledger.loc[
+                (ledger.replicate == row.replicate)
+                & (ledger.validation_size == row.validation_size)
+                & (ledger.arm == row.arm)
+            ]
+            if len(ledger_row) != 1:
+                raise AssertionError("posterior summary has no unique lifecycle row")
+            expected_seed = expected_seeds[int(row.replicate) - 1]
+            if (
+                int(row.analysis_seed) != expected_seed[0]
+                or int(row.validation_seed) != expected_seed[1]
+                or str(row.audit_status) != "PASS"
+                or not np.isclose(float(row.h0_true), float(config["h0_true"]), rtol=0, atol=1e-12)
+            ):
+                raise AssertionError(
+                    f"posterior summary metadata mismatch for replicate {row.replicate}"
+                )
+            if not np.isclose(
+                float(row.median_error),
+                float(row.posterior_median) - float(row.h0_true),
+                rtol=1e-10, atol=1e-10,
+            ):
+                raise AssertionError("posterior median error does not match saved median and truth")
 
     expected_arms = set(ARMS)
     if len(summary):
