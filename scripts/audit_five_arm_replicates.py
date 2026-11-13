@@ -202,6 +202,12 @@ def audit(root: Path) -> dict[str, object]:
                 raise AssertionError(f"replicate {index}, n={size}: ledger arm cells incomplete")
         if len(set(rows.status)) != 1 or len(set(rows.audit_status)) != 1:
             raise AssertionError(f"replicate {index} has inconsistent cell lifecycle/audit statuses")
+        if set(rows.status) == {"SUCCESS"}:
+            if set(rows.audit_status) != {"PASS"} or not rows.error.fillna("").eq("").all():
+                raise AssertionError(f"successful replicate {index} has error text or missing audit PASS")
+        else:
+            if set(rows.audit_status) == {"PASS"} or not rows.error.fillna("").ne("").all():
+                raise AssertionError(f"failed replicate {index} lacks an error record or has audit PASS")
         if set(rows.analysis_seed) != {analysis_seed} or set(rows.validation_seed) != {validation_seed}:
             raise AssertionError(f"replicate {index} seed mismatch")
         if set(rows.status) == {"SUCCESS"} and set(rows.audit_status) == {"PASS"}:
