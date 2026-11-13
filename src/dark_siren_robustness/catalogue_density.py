@@ -16,6 +16,7 @@ def estimate_host_density(
     observed_redshift: ArrayLike,
     *,
     inclusion_probability: ArrayLike | None = None,
+    sample_weights: ArrayLike | None = None,
     merger_weight: ArrayLike | None = None,
     bandwidth_factor: float | None = None,
     scott_multiplier: float | None = None,
@@ -27,6 +28,11 @@ def estimate_host_density(
     positive: zero-probability regions cannot be recovered by inverse weights.
     Reflection reduces, but does not eliminate, KDE boundary bias. The final
     density is truncated and renormalized on the specified finite domain.
+
+    ``sample_weights`` supplies positive galaxy-level base weights; when
+    ``inclusion_probability`` is also supplied, the raw weights are
+    ``sample_weights / inclusion_probability``. This allows one common
+    base-population factor to be propagated through all comparison arms.
 
     Bandwidth semantics are intentionally explicit:
     - ``bandwidth_factor`` is an absolute SciPy covariance factor, not a
@@ -61,6 +67,18 @@ def estimate_host_density(
             weights = 1.0 / probability
         if not np.all(np.isfinite(weights)):
             raise ValueError("inverse inclusion weights overflow; positivity is numerically unusable")
+    if sample_weights is not None:
+        supplied_weights = np.asarray(sample_weights, dtype=float)
+        if (
+            supplied_weights.shape != sample.shape
+            or not np.all(np.isfinite(supplied_weights))
+            or np.any(supplied_weights <= 0)
+        ):
+            raise ValueError("sample_weights must be finite, strictly positive, and match observed_redshift")
+        with np.errstate(over="ignore", invalid="ignore"):
+            weights = weights * supplied_weights
+        if not np.all(np.isfinite(weights)):
+            raise ValueError("combined sample weights overflow; positivity is numerically unusable")
     if bandwidth_factor is not None and scott_multiplier is not None:
         raise ValueError("bandwidth_factor and scott_multiplier are mutually exclusive")
     if bandwidth_factor is not None and (
