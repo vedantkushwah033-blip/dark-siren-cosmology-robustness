@@ -163,11 +163,33 @@ def audit(root: Path) -> dict[str, object]:
             rep_summary = summary.loc[summary.replicate == index]
             if len(rep_summary) != len(sizes) * len(ARMS):
                 raise AssertionError(f"successful replicate {index} summary rows incomplete")
+            if set(rep_summary.validation_size.astype(int)) != set(sizes):
+                raise AssertionError(f"successful replicate {index} validation-size set mismatch")
+            for size in sizes:
+                if len(rep_summary.loc[rep_summary.validation_size == size]) != len(ARMS):
+                    raise AssertionError(f"successful replicate {index}, n={size}: arm rows incomplete")
             if set(rep_summary.audit_status) != {"PASS"}:
                 raise AssertionError(f"successful replicate {index} missing audit PASS")
             report_path = root / "replicates" / f"replicate_{index:04d}" / "audit.json"
-            if not report_path.exists() or json.loads(report_path.read_text())["status"] != "PASS":
+            if not report_path.exists():
+                raise AssertionError(f"replicate {index} raw-artifact audit missing")
+            report = json.loads(report_path.read_text())
+            audit_row = audits.loc[audits.replicate == index]
+            if report.get("status") != "PASS" or len(audit_row) != 1:
                 raise AssertionError(f"replicate {index} raw-artifact audit missing or failed")
+            checks = {
+                "manifest_files_verified": int(report["manifest_files_verified"]),
+                "posterior_summary_rows_reconstructed": int(report["posterior_summary_rows_reconstructed"]),
+            }
+            for field, expected_value in checks.items():
+                if int(audit_row.iloc[0][field]) != expected_value:
+                    raise AssertionError(f"replicate {index} audit ledger mismatch in {field}")
+            if not np.isclose(
+                float(audit_row.iloc[0]["maximum_log_likelihood_absolute_difference"]),
+                float(report["maximum_log_likelihood_absolute_difference"]),
+                rtol=1e-12, atol=1e-15,
+            ):
+                raise AssertionError(f"replicate {index} audit likelihood discrepancy mismatch")
         else:
             if set(rows.status) != {"FAILED"}:
                 raise AssertionError(f"replicate {index} has inconsistent partial lifecycle statuses")
