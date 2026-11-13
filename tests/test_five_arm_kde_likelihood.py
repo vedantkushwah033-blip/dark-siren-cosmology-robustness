@@ -75,11 +75,11 @@ def test_kde_propagates_complete_base_and_inverse_probability_weights():
     )
     expected_c = estimate_host_density(
         z, arms.catalogue_redshift, sample_weights=arms.arm_c_known_probability,
-        bandwidth_factor=factor,
+        scott_multiplier=factor,
     )
     expected_d = estimate_host_density(
         z, arms.catalogue_redshift, sample_weights=arms.arm_d_map_plugin,
-        bandwidth_factor=factor,
+        scott_multiplier=factor,
     )
     np.testing.assert_allclose(result.arm_density["A_catalogue_only"], expected_a)
     np.testing.assert_allclose(result.arm_density["B_parent_oracle"], expected_b)
@@ -87,6 +87,6 @@ def test_kde_propagates_complete_base_and_inverse_probability_weights():
     np.testing.assert_allclose(result.arm_density["D_map_plugin_ipw"], expected_d)
     expected_e0 = estimate_host_density(
         z, arms.catalogue_redshift, sample_weights=arms.arm_e_node_weights[0],
-        bandwidth_factor=factor,
+        scott_multiplier=factor,
     )
     np.testing.assert_allclose(result.arm_e_node_density[0], expected_e0)
