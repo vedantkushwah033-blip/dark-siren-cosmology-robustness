@@ -54,6 +54,8 @@ jobs:
         run: python -m pytest tests/test_five_arm_likelihood.py -q
       - name: Test matched five-arm reflected-KDE selected H0 likelihood
         run: python -m pytest tests/test_five_arm_kde_likelihood.py -q
+      - name: Test inclusion coefficient quadrature convergence through H0 posterior
+        run: python -m pytest tests/test_five_arm_kde_quadrature_convergence.py -q
       - name: Test downstream five-arm KDE H0-grid convergence
         run: python -m pytest tests/test_five_arm_kde_grid_convergence.py -q
       - name: Run matched five-arm single-replicate smoke
