@@ -45,7 +45,7 @@ def _assert_close(actual, expected, label: str, *, atol: float = 2e-10) -> None:
 
 def _independent_density(
     z_grid: np.ndarray, sample: np.ndarray, raw_weights: np.ndarray,
-    rate: np.ndarray, bandwidth_factor: float,
+    rate: np.ndarray, scott_multiplier: float,
 ) -> np.ndarray:
     """Independent reflected weighted KDE reconstruction; no production imports."""
     raw = np.asarray(raw_weights, dtype=float)
@@ -57,7 +57,8 @@ def _independent_density(
     ))
     reflected_weights = np.tile(scaled / 3.0, 3)
     estimator = gaussian_kde(
-        reflected, weights=reflected_weights, bw_method=float(bandwidth_factor),
+        reflected, weights=reflected_weights,
+        bw_method=lambda _kde: float(scott_multiplier) * (np.sum(scaled) ** 2 / np.sum(scaled ** 2)) ** (-1.0 / 5.0),
     )
     unnormalized = estimator(z_grid) * rate
     area = float(trapezoid(unnormalized, z_grid))
@@ -192,7 +193,7 @@ def audit(root: Path) -> dict:
     grid = np.linspace(50.0, 90.0, int(config["h0_grid_points"]))
     z_grid = np.linspace(0.01, 0.40, int(config["redshift_grid_points"]))
     rate_grid = np.ones_like(z_grid)
-    bandwidth_factor = float(config["bandwidth_factor"])
+    scott_multiplier = float(config["scott_multiplier"])
     archive = np.load(root / "results" / "log_likelihoods.npz")
     _assert_close(archive["H0_grid"], grid, "H0 grid")
     _assert_close(archive["redshift_grid"], z_grid, "redshift grid")
@@ -254,7 +255,7 @@ def audit(root: Path) -> dict:
         reconstructed = {}
         for arm, (z_host, raw_weights) in arm_inputs.items():
             p_host = _independent_density(
-                z_grid, z_host, raw_weights, rate_grid, bandwidth_factor
+                z_grid, z_host, raw_weights, rate_grid, scott_multiplier
             )
             _assert_close(
                 archive[f"density_{arm}_n{n}"], p_host,
@@ -269,7 +270,7 @@ def audit(root: Path) -> dict:
         for node_probability in p_nodes:
             node_raw_weights = catalogue_base / node_probability
             p_host = _independent_density(
-                z_grid, catalogue_z, node_raw_weights, rate_grid, bandwidth_factor
+                z_grid, catalogue_z, node_raw_weights, rate_grid, scott_multiplier
             )
             node_densities.append(p_host)
             ll, efficiency = _selected_kde_log_likelihood(
