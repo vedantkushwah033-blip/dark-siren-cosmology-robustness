@@ -73,3 +73,7 @@ def test_five_arm_builder_rejects_mismatched_validation_labels():
             parent, catalogue, validation, retained[:-1],
             catalogue_floor=0.10,
         )
+
+def test_weight_diagnostics_reject_positive_mass_underflow():
+    with pytest.raises(ArithmeticError, match="underflowed positive mass"):
+        weight_concentration_diagnostics([1e-320, 1e308])
