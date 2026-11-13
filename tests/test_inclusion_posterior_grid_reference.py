@@ -26,10 +26,10 @@ def test_laplace_hermite_posterior_moments_match_direct_2d_integration():
     beta0 = np.linspace(fit.mode[0] - half_width[0], fit.mode[0] + half_width[0], 801)
     beta1 = np.linspace(fit.mode[1] - half_width[1], fit.mode[1] + half_width[1], 801)
     b0, b1 = np.meshgrid(beta0, beta1, indexing="ij")
-    eta = b0[..., None] + b1[..., None] * x
-    log_likelihood = np.sum(
-        retained[None, None, :] * eta - np.logaddexp(0.0, eta), axis=2
-    )
+    log_likelihood = np.zeros_like(b0)
+    for xi, yi in zip(x, retained):
+        eta_i = b0 + b1 * xi
+        log_likelihood += yi * eta_i - np.logaddexp(0.0, eta_i)
     log_prior = -0.5 * ((b0 / sd[0]) ** 2 + (b1 / sd[1]) ** 2)
     log_target = log_likelihood + log_prior
     mass = np.exp(log_target - np.max(log_target))
