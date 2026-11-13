@@ -125,8 +125,8 @@ def _aggregate(summary: pd.DataFrame, ledger: pd.DataFrame, replicates: int, *, 
                 "failure_inclusive_rmse_upper": float(np.sqrt((squared_sum + failures * max_abs_error**2) / replicates)),
                 "failure_inclusive_abs_error_lower": float(absolute_sum / replicates),
                 "failure_inclusive_abs_error_upper": float((absolute_sum + failures * max_abs_error) / replicates),
-                "failure_inclusive_bias_lower": float((np.sum(errors) - failures * 20.0) / replicates),
-                "failure_inclusive_bias_upper": float((np.sum(errors) + failures * 20.0) / replicates),
+                "failure_inclusive_bias_lower": float((np.sum(errors) - failures * max_abs_error) / replicates),
+                "failure_inclusive_bias_upper": float((np.sum(errors) + failures * max_abs_error) / replicates),
             })
     aggregate = pd.DataFrame(rows)
     contrasts = _paired_contrasts(summary)

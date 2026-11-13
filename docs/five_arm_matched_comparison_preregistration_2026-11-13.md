@@ -142,3 +142,16 @@ A separate `scripts/audit_five_arm_replicates.py` verifies the top-level artifac
 ## 13. Failure-inclusive error-bound correction (2026-11-13)
 
 The multi-replicate aggregation now derives the worst-case posterior-median error bound from the actual generating value and the declared prior support, rather than assuming the generating value is the midpoint. For H0_true in [50, 90], M = max(|50-H0_true|, |90-H0_true|); failure-inclusive absolute-error and RMSE upper bounds use M and M² respectively, and bias bounds use ±M. The independent auditor independently reconstructs this quantity from config.json and verifies the declared bound contract. A regression test covers an off-centre generating value H0_true=60, for which M=30. This is a correctness fix to conservative missing-outcome accounting, not a scientific result.
+
+
+## 14. Training/holdout bandwidth-selection implementation (2026-11-13)
+
+A separate selector and independent auditor are now included:
+- `scripts/select_bandwidth_train_holdout.py` selects the weighted-Scott multiplier using only parent-sample KDE integrated absolute error against the known analytic merger-weighted parent density.
+- Replicate IDs are split deterministically into disjoint training and holdout sets. The selected multiplier is minimized on training IAE only; all candidate holdout scores are reported without re-selection.
+- `scripts/audit_bandwidth_train_holdout.py` independently reconstructs the split, training scores, selected multiplier, holdout scores, and source hashes.
+- The selector does not read H0 posterior or coverage outcomes. This avoids choosing smoothing to make the cosmological inference look favorable.
+- The density-recovery runner now accepts an explicit comma-separated bandwidth grid. The default grid is 0.05, 0.08, 0.10, 0.12, 0.15, 0.20, 0.25, 0.30 and 0.40 weighted-Scott multipliers. It remains necessary to generate a fresh source artifact with this candidate grid and adequate independent replicates before selecting a project bandwidth.
+- A unit test verifies that a deliberately worse holdout score does not cause the training-selected multiplier to be changed.
+
+The selector implementation is an analysis workflow, not a completed bandwidth study. No multiplier has been selected from actual training/holdout simulation artifacts yet.
