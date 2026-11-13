@@ -127,6 +127,8 @@ def _aggregate(summary: pd.DataFrame, ledger: pd.DataFrame, replicates: int) -> 
 def run(args: argparse.Namespace) -> dict[str, object]:
     output = args.output_dir.resolve()
     output.mkdir(parents=True, exist_ok=True)
+    if any(output.iterdir()):
+        raise ValueError("output directory must be empty; choose a fresh path to preserve prior artifacts")
     sizes = args.validation_sizes
     if sizes[-1] > args.validation_frame:
         raise ValueError("largest validation size cannot exceed validation frame")
@@ -168,12 +170,14 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             ]
             completed = subprocess.run(command, check=False, capture_output=True, text=True)
             if completed.returncode != 0:
+                audit_status = "NOT_PASS"
                 raise RuntimeError(
                     "independent artifact audit failed: "
                     + (completed.stderr[-3000:] or completed.stdout[-3000:])
                 )
             audit_report = json.loads(audit_path.read_text(encoding="utf-8"))
             if audit_report.get("status") != "PASS":
+                audit_status = "NOT_PASS"
                 raise RuntimeError("independent artifact auditor did not return PASS")
             audit_status = "PASS"
             part = pd.read_csv(replicate_dir / "results" / "posterior_summaries.csv")
