@@ -139,6 +139,15 @@ def run(args: argparse.Namespace) -> dict:
         }
         for arm_name, log_likelihood in arm_likelihoods.items():
             likelihood_arrays[f"{arm_name}_n{n_validation}"] = np.asarray(log_likelihood)
+        likelihood_arrays[f"posterior_nodes_n{n_validation}"] = np.asarray(arms.inclusion_posterior.nodes)
+        likelihood_arrays[f"posterior_mode_n{n_validation}"] = np.asarray(arms.inclusion_posterior.mode)
+        likelihood_arrays[f"posterior_weights_n{n_validation}"] = np.asarray(arms.inclusion_posterior.weights)
+        likelihood_arrays[f"E_node_log_likelihood_n{n_validation}"] = np.asarray(
+            likelihood.arm_e_node_log_likelihood
+        )
+        likelihood_arrays[f"E_node_log_efficiency_n{n_validation}"] = np.asarray(
+            likelihood.arm_e_node_log_detection_efficiency
+        )
             estimates = _posterior_summary(h0_grid, np.asarray(log_likelihood))
             summary_rows.append({
                 "validation_size": n_validation,
