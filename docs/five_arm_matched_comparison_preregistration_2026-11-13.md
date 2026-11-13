@@ -36,15 +36,15 @@ Primary floors: f=0 (degree-one logistic correctly specified), 0.10 (moderate fl
 
 ## 4. Exact arm definitions
 
-**A — Catalogue-only.** Estimate host-redshift density from the observed analysis catalogue with equal weights.
+**A — Catalogue-only.** Estimate host-redshift density from the observed analysis catalogue using the declared base-population/merger-rate weights (equal weights only when the declared base measure is uniform).
 
-**B — Parent-population oracle.** Estimate host-redshift density from all galaxies in the simulated parent population before thinning. This is a finite-parent reference, not the exact analytic population density unless the latter is explicitly used as a separate benchmark.
+**B — Parent-population oracle.** Estimate host-redshift density from all galaxies in the simulated parent population before thinning, using the same base-population/merger-rate weighting rule as every other arm. This is a finite-parent reference, not the exact analytic population density unless the latter is explicitly used as a separate benchmark.
 
-**C — Known-probability IPW.** For each observed catalogue galaxy use raw weight w_i=1/pi_true(z_i). Do not clip weights in the primary analysis. Report effective sample size and concentration diagnostics.
+**C — Known-probability IPW.** For each observed catalogue galaxy use raw weight w_i=b(z_i)/pi_true(z_i), where b(z) is the same declared base-population/merger-rate weight used in A and B. Do not clip weights in the primary analysis. Report effective sample size and concentration diagnostics.
 
-**D — Plug-in estimated IPW.** Fit the same degree-one logistic model to the validation data and use the posterior mode theta_MAP: w_i=1/pi(z_i;theta_MAP). This defines the point-estimate arm. Do not silently replace it with posterior-mean probabilities; that would be a distinct sensitivity estimator.
+**D — Plug-in estimated IPW.** Fit the same degree-one logistic model to the validation data and use the posterior mode theta_MAP: w_i=b(z_i)/pi(z_i;theta_MAP). This defines the point-estimate arm. Do not silently replace it with posterior-mean probabilities; that would be a distinct sensitivity estimator.
 
-**E — Uncertainty-integrated estimated IPW.** Use the existing proper validation posterior quadrature. At each coefficient node theta_b, calculate node-specific IPW host weights, evaluate every event numerator and the GW detection-efficiency normalization using that same theta_b, and marginalize the complete joint likelihood once:
+**E — Uncertainty-integrated estimated IPW.** Use the existing proper validation posterior quadrature. At each coefficient node theta_b, calculate node-specific weights w_i(theta_b)=b(z_i)/pi(z_i;theta_b), evaluate every event numerator and the GW detection-efficiency normalization using that same theta_b, and marginalize the complete joint likelihood once:
 L_E(H0) = sum_b omega_b exp{ell(H0,theta_b)}.
 Normalize the H0 posterior once. Do not average separately normalized posterior curves or average event likelihood and selection efficiency independently. This is the existing modular/cut target: validation data determine p(theta|V), and GW data do not feed back into theta.
 
@@ -52,7 +52,8 @@ Normalize the H0 posterior once. Do not average separately normalized posterior 
 
 - Same H0 prior support/density, H0 grid, redshift grid, merger-rate/base-population function, event likelihood, and GW selection convention in all arms.
 - Same fixed KDE bandwidth in A-E, chosen in a separate parent-density training/holdout study without looking at H0 outcomes. Use the corrected reflected-KDE Scott implementation. Bandwidth sensitivity is a separate factorial analysis.
-- B uses the same KDE and bandwidth on the full parent sample. C and D use the same weighted KDE with true and MAP inclusion probabilities. E uses that weighted KDE at each posterior node.
+- Apply the same declared base-population/merger-rate weighting rule b(z) in every arm: A uses b(z) on the observed catalogue; B uses b(z) on the full parent sample; C, D and E use b(z)/pi(z) with true, MAP and node-specific probabilities respectively. The parent and catalogue base-weight arrays must be evaluated from the same function and parameterization.
+- Use the same KDE and bandwidth on all five populations. No arm may silently omit the merger-rate/base-population factor.
 - No second hidden-host mixture correction on top of IPW.
 - No clipping/trimming/stabilization in the primary arms. Such variants must be separately named and preregistered.
 - Any comparison using different event sets, KDE bandwidths, H0 priors, or selection conventions across arms is invalid.
