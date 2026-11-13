@@ -96,20 +96,24 @@ def matched_five_arm_kde_selected_log_likelihood(
             or not np.all(np.isfinite(sigmas)) or np.any(sigmas <= 0)):
         raise ValueError("events must have finite detected distances and positive finite uncertainties")
 
-    def density(sample: np.ndarray, probability: np.ndarray | None) -> np.ndarray:
+    # FiveArmWeights already contains b(z), b(z)/pi_true(z),
+    # b(z)/pi_MAP(z), and b(z)/pi(z;theta_k). Pass those complete raw
+    # galaxy weights directly; using only 1/pi here would silently drop the
+    # common base-population/merger-rate factor and make the arms incomparable.
+    def density(sample: np.ndarray, raw_weights: np.ndarray) -> np.ndarray:
         return estimate_host_density(
-            z_grid, sample, inclusion_probability=probability,
+            z_grid, sample, sample_weights=raw_weights,
             merger_weight=rate, bandwidth_factor=float(bandwidth_factor),
         )
 
-    p_a = density(arms.catalogue_redshift, None)
-    p_b = density(arms.parent_redshift, None)
-    p_c = density(arms.catalogue_redshift, arms.arm_c_true_inclusion_probability)
-    p_d = density(arms.catalogue_redshift, arms.arm_d_map_inclusion_probability)
-    node_probs = np.asarray(arms.arm_e_node_inclusion_probability, dtype=float)
-    if node_probs.ndim != 2 or node_probs.shape[1] != arms.catalogue_redshift.size:
-        raise ValueError("Arm E node probabilities have invalid shape")
-    p_e = np.stack([density(arms.catalogue_redshift, p) for p in node_probs])
+    p_a = density(arms.catalogue_redshift, arms.arm_a_catalogue_only)
+    p_b = density(arms.parent_redshift, arms.arm_b_parent_oracle)
+    p_c = density(arms.catalogue_redshift, arms.arm_c_known_probability)
+    p_d = density(arms.catalogue_redshift, arms.arm_d_map_plugin)
+    node_weights = np.asarray(arms.arm_e_node_weights, dtype=float)
+    if node_weights.ndim != 2 or node_weights.shape[1] != arms.catalogue_redshift.size:
+        raise ValueError("Arm E node weights have invalid shape")
+    p_e = np.stack([density(arms.catalogue_redshift, w) for w in node_weights])
     q = np.asarray(arms.arm_e_quadrature_weights, dtype=float)
     if (q.shape != (p_e.shape[0],) or not np.all(np.isfinite(q))
             or np.any(q < 0) or not np.isclose(np.sum(q), 1.0) or not np.any(q > 0)):
