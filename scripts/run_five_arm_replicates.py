@@ -256,6 +256,8 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "catalogue_floor": args.catalogue_floor,
         "h0_true": args.h0_true,
         "h0_points": args.h0_points,
+        "sigma_mpc": args.sigma_mpc,
+        "detection_threshold_mpc": args.detection_threshold_mpc,
         "quadrature_order": args.quadrature_order,
         "scott_multiplier": args.scott_multiplier,
         "bandwidth_selection_status": "engineering_fixture_not_training_holdout_selected",
