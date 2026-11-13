@@ -57,8 +57,10 @@ def _independent_density(
         sample, 2.0 * z_grid[0] - sample, 2.0 * z_grid[-1] - sample,
     ))
     reflected_weights = np.tile(scaled / 3.0, 3)
+    neff = float(np.sum(scaled) ** 2 / np.sum(scaled ** 2))
     estimator = gaussian_kde(
-        reflected, weights=reflected_weights, bw_method=float(bandwidth_factor)
+        reflected, weights=reflected_weights,
+        bw_method=lambda _kde: float(bandwidth_factor) * neff ** (-1.0 / 5.0),
     )
     unnormalized = estimator(z_grid) * rate
     area = float(trapezoid(unnormalized, z_grid))
@@ -193,7 +195,7 @@ def audit(root: Path) -> dict:
     grid = np.linspace(50.0, 90.0, int(config["h0_grid_points"]))
     z_grid = np.linspace(0.01, 0.40, int(config["redshift_grid_points"]))
     rate_grid = 1.0 + 1.5 * (z_grid - 0.01) / 0.39
-    bandwidth_factor = float(config["bandwidth_factor"])
+    scott_multiplier = float(config["scott_multiplier"])
     archive = np.load(root / "results" / "log_likelihoods.npz")
     _assert_close(archive["H0_grid"], grid, "H0 grid")
     _assert_close(archive["redshift_grid"], z_grid, "redshift grid")
@@ -255,7 +257,7 @@ def audit(root: Path) -> dict:
         reconstructed = {}
         for arm, (z_host, probability) in arm_inputs.items():
             p_host = _independent_density(
-                z_grid, z_host, probability, rate_grid, bandwidth_factor
+                z_grid, z_host, probability, rate_grid, scott_multiplier
             )
             _assert_close(
                 archive[f"density_{arm}_n{n}"], p_host,
@@ -269,7 +271,7 @@ def audit(root: Path) -> dict:
         node_densities = []
         for probability in p_nodes:
             p_host = _independent_density(
-                z_grid, catalogue_z, probability, rate_grid, bandwidth_factor
+                z_grid, catalogue_z, probability, rate_grid, scott_multiplier
             )
             node_densities.append(p_host)
             ll, efficiency = _selected_kde_log_likelihood(
