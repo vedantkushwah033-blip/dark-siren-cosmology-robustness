@@ -31,7 +31,7 @@ def test_kde_five_arm_likelihoods_use_normalized_densities_and_common_grids():
     arms, events = _fixture()
     z = np.linspace(0.01, 0.40, 501)
     h0 = np.linspace(55, 85, 41)
-    rate = 1 + 1.5 * (z - 0.01) / 0.39
+    rate = np.ones_like(z)
     result = matched_five_arm_kde_selected_log_likelihood(
         h0, arms, events, detection_threshold_mpc=250,
         redshift_grid=z, merger_weight=rate, bandwidth_factor=0.7,
