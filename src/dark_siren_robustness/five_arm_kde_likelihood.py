@@ -42,26 +42,64 @@ def _validate_grid(values: ArrayLike, name: str, minimum: int = 21) -> np.ndarra
     return grid
 
 
-def _density_likelihood(
-    H0_grid: np.ndarray, z_grid: np.ndarray, density: np.ndarray,
-    distances: np.ndarray, sigmas: np.ndarray, threshold: float,
+def _trapezoid_weights(grid: np.ndarray) -> np.ndarray:
+    """Return linear weights whose dot product reproduces composite trapezoids."""
+    delta = np.diff(grid)
+    weights = np.empty_like(grid)
+    weights[0] = 0.5 * delta[0]
+    weights[-1] = 0.5 * delta[-1]
+    weights[1:-1] = 0.5 * (delta[:-1] + delta[1:])
+    return weights
+
+
+def _batched_density_likelihood(
+    H0_grid: np.ndarray,
+    z_grid: np.ndarray,
+    densities: np.ndarray,
+    distances: np.ndarray,
+    sigmas: np.ndarray,
+    threshold: float,
+    *,
+    h0_chunk_size: int = 128,
 ) -> tuple[np.ndarray, np.ndarray]:
-    if density.shape != z_grid.shape or not np.all(np.isfinite(density)) or np.any(density < 0):
-        raise ValueError("host density must be finite, nonnegative, and match redshift_grid")
-    area = float(trapezoid(density, z_grid))
-    if not np.isclose(area, 1.0, rtol=1e-9, atol=1e-9):
-        raise ValueError("host density must integrate to one on redshift_grid")
-    means = C_KM_S * z_grid[None, :] / H0_grid[:, None]
-    event_log_likelihood = np.empty((distances.size, H0_grid.size))
-    event_log_efficiency = np.empty_like(event_log_likelihood)
-    for i, (distance, sigma) in enumerate(zip(distances, sigmas)):
-        numerator = density[None, :] * norm.pdf(distance, loc=means, scale=sigma)
-        efficiency = density[None, :] * np.exp(log_ndtr((means - threshold) / sigma))
-        event_log_likelihood[i] = np.log(trapezoid(numerator, z_grid, axis=1))
-        event_log_efficiency[i] = np.log(trapezoid(efficiency, z_grid, axis=1))
-    if not np.all(np.isfinite(event_log_likelihood)) or not np.all(np.isfinite(event_log_efficiency)):
+    """Evaluate many host densities while reusing each event/H0 redshift kernel.
+
+    Returns log likelihoods with shape (density, H0) and log detection
+    efficiencies with shape (density, event, H0). H0 chunking bounds memory
+    independently of the final grid resolution.
+    """
+    if (densities.ndim != 2 or densities.shape[1] != z_grid.size
+            or not np.all(np.isfinite(densities)) or np.any(densities < 0)):
+        raise ValueError("host densities must be finite, nonnegative, and match redshift_grid")
+    areas = np.asarray([trapezoid(row, z_grid) for row in densities])
+    if not np.allclose(areas, 1.0, rtol=1e-9, atol=1e-9):
+        raise ValueError("every host density must integrate to one on redshift_grid")
+    if h0_chunk_size < 1:
+        raise ValueError("h0_chunk_size must be positive")
+
+    quadrature = _trapezoid_weights(z_grid)
+    weighted_densities = densities * quadrature[None, :]
+    n_density, n_h0 = densities.shape[0], H0_grid.size
+    log_numerator = np.empty((n_density, distances.size, n_h0))
+    log_efficiency = np.empty_like(log_numerator)
+
+    for start in range(0, n_h0, h0_chunk_size):
+        stop = min(start + h0_chunk_size, n_h0)
+        means = C_KM_S * z_grid[None, :] / H0_grid[start:stop, None]
+        for event_index, (distance, sigma) in enumerate(zip(distances, sigmas)):
+            # The expensive event/H0/redshift kernels are formed once and
+            # contracted against every arm/node density by matrix multiply.
+            numerator_kernel = norm.pdf(distance, loc=means, scale=sigma) * quadrature[None, :]
+            efficiency_kernel = np.exp(log_ndtr((means - threshold) / sigma)) * quadrature[None, :]
+            numerator = numerator_kernel @ densities.T
+            efficiency = efficiency_kernel @ densities.T
+            log_numerator[:, event_index, start:stop] = np.log(numerator.T)
+            log_efficiency[:, event_index, start:stop] = np.log(efficiency.T)
+
+    if not np.all(np.isfinite(log_numerator)) or not np.all(np.isfinite(log_efficiency)):
         raise ArithmeticError("KDE-integrated event likelihood or selection efficiency is non-finite")
-    return np.sum(event_log_likelihood - event_log_efficiency, axis=0), event_log_efficiency
+    log_likelihood = np.sum(log_numerator - log_efficiency, axis=1)
+    return log_likelihood, log_efficiency
 
 
 def matched_five_arm_kde_selected_log_likelihood(
@@ -128,13 +166,19 @@ def matched_five_arm_kde_selected_log_likelihood(
         "A_catalogue_only": p_a, "B_parent_oracle": p_b,
         "C_known_probability_ipw": p_c, "D_map_plugin_ipw": p_d,
     }
-    curves = {}
-    for name, p in densities.items():
-        curves[name], _ = _density_likelihood(h0, z_grid, p, distances, sigmas, threshold)
-    node_ll = np.empty((p_e.shape[0], h0.size))
-    node_eff = np.empty((p_e.shape[0], distances.size, h0.size))
-    for j, p in enumerate(p_e):
-        node_ll[j], node_eff[j] = _density_likelihood(h0, z_grid, p, distances, sigmas, threshold)
+    # Stack A-D and every E quadrature-node density so each event/H0 kernel
+    # is evaluated once and reused across all arms and coefficient nodes.
+    density_names = list(densities)
+    all_densities = np.vstack([*(densities[name] for name in density_names), p_e])
+    all_log_likelihood, all_log_efficiency = _batched_density_likelihood(
+        h0, z_grid, all_densities, distances, sigmas, threshold,
+    )
+    curves = {
+        name: all_log_likelihood[index]
+        for index, name in enumerate(density_names)
+    }
+    node_ll = all_log_likelihood[len(density_names):]
+    node_eff = all_log_efficiency[len(density_names):]
     positive = q > 0
     marginal = logsumexp(node_ll[positive] + np.log(q[positive, None]), axis=0)
     return FiveArmKDELikelihoodResult(
