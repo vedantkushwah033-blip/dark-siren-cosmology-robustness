@@ -199,8 +199,11 @@ def audit(root: Path) -> dict[str, object]:
                 "n_detected": int(config["n_detected"]),
                 "validation_frame": int(config["validation_frame"]),
                 "validation_sizes": sizes,
+                "catalogue_floor": float(config["catalogue_floor"]),
                 "h0_true": float(config["h0_true"]),
                 "h0_grid_points": int(config["h0_points"]),
+                "sigma_mpc": float(config["sigma_mpc"]),
+                "detection_threshold_mpc": float(config["detection_threshold_mpc"]),
                 "quadrature_order": int(config["quadrature_order"]),
                 "scott_multiplier": float(config["scott_multiplier"]),
             }
