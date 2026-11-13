@@ -44,7 +44,7 @@ def _audit_manifest(root: Path) -> int:
     actual_paths = {
         str(path.relative_to(root))
         for path in root.rglob("*")
-        if path.is_file() and path.name != "manifest.json"
+        if path.is_file() and path.name not in {"manifest.json", "independent_audit.json"}
     }
     if set(declared) != actual_paths:
         missing = len(actual_paths - set(declared))
