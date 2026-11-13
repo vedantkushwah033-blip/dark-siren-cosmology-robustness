@@ -146,6 +146,25 @@ def audit(root: Path) -> dict[str, object]:
         raise AssertionError(f"ledger has {len(ledger)} rows; expected {expected_cells}")
     if ledger.duplicated(["replicate", "validation_size", "arm"]).any():
         raise AssertionError("duplicate lifecycle ledger cells")
+    if replicates < 1 or not sizes or sorted(set(sizes)) != sizes or sizes[0] < 5:
+        raise AssertionError("invalid replicate count or validation-size design in config")
+    if int(config["validation_frame"]) < sizes[-1]:
+        raise AssertionError("largest validation size exceeds validation frame")
+    expected_ledger_keys = {
+        (replicate, size, arm)
+        for replicate in range(1, replicates + 1)
+        for size in sizes
+        for arm in ARMS
+    }
+    observed_ledger_keys = set(
+        zip(ledger.replicate.astype(int), ledger.validation_size.astype(int), ledger.arm.astype(str))
+    )
+    if observed_ledger_keys != expected_ledger_keys:
+        missing = len(expected_ledger_keys - observed_ledger_keys)
+        unexpected = len(observed_ledger_keys - expected_ledger_keys)
+        raise AssertionError(
+            f"lifecycle key set mismatch: {missing} missing, {unexpected} unexpected"
+        )
     if set(ledger.status) - {"SUCCESS", "FAILED", "NON_EVALUABLE"}:
         raise AssertionError("unknown lifecycle status")
     if set(ledger.audit_status) - {"PASS", "NOT_RUN", "NOT_PASS"}:
@@ -158,6 +177,8 @@ def audit(root: Path) -> dict[str, object]:
             raise AssertionError(f"replicate {index} ledger is incomplete")
         if set(rows.analysis_seed) != {analysis_seed} or set(rows.validation_seed) != {validation_seed}:
             raise AssertionError(f"replicate {index} seed mismatch")
+        if len(set(rows.status)) != 1 or len(set(rows.audit_status)) != 1:
+            raise AssertionError(f"replicate {index} has inconsistent lifecycle/audit status")
         if set(rows.status) == {"SUCCESS"} and set(rows.audit_status) == {"PASS"}:
             successful_replicates += 1
             rep_summary = summary.loc[summary.replicate == index]
@@ -204,6 +225,48 @@ def audit(root: Path) -> dict[str, object]:
     ]
     if audits.status.tolist() != expected_audit_status:
         raise AssertionError("replicate audit statuses disagree with lifecycle ledger")
+
+    # The summary table must contain exactly the successful replicate × size × arm
+    # cells from the lifecycle ledger, with the same seeds and declared truth.
+    successful_keys = {
+        (int(row.replicate), int(row.validation_size), str(row.arm))
+        for row in ledger.loc[ledger.status == "SUCCESS"].itertuples(index=False)
+    }
+    summary_keys = {
+        (int(row.replicate), int(row.validation_size), str(row.arm))
+        for row in summary.itertuples(index=False)
+    }
+    if summary_keys != successful_keys:
+        missing = len(successful_keys - summary_keys)
+        unexpected = len(summary_keys - successful_keys)
+        raise AssertionError(
+            f"posterior-summary key set mismatch: {missing} missing, {unexpected} unexpected"
+        )
+    if len(summary):
+        for row in summary.itertuples(index=False):
+            ledger_row = ledger.loc[
+                (ledger.replicate == row.replicate)
+                & (ledger.validation_size == row.validation_size)
+                & (ledger.arm == row.arm)
+            ]
+            if len(ledger_row) != 1:
+                raise AssertionError("posterior summary has no unique lifecycle row")
+            expected_seed = expected_seeds[int(row.replicate) - 1]
+            if (
+                int(row.analysis_seed) != expected_seed[0]
+                or int(row.validation_seed) != expected_seed[1]
+                or str(row.audit_status) != "PASS"
+                or not np.isclose(float(row.h0_true), float(config["h0_true"]), rtol=0, atol=1e-12)
+            ):
+                raise AssertionError(
+                    f"posterior summary metadata mismatch for replicate {row.replicate}"
+                )
+            if not np.isclose(
+                float(row.median_error),
+                float(row.posterior_median) - float(row.h0_true),
+                rtol=1e-10, atol=1e-10,
+            ):
+                raise AssertionError("posterior median error does not match saved median and truth")
 
     expected_arms = set(ARMS)
     if len(summary):
