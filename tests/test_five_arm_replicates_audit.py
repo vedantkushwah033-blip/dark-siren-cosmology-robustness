@@ -37,6 +37,13 @@ def _valid_artifact(root: Path) -> None:
         "detection_threshold_mpc": 250.0,
         "quadrature_order": 3,
         "scott_multiplier": 0.7,
+        "failure_bound_assumptions": {
+            "h0_prior_support": [50.0, 90.0],
+            "absolute_median_error_max": 20.0,
+            "squared_median_error_max": 400.0,
+            "coverage_failure_indicator_bounds": [0, 1],
+            "interval_width_bounds": [0.0, 40.0],
+        },
         "seed_schedule": [{
             "replicate": 1,
             "analysis_seed": seeds[0],
