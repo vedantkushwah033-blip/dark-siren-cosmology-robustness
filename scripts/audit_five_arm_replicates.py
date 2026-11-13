@@ -146,6 +146,24 @@ def audit(root: Path) -> dict[str, object]:
         raise AssertionError("unexpected experiment status")
     replicates = int(config["replicates"])
     sizes = [int(value) for value in config["validation_sizes"]]
+    if replicates < 1 or int(config["master_seed"]) < 0:
+        raise AssertionError("invalid replicate count or master seed")
+    if not 50.0 <= float(config["h0_true"]) <= 90.0:
+        raise AssertionError("true H0 lies outside the prior support used for failure bounds")
+    if not sizes or sorted(set(sizes)) != sizes or sizes[0] < 5:
+        raise AssertionError("validation sizes are not unique increasing values >= 5")
+    if sizes[-1] > int(config["validation_frame"]):
+        raise AssertionError("validation size exceeds validation frame")
+    bound_contract = config.get("failure_bound_assumptions", {})
+    expected_bounds = {
+        "h0_prior_support": [50.0, 90.0],
+        "absolute_median_error_max": 20.0,
+        "squared_median_error_max": 400.0,
+        "coverage_failure_indicator_bounds": [0, 1],
+        "interval_width_bounds": [0.0, 40.0],
+    }
+    if bound_contract != expected_bounds:
+        raise AssertionError("failure-inclusive bound assumptions differ from the declared H0 support")
     expected_seeds = _seed_schedule(int(config["master_seed"]), replicates)
     declared = config["seed_schedule"]
     if len(declared) != replicates:
