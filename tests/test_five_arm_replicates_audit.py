@@ -92,7 +92,8 @@ def _valid_artifact(root: Path) -> None:
     ledger.to_csv(root / "replicate_ledger.csv", index=False)
     summary.to_csv(root / "replicate_posterior_summaries.csv", index=False)
     audits.to_csv(root / "replicate_audits.csv", index=False)
-    aggregate, contrasts = AUDITOR._expected_aggregate(summary, ledger, 1)
+    aggregate = AUDITOR._expected_aggregate(summary, ledger, 1)
+    contrasts = AUDITOR._expected_contrasts(summary)
     aggregate.to_csv(root / "aggregate_metrics.csv", index=False)
     contrasts.to_csv(root / "paired_contrasts.csv", index=False)
     replicate_dir = root / "replicates" / "replicate_0001"
