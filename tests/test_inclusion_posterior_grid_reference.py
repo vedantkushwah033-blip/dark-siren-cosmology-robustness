@@ -70,3 +70,66 @@ def test_laplace_hermite_posterior_moments_match_direct_2d_integration():
         np.asarray(direct_predictive),
         rtol=3e-3, atol=2e-3,
     )
+
+
+def test_laplace_hermite_posterior_matches_dense_grid_under_complete_separation():
+    # Complete separation is a deliberately difficult validation sample:
+    # every point below the fixed centre is retained and every point above it
+    # is omitted. The proper Gaussian prior keeps the posterior finite.
+    z = np.linspace(0.012, 0.398, 100)
+    center, scale = 0.205, 0.195
+    retained = (z < center).astype(int)
+    fit = fit_inclusion_posterior_quadrature(
+        z, retained, degree=1, coordinate_center=center,
+        coordinate_scale=scale, order=19,
+    )
+
+    # Independent dense-grid integration of likelihood × declared Gaussian
+    # prior. Bounds are deliberately broad relative to the posterior mode.
+    x = (z - center) / scale
+    beta0 = np.linspace(-5.0, 5.0, 601)
+    beta1 = np.linspace(-18.0, 1.0, 901)
+    b0, b1 = np.meshgrid(beta0, beta1, indexing="ij")
+    log_target = -0.5 * (b0 / 5.0) ** 2 - 0.5 * (b1 / 2.5) ** 2
+    for xi, yi in zip(x, retained):
+        eta = b0 + b1 * xi
+        log_target += yi * eta - np.logaddexp(0.0, eta)
+    mass = np.exp(log_target - np.max(log_target))
+    normalizer = trapezoid(trapezoid(mass, beta1, axis=1), beta0)
+    density = mass / normalizer
+
+    marginal0 = trapezoid(density, beta1, axis=1)
+    marginal1 = trapezoid(density, beta0, axis=0)
+    mean0 = trapezoid(beta0 * marginal0, beta0)
+    mean1 = trapezoid(beta1 * marginal1, beta1)
+    second00 = trapezoid(beta0**2 * marginal0, beta0)
+    second11 = trapezoid(beta1**2 * marginal1, beta1)
+    second01 = trapezoid(
+        trapezoid(b0 * b1 * density, beta1, axis=1), beta0
+    )
+    reference_mean = np.asarray([mean0, mean1])
+    reference_covariance = np.asarray([
+        [second00 - mean0**2, second01 - mean0 * mean1],
+        [second01 - mean0 * mean1, second11 - mean1**2],
+    ])
+
+    np.testing.assert_allclose(
+        fit.posterior_mean, reference_mean, rtol=1e-3, atol=1e-3
+    )
+    np.testing.assert_allclose(
+        fit.posterior_covariance, reference_covariance,
+        rtol=1e-3, atol=1e-3,
+    )
+
+    prediction_z = np.asarray([0.05, 0.20, 0.35])
+    prediction_x = (prediction_z - center) / scale
+    direct_predictive = []
+    for xp in prediction_x:
+        integrand = expit(b0 + b1 * xp) * density
+        direct_predictive.append(
+            trapezoid(trapezoid(integrand, beta1, axis=1), beta0)
+        )
+    np.testing.assert_allclose(
+        posterior_predictive_inclusion(fit, prediction_z),
+        np.asarray(direct_predictive), rtol=1e-4, atol=1e-5,
+    )
