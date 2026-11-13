@@ -24,6 +24,7 @@ from dark_siren_robustness.generative_selection import (
     generate_synthetic_population,
 )
 from dark_siren_robustness.h0_posterior import normalize_h0_posterior
+from dark_siren_robustness.catalogue_density import reflected_weighted_kde_bandwidth
 
 
 def _parse_sizes(raw: str) -> list[int]:
@@ -116,6 +117,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     summary_rows: list[dict[str, object]] = []
     curve_arrays: dict[str, np.ndarray] = {}
     diagnostic_rows: list[dict[str, object]] = []
+    bandwidth_rows: list[dict[str, object]] = []
 
     for n_validation in sizes:
         validation = validation_full.iloc[:n_validation].copy()
@@ -165,6 +167,34 @@ def run(args: argparse.Namespace) -> dict[str, object]:
 
         for arm_name, density_values in result.arm_density.items():
             curve_arrays[f"density_{arm_name}_n{n_validation}"] = density_values
+        bandwidth_inputs = {
+            "A_catalogue_only": (catalogue_z, arms.arm_a_catalogue_only),
+            "B_parent_oracle": (parent_z, arms.arm_b_parent_oracle),
+            "C_known_probability_ipw": (catalogue_z, arms.arm_c_known_probability),
+            "D_map_plugin_ipw": (catalogue_z, arms.arm_d_map_plugin),
+        }
+        for arm_name, (sample_z, raw_weights) in bandwidth_inputs.items():
+            bandwidth_rows.append({
+                "validation_size": n_validation,
+                "arm": arm_name,
+                "node": -1,
+                "realized_bandwidth_redshift": reflected_weighted_kde_bandwidth(
+                    sample_z, lower_bound=0.01, upper_bound=0.40,
+                    sample_weights=raw_weights,
+                    scott_multiplier=args.scott_multiplier,
+                ),
+            })
+        for node_index, raw_weights in enumerate(arms.arm_e_node_weights):
+            bandwidth_rows.append({
+                "validation_size": n_validation,
+                "arm": "E_uncertainty_integrated_ipw",
+                "node": node_index,
+                "realized_bandwidth_redshift": reflected_weighted_kde_bandwidth(
+                    catalogue_z, lower_bound=0.01, upper_bound=0.40,
+                    sample_weights=raw_weights,
+                    scott_multiplier=args.scott_multiplier,
+                ),
+            })
         curve_arrays[f"density_E_nodes_n{n_validation}"] = result.arm_e_node_density
         curve_arrays[f"posterior_nodes_n{n_validation}"] = np.asarray(arms.inclusion_posterior.nodes)
         curve_arrays[f"posterior_mode_n{n_validation}"] = np.asarray(arms.inclusion_posterior.mode)
@@ -210,6 +240,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     validation_truth.to_csv(truth_dir / "validation_frame_truth.csv", index=False)
     pd.DataFrame(summary_rows).to_csv(results_dir / "posterior_summaries.csv", index=False)
     pd.DataFrame(diagnostic_rows).to_csv(results_dir / "weight_diagnostics.csv", index=False)
+    pd.DataFrame(bandwidth_rows).to_csv(results_dir / "realized_bandwidths.csv", index=False)
     np.savez_compressed(results_dir / "log_likelihoods.npz", H0_grid=h0_grid, redshift_grid=redshift_grid, merger_weight_grid=merger_weight_grid, **curve_arrays)
 
     config = {
