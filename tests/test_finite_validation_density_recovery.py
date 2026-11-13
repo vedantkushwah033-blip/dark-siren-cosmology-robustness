@@ -14,6 +14,7 @@ from dark_siren_robustness.finite_validation_density_recovery import (
     write_artifacts,
 )
 from dark_siren_robustness.finite_validation_density_recovery_audit import audit_artifact
+from dark_siren_robustness.catalogue_density import estimate_host_density
 
 
 def test_parent_curvature_center_uses_declared_nonuniform_parent_law():
@@ -331,3 +332,25 @@ def test_auditor_rejects_tampered_logistic_coefficient_even_with_refreshed_manif
               "Fitted covariance reconstruction failed",
     ):
         audit_artifact(tmp_path)
+
+
+
+def test_independent_kde_reconstructs_original_sample_weighted_scott_bandwidth():
+    grid = np.linspace(0.01, 0.40, 501)
+    sample = np.linspace(0.025, 0.385, 47) ** 1.0
+    probability = 0.15 + 0.80 / (1.0 + np.exp((sample - 0.22) / 0.05))
+    merger = 1.0 + 1.5 * (grid - 0.01) / 0.39
+    multiplier = 0.63
+
+    independent = __import__(
+        "dark_siren_robustness.finite_validation_density_recovery_audit",
+        fromlist=["_independent_kde"],
+    )._independent_kde(grid, sample, probability, multiplier, merger)
+    production = estimate_host_density(
+        grid,
+        sample,
+        inclusion_probability=probability,
+        merger_weight=merger,
+        scott_multiplier=multiplier,
+    )
+    np.testing.assert_allclose(independent, production, rtol=2e-10, atol=2e-10)
