@@ -87,7 +87,22 @@ def _paired_contrasts(summary: pd.DataFrame) -> pd.DataFrame:
     ])
 
 
-def _aggregate(summary: pd.DataFrame, ledger: pd.DataFrame, replicates: int) -> tuple[pd.DataFrame, pd.DataFrame]:
+def _aggregate(
+    summary: pd.DataFrame,
+    ledger: pd.DataFrame,
+    replicates: int,
+    *,
+    h0_true: float = 70.0,
+    h0_prior_min: float = 50.0,
+    h0_prior_max: float = 90.0,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    if (
+        not np.isfinite(h0_true) or not np.isfinite(h0_prior_min)
+        or not np.isfinite(h0_prior_max) or h0_prior_min >= h0_prior_max
+        or not h0_prior_min <= h0_true <= h0_prior_max
+    ):
+        raise ValueError("h0_true must lie inside finite ordered H0 prior support")
+    max_abs_error = max(abs(h0_prior_min - h0_true), abs(h0_prior_max - h0_true))
     rows: list[dict[str, object]] = []
     planned_sizes = sorted(int(value) for value in ledger["validation_size"].unique())
     for n_validation in planned_sizes:
@@ -122,9 +137,9 @@ def _aggregate(summary: pd.DataFrame, ledger: pd.DataFrame, replicates: int) -> 
                 "failure_inclusive_coverage_lower": float(np.sum(covered) / replicates),
                 "failure_inclusive_coverage_upper": float((np.sum(covered) + failures) / replicates),
                 "failure_inclusive_rmse_lower": float(np.sqrt(squared_sum / replicates)),
-                "failure_inclusive_rmse_upper": float(np.sqrt((squared_sum + failures * 400.0) / replicates)),
+                "failure_inclusive_rmse_upper": float(np.sqrt((squared_sum + failures * max_abs_error**2) / replicates)),
                 "failure_inclusive_abs_error_lower": float(absolute_sum / replicates),
-                "failure_inclusive_abs_error_upper": float((absolute_sum + failures * 20.0) / replicates),
+                "failure_inclusive_abs_error_upper": float((absolute_sum + failures * max_abs_error) / replicates),
                 "failure_inclusive_bias_lower": float((np.sum(errors) - failures * 20.0) / replicates),
                 "failure_inclusive_bias_upper": float((np.sum(errors) + failures * 20.0) / replicates),
             })
@@ -234,7 +249,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             "q025", "q05", "q16", "q84", "q95", "q975",
         ]
     )
-    aggregate, contrasts = _aggregate(summaries, ledger, args.replicates)
+    aggregate, contrasts = _aggregate(summaries, ledger, args.replicates, h0_true=args.h0_true)
     ledger.to_csv(output / "replicate_ledger.csv", index=False)
     summaries.to_csv(output / "replicate_posterior_summaries.csv", index=False)
     aggregate.to_csv(output / "aggregate_metrics.csv", index=False)
@@ -263,8 +278,8 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "bandwidth_selection_status": "engineering_fixture_not_training_holdout_selected",
         "failure_bound_assumptions": {
             "h0_prior_support": [50.0, 90.0],
-            "absolute_median_error_max": 20.0,
-            "squared_median_error_max": 400.0,
+            "absolute_median_error_max": max(abs(50.0 - args.h0_true), abs(90.0 - args.h0_true)),
+            "squared_median_error_max": max(abs(50.0 - args.h0_true), abs(90.0 - args.h0_true)) ** 2,
             "coverage_failure_indicator_bounds": [0, 1],
             "interval_width_bounds": [0.0, 40.0],
         },
