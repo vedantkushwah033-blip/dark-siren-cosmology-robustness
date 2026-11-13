@@ -122,8 +122,7 @@ def _expected_aggregate(summary: pd.DataFrame, ledger: pd.DataFrame, replicates:
             rows.append({
                 "validation_size": int(n_validation),
                 "arm": arm,
-                "manifest_files_verified": manifest_files_verified,
-        "planned_replicates": replicates,
+                "planned_replicates": replicates,
                 "successful_replicates": len(observed),
                 "failed_or_non_evaluable": failures,
                 "success_only_bias": float(np.mean(errors)) if len(errors) else np.nan,
@@ -370,6 +369,7 @@ def audit(root: Path) -> dict[str, object]:
     _assert_frame_equal(actual_contrasts, expected_contrasts, "paired contrasts")
     return {
         "status": "PASS",
+        "manifest_files_verified": manifest_files_verified,
         "planned_replicates": replicates,
         "successful_replicates": successful_replicates,
         "failed_replicates": replicates - successful_replicates,
