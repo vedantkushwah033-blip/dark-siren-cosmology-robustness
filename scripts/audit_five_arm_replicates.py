@@ -170,10 +170,14 @@ def audit(root: Path) -> dict[str, object]:
     if sizes[-1] > int(config["validation_frame"]):
         raise AssertionError("validation size exceeds validation frame")
     bound_contract = config.get("failure_bound_assumptions", {})
+    max_abs_error = max(
+        abs(50.0 - float(config["h0_true"])),
+        abs(90.0 - float(config["h0_true"])),
+    )
     expected_bounds = {
         "h0_prior_support": [50.0, 90.0],
-        "absolute_median_error_max": 20.0,
-        "squared_median_error_max": 400.0,
+        "absolute_median_error_max": max_abs_error,
+        "squared_median_error_max": max_abs_error**2,
         "coverage_failure_indicator_bounds": [0, 1],
         "interval_width_bounds": [0.0, 40.0],
     }
