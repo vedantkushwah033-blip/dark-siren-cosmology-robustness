@@ -288,5 +288,6 @@ jobs:
             artifacts/inclusion_posterior_calibration_smoke/
             artifacts/five_arm_smoke/
             artifacts/five_arm_smoke_audit.json
+            artifacts/five_arm_replicates_smoke/
           if-no-files-found: error
 
