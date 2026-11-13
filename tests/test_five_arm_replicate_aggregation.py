@@ -7,6 +7,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from run_five_arm_replicates import ARMS, _aggregate, _seed_schedule
+from audit_five_arm_replicates import _expected_aggregate
 
 
 def test_seed_schedule_is_reproducible_and_collision_free():
@@ -110,3 +111,12 @@ def test_failure_bounds_expand_when_truth_is_off_center_in_h0_support():
     assert row.failure_inclusive_abs_error_upper == 15.5
     assert row.failure_inclusive_bias_lower == -14.5
     assert row.failure_inclusive_bias_upper == 15.5
+    independently_reconstructed = _expected_aggregate(
+        pd.DataFrame(summary_rows), pd.DataFrame(ledger_rows),
+        replicates=2, h0_true=60.0,
+    )
+    pd.testing.assert_frame_equal(
+        aggregate.reset_index(drop=True),
+        independently_reconstructed.reset_index(drop=True),
+        check_exact=False, rtol=2e-10, atol=2e-10,
+    )
