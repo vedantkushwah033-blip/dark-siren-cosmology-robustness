@@ -18,7 +18,7 @@ from dark_siren_robustness.five_arm_comparison import (
     build_five_arm_weights,
     weight_concentration_diagnostics,
 )
-from dark_siren_robustness.five_arm_likelihood import matched_five_arm_selected_log_likelihood
+from dark_siren_robustness.five_arm_kde_likelihood import matched_five_arm_kde_selected_log_likelihood
 from dark_siren_robustness.generative_selection import (
     generate_independent_validation_sample,
     generate_synthetic_population,
@@ -110,6 +110,8 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         for row in events_frame.itertuples(index=False)
     ]
     h0_grid = np.linspace(50.0, 90.0, args.h0_points)
+    redshift_grid = np.linspace(0.01, 0.40, 501)
+    merger_weight_grid = 1.0 + 1.5 * (redshift_grid - 0.01) / 0.39
 
     summary_rows: list[dict[str, object]] = []
     curve_arrays: dict[str, np.ndarray] = {}
@@ -133,11 +135,14 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             parent_base_weights=parent_base,
             catalogue_base_weights=catalogue_base,
         )
-        result = matched_five_arm_selected_log_likelihood(
+        result = matched_five_arm_kde_selected_log_likelihood(
             h0_grid,
             arms,
             events,
             detection_threshold_mpc=args.detection_threshold_mpc,
+            redshift_grid=redshift_grid,
+            merger_weight=merger_weight_grid,
+            bandwidth_factor=args.bandwidth_factor,
         )
         arm_likelihoods = {
             "A_catalogue_only": result.arm_a_log_likelihood,
@@ -158,6 +163,9 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             })
             curve_arrays[f"{arm}_n{n_validation}"] = np.asarray(log_likelihood)
 
+        for arm_name, density_values in result.arm_density.items():
+            curve_arrays[f"density_{arm_name}_n{n_validation}"] = density_values
+        curve_arrays[f"density_E_nodes_n{n_validation}"] = result.arm_e_node_density
         curve_arrays[f"posterior_nodes_n{n_validation}"] = np.asarray(arms.inclusion_posterior.nodes)
         curve_arrays[f"posterior_mode_n{n_validation}"] = np.asarray(arms.inclusion_posterior.mode)
         curve_arrays[f"posterior_weights_n{n_validation}"] = np.asarray(arms.inclusion_posterior.weights)
@@ -202,7 +210,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     validation_truth.to_csv(truth_dir / "validation_frame_truth.csv", index=False)
     pd.DataFrame(summary_rows).to_csv(results_dir / "posterior_summaries.csv", index=False)
     pd.DataFrame(diagnostic_rows).to_csv(results_dir / "weight_diagnostics.csv", index=False)
-    np.savez_compressed(results_dir / "log_likelihoods.npz", H0_grid=h0_grid, **curve_arrays)
+    np.savez_compressed(results_dir / "log_likelihoods.npz", H0_grid=h0_grid, redshift_grid=redshift_grid, merger_weight_grid=merger_weight_grid, **curve_arrays)
 
     config = {
         "experiment": "matched_five_arm_single_replicate_smoke",
@@ -217,6 +225,9 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "catalogue_floor": args.catalogue_floor,
         "h0_true": args.h0_true,
         "h0_grid_points": args.h0_points,
+        "redshift_grid_points": len(redshift_grid),
+        "bandwidth_factor": args.bandwidth_factor,
+        "bandwidth_selection_status": "smoke_fixture_only_not_training_holdout_selected",
         "quadrature_order": args.quadrature_order,
         "sigma_mpc": args.sigma_mpc,
         "detection_threshold_mpc": args.detection_threshold_mpc,
@@ -264,6 +275,7 @@ def main() -> None:
     parser.add_argument("--catalogue-floor", type=float, default=0.10)
     parser.add_argument("--h0-true", type=float, default=70.0)
     parser.add_argument("--h0-points", type=int, default=41)
+    parser.add_argument("--bandwidth-factor", type=float, default=0.7)
     parser.add_argument("--quadrature-order", type=int, default=5)
     parser.add_argument("--sigma-mpc", type=float, default=140.0)
     parser.add_argument("--detection-threshold-mpc", type=float, default=250.0)
