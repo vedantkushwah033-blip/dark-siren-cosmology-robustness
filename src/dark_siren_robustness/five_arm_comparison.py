@@ -192,6 +192,8 @@ def weight_concentration_diagnostics(raw_weights: ArrayLike) -> dict[str, float]
     if weights.ndim != 1 or weights.size < 1 or not np.all(np.isfinite(weights)) or np.any(weights <= 0):
         raise ValueError("raw_weights must be a finite, strictly positive one-dimensional array")
     scaled = weights / np.max(weights)
+    if np.any(scaled == 0.0):
+        raise ArithmeticError("weight scaling underflowed positive mass; refusing to hide support loss")
     total = float(np.sum(scaled))
     normalized = scaled / total
     ess = float(total * total / np.sum(scaled * scaled))
