@@ -71,19 +71,63 @@ def _expected_rng_frame(seed, replicate, n_parent):
 
 
 def _independent_kde(grid, sample, probability, multiplier, merger):
-    sample=np.asarray(sample,dtype=float)
+    """Reconstruct the corrected original-sample weighted-Scott reflected KDE.
+
+    This implementation independently computes both original and augmented
+    weighted covariance terms. Reflection changes the augmented covariance,
+    so the SciPy covariance factor is adjusted to preserve
+    h = multiplier * n_eff^(-1/5) * sd_original.
+    """
+    grid = np.asarray(grid, dtype=float)
+    sample = np.asarray(sample, dtype=float)
+    if sample.ndim != 1 or sample.size < 5 or not np.all(np.isfinite(sample)):
+        raise AssertionError("invalid sample in independent KDE reconstruction")
     if probability is None:
-        weights=np.ones(sample.size)
+        weights = np.ones(sample.size, dtype=float)
     else:
-        weights=1.0/np.asarray(probability,dtype=float)
-    scaled=weights/np.max(weights)
-    augmented=np.concatenate((sample,2*grid[0]-sample,2*grid[-1]-sample))
-    augmented_weights=np.tile(scaled/3.0,3)
-    neff=float(np.sum(scaled)**2/np.sum(scaled**2))
-    factor=float(multiplier)*neff**(-1.0/5.0)
-    kde=gaussian_kde(augmented,weights=augmented_weights,bw_method=lambda _kde:factor)
-    raw=np.asarray(kde(grid))*merger
-    return raw/trapezoid(raw,grid)
+        probability = np.asarray(probability, dtype=float)
+        if (probability.shape != sample.shape or not np.all(np.isfinite(probability))
+                or np.any((probability <= 0) | (probability > 1))):
+            raise AssertionError("invalid inclusion probabilities in independent KDE reconstruction")
+        weights = 1.0 / probability
+    scaled = weights / np.max(weights)
+    if np.any(scaled == 0):
+        raise AssertionError("positive weight underflow in independent KDE reconstruction")
+    augmented = np.concatenate((
+        sample, 2.0 * grid[0] - sample, 2.0 * grid[-1] - sample,
+    ))
+    augmented_weights = np.tile(scaled / 3.0, 3)
+
+    original_probability = scaled / np.sum(scaled)
+    original_mean = float(original_probability @ sample)
+    original_denominator = 1.0 - float(original_probability @ original_probability)
+    original_variance = float(
+        np.sum(original_probability * (sample - original_mean) ** 2)
+        / original_denominator
+    )
+    augmented_probability = augmented_weights / np.sum(augmented_weights)
+    augmented_mean = float(augmented_probability @ augmented)
+    augmented_denominator = 1.0 - float(augmented_probability @ augmented_probability)
+    augmented_variance = float(
+        np.sum(augmented_probability * (augmented - augmented_mean) ** 2)
+        / augmented_denominator
+    )
+    effective_n = float(np.sum(scaled) ** 2 / np.sum(scaled ** 2))
+    if (not np.isfinite(original_variance) or original_variance <= 0
+            or not np.isfinite(augmented_variance) or augmented_variance <= 0
+            or not np.isfinite(effective_n) or effective_n <= 0):
+        raise AssertionError("invalid weighted covariance in independent KDE reconstruction")
+    covariance_adjustment = np.sqrt(original_variance / augmented_variance)
+    factor = float(multiplier) * effective_n ** (-1.0 / 5.0) * covariance_adjustment
+    kde = gaussian_kde(
+        augmented, weights=augmented_weights,
+        bw_method=lambda _kde: factor,
+    )
+    raw = np.asarray(kde(grid), dtype=float) * np.asarray(merger, dtype=float)
+    area = float(trapezoid(raw, grid))
+    if not np.isfinite(area) or area <= 0:
+        raise AssertionError("invalid independent KDE normalization")
+    return raw / area
 
 
 def _reconstruct_weight_diagnostics(probability, n):
