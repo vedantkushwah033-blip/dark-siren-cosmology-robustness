@@ -50,6 +50,8 @@ jobs:
         run: python -m pytest tests/test_five_arm_comparison.py -q
       - name: Test matched five-arm selected H0 likelihood
         run: python -m pytest tests/test_five_arm_likelihood.py -q
+      - name: Test matched five-arm reflected-KDE selected H0 likelihood
+        run: python -m pytest tests/test_five_arm_kde_likelihood.py -q
       - name: Run matched five-arm single-replicate smoke
         run: python scripts/run_five_arm_smoke.py --seed 20261113 --validation-seed 20261114 --n-parent 1200 --n-detected 4 --validation-frame 1500 --validation-sizes 100,300,1000 --h0-points 41 --quadrature-order 5 --output-dir artifacts/five_arm_smoke
       - name: Independently audit matched five-arm smoke artifacts
