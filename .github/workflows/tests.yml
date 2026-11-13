@@ -56,6 +56,8 @@ jobs:
         run: python -m pytest tests/test_five_arm_kde_likelihood.py -q
       - name: Test realized reflected-KDE bandwidth reporting
         run: python -m pytest tests/test_reflected_bandwidth_report.py -q
+      - name: Test batched five-arm KDE kernel reuse against scalar reference
+        run: python -m pytest tests/test_five_arm_kde_kernel_reuse.py -q
       - name: Test inclusion coefficient quadrature convergence through H0 posterior
         run: python -m pytest tests/test_five_arm_kde_quadrature_convergence.py -q
       - name: Test downstream five-arm KDE H0-grid convergence
