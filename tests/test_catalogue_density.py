@@ -201,3 +201,32 @@ def test_invalid_scott_multiplier_is_rejected(multiplier):
     sample = np.linspace(0.02, 0.39, 20)
     with pytest.raises(ValueError, match="scott_multiplier"):
         estimate_host_density(grid, sample, scott_multiplier=multiplier)
+
+def test_scott_multiplier_uses_combined_base_and_inverse_probability_weights():
+    grid = np.linspace(0.01, 0.40, 501)
+    sample = np.linspace(0.012, 0.398, 120)
+    probability = 0.12 + 0.82 / (1.0 + np.exp((sample - 0.22) / 0.05))
+    base = 1.0 + 1.5 * (sample - 0.01) / 0.39
+    combined = base / probability
+    scaled = combined / np.max(combined)
+    neff = np.sum(scaled) ** 2 / np.sum(scaled ** 2)
+    augmented = np.concatenate((
+        sample, 2.0 * grid[0] - sample, 2.0 * grid[-1] - sample,
+    ))
+    augmented_weights = np.tile(scaled / 3.0, 3)
+    adjustment = _covariance_adjustment(
+        sample, scaled, augmented, augmented_weights
+    )
+    expected_kde = gaussian_kde(
+        augmented, weights=augmented_weights,
+        bw_method=0.6 * neff ** (-1.0 / 5.0) * adjustment,
+    )
+    expected = expected_kde(grid)
+    expected /= trapezoid(expected, grid)
+    actual = estimate_host_density(
+        grid, sample, inclusion_probability=probability,
+        sample_weights=base, scott_multiplier=0.6,
+    )
+    np.testing.assert_allclose(actual, expected, rtol=1e-12, atol=1e-12)
+
+
