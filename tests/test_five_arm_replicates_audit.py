@@ -32,6 +32,8 @@ def _valid_artifact(root: Path) -> None:
         "n_parent": 800,
         "n_detected": 3,
         "h0_points": 31,
+        "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0,
         "quadrature_order": 3,
         "scott_multiplier": 0.7,
         "seed_schedule": [{
@@ -96,6 +98,8 @@ def _valid_artifact(root: Path) -> None:
         "validation_sizes": sizes,
         "h0_true": 70.0,
         "h0_grid_points": 31,
+        "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0,
         "quadrature_order": 3,
         "scott_multiplier": 0.7,
     }), encoding="utf-8")
