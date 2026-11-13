@@ -190,7 +190,27 @@ def audit(root: Path) -> dict[str, object]:
                     raise AssertionError(f"successful replicate {index}, n={size}: arm rows incomplete")
             if set(rep_summary.audit_status) != {"PASS"}:
                 raise AssertionError(f"successful replicate {index} missing audit PASS")
-            report_path = root / "replicates" / f"replicate_{index:04d}" / "audit.json"
+            replicate_root = root / "replicates" / f"replicate_{index:04d}"
+            replicate_config = json.loads((replicate_root / "config.json").read_text(encoding="utf-8"))
+            expected_config = {
+                "seed": analysis_seed,
+                "validation_seed": validation_seed,
+                "n_parent": int(config["n_parent"]),
+                "n_detected": int(config["n_detected"]),
+                "validation_frame": int(config["validation_frame"]),
+                "validation_sizes": sizes,
+                "h0_true": float(config["h0_true"]),
+                "h0_grid_points": int(config["h0_points"]),
+                "quadrature_order": int(config["quadrature_order"]),
+                "scott_multiplier": float(config["scott_multiplier"]),
+            }
+            for field, expected_value in expected_config.items():
+                if replicate_config.get(field) != expected_value:
+                    raise AssertionError(
+                        f"replicate {index} config mismatch in {field}: "
+                        f"{replicate_config.get(field)!r} != {expected_value!r}"
+                    )
+            report_path = replicate_root / "audit.json"
             if not report_path.exists():
                 raise AssertionError(f"replicate {index} raw-artifact audit missing")
             report = json.loads(report_path.read_text())
