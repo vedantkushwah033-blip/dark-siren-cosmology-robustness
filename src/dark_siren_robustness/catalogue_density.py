@@ -163,3 +163,49 @@ def estimate_host_density(
     if not np.isclose(trapezoid(density, grid), 1.0, rtol=1e-10, atol=1e-10):
         raise ArithmeticError("Estimated host density failed its unit-integral check")
     return density
+
+
+def reflected_weighted_kde_bandwidth(
+    observed_redshift: ArrayLike,
+    *,
+    lower_bound: float,
+    upper_bound: float,
+    sample_weights: ArrayLike,
+    scott_multiplier: float,
+) -> float:
+    """Return the realized redshift-space SD of the reflected weighted KDE.
+
+    This reports the physical kernel width after applying the original-sample
+    weighted Scott factor; it is not merely the dimensionless SciPy factor.
+    """
+    sample = np.asarray(observed_redshift, dtype=float)
+    weights = np.asarray(sample_weights, dtype=float)
+    if (sample.ndim != 1 or sample.size < 5 or not np.all(np.isfinite(sample))
+            or np.unique(sample).size < 3):
+        raise ValueError("observed_redshift must contain at least five finite values and three distinct values")
+    if (weights.shape != sample.shape or not np.all(np.isfinite(weights))
+            or np.any(weights <= 0)):
+        raise ValueError("sample_weights must be finite, positive, and match observed_redshift")
+    if (not np.isfinite(lower_bound) or not np.isfinite(upper_bound)
+            or lower_bound <= 0 or upper_bound <= lower_bound
+            or np.any((sample < lower_bound) | (sample > upper_bound))):
+        raise ValueError("bounds must be finite, positive, ordered, and contain all samples")
+    if not np.isfinite(scott_multiplier) or scott_multiplier <= 0:
+        raise ValueError("scott_multiplier must be finite and positive")
+    scaled = weights / np.max(weights)
+    if np.any(scaled == 0):
+        raise ArithmeticError("weight scaling underflowed positive mass")
+    reflected = np.concatenate((
+        sample, 2.0 * lower_bound - sample, 2.0 * upper_bound - sample,
+    ))
+    augmented_weights = np.tile(scaled / 3.0, 3)
+    original_neff = float(np.sum(scaled) ** 2 / np.sum(scaled ** 2))
+    factor = float(scott_multiplier) * original_neff ** (-1.0 / 5.0)
+    kde = gaussian_kde(
+        reflected, weights=augmented_weights,
+        bw_method=lambda _kde: factor,
+    )
+    width = float(np.sqrt(kde.covariance[0, 0]))
+    if not np.isfinite(width) or width <= 0:
+        raise ArithmeticError("realized reflected-KDE bandwidth is invalid")
+    return width
