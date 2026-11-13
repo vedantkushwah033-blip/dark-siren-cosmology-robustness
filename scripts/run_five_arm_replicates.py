@@ -69,7 +69,7 @@ def _paired_contrasts(summary: pd.DataFrame) -> pd.DataFrame:
                     "median_error_difference": float(left.median_error - right.median_error),
                     "absolute_error_difference": float(abs(left.median_error) - abs(right.median_error)),
                     "squared_error_difference": float(left.median_error**2 - right.median_error**2),
-                    "coverage_68_difference": int(left.coverage_68) - int(right.coverage_68),
+                    "coverage_68_difference": int(left.q16 <= left.h0_true <= left.q84) - int(right.q16 <= right.h0_true <= right.q84),
                 })
     return pd.DataFrame(rows, columns=[
         "replicate", "validation_size", "arm", "reference_arm",
@@ -83,9 +83,6 @@ def _aggregate(summary: pd.DataFrame, ledger: pd.DataFrame, replicates: int) -> 
     planned_sizes = sorted(int(value) for value in ledger["validation_size"].unique())
     for n_validation in planned_sizes:
         for arm in ARMS:
-            planned = ledger.loc[
-                (ledger.validation_size == n_validation) & (ledger.arm == arm)
-            ]
             observed = summary.loc[
                 (summary.validation_size == n_validation)
                 & (summary.arm == arm)
@@ -111,6 +108,8 @@ def _aggregate(summary: pd.DataFrame, ledger: pd.DataFrame, replicates: int) -> 
                 "success_only_mean_abs_error": float(np.mean(np.abs(errors))) if len(errors) else np.nan,
                 "success_only_68pct_coverage": float(np.mean(covered)) if len(covered) else np.nan,
                 "success_only_mean_68pct_width": float(np.mean(widths)) if len(widths) else np.nan,
+                "failure_inclusive_mean_68pct_width_lower": float(np.sum(widths) / replicates),
+                "failure_inclusive_mean_68pct_width_upper": float((np.sum(widths) + failures * 40.0) / replicates),
                 "failure_inclusive_coverage_lower": float(np.sum(covered) / replicates),
                 "failure_inclusive_coverage_upper": float((np.sum(covered) + failures) / replicates),
                 "failure_inclusive_rmse_lower": float(np.sqrt(squared_sum / replicates)),
