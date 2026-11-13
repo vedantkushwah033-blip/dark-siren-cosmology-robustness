@@ -13,11 +13,12 @@ from audit_bandwidth_train_holdout import audit_selection
 
 def _fixture_attempts():
     rows = []
+    training_ids = {0, 1, 4, 6, 7, 8, 10, 11}  # frozen split for seed=17, fraction=0.67
     for replicate in range(12):
         for multiplier in (0.05, 0.10, 0.20):
-            # 0.10 is best on training replicates. Holdout is deliberately
-            # worse for it, proving selection is not re-optimized on holdout.
-            if replicate < 8:
+            # 0.10 is best on the frozen training IDs; it is intentionally
+            # worse on holdout IDs, demonstrating no holdout re-selection.
+            if replicate in training_ids:
                 iae = {0.05: 0.12, 0.10: 0.08, 0.20: 0.16}[multiplier] + replicate * 1e-4
             else:
                 iae = {0.05: 0.10, 0.10: 0.30, 0.20: 0.14}[multiplier] + replicate * 1e-4
