@@ -253,3 +253,15 @@ def test_reported_reflected_kde_bandwidth_matches_original_sample_scott_width():
         sample_weights=weights, scott_multiplier=0.7,
     )
     assert actual == pytest.approx(expected, rel=1e-12, abs=1e-12)
+
+
+def test_kde_rejects_positive_weights_lost_during_scaling():
+    grid = np.linspace(0.01, 0.40, 101)
+    sample = np.linspace(0.02, 0.39, 20)
+    weights = np.ones(sample.size)
+    weights[0] = 1e308
+    weights[1] = 1e-320
+    with pytest.raises(ArithmeticError, match="underflowed positive mass"):
+        estimate_host_density(
+            grid, sample, sample_weights=weights, scott_multiplier=1.0
+        )
