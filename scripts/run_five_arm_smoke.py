@@ -104,6 +104,14 @@ def run(args: argparse.Namespace) -> dict[str, object]:
 
     # Persist the complete matched design before fitting or likelihood work so
     # a later numerical failure cannot erase the raw replicate inputs.
+    catalogue.to_csv(observable_dir / "catalogue_observed.csv", index=False)
+    events_frame.to_csv(observable_dir / "gw_events_observed.csv", index=False)
+    parent_truth.to_csv(truth_dir / "parent_truth.csv", index=False)
+    population["gw_event_truth"].to_csv(truth_dir / "gw_event_truth.csv", index=False)
+    population["gw_generation_trace_truth"].to_csv(
+        truth_dir / "gw_generation_trace_truth.csv", index=False
+    )
+    validation_truth.to_csv(truth_dir / "validation_frame_truth.csv", index=False)
     for validation_size in sizes:
         validation_full.iloc[:validation_size].copy().to_csv(
             observable_dir / f"validation_n{validation_size}.csv", index=False
@@ -236,14 +244,6 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             "quadrature_nodes": len(node_diagnostics),
         })
 
-    catalogue.to_csv(observable_dir / "catalogue_observed.csv", index=False)
-    events_frame.to_csv(observable_dir / "gw_events_observed.csv", index=False)
-    parent_truth.to_csv(truth_dir / "parent_truth.csv", index=False)
-    population["gw_event_truth"].to_csv(truth_dir / "gw_event_truth.csv", index=False)
-    population["gw_generation_trace_truth"].to_csv(
-        truth_dir / "gw_generation_trace_truth.csv", index=False
-    )
-    validation_truth.to_csv(truth_dir / "validation_frame_truth.csv", index=False)
     pd.DataFrame(summary_rows).to_csv(results_dir / "posterior_summaries.csv", index=False)
     pd.DataFrame(diagnostic_rows).to_csv(results_dir / "weight_diagnostics.csv", index=False)
     pd.DataFrame(bandwidth_rows).to_csv(results_dir / "realized_bandwidths.csv", index=False)
