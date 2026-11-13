@@ -68,6 +68,8 @@ jobs:
         run: python -m pytest tests/test_five_arm_smoke_failure_artifacts.py -q
       - name: Test multi-replicate five-arm aggregation and failure bounds
         run: python -m pytest tests/test_five_arm_replicate_aggregation.py -q
+      - name: Test leakage-free KDE bandwidth training and holdout audit
+        run: python -m pytest tests/test_bandwidth_train_holdout.py -q
       - name: Validate multi-replicate five-arm pilot command-line interfaces
         run: |
           python scripts/run_five_arm_replicates.py --help
