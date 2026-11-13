@@ -75,7 +75,7 @@ def test_all_failed_empty_summary_retains_aggregate_cells():
         "replicate", "validation_size", "arm", "status", "h0_true",
         "median_error", "q16", "q84",
     ])
-    aggregate, contrasts = _aggregate(summary, ledger, replicates=2)
+    aggregate, contrasts = _aggregate(summary, ledger, replicates=2, max_abs_error=20.0)
     assert len(aggregate) == len(ARMS)
     assert (aggregate.successful_replicates == 0).all()
     assert (aggregate.failed_or_non_evaluable == 2).all()
