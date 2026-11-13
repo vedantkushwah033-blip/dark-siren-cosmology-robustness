@@ -44,23 +44,20 @@ def _assert_close(actual, expected, label: str, *, atol: float = 2e-10) -> None:
 
 
 def _independent_density(
-    z_grid: np.ndarray, sample: np.ndarray, probability: np.ndarray | None,
+    z_grid: np.ndarray, sample: np.ndarray, raw_weights: np.ndarray,
     rate: np.ndarray, bandwidth_factor: float,
 ) -> np.ndarray:
     """Independent reflected weighted KDE reconstruction; no production imports."""
-    if probability is None:
-        raw = np.ones(sample.size, dtype=float)
-    else:
-        raw = 1.0 / np.asarray(probability, dtype=float)
+    raw = np.asarray(raw_weights, dtype=float)
+    if raw.shape != sample.shape or not np.all(np.isfinite(raw)) or np.any(raw <= 0):
+        raise AssertionError("independent raw host weights are invalid")
     scaled = raw / np.max(raw)
     reflected = np.concatenate((
         sample, 2.0 * z_grid[0] - sample, 2.0 * z_grid[-1] - sample,
     ))
     reflected_weights = np.tile(scaled / 3.0, 3)
-    neff = float(np.sum(scaled) ** 2 / np.sum(scaled ** 2))
     estimator = gaussian_kde(
-        reflected, weights=reflected_weights,
-        bw_method=lambda _kde: float(bandwidth_factor) * neff ** (-1.0 / 5.0),
+        reflected, weights=reflected_weights, bw_method=float(bandwidth_factor),
     )
     unnormalized = estimator(z_grid) * rate
     area = float(trapezoid(unnormalized, z_grid))
@@ -194,8 +191,8 @@ def audit(root: Path) -> dict:
     distances = events["distance_mpc"].to_numpy(float)
     grid = np.linspace(50.0, 90.0, int(config["h0_grid_points"]))
     z_grid = np.linspace(0.01, 0.40, int(config["redshift_grid_points"]))
-    rate_grid = 1.0 + 1.5 * (z_grid - 0.01) / 0.39
-    scott_multiplier = float(config["scott_multiplier"])
+    rate_grid = np.ones_like(z_grid)
+    bandwidth_factor = float(config["bandwidth_factor"])
     archive = np.load(root / "results" / "log_likelihoods.npz")
     _assert_close(archive["H0_grid"], grid, "H0 grid")
     _assert_close(archive["redshift_grid"], z_grid, "redshift grid")
@@ -249,15 +246,15 @@ def audit(root: Path) -> dict:
             raise AssertionError(f"non-positive estimated inclusion probability at n={n}")
 
         arm_inputs = {
-            "A_catalogue_only": (catalogue_z, None),
-            "B_parent_oracle": (parent_z, None),
-            "C_known_probability_ipw": (catalogue_z, true_probability),
-            "D_map_plugin_ipw": (catalogue_z, p_map),
+            "A_catalogue_only": (catalogue_z, catalogue_base),
+            "B_parent_oracle": (parent_z, parent_base),
+            "C_known_probability_ipw": (catalogue_z, catalogue_base / true_probability),
+            "D_map_plugin_ipw": (catalogue_z, catalogue_base / p_map),
         }
         reconstructed = {}
-        for arm, (z_host, probability) in arm_inputs.items():
+        for arm, (z_host, raw_weights) in arm_inputs.items():
             p_host = _independent_density(
-                z_grid, z_host, probability, rate_grid, scott_multiplier
+                z_grid, z_host, raw_weights, rate_grid, bandwidth_factor
             )
             _assert_close(
                 archive[f"density_{arm}_n{n}"], p_host,
@@ -269,9 +266,10 @@ def audit(root: Path) -> dict:
         node_likelihoods = []
         node_efficiencies = []
         node_densities = []
-        for probability in p_nodes:
+        for node_probability in p_nodes:
+            node_raw_weights = catalogue_base / node_probability
             p_host = _independent_density(
-                z_grid, catalogue_z, probability, rate_grid, scott_multiplier
+                z_grid, catalogue_z, node_raw_weights, rate_grid, bandwidth_factor
             )
             node_densities.append(p_host)
             ll, efficiency = _selected_kde_log_likelihood(
