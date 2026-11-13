@@ -142,7 +142,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             detection_threshold_mpc=args.detection_threshold_mpc,
             redshift_grid=redshift_grid,
             merger_weight=merger_weight_grid,
-            bandwidth_factor=args.bandwidth_factor,
+            scott_multiplier=args.scott_multiplier,
         )
         arm_likelihoods = {
             "A_catalogue_only": result.arm_a_log_likelihood,
@@ -226,7 +226,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "h0_true": args.h0_true,
         "h0_grid_points": args.h0_points,
         "redshift_grid_points": len(redshift_grid),
-        "bandwidth_factor": args.bandwidth_factor,
+        "scott_multiplier": args.scott_multiplier,
         "bandwidth_selection_status": "smoke_fixture_only_not_training_holdout_selected",
         "quadrature_order": args.quadrature_order,
         "sigma_mpc": args.sigma_mpc,
@@ -275,7 +275,7 @@ def main() -> None:
     parser.add_argument("--catalogue-floor", type=float, default=0.10)
     parser.add_argument("--h0-true", type=float, default=70.0)
     parser.add_argument("--h0-points", type=int, default=41)
-    parser.add_argument("--bandwidth-factor", type=float, default=0.7)
+    parser.add_argument("--scott-multiplier", type=float, default=0.7)
     parser.add_argument("--quadrature-order", type=int, default=5)
     parser.add_argument("--sigma-mpc", type=float, default=140.0)
     parser.add_argument("--detection-threshold-mpc", type=float, default=250.0)
