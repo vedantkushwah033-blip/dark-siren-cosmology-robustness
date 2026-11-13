@@ -73,7 +73,7 @@ def matched_five_arm_kde_selected_log_likelihood(
     detection_threshold_mpc: float,
     redshift_grid: ArrayLike,
     merger_weight: ArrayLike,
-    bandwidth_factor: float,
+    scott_multiplier: float,
 ) -> FiveArmKDELikelihoodResult:
     """Evaluate all five arms through one fixed-bandwidth reflected weighted KDE."""
     h0 = np.asarray(H0_grid, dtype=float)
@@ -83,8 +83,8 @@ def matched_five_arm_kde_selected_log_likelihood(
     rate = np.asarray(merger_weight, dtype=float)
     if rate.shape != z_grid.shape or not np.all(np.isfinite(rate)) or np.any(rate <= 0):
         raise ValueError("merger_weight must be finite, positive, and match redshift_grid")
-    if not np.isfinite(bandwidth_factor) or bandwidth_factor <= 0:
-        raise ValueError("bandwidth_factor must be finite and positive")
+    if not np.isfinite(scott_multiplier) or scott_multiplier <= 0:
+        raise ValueError("scott_multiplier must be finite and positive")
     threshold = float(detection_threshold_mpc)
     if not np.isfinite(threshold) or threshold <= 0:
         raise ValueError("detection_threshold_mpc must be finite and positive")
@@ -103,7 +103,7 @@ def matched_five_arm_kde_selected_log_likelihood(
     def density(sample: np.ndarray, raw_weights: np.ndarray) -> np.ndarray:
         return estimate_host_density(
             z_grid, sample, sample_weights=raw_weights,
-            merger_weight=rate, bandwidth_factor=float(bandwidth_factor),
+            merger_weight=rate, scott_multiplier=float(scott_multiplier),
         )
 
     p_a = density(arms.catalogue_redshift, arms.arm_a_catalogue_only)
