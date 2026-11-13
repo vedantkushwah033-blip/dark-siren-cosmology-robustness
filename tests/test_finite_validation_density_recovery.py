@@ -345,12 +345,17 @@ def test_independent_kde_reconstructs_original_sample_weighted_scott_bandwidth()
     merger = 1.0 + 1.5 * (grid - 0.01) / 0.39
     multiplier = 0.63
 
-    independent = _independent_kde(grid, sample, probability, multiplier, merger)
-    production = estimate_host_density(
-        grid,
-        sample,
-        inclusion_probability=probability,
-        merger_weight=merger,
-        scott_multiplier=multiplier,
-    )
-    np.testing.assert_allclose(independent, production, rtol=2e-10, atol=2e-10)
+    for inclusion_probability in (None, probability):
+        independent = _independent_kde(
+            grid, sample, inclusion_probability, multiplier, merger
+        )
+        production = estimate_host_density(
+            grid,
+            sample,
+            inclusion_probability=inclusion_probability,
+            merger_weight=merger,
+            scott_multiplier=multiplier,
+        )
+        np.testing.assert_allclose(
+            independent, production, rtol=2e-10, atol=2e-10
+        )
