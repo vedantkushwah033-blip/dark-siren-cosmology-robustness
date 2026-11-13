@@ -116,6 +116,26 @@ def audit(root: Path) -> dict:
         raise AssertionError("an observed event fails the declared GW detection threshold")
     if len(catalogue) != int(config["n_catalogue_observed"]):
         raise AssertionError("catalogue row count differs from config")
+    expected_catalogue_ids = set(parent.loc[parent["retained"] == 1, "object_id"].astype(int))
+    if set(catalogue["object_id"].astype(int)) != expected_catalogue_ids:
+        raise AssertionError("observable catalogue does not match retained parent IDs")
+    if not np.array_equal(events["event_id"].to_numpy(int), event_truth["event_id"].to_numpy(int)):
+        raise AssertionError("GW event observable/truth IDs differ")
+    event_join = event_truth.merge(
+        parent[["object_id", "redshift"]],
+        left_on="host_object_id", right_on="object_id",
+        suffixes=("_event", "_parent"), validate="many_to_one",
+    )
+    _assert_close(
+        event_join["host_redshift"].to_numpy(float),
+        event_join["redshift"].to_numpy(float),
+        "GW host-redshift truth join",
+    )
+    _assert_close(
+        event_join["latent_mean_distance_mpc"].to_numpy(float),
+        C_KM_S * event_join["redshift"].to_numpy(float) / h0_true,
+        "GW latent distance truth",
+    )
     joined = catalogue.merge(
         parent[["object_id", "redshift", "inclusion_probability"]],
         on="object_id", suffixes=("_observed", "_truth"), validate="one_to_one",
@@ -152,8 +172,22 @@ def audit(root: Path) -> dict:
         validation_ids[n] = validation["validation_id"].to_numpy(int)
         if len(validation) != n:
             raise AssertionError(f"validation size mismatch at n={n}")
-        if not set(validation_ids[n]).issubset(set(validation_truth["frame_id"].to_numpy(int))):
-            raise AssertionError(f"validation IDs are absent from truth frame at n={n}")
+        validation_join = validation.merge(
+            validation_truth[["frame_id", "redshift", "retained"]],
+            left_on="validation_id", right_on="frame_id",
+            suffixes=("_observable", "_truth"), validate="one_to_one",
+        )
+        _assert_close(
+            validation_join["redshift_observable"].to_numpy(float),
+            validation_join["redshift_truth"].to_numpy(float),
+            f"validation redshift join n={n}",
+        )
+        _assert_close(
+            validation_join["retained_observable"].to_numpy(int),
+            validation_join["retained_truth"].to_numpy(int),
+            f"validation retention join n={n}",
+            atol=0.0,
+        )
         y = validation["retained"].to_numpy(int)
         z_validation = validation["redshift"].to_numpy(float)
         x_validation = (z_validation - center) / scale
