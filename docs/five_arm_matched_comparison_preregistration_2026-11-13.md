@@ -114,3 +114,8 @@ Software tests are not calibration results; smoke experiments are not confirmato
 8. Execute and independently audit the confirmatory synthetic experiment.
 
 **No five-arm results are claimed by this document.**
+
+
+## 11. Numerical-gate implementation update (2026-11-13)
+
+The branch now includes a deterministic downstream H0-grid refinement regression test for the reflected-KDE five-arm likelihood. It evaluates the same fixed synthetic replicate at 81, 161, and 321 H0 points, normalizes each arm under the same uniform [50, 90] prior, and checks 161-to-321 stability for all five arms using maximum posterior-density difference <= 0.003 and selected posterior-quantile difference <= 0.20 km/s. This is a numerical regression gate, not a substitute for a representative multi-replicate grid-sensitivity study. The new test is wired into the Python-version CI matrix; its result remains pending until the exact-head workflow completes.
