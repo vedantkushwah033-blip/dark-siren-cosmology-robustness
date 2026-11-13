@@ -119,3 +119,20 @@ Software tests are not calibration results; smoke experiments are not confirmato
 ## 11. Numerical-gate implementation update (2026-11-13)
 
 The branch now includes a deterministic downstream H0-grid refinement regression test for the reflected-KDE five-arm likelihood. It evaluates the same fixed synthetic replicate at 81, 161, and 321 H0 points, normalizes each arm under the same uniform [50, 90] prior, and checks 161-to-321 stability for all five arms using maximum posterior-density difference <= 0.003 and selected posterior-quantile difference <= 0.20 km/s. This is a numerical regression gate, not a substitute for a representative multi-replicate grid-sensitivity study. The new test is wired into the Python-version CI matrix; its result remains pending until the exact-head workflow completes.
+
+
+## 12. Multi-replicate orchestration pilot (2026-11-13)
+
+A reusable engineering-pilot orchestrator is now implemented in `scripts/run_five_arm_replicates.py`. It derives separate analysis-population and validation-frame seeds from a master `SeedSequence`, runs each replicate through the existing single-replicate runner, and invokes the independent raw-artifact auditor in a separate process. Each replicate uses one shared parent population, thinned catalogue, detected-event set, and nested validation frame across all five arms and all validation sizes.
+
+The orchestrator writes:
+- `replicate_ledger.csv`: one explicit SUCCESS/FAILED/NON_EVALUABLE lifecycle row for every replicate × validation-size × arm cell, including both seeds and audit status;
+- `replicate_posterior_summaries.csv`: successful replicate-level posterior summaries only;
+- `replicate_audits.csv`: independent raw-artifact audit outcomes and reconstruction discrepancies;
+- `paired_contrasts.csv`: within-replicate differences in median error, absolute error, squared error, and 68% interval coverage against A and C;
+- `aggregate_metrics.csv`: success-only metrics plus failure-inclusive bounds for bias, absolute error, RMSE, coverage and interval width;
+- `config.json`: master seed, deterministic child-seed schedule, experiment settings, and explicit failure-bound assumptions.
+
+The failure-inclusive bounds use only the declared H0 prior support [50, 90] km/s/Mpc: absolute posterior-median error is bounded by 20, squared error by 400, 68% coverage by [0,1], and equal-tail interval width by [0,40]. These are conservative worst-case bounds for missing/non-evaluable replicate outcomes, not imputed point estimates. The paired contrast file is descriptive at pilot scale; no normal-theory p-values or superiority claims are produced.
+
+A separate `scripts/audit_five_arm_replicates.py` reconstructs the deterministic seed schedule, lifecycle completeness, per-replicate audit references, paired contrasts, and aggregate metrics from the saved replicate summaries and ledger without importing the orchestration runner. The CI workflow now includes a two-replicate orchestration smoke on Python 3.12, plus CLI checks on all matrix versions. The pilot smoke is intended to exercise the orchestration and audit plumbing; it is not the planned N=4000, 30-event confirmatory study and does not close the corrected bandwidth-selection gate.
