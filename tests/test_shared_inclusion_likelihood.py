@@ -309,3 +309,98 @@ def test_full_shared_marginalization_differs_from_eventwise_node_marginalization
     assert np.max(np.abs(
         result.marginal_log_likelihood - eventwise_marginal_sum
     )) > 1e-8
+
+
+# Five-arm comparison: common base-population mass must be applied in every arm.
+from dark_siren_robustness.five_arm_comparison import build_five_arm_weights
+from dark_siren_robustness.generative_selection import catalogue_inclusion_probability
+
+
+def _five_arm_fixture():
+    parent = np.linspace(0.01, 0.40, 300)
+    catalogue = parent[::3]
+    validation = np.linspace(0.01, 0.40, 120)
+    retained = (np.arange(validation.size) % 3 != 0).astype(np.int8)
+    return parent, catalogue, validation, retained
+
+
+def test_five_arm_weights_apply_the_same_declared_base_population_mass():
+    parent, catalogue, validation, retained = _five_arm_fixture()
+    parent_base = 1.0 + 1.5 * (parent - 0.01) / 0.39
+    catalogue_base = 1.0 + 1.5 * (catalogue - 0.01) / 0.39
+
+    result = build_five_arm_weights(
+        parent, catalogue, validation, retained,
+        catalogue_floor=0.10,
+        parent_base_weights=parent_base,
+        catalogue_base_weights=catalogue_base,
+        quadrature_order=5,
+    )
+
+    true_probability = catalogue_inclusion_probability(
+        catalogue, floor=0.10, midpoint=0.22, width=0.05
+    )
+    assert np.allclose(result.arm_a_catalogue_only, catalogue_base)
+    assert np.allclose(result.arm_b_parent_oracle, parent_base)
+    assert np.allclose(
+        result.arm_c_known_probability, catalogue_base / true_probability
+    )
+    assert np.allclose(
+        result.arm_d_map_plugin,
+        catalogue_base / result.arm_d_map_inclusion_probability,
+    )
+    assert result.arm_e_node_weights.shape == (
+        result.inclusion_posterior.nodes.shape[0], catalogue.size
+    )
+    assert np.allclose(
+        result.arm_e_node_weights,
+        catalogue_base[None, :] / result.arm_e_node_inclusion_probability,
+    )
+    assert np.allclose(
+        result.arm_e_quadrature_weights, result.inclusion_posterior.weights
+    )
+
+
+def test_five_arm_weights_default_to_equal_base_population_mass():
+    parent, catalogue, validation, retained = _five_arm_fixture()
+    result = build_five_arm_weights(
+        parent, catalogue, validation, retained,
+        catalogue_floor=0.10,
+        quadrature_order=5,
+    )
+    assert np.array_equal(result.arm_a_catalogue_only, np.ones(catalogue.size))
+    assert np.array_equal(result.arm_b_parent_oracle, np.ones(parent.size))
+
+
+@pytest.mark.parametrize(
+    "parent_base,catalogue_base,match",
+    [
+        (np.ones(299), None, "parent_base_weights"),
+        (None, np.ones(99), "catalogue_base_weights"),
+        (np.r_[np.ones(299), np.nan], None, "parent_base_weights"),
+        (None, np.r_[np.ones(99), 0.0], "catalogue_base_weights"),
+    ],
+)
+def test_five_arm_weights_reject_invalid_base_population_weights(
+    parent_base, catalogue_base, match
+):
+    parent, catalogue, validation, retained = _five_arm_fixture()
+    with pytest.raises(ValueError, match=match):
+        build_five_arm_weights(
+            parent, catalogue, validation, retained,
+            catalogue_floor=0.10,
+            parent_base_weights=parent_base,
+            catalogue_base_weights=catalogue_base,
+            quadrature_order=5,
+        )
+
+
+def test_five_arm_weights_reject_invalid_validation_labels():
+    parent, catalogue, validation, retained = _five_arm_fixture()
+    retained[0] = 2
+    with pytest.raises(ValueError, match="validation_retained"):
+        build_five_arm_weights(
+            parent, catalogue, validation, retained,
+            catalogue_floor=0.10,
+            quadrature_order=5,
+        )
