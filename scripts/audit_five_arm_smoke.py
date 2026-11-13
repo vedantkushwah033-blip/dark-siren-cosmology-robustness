@@ -240,6 +240,16 @@ def audit(root: Path) -> dict:
     stored_bandwidths = pd.read_csv(root / "results" / "realized_bandwidths.csv")
 
     validation_sizes = [int(value) for value in config["validation_sizes"]]
+    expected_bandwidth_rows = 0
+    for n_value in validation_sizes:
+        expected_bandwidth_rows += 4 + len(archive[f"posterior_nodes_n{n_value}"])
+    if len(stored_bandwidths) != expected_bandwidth_rows:
+        raise AssertionError(
+            f"realized bandwidth table has {len(stored_bandwidths)} rows; "
+            f"expected {expected_bandwidth_rows}"
+        )
+    if stored_bandwidths.duplicated(["validation_size", "arm", "node"]).any():
+        raise AssertionError("realized bandwidth table contains duplicate arm/node keys")
     validation_ids = {}
     posterior_rows = 0
     max_likelihood_error = 0.0
