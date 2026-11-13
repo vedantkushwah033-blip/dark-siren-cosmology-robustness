@@ -78,7 +78,6 @@ def _batched_density_likelihood(
         raise ValueError("h0_chunk_size must be positive")
 
     quadrature = _trapezoid_weights(z_grid)
-    weighted_densities = densities * quadrature[None, :]
     n_density, n_h0 = densities.shape[0], H0_grid.size
     log_numerator = np.empty((n_density, distances.size, n_h0))
     log_efficiency = np.empty_like(log_numerator)
