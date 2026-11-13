@@ -1,8 +1,6 @@
 """Tests for reporting realized physical reflected-KDE bandwidths."""
 import numpy as np
 import pytest
-from scipy.stats import gaussian_kde
-
 from dark_siren_robustness.catalogue_density import reflected_weighted_kde_bandwidth
 
 
@@ -11,18 +9,19 @@ def test_reported_bandwidth_matches_reflected_weighted_kde_covariance():
     weights = np.array([1.0, 1.2, 1.4, 1.8, 2.0, 2.4, 3.0, 3.5, 4.0])
     multiplier = 0.73
     scaled = weights / weights.max()
-    reflected = np.concatenate((z, 0.02 - z, 0.80 - z))
-    augmented_weights = np.tile(scaled / 3.0, 3)
-    neff = scaled.sum() ** 2 / np.sum(scaled**2)
-    reference = gaussian_kde(
-        reflected, weights=augmented_weights,
-        bw_method=lambda _kde: multiplier * neff ** (-1.0 / 5.0),
+    probability = scaled / scaled.sum()
+    mean = float(probability @ z)
+    variance = float(
+        np.sum(probability * (z - mean) ** 2)
+        / (1.0 - float(probability @ probability))
     )
+    neff = scaled.sum() ** 2 / np.sum(scaled**2)
+    expected = multiplier * neff ** (-1.0 / 5.0) * np.sqrt(variance)
     observed = reflected_weighted_kde_bandwidth(
         z, lower_bound=0.01, upper_bound=0.40,
         sample_weights=weights, scott_multiplier=multiplier,
     )
-    assert observed == pytest.approx(np.sqrt(reference.covariance[0, 0]), rel=1e-12)
+    assert observed == pytest.approx(expected, rel=1e-12)
 
 
 def test_bandwidth_report_rejects_invalid_weights():
