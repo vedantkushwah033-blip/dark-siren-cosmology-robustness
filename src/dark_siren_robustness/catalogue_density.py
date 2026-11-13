@@ -37,8 +37,9 @@ def estimate_host_density(
     Bandwidth semantics are intentionally explicit:
     - ``bandwidth_factor`` is an absolute SciPy covariance factor, not a
       multiplier of Scott's rule.
-    - ``scott_multiplier`` multiplies the weighted Scott factor computed
-      from the original (unreflected) sample and its effective sample size.
+    - ``scott_multiplier`` multiplies the weighted Scott bandwidth computed
+      from the original (unreflected) sample, including weighted standard
+      deviation and effective sample size.
     - If both are omitted, the weighted Scott factor is used.
     - The two explicit options are mutually exclusive.
     """
@@ -107,7 +108,37 @@ def estimate_host_density(
         )
         weighted_scott_factor = original_neff ** (-1.0 / 5.0)
         multiplier = 1.0 if scott_multiplier is None else float(scott_multiplier)
-        bw_method = lambda _kde: multiplier * weighted_scott_factor
+
+        # gaussian_kde estimates its data covariance from the augmented
+        # reflected sample. Correct the covariance factor so the physical
+        # kernel standard deviation is based on the original weighted sample:
+        # h = multiplier * n_eff**(-1/5) * sd_original.
+        original_probability = scaled_weights / np.sum(scaled_weights)
+        original_mean = float(original_probability @ sample)
+        original_denominator = 1.0 - float(original_probability @ original_probability)
+        original_variance = float(
+            np.sum(original_probability * (sample - original_mean) ** 2)
+            / original_denominator
+        )
+        augmented_probability = augmented_weights / np.sum(augmented_weights)
+        augmented_mean = float(augmented_probability @ augmented_sample)
+        augmented_denominator = 1.0 - float(
+            augmented_probability @ augmented_probability
+        )
+        augmented_variance = float(
+            np.sum(
+                augmented_probability * (augmented_sample - augmented_mean) ** 2
+            ) / augmented_denominator
+        )
+        if (
+            not np.isfinite(original_variance) or original_variance <= 0
+            or not np.isfinite(augmented_variance) or augmented_variance <= 0
+        ):
+            raise ValueError("weighted KDE covariance is undefined")
+        covariance_adjustment = np.sqrt(original_variance / augmented_variance)
+        bw_method = lambda _kde: (
+            multiplier * weighted_scott_factor * covariance_adjustment
+        )
     else:
         # Preserve the legacy absolute-factor behavior for existing callers.
         bw_method = bandwidth_factor
