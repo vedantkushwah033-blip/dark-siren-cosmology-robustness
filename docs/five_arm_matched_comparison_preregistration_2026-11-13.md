@@ -2,6 +2,8 @@
 
 **Date:** 2026-11-13. **Status:** design contract only; no five-arm experiment has been executed. **Scope:** synthetic low-redshift Euclidean dark-siren methodology, not LVK/GWTC analysis or observational H0 measurement.
 
+> **Implementation-gap warning (2026-11-13):** The current PR #44 five-arm likelihood prototype evaluates a discrete, normalized empirical mixture over the supplied galaxy list. It does **not** yet construct or evaluate the preregistered reflected weighted KDE. Consequently, the current smoke runner is only an integration/plumbing test for matched inputs, coefficient-node propagation, and selected-likelihood bookkeeping. It is not an execution of the complete preregistered estimator comparison, and no arm-ranking, density-recovery, or scientific result may be inferred from it. The fixed-bandwidth KDE layer must be implemented and independently audited before the five-arm design can be considered faithful to this contract.
+
 ## 1. Research question
 
 Under what conditions does estimating galaxy-catalogue inclusion probabilities improve dark-siren inference, and under what conditions do model misspecification, finite validation samples, and inverse-probability-weight instability eliminate or reverse that benefit?
@@ -52,6 +54,7 @@ Normalize the H0 posterior once. Do not average separately normalized posterior 
 
 - Same H0 prior support/density, H0 grid, redshift grid, merger-rate/base-population function, event likelihood, and GW selection convention in all arms.
 - Same fixed KDE bandwidth in A-E, chosen in a separate parent-density training/holdout study without looking at H0 outcomes. Use the corrected reflected-KDE Scott implementation. Bandwidth sensitivity is a separate factorial analysis.
+- **Current implementation status:** PR #44's first likelihood implementation is a discrete empirical host-mixture prototype, not this KDE estimator. Do not treat its output as satisfying the KDE fairness condition until the KDE layer and independent density-recovery audit are connected to all five arms.
 - Apply the same declared base-population/merger-rate weighting rule b(z) in every arm: A uses b(z) on the observed catalogue; B uses b(z) on the full parent sample; C, D and E use b(z)/pi(z) with true, MAP and node-specific probabilities respectively. The parent and catalogue base-weight arrays must be evaluated from the same function and parameterization.
 - Use the same KDE and bandwidth on all five populations. No arm may silently omit the merger-rate/base-population factor.
 - No second hidden-host mixture correction on top of IPW.
