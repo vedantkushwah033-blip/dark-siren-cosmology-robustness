@@ -7,6 +7,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from run_five_arm_replicates import ARMS, _aggregate, _seed_schedule
+from audit_five_arm_replicates import _expected_aggregate
 
 
 def test_seed_schedule_is_reproducible_and_collision_free():
@@ -80,3 +81,42 @@ def test_all_failed_empty_summary_retains_aggregate_cells():
     assert (aggregate.successful_replicates == 0).all()
     assert (aggregate.failed_or_non_evaluable == 2).all()
     assert contrasts.empty
+
+
+def test_failure_bounds_expand_when_truth_is_off_center_in_h0_support():
+    summary_rows = [{
+        "replicate": 1,
+        "validation_size": 100,
+        "arm": arm,
+        "status": "SUCCESS",
+        "h0_true": 60.0,
+        "median_error": 1.0,
+        "posterior_median": 61.0,
+        "q16": 55.0,
+        "q84": 65.0,
+    } for arm in ARMS]
+    ledger_rows = [
+        {"replicate": rep, "validation_size": 100, "arm": arm,
+         "status": "SUCCESS" if rep == 1 else "FAILED",
+         "audit_status": "PASS" if rep == 1 else "NOT_RUN"}
+        for rep in (1, 2) for arm in ARMS
+    ]
+    aggregate, _ = _aggregate(
+        pd.DataFrame(summary_rows), pd.DataFrame(ledger_rows),
+        replicates=2, h0_true=60.0,
+    )
+    row = aggregate.loc[aggregate.arm == "A_catalogue_only"].iloc[0]
+    # H0 support [50, 90] implies a worst-case absolute error of 30 at truth 60.
+    assert row.failure_inclusive_rmse_upper == np.sqrt((1.0 + 900.0) / 2.0)
+    assert row.failure_inclusive_abs_error_upper == 15.5
+    assert row.failure_inclusive_bias_lower == -14.5
+    assert row.failure_inclusive_bias_upper == 15.5
+    independently_reconstructed = _expected_aggregate(
+        pd.DataFrame(summary_rows), pd.DataFrame(ledger_rows),
+        replicates=2, h0_true=60.0,
+    )
+    pd.testing.assert_frame_equal(
+        aggregate.reset_index(drop=True),
+        independently_reconstructed.reset_index(drop=True),
+        check_exact=False, rtol=2e-10, atol=2e-10,
+    )
