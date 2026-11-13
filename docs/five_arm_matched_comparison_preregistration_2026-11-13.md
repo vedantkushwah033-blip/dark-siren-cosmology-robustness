@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-13. **Status:** design contract only; no five-arm experiment has been executed. **Scope:** synthetic low-redshift Euclidean dark-siren methodology, not LVK/GWTC analysis or observational H0 measurement.
 
-> **Implementation status (2026-11-13):** A reflected weighted-KDE likelihood path has now been added to PR #44, and the smoke runner is being migrated to it. The smoke bandwidth factor (0.7) is an engineering fixture only; it has not been selected by the preregistered parent-density training/holdout procedure. No arm-ranking or scientific result may be inferred until the independent KDE audit and bandwidth-selection gate pass.
+> **Implementation status (2026-11-13):** A reflected weighted-KDE likelihood path is now connected to the smoke runner, with an independent raw-artifact reconstruction. The smoke weighted-Scott multiplier (0.7) is an engineering fixture only; it has not been selected by the preregistered parent-density training/holdout procedure. No arm-ranking or scientific result may be inferred until the exact-head CI and bandwidth-selection gate pass.
 
 ## 1. Research question
 
@@ -54,7 +54,7 @@ Normalize the H0 posterior once. Do not average separately normalized posterior 
 
 - Same H0 prior support/density, H0 grid, redshift grid, merger-rate/base-population function, event likelihood, and GW selection convention in all arms.
 - Same fixed KDE bandwidth in A-E, chosen in a separate parent-density training/holdout study without looking at H0 outcomes. Use the corrected reflected-KDE Scott implementation. Bandwidth sensitivity is a separate factorial analysis.
-- **Current implementation status:** PR #44 now contains a separate common reflected-KDE likelihood path. Its integration into the smoke runner and independent raw-artifact reconstruction are under validation. The smoke bandwidth is not a scientifically selected bandwidth; the training/holdout selection gate remains open.
+- **Current implementation status:** PR #44 now contains a separate common reflected-KDE likelihood path. Its integration into the smoke runner and independent raw-artifact reconstruction are under validation. The smoke weighted-Scott multiplier is not a scientifically selected bandwidth; the training/holdout selection gate remains open.
 - Apply the same declared base-population/merger-rate weighting rule b(z) in every arm: A uses b(z) on the observed catalogue; B uses b(z) on the full parent sample; C, D and E use b(z)/pi(z) with true, MAP and node-specific probabilities respectively. The parent and catalogue base-weight arrays must be evaluated from the same function and parameterization.
 - Use the same KDE and bandwidth on all five populations. No arm may silently omit the merger-rate/base-population factor.
 - No second hidden-host mixture correction on top of IPW.
