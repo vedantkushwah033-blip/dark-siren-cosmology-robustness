@@ -194,6 +194,14 @@ def audit(root: Path) -> dict[str, object]:
         rows = ledger.loc[ledger.replicate == index]
         if len(rows) != len(sizes) * len(ARMS):
             raise AssertionError(f"replicate {index} ledger is incomplete")
+        if set(rows.validation_size.astype(int)) != set(sizes):
+            raise AssertionError(f"replicate {index} validation-size ledger mismatch")
+        for size in sizes:
+            cell_rows = rows.loc[rows.validation_size == size]
+            if len(cell_rows) != len(ARMS) or set(cell_rows.arm) != set(ARMS):
+                raise AssertionError(f"replicate {index}, n={size}: ledger arm cells incomplete")
+        if len(set(rows.status)) != 1 or len(set(rows.audit_status)) != 1:
+            raise AssertionError(f"replicate {index} has inconsistent cell lifecycle/audit statuses")
         if set(rows.analysis_seed) != {analysis_seed} or set(rows.validation_seed) != {validation_seed}:
             raise AssertionError(f"replicate {index} seed mismatch")
         if set(rows.status) == {"SUCCESS"} and set(rows.audit_status) == {"PASS"}:
