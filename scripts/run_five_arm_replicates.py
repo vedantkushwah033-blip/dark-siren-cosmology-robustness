@@ -7,6 +7,7 @@ in the lifecycle ledger. This is not a confirmatory Monte Carlo study.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -36,6 +37,14 @@ def _parse_sizes(raw: str) -> list[int]:
     if not values or sorted(set(values)) != values or values[0] < 5:
         raise argparse.ArgumentTypeError("validation sizes must be unique, increasing integers >= 5")
     return values
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def _seed_schedule(master_seed: int, replicates: int) -> list[tuple[int, int]]:
@@ -260,6 +269,24 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "claim_limit": "Engineering pilot only; no estimator ranking, calibration, or observational inference.",
     }
     (output / "config.json").write_text(json.dumps(config, indent=2, sort_keys=True) + "\n")
+    files = sorted(
+        path for path in output.rglob("*")
+        if path.is_file() and path.name != "manifest.json"
+    )
+    manifest = {
+        "status": "PASS",
+        "file_count": len(files),
+        "files": {
+            str(path.relative_to(output)): {
+                "bytes": path.stat().st_size,
+                "sha256": _sha256(path),
+            }
+            for path in files
+        },
+    }
+    (output / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\\n"
+    )
     return {
         "status": "PASS" if (ledger.status == "SUCCESS").all() and (ledger.audit_status == "PASS").all() else "INCOMPLETE",
         "replicates": args.replicates,
