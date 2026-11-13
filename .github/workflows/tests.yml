@@ -72,6 +72,10 @@ jobs:
         run: python scripts/run_inclusion_posterior_calibration.py --help
       - name: Test independent calibration orchestration and nested-design auditor
         run: python -m pytest tests/test_audit_inclusion_posterior_calibration.py -q
+      - name: Test independent aggregate calibration summary auditor
+        run: python -m pytest tests/test_inclusion_posterior_aggregate_audit.py -q
+      - name: Validate independent aggregate calibration auditor CLI
+        run: python scripts/audit_inclusion_posterior_aggregate.py --help
       - name: Run and verify tiny conditional H0 PIT and fixed-truth calibration orchestration (Python 3.12 only)
         if: matrix.python-version == '3.12'
         run: |
