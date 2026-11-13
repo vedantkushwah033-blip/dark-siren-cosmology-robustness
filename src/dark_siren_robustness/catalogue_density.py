@@ -97,6 +97,10 @@ def estimate_host_density(
     # A common scale does not change normalized weighted KDEs. Scale before
     # squaring so large but representable inverse probabilities do not overflow.
     scaled_weights = weights / np.max(weights)
+    if np.any(scaled_weights == 0.0):
+        raise ArithmeticError(
+            "weight scaling underflowed positive mass; refusing to hide support loss"
+        )
     augmented_weights = np.tile(scaled_weights / 3.0, 3)
     if bandwidth_factor is None:
         # Splitting each original weight over its three reflected copies changes
