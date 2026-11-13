@@ -64,6 +64,35 @@ jobs:
         run: python scripts/run_five_arm_smoke.py --seed 20261113 --validation-seed 20261114 --n-parent 1200 --n-detected 4 --validation-frame 1500 --validation-sizes 100,300,1000 --h0-points 41 --quadrature-order 5 --output-dir artifacts/five_arm_smoke
       - name: Independently audit matched five-arm smoke artifacts
         run: python scripts/audit_five_arm_smoke.py artifacts/five_arm_smoke --output artifacts/five_arm_smoke_audit.json
+      - name: Validate multi-replicate five-arm pilot command-line interfaces
+        run: |
+          python scripts/run_five_arm_replicates.py --help
+          python scripts/audit_five_arm_replicates.py --help
+      - name: Run two-replicate matched five-arm orchestration smoke (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python scripts/run_five_arm_replicates.py \
+            --master-seed 20261115 --replicates 2 \
+            --n-parent 800 --n-detected 3 --validation-frame 250 \
+            --validation-sizes 80,160 --h0-points 31 \
+            --quadrature-order 3 --output-dir artifacts/five_arm_replicates_smoke
+      - name: Independently audit multi-replicate five-arm orchestration (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python scripts/audit_five_arm_replicates.py artifacts/five_arm_replicates_smoke \
+            --output artifacts/five_arm_replicates_smoke/independent_audit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("artifacts/five_arm_replicates_smoke/independent_audit.json").read_text())
+          assert report["status"] == "PASS"
+          assert report["planned_replicates"] == 2
+          assert report["successful_replicates"] == 2
+          assert report["planned_lifecycle_cells"] == 20
+          assert report["posterior_summary_rows"] == 20
+          assert report["aggregate_metric_rows_reconstructed"] == 10
+          assert report["paired_contrast_rows_reconstructed"] == 32
+          PY
       - name: Test shared inclusion-selected likelihood and independent reconstruction
         run: python -m pytest tests/test_shared_inclusion_likelihood.py -q
       - name: Test end-to-end disjoint-validation to selected H0 posterior smoke
