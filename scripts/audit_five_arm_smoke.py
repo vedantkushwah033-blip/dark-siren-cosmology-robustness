@@ -70,6 +70,23 @@ def _independent_density(
     return density
 
 
+
+def _independent_bandwidth(
+    sample: np.ndarray, raw_weights: np.ndarray,
+    lower: float, upper: float, multiplier: float,
+) -> float:
+    raw = np.asarray(raw_weights, dtype=float)
+    if raw.shape != sample.shape or np.any(raw <= 0) or not np.all(np.isfinite(raw)):
+        raise AssertionError("invalid weights for independent bandwidth reconstruction")
+    scaled = raw / np.max(raw)
+    reflected = np.concatenate((sample, 2.0 * lower - sample, 2.0 * upper - sample))
+    augmented = np.tile(scaled / 3.0, 3)
+    neff = float(np.sum(scaled) ** 2 / np.sum(scaled ** 2))
+    factor = float(multiplier) * neff ** (-1.0 / 5.0)
+    kde = gaussian_kde(reflected, weights=augmented, bw_method=lambda _kde: factor)
+    return float(np.sqrt(kde.covariance[0, 0]))
+
+
 def _selected_kde_log_likelihood(
     h0_grid: np.ndarray, z_grid: np.ndarray, density: np.ndarray,
     distances: np.ndarray, sigma: float, threshold: float,
@@ -199,6 +216,7 @@ def audit(root: Path) -> dict:
     _assert_close(archive["redshift_grid"], z_grid, "redshift grid")
     _assert_close(archive["merger_weight_grid"], rate_grid, "merger weight grid")
     stored_summary = pd.read_csv(root / "results" / "posterior_summaries.csv")
+    stored_bandwidths = pd.read_csv(root / "results" / "realized_bandwidths.csv")
 
     validation_sizes = [int(value) for value in config["validation_sizes"]]
     validation_ids = {}
@@ -253,7 +271,11 @@ def audit(root: Path) -> dict:
             "D_map_plugin_ipw": (catalogue_z, catalogue_base / p_map),
         }
         reconstructed = {}
+        expected_bandwidths = {}
         for arm, (z_host, raw_weights) in arm_inputs.items():
+            expected_bandwidths[(arm, -1)] = _independent_bandwidth(
+                z_host, raw_weights, 0.01, 0.40, scott_multiplier
+            )
             p_host = _independent_density(
                 z_grid, z_host, raw_weights, rate_grid, scott_multiplier
             )
@@ -267,8 +289,11 @@ def audit(root: Path) -> dict:
         node_likelihoods = []
         node_efficiencies = []
         node_densities = []
-        for node_probability in p_nodes:
+        for node_index, node_probability in enumerate(p_nodes):
             node_raw_weights = catalogue_base / node_probability
+            expected_bandwidths[("E_uncertainty_integrated_ipw", node_index)] = _independent_bandwidth(
+                catalogue_z, node_raw_weights, 0.01, 0.40, scott_multiplier
+            )
             p_host = _independent_density(
                 z_grid, catalogue_z, node_raw_weights, rate_grid, scott_multiplier
             )
@@ -290,6 +315,20 @@ def audit(root: Path) -> dict:
             axis=0,
         )
         reconstructed["E_uncertainty_integrated_ipw"] = e_log_likelihood
+
+        for (arm_name, node_index), expected_width in expected_bandwidths.items():
+            row = stored_bandwidths.loc[
+                (stored_bandwidths["validation_size"] == n)
+                & (stored_bandwidths["arm"] == arm_name)
+                & (stored_bandwidths["node"] == node_index)
+            ]
+            if len(row) != 1 or not np.isclose(
+                float(row.iloc[0]["realized_bandwidth_redshift"]),
+                expected_width, rtol=2e-10, atol=2e-12,
+            ):
+                raise AssertionError(
+                    f"realized KDE bandwidth mismatch for {arm_name}, n={n}, node={node_index}"
+                )
 
         for arm, expected in reconstructed.items():
             key = f"{arm}_n{n}"
