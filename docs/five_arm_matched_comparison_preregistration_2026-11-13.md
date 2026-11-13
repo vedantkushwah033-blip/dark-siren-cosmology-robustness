@@ -155,3 +155,32 @@ A separate selector and independent auditor are now included:
 - A unit test verifies that a deliberately worse holdout score does not cause the training-selected multiplier to be changed.
 
 The selector implementation is an analysis workflow, not a completed bandwidth study. No multiplier has been selected from actual training/holdout simulation artifacts yet.
+
+
+### Reproducible execution commands for the bandwidth gate
+
+The lightweight parent-only source experiment can be run without generating the much larger finite-validation factorial artifact:
+
+```bash
+python scripts/run_parent_density_bandwidth_pilot.py \
+  --replicates 200 --n-parent 4000 --seed 20261114 \
+  --grid-points 801 \
+  --bandwidth-multipliers 0.05,0.08,0.10,0.12,0.15,0.20,0.25,0.30,0.40 \
+  --output-dir artifacts/parent_density_bandwidth_source
+
+python scripts/audit_parent_density_bandwidth_pilot.py \
+  artifacts/parent_density_bandwidth_source \
+  --output artifacts/parent_density_bandwidth_source_audit.json
+
+python scripts/select_bandwidth_train_holdout.py \
+  artifacts/parent_density_bandwidth_source \
+  --output artifacts/parent_density_bandwidth_selection.json \
+  --split-seed 20261113 --training-fraction 0.70
+
+python scripts/audit_bandwidth_train_holdout.py \
+  artifacts/parent_density_bandwidth_source \
+  artifacts/parent_density_bandwidth_selection.json \
+  --output artifacts/parent_density_bandwidth_selection_audit.json
+```
+
+The 200-replicate run is a training/holdout bandwidth-selection pilot, not the final confirmatory five-arm campaign. Freeze the selected multiplier and source hashes before applying it to the five-arm H0 study. Do not reselect after viewing H0 posterior results.
