@@ -230,3 +230,26 @@ def test_scott_multiplier_uses_combined_base_and_inverse_probability_weights():
     np.testing.assert_allclose(actual, expected, rtol=1e-12, atol=1e-12)
 
 
+
+
+def test_reported_reflected_kde_bandwidth_matches_original_sample_scott_width():
+    from dark_siren_robustness.catalogue_density import reflected_weighted_kde_bandwidth
+
+    sample = np.linspace(0.012, 0.398, 120)
+    weights = (1.0 + 1.5 * (sample - 0.01) / 0.39) / (
+        0.12 + 0.82 / (1.0 + np.exp((sample - 0.22) / 0.05))
+    )
+    scaled = weights / np.max(weights)
+    probability = scaled / np.sum(scaled)
+    mean = float(probability @ sample)
+    variance = float(
+        np.sum(probability * (sample - mean) ** 2)
+        / (1.0 - float(probability @ probability))
+    )
+    neff = float(np.sum(scaled) ** 2 / np.sum(scaled ** 2))
+    expected = 0.7 * neff ** (-1.0 / 5.0) * np.sqrt(variance)
+    actual = reflected_weighted_kde_bandwidth(
+        sample, lower_bound=0.01, upper_bound=0.40,
+        sample_weights=weights, scott_multiplier=0.7,
+    )
+    assert actual == pytest.approx(expected, rel=1e-12, abs=1e-12)
