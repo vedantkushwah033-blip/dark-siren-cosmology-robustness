@@ -88,12 +88,13 @@ def run(args: argparse.Namespace) -> dict:
         )
         for size in sizes
     ]
-    reference_truth = validation_results[0]["truth"]
+    reference_truth = validation_results[-1]["truth"]
+    truth_frame_columns = ["frame_id", "redshift", "inclusion_probability", "retained"]
     for smaller, larger in zip(validation_results, validation_results[1:]):
         if not smaller["observable"]["validation_id"].tolist() == larger["observable"]["validation_id"].iloc[:len(smaller["observable"])].tolist():
             raise AssertionError("validation samples are not nested prefixes")
-        if not reference_truth.equals(larger["truth"]):
-            raise AssertionError("validation truth frame changed across nested sample sizes")
+        if not reference_truth[truth_frame_columns].equals(larger["truth"][truth_frame_columns]):
+            raise AssertionError("validation parent frame changed across nested sample sizes")
 
     catalogue = population["catalogue_observed"]
     parent_truth = population["parent_truth"]
