@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from scipy.integrate import trapezoid
+from scipy.special import logsumexp
 
 from dark_siren_robustness.catalogue_density import estimate_host_density
 from dark_siren_robustness.five_arm_comparison import build_five_arm_weights
@@ -43,6 +44,16 @@ def test_kde_five_arm_likelihoods_use_normalized_densities_and_common_grids():
         assert np.all(density >= 0)
         assert trapezoid(density, z) == pytest.approx(1.0, abs=1e-9)
     assert np.all(np.isfinite(result.arm_e_marginal_log_likelihood))
+    positive = arms.arm_e_quadrature_weights > 0
+    expected_e = logsumexp(
+        result.arm_e_node_log_likelihood[positive]
+        + np.log(arms.arm_e_quadrature_weights[positive, None]),
+        axis=0,
+    )
+    np.testing.assert_allclose(result.arm_e_marginal_log_likelihood, expected_e)
+    assert result.arm_e_node_log_detection_efficiency.shape == (
+        arms.arm_e_node_weights.shape[0], len(events), h0.size
+    )
 
 
 def test_kde_likelihood_rejects_invalid_bandwidth_and_rate():
