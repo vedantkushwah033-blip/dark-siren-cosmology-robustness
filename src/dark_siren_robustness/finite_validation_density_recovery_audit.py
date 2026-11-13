@@ -80,7 +80,31 @@ def _independent_kde(grid, sample, probability, multiplier, merger):
     augmented=np.concatenate((sample,2*grid[0]-sample,2*grid[-1]-sample))
     augmented_weights=np.tile(scaled/3.0,3)
     neff=float(np.sum(scaled)**2/np.sum(scaled**2))
-    factor=float(multiplier)*neff**(-1.0/5.0)
+
+    # Match the declared physical bandwidth: Scott's rule is based on the
+    # original unreflected weighted sample, not the covariance of its reflected
+    # augmentation. The independent auditor reconstructs this correction
+    # directly rather than importing the production KDE implementation.
+    original_probability=scaled/np.sum(scaled)
+    original_mean=float(original_probability@sample)
+    original_denominator=1.0-float(original_probability@original_probability)
+    original_variance=float(
+        np.sum(original_probability*(sample-original_mean)**2)/original_denominator
+    )
+    augmented_probability=augmented_weights/np.sum(augmented_weights)
+    augmented_mean=float(augmented_probability@augmented)
+    augmented_denominator=1.0-float(augmented_probability@augmented_probability)
+    augmented_variance=float(
+        np.sum(augmented_probability*(augmented-augmented_mean)**2)
+        / augmented_denominator
+    )
+    if (
+        not np.isfinite(original_variance) or original_variance<=0
+        or not np.isfinite(augmented_variance) or augmented_variance<=0
+    ):
+        raise AssertionError("Independent reflected-KDE covariance is undefined")
+    covariance_adjustment=np.sqrt(original_variance/augmented_variance)
+    factor=float(multiplier)*neff**(-1.0/5.0)*covariance_adjustment
     kde=gaussian_kde(augmented,weights=augmented_weights,bw_method=lambda _kde:factor)
     raw=np.asarray(kde(grid))*merger
     return raw/trapezoid(raw,grid)
