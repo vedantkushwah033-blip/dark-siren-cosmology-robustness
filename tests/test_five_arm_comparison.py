@@ -77,3 +77,51 @@ def test_five_arm_builder_rejects_mismatched_validation_labels():
 def test_weight_diagnostics_reject_positive_mass_underflow():
     with pytest.raises(ArithmeticError, match="underflowed positive mass"):
         weight_concentration_diagnostics([1e-320, 1e308])
+
+
+def test_five_arm_weights_apply_common_base_population_mass_to_all_arms():
+    parent, catalogue, validation, retained = _fixture()
+    parent_base = 1.0 + 1.5 * (parent - 0.01) / 0.39
+    catalogue_base = 1.0 + 1.5 * (catalogue - 0.01) / 0.39
+    result = build_five_arm_weights(
+        parent, catalogue, validation, retained,
+        catalogue_floor=0.10,
+        parent_base_weights=parent_base,
+        catalogue_base_weights=catalogue_base,
+        quadrature_order=5,
+    )
+    true_probability = catalogue_inclusion_probability(catalogue, floor=0.10)
+    assert np.allclose(result.arm_a_catalogue_only, catalogue_base)
+    assert np.allclose(result.arm_b_parent_oracle, parent_base)
+    assert np.allclose(result.arm_c_known_probability, catalogue_base / true_probability)
+    assert np.allclose(
+        result.arm_d_map_plugin,
+        catalogue_base / result.arm_d_map_inclusion_probability,
+    )
+    assert np.allclose(
+        result.arm_e_node_weights,
+        catalogue_base[None, :] / result.arm_e_node_inclusion_probability,
+    )
+
+
+@pytest.mark.parametrize(
+    "parent_base,catalogue_base,match",
+    [
+        (np.ones(599), None, "parent_base_weights"),
+        (None, np.ones(2), "catalogue_base_weights"),
+        (np.r_[np.ones(599), np.nan], None, "parent_base_weights"),
+        (None, np.r_[np.ones(2), 0.0], "catalogue_base_weights"),
+    ],
+)
+def test_five_arm_builder_rejects_invalid_base_population_weights(
+    parent_base, catalogue_base, match
+):
+    parent, catalogue, validation, retained = _fixture()
+    with pytest.raises(ValueError, match=match):
+        build_five_arm_weights(
+            parent, catalogue, validation, retained,
+            catalogue_floor=0.10,
+            parent_base_weights=parent_base,
+            catalogue_base_weights=catalogue_base,
+            quadrature_order=5,
+        )
