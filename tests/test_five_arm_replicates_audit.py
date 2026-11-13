@@ -82,6 +82,13 @@ def _valid_artifact(root: Path) -> None:
     contrasts.to_csv(root / "paired_contrasts.csv", index=False)
     replicate_dir = root / "replicates" / "replicate_0001"
     replicate_dir.mkdir(parents=True)
+    (replicate_dir / "audit.json").write_text(json.dumps({
+        "status": "PASS",
+        "manifest_files_verified": 4,
+        "posterior_summary_rows_reconstructed": 5,
+        "maximum_log_likelihood_absolute_difference": 0.0,
+    }), encoding="utf-8")
+
     manifest_files = sorted(
         path for path in root.rglob("*")
         if path.is_file() and path.name != "manifest.json"
@@ -97,12 +104,6 @@ def _valid_artifact(root: Path) -> None:
             }
             for path in manifest_files
         },
-    }), encoding="utf-8")
-    (replicate_dir / "audit.json").write_text(json.dumps({
-        "status": "PASS",
-        "manifest_files_verified": 4,
-        "posterior_summary_rows_reconstructed": 5,
-        "maximum_log_likelihood_absolute_difference": 0.0,
     }), encoding="utf-8")
 
 
