@@ -46,6 +46,8 @@ jobs:
         run: python -m pytest tests/test_estimated_inclusion.py tests/test_validation_design.py tests/test_inclusion_diagnostics.py tests/test_estimated_inclusion_benchmark.py -q
       - name: Test proper inclusion-coefficient posterior quadrature
         run: python -m pytest tests/test_inclusion_posterior.py -q
+      - name: Test matched five-arm inclusion-weight construction
+        run: python -m pytest tests/test_five_arm_comparison.py -q
       - name: Test shared inclusion-selected likelihood and independent reconstruction
         run: python -m pytest tests/test_shared_inclusion_likelihood.py -q
       - name: Test end-to-end disjoint-validation to selected H0 posterior smoke
