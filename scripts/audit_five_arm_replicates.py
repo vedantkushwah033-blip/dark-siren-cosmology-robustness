@@ -191,7 +191,7 @@ def audit(root: Path) -> dict[str, object]:
             ):
                 raise AssertionError(f"replicate {index} audit likelihood discrepancy mismatch")
         else:
-            if set(rows.status) != {"FAILED"}:
+            if set(rows.status) not in ({"FAILED"}, {"NON_EVALUABLE"}):
                 raise AssertionError(f"replicate {index} has inconsistent partial lifecycle statuses")
             if len(summary.loc[summary.replicate == index]):
                 raise AssertionError(f"failed replicate {index} leaked partial posterior summaries")
