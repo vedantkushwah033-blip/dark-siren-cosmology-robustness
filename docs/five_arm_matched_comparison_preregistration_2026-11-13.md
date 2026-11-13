@@ -1,6 +1,6 @@
 # Five-arm matched comparison: preregistration and implementation contract
 
-**Date:** 2026-11-13. **Status:** design contract only; no five-arm experiment has been executed. **Scope:** synthetic low-redshift Euclidean dark-siren methodology, not LVK/GWTC analysis or observational H0 measurement.
+**Date:** 2026-11-13. **Status:** preregistered design contract; one engineering smoke replicate has been executed and independently audited, but no confirmatory five-arm experiment has been executed. **Scope:** synthetic low-redshift Euclidean dark-siren methodology, not LVK/GWTC analysis or observational H0 measurement.
 
 > **Implementation status (2026-11-13):** A reflected weighted-KDE likelihood path is connected to the smoke runner. The runner now records each arm's realized redshift-space kernel width, and the independent raw-artifact auditor reconstructs those widths from the raw weights. The smoke weighted-Scott multiplier (0.7) is an engineering fixture only; it has not been selected by the preregistered parent-density training/holdout procedure. No arm-ranking or scientific result may be inferred until exact-head CI and the bandwidth-selection gate pass.
 
@@ -14,7 +14,7 @@ The informal labels “oracle inclusion weighting” and “known-probability IP
 
 | Arm | Host-population input | Interpretation |
 |---|---|---|
-| A. Catalogue-only | Observed thinned catalogue, equal galaxy weights | Uncorrected practical baseline |
+| A. Catalogue-only | Observed thinned catalogue, weighted by the declared base intensity/merger-rate function b(z) | Uncorrected practical baseline |
 | B. Parent-population oracle | Full simulated parent population before thinning | Infeasible finite-parent oracle benchmark |
 | C. Known-probability IPW | Observed catalogue weighted by true 1/pi(z) | Oracle inclusion-probability benchmark |
 | D. Plug-in estimated IPW | Observed catalogue weighted by 1/pi(z; theta_MAP) | Point-estimated inclusion correction |
@@ -56,7 +56,7 @@ Normalize the H0 posterior once. Do not average separately normalized posterior 
 - Same preselected weighted-Scott multiplier in A-E, chosen in a separate parent-density training/holdout study without looking at H0 outcomes. The corrected reflected-KDE implementation computes each arm's Scott factor from that arm's original weighted sample, so the realized physical kernel widths can differ across arms as their weighted variance and effective sample size differ. This is a common bandwidth-selection rule, not an identical absolute redshift bandwidth; report each realized width and add an absolute-width sensitivity if conclusions depend on this distinction. Bandwidth sensitivity is a separate factorial analysis.
 - **Current implementation status:** PR #44 now contains a separate common reflected-KDE likelihood path. The smoke runner records realized physical bandwidths for A-D and every E posterior node; the independent auditor reconstructs these widths. The smoke weighted-Scott multiplier is not a scientifically selected bandwidth; the training/holdout selection gate remains open.
 - Apply the same declared base-population/merger-rate weighting rule b(z) in every arm: A uses b(z) on the observed catalogue; B uses b(z) on the full parent sample; C, D and E use b(z)/pi(z) with true, MAP and node-specific probabilities respectively. The parent and catalogue base-weight arrays must be evaluated from the same function and parameterization.
-- Use the same KDE and bandwidth on all five populations. No arm may silently omit the merger-rate/base-population factor.
+- Use the same reflected weighted-KDE estimator and preselected weighted-Scott multiplier on all five populations; record realized physical bandwidths for each arm and each E node. No arm may silently omit the merger-rate/base-population factor.
 - No second hidden-host mixture correction on top of IPW.
 - No clipping/trimming/stabilization in the primary arms. Such variants must be separately named and preregistered.
 - Any comparison using different event sets, KDE bandwidths, H0 priors, or selection conventions across arms is invalid.
@@ -113,7 +113,7 @@ Software tests are not calibration results; smoke experiments are not confirmato
 7. Preregister confirmatory replication/precision.
 8. Execute and independently audit the confirmatory synthetic experiment.
 
-**No five-arm results are claimed by this document.**
+**The single engineering smoke is a pipeline check only. No estimator ranking, calibration result, or scientific conclusion is claimed by this document.**
 
 
 ## 11. Numerical-gate implementation update (2026-11-13)
