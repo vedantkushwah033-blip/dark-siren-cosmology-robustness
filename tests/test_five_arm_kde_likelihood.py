@@ -71,7 +71,7 @@ def test_kde_propagates_complete_base_and_inverse_probability_weights():
     )
     expected_b = estimate_host_density(
         z, arms.parent_redshift, sample_weights=arms.arm_b_parent_oracle,
-        bandwidth_factor=factor,
+        scott_multiplier=factor,
     )
     expected_c = estimate_host_density(
         z, arms.catalogue_redshift, sample_weights=arms.arm_c_known_probability,
