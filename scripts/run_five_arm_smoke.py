@@ -102,6 +102,13 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     parent_truth = population["parent_truth"]
     events_frame = population["gw_events_observed"]
 
+    # Persist the complete matched design before fitting or likelihood work so
+    # a later numerical failure cannot erase the raw replicate inputs.
+    for validation_size in sizes:
+        validation_full.iloc[:validation_size].copy().to_csv(
+            observable_dir / f"validation_n{validation_size}.csv", index=False
+        )
+
     parent_z = parent_truth["redshift"].to_numpy(float)
     catalogue_z = catalogue["redshift"].to_numpy(float)
     parent_base = 1.0 + 1.5 * (parent_z - 0.01) / 0.39
@@ -121,7 +128,6 @@ def run(args: argparse.Namespace) -> dict[str, object]:
 
     for n_validation in sizes:
         validation = validation_full.iloc[:n_validation].copy()
-        validation.to_csv(observable_dir / f"validation_n{n_validation}.csv", index=False)
         arms = build_five_arm_weights(
             parent_z,
             catalogue_z,
