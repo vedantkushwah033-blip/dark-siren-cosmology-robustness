@@ -285,7 +285,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         },
     }
     (output / "manifest.json").write_text(
-        json.dumps(manifest, indent=2, sort_keys=True) + "\\n"
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n"
     )
     return {
         "status": "PASS" if (ledger.status == "SUCCESS").all() and (ledger.audit_status == "PASS").all() else "INCOMPLETE",
