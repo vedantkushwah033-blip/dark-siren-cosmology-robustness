@@ -3,7 +3,10 @@ import numpy as np
 from scipy.integrate import trapezoid
 from scipy.special import expit
 
-from dark_siren_robustness.inclusion_posterior import fit_inclusion_posterior_quadrature
+from dark_siren_robustness.inclusion_posterior import (
+    fit_inclusion_posterior_quadrature,
+    posterior_predictive_inclusion,
+)
 
 
 def test_laplace_hermite_posterior_moments_match_direct_2d_integration():
@@ -52,4 +55,18 @@ def test_laplace_hermite_posterior_moments_match_direct_2d_integration():
     np.testing.assert_allclose(fit.posterior_mean, reference_mean, rtol=2e-3, atol=2e-3)
     np.testing.assert_allclose(
         fit.posterior_covariance, reference_cov, rtol=5e-3, atol=2e-3
+    )
+
+    prediction_z = np.array([0.05, 0.20, 0.35])
+    prediction_x = (prediction_z - center) / scale
+    direct_predictive = []
+    for xp in prediction_x:
+        predictive_integrand = expit(b0 + b1 * xp) * density
+        direct_predictive.append(
+            trapezoid(trapezoid(predictive_integrand, beta1, axis=1), beta0)
+        )
+    np.testing.assert_allclose(
+        posterior_predictive_inclusion(fit, prediction_z),
+        np.asarray(direct_predictive),
+        rtol=3e-3, atol=2e-3,
     )
