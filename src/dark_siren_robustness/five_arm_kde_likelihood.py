@@ -73,9 +73,16 @@ def matched_five_arm_kde_selected_log_likelihood(
     detection_threshold_mpc: float,
     redshift_grid: ArrayLike,
     merger_weight: ArrayLike,
-    scott_multiplier: float,
+    bandwidth_factor: float,
 ) -> FiveArmKDELikelihoodResult:
-    """Evaluate all five arms through one fixed-bandwidth reflected weighted KDE."""
+    """Evaluate all five arms through one common absolute-bandwidth reflected KDE.
+
+The same absolute SciPy covariance factor is applied to every arm; it is not
+recomputed from each arm-specific effective sample size. Select this factor
+using an independent parent-density training/holdout study before confirmatory
+inference. Complete base-population and inverse-inclusion weights are supplied
+through FiveArmWeights and are propagated unchanged into the KDE.
+"""
     h0 = np.asarray(H0_grid, dtype=float)
     if h0.ndim != 1 or h0.size < 2 or not np.all(np.isfinite(h0)) or np.any(h0 <= 0) or np.any(np.diff(h0) <= 0):
         raise ValueError("H0_grid must be finite, positive, and strictly increasing")
@@ -83,8 +90,8 @@ def matched_five_arm_kde_selected_log_likelihood(
     rate = np.asarray(merger_weight, dtype=float)
     if rate.shape != z_grid.shape or not np.all(np.isfinite(rate)) or np.any(rate <= 0):
         raise ValueError("merger_weight must be finite, positive, and match redshift_grid")
-    if not np.isfinite(scott_multiplier) or scott_multiplier <= 0:
-        raise ValueError("scott_multiplier must be finite and positive")
+    if not np.isfinite(bandwidth_factor) or bandwidth_factor <= 0:
+        raise ValueError("bandwidth_factor must be finite and positive")
     threshold = float(detection_threshold_mpc)
     if not np.isfinite(threshold) or threshold <= 0:
         raise ValueError("detection_threshold_mpc must be finite and positive")
@@ -103,7 +110,7 @@ def matched_five_arm_kde_selected_log_likelihood(
     def density(sample: np.ndarray, raw_weights: np.ndarray) -> np.ndarray:
         return estimate_host_density(
             z_grid, sample, sample_weights=raw_weights,
-            merger_weight=rate, scott_multiplier=float(scott_multiplier),
+            merger_weight=rate, bandwidth_factor=float(bandwidth_factor),
         )
 
     p_a = density(arms.catalogue_redshift, arms.arm_a_catalogue_only)
