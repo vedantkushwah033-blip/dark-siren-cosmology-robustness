@@ -42,6 +42,23 @@ def _validate_redshifts(values: ArrayLike, name: str, *, minimum: int = 5) -> np
     return z.copy()
 
 
+def _validate_base_weights(
+    values: ArrayLike | None, size: int, name: str
+) -> np.ndarray:
+    if values is None:
+        return np.ones(size, dtype=float)
+    weights = np.asarray(values, dtype=float)
+    if (
+        weights.shape != (size,)
+        or not np.all(np.isfinite(weights))
+        or np.any(weights <= 0)
+    ):
+        raise ValueError(
+            f"{name} must be finite, strictly positive, and match its redshift array"
+        )
+    return weights.copy()
+
+
 def _probabilities_for_nodes(
     redshift: np.ndarray,
     nodes: np.ndarray,
@@ -75,23 +92,33 @@ def build_five_arm_weights(
     prior_mean: ArrayLike | None = None,
     prior_sd: ArrayLike | None = None,
     quadrature_order: int = 15,
+    parent_base_weights: ArrayLike | None = None,
+    catalogue_base_weights: ArrayLike | None = None,
 ) -> FiveArmWeights:
     """Construct A-E raw weights from one matched synthetic replicate.
 
-    A: equal weights on the observed catalogue.
-    B: equal weights on the full simulated parent population.
-    C: true inverse inclusion probabilities on the observed catalogue.
-    D: inverse inclusion probabilities evaluated at the validation-posterior MAP.
-    E: one inverse-probability vector per validation-posterior quadrature node.
+    A: declared base-population weights on the observed catalogue.
+    B: the same base-population weighting rule on the full parent population.
+    C: catalogue base weights divided by true inclusion probabilities.
+    D: catalogue base weights divided by probabilities at the validation MAP.
+    E: one catalogue-base-weighted IPW vector per posterior quadrature node.
 
-    No weight clipping or normalization is performed. The caller must use the
-    same fixed KDE and downstream selection-conditioned likelihood for every
-    arm. E's node weights are integrated at the complete joint-likelihood
-    level, not by averaging host weights before evaluating the likelihood.
+    Supply parent_base_weights and catalogue_base_weights evaluated from the
+    same declared population/rate function. If omitted, equal base weights are
+    used in both populations. No clipping or normalization is performed. The
+    caller must use the same fixed KDE and downstream selection-conditioned
+    likelihood for every arm. E's coefficient nodes are integrated at the
+    complete joint-likelihood level, not by averaging host weights first.
     """
     parent = _validate_redshifts(parent_redshift, "parent_redshift")
     catalogue = _validate_redshifts(catalogue_redshift, "catalogue_redshift")
     validation = _validate_redshifts(validation_redshift, "validation_redshift")
+    parent_base = _validate_base_weights(
+        parent_base_weights, parent.size, "parent_base_weights"
+    )
+    catalogue_base = _validate_base_weights(
+        catalogue_base_weights, catalogue.size, "catalogue_base_weights"
+    )
     retained = np.asarray(validation_retained)
     if retained.shape != validation.shape or np.any((retained != 0) & (retained != 1)):
         raise ValueError("validation_retained must be binary and match validation_redshift")
@@ -137,17 +164,17 @@ def build_five_arm_weights(
     )
 
     with np.errstate(over="ignore", divide="ignore"):
-        known_weights = 1.0 / true_probability
-        map_weights = 1.0 / map_probability
-        node_weights = 1.0 / node_probability
+        known_weights = catalogue_base / true_probability
+        map_weights = catalogue_base / map_probability
+        node_weights = catalogue_base[None, :] / node_probability
     if not all(np.all(np.isfinite(value)) for value in (known_weights, map_weights, node_weights)):
         raise ArithmeticError("inverse inclusion weights overflow; refusing silent clipping")
 
     return FiveArmWeights(
         parent_redshift=parent,
         catalogue_redshift=catalogue,
-        arm_a_catalogue_only=np.ones(catalogue.size, dtype=float),
-        arm_b_parent_oracle=np.ones(parent.size, dtype=float),
+        arm_a_catalogue_only=catalogue_base,
+        arm_b_parent_oracle=parent_base,
         arm_c_known_probability=known_weights,
         arm_d_map_plugin=map_weights,
         arm_e_node_weights=node_weights,
