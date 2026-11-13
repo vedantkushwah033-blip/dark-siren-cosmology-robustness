@@ -14,6 +14,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+from scipy.integrate import trapezoid
 import pandas as pd
 from scipy.special import expit, log_ndtr, logsumexp
 from scipy.stats import norm
@@ -71,7 +72,7 @@ def _selected_log_likelihood(
 
 def _posterior_quantile(grid: np.ndarray, log_likelihood: np.ndarray, q: float) -> float:
     shifted = np.exp(log_likelihood - np.max(log_likelihood))
-    area = float(np.trapz(shifted, grid))
+    area = float(trapezoid(shifted, grid))
     density = shifted / area
     increments = 0.5 * (density[:-1] + density[1:]) * np.diff(grid)
     cdf = np.concatenate(([0.0], np.cumsum(increments)))
