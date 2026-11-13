@@ -56,9 +56,27 @@ def _independent_density(
         sample, 2.0 * z_grid[0] - sample, 2.0 * z_grid[-1] - sample,
     ))
     reflected_weights = np.tile(scaled / 3.0, 3)
+    original_probability = scaled / np.sum(scaled)
+    original_denominator = 1.0 - float(original_probability @ original_probability)
+    original_mean = float(original_probability @ sample)
+    original_variance = float(
+        np.sum(original_probability * (sample - original_mean) ** 2)
+        / original_denominator
+    )
+    augmented_probability = reflected_weights / np.sum(reflected_weights)
+    augmented_denominator = 1.0 - float(augmented_probability @ augmented_probability)
+    augmented_mean = float(augmented_probability @ reflected)
+    augmented_variance = float(
+        np.sum(augmented_probability * (reflected - augmented_mean) ** 2)
+        / augmented_denominator
+    )
+    if original_variance <= 0 or augmented_variance <= 0:
+        raise AssertionError("independent weighted covariance is invalid")
+    neff = float(np.sum(scaled) ** 2 / np.sum(scaled ** 2))
+    covariance_adjustment = np.sqrt(original_variance / augmented_variance)
+    factor = float(scott_multiplier) * neff ** (-1.0 / 5.0) * covariance_adjustment
     estimator = gaussian_kde(
-        reflected, weights=reflected_weights,
-        bw_method=lambda _kde: float(scott_multiplier) * (np.sum(scaled) ** 2 / np.sum(scaled ** 2)) ** (-1.0 / 5.0),
+        reflected, weights=reflected_weights, bw_method=lambda _kde: factor,
     )
     unnormalized = estimator(z_grid) * rate
     area = float(trapezoid(unnormalized, z_grid))
@@ -79,12 +97,15 @@ def _independent_bandwidth(
     if raw.shape != sample.shape or np.any(raw <= 0) or not np.all(np.isfinite(raw)):
         raise AssertionError("invalid weights for independent bandwidth reconstruction")
     scaled = raw / np.max(raw)
-    reflected = np.concatenate((sample, 2.0 * lower - sample, 2.0 * upper - sample))
-    augmented = np.tile(scaled / 3.0, 3)
+    probability = scaled / np.sum(scaled)
+    denominator = 1.0 - float(probability @ probability)
+    mean = float(probability @ sample)
+    variance = float(np.sum(probability * (sample - mean) ** 2) / denominator)
     neff = float(np.sum(scaled) ** 2 / np.sum(scaled ** 2))
-    factor = float(multiplier) * neff ** (-1.0 / 5.0)
-    kde = gaussian_kde(reflected, weights=augmented, bw_method=lambda _kde: factor)
-    return float(np.sqrt(kde.covariance[0, 0]))
+    width = float(multiplier) * neff ** (-1.0 / 5.0) * np.sqrt(variance)
+    if not np.isfinite(width) or width <= 0:
+        raise AssertionError("independent physical bandwidth is invalid")
+    return width
 
 
 def _selected_kde_log_likelihood(
