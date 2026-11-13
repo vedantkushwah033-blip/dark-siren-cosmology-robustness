@@ -173,10 +173,11 @@ def reflected_weighted_kde_bandwidth(
     sample_weights: ArrayLike,
     scott_multiplier: float,
 ) -> float:
-    """Return the realized redshift-space SD of the reflected weighted KDE.
+    """Return the physical redshift-space kernel SD used by the reflected KDE.
 
-    This reports the physical kernel width after applying the original-sample
-    weighted Scott factor; it is not merely the dimensionless SciPy factor.
+    The covariance adjustment in :func:`estimate_host_density` makes the
+    physical bandwidth equal to the original-sample weighted SD multiplied
+    by the weighted Scott factor. This reports that quantity directly.
     """
     sample = np.asarray(observed_redshift, dtype=float)
     weights = np.asarray(sample_weights, dtype=float)
@@ -195,17 +196,12 @@ def reflected_weighted_kde_bandwidth(
     scaled = weights / np.max(weights)
     if np.any(scaled == 0):
         raise ArithmeticError("weight scaling underflowed positive mass")
-    reflected = np.concatenate((
-        sample, 2.0 * lower_bound - sample, 2.0 * upper_bound - sample,
-    ))
-    augmented_weights = np.tile(scaled / 3.0, 3)
-    original_neff = float(np.sum(scaled) ** 2 / np.sum(scaled ** 2))
-    factor = float(scott_multiplier) * original_neff ** (-1.0 / 5.0)
-    kde = gaussian_kde(
-        reflected, weights=augmented_weights,
-        bw_method=lambda _kde: factor,
-    )
-    width = float(np.sqrt(kde.covariance[0, 0]))
+    probability = scaled / np.sum(scaled)
+    denominator = 1.0 - float(probability @ probability)
+    mean = float(probability @ sample)
+    variance = float(np.sum(probability * (sample - mean) ** 2) / denominator)
+    neff = float(np.sum(scaled) ** 2 / np.sum(scaled ** 2))
+    width = float(scott_multiplier) * neff ** (-1.0 / 5.0) * np.sqrt(variance)
     if not np.isfinite(width) or width <= 0:
         raise ArithmeticError("realized reflected-KDE bandwidth is invalid")
     return width
