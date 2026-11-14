@@ -97,16 +97,33 @@ def audit_selection(source_dir: Path, selection_path: Path) -> dict:
         raise AssertionError("candidate multiplier set mismatch")
     if selection["selected_multiplier"] != expected_selected:
         raise AssertionError("selected multiplier was not minimized on training data")
-    if not np.allclose(
-        [x["training_mean_iae"] for x in selection["training_scores"]],
-        [x["training_mean_iae"] for x in expected_training], rtol=1e-12, atol=1e-14,
-    ):
-        raise AssertionError("training scores do not match independent reconstruction")
-    if not np.allclose(
-        [x["holdout_mean_iae"] for x in selection["holdout_scores"]],
-        [x["holdout_mean_iae"] for x in expected_holdout_scores], rtol=1e-12, atol=1e-14,
-    ):
-        raise AssertionError("holdout scores do not match independent reconstruction")
+    if selection.get("schema_version") != 1:
+        raise AssertionError("unsupported selection artifact schema")
+    if selection.get("status") != "PASS_SELECTION_ONLY_NOT_CONFIRMATORY":
+        raise AssertionError("selection artifact status is not the declared non-confirmatory status")
+
+    def _check_score_rows(observed_rows, expected_rows, label):
+        if not isinstance(observed_rows, list) or len(observed_rows) != len(expected_rows):
+            raise AssertionError(f"{label} score row count mismatch")
+        for index, (observed, expected) in enumerate(zip(observed_rows, expected_rows)):
+            if set(observed) != set(expected):
+                raise AssertionError(f"{label} score fields mismatch at row {index}")
+            for key, expected_value in expected.items():
+                observed_value = observed[key]
+                if expected_value is None:
+                    if observed_value is not None:
+                        raise AssertionError(f"{label} {key} should be null at row {index}")
+                elif isinstance(expected_value, (int, float)):
+                    if not np.isclose(
+                        float(observed_value), float(expected_value),
+                        rtol=1e-12, atol=1e-14,
+                    ):
+                        raise AssertionError(f"{label} {key} mismatch at row {index}")
+                elif observed_value != expected_value:
+                    raise AssertionError(f"{label} {key} mismatch at row {index}")
+
+    _check_score_rows(selection["training_scores"], expected_training, "training")
+    _check_score_rows(selection["holdout_scores"], expected_holdout_scores, "holdout")
     if selection["source_manifest_sha256"] != _hash(manifest_path):
         raise AssertionError("source manifest hash mismatch")
     if selection["source_attempts_sha256"] != _hash(source_dir / "attempt_metrics.csv"):
