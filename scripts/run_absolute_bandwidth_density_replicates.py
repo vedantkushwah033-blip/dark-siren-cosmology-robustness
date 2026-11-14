@@ -94,7 +94,7 @@ def run(args):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--master-seed",type=int,default=20261120)
+    p.add_argument("--master-seed",type=int,default=20261201)
     p.add_argument("--seed-stride",type=int,default=10)
     p.add_argument("--replicates",type=int,default=20)
     p.add_argument("--n-parent",type=int,default=4000)
