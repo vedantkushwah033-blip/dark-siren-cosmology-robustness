@@ -221,3 +221,21 @@ def test_quadratic_logit_curvature_dgp_preserves_parent_mean_and_separates_truth
     pd.testing.assert_frame_equal(sample["parent_truth"],repeat["parent_truth"])
     pd.testing.assert_frame_equal(sample["validation_observed"],repeat["validation_observed"])
 
+
+
+def test_quadratic_logit_parent_measure_rejects_nonfinite_or_invalid_grid_inputs():
+    from dark_siren_robustness.generative_selection import quadratic_logit_parent_measure
+
+    invalid_kwargs = (
+        {"z_min": float("nan")},
+        {"z_max": float("inf")},
+        {"coordinate_center": float("nan")},
+        {"coordinate_scale": float("inf")},
+        {"coordinate_scale": 0.0},
+        {"grid_size": 1000},
+        {"grid_size": 1001.5},
+        {"grid_size": True},
+    )
+    for kwargs in invalid_kwargs:
+        with pytest.raises(ValueError):
+            quadratic_logit_parent_measure(**kwargs)
