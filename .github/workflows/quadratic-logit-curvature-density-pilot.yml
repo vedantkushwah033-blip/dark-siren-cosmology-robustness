@@ -4,8 +4,8 @@ on:
     branches:
       - research/absolute-width-distribution-pilot-20261114
     paths:
-      - "scripts/run_quadratic_logit_curvature_density_pilot.py"
-      - "scripts/audit_quadratic_logit_curvature_density_pilot.py"
+      - "scripts/run_quadratic_logit_curvature_density_replicates.py"
+      - "scripts/audit_quadratic_logit_curvature_density_replicates.py"
       - "scripts/run_quadratic_logit_curvature_density_smoke.py"
       - "scripts/audit_quadratic_logit_curvature_density_smoke.py"
       - "src/dark_siren_robustness/**"
@@ -25,9 +25,17 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e ".[dev]"
       - name: Run seven-gamma paired density pilot
-        run: python scripts/run_quadratic_logit_curvature_density_pilot.py --output-dir output/quadratic_logit_curvature_density_pilot --replicates 3 --seed 2026111500
-      - name: Independently audit all children and aggregate
-        run: python scripts/audit_quadratic_logit_curvature_density_pilot.py output/quadratic_logit_curvature_density_pilot
+        run: >-
+          python scripts/run_quadratic_logit_curvature_density_replicates.py
+          --output-dir output/quadratic_logit_curvature_density_pilot
+          --replicates 3 --master-seed 2026111500
+          --gammas=-2,-1,-0.5,0,0.5,1,2
+          --n-parent 4000 --validation-frame 1500
+          --validation-sizes 100,300,1000
+          --quadrature-order 5 --grid-points 401
+          --absolute-widths 0.008,0.012,0.016,0.024,0.032,0.040,0.050,0.060,0.080
+      - name: Independently audit all children, aggregates, and paired contrasts
+        run: python scripts/audit_quadratic_logit_curvature_density_replicates.py output/quadratic_logit_curvature_density_pilot
       - uses: actions/upload-artifact@v4
         if: always()
         with:
