@@ -117,8 +117,21 @@ def audit_selection(source_dir: Path, selection_path: Path) -> dict:
         row for row in expected_holdout_scores
         if row["bandwidth_multiplier"] == expected_selected
     )
-    if selection["selected_holdout_score"] != selected_holdout:
-        raise AssertionError("selected holdout summary mismatch")
+    observed_selected_holdout = selection["selected_holdout_score"]
+    if set(observed_selected_holdout) != set(selected_holdout):
+        raise AssertionError("selected holdout summary fields mismatch")
+    for key, expected_value in selected_holdout.items():
+        observed_value = observed_selected_holdout[key]
+        if expected_value is None:
+            if observed_value is not None:
+                raise AssertionError(f"selected holdout {key} should be null")
+        elif isinstance(expected_value, (int, float)):
+            if not np.isclose(
+                float(observed_value), float(expected_value), rtol=1e-12, atol=1e-14,
+            ):
+                raise AssertionError(f"selected holdout {key} mismatch")
+        elif observed_value != expected_value:
+            raise AssertionError(f"selected holdout {key} mismatch")
     return {
         "status": "PASS",
         "selected_multiplier": expected_selected,
