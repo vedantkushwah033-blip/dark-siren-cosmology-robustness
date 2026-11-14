@@ -31,6 +31,9 @@ def test_paired_curvature_runner_and_independent_outer_audit(tmp_path):
  result=runner.run(_args(out))
  assert result["status"]=="PASS"
  assert result["planned_cells"]==6 and result["successful_cells"]==6
+ outer_config=json.loads((out/"config.json").read_text())
+ assert outer_config["arm_E_primary"]=="loss of posterior-mean density"
+ assert outer_config["arm_E_secondary"]=="posterior expected node-specific density loss"
  ledger=pd.read_csv(out/"cell_ledger.csv")
  assert len(ledger)==6
  assert (ledger.audit_status=="PENDING_OUTER_AUDIT").all()
