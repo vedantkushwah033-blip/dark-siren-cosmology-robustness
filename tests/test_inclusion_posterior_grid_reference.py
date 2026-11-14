@@ -70,3 +70,81 @@ def test_laplace_hermite_posterior_moments_match_direct_2d_integration():
         np.asarray(direct_predictive),
         rtol=3e-3, atol=2e-3,
     )
+
+def test_near_separated_posterior_matches_independent_dense_2d_integration():
+    """Stress the adaptive rule where validation labels are almost separable.
+
+    The reference is direct trapezoidal integration in coefficient space,
+    independent of the Laplace proposal and Gauss-Hermite nodes.
+    """
+    z = np.linspace(0.01, 0.40, 80)
+    center, scale = 0.205, 0.195
+    x = (z - center) / scale
+    retained = (z > center).astype(int)
+    fit = fit_inclusion_posterior_quadrature(
+        z, retained, degree=1, coordinate_center=center,
+        coordinate_scale=scale, order=23,
+    )
+
+    sd = np.array([5.0, 2.5])
+    half_width = 8.0 * np.sqrt(np.diag(fit.laplace_covariance))
+    beta0 = np.linspace(
+        fit.mode[0] - half_width[0], fit.mode[0] + half_width[0], 801
+    )
+    beta1 = np.linspace(
+        fit.mode[1] - half_width[1], fit.mode[1] + half_width[1], 801
+    )
+    b0, b1 = np.meshgrid(beta0, beta1, indexing="ij")
+    log_likelihood = np.zeros_like(b0)
+    for xi, yi in zip(x, retained):
+        eta = b0 + b1 * xi
+        log_likelihood += yi * eta - np.logaddexp(0.0, eta)
+
+    log_prior = (
+        -0.5 * ((b0 / sd[0]) ** 2 + (b1 / sd[1]) ** 2)
+        - np.sum(np.log(sd)) - np.log(2.0 * np.pi)
+    )
+    log_target = log_likelihood + log_prior
+    maximum = float(np.max(log_target))
+    mass = np.exp(log_target - maximum)
+    integral = trapezoid(trapezoid(mass, beta1, axis=1), beta0)
+    density = mass / integral
+    reference_log_evidence = maximum + np.log(integral)
+
+    marginal0 = trapezoid(density, beta1, axis=1)
+    marginal1 = trapezoid(density, beta0, axis=0)
+    mean0 = trapezoid(beta0 * marginal0, beta0)
+    mean1 = trapezoid(beta1 * marginal1, beta1)
+    second00 = trapezoid(beta0**2 * marginal0, beta0)
+    second11 = trapezoid(beta1**2 * marginal1, beta1)
+    second01 = trapezoid(
+        trapezoid(b0 * b1 * density, beta1, axis=1), beta0
+    )
+    reference_mean = np.array([mean0, mean1])
+    reference_covariance = np.array([
+        [second00 - mean0**2, second01 - mean0 * mean1],
+        [second01 - mean0 * mean1, second11 - mean1**2],
+    ])
+
+    prediction_z = np.array([0.01, center, 0.40])
+    prediction_x = (prediction_z - center) / scale
+    reference_predictive = []
+    for xp in prediction_x:
+        integrand = expit(b0 + b1 * xp) * density
+        reference_predictive.append(
+            trapezoid(trapezoid(integrand, beta1, axis=1), beta0)
+        )
+
+    np.testing.assert_allclose(
+        fit.posterior_mean, reference_mean, rtol=1e-5, atol=2e-5
+    )
+    np.testing.assert_allclose(
+        fit.posterior_covariance, reference_covariance,
+        rtol=2e-5, atol=2e-5,
+    )
+    np.testing.assert_allclose(
+        posterior_predictive_inclusion(fit, prediction_z),
+        np.asarray(reference_predictive), rtol=2e-5, atol=2e-5,
+    )
+    assert abs(fit.log_evidence_unnormalized - reference_log_evidence) < 2e-5
+

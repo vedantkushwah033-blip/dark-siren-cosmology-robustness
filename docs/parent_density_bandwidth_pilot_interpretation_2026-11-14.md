@@ -191,3 +191,23 @@ Additional inclusion-posterior tests now exercise both all-zero and all-one vali
 
 The density-only parent bandwidth gate is substantially better supported, but the project still needs common absolute-bandwidth selection across A–E and E coefficient nodes, full inclusion-posterior quadrature stress/reference validation, and then a separate paired confirmatory H0 study with failure-inclusive accounting. No estimator superiority or astrophysical claim is established.
 
+## 9. Repeated exact-head paired redshift-grid audit (2026-11-14)
+
+**Workflow:** [43571044944](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/43571044944)  
+**Exact source head:** `872e4371c7b6206ff617f35317a014332225473f`  
+**Artifact ID:** `14103994802`  
+**Downloaded artifact ZIP SHA-256:** `c96da084f2e2b323264d100941b090fea86fd664190f1494a9bae95c0af60bd8`
+
+The workflow completed successfully. Both resolutions independently audited 200 replicates and 800,000 parent units, with 400 candidate attempts per resolution. The maximum raw IAE reconstruction discrepancies were (9.71\times10^{-17}) (801 points) and (6.94\times10^{-17}) (1,601 points). Both raw audits report **PASS**.
+
+The two parent-sample CSV files are byte-identical, each with SHA-256 `e3faad1fcc56a4575f1704c107b2b8b72a1e37f3170ed613189ceef21d0b1f53`. This verifies a paired numerical comparison using the same 200 parent samples, not an additional independent stochastic replication.
+
+| Candidate | Mean IAE, 801 | Mean IAE, 1,601 | Mean change | Maximum absolute replicate change | RMSE change |
+|---:|---:|---:|---:|---:|---:|
+| 0.50 | 0.0443579266 | 0.0443578787 | (-4.79\times10^{-8}) | (2.93\times10^{-6}) | (7.69\times10^{-7}) |
+| 0.55 | 0.0443596015 | 0.0443595687 | (-3.28\times10^{-8}) | (2.26\times10^{-6}) | (6.33\times10^{-7}) |
+
+The paired contrast IAE(0.55) − IAE(0.50) was (1.67493\times10^{-6}) at 801 points and (1.68998\times10^{-6}) at 1,601 points. The paired grid-resolution interaction was (1.50534\times10^{-8}), with paired SE (7.18227\times10^{-8}) and approximate 95% interval ([-1.27\times10^{-7},1.57\times10^{-7}]). Thus the 801-to-1,601 refinement has negligible effect on this particular density-only candidate contrast.
+
+The exact-head Python test workflow [43571048690](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/43571048690) also passed. The result supports numerical stability for this declared DGP, parent sample, pair of bandwidths and these two grid resolutions only. It does not establish convergence for arm-specific weighted KDEs, other DGPs, other grid resolutions, or any H0 posterior.
+
