@@ -72,7 +72,7 @@ def test_quadratic_logit_density_smoke_independently_audits_true_probability_arm
     config_path=output/"config.json"
     cfg=json.loads(config_path.read_text())
     cfg["quadratic_logit_calibration"]["x2_center"] += 0.01
-    config_path.write_text(json.dumps(cfg,indent=2,sort_keys=True)+"\\n")
+    config_path.write_text(json.dumps(cfg,indent=2,sort_keys=True)+"\n")
     manifest_path=output/"manifest.json"
     manifest=json.loads(manifest_path.read_text())
     payload=config_path.read_bytes()
