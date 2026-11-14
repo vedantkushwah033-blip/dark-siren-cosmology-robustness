@@ -31,7 +31,10 @@ def _compare_aggregate(root,filename,frames,keys,values):
  for key in keys:
   if actual[key].tolist()!=expected[key].tolist(): raise AssertionError(f"{filename}: aggregate key mismatch {key}")
  for col in values:
-  if not np.allclose(actual[col].to_numpy(float),expected[col].to_numpy(float),rtol=2e-10,atol=2e-10,equal_nan=True):
+  if pd.api.types.is_numeric_dtype(expected[col]):
+   if not np.allclose(actual[col].to_numpy(float),expected[col].to_numpy(float),rtol=2e-10,atol=2e-10,equal_nan=True):
+    raise AssertionError(f"{filename}: aggregate values mismatch {col}")
+  elif actual[col].tolist()!=expected[col].tolist():
    raise AssertionError(f"{filename}: aggregate values mismatch {col}")
  return len(expected)
 
