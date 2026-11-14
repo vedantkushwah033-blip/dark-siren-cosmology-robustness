@@ -185,6 +185,8 @@ def audit(root:Path):
  # the independently audited child metric records, not the saved contrast CSV.
  metric_columns=["gamma","replicate","validation_size","absolute_bandwidth_sd","arm","node","iae","ise","boundary_iae","status","kish_ess"]
  metric_all=pd.concat(metric_frames,ignore_index=True) if metric_frames else pd.DataFrame(columns=metric_columns)
+ metric_all["gamma"]=pd.to_numeric(metric_all["gamma"],errors="coerce")
+ metric_all["node"]=pd.to_numeric(metric_all["node"],errors="coerce")
  primary_arms=("A_catalogue_only","B_parent_oracle","C_known_probability_ipw",
                "D_map_plugin_ipw","E_posterior_mean_density")
  metric_all=metric_all[metric_all.arm.isin(primary_arms) & (metric_all.node==-1)].copy()
