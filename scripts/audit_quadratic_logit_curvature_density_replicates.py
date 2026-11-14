@@ -75,7 +75,7 @@ def audit(root:Path):
   if not path.is_file() or path.stat().st_size!=int(meta["bytes"]) or _hash(path)!=meta["sha256"]:
    raise AssertionError(f"outer manifest verification failed: {rel}")
   checked+=1
- actual_files={str(path.relative_to(root)) for path in root.rglob("*") if path.is_file() and path.name!="manifest.json"}
+ actual_files={str(path.relative_to(root)) for path in root.rglob("*") if path.is_file() and path.relative_to(root).as_posix()!="manifest.json"}
  listed_files=set(manifest["files"])
  if actual_files!=listed_files:
   missing=sorted(listed_files-actual_files)
