@@ -34,7 +34,7 @@ This compares the attainable density-recovery performance of the two complete es
 
 For each ((\gamma,n)), select one common bandwidth by minimizing the equally weighted training mean IAE of Arms A and D. Evaluate both arms at that same frozen bandwidth on holdout replicates. This isolates the estimator contrast at matched smoothing and helps reveal whether a result is driven by estimator differences or by the bandwidth selected for each estimator.
 
-Arms B, C, and E should also have estimator-specific training-selected bandwidths for descriptive held-out reference curves. The oracle status of B and C must remain explicit.
+Arms B and C should also have estimator-specific training-selected bandwidths for descriptive held-out reference curves. The oracle status of B and C must remain explicit. For Arm E, bandwidth selection is based only on its **primary** estimand, loss of the posterior-mean density. The secondary posterior expected node-specific loss is evaluated at that same frozen Arm E bandwidth; it does not receive a separate bandwidth optimization. This keeps the two Arm E summaries tied to one estimator procedure and prevents the secondary risk from silently becoming a second tuning target.
 
 ## 3. Proposed bandwidth grid and boundary rule
 
