@@ -106,8 +106,6 @@ jobs:
         run: |
           python scripts/audit_parent_density_bandwidth_pilot.py artifacts/parent_density_bandwidth_pilot \
             --output artifacts/parent_density_bandwidth_pilot/raw_audit.json
-            artifacts/absolute_bandwidth_density_smoke/
-            artifacts/absolute_bandwidth_density_smoke_audit.json
       - name: Audit train/holdout split within overlapping 100-replicate sensitivity check (Python 3.12 only)
         if: matrix.python-version == '3.12'
         run: |
@@ -327,6 +325,8 @@ jobs:
           path: |
             artifacts/five_arm_kde_kernel_benchmark.json
             artifacts/parent_density_bandwidth_pilot/
+            artifacts/absolute_bandwidth_density_smoke/
+            artifacts/absolute_bandwidth_density_smoke_audit.json
           if-no-files-found: error
       - name: Upload numerical diagnostic results
         uses: actions/upload-artifact@v4
