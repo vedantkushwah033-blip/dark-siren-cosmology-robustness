@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from select_bandwidth_train_holdout import select_bandwidth
@@ -77,3 +78,10 @@ def test_independent_auditor_reconstructs_selection_and_hashes(tmp_path):
     report = audit_selection(source, selection_path)
     assert report["status"] == "PASS"
     assert report["selected_multiplier"] == 0.10
+
+    # The independent auditor must verify uncertainty summaries as well as
+    # point estimates; otherwise a corrupted SD/MCSE could pass unnoticed.
+    result["training_scores"][0]["training_sd_iae"] += 0.01
+    selection_path.write_text(json.dumps(result), encoding="utf-8")
+    with pytest.raises(AssertionError, match="training_sd_iae mismatch"):
+        audit_selection(source, selection_path)
