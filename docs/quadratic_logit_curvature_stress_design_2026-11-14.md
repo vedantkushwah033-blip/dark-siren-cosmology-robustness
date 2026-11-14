@@ -230,3 +230,10 @@ The outer auditor now verifies the common-random-number design from persisted ra
 The paired runner also rejects gamma values that collide under its two-decimal child-directory naming convention. This prevents two distinct requested curvature values from attempting to write to the same artifact directory.
 
 These changes strengthen reproducibility and artifact integrity only. They do not change the DGP, inferential target, estimator arms, or scientific estimands. Exact-head CI is still required before treating the updated code as validated.
+
+
+## All-failed and missing-reference lifecycle hardening (2026-11-15)
+
+A static edge-case review found that the all-cells-failed path constructed an empty metric table with object-typed columns and then passed its gamma column to numpy.isclose. The runner and independent outer auditor now explicitly coerce empty-or-populated gamma and node columns to numeric types before contrast reconstruction. This allows an all-failed artifact to remain auditable and correctly report zero paired contrasts rather than failing inside the audit machinery.
+
+The dedicated tests/test_quadratic_logit_curvature_incomplete_reference.py test injects failure of every gamma-zero reference cell while allowing the other gamma cells to complete. It requires the artifact to remain auditable as INCOMPLETE, with no gamma-versus-zero or within-gamma paired summaries. The focused curvature CI workflow now explicitly runs this test and includes it in the workflow path filters.
