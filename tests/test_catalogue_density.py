@@ -298,3 +298,30 @@ def test_absolute_bandwidth_rejects_competing_or_invalid_options():
     for invalid in (0.0, -0.01, np.nan, np.inf):
         with pytest.raises(ValueError, match="absolute_bandwidth_sd"):
             estimate_host_density(grid, sample, absolute_bandwidth_sd=invalid)
+
+
+
+def test_absolute_bandwidth_matches_independent_gaussian_kde_covariance_reference():
+    grid = np.linspace(0.01, 0.40, 1201)
+    sample = np.linspace(0.012, 0.398, 120) ** 1.0
+    weights = (1.0 + 2.0 * sample) / (0.15 + 0.8 / (1.0 + np.exp((sample - 0.22) / 0.05)))
+    scaled = weights / np.max(weights)
+    augmented = np.concatenate((
+        sample, 2.0 * grid[0] - sample, 2.0 * grid[-1] - sample,
+    ))
+    augmented_weights = np.tile(scaled / 3.0, 3)
+    q = augmented_weights / np.sum(augmented_weights)
+    mean = float(q @ augmented)
+    variance = float(np.sum(q * (augmented - mean) ** 2) / (1.0 - float(q @ q)))
+    requested = 0.009
+    reference_kde = gaussian_kde(
+        augmented, weights=augmented_weights,
+        bw_method=requested / np.sqrt(variance),
+    )
+    expected = reference_kde(grid)
+    expected /= trapezoid(expected, grid)
+    actual = estimate_host_density(
+        grid, sample, sample_weights=weights,
+        absolute_bandwidth_sd=requested,
+    )
+    np.testing.assert_allclose(actual, expected, rtol=1e-12, atol=1e-12)
