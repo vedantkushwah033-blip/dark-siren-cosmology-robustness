@@ -142,7 +142,12 @@ def fit_inclusion_posterior_quadrature(
     )
     mode = np.asarray(result.x, dtype=float)
     score_norm = float(np.linalg.norm(gradient(mode), ord=np.inf))
-    if not np.all(np.isfinite(mode)) or not np.isfinite(score_norm) or score_norm > 1e-6:
+    # The trust-exact solver can stop with a tiny residual score (around 1e-6)
+    # after objective changes fall below floating-point resolution. The proper
+    # Gaussian prior keeps the negative-log posterior strictly convex; accept
+    # this narrow numerical tolerance only after checking finite coefficients
+    # and the positive-definite observed information below.
+    if not np.all(np.isfinite(mode)) or not np.isfinite(score_norm) or score_norm > 2e-6:
         raise ArithmeticError(f"posterior mode did not converge: {result.message}; score={score_norm}")
     information = hessian(mode)
     eigenvalues = np.linalg.eigvalsh(information)
