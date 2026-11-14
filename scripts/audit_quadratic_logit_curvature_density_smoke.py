@@ -130,6 +130,20 @@ def _metric(density: np.ndarray, truth: np.ndarray, grid: np.ndarray) -> dict[st
     }
 
 
+def _assert_posterior_quadrature(nodes: np.ndarray, weights: np.ndarray) -> None:
+    """Require a finite node matrix and a valid discrete posterior measure."""
+    nodes = np.asarray(nodes, dtype=float)
+    weights = np.asarray(weights, dtype=float)
+    if nodes.ndim != 2 or weights.ndim != 1 or nodes.shape[0] != weights.size:
+        raise AssertionError("posterior quadrature node/weight shape mismatch")
+    if weights.size == 0 or not np.all(np.isfinite(nodes)) or not np.all(np.isfinite(weights)):
+        raise AssertionError("posterior quadrature contains empty or non-finite values")
+    if np.any(weights < 0.0):
+        raise AssertionError("posterior quadrature weights must be non-negative")
+    if not np.isclose(float(weights.sum()), 1.0, rtol=0.0, atol=1e-10):
+        raise AssertionError("posterior quadrature weights must sum to one")
+
+
 def _assert_arm_e_jensen(metrics: pd.DataFrame) -> None:
     """Check convex-loss ordering for Arm E's two distinct estimands.
 
@@ -236,6 +250,7 @@ def audit(root: Path) -> dict[str, object]:
             validation["retained"].to_numpy(int),
             cfg,
         )
+        _assert_posterior_quadrature(posterior_nodes, posterior_weights)
         archive = np.load(root / "results" / "density_reconstruction_inputs.npz")
         stored_mode = archive[f"posterior_mode_n{int(n)}"]
         stored_nodes = archive[f"posterior_nodes_n{int(n)}"]
