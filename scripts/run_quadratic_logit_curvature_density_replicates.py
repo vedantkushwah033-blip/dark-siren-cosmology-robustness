@@ -176,7 +176,7 @@ def run(args):
     cfg["successful_cells"]=sum(x["status"]=="SUCCESS" for x in ledger)
     cfg["failed_cells"]=sum(x["status"]=="FAILED" for x in ledger)
     (root/"config.json").write_text(json.dumps(cfg,indent=2,sort_keys=True)+"\n")
-    files=sorted(p for p in root.rglob("*") if p.is_file() and p.name!="manifest.json")
+    files=sorted(p for p in root.rglob("*") if p.is_file() and p != root/"manifest.json")
     manifest={"status":"PASS" if cfg["failed_cells"] == 0 else "INCOMPLETE","file_count":len(files),"files":{str(p.relative_to(root)):
       {"bytes":p.stat().st_size,"sha256":_hash(p)} for p in files}}
     (root/"manifest.json").write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
