@@ -214,9 +214,26 @@ def audit(root:Path):
  if set(cat.object_id.astype(int))!=set(parent.loc[parent.retained==1,"object_id"].astype(int)): raise AssertionError("catalogue does not match parent retention")
  zparent=parent.redshift.to_numpy(float); zcat=cat.redshift.to_numpy(float)
  _close(zcat,parent.set_index("object_id").loc[cat.object_id,"redshift"].to_numpy(float),"catalogue-parent redshift join")
- floor=float(cfg["catalogue_floor"]); midpoint=float(cfg["catalogue_midpoint"]); width=float(cfg["catalogue_width"])
- ptrue=floor+(1-floor)/(1+np.exp((zcat-midpoint)/width))
- _close(parent.inclusion_probability.to_numpy(float),floor+(1-floor)/(1+np.exp((zparent-midpoint)/width)),"parent inclusion probabilities")
+ selection_model=cfg.get("catalogue_selection_model","floor_logistic")
+ if selection_model=="floor_logistic":
+  floor=float(cfg["catalogue_floor"]); midpoint=float(cfg["catalogue_midpoint"]); width=float(cfg["catalogue_width"])
+  def inclusion_probability(redshift):
+   return floor+(1-floor)/(1+np.exp((np.asarray(redshift,float)-midpoint)/width))
+ elif selection_model=="quadratic_logit":
+  cal=cfg.get("quadratic_logit_calibration") or {}
+  alpha=float(cal["alpha"]); beta=float(cal["beta"]); gamma=float(cal["gamma"])
+  x2_center=float(cal["x2_center"])
+  center=float(cal["coordinate_center"]); scale=float(cal["coordinate_scale"])
+  if not np.all(np.isfinite([alpha,beta,gamma,x2_center,center,scale])) or scale<=0:
+   raise AssertionError("invalid quadratic-logit calibration in config")
+  def inclusion_probability(redshift):
+   x=(np.asarray(redshift,float)-center)/scale
+   return expit(alpha+beta*x+gamma*(x*x-x2_center))
+ else:
+  raise AssertionError(f"unsupported catalogue selection model: {selection_model}")
+ ptrue=inclusion_probability(zcat)
+ _close(parent.inclusion_probability.to_numpy(float),inclusion_probability(zparent),
+        "parent inclusion probabilities")
  bp=1+1.5*(zparent-Z_MIN)/(Z_MAX-Z_MIN); bc=1+1.5*(zcat-Z_MIN)/(Z_MAX-Z_MIN)
  z=np.load(root/"results"/"density_reconstruction_inputs.npz")
  grid=z["redshift_grid"]; rate=z["merger_weight_grid"]; truth=z["truth_density"]
@@ -241,11 +258,14 @@ def audit(root:Path):
    raise AssertionError("truth validation-frame IDs are not unique")
   _close(v.redshift.to_numpy(float),vfull.iloc[:n].redshift.to_numpy(float),f"nested validation redshift n={n}")
   _close(v.retained.to_numpy(int),vfull.iloc[:n].retained.to_numpy(int),f"nested validation outcomes n={n}",atol=0)
-  truth_join=v.merge(vf[["frame_id","redshift","retained"]],left_on="validation_id",right_on="frame_id",suffixes=("_obs","_truth"),validate="one_to_one")
+  truth_join=v.merge(vf[["frame_id","redshift","retained","inclusion_probability"]],left_on="validation_id",right_on="frame_id",suffixes=("_obs","_truth"),validate="one_to_one")
   if len(truth_join)!=n or truth_join.frame_id.isna().any():
    raise AssertionError(f"validation ID-to-truth join is incomplete n={n}")
   _close(truth_join.redshift_obs.to_numpy(float),truth_join.redshift_truth.to_numpy(float),f"validation frame join n={n}")
   _close(truth_join.retained_obs.to_numpy(int),truth_join.retained_truth.to_numpy(int),f"validation retention join n={n}",atol=0)
+  _close(truth_join.inclusion_probability.to_numpy(float),
+         inclusion_probability(truth_join.redshift_truth.to_numpy(float)),
+         f"validation-frame inclusion probabilities n={n}")
   nodes=z[f"posterior_nodes_n{n}"]; q=z[f"posterior_weights_n{n}"]; mode=z[f"posterior_mode_n{n}"]
   if nodes.ndim!=2 or nodes.shape[1]!=2 or q.shape!=(len(nodes),) or np.any(q<0) or not np.isclose(q.sum(),1): raise AssertionError("invalid persisted coefficient quadrature")
   ref_mode,ref_nodes,ref_q=_independent_logistic_quadrature(v.redshift.to_numpy(float),v.retained.to_numpy(int),cfg)
