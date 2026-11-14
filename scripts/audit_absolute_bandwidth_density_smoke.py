@@ -278,7 +278,10 @@ def audit(root:Path):
   _close(got[col].to_numpy(float),want[col].to_numpy(float),f"metric {col}")
  if "kish_ess" not in got or not np.array_equal(got.kish_ess.isna().to_numpy(),want.kish_ess.isna().to_numpy()):
   raise AssertionError("metric Kish ESS missingness mismatch")
- _close(got.kish_ess.to_numpy(float),want.kish_ess.to_numpy(float),"metric Kish ESS")
+ ess_got=got.kish_ess.to_numpy(float)
+ ess_want=want.kish_ess.to_numpy(float)
+ finite=np.isfinite(ess_want)
+ _close(ess_got[finite],ess_want[finite],"metric Kish ESS")
  scott=pd.read_csv(root/"results"/"scott_widths.csv")
  expected_scott_df=pd.DataFrame(expected_scott)
  scott_key=["validation_size","arm","node"]
