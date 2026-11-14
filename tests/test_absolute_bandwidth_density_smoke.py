@@ -66,7 +66,7 @@ def test_absolute_bandwidth_auditor_rejects_non_nested_validation_ids(tmp_path):
     rel=str(path.relative_to(output))
     payload=path.read_bytes()
     manifest["files"][rel]={"bytes":len(payload),"sha256":hashlib.sha256(payload).hexdigest()}
-    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
+    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True))
 
     with pytest.raises(AssertionError,match="validation IDs are not the declared nested prefix"):
         auditor.audit(output)
