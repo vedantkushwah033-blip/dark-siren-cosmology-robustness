@@ -32,6 +32,7 @@ def test_paired_curvature_runner_and_independent_outer_audit(tmp_path):
  assert result["planned_cells"]==6 and result["successful_cells"]==6
  ledger=pd.read_csv(out/"cell_ledger.csv")
  assert len(ledger)==6
+ assert (ledger.audit_status=="PENDING_OUTER_AUDIT").all()
  for rid,group in ledger.groupby("replicate"):
   assert group.population_seed.nunique()==1
   assert group.validation_seed.nunique()==1
