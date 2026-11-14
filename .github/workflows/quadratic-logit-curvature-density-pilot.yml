@@ -1,14 +1,7 @@
 name: Quadratic-logit curvature paired density pilot
 on:
-  push:
-    branches:
-      - research/absolute-width-distribution-pilot-20261114
-    paths:
-      - "scripts/run_quadratic_logit_curvature_density_replicates.py"
-      - "scripts/audit_quadratic_logit_curvature_density_replicates.py"
-      - "scripts/run_quadratic_logit_curvature_density_smoke.py"
-      - "scripts/audit_quadratic_logit_curvature_density_smoke.py"
-      - "src/dark_siren_robustness/**"
+  # This multi-replicate simulation is deliberately manual-only. Ordinary
+  # code pushes should run tests, not repeatedly launch a 180-minute pilot.
   workflow_dispatch:
 permissions:
   contents: read
