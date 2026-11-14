@@ -1,0 +1,77 @@
+name: absolute-bandwidth-density-pilot
+
+on:
+  push:
+    branches:
+      - research/five-arm-kde-kernel-reuse-v2-20261114
+    paths:
+      - ".github/workflows/absolute-bandwidth-density-pilot.yml"
+      - "scripts/run_absolute_bandwidth_density_replicates.py"
+      - "scripts/run_absolute_bandwidth_density_smoke.py"
+      - "scripts/audit_absolute_bandwidth_density_replicates.py"
+      - "scripts/audit_absolute_bandwidth_density_smoke.py"
+      - "src/dark_siren_robustness/**"
+  workflow_dispatch:
+
+concurrency:
+  group: absolute-bandwidth-density-pilot-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  density-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run preregistered 20-replicate density-only pilot
+        run: |
+          python scripts/run_absolute_bandwidth_density_replicates.py \
+            --master-seed 20261201 --seed-stride 10 --replicates 20 \
+            --n-parent 4000 --validation-frame 1500 \
+            --validation-sizes 100,300,1000 --catalogue-floor 0.10 \
+            --scott-multiplier 0.7 --quadrature-order 5 --grid-points 801 \
+            --absolute-widths 0.012,0.016,0.020,0.024,0.028,0.032,0.040 \
+            --output-dir artifacts/absolute_bandwidth_density_pilot
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          cfg = json.loads(Path("artifacts/absolute_bandwidth_density_pilot/config.json").read_text())
+          assert cfg["attempted"] == 20
+          assert cfg["successful"] == 20
+          assert cfg["failed"] == 0
+          PY
+      - name: Independently audit all 20 raw replicate artifacts and aggregates
+        run: |
+          python scripts/audit_absolute_bandwidth_density_replicates.py \
+            artifacts/absolute_bandwidth_density_pilot \
+            --output artifacts/absolute_bandwidth_density_pilot_audit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("artifacts/absolute_bandwidth_density_pilot_audit.json").read_text())
+          assert report["status"] == "PASS"
+          assert report["planned_replicates"] == 20
+          assert report["successful_replicates"] == 20
+          assert report["failed_replicates"] == 0
+          assert report["child_raw_audits_passed"] == 20
+          assert report["aggregate_metric_rows_reconstructed"] == 12600
+          assert report["scott_width_rows_reconstructed"] == 1740
+          PY
+      - name: Upload complete raw pilot and independent audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: absolute-bandwidth-density-pilot-20rep
+          path: |
+            artifacts/absolute_bandwidth_density_pilot/
+            artifacts/absolute_bandwidth_density_pilot_audit.json
+          if-no-files-found: warn
+          compression-level: 6
+          retention-days: 90
