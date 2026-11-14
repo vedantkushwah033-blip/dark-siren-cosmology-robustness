@@ -145,3 +145,49 @@ This is a genuinely fresh parent-sample seed schedule (master seed 20261116; spl
 
 Before confirmatory five-arm H0 evaluation, retain a separate H0 replicate schedule and run a redshift-grid refinement sensitivity using density-only criteria. Then report the selected multiplier as a fixed protocol choice with its selection uncertainty, and evaluate all arms on the same paired H0 replicates. No H0, coverage, PIT, or event-level result may be used to retune this density bandwidth.
 
+## 8. Exact-head bandwidth and redshift-grid gates (2026-11-14)
+
+The corrected reflected-KDE implementation and fresh-seed expanded candidate grid have now been rerun on exact PR #44 head `60960977815487cf37cf4093d74f778ed9548062`.
+
+### 8.1 Corrected restricted-grid source (seed 20261114)
+
+- Workflow [43568804359](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/43568804359); artifact `14104292666`; ZIP SHA-256 `689fc5fc92b22989bced4c720a44a622fee7f638e4b6fd4453ae88bd82018da4`.
+- 200 replicates × 4,000 parent units; 800,000 parent units total; 1,800 candidate attempts.
+- Independent raw audit PASS; maximum IAE reconstruction discrepancy `4.163336342344337e-16`.
+- Independent 140/60 selection audit PASS.
+- Both training and holdout IAE decrease through the upper candidate boundary 0.40. This restricted grid does not bracket an interior minimum.
+
+### 8.2 Fresh-seed expanded grid (seed 20261116)
+
+- Workflow [43568804401](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/43568804401); artifact `14103702669`; ZIP SHA-256 `f954a0bdca3c605c8cf6ea98595f8bccbd845eb11627b64d9960051154119f33`.
+- 200 replicates × 4,000 parent units; 800,000 parent units total; 2,200 candidate attempts.
+- Independent raw audit PASS; maximum IAE reconstruction discrepancy `1.1102230246251565e-16`.
+- Independent 140/60 selection audit PASS; all 2,200 attempts have SUCCESS status.
+- Training selector chooses 0.55: training mean IAE 0.0447583 at 0.55 versus 0.0447867 at 0.50.
+- Holdout mean IAE is 0.0434294 at 0.55 versus 0.0433576 at 0.50.
+
+Paired IAE(0.55) − IAE(0.50) is `-2.8403e-5` on training (SE `9.8439e-5`; approximate 95% t interval `[-2.2302e-4, 1.6621e-4]`) and `7.1856e-5` on holdout (SE `1.5944e-4`; approximate 95% t interval `[-2.4335e-4, 3.8706e-4]`). The intervals include zero broadly. Keep 0.55 as the training-selected density-only candidate; do not claim meaningful superiority over 0.50.
+
+### 8.3 Paired redshift-grid refinement
+
+- Workflow [43568804434](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/43568804434); artifact `14103537178`; ZIP SHA-256 `6fa40a0bacec1a8620f5fd56c7cbcf249b36a9ee6887814ed5ba66c0d56f0b61`.
+- Both 801- and 1,601-point runs independently audited 200 replicates and 800,000 parent units; 400 attempts per resolution (0.50 and 0.55); maximum raw reconstruction discrepancy `7.63e-17`.
+- Parent-sample CSV bytes are identical across resolutions (SHA-256 `a95986c077ffa2b6c9a646e115ef5081258d1fc190bdc7852518c01bec48ccd5`), so this is a paired numerical comparison, not another stochastic replication.
+
+| Candidate | Mean IAE, 801 | Mean IAE, 1,601 | Mean change | Maximum absolute replicate change | RMSE change |
+|---:|---:|---:|---:|---:|---:|
+| 0.50 | 0.0443579266 | 0.0443578787 | -4.79e-8 | 2.93e-6 | 7.69e-7 |
+| 0.55 | 0.0443596015 | 0.0443595687 | -3.28e-8 | 2.26e-6 | 6.33e-7 |
+
+The paired candidate contrast is 1.67493e-6 at 801 points and 1.68998e-6 at 1,601 points. Its grid-resolution interaction is 1.51e-8 (paired SE 7.18e-8; approximate 95% interval `[-1.27e-7, 1.57e-7]`). The refinement has negligible effect on this density-only comparison. This does not establish convergence for other DGPs, grid resolutions, sample sizes, arm-specific weighted densities, or H0 posteriors.
+
+The workflow initially omitted the root-level comparison JSON from the artifact glob; the workflow definition is now updated to upload that report alongside the two audited source directories.
+
+### 8.4 Exact-head software validation and remaining work
+
+Workflow [43568807911](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/43568807911) passed on Python 3.10, 3.11 and 3.12 at the same PR head. Its 3.12 path completed the 300-replicate distance-uncertainty diagnostic and its independent audit, paired likelihood-contrast bootstrap, finer-grid posterior recomputation and catalogue-thinning audit. These are existing diagnostic fixtures, not confirmatory five-arm A–E results.
+
+Additional inclusion-posterior tests now exercise both all-zero and all-one validation outcomes, weakly identified slope information, and near-separated validation data. They verify proper-prior regularization, finite posterior moments, positive-definite covariance and finite predictive probabilities. These stress tests do not replace an independent posterior-integration reference or an H0 calibration experiment.
+
+The density-only parent bandwidth gate is substantially better supported, but the project still needs common absolute-bandwidth selection across A–E and E coefficient nodes, full inclusion-posterior quadrature stress/reference validation, and then a separate paired confirmatory H0 study with failure-inclusive accounting. No estimator superiority or astrophysical claim is established.
+

@@ -108,6 +108,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: parent-density-grid-refinement-${{ github.sha }}
-          path: artifacts/grid_refinement_*/
+          path: |
+            artifacts/grid_refinement_*/
+            artifacts/grid_refinement_comparison.json
           if-no-files-found: error
           retention-days: 90

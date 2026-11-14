@@ -51,15 +51,55 @@ def test_quadrature_order_refinement_is_stable_for_regular_validation_sample():
     )) < 0.015
 
 
-def test_proper_prior_keeps_one_class_validation_posterior_finite():
+@pytest.mark.parametrize(("retained_value", "expected_sign"), [(0, -1), (1, 1)])
+def test_proper_prior_keeps_one_class_validation_posterior_finite(retained_value, expected_sign):
     z = np.linspace(0.01, 0.40, 80)
-    retained = np.ones(z.size, dtype=int)
+    retained = np.full(z.size, retained_value, dtype=int)
     posterior = fit_inclusion_posterior_quadrature(
         z, retained, degree=1, order=11
     )
     assert np.all(np.isfinite(posterior.nodes))
     assert np.isclose(posterior.weights.sum(), 1.0)
     assert np.all(np.isfinite(posterior.posterior_mean))
+    assert posterior.posterior_mean[0] * expected_sign > 0
+    predictive = posterior_predictive_inclusion(posterior, z)
+    assert np.all(np.isfinite(predictive))
+    if retained_value == 0:
+        assert np.max(predictive) < 0.5
+    else:
+        assert np.min(predictive) > 0.5
+
+
+def test_weakly_identified_validation_retains_prior_dominated_slope_uncertainty():
+    z = np.linspace(0.201, 0.209, 24)
+    retained = np.tile(np.array([0, 1], dtype=int), 12)
+    posterior = fit_inclusion_posterior_quadrature(
+        z, retained, degree=1, order=15,
+        coordinate_center=0.205, coordinate_scale=0.195,
+    )
+    assert np.all(np.isfinite(posterior.posterior_mean))
+    assert np.all(np.linalg.eigvalsh(posterior.posterior_covariance) > 0)
+    # Narrow validation support carries little information about the slope;
+    # its posterior variance should remain near the prior variance 2.5^2.
+    assert posterior.posterior_covariance[1, 1] > 5.0
+    assert np.isclose(posterior.weights.sum(), 1.0)
+
+
+def test_near_separated_validation_keeps_proper_finite_posterior():
+    z = np.linspace(0.01, 0.40, 80)
+    retained = (z > 0.205).astype(int)
+    posterior = fit_inclusion_posterior_quadrature(
+        z, retained, degree=1, order=15,
+        coordinate_center=0.205, coordinate_scale=0.195,
+    )
+    assert np.all(np.isfinite(posterior.mode))
+    assert np.all(np.isfinite(posterior.posterior_covariance))
+    assert np.all(np.linalg.eigvalsh(posterior.posterior_covariance) > 0)
+    assert posterior.posterior_mean[1] > 0
+    predictive = posterior_predictive_inclusion(posterior, np.linspace(0.01, 0.40, 51))
+    assert np.all(np.isfinite(predictive))
+    assert np.all((predictive > 0) & (predictive < 1))
+    assert predictive[-1] > predictive[0]
 
 
 def test_rejects_rank_deficient_or_invalid_validation_data():
