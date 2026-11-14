@@ -368,7 +368,7 @@ def audit(root:Path):
   "realized_scott_width_min":float(expected_scott_df.realized_bandwidth_redshift.min()),
   "realized_scott_width_max":float(expected_scott_df.realized_bandwidth_redshift.max()),
   "validation_sizes":sizes,"absolute_widths":widths,
-  "scope":"Independent raw-input reconstruction of five-arm KDE density curves, IAE/ISE/boundary IAE, and realized common-Scott physical widths; stored validation-posterior nodes are consumed, not independently refitted. No H0 inference."}
+  "scope":"Independent raw-input reconstruction of five-arm KDE density curves, IAE/ISE/boundary IAE, weight diagnostics, and realized common-Scott physical widths. The validation logistic posterior and quadrature are independently refitted from observable validation records. No H0 inference."}
 
 def main():
  p=argparse.ArgumentParser(description=__doc__); p.add_argument("artifact_dir",type=Path); p.add_argument("--output",type=Path)
