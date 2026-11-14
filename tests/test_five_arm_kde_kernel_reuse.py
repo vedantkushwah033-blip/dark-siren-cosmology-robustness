@@ -75,3 +75,44 @@ def test_batched_kernel_reuse_matches_scalar_trapezoid_reference_for_all_arms():
         np.testing.assert_allclose(actual[index], expected_ll, rtol=2e-12, atol=2e-12)
         if index >= 4:
             np.testing.assert_allclose(actual_eff[index], expected_eff, rtol=2e-12, atol=2e-12)
+
+
+
+def test_five_arm_likelihood_accepts_one_common_absolute_physical_bandwidth():
+    from dark_siren_robustness.catalogue_density import reflected_weighted_kde_bandwidth
+
+    parent = np.linspace(0.0101, 0.3999, 420)
+    catalogue = parent[::2]
+    validation = np.linspace(0.0101, 0.3999, 150)
+    retained = (np.arange(validation.size) % 4 != 0).astype(int)
+    base_parent = 1.0 + 1.5 * (parent - 0.01) / 0.39
+    base_catalogue = 1.0 + 1.5 * (catalogue - 0.01) / 0.39
+    arms = build_five_arm_weights(
+        parent, catalogue, validation, retained,
+        catalogue_floor=0.1, quadrature_order=5,
+        parent_base_weights=base_parent,
+        catalogue_base_weights=base_catalogue,
+    )
+    requested = 0.012
+    result = matched_five_arm_kde_selected_log_likelihood(
+        np.linspace(55.0, 85.0, 37), arms,
+        [{"gw_distance": 275.0, "gw_sigma": 140.0}],
+        detection_threshold_mpc=250.0,
+        redshift_grid=np.linspace(0.01, 0.40, 241),
+        merger_weight=np.ones(241),
+        absolute_bandwidth_sd=requested,
+    )
+    samples_weights = [
+        (catalogue, arms.arm_a_catalogue_only),
+        (parent, arms.arm_b_parent_oracle),
+        (catalogue, arms.arm_c_known_probability),
+        (catalogue, arms.arm_d_map_plugin),
+        *[(catalogue, weights) for weights in arms.arm_e_node_weights],
+    ]
+    for sample, weights in samples_weights:
+        assert reflected_weighted_kde_bandwidth(
+            sample, lower_bound=0.01, upper_bound=0.40,
+            sample_weights=weights, absolute_bandwidth_sd=requested,
+        ) == requested
+    assert result.arm_density["A_catalogue_only"].shape == (241,)
+    assert result.arm_e_node_density.shape[1] == 241
