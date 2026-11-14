@@ -53,3 +53,15 @@ This pilot is deliberately **not** a bandwidth selector. It has no train/holdout
 The pilot can estimate descriptive replicate variability for IAE, ISE, boundary IAE, and the persisted Kish ESS diagnostics. It cannot establish that one arm is superior, that IPW is calibrated, or that a chosen bandwidth generalizes. Failures remain in the planned denominator and must not be silently dropped.
 
 Before a formal bandwidth-selection study, add preregistered training and holdout replicate IDs that are disjoint from all previously inspected seed schedules. Freeze the candidate grid and equal-cell/arm objective before running that study. Only a separately seeded downstream experiment may propagate a density-selected bandwidth into H0 inference.
+
+
+## Posterior-mean density versus posterior expected node loss
+
+Arm E now reports two distinct density-recovery estimands, both reconstructed by the independent child auditor:
+
+1. **Loss of the posterior-mean density:** for coefficient nodes \\(\\theta_b\\) and quadrature weights \\(q_b\\), first form \\(\\bar f(z)=\\sum_b q_b f_b(z)\\), then evaluate IAE, ISE and boundary IAE of \\(\\bar f\\) against the analytic target.
+2. **Posterior expected node loss:** calculate each node-specific loss and then average it, \\(\\sum_b q_b L(f_b,f_0)\\). This is an uncertainty/risk summary, not the loss of the posterior-mean density.
+
+These quantities are not interchangeable. Since IAE, ISE and boundary IAE are convex losses, the loss of the posterior-mean density cannot exceed the posterior expected node loss (up to numerical tolerance). The node-specific rows remain available. Kish ESS is not defined for a mixture density itself, so the posterior-mean-density row records it as missing rather than borrowing an arbitrary node's ESS.
+
+This density diagnostic does not replace the Arm E cosmological likelihood: H0 inference must continue to evaluate the complete multi-event selected likelihood at each shared coefficient node and marginalize that joint likelihood once.

@@ -61,7 +61,7 @@ jobs:
           assert report["successful_replicates"] == 20
           assert report["failed_replicates"] == 0
           assert report["child_raw_audits_passed"] == 20
-          assert report["aggregate_metric_rows_reconstructed"] == 12600
+          assert report["aggregate_metric_rows_reconstructed"] == 13020
           assert report["scott_width_rows_reconstructed"] == 1740
           PY
       - name: Upload complete raw pilot and independent audit

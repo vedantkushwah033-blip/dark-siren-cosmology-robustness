@@ -135,6 +135,12 @@ def run(args):
             q=arms.arm_e_quadrature_weights
             mean_density=np.tensordot(q,node_dens,axes=(0,0))
             archive[f"density_E_posterior_mean_n{n}_w{width:.6f}"]=mean_density
+            # These are different estimands: loss of the posterior-mean density
+            # versus posterior expected loss across coefficient-node densities.
+            posterior_mean_metric=_metric(mean_density,truth,grid)
+            rows.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":width,
+              "arm":"E_posterior_mean_density","node":-1,**posterior_mean_metric,"status":"SUCCESS",
+              "kish_ess":float("nan")})
             weighted_metric={k:float(np.dot(q,[ _metric(d,truth,grid)[k] for d in node_dens])) for k in ("iae","ise","boundary_iae")}
             rows.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":width,
               "arm":"E_posterior_weighted_node_metric","node":-1,**weighted_metric,"status":"SUCCESS",
@@ -159,7 +165,11 @@ def run(args):
       "absolute_bandwidth_candidates":list(widths),
       "boundary_regions":[[Z_MIN,BOUNDARY_LOWER],[BOUNDARY_UPPER,Z_MAX]],
       "analytic_target":"normalized latent_galaxy_intensity(z) * (1+1.5*(z-z_min)/(z_max-z_min))",
-      "arm_E_metric":"posterior-weighted expectation of node-specific IAE/ISE/boundary IAE; node rows retained",
+      "arm_E_metric_estimands":{
+        "posterior_mean_density":"IAE/ISE/boundary IAE evaluated on the quadrature-weighted posterior-mean density",
+        "posterior_expected_node_loss":"posterior expectation of node-specific IAE/ISE/boundary IAE; node rows retained",
+        "kish_ess_for_posterior_mean_density":"not defined for a mixture density; stored as NaN"
+      },
       "limitations":["one engineering replicate only","posterior nodes are consumed from the existing inclusion-posterior fitter; this smoke does not independently validate that posterior",
         "no training/holdout bandwidth selection","no H0 likelihood or calibration","synthetic low-z Euclidean methodology only"]}
     (out/"config.json").write_text(json.dumps(config,indent=2,sort_keys=True)+"\n")

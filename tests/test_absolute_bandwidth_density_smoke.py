@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 from types import SimpleNamespace
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -95,4 +96,62 @@ def test_absolute_bandwidth_auditor_rejects_modified_scott_width_even_with_updat
     manifest["files"][rel]={"bytes":len(payload),"sha256":hashlib.sha256(payload).hexdigest()}
     manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
     with pytest.raises(AssertionError,match="independently reconstructed realized Scott widths"):
+        auditor.audit(output)
+
+
+def _rehash(root, path):
+    import hashlib
+    import json
+    manifest_path = root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    payload = path.read_bytes()
+    rel = str(path.relative_to(root))
+    manifest["files"][rel] = {
+        "bytes": len(payload),
+        "sha256": hashlib.sha256(payload).hexdigest(),
+    }
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n")
+
+
+def test_posterior_mean_density_and_expected_node_loss_are_separate_estimands(tmp_path):
+    runner = _load("absolute_density_runner_estimands", "run_absolute_bandwidth_density_smoke.py")
+    auditor = _load("absolute_density_auditor_estimands", "audit_absolute_bandwidth_density_smoke.py")
+    output = tmp_path / "absolute_density_estimands"
+    args = SimpleNamespace(
+        output_dir=output, seed=20261122, validation_seed=20261123,
+        n_parent=500, validation_frame=120, validation_sizes=(40, 80),
+        catalogue_floor=0.10, scott_multiplier=0.7, quadrature_order=3,
+        grid_points=101, absolute_widths=(0.012, 0.024),
+    )
+    runner.run(args)
+    report = auditor.audit(output)
+    assert report["status"] == "PASS"
+    metrics = pd.read_csv(output / "results" / "density_metrics.csv")
+    for (_, _), group in metrics.groupby(["validation_size", "absolute_bandwidth_sd"]):
+        posterior_mean = group.loc[group.arm == "E_posterior_mean_density"].iloc[0]
+        expected_node_loss = group.loc[group.arm == "E_posterior_weighted_node_metric"].iloc[0]
+        for metric in ("iae", "ise", "boundary_iae"):
+            assert posterior_mean[metric] <= expected_node_loss[metric] + 1e-12
+        assert np.isnan(posterior_mean["kish_ess"])
+
+
+def test_auditor_rejects_corrupted_posterior_mean_metric_after_manifest_refresh(tmp_path):
+    runner = _load("absolute_density_runner_metric_corrupt", "run_absolute_bandwidth_density_smoke.py")
+    auditor = _load("absolute_density_auditor_metric_corrupt", "audit_absolute_bandwidth_density_smoke.py")
+    output = tmp_path / "absolute_density_metric_corrupt"
+    args = SimpleNamespace(
+        output_dir=output, seed=20261124, validation_seed=20261125,
+        n_parent=500, validation_frame=120, validation_sizes=(40, 80),
+        catalogue_floor=0.10, scott_multiplier=0.7, quadrature_order=3,
+        grid_points=101, absolute_widths=(0.012, 0.024),
+    )
+    runner.run(args)
+    path = output / "results" / "density_metrics.csv"
+    frame = pd.read_csv(path)
+    mask = frame.arm == "E_posterior_mean_density"
+    assert mask.any()
+    frame.loc[mask.idxmax(), "iae"] += 0.01
+    frame.to_csv(path, index=False)
+    _rehash(output, path)
+    with pytest.raises(AssertionError, match="metric iae mismatch"):
         auditor.audit(output)
