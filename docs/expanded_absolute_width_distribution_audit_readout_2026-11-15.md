@@ -58,6 +58,16 @@ The estimated-IPW arm's relative performance depends strongly on the catalogue-s
 
 The small E−D MCSEs quantify only paired density-loss differences in this finite simulation design; they are not broad posterior-uncertainty calibration evidence.
 
+The floor scenarios also share identical replicate population/validation seed schedules (verified from all three replicate ledgers). This permits a paired difference-in-differences calculation. At (n=1000,h=0.016), the change in the D−A contrast relative to the preceding floor is:
+
+| Cross-floor contrast | Difference-in-differences | Paired MCSE | Approx. 95% MC interval |
+|---|---:|---:|---:|
+| (D−A) floor 0.10 minus (D−A) no floor | +0.24138 | 0.01274 | [0.21641, 0.26636] |
+| (D−A) floor 0.25 minus (D−A) floor 0.10 | +0.14174 | 0.01426 | [0.11379, 0.16969] |
+| (D−A) floor 0.25 minus (D−A) no floor | +0.38313 | 0.01285 | [0.35794, 0.40831] |
+
+The corresponding change in D−C from no floor to floor 0.10 is +0.10636 (paired MCSE 0.00991), and from no floor to floor 0.25 is +0.08938 (MCSE 0.01050). These are exploratory paired interaction summaries across the three designed floor settings, not a continuous dose-response claim. The approximate intervals use the replicate-level paired differences and a normal 1.96 multiplier; they do not adjust for multiple contrasts.
+
 ## Bandwidth sensitivity: minima are not a selection result
 
 At (n=1000), empirical minimum mean IAE over the 11-point grid occurred at:
