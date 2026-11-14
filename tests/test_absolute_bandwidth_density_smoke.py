@@ -229,3 +229,8 @@ def test_proper_inclusion_posterior_accepts_tiny_trust_exact_residual():
     assert np.all(np.isfinite(fit.mode))
     assert np.all(np.isfinite(fit.weights))
     assert np.isclose(fit.weights.sum(), 1.0)
+    from scipy.special import expit
+    design = np.column_stack((np.ones(len(validation)), (validation.redshift.to_numpy(float) - 0.205) / 0.195))
+    score = design.T @ (expit(design @ fit.mode) - validation.retained.to_numpy(int))
+    score += fit.mode / np.square(np.asarray((5.0, 2.5)))
+    assert np.linalg.norm(score, ord=np.inf) <= 2e-6
