@@ -67,3 +67,26 @@ def test_curvature_outer_auditor_rejects_aggregate_corruption_even_with_updated_
  manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
  with pytest.raises(AssertionError,match="aggregate values mismatch iae"):
   auditor.audit(out)
+
+def test_curvature_runner_preserves_failed_cell_and_auditor_reports_incomplete(tmp_path, monkeypatch):
+ runner=_load("curvature_multi_runner_failure","run_quadratic_logit_curvature_density_replicates.py")
+ auditor=_load("curvature_multi_auditor_failure","audit_quadratic_logit_curvature_density_replicates.py")
+ original=runner.run_one
+ def fail_one(args):
+  if args.gamma == 1.0 and args.seed == 20261220:
+   raise RuntimeError("injected lifecycle failure for regression test")
+  return original(args)
+ monkeypatch.setattr(runner,"run_one",fail_one)
+ out=tmp_path/"curvature_one_failed_cell"
+ result=runner.run(_args(out))
+ assert result["status"]=="COMPLETED_WITH_FAILURES"
+ report=auditor.audit(out)
+ assert report["status"]=="INCOMPLETE"
+ assert report["planned_cells"]==6
+ assert report["successful_cells"]==5
+ assert report["failed_cells"]==1
+ ledger=pd.read_csv(out/"cell_ledger.csv")
+ failed=ledger[ledger.status=="FAILED"]
+ assert len(failed)==1
+ assert failed.iloc[0].gamma==1.0 and failed.iloc[0].replicate==0
+ assert "injected lifecycle failure" in failed.iloc[0].error
