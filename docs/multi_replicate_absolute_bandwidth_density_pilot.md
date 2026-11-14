@@ -59,8 +59,8 @@ Before a formal bandwidth-selection study, add preregistered training and holdou
 
 Arm E now reports two distinct density-recovery estimands, both reconstructed by the independent child auditor:
 
-1. **Loss of the posterior-mean density:** for coefficient nodes \\(\\theta_b\\) and quadrature weights \\(q_b\\), first form \\(\\bar f(z)=\\sum_b q_b f_b(z)\\), then evaluate IAE, ISE and boundary IAE of \\(\\bar f\\) against the analytic target.
-2. **Posterior expected node loss:** calculate each node-specific loss and then average it, \\(\\sum_b q_b L(f_b,f_0)\\). This is an uncertainty/risk summary, not the loss of the posterior-mean density.
+1. **Loss of the posterior-mean density:** for coefficient nodes \(\\theta_b\) and quadrature weights \(q_b\), first form \(\\bar f(z)=\\sum_b q_b f_b(z)\), then evaluate IAE, ISE and boundary IAE of \(\\bar f\) against the analytic target.
+2. **Posterior expected node loss:** calculate each node-specific loss and then average it, \(\\sum_b q_b L(f_b,f_0)\). This is an uncertainty/risk summary, not the loss of the posterior-mean density.
 
 These quantities are not interchangeable. Since IAE, ISE and boundary IAE are convex losses, the loss of the posterior-mean density cannot exceed the posterior expected node loss (up to numerical tolerance). The node-specific rows remain available. Kish ESS is not defined for a mixture density itself, so the posterior-mean-density row records it as missing rather than borrowing an arbitrary node's ESS.
 
