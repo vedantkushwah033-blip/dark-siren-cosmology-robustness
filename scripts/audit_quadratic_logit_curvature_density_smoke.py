@@ -155,6 +155,16 @@ def audit(root: Path) -> dict[str, object]:
         raise AssertionError("analysis model mismatch")
     if cfg.get("arm_C") != "true quadratic inclusion probabilities; oracle diagnostic only":
         raise AssertionError("Arm C oracle labeling missing")
+    calibration_record = cfg.get("quadratic_logit_calibration", {})
+    reference_calibration = _reference_calibration(
+        float(cfg["gamma"]), float(cfg["beta"]), Z_MIN, Z_MAX,
+        float(cfg["coordinate_center"]), float(cfg["coordinate_scale"]),
+    )
+    for key, expected_value in reference_calibration.items():
+        if key not in calibration_record or not np.isclose(
+            float(calibration_record[key]), float(expected_value), rtol=1e-12, atol=1e-13
+        ):
+            raise AssertionError(f"quadratic-logit calibration metadata mismatch: {key}")
 
     # Reconstruct the DGP with separately written sampling, calibration, and
     # probability routines. Do not call the production population generator.
