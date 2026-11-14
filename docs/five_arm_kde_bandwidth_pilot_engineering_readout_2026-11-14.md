@@ -95,3 +95,26 @@ The expanded Scott grid now has an interior density-recovery minimum. This close
 2. independent raw-input reconstruction and failure-inclusive accounting for that experiment;
 3. a disjoint density-only training/holdout design for selecting a common physical bandwidth, with candidate-grid boundary checks;
 4. downstream H0 propagation only after the density stage is frozen and audited.
+
+## 9. Fresh-seed PR #44 density-only result and current exact-head CI (2026-11-14)
+
+A separate PR #44 fresh-seed expanded-grid experiment provides a disjoint 200-replicate density-only sensitivity result. It is not the overlapping 100-replicate pilot described in Sections 6–7.
+
+- Workflow: [43568757769](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/43568757769)
+- Source seed: `20261116`; 200 replicates × 4,000 parent units; 801-point redshift grid.
+- Candidate grid: 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.70, 0.80, 1.00.
+- Raw audit: PASS; 2,200 attempts reconstructed over 800,000 parent units; maximum absolute IAE discrepancy `1.18e-16`.
+- Train/holdout audit: PASS; 140/60 disjoint replicates; training selector chose **0.55**.
+- Training mean IAE: 0.55 = 0.0447583; 0.50 = 0.0447867.
+- Holdout mean IAE: 0.55 = 0.0434294; 0.50 = 0.0433576.
+
+Paired IAE(0.55) − IAE(0.50) is `-2.84e-5` on training (SE `9.84e-5`) and `7.19e-5` on holdout (SE `1.59e-4`). Both approximate 95% intervals include zero broadly. The selected 0.55 is therefore a shallow training minimum, not a materially better candidate than 0.50. The result is specific to the parent-only DGP, N=4,000, 801-point grid and this candidate set. It does not establish a common absolute physical bandwidth across A–E or arm-specific weighted populations.
+
+### Exact-head CI status for this PR
+
+The long numerical-diagnostics workflow [43568701378](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/43568701378) completed successfully on commit `1e813d8914b02a1e9e8577c14dda3bf759c6807a` across Python 3.10, 3.11 and 3.12. The Python 3.12 path completed all enabled diagnostics and uploaded artifact `14103532402`.
+
+The current PR head at the time of this update was `adc979e30064b66ed58cdb2d395e05e386008962`, one commit newer; it adds a test that verifies rejection of corrupted nested validation identifiers. Its push-triggered run `43568711666` was cancelled before any job started. Therefore the preceding green run is **not** exact-head validation of `adc979e`. This documentation update creates a new PR head and should trigger a fresh CI run; its result must be checked before the PR is described as exact-head green.
+
+No confirmatory five-arm result is claimed. Keep this PR in draft; the fresh parent-only Scott multiplier is not a substitute for the separate common absolute-bandwidth study across arms A–E and coefficient nodes.
+
