@@ -125,3 +125,41 @@ def test_five_arm_builder_rejects_invalid_base_population_weights(
             catalogue_base_weights=catalogue_base,
             quadrature_order=5,
         )
+
+
+def test_five_arm_builder_accepts_external_known_inclusion_probabilities():
+    parent, catalogue, validation, retained = _fixture()
+    catalogue_base = 1.0 + 1.5 * (catalogue - 0.01) / 0.39
+    supplied = np.linspace(0.2, 0.8, catalogue.size)
+    result = build_five_arm_weights(
+        parent, catalogue, validation, retained,
+        catalogue_floor=0.10,
+        catalogue_base_weights=catalogue_base,
+        known_inclusion_probability=supplied,
+        quadrature_order=5,
+    )
+    assert np.array_equal(result.arm_c_true_inclusion_probability, supplied)
+    assert np.allclose(result.arm_c_known_probability, catalogue_base / supplied)
+
+
+@pytest.mark.parametrize(
+    "supplied,match",
+    [
+        (np.ones(2), "match catalogue_redshift"),
+        (np.zeros(600), "in \(0, 1\]"),
+        (np.full(600, 1.01), "in \(0, 1\]"),
+        (np.full(600, np.nan), "finite"),
+    ],
+)
+def test_five_arm_builder_rejects_invalid_external_known_probabilities(supplied, match):
+    parent, catalogue, validation, retained = _fixture()
+    if supplied.size == 600 and supplied.size != catalogue.size:
+        # Force the mismatch case to remain a mismatch even if the fixture changes.
+        supplied = np.ones(catalogue.size + 1)
+    with pytest.raises(ValueError, match=match):
+        build_five_arm_weights(
+            parent, catalogue, validation, retained,
+            catalogue_floor=0.10,
+            known_inclusion_probability=supplied,
+            quadrature_order=5,
+        )
