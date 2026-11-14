@@ -12,7 +12,7 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 
-from run_quadratic_logit_curvature_density_smoke import run as run_one
+from run_quadratic_logit_curvature_density_smoke import (\n    INCLUSION_COORDINATE_CENTER, INCLUSION_COORDINATE_SCALE,\n    INCLUSION_PRIOR_MEAN, INCLUSION_PRIOR_SD, run as run_one,\n)
 
 DEFAULT_GAMMAS=(-2.0,-1.0,-0.5,0.0,0.5,1.0,2.0)
 DEFAULT_WIDTHS=(0.008,0.012,0.016,0.024,0.032,0.040,0.050,0.060,0.080)
