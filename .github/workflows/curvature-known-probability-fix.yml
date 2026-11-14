@@ -8,11 +8,13 @@ on:
       - src/dark_siren_robustness/five_arm_comparison.py
       - scripts/run_absolute_bandwidth_density_smoke.py
       - scripts/audit_absolute_bandwidth_density_smoke.py
+      - scripts/audit_quadratic_logit_curvature_pilot.py
       - scripts/run_absolute_bandwidth_density_replicates.py
       - tests/test_five_arm_comparison.py
       - tests/test_absolute_bandwidth_density_smoke.py
       - tests/test_absolute_bandwidth_density_replicates.py
       - tests/test_generative_selection.py
+      - tests/test_curvature_cross_gamma_completeness.py
       - .github/workflows/curvature-known-probability-fix.yml
   pull_request:
     branches:
@@ -21,11 +23,13 @@ on:
       - src/dark_siren_robustness/five_arm_comparison.py
       - scripts/run_absolute_bandwidth_density_smoke.py
       - scripts/audit_absolute_bandwidth_density_smoke.py
+      - scripts/audit_quadratic_logit_curvature_pilot.py
       - scripts/run_absolute_bandwidth_density_replicates.py
       - tests/test_five_arm_comparison.py
       - tests/test_absolute_bandwidth_density_smoke.py
       - tests/test_absolute_bandwidth_density_replicates.py
       - tests/test_generative_selection.py
+      - tests/test_curvature_cross_gamma_completeness.py
       - .github/workflows/curvature-known-probability-fix.yml
 
 concurrency:
@@ -55,3 +59,5 @@ jobs:
         run: python -m pytest tests/test_absolute_bandwidth_density_replicates.py -q
       - name: Test synthetic quadratic-logit DGP invariants
         run: python -m pytest tests/test_generative_selection.py -q
+      - name: Test cross-gamma pilot completeness gate
+        run: python -m pytest tests/test_curvature_cross_gamma_completeness.py -q
