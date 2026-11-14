@@ -159,12 +159,13 @@ def run(args):
       "catalogue_floor":args.catalogue_floor,"catalogue_midpoint":0.22,"catalogue_width":0.05,
       "scott_multiplier":scott_multiplier,
       "coordinate_center":0.205,"coordinate_scale":0.195,"quadrature_order":args.quadrature_order,
+      "coefficient_prior":{"family":"independent_gaussian","mean":[0.0,0.0],"sd":[5.0,2.5]},
       "grid_points":args.grid_points,"redshift_bounds":[Z_MIN,Z_MAX],
       "absolute_bandwidth_candidates":list(widths),
       "boundary_regions":[[Z_MIN,BOUNDARY_LOWER],[BOUNDARY_UPPER,Z_MAX]],
       "analytic_target":"normalized latent_galaxy_intensity(z) * (1+1.5*(z-z_min)/(z_max-z_min))",
-      "arm_E_metric":"posterior-weighted expectation of node-specific IAE/ISE/boundary IAE; node rows retained",
-      "limitations":["one engineering replicate only","posterior nodes are consumed from the existing inclusion-posterior fitter; this smoke does not independently validate that posterior",
+      "arm_E_metric":"posterior-mean density loss is primary; posterior expected node loss is secondary; node rows retained",
+      "limitations":["one engineering replicate only","posterior quadrature is independently reconstructed from observable validation records by the raw-input auditor",
         "no training/holdout bandwidth selection","no H0 likelihood or calibration","synthetic low-z Euclidean methodology only"]}
     (out/"config.json").write_text(json.dumps(config,indent=2,sort_keys=True)+"\n")
     files=sorted(p for p in out.rglob("*") if p.is_file() and p.name!="manifest.json")
