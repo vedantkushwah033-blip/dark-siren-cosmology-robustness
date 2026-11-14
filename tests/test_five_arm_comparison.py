@@ -71,6 +71,15 @@ def test_weight_diagnostics_reject_nonpositive_or_nonfinite_weights():
         weight_concentration_diagnostics([1.0, np.inf])
 
 
+def test_five_arm_builder_requires_floor_only_for_legacy_truth_model():
+    parent, catalogue, validation, retained = _fixture()
+    with pytest.raises(ValueError, match="catalogue_floor"):
+        build_five_arm_weights(
+            parent, catalogue, validation, retained,
+            quadrature_order=5,
+        )
+
+
 def test_five_arm_builder_rejects_mismatched_validation_labels():
     parent, catalogue, validation, retained = _fixture()
     with pytest.raises(ValueError, match="match validation_redshift"):
@@ -169,7 +178,6 @@ def test_quadratic_logit_dgp_known_arm_uses_truth_but_estimated_arms_use_validat
         catalogue.redshift.to_numpy(),
         validation.redshift.to_numpy(),
         validation.retained.to_numpy(),
-        catalogue_floor=0.10,
         true_catalogue_inclusion_probability=true_probability,
         quadrature_order=5,
     )
