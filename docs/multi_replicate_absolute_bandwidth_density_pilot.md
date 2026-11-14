@@ -65,3 +65,8 @@ Arm E now reports two distinct density-recovery estimands, both reconstructed by
 These quantities are not interchangeable. Since IAE, ISE and boundary IAE are convex losses, the loss of the posterior-mean density cannot exceed the posterior expected node loss (up to numerical tolerance). The node-specific rows remain available. Kish ESS is not defined for a mixture density itself, so the posterior-mean-density row records it as missing rather than borrowing an arbitrary node's ESS.
 
 This density diagnostic does not replace the Arm E cosmological likelihood: H0 inference must continue to evaluate the complete multi-event selected likelihood at each shared coefficient node and marginalize that joint likelihood once.
+
+
+## Base-measure accounting (important correction)
+
+The A–E raw arm weights already contain the common base-population factor (b(z)): A and B use (b(z)), while C–E use (b(z)/pi(z)). The density estimator's separate `merger_weight` argument is an additional post-KDE multiplier. It must therefore be the identity in this experiment. Applying (b(z)) in both the raw sample weights and the post-KDE multiplier would estimate a density proportional to the latent intensity times (b(z)^2), while the declared target is proportional to the latent intensity times (b(z)). The runner now stores `base_measure_grid=b(z)` separately and `merger_weight_grid=1); the independent auditor verifies both and reconstructs the target and KDE with the base measure applied exactly once.

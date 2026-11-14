@@ -29,6 +29,10 @@ def test_absolute_bandwidth_density_smoke_independent_reconstruction_and_corrupt
     )
     result=runner.run(args)
     assert result["status"]=="PASS"
+    raw=np.load(output/"results"/"density_reconstruction_inputs.npz")
+    grid=raw["redshift_grid"]
+    assert np.allclose(raw["base_measure_grid"],1.0+1.5*(grid-0.01)/0.39)
+    assert np.array_equal(raw["merger_weight_grid"],np.ones_like(grid))
     report=auditor.audit(output)
     assert report["status"]=="PASS"
     assert report["metric_rows_reconstructed"]==len(pd.read_csv(output/"results"/"density_metrics.csv"))
@@ -155,3 +159,22 @@ def test_auditor_rejects_corrupted_posterior_mean_metric_after_manifest_refresh(
     _rehash(output, path)
     with pytest.raises(AssertionError, match="metric iae mismatch"):
         auditor.audit(output)
+
+
+def test_density_smoke_does_not_apply_base_measure_twice(tmp_path):
+    runner = _load("absolute_density_runner_base_once", "run_absolute_bandwidth_density_smoke.py")
+    auditor = _load("absolute_density_auditor_base_once", "audit_absolute_bandwidth_density_smoke.py")
+    output = tmp_path / "absolute_density_base_once"
+    args = SimpleNamespace(
+        output_dir=output, seed=20261126, validation_seed=20261127,
+        n_parent=500, validation_frame=120, validation_sizes=(40, 80),
+        catalogue_floor=0.10, scott_multiplier=0.7, quadrature_order=3,
+        grid_points=101, absolute_widths=(0.012, 0.024),
+    )
+    runner.run(args)
+    raw = np.load(output / "results" / "density_reconstruction_inputs.npz")
+    grid = raw["redshift_grid"]
+    base = 1.0 + 1.5 * (grid - 0.01) / 0.39
+    assert np.allclose(raw["base_measure_grid"], base)
+    assert np.array_equal(raw["merger_weight_grid"], np.ones_like(grid))
+    assert auditor.audit(output)["status"] == "PASS"

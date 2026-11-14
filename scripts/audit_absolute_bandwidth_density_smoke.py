@@ -93,10 +93,15 @@ def audit(root:Path):
  _close(parent.inclusion_probability.to_numpy(float),floor+(1-floor)/(1+np.exp((zparent-midpoint)/width)),"parent inclusion probabilities")
  bp=1+1.5*(zparent-Z_MIN)/(Z_MAX-Z_MIN); bc=1+1.5*(zcat-Z_MIN)/(Z_MAX-Z_MIN)
  z=np.load(root/"results"/"density_reconstruction_inputs.npz")
- grid=z["redshift_grid"]; rate=z["merger_weight_grid"]; truth=z["truth_density"]
+ grid=z["redshift_grid"]; rate=z["merger_weight_grid"]; base_measure=z["base_measure_grid"]; truth=z["truth_density"]
  _close(z["parent_redshift"],zparent,"persisted parent sample"); _close(z["catalogue_redshift"],zcat,"persisted catalogue sample")
- _close(truth, np.asarray(1+2.2*np.exp(-.5*((grid-.105)/.025)**2)+1.6*np.exp(-.5*((grid-.275)/.04)**2))*rate /
-   trapezoid((1+2.2*np.exp(-.5*((grid-.105)/.025)**2)+1.6*np.exp(-.5*((grid-.275)/.04)**2))*rate,grid),"analytic target")
+ expected_base_measure=1.0+1.5*(grid-Z_MIN)/(Z_MAX-Z_MIN)
+ _close(base_measure,expected_base_measure,"analytic base-population measure")
+ _close(rate,np.ones_like(grid),"post-KDE merger multiplier must be one because b(z) is already in raw arm weights")
+ latent=1+2.2*np.exp(-.5*((grid-.105)/.025)**2)+1.6*np.exp(-.5*((grid-.275)/.04)**2)
+ expected_truth=latent*base_measure
+ expected_truth=expected_truth/trapezoid(expected_truth,grid)
+ _close(truth,expected_truth,"analytic target")
  widths=[float(x) for x in cfg["absolute_bandwidth_candidates"]]
  sizes=[int(x) for x in cfg["validation_sizes"]]
  scott_multiplier=float(cfg["scott_multiplier"])

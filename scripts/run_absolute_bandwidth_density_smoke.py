@@ -63,10 +63,14 @@ def run(args):
     base_p=1.0+1.5*(pz-Z_MIN)/(Z_MAX-Z_MIN)
     base_c=1.0+1.5*(cz-Z_MIN)/(Z_MAX-Z_MIN)
     grid=np.linspace(Z_MIN,Z_MAX,args.grid_points)
-    merger=1.0+1.5*(grid-Z_MIN)/(Z_MAX-Z_MIN)
-    truth_raw=latent_galaxy_intensity(grid)*merger
+    base_measure=1.0+1.5*(grid-Z_MIN)/(Z_MAX-Z_MIN)
+    # b(z) is already included once in each raw arm weight. The separate
+    # post-KDE merger multiplier is therefore the identity, not another b(z).
+    unit_merger_weight=np.ones_like(grid)
+    truth_raw=latent_galaxy_intensity(grid)*base_measure
     truth=truth_raw/float(trapezoid(truth_raw,grid))
-    archive={"redshift_grid":grid,"merger_weight_grid":merger,"truth_density":truth,
+    archive={"redshift_grid":grid,"base_measure_grid":base_measure,
+             "merger_weight_grid":unit_merger_weight,"truth_density":truth,
              "parent_redshift":pz,"catalogue_redshift":cz,"parent_base_weights":base_p,
              "catalogue_base_weights":base_c,"absolute_widths":np.asarray(widths)}
     rows=[]; diag=[]; scott_rows=[]
@@ -120,12 +124,12 @@ def run(args):
         for width in widths:
             per_arm=[]
             for name,(sample,weights) in raw_inputs.items():
-                d=estimate_host_density(grid,sample,sample_weights=weights,merger_weight=merger,absolute_bandwidth_sd=width)
+                d=estimate_host_density(grid,sample,sample_weights=weights,merger_weight=unit_merger_weight,absolute_bandwidth_sd=width)
                 archive[f"density_{name}_n{n}_w{width:.6f}"]=d
                 per_arm.append((name,d,None))
             node_dens=[]
             for j,weights in enumerate(arms.arm_e_node_weights):
-                d=estimate_host_density(grid,cz,sample_weights=weights,merger_weight=merger,absolute_bandwidth_sd=width)
+                d=estimate_host_density(grid,cz,sample_weights=weights,merger_weight=unit_merger_weight,absolute_bandwidth_sd=width)
                 node_dens.append(d)
                 rows.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":width,
                   "arm":"E_uncertainty_integrated_ipw","node":j,**_metric(d,truth,grid),
@@ -164,7 +168,8 @@ def run(args):
       "grid_points":args.grid_points,"redshift_bounds":[Z_MIN,Z_MAX],
       "absolute_bandwidth_candidates":list(widths),
       "boundary_regions":[[Z_MIN,BOUNDARY_LOWER],[BOUNDARY_UPPER,Z_MAX]],
-      "analytic_target":"normalized latent_galaxy_intensity(z) * (1+1.5*(z-z_min)/(z_max-z_min))",
+      "analytic_target":"normalized latent_galaxy_intensity(z) * b(z), b(z)=1+1.5*(z-z_min)/(z_max-z_min)",
+      "base_measure_application":"b(z) is included once in raw arm weights; post-KDE merger_weight_grid is identically one",
       "arm_E_metric_estimands":{
         "posterior_mean_density":"IAE/ISE/boundary IAE evaluated on the quadrature-weighted posterior-mean density",
         "posterior_expected_node_loss":"posterior expectation of node-specific IAE/ISE/boundary IAE; node rows retained",
