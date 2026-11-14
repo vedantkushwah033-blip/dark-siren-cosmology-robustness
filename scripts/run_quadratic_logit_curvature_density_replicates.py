@@ -109,7 +109,8 @@ def run(args):
     pair_keys = ["replicate", "validation_size", "absolute_bandwidth_sd"]
     zero_rows = metric_all[np.isclose(metric_all["gamma"], 0.0)]
     if zero_rows.empty:
-      raise ValueError("gamma grid must include gamma=0 for paired reference contrasts")
+      # Preserve a fully auditable incomplete artifact when every gamma=0 cell failed.
+      # Gamma-vs-zero contrasts are then undefined and remain absent.
     for gamma in gammas:
       if gamma == 0.0:
         continue
