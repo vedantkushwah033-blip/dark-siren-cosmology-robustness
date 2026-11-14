@@ -110,7 +110,7 @@ def _rehash(root, path):
         "bytes": len(payload),
         "sha256": hashlib.sha256(payload).hexdigest(),
     }
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n")
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
 
 def test_posterior_mean_density_and_expected_node_loss_are_separate_estimands(tmp_path):
