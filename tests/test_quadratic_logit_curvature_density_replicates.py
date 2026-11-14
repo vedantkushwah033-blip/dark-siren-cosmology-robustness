@@ -91,6 +91,10 @@ def test_curvature_runner_preserves_failed_cell_and_auditor_reports_incomplete(t
  assert len(failed)==1
  assert failed.iloc[0].gamma==1.0 and failed.iloc[0].replicate==0
  assert "injected lifecycle failure" in failed.iloc[0].error
+ assert report["paired_contrast_rows_reconstructed"]==0
+ assert report["paired_contrast_summary_rows_reconstructed"]==0
+ assert pd.read_csv(out/"paired_contrasts_all_cells.csv").empty
+ assert pd.read_csv(out/"paired_contrast_summary.csv").empty
 
 def test_curvature_runner_preserves_auditable_artifact_when_every_cell_fails(tmp_path, monkeypatch):
  runner=_load("curvature_multi_runner_all_failed","run_quadratic_logit_curvature_density_replicates.py")
