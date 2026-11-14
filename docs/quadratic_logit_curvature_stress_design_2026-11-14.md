@@ -140,16 +140,19 @@ No curvature-family performance claim is made until the multi-replicate runner, 
 
 ## Paired multi-gamma pilot runner and outer auditor (2026-11-15)
 
-The first multi-replicate orchestration layer is now implemented:
+The GitHub Actions experiment workflow uses the paired-replicate implementation:
 
-- `scripts/run_quadratic_logit_curvature_density_pilot.py` runs all seven gamma values with paired population/validation seeds and a configurable replicate count (default 3).
-- Each gamma-replicate is written as a self-contained child artifact and passed through the existing independent raw-input child auditor before its metrics are admitted to the aggregate.
-- `results/replicate_ledger.csv` records SUCCESS, FAILED, NON_EVALUABLE, or NOT_RUN-compatible lifecycle states, seeds, child paths, and error text. Current runner records SUCCESS or FAILED and does not silently drop failures.
-- Aggregate density metrics, weight diagnostics, and realized Scott widths carry gamma, replicate, and seed identifiers.
-- `scripts/audit_quadratic_logit_curvature_density_pilot.py` verifies the outer manifest, exact gamma-replicate ledger coverage, reruns every successful child audit, and checks aggregate keys and coverage.
-- `tests/test_quadratic_logit_curvature_density_pilot.py` exercises a one-replicate seven-gamma smoke run and deliberate ledger corruption.
-- Cross-version smoke CI and a separate 3-replicate GitHub Actions pilot workflow have been added.
+- `scripts/run_quadratic_logit_curvature_density_replicates.py` enumerates the replicate × gamma design, runs each single-cell density experiment, preserves every attempt in `cell_ledger.csv`, and reconstructs aggregate metric, diagnostic, Scott-width, and paired-contrast tables.
+- `scripts/audit_quadratic_logit_curvature_density_replicates.py` verifies the outer manifest, complete planned cell grid, seed schedule, child raw-input audits, and exact aggregate/contrast reconstruction.
+- `tests/test_quadratic_logit_curvature_density_replicates.py` exercises paired runs, aggregate tampering, one-cell failure, and all-cell failure.
+- `tests/test_quadratic_logit_curvature_incomplete_reference.py` additionally injects failure of every gamma-zero reference cell and checks that the remaining experiment remains auditable.
+- `.github/workflows/quadratic-logit-curvature-density-pilot.yml` runs the configured seven-gamma, three-replicate engineering pilot and uploads the artifact even when an earlier step fails.
+- `.github/workflows/quadratic-logit-curvature-density-pilot-tests.yml` runs focused regression tests across Python 3.10, 3.11, and 3.12.
 
-The seven-gamma multi-replicate experiment has **not yet been verified as completed**. The workflow is configured to run 3 replicates per gamma (21 child artifacts) and independently audit them. Its output must be retrieved and audited before reporting performance results. The smoke test is engineering validation only. A 3-replicate pilot is not sufficient for confirmatory claims or stable uncertainty estimates.
+The runner uses common population and validation seeds across gamma values within each replicate. The validation sizes remain nested prefixes of one independent validation frame. Arm C consumes truth-only quadratic probabilities and remains an oracle diagnostic; Arms D/E fit the degree-one logistic analysis model.
 
-The runner uses common population and validation seeds across gamma within each replicate. This creates paired random-number streams; the gamma-specific retention outcomes differ under the changed probability function. The validation sizes remain nested prefixes of one independent validation frame. Arm C consumes truth-only quadratic probabilities and remains an oracle diagnostic. Arms D/E fit the degree-one logistic analysis model.
+Lifecycle semantics are explicit: successful cells are marked `PENDING_OUTER_AUDIT` in the cell ledger until the separate outer auditor independently reconstructs their child outputs; failed cells remain `NOT_RUN` for child audit. If any cell fails, the outer manifest and audit report are `INCOMPLETE`, and the auditor exits non-zero. If every gamma-zero reference cell fails, gamma-versus-zero contrasts are undefined and omitted, while surviving within-gamma arm contrasts remain reconstructable. The experiment must never be presented as a complete PASS in either failure case.
+
+The workflow's configured three replicates per gamma are an engineering pilot only. At the latest source review, the updated runner, auditor, and regression-test files were fetched from GitHub, but the exact-head Actions results and uploaded artifact had not yet been retrieved and independently verified. Therefore no seven-gamma performance result is claimed.
+
+The full seven-gamma × 20-replicate experiment has not been run. No curvature-family performance conclusion, leakage-free bandwidth selection, held-out density validation, or H0 propagation is authorized by this pilot.
