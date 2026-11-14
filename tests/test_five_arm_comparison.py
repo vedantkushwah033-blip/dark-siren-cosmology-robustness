@@ -133,7 +133,6 @@ def test_five_arm_builder_accepts_external_known_inclusion_probabilities():
     supplied = np.linspace(0.2, 0.8, catalogue.size)
     result = build_five_arm_weights(
         parent, catalogue, validation, retained,
-        catalogue_floor=0.10,
         catalogue_base_weights=catalogue_base,
         known_inclusion_probability=supplied,
         quadrature_order=5,
@@ -166,7 +165,15 @@ def test_five_arm_builder_rejects_invalid_external_known_probabilities(case, mat
     with pytest.raises(ValueError, match=match):
         build_five_arm_weights(
             parent, catalogue, validation, retained,
-            catalogue_floor=0.10,
             known_inclusion_probability=supplied,
+            quadrature_order=5,
+        )
+
+
+def test_five_arm_builder_requires_floor_when_truth_probabilities_are_not_supplied():
+    parent, catalogue, validation, retained = _fixture()
+    with pytest.raises(ValueError, match="catalogue_floor"):
+        build_five_arm_weights(
+            parent, catalogue, validation, retained,
             quadrature_order=5,
         )
