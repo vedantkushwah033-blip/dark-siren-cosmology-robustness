@@ -12,7 +12,7 @@ from scipy.integrate import trapezoid
 
 from dark_siren_robustness.generative_selection import (
     generate_synthetic_population, generate_independent_validation_sample,
-    latent_galaxy_intensity,
+    generate_quadratic_logit_inclusion_samples, latent_galaxy_intensity,
 )
 from dark_siren_robustness.five_arm_comparison import build_five_arm_weights, weight_concentration_diagnostics
 from dark_siren_robustness.catalogue_density import estimate_host_density, reflected_weighted_kde_bandwidth
@@ -48,12 +48,50 @@ def run(args):
     if not sizes or sorted(set(sizes))!=sizes or sizes[0]<5 or sizes[-1]>args.validation_frame: raise ValueError("invalid validation sizes")
     if args.n_parent<100 or args.quadrature_order<3: raise ValueError("invalid parent size or quadrature order")
     (out/"observable").mkdir(); (out/"truth").mkdir(); (out/"results").mkdir()
-    pop=generate_synthetic_population(seed=args.seed,n_parent=args.n_parent,n_detected=1,h0_true=70.0,
-        sigma_mpc=140.0,detection_threshold_mpc=250.0,z_min=Z_MIN,z_max=Z_MAX,
-        catalogue_floor=args.catalogue_floor,catalogue_midpoint=0.22,catalogue_width=0.05)
-    val=generate_independent_validation_sample(seed=args.validation_seed,n_validation_frame=args.validation_frame,
-        n_validation=sizes[-1],z_min=Z_MIN,z_max=Z_MAX,catalogue_floor=args.catalogue_floor,
-        catalogue_midpoint=0.22,catalogue_width=0.05)
+    gamma=getattr(args,"gamma",None)
+    beta=float(getattr(args,"beta",-3.9))
+    true_catalogue_probability=None
+    quadratic_calibration=None
+    if gamma is None:
+        catalogue_floor=float(args.catalogue_floor)
+        pop=generate_synthetic_population(seed=args.seed,n_parent=args.n_parent,n_detected=1,h0_true=70.0,
+            sigma_mpc=140.0,detection_threshold_mpc=250.0,z_min=Z_MIN,z_max=Z_MAX,
+            catalogue_floor=catalogue_floor,catalogue_midpoint=0.22,catalogue_width=0.05)
+        val=generate_independent_validation_sample(seed=args.validation_seed,n_validation_frame=args.validation_frame,
+            n_validation=sizes[-1],z_min=Z_MIN,z_max=Z_MAX,catalogue_floor=catalogue_floor,
+            catalogue_midpoint=0.22,catalogue_width=0.05)
+        selection_config={
+            "catalogue_selection_model":"floor_logistic",
+            "catalogue_floor":catalogue_floor,
+            "catalogue_midpoint":0.22,
+            "catalogue_width":0.05,
+            "quadratic_logit_calibration":None,
+        }
+    else:
+        if not np.isfinite(gamma) or not np.isfinite(beta):
+            raise ValueError("quadratic-logit gamma and beta must be finite")
+        pop=generate_quadratic_logit_inclusion_samples(
+            population_seed=args.seed,validation_seed=args.validation_seed,
+            n_parent=args.n_parent,n_validation_frame=args.validation_frame,
+            n_validation=sizes[-1],gamma=float(gamma),beta=beta,
+            z_min=Z_MIN,z_max=Z_MAX,coordinate_center=0.205,coordinate_scale=0.195)
+        val=pop
+        parent_for_probability=pop["parent_truth"]
+        true_catalogue_probability=parent_for_probability.loc[
+            parent_for_probability.retained.astype(bool),"inclusion_probability"
+        ].to_numpy(float)
+        quadratic_calibration={
+            key:float(pop["config"][key])
+            for key in ("alpha","beta","gamma","target_rate","achieved_rate","x2_center",
+                        "coordinate_center","coordinate_scale")
+        }
+        selection_config={
+            "catalogue_selection_model":"quadratic_logit",
+            "catalogue_floor":None,
+            "catalogue_midpoint":None,
+            "catalogue_width":None,
+            "quadratic_logit_calibration":quadratic_calibration,
+        }
     parent=pop["parent_truth"]; catalogue=pop["catalogue_observed"]
     parent.to_csv(out/"truth"/"parent_truth.csv",index=False)
     catalogue.to_csv(out/"observable"/"catalogue_observed.csv",index=False)
@@ -76,10 +114,18 @@ def run(args):
     for n in sizes:
         v=val["validation_observed"].iloc[:n]
         v.to_csv(out/"observable"/f"validation_n{n}.csv",index=False)
-        arms=build_five_arm_weights(pz,cz,v.redshift.to_numpy(float),v.retained.to_numpy(int),
-          catalogue_floor=args.catalogue_floor,catalogue_midpoint=0.22,catalogue_width=0.05,
-          degree=1,coordinate_center=0.205,coordinate_scale=0.195,
-          quadrature_order=args.quadrature_order,parent_base_weights=base_p,catalogue_base_weights=base_c)
+        weight_kwargs={
+          "degree":1,"coordinate_center":0.205,"coordinate_scale":0.195,
+          "quadrature_order":args.quadrature_order,
+          "parent_base_weights":base_p,"catalogue_base_weights":base_c,
+        }
+        if true_catalogue_probability is None:
+            weight_kwargs.update(catalogue_floor=catalogue_floor,
+                                 catalogue_midpoint=0.22,catalogue_width=0.05)
+        else:
+            weight_kwargs["true_catalogue_inclusion_probability"]=true_catalogue_probability
+        arms=build_five_arm_weights(
+          pz,cz,v.redshift.to_numpy(float),v.retained.to_numpy(int),**weight_kwargs)
         archive[f"posterior_nodes_n{n}"]=arms.inclusion_posterior.nodes
         archive[f"posterior_weights_n{n}"]=arms.inclusion_posterior.weights
         archive[f"posterior_mode_n{n}"]=arms.inclusion_posterior.mode
@@ -157,7 +203,7 @@ def run(args):
       "status":"ENGINEERING_SMOKE_NOT_SELECTION_NOT_CONFIRMATORY",
       "seed":args.seed,"validation_seed":args.validation_seed,"n_parent":args.n_parent,
       "n_catalogue":len(catalogue),"validation_frame":args.validation_frame,"validation_sizes":sizes,
-      "catalogue_floor":args.catalogue_floor,"catalogue_midpoint":0.22,"catalogue_width":0.05,
+      **selection_config,
       "scott_multiplier":scott_multiplier,
       "coordinate_center":0.205,"coordinate_scale":0.195,"quadrature_order":args.quadrature_order,
       "coefficient_prior":{"family":"independent_gaussian","mean":[0.0,0.0],"sd":[5.0,2.5]},
@@ -180,7 +226,12 @@ def main():
     p.add_argument("--seed",type=int,default=20261114); p.add_argument("--validation-seed",type=int,default=20261115)
     p.add_argument("--n-parent",type=int,default=1200); p.add_argument("--validation-frame",type=int,default=1500)
     p.add_argument("--validation-sizes",type=lambda x:tuple(int(v) for v in x.split(",")),default=(100,300,1000))
-    p.add_argument("--catalogue-floor",type=float,default=0.10); p.add_argument("--quadrature-order",type=int,default=5)
+    p.add_argument("--catalogue-floor",type=float,default=0.10)
+    p.add_argument("--gamma",type=float,default=None,
+                   help="Use the parent-rate-calibrated quadratic-logit catalogue DGP instead of the floor-logistic DGP.")
+    p.add_argument("--beta",type=float,default=-3.9,
+                   help="Linear coefficient for the quadratic-logit DGP; used only when --gamma is supplied.")
+    p.add_argument("--quadrature-order",type=int,default=5)
     p.add_argument("--grid-points",type=int,default=501)
     p.add_argument("--scott-multiplier",type=float,default=0.7)
     p.add_argument("--absolute-widths",type=lambda x:tuple(float(v) for v in x.split(",")),default=DEFAULT_WIDTHS)
