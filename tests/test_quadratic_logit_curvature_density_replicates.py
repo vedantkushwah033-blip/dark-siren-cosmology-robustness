@@ -133,7 +133,7 @@ def test_curvature_outer_auditor_rejects_false_child_audit_claim_with_updated_ma
  manifest=json.loads(manifest_path.read_text())
  rel=str(ledger_path.relative_to(out))
  manifest["files"][rel]={"bytes":ledger_path.stat().st_size,"sha256":hashlib.sha256(ledger_path.read_bytes()).hexdigest()}
- manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n")
+ manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
  with pytest.raises(AssertionError,match="successful cells must await"):
   auditor.audit(out)
 
@@ -158,11 +158,11 @@ def test_curvature_outer_auditor_rejects_child_config_drift_with_updated_manifes
  config_path=out/"config.json"
  config=json.loads(config_path.read_text())
  config["beta"]=-3.8
- config_path.write_text(json.dumps(config,indent=2,sort_keys=True)+"\\n")
+ config_path.write_text(json.dumps(config,indent=2,sort_keys=True)+"\n")
  manifest_path=out/"manifest.json"
  manifest=json.loads(manifest_path.read_text())
  rel=str(config_path.relative_to(out))
  manifest["files"][rel]={"bytes":config_path.stat().st_size,"sha256":hashlib.sha256(config_path.read_bytes()).hexdigest()}
- manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n")
+ manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
  with pytest.raises(AssertionError,match="child validation-frame or beta mismatch"):
   auditor.audit(out)
