@@ -61,4 +61,8 @@ def test_all_gamma_zero_reference_cells_failed_remains_auditable(tmp_path, monke
     assert report["status"] == "INCOMPLETE"
     assert report["failed_cells"] == 2
     assert report["successful_cells"] == 4
-    assert report["paired_contrast_rows_reconstructed"] > 0
+    assert report["paired_contrast_rows_reconstructed"] == 0
+    assert report["paired_contrast_summary_rows_reconstructed"] == 0
+    import pandas as pd
+    assert pd.read_csv(output / "paired_contrasts_all_cells.csv").empty
+    assert pd.read_csv(output / "paired_contrast_summary.csv").empty
