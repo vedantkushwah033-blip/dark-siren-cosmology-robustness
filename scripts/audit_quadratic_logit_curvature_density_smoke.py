@@ -194,7 +194,7 @@ def audit(root: Path) -> dict[str, object]:
                 for weights in node_weights
             ])
             q = posterior_weights
-            for j, weights in enumerate(arms.arm_e_node_weights):
+            for j, weights in enumerate(node_weights):
                 expected_metrics.append({
                     "validation_size": int(n), "absolute_bandwidth_sd": width,
                     "arm": "E_uncertainty_integrated_ipw", "node": j,
