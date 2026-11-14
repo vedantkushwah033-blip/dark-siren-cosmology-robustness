@@ -142,8 +142,50 @@ def fit_inclusion_posterior_quadrature(
     )
     mode = np.asarray(result.x, dtype=float)
     score_norm = float(np.linalg.norm(gradient(mode), ord=np.inf))
-    if not np.all(np.isfinite(mode)) or not np.isfinite(score_norm) or score_norm > 1e-6:
-        raise ArithmeticError(f"posterior mode did not converge: {result.message}; score={score_norm}")
+    if not np.all(np.isfinite(mode)) or not np.isfinite(score_norm):
+        raise ArithmeticError(f"posterior mode is non-finite: {result.message}; score={score_norm}")
+
+    # Deterministic exact-Hessian Newton refinement for the narrow case where
+    # trust-exact stops because its predicted objective improvement is at
+    # floating-point resolution. Keep the scientific score tolerance strict:
+    # refinement is accepted only if it reduces the actual posterior score.
+    refinement_steps = 0
+    if score_norm > 1e-8:
+        for refinement_steps in range(1, 51):
+            score = gradient(mode)
+            score_norm = float(np.linalg.norm(score, ord=np.inf))
+            if score_norm <= 1e-8:
+                break
+            information_step = hessian(mode)
+            try:
+                direction = np.linalg.solve(information_step, score)
+            except np.linalg.LinAlgError as exc:
+                raise ArithmeticError("posterior Newton refinement Hessian solve failed") from exc
+            decrement = float(score @ direction)
+            if not np.isfinite(decrement) or decrement <= 0:
+                raise ArithmeticError("posterior Newton refinement has invalid decrement")
+            current_objective = objective(mode)
+            accepted = False
+            step = 1.0
+            while step >= 2.0 ** -35:
+                candidate = mode - step * direction
+                candidate_score = float(np.linalg.norm(gradient(candidate), ord=np.inf))
+                candidate_objective = objective(candidate)
+                armijo = candidate_objective <= current_objective - 1e-4 * step * decrement
+                score_improved = candidate_score < score_norm
+                if np.isfinite(candidate_score) and (armijo or score_improved):
+                    mode = candidate
+                    accepted = True
+                    break
+                step *= 0.5
+            if not accepted:
+                break
+    score_norm = float(np.linalg.norm(gradient(mode), ord=np.inf))
+    if score_norm > 1e-6:
+        raise ArithmeticError(
+            f"posterior mode did not converge after {refinement_steps} Newton refinements: "
+            f"{result.message}; score={score_norm}"
+        )
     information = hessian(mode)
     eigenvalues = np.linalg.eigvalsh(information)
     if not np.all(np.isfinite(eigenvalues)) or np.min(eigenvalues) <= 0:
