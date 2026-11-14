@@ -274,11 +274,11 @@ def audit(root:Path):
  if len(got)!=len(want): raise AssertionError("metric row count mismatch")
  for col in key+["status"]:
   if not got[col].equals(want[col]): raise AssertionError(f"metric key/status mismatch: {col}")
-  for col in ["iae","ise","boundary_iae"]:
-   _close(got[col].to_numpy(float),want[col].to_numpy(float),f"metric {col}")
-  if "kish_ess" not in got or not np.array_equal(got.kish_ess.isna().to_numpy(),want.kish_ess.isna().to_numpy()):
-   raise AssertionError("metric Kish ESS missingness mismatch")
-  _close(got.kish_ess.to_numpy(float),want.kish_ess.to_numpy(float),"metric Kish ESS")
+ for col in ["iae","ise","boundary_iae"]:
+  _close(got[col].to_numpy(float),want[col].to_numpy(float),f"metric {col}")
+ if "kish_ess" not in got or not np.array_equal(got.kish_ess.isna().to_numpy(),want.kish_ess.isna().to_numpy()):
+  raise AssertionError("metric Kish ESS missingness mismatch")
+ _close(got.kish_ess.to_numpy(float),want.kish_ess.to_numpy(float),"metric Kish ESS")
  scott=pd.read_csv(root/"results"/"scott_widths.csv")
  expected_scott_df=pd.DataFrame(expected_scott)
  scott_key=["validation_size","arm","node"]
