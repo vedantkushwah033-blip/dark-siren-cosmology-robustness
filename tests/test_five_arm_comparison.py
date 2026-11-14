@@ -54,6 +54,8 @@ def test_weight_diagnostics_are_finite_and_report_concentration():
     result = weight_concentration_diagnostics([1.0, 1.0, 2.0, 6.0])
     assert result["kish_ess"] == pytest.approx(100.0 / 42.0)
     assert result["kish_ess_fraction"] == pytest.approx((100.0 / 42.0) / 4.0)
+    p = np.array([0.1, 0.1, 0.2, 0.6])
+    assert result["entropy_ess"] == pytest.approx(np.exp(-np.sum(p * np.log(p))))
     assert result["maximum_normalized_weight"] == pytest.approx(0.6)
     assert result["top_1_percent_mass"] == pytest.approx(0.6)
     assert result["top_5_percent_mass"] == pytest.approx(0.6)
