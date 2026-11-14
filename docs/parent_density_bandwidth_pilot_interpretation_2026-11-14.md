@@ -114,3 +114,34 @@ The same exact-head artifact reports a batched likelihood-kernel numerical-equiv
 ### Required gate
 
 Before using 0.50 in a confirmatory five-arm H0 experiment, run a new density-only training/holdout pilot with a master seed and replicate IDs disjoint from every prior bandwidth pilot. Then reserve a separate, disjoint replicate set for H0 evaluation. Preserve the present artifacts unchanged. Do not tune the bandwidth using H0 error, coverage, PIT, or event-level outcomes.
+
+## 7. Independent fresh-seed expanded-grid pilot (PR #44, 2026-11-14)
+
+**Workflow:** [43565461921](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/43565461921)  
+**Exact source commit:** `e10c030ef3dbc7373909a26cb7d15729fb11f3ac`  
+**Artifact ID:** `14102456385`  
+**Artifact ZIP SHA-256:** `c4d758338d05f8755bbeea8722dea3c691102f164fbb469fecc8d03e377bb12f`
+
+The corrected workflow completed successfully. All 13 job steps passed, including the fresh-seed simulation, independent reconstruction, training-only selection, independent split/score audit, provenance gate, and artifact upload. The artifact contains 200 replicates × 4,000 parent units (800,000 total), 2,200 replicate-by-multiplier attempts over the 11 frozen candidates, and the raw parent samples.
+
+The independent raw auditor verified all 200 replicates and 800,000 parent units. It reconstructed all 2,200 IAE attempts with maximum absolute discrepancy **1.18e-16**. The selection auditor independently verified the 140/60 training/holdout split and selected multiplier **0.55**. Both audit reports return **PASS**. The source manifest records SHA-256 hashes for all four source files; the ZIP hash above identifies the downloaded artifact.
+
+### 7.1 Selection and holdout interpretation
+
+Training mean IAE was 0.0447583 at 0.55 and 0.0447867 at 0.50. The 0.55 training minimum is therefore extremely shallow. On the untouched holdout, mean IAE was 0.0434294 at 0.55 and 0.0433576 at 0.50; the neighboring 0.50 candidate is marginally lower on holdout. This is descriptive and does not authorize re-selection.
+
+Because both candidates are evaluated on the same replicate IDs, a paired comparison is more informative than comparing their separate MCSEs. Define the paired difference as IAE(0.55) − IAE(0.50):
+
+| Split | n | Mean paired difference | Paired SE | Approx. 95% t interval |
+|---|---:|---:|---:|---:|
+| Training | 140 | -2.84e-5 | 9.84e-5 | [-2.23e-4, 1.66e-4] |
+| Holdout | 60 | 7.19e-5 | 1.59e-4 | [-2.47e-4, 3.91e-4] |
+
+Both intervals include zero by a wide margin. The paired data do not distinguish 0.50 from 0.55 at useful precision. The result supports a broad low-error region around 0.50–0.55 for this specific synthetic density-recovery setup, not a sharply identified optimum. Keep **0.55 as the preregistered training-selected candidate**, but do not describe it as materially better than 0.50 or freeze it as a universal bandwidth.
+
+### 7.2 What this closes—and what it does not
+
+This is a genuinely fresh parent-sample seed schedule (master seed 20261116; split seed 20261117), disjoint from the earlier 20261114 pilots. It closes the independent density-only expanded-grid audit gate for the declared DGP, N=4,000, grid, and candidate set. It does not establish redshift-grid invariance, H0 posterior calibration, or the best arm-specific physical bandwidth. The holdout remains untouched for selection.
+
+Before confirmatory five-arm H0 evaluation, retain a separate H0 replicate schedule and run a redshift-grid refinement sensitivity using density-only criteria. Then report the selected multiplier as a fixed protocol choice with its selection uncertainty, and evaluate all arms on the same paired H0 replicates. No H0, coverage, PIT, or event-level result may be used to retune this density bandwidth.
+
