@@ -221,3 +221,12 @@ A reproducibility review found that the single-cell runner recorded the fixed Ga
 The single-cell runner now defines the coordinate transform and Gaussian prior once as named constants, records those constants in each child configuration, and passes the prior mean and standard deviations explicitly to the posterior fitter. The paired runner imports the same constants when writing its outer configuration. A regression test intercepts the five-arm builder and verifies that the declared center, scale, prior mean, and prior standard deviations are passed explicitly.
 
 This is a specification-to-implementation consistency fix. It does not change the current numerical prior (mean [0, 0], standard deviations [5, 2.5]), the posterior target, or any reported experimental result.
+
+
+## Raw-input common-random-number audit and artifact naming guard (2026-11-15)
+
+The outer auditor now verifies the common-random-number design from persisted raw inputs rather than relying only on repeated seed labels. Within each replicate it compares parent object IDs/redshifts, validation-frame IDs/redshifts, validation-frame selection indicators, and selected validation IDs/redshifts across successful gamma cells. Retention outcomes and catalogue membership are deliberately allowed to differ because gamma changes the inclusion probabilities. The compact paired regression checks these raw-input invariants directly.
+
+The paired runner also rejects gamma values that collide under its two-decimal child-directory naming convention. This prevents two distinct requested curvature values from attempting to write to the same artifact directory.
+
+These changes strengthen reproducibility and artifact integrity only. They do not change the DGP, inferential target, estimator arms, or scientific estimands. Exact-head CI is still required before treating the updated code as validated.
