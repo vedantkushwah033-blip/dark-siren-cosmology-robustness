@@ -90,3 +90,20 @@ def test_curvature_runner_preserves_failed_cell_and_auditor_reports_incomplete(t
  assert len(failed)==1
  assert failed.iloc[0].gamma==1.0 and failed.iloc[0].replicate==0
  assert "injected lifecycle failure" in failed.iloc[0].error
+
+def test_curvature_runner_preserves_auditable_artifact_when_every_cell_fails(tmp_path, monkeypatch):
+ runner=_load("curvature_multi_runner_all_failed","run_quadratic_logit_curvature_density_replicates.py")
+ auditor=_load("curvature_multi_auditor_all_failed","audit_quadratic_logit_curvature_density_replicates.py")
+ def fail_all(args):
+  raise RuntimeError("injected all-cell failure")
+ monkeypatch.setattr(runner,"run_one",fail_all)
+ out=tmp_path/"curvature_all_failed"
+ result=runner.run(_args(out))
+ assert result["status"]=="COMPLETED_WITH_FAILURES"
+ report=auditor.audit(out)
+ assert report["status"]=="INCOMPLETE"
+ assert report["planned_cells"]==6
+ assert report["successful_cells"]==0
+ assert report["failed_cells"]==6
+ assert report["paired_contrast_rows_reconstructed"]==0
+ assert report["paired_contrast_summary_rows_reconstructed"]==0
