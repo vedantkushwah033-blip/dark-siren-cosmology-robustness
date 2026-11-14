@@ -196,3 +196,12 @@ The independent reference now uses the same mathematical acceptance alternatives
 A focused regression test now regenerates the paired-seed gamma=0.5 and gamma=1.0 validation samples at N=4,000 and n_validation=1,000, then exercises the independent posterior reconstruction and checks finite mode, quadrature nodes, normalized weights, and positive output structure.
 
 The paired multi-replicate runner also had a missing NumPy import in its contrast-construction path; that import was added separately. The prior exact-head CI logs confirmed both issues: the runner failed with NameError before contrast generation, while the seven-gamma smoke failed because the independent Newton reference did not converge. Both code paths have now been patched. The newest branch commits have not yet been confirmed by a completed exact-head Actions run, so these fixes remain **pending CI verification**. The earlier engineering artifact remains failed and is not retroactively converted into a passing result.
+
+
+## Failure-inclusive paired-contrast gate (2026-11-15)
+
+A further review of the multi-replicate runner found that it could calculate paired contrasts from the intersection of successful gamma cells when one planned cell had failed. Although the lifecycle ledger retained that failure and the auditor reconstructed the same intersection, the resulting paired sample could be selectively incomplete. That is not an acceptable basis for the predeclared common-random-number comparison.
+
+The runner now suppresses both per-cell paired contrasts and their summary whenever any planned replicate × gamma cell fails. Successful child metrics, diagnostics, and Scott-width records remain available for descriptive inspection; the complete ledger and all failed child directories remain preserved. The outer auditor independently enforces the same complete-grid rule and rejects a nonempty paired-contrast table for an incomplete design.
+
+The existing injected-failure regression now additionally requires both paired output tables to be empty. The all-failed regression continues to require a fully auditable incomplete artifact with zero paired rows. This change deliberately favors a clear “not estimable under the preregistered paired design” outcome over a misleading partial estimate.
