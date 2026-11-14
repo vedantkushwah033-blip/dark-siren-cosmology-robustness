@@ -171,7 +171,9 @@ def test_valid_lifecycle_and_aggregate_artifacts_pass(tmp_path: Path):
 def test_auditor_rejects_missing_lifecycle_cell(tmp_path: Path):
     root = tmp_path / "missing"
     _valid_artifact(root)
-    ledger = pd.read_csv(root / "replicate_ledger.csv").iloc[:-1]
+    ledger = pd.read_csv(root / "replicate_ledger.csv")
+    # Preserve row count and uniqueness while replacing one planned key with an invalid key.
+    ledger.loc[ledger.index[-1], "validation_size"] = 11
     ledger.to_csv(root / "replicate_ledger.csv", index=False)
     _refresh_manifest(root)
     with pytest.raises(AssertionError, match="lifecycle key set mismatch"):
@@ -193,5 +195,5 @@ def test_auditor_rejects_tampered_manifest_file(tmp_path: Path):
     _valid_artifact(root)
     with (root / "aggregate_metrics.csv").open("a", encoding="utf-8") as stream:
         stream.write("tampered\\n")
-    with pytest.raises(AssertionError, match="byte-count mismatch|SHA-256 mismatch"):
+    with pytest.raises(AssertionError, match="manifest size mismatch|byte-count mismatch|SHA-256 mismatch"):
         AUDITOR.audit(root)
