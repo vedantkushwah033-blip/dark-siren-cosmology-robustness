@@ -63,6 +63,7 @@ def run(args):
       "arm_C":"true quadratic inclusion probabilities; oracle diagnostic only",
       "arm_D_E":"degree-one logistic fitted to independent validation outcomes",
       "arm_E_primary":"loss of posterior-mean density",
+      "arm_E_secondary":"posterior expected node-specific density loss",
       "limitations":["synthetic density recovery only","no bandwidth selection or holdout validation",
         "no H0 likelihood, posterior, PIT or coverage","no observational or public GW data analysis",
         "Arm C is a truth-informed oracle diagnostic, not an implementable estimator"]
