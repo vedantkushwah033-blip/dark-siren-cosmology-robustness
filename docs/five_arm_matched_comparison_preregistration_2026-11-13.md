@@ -184,3 +184,11 @@ python scripts/audit_bandwidth_train_holdout.py \
 ```
 
 The 200-replicate run is a training/holdout bandwidth-selection pilot, not the final confirmatory five-arm campaign. Freeze the selected multiplier and source hashes before applying it to the five-arm H0 study. Do not reselect after viewing H0 posterior results.
+
+## 13. Executable bandwidth-selection gate (2026-11-14)
+
+The Python 3.12 CI path now runs a separate synthetic parent-density training/holdout study before any five-arm confirmatory experiment. The configured engineering study uses 100 independently seeded parent-population replicates, 4,000 galaxies per replicate, an 801-point redshift grid, and the candidate weighted-Scott multipliers 0.03, 0.04, 0.05, 0.06, 0.08, 0.10, 0.12, 0.15, 0.20, 0.25, 0.30, and 0.40. The declared analytic parent intensity is multiplied by the same linear merger/base-population weight used in the five-arm design, then normalized before integrated absolute error is calculated.
+
+The deterministic split uses seed 20261115 and 70% of replicate IDs for training. The selected multiplier is the candidate with minimum mean training IAE; ties are resolved toward the smaller multiplier. The remaining 30% are held out and scored for every candidate. Holdout scores are descriptive only and cannot change the selected multiplier. The raw parent samples, analytic target, all replicate-by-candidate IAE records, configuration, and SHA-256 manifest are persisted. Two separate auditors reconstruct (i) the KDE density estimates and IAE from raw parent samples and (ii) the frozen split, training selection, holdout scores, and source hashes.
+
+This experiment selects a common **Scott multiplier** for this declared synthetic parent DGP, N=4,000, redshift grid, and candidate set. It does not establish a universal bandwidth, does not tune on H0 or coverage, and does not ensure identical absolute physical widths across weighted arms. Its result must be reported as a density-recovery training/holdout result with holdout uncertainty; the chosen multiplier is then frozen before downstream H0 comparisons. The CI run is the first executable study, not yet an independently reviewed scientific conclusion. No multiplier should be described as selected until the exact-head workflow and both raw-data and selection auditors pass.
