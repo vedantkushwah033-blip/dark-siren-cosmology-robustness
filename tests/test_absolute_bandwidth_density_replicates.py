@@ -44,21 +44,27 @@ def test_two_replicate_density_pilot_and_independent_orchestration_audit(tmp_pat
     assert report["aggregate_metric_rows_reconstructed"]==len(pd.read_csv(out/"density_metrics_all_replicates.csv"))
     assert report["scott_width_rows_reconstructed"]==len(pd.read_csv(out/"scott_widths_all_replicates.csv"))
 
-def test_two_replicate_quadratic_logit_density_pilot_and_independent_audit(tmp_path):
+def test_two_replicate_quadratic_logit_density_pilot_and_cross_gamma_audit(tmp_path):
     runner=_load("quadratic_density_replicates_runner","run_absolute_bandwidth_density_replicates.py")
-    auditor=_load("quadratic_density_replicates_auditor","audit_absolute_bandwidth_density_replicates.py")
-    args=_args(tmp_path/"quadratic_replicate_pilot")
-    args.gamma=1.0
-    args.beta=-3.9
-    result=runner.run(args)
-    assert result["planned_replicates"]==2
-    assert result["successful_replicates"]==2
-    cfg=json.loads((args.output_dir/"config.json").read_text())
-    assert cfg["catalogue_selection_model"]=="quadratic_logit"
-    assert cfg["gamma"]==pytest.approx(1.0)
-    report=auditor.audit(args.output_dir)
+    cross_auditor=_load("quadratic_density_cross_auditor","audit_quadratic_logit_curvature_pilot.py")
+    root=tmp_path/"quadratic_replicate_pilot"
+    for gamma in (0.0,1.0):
+        args=_args(root/f"gamma_{gamma:g}")
+        args.gamma=gamma
+        args.beta=-3.9
+        result=runner.run(args)
+        assert result["planned_replicates"]==2
+        assert result["successful_replicates"]==2
+
+    report=cross_auditor.audit(
+        root,expected_gammas=(0.0,1.0),output_dir=root/"summary"
+    )
     assert report["status"]=="PASS"
-    assert report["child_raw_audits_passed"]==2
+    assert report["paired_seed_schedule_verified"] is True
+    assert report["paired_parent_and_validation_redshifts_verified"] is True
+    assert report["replicates_per_gamma"]==2
+    assert (root/"summary"/"curvature_density_iae_summary.csv").is_file()
+    assert (root/"summary"/"curvature_paired_iae_contrasts.csv").is_file()
 
 
 def test_orchestration_auditor_rejects_duplicate_aggregate_key_even_with_updated_manifest(tmp_path):
