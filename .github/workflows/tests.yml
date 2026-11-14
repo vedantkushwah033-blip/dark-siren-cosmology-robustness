@@ -74,6 +74,12 @@ jobs:
         run: python -m pytest tests/test_parent_density_bandwidth_pilot.py -q
       - name: Test batched five-arm KDE kernel reuse against scalar reference
         run: python -m pytest tests/test_five_arm_kde_kernel_reuse.py -q
+      - name: Benchmark batched five-arm KDE kernels at production-like dimensions (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python scripts/benchmark_five_arm_kde_kernel_reuse.py \
+            --h0-points 321 --z-points 801 --events 30 --density-nodes 23 \
+            --repeats 3 --output artifacts/five_arm_kde_kernel_benchmark.json
       - name: Run parent-density bandwidth training/holdout pilot (Python 3.12 only)
         if: matrix.python-version == '3.12'
         run: |
