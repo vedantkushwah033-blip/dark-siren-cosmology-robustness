@@ -108,3 +108,13 @@ def test_curvature_runner_preserves_auditable_artifact_when_every_cell_fails(tmp
  assert report["failed_cells"]==6
  assert report["paired_contrast_rows_reconstructed"]==0
  assert report["paired_contrast_summary_rows_reconstructed"]==0
+
+
+def test_curvature_outer_auditor_rejects_unmanifested_files(tmp_path):
+ runner=_load("curvature_multi_runner_unmanifested","run_quadratic_logit_curvature_density_replicates.py")
+ auditor=_load("curvature_multi_auditor_unmanifested","audit_quadratic_logit_curvature_density_replicates.py")
+ out=tmp_path/"curvature_unmanifested"
+ runner.run(_args(out))
+ (out/"unexpected_extra.txt").write_text("not covered by manifest\\n")
+ with pytest.raises(AssertionError,match="outer manifest inventory mismatch"):
+  auditor.audit(out)
