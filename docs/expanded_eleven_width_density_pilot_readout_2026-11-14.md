@@ -86,9 +86,22 @@ The mean-IAE minima on the 11-point grid are not stable across arms, floors, or 
 
 No bandwidth is selected from this pilot. A training/holdout design and a frozen estimand are still required before any confirmatory bandwidth-selection claim.
 
+## Reconciliation with the earlier five-width pilot
+
+The earlier five-width floor-0.10 pilot (workflow `43619594762`, code head `17466326a4be59ca7698c6c1f34529801e6e5507`) and the expanded 11-width floor-0.10 pilot share the same master seed (20261215), stride (10), parent size, validation frame, nested validation sizes, quadrature order, grid resolution, and catalogue floor. They are therefore a re-evaluation of the same paired replicate design with a wider bandwidth grid, not independent replications.
+
+I compared the raw aggregate files at the five overlapping widths (0.012, 0.016, 0.024, 0.032, 0.040):
+
+- 9,300 metric rows and all replicate/validation-size/arm/node keys matched.
+- Maximum absolute differences were (1.72\times10^{-15}) for IAE, (1.07\times10^{-14}) for ISE, (8.05\times10^{-16}) for boundary IAE, and (1.37\times10^{-12}) for Kish ESS.
+- The 1,740 realized Scott-width rows matched in key and differed by at most (1.01\times10^{-16}).
+- For replicate 0, object IDs, validation IDs, and all retention/selection indicators matched exactly; redshift and inclusion-probability values differed only at floating-point roundoff scale (at most (1.11\times10^{-16}) and (4.44\times10^{-16}), respectively).
+
+Thus the expanded run is numerically consistent with the earlier five-width run on their shared grid. Do not count the two runs as 40 independent replicates or pool them as independent evidence.
+
 ## Next gates
 
-1. Complete the separate three-floor readout and reconcile its seed/configuration with this expanded-grid run; do not pool their replicate-level estimates because their master seeds and designs differ.
+1. Preserve the three-floor expanded-grid artifacts and their independent PASS reports as the current density-only pilot record.
 2. Add the explicit truth-probability API and independent weight-diagnostic audit improvements on the curvature-fix PR before running the quadratic-logit family.
 3. Freeze the seven-gamma density estimand, paired seed schedule, failure ledger, and any train/holdout separation before running that experiment.
 4. Keep H0 propagation blocked until the density-stage audit and downstream selection-conditioned likelihood requirements are separately satisfied.
