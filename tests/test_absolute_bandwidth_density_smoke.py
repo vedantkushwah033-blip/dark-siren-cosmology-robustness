@@ -239,3 +239,37 @@ def test_quadratic_logit_parent_measure_rejects_nonfinite_or_invalid_grid_inputs
     for kwargs in invalid_kwargs:
         with pytest.raises(ValueError):
             quadratic_logit_parent_measure(**kwargs)
+
+
+def test_absolute_bandwidth_auditor_reconstructs_weight_diagnostics(tmp_path):
+    import hashlib
+    import json
+
+    runner=_load("absolute_density_runner_weightdiag","run_absolute_bandwidth_density_smoke.py")
+    auditor=_load("absolute_density_auditor_weightdiag","audit_absolute_bandwidth_density_smoke.py")
+    output=tmp_path/"absolute_density_weightdiag"
+    args=SimpleNamespace(
+        output_dir=output, seed=20261270, validation_seed=20261271,
+        n_parent=500, validation_frame=120, validation_sizes=(40,80),
+        catalogue_floor=0.10, scott_multiplier=0.7, quadrature_order=3,
+        grid_points=101, absolute_widths=(0.012,0.024),
+    )
+    runner.run(args)
+    report=auditor.audit(output)
+    assert report["status"]=="PASS"
+    diagnostics_path=output/"results"/"weight_diagnostics.csv"
+    diagnostics=pd.read_csv(diagnostics_path)
+    diagnostics.loc[0,"kish_ess"] += 3.0
+    diagnostics.to_csv(diagnostics_path,index=False)
+
+    manifest_path=output/"manifest.json"
+    manifest=json.loads(manifest_path.read_text())
+    rel=str(diagnostics_path.relative_to(output))
+    payload=diagnostics_path.read_bytes()
+    manifest["files"][rel]={
+        "bytes":len(payload),
+        "sha256":hashlib.sha256(payload).hexdigest(),
+    }
+    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n")
+    with pytest.raises(AssertionError,match="independently reconstructed weight diagnostic kish_ess"):
+        auditor.audit(output)
