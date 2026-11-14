@@ -72,6 +72,32 @@ jobs:
         run: python -m pytest tests/test_bandwidth_train_holdout.py -q
       - name: Test parent-density bandwidth pilot and independent reconstruction
         run: python -m pytest tests/test_parent_density_bandwidth_pilot.py -q
+      - name: Test batched five-arm KDE kernel reuse against scalar reference
+        run: python -m pytest tests/test_five_arm_kde_kernel_reuse.py -q
+      - name: Run parent-density bandwidth training/holdout pilot (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python scripts/run_parent_density_bandwidth_pilot.py \
+            --replicates 100 --n-parent 4000 --seed 20261114 --grid-points 801 \
+            --bandwidth-multipliers 0.03,0.04,0.05,0.06,0.08,0.10,0.12,0.15,0.20,0.25,0.30,0.40 \
+            --output-dir artifacts/parent_density_bandwidth_pilot
+      - name: Independently audit raw parent-density bandwidth pilot (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python scripts/audit_parent_density_bandwidth_pilot.py artifacts/parent_density_bandwidth_pilot \
+            --output artifacts/parent_density_bandwidth_pilot/raw_audit.json
+      - name: Select KDE multiplier on training seeds and score held-out seeds (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python scripts/select_bandwidth_train_holdout.py artifacts/parent_density_bandwidth_pilot \
+            --output artifacts/parent_density_bandwidth_pilot/selection.json \
+            --split-seed 20261115 --training-fraction 0.70
+      - name: Independently audit training/holdout bandwidth selection (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python scripts/audit_bandwidth_train_holdout.py artifacts/parent_density_bandwidth_pilot \
+            artifacts/parent_density_bandwidth_pilot/selection.json \
+            --output artifacts/parent_density_bandwidth_pilot/selection_audit.json
       - name: Validate multi-replicate five-arm pilot command-line interfaces
         run: |
           python scripts/run_five_arm_replicates.py --help
