@@ -52,7 +52,7 @@ def run(args):
       "seed_schedule":"population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
       "limitations":[
         "density recovery only; no H0 likelihood, posterior, calibration, PIT or coverage",
-        "stored inclusion posterior nodes are consumed from the production fitter and are not independently refitted",
+        "each successful child is independently audited from observable validation records, including a separate logistic-posterior refit and quadrature reconstruction",
         "no bandwidth selection; no holdout split; no estimator-superiority claim",
         "synthetic low-redshift Euclidean methodology only"
       ]
