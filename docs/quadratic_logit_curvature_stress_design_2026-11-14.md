@@ -205,3 +205,10 @@ A further review of the multi-replicate runner found that it could calculate pai
 The runner now suppresses both per-cell paired contrasts and their summary whenever any planned replicate × gamma cell fails. Successful child metrics, diagnostics, and Scott-width records remain available for descriptive inspection; the complete ledger and all failed child directories remain preserved. The outer auditor independently enforces the same complete-grid rule and rejects a nonempty paired-contrast table for an incomplete design.
 
 The existing injected-failure regression now additionally requires both paired output tables to be empty. The all-failed regression continues to require a fully auditable incomplete artifact with zero paired rows. This change deliberately favors a clear “not estimable under the preregistered paired design” outcome over a misleading partial estimate.
+
+
+## Inclusion-model specification audit (2026-11-15)
+
+The paired outer configuration now records the fixed degree-one logistic coordinate transform (center 0.205, scale 0.195) and independent Gaussian coefficient prior (mean [0, 0], standard deviations [5, 2.5]). The independent outer auditor checks these fixed specifications and verifies that every successful child artifact agrees on the coordinate transform, coefficient prior, analysis-model label, and estimator-arm labels. A regression test changes the outer prior while refreshing its manifest hash and requires the auditor to reject the artifact. This closes a configuration-drift route in which a validly hashed outer manifest could otherwise describe a different inferential prior from the one used in its child runs.
+
+This remains an engineering-integrity improvement, not a scientific result. The pilot still requires execution, independent artifact audit, a frozen training-only bandwidth-selection protocol, and held-out density validation before confirmatory interpretation or any H0 propagation.
