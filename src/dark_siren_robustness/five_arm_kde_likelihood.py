@@ -65,8 +65,9 @@ def _batched_density_likelihood(
     """Evaluate many host densities while reusing each event/H0 redshift kernel.
 
     Returns log likelihoods with shape (density, H0) and log detection
-    efficiencies with shape (density, event, H0). H0 chunking bounds memory
-    independently of the final grid resolution.
+    efficiencies with shape (density, event, H0). H0 chunking bounds the
+    temporary event/H0/redshift kernel memory; the returned likelihood and
+    efficiency arrays still scale with the full H0 grid.
     """
     if (densities.ndim != 2 or densities.shape[1] != z_grid.size
             or not np.all(np.isfinite(densities)) or np.any(densities < 0)):
