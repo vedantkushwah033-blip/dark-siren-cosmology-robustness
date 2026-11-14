@@ -36,7 +36,7 @@ def _rehash(root: Path, relative_path: Path):
     path = root / relative_path
     manifest["files"][str(relative_path)]["bytes"] = path.stat().st_size
     manifest["files"][str(relative_path)]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n")
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
 
 def _args(output_dir: Path, gamma: float = 0.0):
