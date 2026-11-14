@@ -45,7 +45,7 @@ def test_quadratic_logit_density_smoke_writes_five_arm_artifacts(tmp_path: Path)
 
     assert result["status"] == "PASS"
     assert result["gamma"] == 0.0
-    assert result["weight_diagnostic_rows"] == 15
+    assert result["weight_diagnostic_rows"] == 42
     assert (output / "manifest.json").is_file()
     assert (output / "results" / "density_reconstruction_inputs.npz").is_file()
 
@@ -64,7 +64,7 @@ def test_quadratic_logit_density_smoke_writes_five_arm_artifacts(tmp_path: Path)
         assert arm in set(metrics["arm"])
 
     diagnostics = pd.read_csv(output / "results" / "weight_diagnostics.csv")
-    assert len(diagnostics) == 15
+    assert len(diagnostics) == 42
     assert set(diagnostics["validation_size"]) == {60, 120, 180}
 
     with np.load(output / "results" / "density_reconstruction_inputs.npz") as archive:
