@@ -1,4 +1,4 @@
-"""Paired multi-gamma curvature density pilot with child-level raw audits.
+"""Paired multi-gamma curvature density pilot with child-level raw audits.\n\nWorkflow execution is intentionally separate from the one-replicate smoke tests.
 
 The default is an engineering pilot (3 replicates per gamma), not a
 confirmatory experiment. Every child is independently audited before its
