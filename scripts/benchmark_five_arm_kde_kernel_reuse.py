@@ -128,7 +128,7 @@ def main():
     )
     with open(args.output, "w", encoding="utf-8") as stream:
         json.dump(report, stream, indent=2, sort_keys=True)
-        stream.write("\\n")
+        stream.write("\n")
     print(json.dumps(report, indent=2, sort_keys=True))
 
 
