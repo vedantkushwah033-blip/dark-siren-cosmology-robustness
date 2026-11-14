@@ -8,6 +8,8 @@ from __future__ import annotations
 import argparse, hashlib, json
 from pathlib import Path
 from types import SimpleNamespace
+
+import numpy as np
 import pandas as pd
 
 from run_quadratic_logit_curvature_density_smoke import run as run_one
