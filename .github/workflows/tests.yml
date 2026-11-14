@@ -87,17 +87,17 @@ jobs:
       - name: Run two-replicate absolute-bandwidth density pilot (Python 3.12 only)
         if: matrix.python-version == '3.12'
         run: |
-          python scripts/run_absolute_bandwidth_density_replicates.py \\
-            --master-seed 20261120 --replicates 2 --n-parent 800 \\
-            --validation-frame 300 --validation-sizes 80,160 \\
-            --quadrature-order 3 --grid-points 201 \\
-            --absolute-widths 0.016,0.024 \\
+          python scripts/run_absolute_bandwidth_density_replicates.py \
+            --master-seed 20261120 --replicates 2 --n-parent 800 \
+            --validation-frame 300 --validation-sizes 80,160 \
+            --quadrature-order 3 --grid-points 201 \
+            --absolute-widths 0.016,0.024 \
             --output-dir artifacts/absolute_bandwidth_density_replicates_smoke
       - name: Independently audit two-replicate absolute-bandwidth density pilot (Python 3.12 only)
         if: matrix.python-version == '3.12'
         run: |
-          python scripts/audit_absolute_bandwidth_density_replicates.py \\
-            artifacts/absolute_bandwidth_density_replicates_smoke \\
+          python scripts/audit_absolute_bandwidth_density_replicates.py \
+            artifacts/absolute_bandwidth_density_replicates_smoke \
             --output artifacts/absolute_bandwidth_density_replicates_smoke/independent_audit.json
       - name: Test raw artifact preservation for failed five-arm replicates
         run: python -m pytest tests/test_five_arm_smoke_failure_artifacts.py -q
