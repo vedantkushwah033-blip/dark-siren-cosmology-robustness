@@ -219,12 +219,16 @@ def weight_concentration_diagnostics(raw_weights: ArrayLike) -> dict[str, float]
     total = float(np.sum(scaled))
     normalized = scaled / total
     ess = float(total * total / np.sum(scaled * scaled))
+    positive = normalized[normalized > 0.0]
+    entropy = float(-np.sum(positive * np.log(positive)))
+    entropy_ess = float(np.exp(entropy))
     ordered = np.sort(normalized)[::-1]
     n1 = max(1, int(np.ceil(0.01 * weights.size)))
     n5 = max(1, int(np.ceil(0.05 * weights.size)))
     return {
         "kish_ess": ess,
         "kish_ess_fraction": ess / weights.size,
+        "entropy_ess": entropy_ess,
         "maximum_normalized_weight": float(ordered[0]),
         "top_1_percent_mass": float(np.sum(ordered[:n1])),
         "top_5_percent_mass": float(np.sum(ordered[:n5])),
