@@ -16,6 +16,7 @@ def estimate_host_density(
     observed_redshift: ArrayLike,
     *,
     inclusion_probability: ArrayLike | None = None,
+    sample_weights: ArrayLike | None = None,
     merger_weight: ArrayLike | None = None,
     bandwidth_factor: float | None = None,
     scott_multiplier: float | None = None,
@@ -28,11 +29,17 @@ def estimate_host_density(
     Reflection reduces, but does not eliminate, KDE boundary bias. The final
     density is truncated and renormalized on the specified finite domain.
 
+    ``sample_weights`` supplies positive galaxy-level base weights; when
+    ``inclusion_probability`` is also supplied, the raw weights are
+    ``sample_weights / inclusion_probability``. This allows one common
+    base-population factor to be propagated through all comparison arms.
+
     Bandwidth semantics are intentionally explicit:
     - ``bandwidth_factor`` is an absolute SciPy covariance factor, not a
       multiplier of Scott's rule.
-    - ``scott_multiplier`` multiplies the weighted Scott factor computed
-      from the original (unreflected) sample and its effective sample size.
+    - ``scott_multiplier`` multiplies the weighted Scott bandwidth computed
+      from the original (unreflected) sample, including weighted standard
+      deviation and effective sample size.
     - If both are omitted, the weighted Scott factor is used.
     - The two explicit options are mutually exclusive.
     """
@@ -61,6 +68,18 @@ def estimate_host_density(
             weights = 1.0 / probability
         if not np.all(np.isfinite(weights)):
             raise ValueError("inverse inclusion weights overflow; positivity is numerically unusable")
+    if sample_weights is not None:
+        supplied_weights = np.asarray(sample_weights, dtype=float)
+        if (
+            supplied_weights.shape != sample.shape
+            or not np.all(np.isfinite(supplied_weights))
+            or np.any(supplied_weights <= 0)
+        ):
+            raise ValueError("sample_weights must be finite, strictly positive, and match observed_redshift")
+        with np.errstate(over="ignore", invalid="ignore"):
+            weights = weights * supplied_weights
+        if not np.all(np.isfinite(weights)):
+            raise ValueError("combined sample weights overflow; positivity is numerically unusable")
     if bandwidth_factor is not None and scott_multiplier is not None:
         raise ValueError("bandwidth_factor and scott_multiplier are mutually exclusive")
     if bandwidth_factor is not None and (
@@ -78,6 +97,10 @@ def estimate_host_density(
     # A common scale does not change normalized weighted KDEs. Scale before
     # squaring so large but representable inverse probabilities do not overflow.
     scaled_weights = weights / np.max(weights)
+    if np.any(scaled_weights == 0.0):
+        raise ArithmeticError(
+            "weight scaling underflowed positive mass; refusing to hide support loss"
+        )
     augmented_weights = np.tile(scaled_weights / 3.0, 3)
     if bandwidth_factor is None:
         # Splitting each original weight over its three reflected copies changes
@@ -89,7 +112,37 @@ def estimate_host_density(
         )
         weighted_scott_factor = original_neff ** (-1.0 / 5.0)
         multiplier = 1.0 if scott_multiplier is None else float(scott_multiplier)
-        bw_method = lambda _kde: multiplier * weighted_scott_factor
+
+        # gaussian_kde estimates its data covariance from the augmented
+        # reflected sample. Correct the covariance factor so the physical
+        # kernel standard deviation is based on the original weighted sample:
+        # h = multiplier * n_eff**(-1/5) * sd_original.
+        original_probability = scaled_weights / np.sum(scaled_weights)
+        original_mean = float(original_probability @ sample)
+        original_denominator = 1.0 - float(original_probability @ original_probability)
+        original_variance = float(
+            np.sum(original_probability * (sample - original_mean) ** 2)
+            / original_denominator
+        )
+        augmented_probability = augmented_weights / np.sum(augmented_weights)
+        augmented_mean = float(augmented_probability @ augmented_sample)
+        augmented_denominator = 1.0 - float(
+            augmented_probability @ augmented_probability
+        )
+        augmented_variance = float(
+            np.sum(
+                augmented_probability * (augmented_sample - augmented_mean) ** 2
+            ) / augmented_denominator
+        )
+        if (
+            not np.isfinite(original_variance) or original_variance <= 0
+            or not np.isfinite(augmented_variance) or augmented_variance <= 0
+        ):
+            raise ValueError("weighted KDE covariance is undefined")
+        covariance_adjustment = np.sqrt(original_variance / augmented_variance)
+        bw_method = lambda _kde: (
+            multiplier * weighted_scott_factor * covariance_adjustment
+        )
     else:
         # Preserve the legacy absolute-factor behavior for existing callers.
         bw_method = bandwidth_factor
@@ -114,3 +167,45 @@ def estimate_host_density(
     if not np.isclose(trapezoid(density, grid), 1.0, rtol=1e-10, atol=1e-10):
         raise ArithmeticError("Estimated host density failed its unit-integral check")
     return density
+
+
+def reflected_weighted_kde_bandwidth(
+    observed_redshift: ArrayLike,
+    *,
+    lower_bound: float,
+    upper_bound: float,
+    sample_weights: ArrayLike,
+    scott_multiplier: float,
+) -> float:
+    """Return the physical redshift-space kernel SD used by the reflected KDE.
+
+    The covariance adjustment in :func:`estimate_host_density` makes the
+    physical bandwidth equal to the original-sample weighted SD multiplied
+    by the weighted Scott factor. This reports that quantity directly.
+    """
+    sample = np.asarray(observed_redshift, dtype=float)
+    weights = np.asarray(sample_weights, dtype=float)
+    if (sample.ndim != 1 or sample.size < 5 or not np.all(np.isfinite(sample))
+            or np.unique(sample).size < 3):
+        raise ValueError("observed_redshift must contain at least five finite values and three distinct values")
+    if (weights.shape != sample.shape or not np.all(np.isfinite(weights))
+            or np.any(weights <= 0)):
+        raise ValueError("sample_weights must be finite, positive, and match observed_redshift")
+    if (not np.isfinite(lower_bound) or not np.isfinite(upper_bound)
+            or lower_bound <= 0 or upper_bound <= lower_bound
+            or np.any((sample < lower_bound) | (sample > upper_bound))):
+        raise ValueError("bounds must be finite, positive, ordered, and contain all samples")
+    if not np.isfinite(scott_multiplier) or scott_multiplier <= 0:
+        raise ValueError("scott_multiplier must be finite and positive")
+    scaled = weights / np.max(weights)
+    if np.any(scaled == 0):
+        raise ArithmeticError("weight scaling underflowed positive mass")
+    probability = scaled / np.sum(scaled)
+    denominator = 1.0 - float(probability @ probability)
+    mean = float(probability @ sample)
+    variance = float(np.sum(probability * (sample - mean) ** 2) / denominator)
+    neff = float(np.sum(scaled) ** 2 / np.sum(scaled ** 2))
+    width = float(scott_multiplier) * neff ** (-1.0 / 5.0) * np.sqrt(variance)
+    if not np.isfinite(width) or width <= 0:
+        raise ArithmeticError("realized reflected-KDE bandwidth is invalid")
+    return width

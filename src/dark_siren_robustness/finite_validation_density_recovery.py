@@ -502,12 +502,19 @@ def main():
     parser.add_argument("--n-parent", type=int, default=4000)
     parser.add_argument("--seed", type=int, default=20261108)
     parser.add_argument("--grid-points", type=int, default=801)
+    parser.add_argument(
+        "--bandwidth-multipliers",
+        type=lambda raw: tuple(float(value.strip()) for value in raw.split(",") if value.strip()),
+        default=(0.05, 0.08, 0.10, 0.12, 0.15, 0.20, 0.25, 0.30, 0.40),
+        help="comma-separated weighted-Scott multipliers; freeze this grid before holdout scoring",
+    )
     parser.add_argument("--output-dir", type=Path,
                         default=Path("artifacts/finite_validation_density_recovery"))
     args = parser.parse_args()
     attempts, units, summary = run_density_recovery_benchmark(
         n_replicates=args.replicates, n_parent=args.n_parent,
         seed=args.seed, grid_points=args.grid_points,
+        bandwidth_multipliers=args.bandwidth_multipliers,
     )
     manifest = write_artifacts(attempts, units, summary, args.output_dir)
     print(json.dumps({"summary": summary, "manifest": manifest}, indent=2, sort_keys=True))

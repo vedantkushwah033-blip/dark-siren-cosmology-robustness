@@ -309,3 +309,4 @@ def test_full_shared_marginalization_differs_from_eventwise_node_marginalization
     assert np.max(np.abs(
         result.marginal_log_likelihood - eventwise_marginal_sum
     )) > 1e-8
+

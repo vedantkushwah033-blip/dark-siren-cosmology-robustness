@@ -1,0 +1,95 @@
+name: independent-expanded-parent-bandwidth-pilot
+
+on:
+  push:
+    branches:
+      - research/five-arm-comparison-preregistration-20261113
+  workflow_dispatch:
+
+concurrency:
+  group: independent-expanded-parent-bandwidth-pilot-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bandwidth-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Test bandwidth runner and independent auditors
+        run: python -m pytest tests/test_parent_density_bandwidth_pilot.py tests/test_bandwidth_train_holdout.py -q
+      - name: Run fresh-seed expanded parent-density bandwidth pilot
+        run: |
+          python scripts/run_parent_density_bandwidth_pilot.py \
+            --replicates 200 --n-parent 4000 --seed 20261116 \
+            --grid-points 801 \
+            --bandwidth-multipliers 0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.70,0.80,1.00 \
+            --output-dir artifacts/independent_parent_density_bandwidth
+      - name: Independently reconstruct all source IAE values and hashes
+        run: |
+          python scripts/audit_parent_density_bandwidth_pilot.py \
+            artifacts/independent_parent_density_bandwidth \
+            --output artifacts/independent_parent_density_bandwidth/raw_audit.json
+      - name: Select candidate using training replicates only
+        run: |
+          python scripts/select_bandwidth_train_holdout.py \
+            artifacts/independent_parent_density_bandwidth \
+            --output artifacts/independent_parent_density_bandwidth/selection.json \
+            --split-seed 20261117 --training-fraction 0.70
+      - name: Independently audit split, scores, and holdout
+        run: |
+          python scripts/audit_bandwidth_train_holdout.py \
+            artifacts/independent_parent_density_bandwidth \
+            artifacts/independent_parent_density_bandwidth/selection.json \
+            --output artifacts/independent_parent_density_bandwidth/selection_audit.json
+      - name: Enforce provenance and audit gates without hiding boundary outcomes
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("artifacts/independent_parent_density_bandwidth")
+          raw = json.loads((root / "raw_audit.json").read_text())
+          selection = json.loads((root / "selection.json").read_text())
+          audit = json.loads((root / "selection_audit.json").read_text())
+          config = json.loads((root / "config.json").read_text())
+          assert raw["status"] == "PASS", raw
+          assert audit["status"] == "PASS", audit
+          assert config["seed"] == 20261116
+          assert config["n_replicates"] == 200
+          assert len(selection["training_replicate_ids"]) == 140
+          assert len(selection["holdout_replicate_ids"]) == 60
+          assert set(selection["training_replicate_ids"]).isdisjoint(selection["holdout_replicate_ids"])
+          assert selection["selected_multiplier"] in selection["candidate_multipliers"]
+          selected = float(selection["selected_multiplier"])
+          candidates = [float(x) for x in selection["candidate_multipliers"]]
+          boundary_limited = selected in (min(candidates), max(candidates))
+          selected_holdout = selection["selected_holdout_score"]
+          print(json.dumps({
+              "audit_status": "PASS",
+              "selected_multiplier": selected,
+              "boundary_limited": boundary_limited,
+              "selection_eligible_for_density_only_sensitivity": not boundary_limited,
+              "training_replicates": len(selection["training_replicate_ids"]),
+              "holdout_replicates": len(selection["holdout_replicate_ids"]),
+              "selected_holdout_score": selected_holdout,
+              "holdout_scores": selection["holdout_scores"],
+              "interpretation": (
+                  "Interior density-only candidate; still requires grid-resolution checks "
+                  "and separate H0 evaluation seeds."
+                  if not boundary_limited else
+                  "Boundary-limited density-only candidate; expand the grid before freezing."
+              )
+          }, indent=2, sort_keys=True))
+          PY
+      - name: Upload fresh-seed raw inputs and independent audit reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: independent-parent-density-bandwidth-${{ github.sha }}
+          path: artifacts/independent_parent_density_bandwidth/
+          if-no-files-found: error
+          retention-days: 90

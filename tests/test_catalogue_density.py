@@ -8,6 +8,22 @@ from scipy.stats import gaussian_kde
 from dark_siren_robustness.catalogue_density import estimate_host_density
 
 
+def _covariance_adjustment(sample, weights, augmented, augmented_weights):
+    original_probability = weights / np.sum(weights)
+    original_mean = float(original_probability @ sample)
+    original_variance = float(
+        np.sum(original_probability * (sample - original_mean) ** 2)
+        / (1.0 - float(original_probability @ original_probability))
+    )
+    augmented_probability = augmented_weights / np.sum(augmented_weights)
+    augmented_mean = float(augmented_probability @ augmented)
+    augmented_variance = float(
+        np.sum(augmented_probability * (augmented - augmented_mean) ** 2)
+        / (1.0 - float(augmented_probability @ augmented_probability))
+    )
+    return np.sqrt(original_variance / augmented_variance)
+
+
 def test_density_is_normalized_and_finite_on_bounded_grid():
     rng = np.random.default_rng(4101)
     grid = np.linspace(0.01, 0.40, 2001)
@@ -79,9 +95,12 @@ def test_reflection_does_not_artificially_triple_effective_sample_size():
     augmented = np.concatenate((sample, 2 * grid[0] - sample, 2 * grid[-1] - sample))
     augmented_weights = np.tile(weights / 3.0, 3)
     original_neff = np.sum(weights) ** 2 / np.sum(weights ** 2)
+    adjustment = _covariance_adjustment(
+        sample, weights, augmented, augmented_weights
+    )
     reference_kde = gaussian_kde(
         augmented, weights=augmented_weights,
-        bw_method=original_neff ** (-1.0 / 5.0),
+        bw_method=original_neff ** (-1.0 / 5.0) * adjustment,
     )
     reference = reference_kde(grid)
     reference /= trapezoid(reference, grid)
@@ -151,9 +170,12 @@ def test_scott_multiplier_uses_original_weighted_sample_effective_size():
         sample, 2.0 * grid[0] - sample, 2.0 * grid[-1] - sample,
     ))
     augmented_weights = np.tile(scaled / 3.0, 3)
+    adjustment = _covariance_adjustment(
+        sample, scaled, augmented, augmented_weights
+    )
     expected_kde = gaussian_kde(
         augmented, weights=augmented_weights,
-        bw_method=0.5 * neff ** (-1.0 / 5.0),
+        bw_method=0.5 * neff ** (-1.0 / 5.0) * adjustment,
     )
     expected = expected_kde(grid)
     expected /= trapezoid(expected, grid)
@@ -179,3 +201,67 @@ def test_invalid_scott_multiplier_is_rejected(multiplier):
     sample = np.linspace(0.02, 0.39, 20)
     with pytest.raises(ValueError, match="scott_multiplier"):
         estimate_host_density(grid, sample, scott_multiplier=multiplier)
+
+def test_scott_multiplier_uses_combined_base_and_inverse_probability_weights():
+    grid = np.linspace(0.01, 0.40, 501)
+    sample = np.linspace(0.012, 0.398, 120)
+    probability = 0.12 + 0.82 / (1.0 + np.exp((sample - 0.22) / 0.05))
+    base = 1.0 + 1.5 * (sample - 0.01) / 0.39
+    combined = base / probability
+    scaled = combined / np.max(combined)
+    neff = np.sum(scaled) ** 2 / np.sum(scaled ** 2)
+    augmented = np.concatenate((
+        sample, 2.0 * grid[0] - sample, 2.0 * grid[-1] - sample,
+    ))
+    augmented_weights = np.tile(scaled / 3.0, 3)
+    adjustment = _covariance_adjustment(
+        sample, scaled, augmented, augmented_weights
+    )
+    expected_kde = gaussian_kde(
+        augmented, weights=augmented_weights,
+        bw_method=0.6 * neff ** (-1.0 / 5.0) * adjustment,
+    )
+    expected = expected_kde(grid)
+    expected /= trapezoid(expected, grid)
+    actual = estimate_host_density(
+        grid, sample, inclusion_probability=probability,
+        sample_weights=base, scott_multiplier=0.6,
+    )
+    np.testing.assert_allclose(actual, expected, rtol=1e-12, atol=1e-12)
+
+
+
+
+def test_reported_reflected_kde_bandwidth_matches_original_sample_scott_width():
+    from dark_siren_robustness.catalogue_density import reflected_weighted_kde_bandwidth
+
+    sample = np.linspace(0.012, 0.398, 120)
+    weights = (1.0 + 1.5 * (sample - 0.01) / 0.39) / (
+        0.12 + 0.82 / (1.0 + np.exp((sample - 0.22) / 0.05))
+    )
+    scaled = weights / np.max(weights)
+    probability = scaled / np.sum(scaled)
+    mean = float(probability @ sample)
+    variance = float(
+        np.sum(probability * (sample - mean) ** 2)
+        / (1.0 - float(probability @ probability))
+    )
+    neff = float(np.sum(scaled) ** 2 / np.sum(scaled ** 2))
+    expected = 0.7 * neff ** (-1.0 / 5.0) * np.sqrt(variance)
+    actual = reflected_weighted_kde_bandwidth(
+        sample, lower_bound=0.01, upper_bound=0.40,
+        sample_weights=weights, scott_multiplier=0.7,
+    )
+    assert actual == pytest.approx(expected, rel=1e-12, abs=1e-12)
+
+
+def test_kde_rejects_positive_weights_lost_during_scaling():
+    grid = np.linspace(0.01, 0.40, 101)
+    sample = np.linspace(0.02, 0.39, 20)
+    weights = np.ones(sample.size)
+    weights[0] = 1e308
+    weights[1] = 1e-320
+    with pytest.raises(ArithmeticError, match="underflowed positive mass"):
+        estimate_host_density(
+            grid, sample, sample_weights=weights, scott_multiplier=1.0
+        )
