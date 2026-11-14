@@ -116,6 +116,8 @@ def test_posterior_mean_density_metric_is_distinct_and_independently_audited(tmp
     metrics=pd.read_csv(metrics_path)
     mean_rows=metrics[metrics.arm=="E_posterior_mean_density"]
     node_rows=metrics[metrics.arm=="E_posterior_weighted_node_metric"]
+    e_node_rows=metrics[metrics.arm=="E_uncertainty_integrated_ipw"]
+    original_metrics=metrics.copy(deep=True)
     assert len(mean_rows)==4
     assert len(node_rows)==4
     # Convexity: loss of the posterior-mean density cannot exceed
@@ -125,6 +127,8 @@ def test_posterior_mean_density_metric_is_distinct_and_independently_audited(tmp
         assert (joined[f"{metric}_mean"] <= joined[f"{metric}_nodes"] + 1e-10).all()
     assert mean_rows.kish_ess.isna().all()
     assert node_rows.kish_ess.isna().all()
+    assert e_node_rows.kish_ess.notna().all()
+    assert (e_node_rows.kish_ess > 0).all()
     assert auditor.audit(output)["status"]=="PASS"
 
     # Refresh the manifest after corrupting the primary posterior-mean metric.
@@ -141,6 +145,7 @@ def test_posterior_mean_density_metric_is_distinct_and_independently_audited(tmp
 
     # Restore the original metrics, then corrupt a node-specific ESS while
     # refreshing the manifest; the auditor must reconstruct ESS from raw weights.
+    metrics=original_metrics.copy(deep=True)
     metrics.to_csv(metrics_path,index=False)
     payload=metrics_path.read_bytes()
     manifest["files"][rel]={"bytes":len(payload),"sha256":hashlib.sha256(payload).hexdigest()}
