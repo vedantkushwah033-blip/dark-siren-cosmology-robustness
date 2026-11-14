@@ -136,3 +136,15 @@ def test_curvature_outer_auditor_rejects_false_child_audit_claim_with_updated_ma
  manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n")
  with pytest.raises(AssertionError,match="successful cells must await"):
   auditor.audit(out)
+
+
+def test_curvature_outer_manifest_covers_nested_child_manifest(tmp_path):
+ runner=_load("curvature_multi_runner_child_manifest","run_quadratic_logit_curvature_density_replicates.py")
+ auditor=_load("curvature_multi_auditor_child_manifest","audit_quadratic_logit_curvature_density_replicates.py")
+ out=tmp_path/"curvature_child_manifest"
+ runner.run(_args(out))
+ child_manifest=out/"cells"/"gamma_m1_00"/"replicate_0000"/"manifest.json"
+ assert child_manifest.is_file()
+ child_manifest.write_text("{\\n  \\"tampered\\": true\\n}\\n")
+ with pytest.raises(AssertionError,match="outer manifest verification failed"):
+  auditor.audit(out)
