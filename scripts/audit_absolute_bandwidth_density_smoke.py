@@ -226,6 +226,31 @@ def audit(root:Path):
   center=float(cal["coordinate_center"]); scale=float(cal["coordinate_scale"])
   if not np.all(np.isfinite([alpha,beta,gamma,x2_center,center,scale])) or scale<=0:
    raise AssertionError("invalid quadratic-logit calibration in config")
+  z_min,z_max=map(float,cfg["redshift_bounds"])
+  calibration_grid=np.linspace(z_min,z_max,20001)
+  parent_measure=(1.0+2.2*np.exp(-0.5*((calibration_grid-0.105)/0.025)**2)
+                    +1.6*np.exp(-0.5*((calibration_grid-0.275)/0.04)**2))
+  parent_normalizer=float(trapezoid(parent_measure,calibration_grid))
+  x_cal=(calibration_grid-center)/scale
+  independently_centered_x2=float(
+   trapezoid(parent_measure*x_cal*x_cal,calibration_grid)/parent_normalizer)
+  _close(np.asarray([x2_center]),np.asarray([independently_centered_x2]),
+         "quadratic-logit parent-measure x2 centering")
+  independently_target_rate=float(
+   trapezoid(parent_measure*expit(beta*x_cal),calibration_grid)/parent_normalizer)
+  independently_achieved_rate=float(
+   trapezoid(parent_measure*expit(alpha+beta*x_cal
+      +gamma*(x_cal*x_cal-independently_centered_x2)),calibration_grid)
+   /parent_normalizer)
+  _close(np.asarray([float(cal["target_rate"])]),
+         np.asarray([independently_target_rate]),
+         "quadratic-logit gamma-zero target inclusion rate")
+  _close(np.asarray([float(cal["achieved_rate"])]),
+         np.asarray([independently_achieved_rate]),
+         "quadratic-logit achieved parent-average inclusion rate")
+  _close(np.asarray([np.asarray([independently_achieved_rate])[0]]),
+         np.asarray([float(cal["target_rate"])]),
+         "quadratic-logit preserved parent-average inclusion rate")
   def inclusion_probability(redshift):
    x=(np.asarray(redshift,float)-center)/scale
    return expit(alpha+beta*x+gamma*(x*x-x2_center))
