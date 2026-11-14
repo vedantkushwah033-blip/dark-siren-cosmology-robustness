@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
+import json
 from pathlib import Path
 
 import numpy as np
@@ -17,6 +19,24 @@ def _load_runner():
     assert spec.loader is not None
     spec.loader.exec_module(module)
     return module
+
+
+def _load_auditor():
+    path = ROOT / "scripts" / "audit_quadratic_logit_curvature_density_smoke.py"
+    spec = importlib.util.spec_from_file_location("quadratic_logit_density_auditor", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def _rehash(root: Path, relative_path: Path):
+    manifest_path = root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    path = root / relative_path
+    manifest["files"][str(relative_path)]["bytes"] = path.stat().st_size
+    manifest["files"][str(relative_path)]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n")
 
 
 def _args(output_dir: Path, gamma: float = 0.0):
@@ -66,6 +86,9 @@ def test_quadratic_logit_density_smoke_writes_five_arm_artifacts(tmp_path: Path)
     diagnostics = pd.read_csv(output / "results" / "weight_diagnostics.csv")
     assert len(diagnostics) == 42
     assert set(diagnostics["validation_size"]) == {60, 120, 180}
+    audit = _load_auditor().audit(output)
+    assert audit["status"] == "PASS"
+    assert audit["weight_diagnostic_rows_reconstructed"] == 42
 
     with np.load(output / "results" / "density_reconstruction_inputs.npz") as archive:
         probability = archive["catalogue_true_inclusion_probability"]
@@ -90,3 +113,18 @@ def test_quadratic_logit_density_smoke_records_curvature_and_separate_validation
     observable = pd.read_csv(output / "observable" / "validation_n180.csv")
     assert list(observable.columns) == ["validation_id", "redshift", "retained"]
     assert "inclusion_probability" not in observable.columns
+
+
+def test_quadratic_logit_auditor_rejects_corrupted_weight_diagnostic_even_with_updated_manifest(tmp_path: Path):
+    runner = _load_runner()
+    auditor = _load_auditor()
+    output = tmp_path / "corrupted_gamma_zero"
+    runner.run(_args(output, gamma=0.0))
+    path = Path("results") / "weight_diagnostics.csv"
+    diagnostics = pd.read_csv(output / path)
+    diagnostics.loc[0, "kish_ess"] += 3.0
+    diagnostics.to_csv(output / path, index=False)
+    _rehash(output, path)
+    import pytest
+    with pytest.raises(AssertionError, match="weight diagnostic numerical mismatch: kish_ess"):
+        auditor.audit(output)
