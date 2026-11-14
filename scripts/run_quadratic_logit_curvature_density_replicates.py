@@ -53,6 +53,8 @@ def run(args):
       "grid_points":int(args.grid_points),"scott_multiplier":float(args.scott_multiplier),
       "seed_design":"Within each replicate, all gamma cells share population_seed and validation_seed (common random numbers); replicate seed pairs are disjoint.",
       "analysis_model":"degree_one_logistic",
+      "coordinate_center":0.205,"coordinate_scale":0.195,
+      "coefficient_prior":{"family":"independent_gaussian","mean":[0.0,0.0],"sd":[5.0,2.5]},
       "arm_C":"true quadratic inclusion probabilities; oracle diagnostic only",
       "arm_D_E":"degree-one logistic fitted to independent validation outcomes",
       "arm_E_primary":"loss of posterior-mean density",
