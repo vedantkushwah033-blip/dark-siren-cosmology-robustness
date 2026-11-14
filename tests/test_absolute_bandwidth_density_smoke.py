@@ -67,6 +67,20 @@ def test_quadratic_logit_density_smoke_independently_audits_true_probability_arm
         pd.read_csv(output/"results"/"density_metrics.csv")
     )
 
+    # A refreshed checksum must not allow a false parent-measure centering constant.
+    import hashlib
+    config_path=output/"config.json"
+    cfg=json.loads(config_path.read_text())
+    cfg["quadratic_logit_calibration"]["x2_center"] += 0.01
+    config_path.write_text(json.dumps(cfg,indent=2,sort_keys=True)+"\\n")
+    manifest_path=output/"manifest.json"
+    manifest=json.loads(manifest_path.read_text())
+    payload=config_path.read_bytes()
+    manifest["files"]["config.json"]={"bytes":len(payload),"sha256":hashlib.sha256(payload).hexdigest()}
+    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True))
+    with pytest.raises(AssertionError,match="quadratic-logit parent-measure x2 centering mismatch"):
+        auditor.audit(output)
+
 
 def test_absolute_bandwidth_auditor_rejects_corrupt_weight_diagnostics_after_manifest_refresh(tmp_path):
     import hashlib
