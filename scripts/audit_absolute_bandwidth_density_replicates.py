@@ -54,6 +54,20 @@ def audit(root:Path):
         rid=int(row["replicate_id"])
         child=root/"replicates"/f"replicate_{rid:04d}"
         if row["status"]=="SUCCESS":
+            child_cfg=json.loads((child/"config.json").read_text())
+            expected_seed=int(row["population_seed"])
+            if int(child_cfg["seed"])!=expected_seed or int(child_cfg["validation_seed"])!=int(row["validation_seed"]):
+                raise AssertionError(f"replicate {rid} child seed/config mismatch")
+            if int(child_cfg["n_parent"])!=int(cfg["n_parent"]):
+                raise AssertionError(f"replicate {rid} parent-size/config mismatch")
+            if list(child_cfg["validation_sizes"])!=list(cfg["validation_sizes"]):
+                raise AssertionError(f"replicate {rid} validation-size/config mismatch")
+            if list(child_cfg["absolute_bandwidth_candidates"])!=list(cfg["absolute_widths"]):
+                raise AssertionError(f"replicate {rid} bandwidth-grid/config mismatch")
+            if int(child_cfg["grid_points"])!=int(cfg["grid_points"]) or int(child_cfg["quadrature_order"])!=int(cfg["quadrature_order"]):
+                raise AssertionError(f"replicate {rid} numerical-resolution/config mismatch")
+            if not np.isclose(float(child_cfg["catalogue_floor"]),float(cfg["catalogue_floor"])):
+                raise AssertionError(f"replicate {rid} catalogue-floor/config mismatch")
             report=audit_one(child)
             child_reports.append({"replicate_id":rid,**report})
             frame=pd.read_csv(child/"results"/"density_metrics.csv")
