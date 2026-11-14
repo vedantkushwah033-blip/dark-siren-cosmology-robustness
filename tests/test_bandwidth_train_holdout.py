@@ -85,3 +85,17 @@ def test_independent_auditor_reconstructs_selection_and_hashes(tmp_path):
     selection_path.write_text(json.dumps(result), encoding="utf-8")
     with pytest.raises(AssertionError, match="training_sd_iae mismatch"):
         audit_selection(source, selection_path)
+
+
+def test_boundary_minimum_is_flagged_as_ineligible_for_freezing():
+    attempts = _fixture_attempts()
+    # Make the largest candidate the training minimum for every replicate.
+    attempts.loc[attempts.bandwidth_multiplier == 0.20, "iae"] = 0.01
+    result = select_bandwidth(
+        attempts, candidate_multipliers=[0.05, 0.10, 0.20],
+        n_replicates=12, split_seed=17, training_fraction=0.67,
+    )
+    assert result["selected_multiplier"] == 0.20
+    assert result["boundary_limited"] is True
+    assert result["selection_eligible"] is False
+    assert result["status"] == "BOUNDARY_LIMITED_EXPAND_GRID"
