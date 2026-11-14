@@ -87,6 +87,7 @@ def audit(root:Path):
  if cfg.get("experiment")!="paired_quadratic_logit_curvature_density_pilot": raise AssertionError("wrong experiment identifier")
  if cfg.get("status")!="DEVELOPMENT_PILOT_NOT_CONFIRMATORY_NOT_BANDWIDTH_SELECTION": raise AssertionError("claim status mismatch")
  if cfg.get("analysis_model")!="degree_one_logistic": raise AssertionError("analysis model mismatch")
+ if cfg.get("arm_E_primary")!="loss of posterior-mean density" or cfg.get("arm_E_secondary")!="posterior expected node-specific density loss": raise AssertionError("Arm E primary/secondary estimand labels mismatch")
  if float(cfg.get("coordinate_center",float("nan")))!=0.205 or float(cfg.get("coordinate_scale",float("nan")))!=0.195: raise AssertionError("coordinate specification mismatch")
  if cfg.get("coefficient_prior")!={"family":"independent_gaussian","mean":[0.0,0.0],"sd":[5.0,2.5]}: raise AssertionError("coefficient prior mismatch")
  gammas=[float(x) for x in cfg["gammas"]]
@@ -140,6 +141,7 @@ def audit(root:Path):
   if float(child_cfg["coordinate_center"])!=float(cfg["coordinate_center"]) or float(child_cfg["coordinate_scale"])!=float(cfg["coordinate_scale"]): raise AssertionError("child coordinate specification mismatch")
   if child_cfg["coefficient_prior"]!=cfg["coefficient_prior"]: raise AssertionError("child coefficient prior mismatch")
   if child_cfg.get("analysis_model")!=cfg["analysis_model"] or child_cfg.get("arm_C")!=cfg["arm_C"] or child_cfg.get("arm_D_E")!=cfg["arm_D_E"]: raise AssertionError("child analysis or arm-label mismatch")
+  if child_cfg.get("arm_E_metric")!="posterior-mean density loss is primary; posterior expected node-specific loss is secondary": raise AssertionError("child Arm E estimand specification mismatch")
   # Verify the common-random-number design from persisted raw inputs, not merely
   # from repeated seed labels: the parent/frame draws and validation subsample
   # must be identical across gamma cells within each replicate.
