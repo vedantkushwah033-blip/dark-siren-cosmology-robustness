@@ -78,6 +78,27 @@ jobs:
         run: python scripts/audit_absolute_bandwidth_density_smoke.py artifacts/absolute_bandwidth_density_smoke --output artifacts/absolute_bandwidth_density_smoke_audit.json
       - name: Test absolute-bandwidth density smoke and independent auditor
         run: python -m pytest tests/test_absolute_bandwidth_density_smoke.py -q
+      - name: Test multi-replicate absolute-bandwidth density orchestration and audit
+        run: python -m pytest tests/test_absolute_bandwidth_density_replicates.py -q
+      - name: Validate multi-replicate density pilot command-line interfaces
+        run: |
+          python scripts/run_absolute_bandwidth_density_replicates.py --help
+          python scripts/audit_absolute_bandwidth_density_replicates.py --help
+      - name: Run two-replicate absolute-bandwidth density pilot (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python scripts/run_absolute_bandwidth_density_replicates.py \\
+            --master-seed 20261120 --replicates 2 --n-parent 800 \\
+            --validation-frame 300 --validation-sizes 80,160 \\
+            --quadrature-order 3 --grid-points 201 \\
+            --absolute-widths 0.016,0.024 \\
+            --output-dir artifacts/absolute_bandwidth_density_replicates_smoke
+      - name: Independently audit two-replicate absolute-bandwidth density pilot (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python scripts/audit_absolute_bandwidth_density_replicates.py \\
+            artifacts/absolute_bandwidth_density_replicates_smoke \\
+            --output artifacts/absolute_bandwidth_density_replicates_smoke/independent_audit.json
       - name: Test raw artifact preservation for failed five-arm replicates
         run: python -m pytest tests/test_five_arm_smoke_failure_artifacts.py -q
       - name: Test multi-replicate five-arm aggregation and failure bounds
@@ -327,6 +348,7 @@ jobs:
             artifacts/parent_density_bandwidth_pilot/
             artifacts/absolute_bandwidth_density_smoke/
             artifacts/absolute_bandwidth_density_smoke_audit.json
+            artifacts/absolute_bandwidth_density_replicates_smoke/
           if-no-files-found: error
       - name: Upload numerical diagnostic results
         uses: actions/upload-artifact@v4
