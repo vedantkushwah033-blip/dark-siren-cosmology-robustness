@@ -23,7 +23,7 @@ def _args(output):
   validation_sizes=(40,80),beta=-3.9,quadrature_order=3,grid_points=101,
   scott_multiplier=0.7,absolute_widths=(0.012,0.024))
 
-def test_paired_curvature_runner_and_independent_outer_audit(tmp_path):
+def test_paired_curvature_runner_and_independent_outer_audit(tmp_path, monkeypatch):
  runner=_load("curvature_multi_runner","run_quadratic_logit_curvature_density_replicates.py")
  auditor=_load("curvature_multi_auditor","audit_quadratic_logit_curvature_density_replicates.py")
  out=tmp_path/"curvature_pilot"
@@ -51,6 +51,12 @@ def test_paired_curvature_runner_and_independent_outer_audit(tmp_path):
  contrasts=pd.read_csv(out/"paired_contrasts_all_cells.csv")
  assert set(contrasts["contrast_type"])=={"gamma_vs_zero","arm_pair"}
  assert len(contrasts)==528
+ report_path=tmp_path/"independent_audit_report.json"
+ monkeypatch.setattr(sys,"argv",["audit",str(out),"--output",str(report_path)])
+ auditor.main()
+ parsed=json.loads(report_path.read_text())
+ assert parsed["status"]=="PASS"
+ assert parsed["planned_cells"]==6
 
 def test_curvature_outer_auditor_rejects_aggregate_corruption_even_with_updated_manifest(tmp_path):
  runner=_load("curvature_multi_runner_corrupt","run_quadratic_logit_curvature_density_replicates.py")
