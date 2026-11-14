@@ -143,6 +143,19 @@ def test_quadratic_logit_auditor_rejects_corrupted_weight_diagnostic_even_with_u
         auditor.audit(output)
 
 
+def test_posterior_quadrature_audit_requires_a_valid_probability_measure():
+    auditor = _load_auditor()
+    nodes = np.array([[-1.0, 0.2], [1.0, -0.2]])
+    auditor._assert_posterior_quadrature(nodes, np.array([0.25, 0.75]))
+
+    with pytest.raises(AssertionError, match="weights must be non-negative"):
+        auditor._assert_posterior_quadrature(nodes, np.array([1.1, -0.1]))
+    with pytest.raises(AssertionError, match="weights must sum to one"):
+        auditor._assert_posterior_quadrature(nodes, np.array([0.2, 0.2]))
+    with pytest.raises(AssertionError, match="shape mismatch"):
+        auditor._assert_posterior_quadrature(nodes, np.array([1.0]))
+
+
 def test_arm_e_jensen_audit_rejects_secondary_loss_below_primary():
     auditor = _load_auditor()
     valid = pd.DataFrame([
