@@ -78,7 +78,7 @@ def run(args):
             validation_sizes=tuple(args.validation_sizes),gamma=gamma,beta=args.beta,
             quadrature_order=args.quadrature_order,grid_points=args.grid_points,
             scott_multiplier=args.scott_multiplier,absolute_widths=widths))
-          row.update(status="SUCCESS",metric_rows=int(result["metric_rows"]),
+          row.update(status="SUCCESS",audit_status="PENDING_OUTER_AUDIT",metric_rows=int(result["metric_rows"]),
                      weight_diagnostic_rows=int(result["weight_diagnostic_rows"]),
                      scott_width_rows=int(result["scott_width_rows"]))
         except Exception as exc:
