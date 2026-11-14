@@ -188,7 +188,8 @@ def audit(root:Path):
  metric_all["gamma"]=pd.to_numeric(metric_all["gamma"],errors="coerce")
  metric_all["node"]=pd.to_numeric(metric_all["node"],errors="coerce")
  primary_arms=("A_catalogue_only","B_parent_oracle","C_known_probability_ipw",
-               "D_map_plugin_ipw","E_posterior_mean_density")
+               "D_map_plugin_ipw","E_posterior_mean_density",
+               "E_posterior_weighted_node_metric")
  metric_all=metric_all[metric_all.arm.isin(primary_arms) & (metric_all.node==-1)].copy()
  metric_names=("iae","ise","boundary_iae")
  zero_rows=metric_all[np.isclose(metric_all.gamma,0.0)]
