@@ -52,3 +52,20 @@ The next exact-head workflow must determine whether this wider grid brackets an 
 ## 5. Scope limits
 
 This pilot uses a single synthetic parent DGP, N=4,000, a 801-point redshift grid, and a parent-sample KDE. It does not compare the five inclusion-correction arms, does not evaluate finite-validation estimation, and does not test H0 posterior calibration. The absolute physical bandwidth sensitivity protocol remains a separate, not-yet-executed stage. No observational or LVK/GWTC conclusion follows.
+
+
+## 6. Relationship to the 200-replicate primary source experiment
+
+The 100-replicate run in this PR is **not an independent replication** of the 200-replicate source experiment inherited from PR #44. Both use master seed `20261114`, the same parent-population DGP, and replicate IDs beginning at zero. The 100-run sample therefore overlaps the first 100 replicate IDs of the 200-run experiment. Its different candidate grid and train/holdout split make it a grid-sensitivity analysis on overlapping source replicates, not independent confirmation.
+
+The 200-replicate experiment remains the primary source artifact for the original nine-candidate grid. Its independent raw-data audit reconstructed 1,800 replicate-by-candidate calculations with maximum absolute IAE discrepancy `4.16e-16`; the train/holdout audit passed with 140 training and 60 holdout replicates. Its training and holdout IAE both decreased monotonically through the largest candidate, `0.40` (training mean `0.04674`; holdout mean `0.04660`). This is also an unresolved upper-boundary minimum, not an interior optimum.
+
+The expanded 100-replicate sensitivity workflow now searches a wider candidate grid through `1.20`. Because its replicate IDs overlap the primary 200-run source, it can diagnose whether the apparent boundary trend persists over a wider range, but it cannot be described as independent confirmation. Its expanded-grid output must be generated and audited at the current exact PR head before reporting any numerical result. If it still selects an endpoint, no bandwidth is eligible to freeze.
+
+## 7. Resource and memory interpretation
+
+The batched likelihood refactor bounds the **temporary event/H0/redshift kernel** by processing H0 chunks. It still retains full output arrays for log numerators and detection efficiencies with dimensions proportional to density count × event count × full H0-grid size. Therefore the implementation does not claim memory use independent of the final H0-grid resolution. The benchmark reports likelihood-kernel evaluation time only and excludes KDE construction.
+
+## 8. Current-head validation boundary
+
+The previously recorded successful run `43550061324` belongs to source head `b4ec9a16065ae14ab3a8856299e00cbaa00535b9`, not to later edits that expanded the candidate grid, tightened the selection audit, or added H0 chunk-boundary regression tests. Those later changes require a new exact-head workflow run. The old benchmark and audit results remain valid for the old artifact and configuration only; they must not be relabelled as validation of the current head.
