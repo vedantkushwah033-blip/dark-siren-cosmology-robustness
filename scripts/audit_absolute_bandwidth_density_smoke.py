@@ -87,9 +87,19 @@ def audit(root:Path):
  expected=[]; maxdiff=0.0
  for n in sizes:
   v=pd.read_csv(root/"observable"/f"validation_n{n}.csv")
+  if "validation_id" not in v or "validation_id" not in vfull or "frame_id" not in vf:
+   raise AssertionError("validation identifiers are missing")
+  ids=v.validation_id.to_numpy()
+  full_ids=vfull.validation_id.to_numpy()[:n]
+  if len(np.unique(ids))!=n or not np.array_equal(ids,full_ids):
+   raise AssertionError(f"validation IDs are not the declared nested prefix n={n}")
+  if vf.frame_id.duplicated().any():
+   raise AssertionError("truth validation-frame IDs are not unique")
   _close(v.redshift.to_numpy(float),vfull.iloc[:n].redshift.to_numpy(float),f"nested validation redshift n={n}")
   _close(v.retained.to_numpy(int),vfull.iloc[:n].retained.to_numpy(int),f"nested validation outcomes n={n}",atol=0)
   truth_join=v.merge(vf[["frame_id","redshift","retained"]],left_on="validation_id",right_on="frame_id",suffixes=("_obs","_truth"),validate="one_to_one")
+  if len(truth_join)!=n or truth_join.frame_id.isna().any():
+   raise AssertionError(f"validation ID-to-truth join is incomplete n={n}")
   _close(truth_join.redshift_obs.to_numpy(float),truth_join.redshift_truth.to_numpy(float),f"validation frame join n={n}")
   _close(truth_join.retained_obs.to_numpy(int),truth_join.retained_truth.to_numpy(int),f"validation retention join n={n}",atol=0)
   nodes=z[f"posterior_nodes_n{n}"]; q=z[f"posterior_weights_n{n}"]; mode=z[f"posterior_mode_n{n}"]
