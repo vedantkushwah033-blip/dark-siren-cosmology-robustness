@@ -122,9 +122,9 @@ def test_quadratic_logit_auditor_rejects_corrupted_weight_diagnostic_even_with_u
     runner.run(_args(output, gamma=0.0))
     path = Path("results") / "weight_diagnostics.csv"
     diagnostics = pd.read_csv(output / path)
-    diagnostics.loc[0, "kish_ess"] += 3.0
+    diagnostics.loc[0, "top_1_percent_mass"] += 0.03
     diagnostics.to_csv(output / path, index=False)
     _rehash(output, path)
     import pytest
-    with pytest.raises(AssertionError, match="weight diagnostic numerical mismatch: kish_ess"):
+    with pytest.raises(AssertionError, match="weight diagnostic numerical mismatch: top_1_percent_mass"):
         auditor.audit(output)
