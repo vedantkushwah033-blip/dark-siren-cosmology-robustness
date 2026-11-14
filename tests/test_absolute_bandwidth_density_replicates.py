@@ -65,6 +65,14 @@ def test_two_replicate_quadratic_logit_density_pilot_and_cross_gamma_audit(tmp_p
     assert report["replicates_per_gamma"]==2
     assert (root/"summary"/"curvature_density_iae_summary.csv").is_file()
     assert (root/"summary"/"curvature_paired_iae_contrasts.csv").is_file()
+    gamma0_contrasts = pd.read_csv(
+        root/"summary"/"curvature_vs_gamma0_paired_iae_contrasts.csv"
+    )
+    assert not gamma0_contrasts.empty
+    assert set(gamma0_contrasts["gamma"]) == {1.0}
+    assert set(gamma0_contrasts["reference_gamma"]) == {0.0}
+    assert set(gamma0_contrasts["replicate_count"]) == {2}
+    assert report["paired_gamma_vs_zero_contrast_rows"] == len(gamma0_contrasts)
 
 
 def test_orchestration_auditor_rejects_duplicate_aggregate_key_even_with_updated_manifest(tmp_path):
