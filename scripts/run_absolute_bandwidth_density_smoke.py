@@ -83,7 +83,8 @@ def run(args):
         arms=build_five_arm_weights(pz,cz,v.redshift.to_numpy(float),v.retained.to_numpy(int),
           catalogue_floor=args.catalogue_floor,catalogue_midpoint=0.22,catalogue_width=0.05,
           degree=1,coordinate_center=0.205,coordinate_scale=0.195,
-          quadrature_order=args.quadrature_order,parent_base_weights=base_p,catalogue_base_weights=base_c)
+          quadrature_order=args.quadrature_order,parent_base_weights=base_p,catalogue_base_weights=base_c,
+          prior_mean=(0.0,0.0),prior_sd=(5.0,2.5))
         archive[f"posterior_nodes_n{n}"]=arms.inclusion_posterior.nodes
         archive[f"posterior_weights_n{n}"]=arms.inclusion_posterior.weights
         archive[f"posterior_mode_n{n}"]=arms.inclusion_posterior.mode
@@ -165,6 +166,7 @@ def run(args):
       "catalogue_floor":args.catalogue_floor,"catalogue_midpoint":0.22,"catalogue_width":0.05,
       "scott_multiplier":scott_multiplier,
       "coordinate_center":0.205,"coordinate_scale":0.195,"quadrature_order":args.quadrature_order,
+      "coefficient_prior":{"family":"independent_gaussian","mean":[0.0,0.0],"sd":[5.0,2.5]},
       "grid_points":args.grid_points,"redshift_bounds":[Z_MIN,Z_MAX],
       "absolute_bandwidth_candidates":list(widths),
       "boundary_regions":[[Z_MIN,BOUNDARY_LOWER],[BOUNDARY_UPPER,Z_MAX]],
