@@ -15,7 +15,7 @@ from dark_siren_robustness.generative_selection import (
     latent_galaxy_intensity,
 )
 from dark_siren_robustness.five_arm_comparison import build_five_arm_weights, weight_concentration_diagnostics
-from dark_siren_robustness.catalogue_density import estimate_host_density
+from dark_siren_robustness.catalogue_density import estimate_host_density, reflected_weighted_kde_bandwidth
 
 Z_MIN, Z_MAX = 0.01, 0.40
 DEFAULT_WIDTHS = (0.012, 0.016, 0.020, 0.024, 0.028, 0.032, 0.040)
@@ -69,7 +69,10 @@ def run(args):
     archive={"redshift_grid":grid,"merger_weight_grid":merger,"truth_density":truth,
              "parent_redshift":pz,"catalogue_redshift":cz,"parent_base_weights":base_p,
              "catalogue_base_weights":base_c,"absolute_widths":np.asarray(widths)}
-    rows=[]; diag=[]
+    rows=[]; diag=[]; scott_rows=[]
+    scott_multiplier=float(getattr(args, "scott_multiplier", 0.7))
+    if not np.isfinite(scott_multiplier) or scott_multiplier <= 0:
+        raise ValueError("scott_multiplier must be finite and positive")
     for n in sizes:
         v=val["validation_observed"].iloc[:n]
         v.to_csv(out/"observable"/f"validation_n{n}.csv",index=False)
@@ -86,6 +89,22 @@ def run(args):
           "C_known_probability_ipw":(cz,arms.arm_c_known_probability),
           "D_map_plugin_ipw":(cz,arms.arm_d_map_plugin),
         }
+        # Record the physical widths induced by the shared-Scott rule on
+        # the exact same raw arm weights; these inform the absolute-width grid.
+        for name,(sample,weights) in raw_inputs.items():
+            scott_rows.append({
+              "validation_size":n,"arm":name,"node":-1,
+              "realized_bandwidth_redshift":reflected_weighted_kde_bandwidth(
+                sample,lower_bound=Z_MIN,upper_bound=Z_MAX,
+                sample_weights=weights,scott_multiplier=scott_multiplier)
+            })
+        for node,weights in enumerate(arms.arm_e_node_weights):
+            scott_rows.append({
+              "validation_size":n,"arm":"E_uncertainty_integrated_ipw","node":node,
+              "realized_bandwidth_redshift":reflected_weighted_kde_bandwidth(
+                cz,lower_bound=Z_MIN,upper_bound=Z_MAX,
+                sample_weights=weights,scott_multiplier=scott_multiplier)
+            })
         for name,(sample,weights) in raw_inputs.items():
             archive[f"weights_{name}_n{n}"]=weights
             diag.append({"validation_size":n,"arm":name,"node":-1,**weight_concentration_diagnostics(weights)})
@@ -128,11 +147,13 @@ def run(args):
     np.savez_compressed(out/"results"/"density_reconstruction_inputs.npz",**archive)
     pd.DataFrame(rows).to_csv(out/"results"/"density_metrics.csv",index=False)
     pd.DataFrame(diag).to_csv(out/"results"/"weight_diagnostics.csv",index=False)
+    pd.DataFrame(scott_rows).to_csv(out/"results"/"scott_widths.csv",index=False)
     config={"schema_version":1,"experiment":"absolute_physical_bandwidth_five_arm_density_smoke",
       "status":"ENGINEERING_SMOKE_NOT_SELECTION_NOT_CONFIRMATORY",
       "seed":args.seed,"validation_seed":args.validation_seed,"n_parent":args.n_parent,
       "n_catalogue":len(catalogue),"validation_frame":args.validation_frame,"validation_sizes":sizes,
       "catalogue_floor":args.catalogue_floor,"catalogue_midpoint":0.22,"catalogue_width":0.05,
+      "scott_multiplier":scott_multiplier,
       "coordinate_center":0.205,"coordinate_scale":0.195,"quadrature_order":args.quadrature_order,
       "grid_points":args.grid_points,"redshift_bounds":[Z_MIN,Z_MAX],
       "absolute_bandwidth_candidates":list(widths),
@@ -147,7 +168,7 @@ def run(args):
       "bytes":p.stat().st_size,"sha256":_hash(p)} for p in files}}
     (out/"manifest.json").write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
     return {"status":"PASS","replicate_count":1,"validation_sizes":sizes,"width_count":len(widths),
-      "metric_rows":len(rows),"manifest_files":len(files)}
+      "metric_rows":len(rows),"scott_width_rows":len(scott_rows),"manifest_files":len(files)}
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--seed",type=int,default=20261114); p.add_argument("--validation-seed",type=int,default=20261115)
@@ -155,6 +176,7 @@ def main():
     p.add_argument("--validation-sizes",type=lambda x:tuple(int(v) for v in x.split(",")),default=(100,300,1000))
     p.add_argument("--catalogue-floor",type=float,default=0.10); p.add_argument("--quadrature-order",type=int,default=5)
     p.add_argument("--grid-points",type=int,default=501)
+    p.add_argument("--scott-multiplier",type=float,default=0.7)
     p.add_argument("--absolute-widths",type=lambda x:tuple(float(v) for v in x.split(",")),default=DEFAULT_WIDTHS)
     p.add_argument("--output-dir",type=Path,required=True)
     a=p.parse_args(); print(json.dumps(run(a),indent=2,sort_keys=True))

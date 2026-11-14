@@ -33,6 +33,9 @@ def run(args):
         raise ValueError("validation sizes must be strictly increasing")
     if args.validation_sizes[0]<5 or args.validation_sizes[-1]>args.validation_frame:
         raise ValueError("validation sizes exceed the validation frame")
+    scott_multiplier=float(getattr(args,"scott_multiplier",0.7))
+    if not __import__("math").isfinite(scott_multiplier) or scott_multiplier<=0:
+        raise ValueError("scott multiplier must be finite and positive")
     cfg={
       "schema_version":1,
       "experiment":"multi_replicate_absolute_physical_bandwidth_density_pilot",
@@ -42,6 +45,7 @@ def run(args):
       "validation_frame":int(args.validation_frame),
       "validation_sizes":list(args.validation_sizes),
       "catalogue_floor":float(args.catalogue_floor),
+      "scott_multiplier":scott_multiplier,
       "quadrature_order":int(args.quadrature_order),
       "grid_points":int(args.grid_points),
       "absolute_widths":list(widths),
@@ -69,6 +73,7 @@ def run(args):
               n_parent=args.n_parent,validation_frame=args.validation_frame,
               validation_sizes=tuple(args.validation_sizes),
               catalogue_floor=args.catalogue_floor,
+              scott_multiplier=scott_multiplier,
               quadrature_order=args.quadrature_order,grid_points=args.grid_points,
               absolute_widths=widths)
             result=run_one(one)
@@ -78,15 +83,22 @@ def run(args):
             row.update(status="FAILED",error=f"{type(exc).__name__}: {exc}")
         ledger.append(row)
         pd.DataFrame(ledger).to_csv(root/"replicate_ledger.csv",index=False)
-    metrics=[]
+    metrics=[]; scott_frames=[]
     for row in ledger:
         if row["status"]=="SUCCESS":
-            frame=pd.read_csv(root/"replicates"/f"replicate_{row['replicate_id']:04d}"/"results"/"density_metrics.csv")
+            child=root/"replicates"/f"replicate_{row['replicate_id']:04d}"
+            frame=pd.read_csv(child/"results"/"density_metrics.csv")
             frame["replicate"]=int(row["replicate_id"])
             metrics.append(frame)
+            scott=pd.read_csv(child/"results"/"scott_widths.csv")
+            scott["replicate"]=int(row["replicate_id"])
+            scott_frames.append(scott)
     combined=pd.concat(metrics,ignore_index=True) if metrics else pd.DataFrame(
        columns=["replicate","validation_size","absolute_bandwidth_sd","arm","node","iae","ise","boundary_iae","status","kish_ess"])
     combined.to_csv(root/"density_metrics_all_replicates.csv",index=False)
+    combined_scott=pd.concat(scott_frames,ignore_index=True) if scott_frames else pd.DataFrame(
+       columns=["replicate","validation_size","arm","node","realized_bandwidth_redshift"])
+    combined_scott.to_csv(root/"scott_widths_all_replicates.csv",index=False)
     cfg["attempted"]=len(ledger)
     cfg["successful"]=sum(x["status"]=="SUCCESS" for x in ledger)
     cfg["failed"]=sum(x["status"]=="FAILED" for x in ledger)
@@ -98,7 +110,8 @@ def run(args):
     (root/"manifest.json").write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
     return {"status":"COMPLETED_WITH_FAILURES" if cfg["failed"] else "PASS",
       "planned_replicates":args.replicates,"successful_replicates":cfg["successful"],
-      "failed_replicates":cfg["failed"],"metric_rows":len(combined),"manifest_files":len(files)}
+      "failed_replicates":cfg["failed"],"metric_rows":len(combined),
+      "scott_width_rows":len(combined_scott),"manifest_files":len(files)}
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -109,6 +122,7 @@ def main():
     p.add_argument("--validation-frame",type=int,default=1500)
     p.add_argument("--validation-sizes",type=lambda x:tuple(int(v) for v in x.split(",")),default=(100,300,1000))
     p.add_argument("--catalogue-floor",type=float,default=0.10)
+    p.add_argument("--scott-multiplier",type=float,default=0.7)
     p.add_argument("--quadrature-order",type=int,default=5)
     p.add_argument("--grid-points",type=int,default=501)
     p.add_argument("--absolute-widths",type=lambda x:tuple(float(v) for v in x.split(",")),

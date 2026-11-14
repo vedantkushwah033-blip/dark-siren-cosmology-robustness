@@ -128,3 +128,12 @@ The initial candidate range is an **engineering test grid**, not a frozen scient
 The density smoke records node-level Arm E IAE/ISE/boundary IAE and posterior-weighted expected node metrics, preserving node identities and quadrature weights. The independent auditor reconstructs A–E weights from saved raw inputs and persisted validation-posterior nodes, independently builds the reflected weighted Gaussian KDE using the requested physical covariance SD, and recalculates all metrics. It does not independently refit the inclusion posterior; that remains a separate audit gate.
 
 This smoke is deliberately density-only. It does not use event distances, evaluate H0 likelihoods, select a bandwidth, or support an estimator ranking. Its only purpose is to exercise the absolute-width density and independent-reconstruction pipeline before building the multi-replicate training/holdout experiment.
+
+## 12. Realized Scott-width distribution reporting (implementation update)
+
+The absolute-width smoke and multi-replicate orchestrator now persist the physical widths induced by the common weighted-Scott rule for A–D and every Arm E coefficient node, at each validation size. The production runner uses the same `reflected_weighted_kde_bandwidth` calculation used by the five-arm smoke. The independent raw-input auditor reconstructs each width directly from the saved galaxy sample and raw arm weights using the weighted variance and Kish effective sample size; it does not call the production bandwidth helper.
+
+The outer multi-replicate runner aggregates the child width tables into `scott_widths_all_replicates.csv`, keyed by replicate × validation size × arm × node. Its auditor independently checks every child width table and the exact outer aggregation. This supplies the missing multi-replicate distribution needed to justify the endpoints of the common-absolute-width candidate grid.
+
+This remains a density-only diagnostic. The current two-replicate CI fixture (N=800, two validation sizes, quadrature order 3, 201-point grid and two absolute widths) is an engineering smoke, not a representative bandwidth-selection pilot. The 20-replicate/N=4,000 default has not been run. No selection, H0 inference, calibration, or estimator ranking is claimed; exact-head CI and artifact inspection are required before interpreting the new width report.
+

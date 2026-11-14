@@ -52,6 +52,22 @@ def _independent_kde(z,sample,weights,rate,width):
  if not np.isclose(trapezoid(d,z),1.0,rtol=1e-10,atol=1e-10): raise AssertionError("KDE density does not integrate to one")
  return d
 
+def _independent_scott_width(sample,weights,multiplier):
+ w=np.asarray(weights,float)
+ sample=np.asarray(sample,float)
+ if sample.ndim!=1 or w.shape!=sample.shape or np.any(w<=0) or not np.all(np.isfinite(w)):
+  raise AssertionError("invalid raw inputs for independent Scott width")
+ scaled=w/np.max(w)
+ if np.any(scaled==0): raise AssertionError("Scott width weights underflowed")
+ probability=scaled/np.sum(scaled)
+ denominator=1.0-float(probability@probability)
+ mean=float(probability@sample)
+ variance=float(np.sum(probability*(sample-mean)**2)/denominator)
+ neff=float(np.sum(scaled)**2/np.sum(scaled**2))
+ width=float(multiplier)*neff**(-1.0/5.0)*np.sqrt(variance)
+ if not np.isfinite(width) or width<=0: raise AssertionError("independent Scott width is invalid")
+ return float(width)
+
 def audit(root:Path):
  root=root.resolve()
  manifest=json.loads((root/"manifest.json").read_text())
@@ -83,8 +99,10 @@ def audit(root:Path):
    trapezoid((1+2.2*np.exp(-.5*((grid-.105)/.025)**2)+1.6*np.exp(-.5*((grid-.275)/.04)**2))*rate,grid),"analytic target")
  widths=[float(x) for x in cfg["absolute_bandwidth_candidates"]]
  sizes=[int(x) for x in cfg["validation_sizes"]]
+ scott_multiplier=float(cfg["scott_multiplier"])
+ if not np.isfinite(scott_multiplier) or scott_multiplier<=0: raise AssertionError("invalid Scott multiplier")
  metrics=pd.read_csv(root/"results"/"density_metrics.csv")
- expected=[]; maxdiff=0.0
+ expected=[]; expected_scott=[]; maxdiff=0.0
  for n in sizes:
   v=pd.read_csv(root/"observable"/f"validation_n{n}.csv")
   if "validation_id" not in v or "validation_id" not in vfull or "frame_id" not in vf:
@@ -116,6 +134,12 @@ def audit(root:Path):
   _close(z[f"weights_E_quadrature_n{n}"],q,"E quadrature weights")
   inputs={"A_catalogue_only":(zcat,bc),"B_parent_oracle":(zparent,bp),
     "C_known_probability_ipw":(zcat,bc/ptrue),"D_map_plugin_ipw":(zcat,bc/pmap)}
+  for arm,(sample,raw_weights) in inputs.items():
+   expected_scott.append({"validation_size":n,"arm":arm,"node":-1,
+     "realized_bandwidth_redshift":_independent_scott_width(sample,raw_weights,scott_multiplier)})
+  for node,raw_weights in enumerate(bc[None,:]/pnodes):
+   expected_scott.append({"validation_size":n,"arm":"E_uncertainty_integrated_ipw","node":node,
+     "realized_bandwidth_redshift":_independent_scott_width(zcat,raw_weights,scott_multiplier)})
   for bw in widths:
    node_ds=[]
    for arm,(sample,w) in inputs.items():
@@ -141,9 +165,25 @@ def audit(root:Path):
   if not got[col].equals(want[col]): raise AssertionError(f"metric key/status mismatch: {col}")
  for col in ["iae","ise","boundary_iae"]:
   _close(got[col].to_numpy(float),want[col].to_numpy(float),f"metric {col}")
+ scott=pd.read_csv(root/"results"/"scott_widths.csv")
+ expected_scott_df=pd.DataFrame(expected_scott)
+ scott_key=["validation_size","arm","node"]
+ if scott.duplicated(scott_key).any() or expected_scott_df.duplicated(scott_key).any():
+  raise AssertionError("duplicate realized Scott width key")
+ scott=scott.sort_values(scott_key).reset_index(drop=True)
+ expected_scott_df=expected_scott_df.sort_values(scott_key).reset_index(drop=True)
+ if len(scott)!=len(expected_scott_df): raise AssertionError("realized Scott width row count mismatch")
+ for col in scott_key:
+  if scott[col].tolist()!=expected_scott_df[col].tolist(): raise AssertionError(f"realized Scott width key mismatch: {col}")
+ _close(scott.realized_bandwidth_redshift.to_numpy(float),
+        expected_scott_df.realized_bandwidth_redshift.to_numpy(float),
+        "independently reconstructed realized Scott widths")
  return {"status":"PASS","manifest_files_verified":checked,"metric_rows_reconstructed":len(want),
+  "scott_width_rows_reconstructed":len(expected_scott_df),
+  "realized_scott_width_min":float(expected_scott_df.realized_bandwidth_redshift.min()),
+  "realized_scott_width_max":float(expected_scott_df.realized_bandwidth_redshift.max()),
   "validation_sizes":sizes,"absolute_widths":widths,
-  "scope":"Independent raw-input reconstruction of five-arm KDE density curves and IAE/ISE/boundary IAE; stored validation-posterior nodes are consumed, not independently refitted. No H0 inference."}
+  "scope":"Independent raw-input reconstruction of five-arm KDE density curves, IAE/ISE/boundary IAE, and realized common-Scott physical widths; stored validation-posterior nodes are consumed, not independently refitted. No H0 inference."}
 
 def main():
  p=argparse.ArgumentParser(description=__doc__); p.add_argument("artifact_dir",type=Path); p.add_argument("--output",type=Path)

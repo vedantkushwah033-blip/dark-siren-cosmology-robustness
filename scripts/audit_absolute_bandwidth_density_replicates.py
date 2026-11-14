@@ -49,6 +49,7 @@ def audit(root:Path):
     if int(cfg["attempted"])!=planned or int(cfg["successful"])!=int((ledger.status=="SUCCESS").sum()) or int(cfg["failed"])!=int((ledger.status=="FAILED").sum()):
         raise AssertionError("config lifecycle totals disagree with ledger")
     expected_frames=[]
+    expected_scott_frames=[]
     child_reports=[]
     for row in ledger.to_dict("records"):
         rid=int(row["replicate_id"])
@@ -68,8 +69,13 @@ def audit(root:Path):
                 raise AssertionError(f"replicate {rid} numerical-resolution/config mismatch")
             if not np.isclose(float(child_cfg["catalogue_floor"]),float(cfg["catalogue_floor"])):
                 raise AssertionError(f"replicate {rid} catalogue-floor/config mismatch")
+            if not np.isclose(float(child_cfg["scott_multiplier"]),float(cfg["scott_multiplier"])):
+                raise AssertionError(f"replicate {rid} Scott-multiplier/config mismatch")
             report=audit_one(child)
             child_reports.append({"replicate_id":rid,**report})
+            scott_frame=pd.read_csv(child/"results"/"scott_widths.csv")
+            scott_frame["replicate"]=rid
+            expected_scott_frames.append(scott_frame)
             frame=pd.read_csv(child/"results"/"density_metrics.csv")
             if len(frame)!=int(row["metric_rows"]):
                 raise AssertionError(f"replicate {rid} metric-row ledger mismatch")
@@ -99,10 +105,29 @@ def audit(root:Path):
     for col in ["iae","ise","boundary_iae","kish_ess"]:
         if col in expected and not np.allclose(actual[col].to_numpy(float),expected[col].to_numpy(float),rtol=2e-10,atol=2e-10,equal_nan=False):
             raise AssertionError(f"aggregate metric values mismatch: {col}")
+    expected_scott=pd.concat(expected_scott_frames,ignore_index=True) if expected_scott_frames else pd.DataFrame(
+        columns=["validation_size","arm","node","realized_bandwidth_redshift","replicate"])
+    actual_scott=pd.read_csv(root/"scott_widths_all_replicates.csv")
+    scott_key=["replicate","validation_size","arm","node"]
+    if len(actual_scott)!=len(expected_scott):
+        raise AssertionError("aggregate Scott width row count mismatch")
+    if expected_scott.duplicated(scott_key).any() or actual_scott.duplicated(scott_key).any():
+        raise AssertionError("duplicate aggregate Scott width key")
+    expected_scott=expected_scott.sort_values(scott_key).reset_index(drop=True)
+    actual_scott=actual_scott.sort_values(scott_key).reset_index(drop=True)
+    for col in scott_key:
+        if actual_scott[col].tolist()!=expected_scott[col].tolist():
+            raise AssertionError(f"aggregate Scott width key mismatch: {col}")
+    if not np.allclose(actual_scott.realized_bandwidth_redshift.to_numpy(float),
+        expected_scott.realized_bandwidth_redshift.to_numpy(float),rtol=2e-10,atol=2e-10,equal_nan=False):
+        raise AssertionError("aggregate Scott width values mismatch")
     return {"status":"PASS","manifest_files_verified":checked,
       "planned_replicates":planned,"successful_replicates":int((ledger.status=="SUCCESS").sum()),
       "failed_replicates":int((ledger.status=="FAILED").sum()),
       "child_raw_audits_passed":len(child_reports),"aggregate_metric_rows_reconstructed":len(expected),
+      "scott_width_rows_reconstructed":len(expected_scott),
+      "realized_scott_width_min":float(expected_scott.realized_bandwidth_redshift.min()) if len(expected_scott) else None,
+      "realized_scott_width_max":float(expected_scott.realized_bandwidth_redshift.max()) if len(expected_scott) else None,
       "scope":"Outer seed/ledger/manifest/aggregation audit plus independent raw-input reconstruction of each successful replicate. No bandwidth selection or H0 inference."}
 
 def main():
