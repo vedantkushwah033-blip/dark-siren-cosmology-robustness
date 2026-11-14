@@ -1,0 +1,96 @@
+name: quadratic-logit-curvature-smoke
+
+on:
+  push:
+    branches:
+      - research/absolute-width-distribution-pilot-20261114
+    paths:
+      - "src/dark_siren_robustness/generative_selection.py"
+      - "scripts/run_quadratic_logit_curvature_density_smoke.py"
+      - "scripts/audit_quadratic_logit_curvature_density_smoke.py"
+      - "scripts/audit_absolute_bandwidth_density_smoke.py"
+      - "tests/test_quadratic_logit_curvature_density_smoke.py"
+      - ".github/workflows/quadratic-logit-curvature-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quadratic-logit-curvature-smoke-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  paired-gamma-engineering-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Test quadratic-logit DGP calibration and field separation
+        run: python -m pytest tests/test_generative_selection.py -q
+      - name: Test curvature density runner and independent auditor
+        run: python -m pytest tests/test_quadratic_logit_curvature_density_smoke.py -q
+      - name: Run paired-seed seven-gamma engineering smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/quadratic_logit_curvature_smoke
+          for gamma in -2 -1 -0.5 0 0.5 1 2; do
+            label=${gamma//- /m}
+            label=${label//-/m}
+            label=${label//./p}
+            out="artifacts/quadratic_logit_curvature_smoke/gamma_${label}"
+            python scripts/run_quadratic_logit_curvature_density_smoke.py \
+              --seed 20261115 --validation-seed 20261116 \
+              --n-parent 4000 --validation-frame 1500 \
+              --validation-sizes 100,300,1000 \
+              --gamma "${gamma}" --quadrature-order 5 --grid-points 401 \
+              --absolute-widths 0.008,0.012,0.016,0.024,0.032,0.040,0.050,0.060,0.080 \
+              --output-dir "${out}"
+            python scripts/audit_quadratic_logit_curvature_density_smoke.py \
+              --input-dir "${out}" > "${out}/independent_audit.json"
+          done
+      - name: Summarize paired gamma engineering smoke
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("artifacts/quadratic_logit_curvature_smoke")
+          rows = []
+          for path in sorted(root.glob("gamma_*/independent_audit.json")):
+              report = json.loads(path.read_text())
+              assert report["status"] == "PASS"
+              assert report["weight_diagnostic_rows_reconstructed"] == 42
+              rows.append({
+                  "gamma_directory": path.parent.name,
+                  "gamma": report["gamma"],
+                  "manifest_files_verified": report["manifest_files_verified"],
+                  "density_metric_rows_reconstructed": report["density_metric_rows_reconstructed"],
+                  "weight_diagnostic_rows_reconstructed": report["weight_diagnostic_rows_reconstructed"],
+                  "scott_width_rows_reconstructed": report["scott_width_rows_reconstructed"],
+              })
+          assert len(rows) == 7
+          (root / "paired_gamma_smoke_summary.json").write_text(json.dumps({
+              "status": "PASS",
+              "interpretation": "paired-seed engineering smoke only; one replicate per gamma; not an inferential benchmark",
+              "population_seed": 20261115,
+              "validation_seed": 20261116,
+              "gamma_cells": rows,
+          }, indent=2, sort_keys=True) + "\\n")
+          print(json.dumps(rows, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quadratic-logit-curvature-seven-gamma-smoke
+          path: artifacts/quadratic_logit_curvature_smoke/
+          if-no-files-found: warn
+          retention-days: 30
