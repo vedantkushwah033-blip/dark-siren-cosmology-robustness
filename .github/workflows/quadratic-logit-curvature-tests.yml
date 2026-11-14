@@ -14,6 +14,7 @@ on:
       - scripts/audit_quadratic_logit_curvature_density_replicates.py
       - tests/test_quadratic_logit_curvature_density_smoke.py
       - tests/test_quadratic_logit_curvature_density_replicates.py
+      - tests/test_quadratic_logit_curvature_incomplete_reference.py
       - .github/workflows/quadratic-logit-curvature-tests.yml
   workflow_dispatch:
 
@@ -42,6 +43,8 @@ jobs:
         run: python -m pytest tests/test_quadratic_logit_curvature_density_smoke.py -q
       - name: Test paired multi-replicate curvature runner and independent outer auditor
         run: python -m pytest tests/test_quadratic_logit_curvature_density_replicates.py -q
+      - name: Test missing gamma-zero reference failure lifecycle
+        run: python -m pytest tests/test_quadratic_logit_curvature_incomplete_reference.py -q
       - name: Validate curvature multi-replicate command-line interfaces
         run: |
           python scripts/run_quadratic_logit_curvature_density_replicates.py --help
