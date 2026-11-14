@@ -38,3 +38,33 @@ def test_absolute_bandwidth_density_smoke_independent_reconstruction_and_corrupt
     metrics.to_csv(metrics_path,index=False)
     with pytest.raises(AssertionError,match="manifest verification failed"):
         auditor.audit(output)
+
+
+def test_absolute_bandwidth_auditor_rejects_non_nested_validation_ids(tmp_path):
+    import hashlib
+    import json
+
+    runner=_load("absolute_density_runner_ids","run_absolute_bandwidth_density_smoke.py")
+    auditor=_load("absolute_density_auditor_ids","audit_absolute_bandwidth_density_smoke.py")
+    output=tmp_path/"absolute_density_ids"
+    args=SimpleNamespace(
+        output_dir=output, seed=20261116, validation_seed=20261117,
+        n_parent=500, validation_frame=120, validation_sizes=(40,80),
+        catalogue_floor=0.10, quadrature_order=3, grid_points=101,
+        absolute_widths=(0.012,),
+    )
+    runner.run(args)
+    path=output/"observable"/"validation_n80.csv"
+    frame=pd.read_csv(path)
+    frame.loc[0,"validation_id"] = frame.loc[1,"validation_id"]
+    frame.to_csv(path,index=False)
+
+    manifest_path=output/"manifest.json"
+    manifest=json.loads(manifest_path.read_text())
+    rel=str(path.relative_to(output))
+    payload=path.read_bytes()
+    manifest["files"][rel]={"bytes":len(payload),"sha256":hashlib.sha256(payload).hexdigest()}
+    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n")
+
+    with pytest.raises(AssertionError,match="validation IDs are not the declared nested prefix"):
+        auditor.audit(output)
