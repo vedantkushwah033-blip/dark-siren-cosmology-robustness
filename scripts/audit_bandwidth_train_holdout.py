@@ -99,8 +99,14 @@ def audit_selection(source_dir: Path, selection_path: Path) -> dict:
         raise AssertionError("selected multiplier was not minimized on training data")
     if selection.get("schema_version") != 1:
         raise AssertionError("unsupported selection artifact schema")
-    if selection.get("status") != "PASS_SELECTION_ONLY_NOT_CONFIRMATORY":
-        raise AssertionError("selection artifact status is not the declared non-confirmatory status")
+    boundary_limited = expected_selected in (candidates[0], candidates[-1])
+    expected_status = "BOUNDARY_LIMITED_EXPAND_GRID" if boundary_limited else "PASS_SELECTION_ONLY_NOT_CONFIRMATORY"
+    if selection.get("status") != expected_status:
+        raise AssertionError("selection status does not reflect candidate-grid boundary behavior")
+    if selection.get("boundary_limited") is not boundary_limited:
+        raise AssertionError("boundary_limited flag does not match selected candidate")
+    if selection.get("selection_eligible") is not (not boundary_limited):
+        raise AssertionError("selection_eligible flag does not match boundary status")
 
     def _check_score_rows(observed_rows, expected_rows, label):
         if not isinstance(observed_rows, list) or len(observed_rows) != len(expected_rows):
@@ -155,6 +161,8 @@ def audit_selection(source_dir: Path, selection_path: Path) -> dict:
         "training_replicates": len(expected_train),
         "holdout_replicates": len(expected_holdout),
         "candidate_count": len(candidates),
+        "boundary_limited": boundary_limited,
+        "selection_eligible": not boundary_limited,
         "source_attempts_sha256": _hash(source_dir / "attempt_metrics.csv"),
     }
 
