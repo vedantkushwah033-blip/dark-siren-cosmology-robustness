@@ -111,7 +111,7 @@ def run(args):
       "iae","ise","boundary_iae","status","kish_ess"])
     combine(diagnostic_frames,"weight_diagnostics_all_cells.csv",[
       "replicate","gamma","validation_size","arm","node","kish_ess","kish_ess_fraction",
-      "maximum_normalized_weight","top_1_percent_mass","top_5_percent_mass"])
+      "entropy_ess","maximum_normalized_weight","top_1_percent_mass","top_5_percent_mass"])
     combine(scott_frames,"scott_widths_all_cells.csv",[
       "replicate","gamma","validation_size","arm","node","realized_bandwidth_redshift"])
     # Paired gamma and arm contrasts use common random numbers.
