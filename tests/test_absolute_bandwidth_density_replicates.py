@@ -1,0 +1,57 @@
+from __future__ import annotations
+import hashlib, importlib.util, json, sys
+from pathlib import Path
+from types import SimpleNamespace
+import pandas as pd
+import pytest
+
+ROOT=Path(__file__).resolve().parents[1]
+SCRIPTS=ROOT/"scripts"
+sys.path.insert(0,str(SCRIPTS))
+
+def _load(name,path):
+    spec=importlib.util.spec_from_file_location(name,SCRIPTS/path)
+    module=importlib.util.module_from_spec(spec)
+    sys.modules[name]=module
+    spec.loader.exec_module(module)
+    return module
+
+def _rehash(root,path):
+    rel=str(path.relative_to(root))
+    payload=path.read_bytes()
+    manifest_path=root/"manifest.json"
+    manifest=json.loads(manifest_path.read_text())
+    manifest["files"][rel]={"bytes":len(payload),"sha256":hashlib.sha256(payload).hexdigest()}
+    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n")
+
+def _args(output):
+    return SimpleNamespace(
+      output_dir=output,master_seed=20261120,seed_stride=10,replicates=2,
+      n_parent=500,validation_frame=120,validation_sizes=(40,80),
+      catalogue_floor=0.10,quadrature_order=3,grid_points=101,
+      absolute_widths=(0.016,0.024))
+
+def test_two_replicate_density_pilot_and_independent_orchestration_audit(tmp_path):
+    runner=_load("absolute_density_replicates_runner","run_absolute_bandwidth_density_replicates.py")
+    auditor=_load("absolute_density_replicates_auditor","audit_absolute_bandwidth_density_replicates.py")
+    out=tmp_path/"replicate_pilot"
+    result=runner.run(_args(out))
+    assert result["planned_replicates"]==2
+    assert result["successful_replicates"]==2
+    report=auditor.audit(out)
+    assert report["status"]=="PASS"
+    assert report["child_raw_audits_passed"]==2
+    assert report["aggregate_metric_rows_reconstructed"]==len(pd.read_csv(out/"density_metrics_all_replicates.csv"))
+
+def test_orchestration_auditor_rejects_duplicate_aggregate_key_even_with_updated_manifest(tmp_path):
+    runner=_load("absolute_density_replicates_runner_badkey","run_absolute_bandwidth_density_replicates.py")
+    auditor=_load("absolute_density_replicates_auditor_badkey","audit_absolute_bandwidth_density_replicates.py")
+    out=tmp_path/"replicate_badkey"
+    runner.run(_args(out))
+    path=out/"density_metrics_all_replicates.csv"
+    frame=pd.read_csv(path)
+    frame.loc[1]=frame.loc[0]
+    frame.to_csv(path,index=False)
+    _rehash(out,path)
+    with pytest.raises(AssertionError,match="aggregate metric row count mismatch|duplicate aggregate metric key"):
+        auditor.audit(out)
