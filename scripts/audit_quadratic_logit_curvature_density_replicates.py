@@ -185,7 +185,7 @@ def audit(root:Path):
   ["iae","ise","boundary_iae","status","kish_ess"])
  diag_rows=_compare_aggregate(root,"weight_diagnostics_all_cells.csv",diagnostic_frames,
   ["replicate","gamma","validation_size","arm","node"],
-  ["kish_ess","kish_ess_fraction","maximum_normalized_weight","top_1_percent_mass","top_5_percent_mass"])
+  ["kish_ess","kish_ess_fraction","entropy_ess","maximum_normalized_weight","top_1_percent_mass","top_5_percent_mass"])
  scott_rows=_compare_aggregate(root,"scott_widths_all_cells.csv",scott_frames,
   ["replicate","gamma","validation_size","arm","node"],["realized_bandwidth_redshift"])
 
