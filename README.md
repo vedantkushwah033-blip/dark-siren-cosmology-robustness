@@ -1,6 +1,8 @@
 # Dark-Siren Cosmology Robustness
 
-## Density-stage update (2026-11-14)
+## Density-stage update (2026-11-15)
+
+- **Expanded 11-width audit readout:** all three 20-replicate floor scenarios passed independent child and outer audits (20/20 per scenario; 244 manifest files and 20,460 aggregate metric rows reconstructed per scenario). At common h=0.016 and n=1000, estimated IPW is close to known-probability IPW only in the no-floor scenario; its loss gap is much larger at floors 0.10 and 0.25. Empirical minima for catalogue-only in two scenarios sit at the upper bandwidth-grid edge, so no bandwidth is selected. See [the expanded-grid audit readout](docs/expanded_absolute_width_distribution_audit_readout_2026-11-15.md).
 
 - **Quadratic-logit curvature experiment:** paired replicate × curvature orchestration now uses common population/validation seeds across gamma values, independently audits each successful child, and preserves failed cells in the lifecycle ledger. It now writes replicate-level gamma-vs-zero contrasts, within-gamma estimator contrasts (D−A, D−C, C−B, E−D), and paired MCSE summaries; the outer auditor reconstructs these from audited child metrics. The compact CI run has exposed numerical-tolerance and test-expectation issues in earlier revisions; the latest exact-head CI is pending, and no completed seven-gamma result is claimed. See the [design and audit status](docs/quadratic_logit_curvature_stress_design_2026-11-14.md) and [paired contrast protocol](docs/quadratic_logit_curvature_paired_contrast_protocol_2026-11-15.md).
 
