@@ -50,6 +50,7 @@ def audit(root:Path):
         raise AssertionError("config lifecycle totals disagree with ledger")
     expected_frames=[]
     expected_scott_frames=[]
+    expected_diagnostic_frames=[]
     child_reports=[]
     for row in ledger.to_dict("records"):
         rid=int(row["replicate_id"])
@@ -76,6 +77,9 @@ def audit(root:Path):
             scott_frame=pd.read_csv(child/"results"/"scott_widths.csv")
             scott_frame["replicate"]=rid
             expected_scott_frames.append(scott_frame)
+            diagnostic_frame=pd.read_csv(child/"results"/"weight_diagnostics.csv")
+            diagnostic_frame["replicate"]=rid
+            expected_diagnostic_frames.append(diagnostic_frame)
             frame=pd.read_csv(child/"results"/"density_metrics.csv")
             if len(frame)!=int(row["metric_rows"]):
                 raise AssertionError(f"replicate {rid} metric-row ledger mismatch")
@@ -125,11 +129,33 @@ def audit(root:Path):
     if not np.allclose(actual_scott.realized_bandwidth_redshift.to_numpy(float),
         expected_scott.realized_bandwidth_redshift.to_numpy(float),rtol=2e-10,atol=2e-10,equal_nan=False):
         raise AssertionError("aggregate Scott width values mismatch")
+    expected_diagnostics=pd.concat(expected_diagnostic_frames,ignore_index=True) if expected_diagnostic_frames else pd.DataFrame(
+        columns=["validation_size","arm","node","kish_ess","kish_ess_fraction",
+                 "maximum_normalized_weight","top_1_percent_mass","top_5_percent_mass","replicate"])
+    actual_diagnostics=pd.read_csv(root/"weight_diagnostics_all_replicates.csv")
+    diagnostic_key=["replicate","validation_size","arm","node"]
+    diagnostic_columns=["kish_ess","kish_ess_fraction","maximum_normalized_weight",
+                        "top_1_percent_mass","top_5_percent_mass"]
+    if len(actual_diagnostics)!=len(expected_diagnostics):
+        raise AssertionError("aggregate weight-diagnostic row count mismatch")
+    if expected_diagnostics.duplicated(diagnostic_key).any() or actual_diagnostics.duplicated(diagnostic_key).any():
+        raise AssertionError("duplicate aggregate weight-diagnostic key")
+    expected_diagnostics=expected_diagnostics.sort_values(diagnostic_key).reset_index(drop=True)
+    actual_diagnostics=actual_diagnostics.sort_values(diagnostic_key).reset_index(drop=True)
+    for col in diagnostic_key:
+        if actual_diagnostics[col].tolist()!=expected_diagnostics[col].tolist():
+            raise AssertionError(f"aggregate weight-diagnostic key mismatch: {col}")
+    for col in diagnostic_columns:
+        if not np.allclose(actual_diagnostics[col].to_numpy(float),
+                           expected_diagnostics[col].to_numpy(float),
+                           rtol=2e-10,atol=2e-10,equal_nan=False):
+            raise AssertionError(f"aggregate weight-diagnostic values mismatch: {col}")
     return {"status":"PASS","manifest_files_verified":checked,
       "planned_replicates":planned,"successful_replicates":int((ledger.status=="SUCCESS").sum()),
       "failed_replicates":int((ledger.status=="FAILED").sum()),
       "child_raw_audits_passed":len(child_reports),"aggregate_metric_rows_reconstructed":len(expected),
       "scott_width_rows_reconstructed":len(expected_scott),
+      "weight_diagnostic_rows_reconstructed":len(expected_diagnostics),
       "realized_scott_width_min":float(expected_scott.realized_bandwidth_redshift.min()) if len(expected_scott) else None,
       "realized_scott_width_max":float(expected_scott.realized_bandwidth_redshift.max()) if len(expected_scott) else None,
       "scope":"Outer seed/ledger/manifest/aggregation audit plus independent raw-input reconstruction of each successful replicate. No bandwidth selection or H0 inference."}
