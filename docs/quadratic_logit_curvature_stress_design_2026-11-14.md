@@ -247,3 +247,8 @@ The paired runner previously retained the posterior expected node-specific loss 
 ## Child lifecycle row-count reconciliation (2026-11-15)
 
 The outer auditor now reconciles all three per-cell output counts against the lifecycle ledger: density metric rows, weight-diagnostic rows, and realized Scott-width rows. Previously only the density metric count was checked explicitly, even though the diagnostic and width tables were reconstructed at the aggregate level. A regression test changes the ledger's diagnostic count, refreshes the outer manifest hash, and requires the auditor to reject the inconsistency. This closes a ledger-consistency gap without changing any density result.
+
+
+## Arm E convex-loss ordering audit (2026-11-15)
+
+The child-level independent density auditor now checks the mathematical ordering between the two distinct Arm E estimands. For each validation size and common physical bandwidth, the primary quantity is loss of the posterior-mean density, while the secondary quantity is posterior expected node-specific loss. Since IAE, ISE, and boundary IAE are convex losses and the posterior quadrature weights are nonnegative and normalized, Jensen's inequality requires the secondary quantity to be at least the primary quantity (up to numerical tolerance). The auditor now rejects violations separately for all three losses, and a regression test injects a violation to verify rejection. This is a consistency invariant, not new empirical evidence or a change to either estimand.
