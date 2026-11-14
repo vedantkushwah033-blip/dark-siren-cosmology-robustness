@@ -85,7 +85,7 @@ jobs:
         run: |
           python scripts/run_parent_density_bandwidth_pilot.py \
             --replicates 100 --n-parent 4000 --seed 20261114 --grid-points 801 \
-            --bandwidth-multipliers 0.03,0.04,0.05,0.06,0.08,0.10,0.12,0.15,0.20,0.25,0.30,0.40 \
+            --bandwidth-multipliers 0.03,0.04,0.05,0.06,0.08,0.10,0.12,0.15,0.20,0.25,0.30,0.40,0.50,0.60,0.80,1.00,1.20 \
             --output-dir artifacts/parent_density_bandwidth_pilot
       - name: Independently audit raw parent-density bandwidth pilot (Python 3.12 only)
         if: matrix.python-version == '3.12'
