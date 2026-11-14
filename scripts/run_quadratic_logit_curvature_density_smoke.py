@@ -100,7 +100,12 @@ def run(args: argparse.Namespace) -> dict[str, object]:
 
     pz = parent["redshift"].to_numpy(float)
     cz = catalogue["redshift"].to_numpy(float)
-    p_catalogue = catalogue["inclusion_probability"].to_numpy(float)
+    # Catalogue observables intentionally omit inclusion probabilities. Recover
+    # the oracle values only from the truth-only parent table, preserving the
+    # retained-row order used to construct catalogue_observed.
+    p_catalogue = parent.loc[parent["retained"].astype(bool), "inclusion_probability"].to_numpy(float)
+    if len(p_catalogue) != len(catalogue):
+        raise AssertionError("truth-only oracle probabilities do not align with catalogue rows")
     parent_base = 1.0 + 1.5 * (pz - Z_MIN) / (Z_MAX - Z_MIN)
     catalogue_base = 1.0 + 1.5 * (cz - Z_MIN) / (Z_MAX - Z_MIN)
 
