@@ -113,6 +113,59 @@ def test_five_arm_weights_apply_common_base_population_mass_to_all_arms():
         (None, np.r_[np.ones(2), 0.0], "catalogue_base_weights"),
     ],
 )
+def test_five_arm_builder_uses_explicit_truth_probabilities_for_nondefault_dgp():
+    parent, catalogue, validation, retained = _fixture()
+    true_probability = 0.35 + 0.25 * (catalogue - 0.01) / 0.39
+    result = build_five_arm_weights(
+        parent, catalogue, validation, retained,
+        catalogue_floor=0.10,
+        true_catalogue_inclusion_probability=true_probability,
+        quadrature_order=5,
+    )
+    assert np.array_equal(
+        result.arm_c_true_inclusion_probability, true_probability
+    )
+    assert np.allclose(
+        result.arm_c_known_probability, 1.0 / true_probability
+    )
+    # The validation-only D/E arms must remain fitted from observable labels,
+    # rather than being overwritten by the supplied simulation truth.
+    assert np.allclose(
+        result.arm_d_map_plugin,
+        1.0 / result.arm_d_map_inclusion_probability,
+    )
+    assert np.allclose(
+        result.arm_e_node_weights,
+        1.0 / result.arm_e_node_inclusion_probability,
+    )
+
+
+@pytest.mark.parametrize(
+    "probability",
+    [
+        np.ones(2),
+        np.array([0.0]),
+        np.array([1.01]),
+        np.array([np.nan]),
+    ],
+)
+def test_five_arm_builder_rejects_invalid_explicit_truth_probabilities(probability):
+    parent, catalogue, validation, retained = _fixture()
+    # Adapt shape-only cases so each invalid input is tested against a real
+    # catalogue of at least one row.
+    if probability.size == 1 and catalogue.size != 1:
+        probability = np.resize(probability, catalogue.size)
+    elif probability.size == 2 and probability.shape != catalogue.shape:
+        probability = np.ones(catalogue.size)
+    with pytest.raises(ValueError, match="true_catalogue_inclusion_probability"):
+        build_five_arm_weights(
+            parent, catalogue, validation, retained,
+            catalogue_floor=0.10,
+            true_catalogue_inclusion_probability=probability,
+            quadrature_order=5,
+        )
+
+
 def test_five_arm_builder_rejects_invalid_base_population_weights(
     parent_base, catalogue_base, match
 ):
