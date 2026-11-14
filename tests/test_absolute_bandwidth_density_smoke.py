@@ -178,3 +178,34 @@ def test_density_smoke_does_not_apply_base_measure_twice(tmp_path):
     assert np.allclose(raw["base_measure_grid"], base)
     assert np.array_equal(raw["merger_weight_grid"], np.ones_like(grid))
     assert auditor.audit(output)["status"] == "PASS"
+
+
+def test_absolute_bandwidth_auditor_rejects_corrupted_inclusion_posterior_weights(tmp_path):
+    import hashlib
+    import json
+
+    runner = _load("absolute_density_runner_posterior_corrupt", "run_absolute_bandwidth_density_smoke.py")
+    auditor = _load("absolute_density_auditor_posterior_corrupt", "audit_absolute_bandwidth_density_smoke.py")
+    output = tmp_path / "absolute_density_posterior_corrupt"
+    args = SimpleNamespace(
+        output_dir=output, seed=20261128, validation_seed=20261129,
+        n_parent=500, validation_frame=120, validation_sizes=(40, 80),
+        catalogue_floor=0.10, scott_multiplier=0.7, quadrature_order=3,
+        grid_points=101, absolute_widths=(0.012, 0.024),
+    )
+    runner.run(args)
+    raw_path = output / "results" / "density_reconstruction_inputs.npz"
+    raw = dict(np.load(raw_path))
+    q = raw["posterior_weights_n80"].copy()
+    q[0] += 0.01
+    q /= q.sum()
+    raw["posterior_weights_n80"] = q
+    np.savez_compressed(raw_path, **raw)
+    manifest_path = output / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    payload = raw_path.read_bytes()
+    rel = str(raw_path.relative_to(output))
+    manifest["files"][rel] = {"bytes": len(payload), "sha256": hashlib.sha256(payload).hexdigest()}
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n")
+    with pytest.raises(AssertionError, match="independently reconstructed inclusion posterior weights"):
+        auditor.audit(output)
