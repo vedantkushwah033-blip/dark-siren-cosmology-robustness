@@ -120,6 +120,13 @@ def audit(root: Path, expected_gammas=DEFAULT_GAMMAS,
 
     reference_gamma = expected_gammas[0]
     reference_cfg = configs[reference_gamma]
+    reference_calibration = None
+    expected_alpha = {
+        -2.0: -0.2404784703, -1.0: -0.1247216935,
+        -0.5: -0.0629707145, 0.0: 0.0,
+        0.5: 0.0631226953, 1.0: 0.1253055057,
+        2.0: 0.2424413834,
+    }
     for gamma in expected_gammas:
         cfg = configs[gamma]
         for key in COMMON_CONFIG_KEYS:
@@ -146,8 +153,19 @@ def audit(root: Path, expected_gammas=DEFAULT_GAMMAS,
                         "x2_center", "coordinate_center", "coordinate_scale"):
                 _close([float(cal[key])], [float(first_cal[key])],
                        f"within-gamma calibration {key} gamma={gamma}")
+        if reference_calibration is None:
+            reference_calibration = first_cal
+        else:
+            for key in ("beta", "target_rate", "x2_center", "coordinate_center", "coordinate_scale"):
+                _close([float(first_cal[key])], [float(reference_calibration[key])],
+                       f"cross-gamma common calibration {key} gamma={gamma}")
+        if gamma in expected_alpha:
+            _close([float(first_cal["alpha"])], [expected_alpha[gamma]],
+                   f"documented calibrated intercept gamma={gamma}", atol=5e-10)
         if not np.isclose(float(first_cal["achieved_rate"]), float(first_cal["target_rate"]), atol=2e-10):
             raise AssertionError(f"parent-average inclusion rate not preserved at gamma={gamma}")
+        if not np.isclose(float(first_cal["target_rate"]), 0.5101919962, atol=5e-10):
+            raise AssertionError(f"unexpected reference parent-average inclusion rate at gamma={gamma}")
 
     # Verify that the same random-number streams induce paired parent and
     # validation-frame redshifts/IDs across curvature values. Retention labels
