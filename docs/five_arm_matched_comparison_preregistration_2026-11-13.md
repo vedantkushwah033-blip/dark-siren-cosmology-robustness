@@ -184,3 +184,8 @@ python scripts/audit_bandwidth_train_holdout.py \
 ```
 
 The 200-replicate run is a training/holdout bandwidth-selection pilot, not the final confirmatory five-arm campaign. Freeze the selected multiplier and source hashes before applying it to the five-arm H0 study. Do not reselect after viewing H0 posterior results.
+
+
+## 15. Dedicated bandwidth-selection execution workflow (2026-11-14)
+
+The exact-head Python 3.10/3.11/3.12 numerical-diagnostics matrix passed at commit `b0f3a94e9e992e3c29d75cadd210bfa5a01d042c`. A dedicated GitHub Actions workflow, `.github/workflows/bandwidth-selection.yml`, now runs the preregistered 200-replicate parent-density bandwidth source experiment on this research branch, independently reconstructs every candidate IAE, performs the deterministic 70/30 training/holdout selection, and independently audits the selected result. The raw source data, selection report, and both audit reports are uploaded as a versioned workflow artifact. This execution is deliberately separate from the five-arm H0 outcomes: no cosmological posterior or coverage metric enters the bandwidth selection. The selected multiplier is eligible for use only if the complete source and selection audits pass; holdout scores remain a report-only assessment and cannot trigger re-selection.
