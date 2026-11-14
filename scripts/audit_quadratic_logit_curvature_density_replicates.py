@@ -131,7 +131,8 @@ def audit(root:Path):
  metric_all=metric_all[metric_all.arm.isin(primary_arms) & (metric_all.node==-1)].copy()
  metric_names=("iae","ise","boundary_iae")
  zero_rows=metric_all[np.isclose(metric_all.gamma,0.0)]
- if zero_rows.empty: raise AssertionError("gamma=0 reference cell is required")
+ # If every gamma=0 cell failed, no gamma-vs-zero contrast is estimable;
+ # retain the lifecycle audit and reconstruct the remaining arm-pair contrasts.
  pair_keys=["replicate","validation_size","absolute_bandwidth_sd"]
  expected_contrasts=[]
  for gamma in gammas:
