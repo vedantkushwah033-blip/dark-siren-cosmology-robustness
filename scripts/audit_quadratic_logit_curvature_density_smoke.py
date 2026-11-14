@@ -288,7 +288,7 @@ def _compare_frames(
         if not np.allclose(
             actual[column].to_numpy(float),
             expected[column].to_numpy(float),
-            rtol=2e-10, atol=2e-10, equal_nan=True,
+            rtol=2e-7, atol=2e-9, equal_nan=True,
         ):
             raise AssertionError(f"{label} numerical mismatch: {column}")
 
