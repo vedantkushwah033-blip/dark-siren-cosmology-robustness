@@ -255,3 +255,17 @@ The child-level independent density auditor now checks the mathematical ordering
 
 
 The same child auditor also validates the independently reconstructed posterior quadrature as a discrete probability measure: node and weight dimensions must agree, all nodes and weights must be finite, weights must be non-negative, and weights must sum to one within a tight numerical tolerance. This guards the assumptions required by posterior averaging and the Jensen ordering above. Regression tests exercise negative weights, non-unit total mass, and shape mismatch.
+
+
+## Entropy-ESS audit completeness (2026-11-15)
+
+A cross-path review found that entropy effective sample size was calculated by the production weight-diagnostic function but was not consistently preserved or independently audited in the density pipeline. The independent reference diagnostic omitted entropy ESS, posterior-integrated Arm E aggregate rows omitted it, and some multi-replicate aggregation schemas did not retain the column. Consequently, a passing audit could leave this diagnostic unchecked.
+
+The implementation now:
+- independently reconstructs entropy ESS from normalized raw weights as exp(-sum p_i log p_i);
+- records the conservative minimum entropy ESS across Arm E quadrature nodes, alongside the minimum Kish ESS;
+- preserves entropy ESS in floor-family and quadratic-logit single-cell outputs and multi-replicate aggregates;
+- independently compares entropy ESS in both child-level and outer aggregate audits;
+- includes an adversarial regression that alters the aggregate entropy ESS and refreshes the manifest hash, which must still be rejected.
+
+This is an audit-completeness correction, not a change to the statistical estimand or any previously computed density estimate. The seven-gamma workflow that was already running at the time of this correction checked out an earlier source revision; its artifact, if uploaded, cannot establish that entropy ESS was audited. A fresh exact-head CI run and a new pilot artifact are required before claiming this diagnostic has passed end-to-end validation.
