@@ -209,3 +209,23 @@ def test_absolute_bandwidth_auditor_rejects_corrupted_inclusion_posterior_weight
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     with pytest.raises(AssertionError, match="independently reconstructed inclusion posterior weights"):
         auditor.audit(output)
+
+def test_proper_inclusion_posterior_accepts_tiny_trust_exact_residual():
+    """Regression for a finite validation sample with a tiny optimizer residual."""
+    from dark_siren_robustness.generative_selection import generate_independent_validation_sample
+    from dark_siren_robustness.inclusion_posterior import fit_inclusion_posterior_quadrature
+
+    sample = generate_independent_validation_sample(
+        seed=20261372, n_validation_frame=1500, n_validation=1000,
+        z_min=0.01, z_max=0.40, catalogue_floor=0.10,
+        catalogue_midpoint=0.22, catalogue_width=0.05,
+    )
+    validation = sample["validation_observed"]
+    fit = fit_inclusion_posterior_quadrature(
+        validation.redshift.to_numpy(float), validation.retained.to_numpy(int),
+        degree=1, prior_mean=(0.0, 0.0), prior_sd=(5.0, 2.5),
+        coordinate_center=0.205, coordinate_scale=0.195, order=5,
+    )
+    assert np.all(np.isfinite(fit.mode))
+    assert np.all(np.isfinite(fit.weights))
+    assert np.isclose(fit.weights.sum(), 1.0)
