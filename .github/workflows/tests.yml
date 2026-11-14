@@ -2,6 +2,11 @@ name: tests
 
 on:
   push:
+    paths-ignore:
+      - .github/workflows/inclusion-posterior-mode-refinement.yml
+      - src/dark_siren_robustness/inclusion_posterior.py
+      - tests/test_inclusion_posterior.py
+      - .github/workflows/tests.yml
   pull_request:
   workflow_dispatch:
 
