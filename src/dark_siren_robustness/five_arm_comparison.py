@@ -94,12 +94,15 @@ def build_five_arm_weights(
     quadrature_order: int = 15,
     parent_base_weights: ArrayLike | None = None,
     catalogue_base_weights: ArrayLike | None = None,
+    known_inclusion_probability: ArrayLike | None = None,
 ) -> FiveArmWeights:
     """Construct A-E raw weights from one matched synthetic replicate.
 
     A: declared base-population weights on the observed catalogue.
     B: the same base-population weighting rule on the full parent population.
     C: catalogue base weights divided by true inclusion probabilities.
+       By default these come from the floor-logistic DGP; callers may instead
+       supply known_inclusion_probability for a different declared DGP.
     D: catalogue base weights divided by probabilities at the validation MAP.
     E: one catalogue-base-weighted IPW vector per posterior quadrature node.
 
@@ -142,12 +145,26 @@ def build_five_arm_weights(
         order=quadrature_order,
     )
 
-    true_probability = catalogue_inclusion_probability(
-        catalogue,
-        floor=float(catalogue_floor),
-        midpoint=float(catalogue_midpoint),
-        width=float(catalogue_width),
-    )
+    if known_inclusion_probability is None:
+        true_probability = catalogue_inclusion_probability(
+            catalogue,
+            floor=float(catalogue_floor),
+            midpoint=float(catalogue_midpoint),
+            width=float(catalogue_width),
+        )
+    else:
+        true_probability = np.asarray(known_inclusion_probability, dtype=float)
+        if (
+            true_probability.shape != catalogue.shape
+            or not np.all(np.isfinite(true_probability))
+            or np.any(true_probability <= 0.0)
+            or np.any(true_probability > 1.0)
+        ):
+            raise ValueError(
+                "known_inclusion_probability must be finite, in (0, 1], "
+                "and match catalogue_redshift"
+            )
+        true_probability = true_probability.copy()
     map_probability = _probabilities_for_nodes(
         catalogue,
         posterior.mode[None, :],
