@@ -155,6 +155,9 @@ def audit(root:Path):
    node_ds=np.asarray(node_ds)
    qmetric={k:float(np.dot(q,[_metric(d,truth,grid)[k] for d in node_ds])) for k in ("iae","ise","boundary_iae")}
    _close(z[f"density_E_posterior_mean_n{n}_w{bw:.6f}"],np.tensordot(q,node_ds,axes=(0,0)),f"E posterior mean density n={n} width={bw}")
+   mean_density=np.tensordot(q,node_ds,axes=(0,0))
+   mean_metric=_metric(mean_density,truth,grid)
+   expected.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":bw,"arm":"E_posterior_mean_density","node":-1,**mean_metric,"status":"SUCCESS"})
    expected.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":bw,"arm":"E_posterior_weighted_node_metric","node":-1,**qmetric,"status":"SUCCESS"})
  expected_df=pd.DataFrame(expected)
  key=["replicate","validation_size","absolute_bandwidth_sd","arm","node"]
