@@ -205,3 +205,12 @@ def test_curvature_outer_auditor_rejects_prior_drift_with_updated_manifest(tmp_p
  manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n")
  with pytest.raises(AssertionError,match="coefficient prior mismatch"):
   auditor.audit(out)
+
+
+def test_curvature_runner_rejects_gamma_values_with_colliding_child_labels(tmp_path):
+ runner=_load("curvature_multi_runner_label_collision","run_quadratic_logit_curvature_density_replicates.py")
+ args=_args(tmp_path/"gamma_label_collision")
+ args.gammas=(0.0,0.001)
+ with pytest.raises(ValueError,match="collide under the two-decimal child-directory"):
+  runner.run(args)
+ assert list(args.output_dir.iterdir())==[]
