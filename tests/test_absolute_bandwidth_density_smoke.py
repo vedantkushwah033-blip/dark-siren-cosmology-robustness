@@ -4,6 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pandas as pd
+import numpy as np
 import pytest
 
 
@@ -134,7 +135,7 @@ def test_posterior_mean_density_metric_is_distinct_and_independently_audited(tmp
     rel=str(metrics_path.relative_to(output))
     payload=metrics_path.read_bytes()
     manifest["files"][rel]={"bytes":len(payload),"sha256":hashlib.sha256(payload).hexdigest()}
-    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n")
+    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
     with pytest.raises(AssertionError,match="metric iae"):
         auditor.audit(output)
 
