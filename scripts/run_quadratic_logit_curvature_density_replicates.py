@@ -91,6 +91,69 @@ def run(args):
     combine(metric_frames,"density_metrics_all_cells.csv")
     combine(diagnostic_frames,"weight_diagnostics_all_cells.csv")
     combine(scott_frames,"scott_widths_all_cells.csv")
+    # Paired gamma and arm contrasts use common random numbers.
+    metric_all = pd.concat(metric_frames, ignore_index=True) if metric_frames else pd.DataFrame()
+    primary_arms = ("A_catalogue_only", "B_parent_oracle", "C_known_probability_ipw",
+                    "D_map_plugin_ipw", "E_posterior_mean_density")
+    metric_all = metric_all[metric_all["arm"].isin(primary_arms) & (metric_all["node"] == -1)].copy()
+    metric_names = ("iae", "ise", "boundary_iae")
+    contrast_rows = []
+    pair_keys = ["replicate", "validation_size", "absolute_bandwidth_sd"]
+    zero_rows = metric_all[np.isclose(metric_all["gamma"], 0.0)]
+    if zero_rows.empty:
+      raise ValueError("gamma grid must include gamma=0 for paired reference contrasts")
+    for gamma in gammas:
+      if gamma == 0.0:
+        continue
+      current = metric_all[np.isclose(metric_all["gamma"], gamma)]
+      for arm in primary_arms:
+        paired = current[current.arm == arm].merge(
+          zero_rows[zero_rows.arm == arm], on=pair_keys,
+          suffixes=("", "_reference"), validate="one_to_one")
+        for _, row in paired.iterrows():
+          for metric in metric_names:
+            contrast_rows.append({
+              "contrast_type": "gamma_vs_zero", "gamma": gamma, "reference_gamma": 0.0,
+              "arm": arm, "reference_arm": arm, "replicate": int(row.replicate),
+              "validation_size": int(row.validation_size),
+              "absolute_bandwidth_sd": float(row.absolute_bandwidth_sd), "metric": metric,
+              "value": float(row[metric]), "reference_value": float(row[f"{metric}_reference"]),
+              "difference": float(row[metric] - row[f"{metric}_reference"]),
+            })
+    arm_pairs = (("D_map_plugin_ipw", "A_catalogue_only"),
+                 ("D_map_plugin_ipw", "C_known_probability_ipw"),
+                 ("C_known_probability_ipw", "B_parent_oracle"),
+                 ("E_posterior_mean_density", "D_map_plugin_ipw"))
+    for gamma in gammas:
+      at_gamma = metric_all[np.isclose(metric_all.gamma, gamma)]
+      for arm, reference_arm in arm_pairs:
+        paired = at_gamma[at_gamma.arm == arm].merge(
+          at_gamma[at_gamma.arm == reference_arm], on=pair_keys,
+          suffixes=("", "_reference"), validate="one_to_one")
+        for _, row in paired.iterrows():
+          for metric in metric_names:
+            contrast_rows.append({
+              "contrast_type": "arm_pair", "gamma": gamma, "reference_gamma": float("nan"),
+              "arm": arm, "reference_arm": reference_arm, "replicate": int(row.replicate),
+              "validation_size": int(row.validation_size),
+              "absolute_bandwidth_sd": float(row.absolute_bandwidth_sd), "metric": metric,
+              "value": float(row[metric]), "reference_value": float(row[f"{metric}_reference"]),
+              "difference": float(row[metric] - row[f"{metric}_reference"]),
+            })
+    contrast_columns = ["contrast_type", "gamma", "reference_gamma", "arm", "reference_arm",
+      "replicate", "validation_size", "absolute_bandwidth_sd", "metric", "value",
+      "reference_value", "difference"]
+    contrasts = pd.DataFrame(contrast_rows, columns=contrast_columns)
+    contrasts.to_csv(root/"paired_contrasts_all_cells.csv", index=False)
+    group_columns = ["contrast_type", "gamma", "reference_gamma", "arm", "reference_arm",
+      "validation_size", "absolute_bandwidth_sd", "metric"]
+    if len(contrasts):
+      summary = contrasts.groupby(group_columns, dropna=False).difference.agg(
+        n_pairs="count", mean_difference="mean", sd_difference="std").reset_index()
+      summary["mcse"] = summary.sd_difference / summary.n_pairs.pow(0.5)
+    else:
+      summary = pd.DataFrame(columns=group_columns+["n_pairs","mean_difference","sd_difference","mcse"])
+    summary.to_csv(root/"paired_contrast_summary.csv", index=False)
     cfg["attempted_cells"]=len(ledger)
     cfg["successful_cells"]=sum(x["status"]=="SUCCESS" for x in ledger)
     cfg["failed_cells"]=sum(x["status"]=="FAILED" for x in ledger)
