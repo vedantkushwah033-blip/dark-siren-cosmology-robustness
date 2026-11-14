@@ -20,6 +20,7 @@ def estimate_host_density(
     merger_weight: ArrayLike | None = None,
     bandwidth_factor: float | None = None,
     scott_multiplier: float | None = None,
+    absolute_bandwidth_sd: float | None = None,
 ) -> NDArray[np.float64]:
     """Estimate a normalized host-redshift density on a bounded grid.
 
@@ -40,8 +41,10 @@ def estimate_host_density(
     - ``scott_multiplier`` multiplies the weighted Scott bandwidth computed
       from the original (unreflected) sample, including weighted standard
       deviation and effective sample size.
-    - If both are omitted, the weighted Scott factor is used.
-    - The two explicit options are mutually exclusive.
+    - absolute_bandwidth_sd sets a common physical Gaussian-kernel SD in
+      redshift units, independent of each arm's effective sample size and spread.
+    - If all three are omitted, the weighted Scott factor is used.
+    - The three explicit options are mutually exclusive.
     """
     grid = np.asarray(redshift_grid, dtype=float)
     sample = np.asarray(observed_redshift, dtype=float)
@@ -80,8 +83,9 @@ def estimate_host_density(
             weights = weights * supplied_weights
         if not np.all(np.isfinite(weights)):
             raise ValueError("combined sample weights overflow; positivity is numerically unusable")
-    if bandwidth_factor is not None and scott_multiplier is not None:
-        raise ValueError("bandwidth_factor and scott_multiplier are mutually exclusive")
+    explicit_bandwidths = sum(value is not None for value in (bandwidth_factor, scott_multiplier, absolute_bandwidth_sd))
+    if explicit_bandwidths > 1:
+        raise ValueError("bandwidth_factor, scott_multiplier, and absolute_bandwidth_sd are mutually exclusive")
     if bandwidth_factor is not None and (
         not np.isfinite(bandwidth_factor) or bandwidth_factor <= 0
     ):
@@ -90,6 +94,10 @@ def estimate_host_density(
         not np.isfinite(scott_multiplier) or scott_multiplier <= 0
     ):
         raise ValueError("scott_multiplier must be finite and positive when supplied")
+    if absolute_bandwidth_sd is not None and (
+        not np.isfinite(absolute_bandwidth_sd) or absolute_bandwidth_sd <= 0
+    ):
+        raise ValueError("absolute_bandwidth_sd must be finite and positive when supplied")
 
     left = 2.0 * grid[0] - sample
     right = 2.0 * grid[-1] - sample
@@ -102,7 +110,18 @@ def estimate_host_density(
             "weight scaling underflowed positive mass; refusing to hide support loss"
         )
     augmented_weights = np.tile(scaled_weights / 3.0, 3)
-    if bandwidth_factor is None:
+    if absolute_bandwidth_sd is not None:
+        # gaussian_kde scales the augmented weighted covariance by its scalar
+        # covariance factor. Set that factor so the physical kernel SD in the
+        # original redshift coordinate equals the requested common width.
+        augmented_probability = augmented_weights / np.sum(augmented_weights)
+        augmented_mean = float(augmented_probability @ augmented_sample)
+        augmented_denominator = 1.0 - float(augmented_probability @ augmented_probability)
+        augmented_variance = float(np.sum(augmented_probability * (augmented_sample - augmented_mean) ** 2) / augmented_denominator)
+        if not np.isfinite(augmented_variance) or augmented_variance <= 0:
+            raise ValueError("weighted reflected KDE covariance is undefined")
+        bw_method = float(absolute_bandwidth_sd) / np.sqrt(augmented_variance)
+    elif bandwidth_factor is None:
         # Splitting each original weight over its three reflected copies changes
         # scipy's augmented-sample neff by a factor of three. Preserve the
         # original weighted-sample Scott factor instead of shrinking bandwidth
@@ -175,8 +194,15 @@ def reflected_weighted_kde_bandwidth(
     lower_bound: float,
     upper_bound: float,
     sample_weights: ArrayLike,
-    scott_multiplier: float,
+    scott_multiplier: float | None = None,
+    absolute_bandwidth_sd: float | None = None,
 ) -> float:
+    if (scott_multiplier is None) == (absolute_bandwidth_sd is None):
+        raise ValueError("supply exactly one of scott_multiplier or absolute_bandwidth_sd")
+    if absolute_bandwidth_sd is not None:
+        if not np.isfinite(absolute_bandwidth_sd) or absolute_bandwidth_sd <= 0:
+            raise ValueError("absolute_bandwidth_sd must be finite and positive")
+        return float(absolute_bandwidth_sd)
     """Return the physical redshift-space kernel SD used by the reflected KDE.
 
     The covariance adjustment in :func:`estimate_host_density` makes the
@@ -195,7 +221,7 @@ def reflected_weighted_kde_bandwidth(
             or lower_bound <= 0 or upper_bound <= lower_bound
             or np.any((sample < lower_bound) | (sample > upper_bound))):
         raise ValueError("bounds must be finite, positive, ordered, and contain all samples")
-    if not np.isfinite(scott_multiplier) or scott_multiplier <= 0:
+    if scott_multiplier is not None and (not np.isfinite(scott_multiplier) or scott_multiplier <= 0):
         raise ValueError("scott_multiplier must be finite and positive")
     scaled = weights / np.max(weights)
     if np.any(scaled == 0):
