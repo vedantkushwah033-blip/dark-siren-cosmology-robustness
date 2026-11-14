@@ -408,3 +408,5 @@ The one-replicate seven-gamma engineering test and cross-version CI have been ad
 
 
 The paired curvature auditor now also verifies the common-random-number design from persisted raw inputs—not just repeated seed labels—by checking that parent redshift draws, validation-frame redshift draws, selected validation IDs, and selected validation redshifts match across gamma cells within each replicate. Retention outcomes and catalogue membership are expected to differ with gamma. The runner also rejects gamma values that collide under its two-decimal child-directory naming convention. These are reproducibility and artifact-integrity safeguards; exact-head CI remains required before relying on the updated workflow.
+
+The paired curvature summaries also keep the two Arm E estimands separate: loss of the posterior-mean density remains primary, while posterior expected node-specific loss is reported as a distinct secondary gamma-versus-zero contrast series. It is not folded into the primary estimator-arm ranking.
