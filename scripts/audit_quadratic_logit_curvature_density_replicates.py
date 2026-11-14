@@ -195,6 +195,10 @@ def audit(root:Path):
  contrast_columns=["contrast_type","gamma","reference_gamma","arm","reference_arm",
   "replicate","validation_size","absolute_bandwidth_sd","metric","value","reference_value","difference"]
  expected_contrasts_frame=pd.DataFrame(expected_contrasts,columns=contrast_columns)
+ # A failed planned gamma/replicate cell breaks the common-random-number
+ # grid. Partial intersections must not be summarized as paired evidence.
+ if not (ledger.status == "SUCCESS").all():
+  expected_contrasts_frame=expected_contrasts_frame.iloc[0:0].copy()
  contrast_rows=_assert_frame_equivalent(root,"paired_contrasts_all_cells.csv",
   expected_contrasts_frame,
   ["contrast_type","gamma","reference_gamma","arm","reference_arm","replicate",
