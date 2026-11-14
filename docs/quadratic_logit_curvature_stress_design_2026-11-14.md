@@ -96,10 +96,11 @@ The following infrastructure is now implemented on the curvature-fix draft PR:
 - The single-replicate density runner supports the parent-rate-calibrated quadratic-logit DGP and supplies the exact truth probabilities only to Arm C.
 - The independent raw-input auditor independently reconstructs the parent-measure centering constant, gamma-zero target rate, achieved parent-average inclusion rate, validation-frame probabilities, and degree-one logistic posterior/quadrature.
 - The multi-replicate runner and outer auditor support one gamma cell per run, preserve all replicate attempts, and verify each child independently.
-- The cross-gamma auditor checks the seven gamma artifacts, common configuration, shared seed schedule, paired parent/validation redshift samples, calibration constants, and produces density summaries plus paired IAE contrasts.
+- The cross-gamma auditor checks the seven gamma artifacts, common configuration, shared seed schedule, paired parent/validation redshift samples, calibration constants, and produces density summaries plus within-gamma estimator contrasts.
+- It additionally reports paired same-arm IAE contrasts of each nonzero-curvature cell against the correctly specified gamma=0 reference, requiring identical replicate/validation-size/bandwidth/arm keys rather than comparing unpaired aggregate means.
 - A manual-only workflow is defined at `.github/workflows/quadratic-logit-curvature-density-pilot.yml`.
 
-The focused regression workflow passed on Python 3.10, 3.11, and 3.12 at code head `1febb30fc8571088073ea9d878404705917c82ec`. The seven-gamma workflow has **not** been dispatched; no curvature-family experiment results exist yet. The cross-gamma gate now also requires every planned replicate to succeed in every gamma cell; a child-level audit may preserve and report failures, but the paired curvature summary will refuse an incomplete cell rather than silently analyze a reduced successful subset.
+The focused regression workflow and full repository numerical-diagnostics matrix both passed on Python 3.10, 3.11, and 3.12 at code head `afb2b647fae28c46f06c18f554019f007b4f8b1b`. Subsequent additions of the gamma-versus-zero contrast helper and its tests are pending exact-head CI. The seven-gamma workflow has **not** been dispatched; no curvature-family experiment results exist yet. The cross-gamma gate now also requires every planned replicate to succeed in every gamma cell; a child-level audit may preserve and report failures, but the paired curvature summary will refuse an incomplete cell rather than silently analyze a reduced successful subset.
 
 ## Proposed full density experiment (not yet run)
 
