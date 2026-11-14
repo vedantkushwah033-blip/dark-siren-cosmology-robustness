@@ -114,6 +114,7 @@ def run(args):
         diag.append({"validation_size":n,"arm":"E_uncertainty_integrated_ipw","node":-1,
           "kish_ess":min(x["kish_ess"] for x in e_diag),
           "kish_ess_fraction":min(x["kish_ess_fraction"] for x in e_diag),
+          "entropy_ess":min(x["entropy_ess"] for x in e_diag),
           "maximum_normalized_weight":max(x["maximum_normalized_weight"] for x in e_diag),
           "top_1_percent_mass":max(x["top_1_percent_mass"] for x in e_diag),
           "top_5_percent_mass":max(x["top_5_percent_mass"] for x in e_diag)})
