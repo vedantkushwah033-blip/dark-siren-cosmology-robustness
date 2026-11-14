@@ -117,3 +117,14 @@ Report both the common-Scott and common-absolute-width analyses as distinct sens
 A common physical bandwidth is a controlled sensitivity analysis, not automatically the uniquely correct estimator. Conversely, a common Scott multiplier is a coherent adaptive rule but does not isolate weighting from smoothing. The two analyses answer different questions and should be reported side by side.
 
 No result from this protocol alone establishes H0 calibration, estimator superiority, observational validity, or performance on LVK/GWTC data. Any claim must be restricted to the simulated DGPs, sample sizes, validation designs, bandwidth range, and numerical resolution actually audited.
+
+
+## 11. Engineering smoke implementation update (2026-11-14)
+
+A first executable common-absolute-width density smoke is now implemented in `scripts/run_absolute_bandwidth_density_smoke.py`, with a separate raw-input auditor in `scripts/audit_absolute_bandwidth_density_smoke.py`. The smoke uses one matched synthetic replicate, validation sizes 100/300/1000, five arms, and every Arm E coefficient node. It evaluates the candidate absolute redshift-space widths 0.012, 0.016, 0.020, 0.024, 0.028, 0.032, and 0.040.
+
+The initial candidate range is an **engineering test grid**, not a frozen scientific selection range. It was chosen to span and extend the realized Scott widths seen in the existing single-replicate smoke (approximately 0.0167 to 0.0310 across A–E nodes). One replicate is insufficient to characterize the distribution of realized widths across the full DGP and validation design. The future training pilot must use multiple independent replicates and verify that the best candidate is not at a grid endpoint.
+
+The density smoke records node-level Arm E IAE/ISE/boundary IAE and posterior-weighted expected node metrics, preserving node identities and quadrature weights. The independent auditor reconstructs A–E weights from saved raw inputs and persisted validation-posterior nodes, independently builds the reflected weighted Gaussian KDE using the requested physical covariance SD, and recalculates all metrics. It does not independently refit the inclusion posterior; that remains a separate audit gate.
+
+This smoke is deliberately density-only. It does not use event distances, evaluate H0 likelihoods, select a bandwidth, or support an estimator ranking. Its only purpose is to exercise the absolute-width density and independent-reconstruction pipeline before building the multi-replicate training/holdout experiment.
