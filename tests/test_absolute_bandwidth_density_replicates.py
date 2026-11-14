@@ -38,6 +38,9 @@ def test_two_replicate_density_pilot_and_independent_orchestration_audit(tmp_pat
     result=runner.run(_args(out))
     assert result["planned_replicates"]==2
     assert result["successful_replicates"]==2
+    cfg=json.loads((out/"config.json").read_text())
+    assert "independently refits the degree-one logistic posterior" in cfg["validation_posterior_audit"]
+    assert not any("not independently refitted" in item for item in cfg["limitations"])
     report=auditor.audit(out)
     assert report["status"]=="PASS"
     assert report["child_raw_audits_passed"]==2
