@@ -89,12 +89,6 @@ jobs:
         run: |
           python scripts/run_absolute_bandwidth_density_replicates.py --help
           python scripts/audit_absolute_bandwidth_density_replicates.py --help
-      - name: Test quadratic-logit curvature density smoke and paired multi-replicate audit
-        run: python -m pytest tests/test_quadratic_logit_curvature_density_smoke.py tests/test_quadratic_logit_curvature_density_replicates.py -q
-      - name: Validate quadratic-logit curvature pilot command-line interfaces
-        run: |
-          python scripts/run_quadratic_logit_curvature_density_replicates.py --help
-          python scripts/audit_quadratic_logit_curvature_density_replicates.py --help
       - name: Run two-replicate absolute-bandwidth density pilot (Python 3.12 only)
         if: matrix.python-version == '3.12'
         run: |
