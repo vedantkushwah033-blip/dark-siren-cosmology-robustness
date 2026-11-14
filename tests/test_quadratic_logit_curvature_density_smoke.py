@@ -59,10 +59,22 @@ def _args(output_dir: Path, gamma: float = 0.0):
     )
 
 
-def test_quadratic_logit_density_smoke_writes_five_arm_artifacts(tmp_path: Path):
+def test_quadratic_logit_density_smoke_writes_five_arm_artifacts(tmp_path: Path, monkeypatch):
     runner = _load_runner()
+    captured = {}
+    original = runner.build_five_arm_weights
+
+    def recording_builder(*args, **kwargs):
+        captured.update(kwargs)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(runner, "build_five_arm_weights", recording_builder)
     output = tmp_path / "gamma_zero"
     result = runner.run(_args(output, gamma=0.0))
+    assert captured["coordinate_center"] == runner.INCLUSION_COORDINATE_CENTER
+    assert captured["coordinate_scale"] == runner.INCLUSION_COORDINATE_SCALE
+    assert tuple(captured["prior_mean"]) == runner.INCLUSION_PRIOR_MEAN
+    assert tuple(captured["prior_sd"]) == runner.INCLUSION_PRIOR_SD
 
     assert result["status"] == "PASS"
     assert result["gamma"] == 0.0
