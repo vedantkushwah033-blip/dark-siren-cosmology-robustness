@@ -44,3 +44,24 @@ def test_outer_auditor_rejects_ledger_corruption(tmp_path):
  mp.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
  with pytest.raises(AssertionError,match="ledger gamma-replicate keys mismatch"):
   auditor.audit(out)
+
+
+def test_outer_auditor_rejects_aggregate_metric_corruption_with_refreshed_manifest(tmp_path):
+ runner=_load("curvature_pilot_runner_aggregate","run_quadratic_logit_curvature_density_pilot.py")
+ auditor=_load("curvature_pilot_auditor_aggregate","audit_quadratic_logit_curvature_density_pilot.py")
+ out=tmp_path/"curvature_pilot_aggregate"
+ runner.run(SimpleNamespace(output_dir=out,replicates=1,seed=2026111520,n_parent=500,
+   validation_frame=1500,quadrature_order=3,grid_points=101,scott_multiplier=0.7,
+   absolute_widths="0.012,0.024"))
+ import hashlib,json
+ path=out/"results"/"density_metrics.csv"
+ frame=pd.read_csv(path)
+ frame.loc[0,"iae"]+=0.01
+ frame.to_csv(path,index=False)
+ manifest_path=out/"manifest.json"
+ manifest=json.loads(manifest_path.read_text())
+ raw=path.read_bytes()
+ manifest["files"]["results/density_metrics.csv"]={"bytes":len(raw),"sha256":hashlib.sha256(raw).hexdigest()}
+ manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n")
+ with pytest.raises(AssertionError,match="aggregate numerical mismatch: iae"):
+  auditor.audit(out)
