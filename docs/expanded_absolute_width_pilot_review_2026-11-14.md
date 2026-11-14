@@ -34,6 +34,19 @@ The existing artifact can still describe the fixed arms A–D, subject to the in
 
 This is a warning against assuming a universal common bandwidth is optimal for every arm. It is not a final conclusion: the primary posterior-mean Arm E metric was absent from these artifacts, and floor 0.25 is 19/20. The predeclared equal-cell objective across arms and validation sizes must remain the basis for any later bandwidth selection; do not tune each arm separately after seeing the data.
 
+### Paired adjacent-width diagnostics (A–D only)
+
+Because the candidate widths were evaluated on the same replicate realizations, paired replicate differences are more informative than comparing unpaired standard errors. Selected examples below are mean IAE differences (candidate minimum minus adjacent width), with Monte Carlo standard errors; intervals are approximate normal 95% intervals:
+
+- Floor 0.00, arm A, 0.080 minus 0.060: (-0.0374\pm0.0007), interval ([-0.0389,-0.0360]). The upper-edge improvement is large and precisely estimated within this pilot.
+- Floor 0.10, arm A, 0.080 minus 0.060: (-0.0180\pm0.0007), interval ([-0.0193,-0.0166]). Again the upper edge is still improving.
+- Floor 0.00, arm B, 0.016 minus 0.024: (-0.0020\pm0.0013), interval ([-0.0044,0.0005]). The apparent 0.016 minimum is not clearly separated from 0.024.
+- Floor 0.10, arm C, 0.016 minus 0.024: (-0.0036\pm0.0017), interval ([-0.0069,-0.0004]). The 0.016 width is favored over this neighbor in this paired pilot.
+- Floor 0.25, arm A, 0.012 minus 0.010: (-0.0002\pm0.0001), interval ([-0.0004,0.0001]), while 0.012 minus 0.016 is (-0.0007\pm0.0002), interval ([-0.0011,-0.0003]). The lower-side optimum is shallow and not fully resolved.
+- Floor 0.25, arm D, 0.012 minus 0.010: (-0.0005\pm0.0003), interval ([-0.0010,0.0001]); 0.012 minus 0.016 is (-0.0005\pm0.0007), interval ([-0.0019,0.0009]). These local differences are inconclusive.
+
+These paired comparisons are descriptive, same-sample pilot diagnostics. They do not correct the fact that candidate minima were inspected on the same data, and they cannot replace a held-out selection assessment. Floor 0.25 has only 19 successful replicates; paired contrasts there use those 19 complete records.
+
 ## Important estimand defect discovered during review
 
 The earlier runner persisted the posterior-mean Arm E density curve but did not write its own IAE/ISE/boundary-IAE metric row. It wrote:
