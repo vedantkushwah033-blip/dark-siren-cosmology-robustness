@@ -9,6 +9,7 @@ on:
       - tests/test_absolute_bandwidth_density_smoke.py
       - scripts/run_quadratic_logit_curvature_density_smoke.py
       - scripts/audit_quadratic_logit_curvature_density_smoke.py
+      - scripts/audit_absolute_bandwidth_density_smoke.py
       - scripts/run_quadratic_logit_curvature_density_replicates.py
       - scripts/audit_quadratic_logit_curvature_density_replicates.py
       - tests/test_quadratic_logit_curvature_density_smoke.py
