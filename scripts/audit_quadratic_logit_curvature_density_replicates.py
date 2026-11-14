@@ -77,6 +77,7 @@ def audit(root:Path):
   checked+=1
  if checked!=int(manifest["file_count"]): raise AssertionError("outer manifest file count mismatch")
  cfg=json.loads((root/"config.json").read_text())
+ if manifest.get("status") not in {"PASS", "INCOMPLETE"}: raise AssertionError("invalid outer manifest status")
  if cfg.get("experiment")!="paired_quadratic_logit_curvature_density_pilot": raise AssertionError("wrong experiment identifier")
  if cfg.get("status")!="DEVELOPMENT_PILOT_NOT_CONFIRMATORY_NOT_BANDWIDTH_SELECTION": raise AssertionError("claim status mismatch")
  if cfg.get("analysis_model")!="degree_one_logistic": raise AssertionError("analysis model mismatch")
@@ -181,8 +182,11 @@ def audit(root:Path):
   expected_summary=pd.DataFrame(columns=group_columns+["n_pairs","mean_difference","sd_difference","mcse"])
  summary_rows=_assert_frame_equivalent(root,"paired_contrast_summary.csv",expected_summary,
   group_columns,["n_pairs","mean_difference","sd_difference","mcse"])
- return {"status":"PASS","manifest_files_verified":checked,"planned_cells":len(expected),
-  "successful_cells":len(child_reports),"failed_cells":int((ledger.status=="FAILED").sum()),
+ failed_count=int((ledger.status=="FAILED").sum())
+ expected_manifest_status="PASS" if failed_count==0 else "INCOMPLETE"
+ if manifest.get("status")!=expected_manifest_status: raise AssertionError("outer manifest status disagrees with lifecycle ledger")
+ return {"status":"PASS" if failed_count==0 else "INCOMPLETE","manifest_files_verified":checked,"planned_cells":len(expected),
+  "successful_cells":len(child_reports),"failed_cells":failed_count,
   "child_raw_audits_passed":len(child_reports),"aggregate_metric_rows_reconstructed":metric_rows,
   "aggregate_weight_diagnostic_rows_reconstructed":diag_rows,
   "aggregate_scott_width_rows_reconstructed":scott_rows,
@@ -196,4 +200,5 @@ def main():
  report=audit(a.artifact_dir)
  if a.output: a.output.write_text(json.dumps(report,indent=2,sort_keys=True)+"\\n")
  print(json.dumps(report,indent=2,sort_keys=True))
+ if report["status"] != "PASS": raise SystemExit(2)
 if __name__=="__main__": main()
