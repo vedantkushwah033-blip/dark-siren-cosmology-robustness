@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from scipy.integrate import trapezoid
 from scipy.special import log_ndtr
 from scipy.stats import norm
