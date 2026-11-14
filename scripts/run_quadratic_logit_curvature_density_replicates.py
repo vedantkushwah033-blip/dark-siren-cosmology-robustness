@@ -111,6 +111,7 @@ def run(args):
     if zero_rows.empty:
       # Preserve a fully auditable incomplete artifact when every gamma=0 cell failed.
       # Gamma-vs-zero contrasts are then undefined and remain absent.
+      pass
     for gamma in gammas:
       if gamma == 0.0:
         continue
