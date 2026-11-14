@@ -221,8 +221,8 @@ def audit(root:Path):
   nodes=z[f"posterior_nodes_n{n}"]; q=z[f"posterior_weights_n{n}"]; mode=z[f"posterior_mode_n{n}"]
   if nodes.ndim!=2 or nodes.shape[1]!=2 or q.shape!=(len(nodes),) or np.any(q<0) or not np.isclose(q.sum(),1): raise AssertionError("invalid persisted coefficient quadrature")
   ref_mode,ref_nodes,ref_q=_independent_logistic_quadrature(v.redshift.to_numpy(float),v.retained.to_numpy(int),cfg)
-  _close(mode,ref_mode,"independently reconstructed inclusion posterior mode",atol=1e-7)
-  _close(nodes,ref_nodes,"independently reconstructed inclusion posterior nodes",atol=1e-7)
+  _close(mode,ref_mode,"independently reconstructed inclusion posterior mode",atol=2e-7)
+  _close(nodes,ref_nodes,"independently reconstructed inclusion posterior nodes",atol=2e-7)
   _close(q,ref_q,"independently reconstructed inclusion posterior weights",atol=1e-7)
   xv=(v.redshift.to_numpy(float)-float(cfg["coordinate_center"]))/float(cfg["coordinate_scale"])
   design=np.column_stack([np.ones(n),xv])

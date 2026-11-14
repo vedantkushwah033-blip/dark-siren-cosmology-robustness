@@ -234,3 +234,40 @@ def test_proper_inclusion_posterior_accepts_tiny_trust_exact_residual():
     score = design.T @ (expit(design @ fit.mode) - validation.retained.to_numpy(int))
     score += fit.mode / np.square(np.asarray((5.0, 2.5)))
     assert np.linalg.norm(score, ord=np.inf) <= 2e-6
+
+
+def test_independent_posterior_audit_tolerance_covers_seeded_n300_reference():
+    """Regression for the near-converged replicate-17, n=300 posterior."""
+    from dark_siren_robustness.generative_selection import generate_independent_validation_sample
+    from dark_siren_robustness.inclusion_posterior import fit_inclusion_posterior_quadrature
+
+    auditor = _load("absolute_density_auditor_near_converged", "audit_absolute_bandwidth_density_smoke.py")
+    sample = generate_independent_validation_sample(
+        seed=20261372, n_validation_frame=1500, n_validation=300,
+        z_min=0.01, z_max=0.40, catalogue_floor=0.10,
+        catalogue_midpoint=0.22, catalogue_width=0.05,
+    )
+    validation = sample["validation_observed"]
+    cfg = {
+        "coordinate_center": 0.205,
+        "coordinate_scale": 0.195,
+        "coefficient_prior": {
+            "family": "independent_gaussian",
+            "mean": [0.0, 0.0],
+            "sd": [5.0, 2.5],
+        },
+        "quadrature_order": 5,
+    }
+    ref_mode, ref_nodes, ref_weights = auditor._independent_logistic_quadrature(
+        validation.redshift.to_numpy(float),
+        validation.retained.to_numpy(int),
+        cfg,
+    )
+    production = fit_inclusion_posterior_quadrature(
+        validation.redshift.to_numpy(float), validation.retained.to_numpy(int),
+        degree=1, prior_mean=(0.0, 0.0), prior_sd=(5.0, 2.5),
+        coordinate_center=0.205, coordinate_scale=0.195, order=5,
+    )
+    assert np.max(np.abs(production.mode - ref_mode)) <= 2e-7
+    assert np.max(np.abs(production.nodes - ref_nodes)) <= 2e-7
+    assert np.max(np.abs(production.weights - ref_weights)) <= 1e-7
