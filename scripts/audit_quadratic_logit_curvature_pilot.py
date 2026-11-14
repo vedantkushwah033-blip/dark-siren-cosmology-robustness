@@ -111,6 +111,19 @@ def audit(root: Path, expected_gammas=DEFAULT_GAMMAS,
         reports[gamma] = audit_replicates(path)
         if reports[gamma]["status"] != "PASS":
             raise AssertionError(f"replicate audit failed for gamma={gamma}")
+        # The curvature comparison is a paired 20-replicate pilot. A child
+        # audit can legitimately PASS while preserving FAILED attempts, but
+        # silently summarizing only the successful subset would change the
+        # planned denominator and could unbalance the gamma comparisons.
+        planned = int(reports[gamma]["planned_replicates"])
+        successful = int(reports[gamma]["successful_replicates"])
+        failed = int(reports[gamma]["failed_replicates"])
+        if successful != planned or failed != 0:
+            raise AssertionError(
+                f"incomplete gamma={gamma} cell: planned={planned}, "
+                f"successful={successful}, failed={failed}; preserve artifacts "
+                "and resolve the failed attempt before cross-gamma interpretation"
+            )
 
     if set(by_gamma) != set(expected_gammas):
         raise AssertionError(
