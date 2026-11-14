@@ -103,8 +103,12 @@ def audit(root:Path):
         if actual[col].tolist()!=expected[col].tolist():
             raise AssertionError(f"aggregate metric key/status mismatch: {col}")
     for col in ["iae","ise","boundary_iae","kish_ess"]:
-        if col in expected and not np.allclose(actual[col].to_numpy(float),expected[col].to_numpy(float),rtol=2e-10,atol=2e-10,equal_nan=False):
-            raise AssertionError(f"aggregate metric values mismatch: {col}")
+        if col in expected:
+            got_values=actual[col].to_numpy(float); want_values=expected[col].to_numpy(float)
+            if not np.array_equal(np.isnan(got_values),np.isnan(want_values)):
+                raise AssertionError(f"aggregate metric missingness mismatch: {col}")
+            if not np.allclose(got_values,want_values,rtol=2e-10,atol=2e-10,equal_nan=True):
+                raise AssertionError(f"aggregate metric values mismatch: {col}")
     expected_scott=pd.concat(expected_scott_frames,ignore_index=True) if expected_scott_frames else pd.DataFrame(
         columns=["validation_size","arm","node","realized_bandwidth_redshift","replicate"])
     actual_scott=pd.read_csv(root/"scott_widths_all_replicates.csv")
