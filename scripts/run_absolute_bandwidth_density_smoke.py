@@ -135,10 +135,14 @@ def run(args):
             q=arms.arm_e_quadrature_weights
             mean_density=np.tensordot(q,node_dens,axes=(0,0))
             archive[f"density_E_posterior_mean_n{n}_w{width:.6f}"]=mean_density
+            mean_metric=_metric(mean_density,truth,grid)
+            rows.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":width,
+              "arm":"E_posterior_mean_density","node":-1,**mean_metric,"status":"SUCCESS",
+              "kish_ess":float("nan")})
             weighted_metric={k:float(np.dot(q,[ _metric(d,truth,grid)[k] for d in node_dens])) for k in ("iae","ise","boundary_iae")}
             rows.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":width,
               "arm":"E_posterior_weighted_node_metric","node":-1,**weighted_metric,"status":"SUCCESS",
-              "kish_ess":float(min(x["kish_ess"] for x in e_diag))})
+              "kish_ess":float("nan")})
             for name,d,_ in per_arm:
                 weights=raw_inputs[name][1]
                 rows.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":width,
