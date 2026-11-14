@@ -83,7 +83,7 @@ def build_five_arm_weights(
     validation_redshift: ArrayLike,
     validation_retained: ArrayLike,
     *,
-    catalogue_floor: float,
+    catalogue_floor: float | None = None,
     catalogue_midpoint: float = 0.22,
     catalogue_width: float = 0.05,
     degree: int = 1,
@@ -125,8 +125,12 @@ def build_five_arm_weights(
     retained = np.asarray(validation_retained)
     if retained.shape != validation.shape or np.any((retained != 0) & (retained != 1)):
         raise ValueError("validation_retained must be binary and match validation_redshift")
-    if not np.isfinite(catalogue_floor) or not 0 <= catalogue_floor <= 1:
-        raise ValueError("catalogue_floor must lie in [0, 1]")
+    if known_inclusion_probability is None and (
+        catalogue_floor is None
+        or not np.isfinite(catalogue_floor)
+        or not 0 <= catalogue_floor <= 1
+    ):
+        raise ValueError("catalogue_floor must lie in [0, 1] when true probabilities are not supplied")
     if not np.isfinite(catalogue_midpoint) or catalogue_midpoint <= 0:
         raise ValueError("catalogue_midpoint must be finite and positive")
     if not np.isfinite(catalogue_width) or catalogue_width <= 0:
