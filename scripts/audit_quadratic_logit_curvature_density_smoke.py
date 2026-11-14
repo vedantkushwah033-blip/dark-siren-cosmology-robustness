@@ -10,11 +10,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from dark_siren_robustness.generative_selection import (
-    generate_quadratic_logit_inclusion_samples,
-    latent_galaxy_intensity,
-)
 from scipy.integrate import trapezoid
+from scipy.optimize import brentq
 from scipy.special import expit
 
 # Reuse the separately implemented numerical reference routines used by the
@@ -31,6 +28,71 @@ _independent_kde = _reference._independent_kde
 
 Z_MIN, Z_MAX = 0.01, 0.40
 BOUNDARY_LOWER, BOUNDARY_UPPER = 0.049, 0.361
+
+
+def _reference_intensity(z: np.ndarray) -> np.ndarray:
+    z = np.asarray(z, dtype=float)
+    return 1.0 + 2.2 * np.exp(-0.5 * ((z - 0.105) / 0.025) ** 2) + 1.6 * np.exp(-0.5 * ((z - 0.275) / 0.040) ** 2)
+
+
+def _reference_sample_from_density(n: int, rng: np.random.Generator, z_min: float, z_max: float) -> np.ndarray:
+    grid = np.linspace(z_min, z_max, 20001)
+    intensity = _reference_intensity(grid)
+    increments = 0.5 * (intensity[:-1] + intensity[1:]) * np.diff(grid)
+    cdf = np.concatenate(([0.0], np.cumsum(increments)))
+    cdf /= cdf[-1]
+    return np.interp(rng.random(n), cdf, grid)
+
+
+def _reference_calibration(gamma: float, beta: float, z_min: float, z_max: float,
+                           center: float, scale: float) -> dict[str, float]:
+    grid = np.linspace(z_min, z_max, 20001)
+    intensity = _reference_intensity(grid)
+    normalizer = float(trapezoid(intensity, grid))
+    x = (grid - center) / scale
+    x2_center = float(trapezoid(intensity * x**2, grid) / normalizer)
+    centered = x**2 - x2_center
+    target = float(trapezoid(intensity * expit(beta * x), grid) / normalizer)
+    if gamma == 0.0:
+        alpha = 0.0
+    else:
+        def rate_difference(candidate: float) -> float:
+            return float(trapezoid(intensity * expit(candidate + beta*x + gamma*centered), grid) / normalizer - target)
+        alpha = float(brentq(rate_difference, -40.0, 40.0, xtol=1e-13, rtol=1e-13))
+    achieved = float(trapezoid(intensity * expit(alpha + beta*x + gamma*centered), grid) / normalizer)
+    return {"alpha": alpha, "beta": float(beta), "gamma": float(gamma),
+            "target_rate": target, "achieved_rate": achieved, "x2_center": x2_center}
+
+
+def _reference_generate(population_seed: int, validation_seed: int, n_parent: int,
+                        n_validation_frame: int, n_validation: int, gamma: float,
+                        beta: float, z_min: float, z_max: float,
+                        center: float, scale: float) -> dict[str, pd.DataFrame]:
+    calibration = _reference_calibration(gamma, beta, z_min, z_max, center, scale)
+    def probability(z: np.ndarray) -> np.ndarray:
+        x = (z - center) / scale
+        return expit(calibration["alpha"] + beta*x + gamma*(x**2-calibration["x2_center"]))
+    rng_parent = np.random.default_rng(int(population_seed))
+    z_parent = _reference_sample_from_density(n_parent, rng_parent, z_min, z_max)
+    p_parent = probability(z_parent)
+    retained_parent = (rng_parent.random(n_parent) < p_parent).astype(np.int8)
+    parent = pd.DataFrame({"object_id": np.arange(n_parent, dtype=np.int64),
+                           "redshift": z_parent, "inclusion_probability": p_parent,
+                           "retained": retained_parent})
+    catalogue = parent.loc[retained_parent.astype(bool), ["object_id", "redshift"]].reset_index(drop=True)
+    rng_validation = np.random.default_rng(int(validation_seed))
+    z_frame = _reference_sample_from_density(n_validation_frame, rng_validation, z_min, z_max)
+    p_frame = probability(z_frame)
+    retained_frame = (rng_validation.random(n_validation_frame) < p_frame).astype(np.int8)
+    selected = rng_validation.permutation(n_validation_frame)[:n_validation]
+    validation = pd.DataFrame({"validation_id": selected.astype(np.int64),
+                               "redshift": z_frame[selected], "retained": retained_frame[selected]})
+    frame_truth = pd.DataFrame({"frame_id": np.arange(n_validation_frame, dtype=np.int64),
+                                "redshift": z_frame, "inclusion_probability": p_frame,
+                                "retained": retained_frame,
+                                "selected_for_validation": np.isin(np.arange(n_validation_frame), selected).astype(np.int8)})
+    return {"parent_truth": parent, "catalogue_observed": catalogue,
+            "validation_observed": validation, "validation_frame_truth": frame_truth}
 
 
 def _hash(path: Path) -> str:
@@ -94,7 +156,9 @@ def audit(root: Path) -> dict[str, object]:
     if cfg.get("arm_C") != "true quadratic inclusion probabilities; oracle diagnostic only":
         raise AssertionError("Arm C oracle labeling missing")
 
-    regenerated = generate_quadratic_logit_inclusion_samples(
+    # Reconstruct the DGP with separately written sampling, calibration, and
+    # probability routines. Do not call the production population generator.
+    regenerated = _reference_generate(
         population_seed=int(cfg["population_seed"]),
         validation_seed=int(cfg["validation_seed"]),
         n_parent=int(cfg["n_parent"]),
@@ -104,6 +168,8 @@ def audit(root: Path) -> dict[str, object]:
         beta=float(cfg["beta"]),
         z_min=Z_MIN,
         z_max=Z_MAX,
+        center=float(cfg["coordinate_center"]),
+        scale=float(cfg["coordinate_scale"]),
     )
     parent = pd.read_csv(root / "truth" / "parent_truth.csv")
     catalogue = pd.read_csv(root / "observable" / "catalogue_observed.csv")
@@ -123,7 +189,7 @@ def audit(root: Path) -> dict[str, object]:
     catalogue_base = 1.0 + 1.5 * (cz - Z_MIN) / (Z_MAX - Z_MIN)
     grid = np.linspace(Z_MIN, Z_MAX, int(cfg["grid_points"]))
     merger = 1.0 + 1.5 * (grid - Z_MIN) / (Z_MAX - Z_MIN)
-    truth_raw = latent_galaxy_intensity(grid) * merger
+    truth_raw = _reference_intensity(grid) * merger
     truth_density = truth_raw / float(trapezoid(truth_raw, grid))
     widths = [float(x) for x in cfg["absolute_bandwidth_candidates"]]
 
