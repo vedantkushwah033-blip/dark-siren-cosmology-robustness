@@ -141,22 +141,19 @@ def test_five_arm_builder_uses_explicit_truth_probabilities_for_nondefault_dgp()
 
 
 @pytest.mark.parametrize(
-    "probability",
-    [
-        np.ones(2),
-        np.array([0.0]),
-        np.array([1.01]),
-        np.array([np.nan]),
-    ],
+    "kind",
+    ["wrong_shape", "zero", "above_one", "nan"],
 )
-def test_five_arm_builder_rejects_invalid_explicit_truth_probabilities(probability):
+def test_five_arm_builder_rejects_invalid_explicit_truth_probabilities(kind):
     parent, catalogue, validation, retained = _fixture()
-    # Adapt shape-only cases so each invalid input is tested against a real
-    # catalogue of at least one row.
-    if probability.size == 1 and catalogue.size != 1:
-        probability = np.resize(probability, catalogue.size)
-    elif probability.size == 2 and probability.shape != catalogue.shape:
-        probability = np.ones(catalogue.size)
+    if kind == "wrong_shape":
+        probability = np.ones(catalogue.size + 1)
+    elif kind == "zero":
+        probability = np.zeros(catalogue.size)
+    elif kind == "above_one":
+        probability = np.full(catalogue.size, 1.01)
+    else:
+        probability = np.full(catalogue.size, np.nan)
     with pytest.raises(ValueError, match="true_catalogue_inclusion_probability"):
         build_five_arm_weights(
             parent, catalogue, validation, retained,
