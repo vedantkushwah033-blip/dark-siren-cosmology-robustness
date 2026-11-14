@@ -100,7 +100,8 @@ def run(args):
     combine(diagnostic_frames,"weight_diagnostics_all_cells.csv")
     combine(scott_frames,"scott_widths_all_cells.csv")
     # Paired gamma and arm contrasts use common random numbers.
-    metric_all = pd.concat(metric_frames, ignore_index=True) if metric_frames else pd.DataFrame()
+    metric_columns = ["gamma", "replicate", "validation_size", "absolute_bandwidth_sd", "arm", "node", "iae", "ise", "boundary_iae", "status", "kish_ess"]
+    metric_all = pd.concat(metric_frames, ignore_index=True) if metric_frames else pd.DataFrame(columns=metric_columns)
     primary_arms = ("A_catalogue_only", "B_parent_oracle", "C_known_probability_ipw",
                     "D_map_plugin_ipw", "E_posterior_mean_density")
     metric_all = metric_all[metric_all["arm"].isin(primary_arms) & (metric_all["node"] == -1)].copy()
