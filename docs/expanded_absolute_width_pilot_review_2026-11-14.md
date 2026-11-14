@@ -23,6 +23,17 @@ Artifacts and independent audit reports:
 - Floor 0.10: artifact 14107380789; 20 child audits; 19,800 metric rows and 1,740 Scott-width rows reconstructed.
 - Floor 0.25: artifact 14105479927; 19 child audits; 18,810 metric rows and 1,653 Scott-width rows reconstructed.
 
+## A–D-only descriptive pattern from the earlier expanded grid
+
+The existing artifact can still describe the fixed arms A–D, subject to the incomplete floor-0.25 replicate count:
+
+- For floors 0.00 and 0.10, the catalogue-only arm A had its smallest observed mean IAE at the upper candidate edge 0.080.
+- Across all three floors, the parent-oracle B and known-probability IPW C arms had their smallest observed mean IAE around 0.016.
+- The MAP plug-in D arm had its descriptive minimum around 0.016–0.024 for floors 0.00 and 0.10, and at 0.012 for floor 0.25.
+- For floor 0.25, the single failed replicate was included in the planned denominator by assigning the normalized-density IAE upper bound 2. This changes the numerical means but not these descriptive minimizing grid points.
+
+This is a warning against assuming a universal common bandwidth is optimal for every arm. It is not a final conclusion: the primary posterior-mean Arm E metric was absent from these artifacts, and floor 0.25 is 19/20. The predeclared equal-cell objective across arms and validation sizes must remain the basis for any later bandwidth selection; do not tune each arm separately after seeing the data.
+
 ## Important estimand defect discovered during review
 
 The earlier runner persisted the posterior-mean Arm E density curve but did not write its own IAE/ISE/boundary-IAE metric row. It wrote:
