@@ -99,9 +99,22 @@ Two separate scripts now exercise the five-arm density calculation under the qua
 
 This is a one-replicate engineering smoke path, not the seven-gamma experiment. Its CI result is pending at the time of this design update; no curvature-family performance conclusion is made from it.
 
+## Paired multi-replicate orchestration (implemented 2026-11-15; CI pending)
+
+Added:
+
+- `scripts/run_quadratic_logit_curvature_density_replicates.py`: enumerates the replicate × gamma design, runs the audited single-cell density runner, preserves every cell attempt in a lifecycle ledger, and aggregates density, weight-diagnostic, and Scott-width records.
+- `scripts/audit_quadratic_logit_curvature_density_replicates.py`: verifies the outer manifest and complete planned cell grid, checks paired seed schedules and failure preservation, invokes the independent child raw-input auditor for every successful cell, and reconstructs all aggregate tables from child outputs.
+- `tests/test_quadratic_logit_curvature_density_replicates.py`: checks a compact paired 2-replicate × 3-gamma run and rejects aggregate corruption even when the outer manifest is refreshed.
+- The focused curvature workflow now includes both single-cell and multi-replicate tests plus a compact Python 3.12 end-to-end run.
+
+The runner uses common random numbers across gamma values within each replicate: all gamma cells share that replicate's population and independent-validation seeds. Replicate seed pairs remain disjoint. This improves precision of within-replicate gamma contrasts, but does not make the cells statistically independent. All gamma-specific DGPs still recalibrate the intercept to the same parent-average inclusion rate.
+
+The new orchestration has not yet completed CI at this exact head. The full seven-gamma × 20-replicate experiment has not been run, and no curvature-family result is reported.
+
 ## Proposed full density experiment (not yet run)
 
-The next stage should use:
+The production-scale design should use:
 
 - gamma values: -2, -1, -0.5, 0, 0.5, 1, 2;
 - validation sizes: 100, 300, 1,000;
