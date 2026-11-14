@@ -22,7 +22,7 @@ def _rehash(root,path):
     manifest_path=root/"manifest.json"
     manifest=json.loads(manifest_path.read_text())
     manifest["files"][rel]={"bytes":len(payload),"sha256":hashlib.sha256(payload).hexdigest()}
-    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n")
+    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
 
 def _args(output):
     return SimpleNamespace(
