@@ -130,6 +130,27 @@ def _metric(density: np.ndarray, truth: np.ndarray, grid: np.ndarray) -> dict[st
     }
 
 
+def _assert_arm_e_jensen(metrics: pd.DataFrame) -> None:
+    """Check convex-loss ordering for Arm E's two distinct estimands.
+
+    For IAE, ISE, and boundary IAE, loss of the posterior-mean density cannot
+    exceed posterior expected node-specific loss (Jensen's inequality).
+    """
+    primary_arm = "E_posterior_mean_density"
+    secondary_arm = "E_posterior_weighted_node_metric"
+    subset = metrics[metrics["arm"].isin([primary_arm, secondary_arm])]
+    keys = ["validation_size", "absolute_bandwidth_sd"]
+    if subset.duplicated(keys + ["arm"]).any():
+        raise AssertionError("Arm E Jensen check found duplicate estimand rows")
+    pivot = subset.pivot(index=keys, columns="arm", values=["iae", "ise", "boundary_iae"])
+    for metric in ("iae", "ise", "boundary_iae"):
+        primary = pivot[(metric, primary_arm)].to_numpy(float)
+        secondary = pivot[(metric, secondary_arm)].to_numpy(float)
+        tolerance = 1e-10 * np.maximum(1.0, np.maximum(np.abs(primary), np.abs(secondary)))
+        if np.any(secondary + tolerance < primary):
+            raise AssertionError(f"Arm E Jensen inequality violated for {metric}")
+
+
 def audit(root: Path) -> dict[str, object]:
     root = Path(root).resolve()
     manifest = json.loads((root / "manifest.json").read_text())
@@ -310,6 +331,7 @@ def audit(root: Path) -> dict[str, object]:
 
     actual_metrics = pd.read_csv(root / "results" / "density_metrics.csv")
     expected_metrics_df = pd.DataFrame(expected_metrics)
+    _assert_arm_e_jensen(expected_metrics_df)
     metric_keys = ["validation_size", "absolute_bandwidth_sd", "arm", "node"]
     metric_values = ["iae", "ise", "boundary_iae", "kish_ess"]
     _compare_frames(actual_metrics, expected_metrics_df, metric_keys, metric_values, "density metric")
