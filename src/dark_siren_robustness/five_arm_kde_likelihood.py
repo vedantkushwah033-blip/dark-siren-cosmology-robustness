@@ -32,6 +32,8 @@ class FiveArmKDELikelihoodResult:
     arm_e_node_log_detection_efficiency: np.ndarray
     arm_density: dict[str, np.ndarray]
     arm_e_node_density: np.ndarray
+    scott_multiplier: float | None
+    absolute_bandwidth_sd: float | None
 
 
 def _validate_grid(values: ArrayLike, name: str, minimum: int = 21) -> np.ndarray:
@@ -197,4 +199,6 @@ def matched_five_arm_kde_selected_log_likelihood(
         arm_e_marginal_log_likelihood=marginal,
         arm_e_node_log_detection_efficiency=node_eff,
         arm_density=densities, arm_e_node_density=p_e,
+        scott_multiplier=None if scott_multiplier is None else float(scott_multiplier),
+        absolute_bandwidth_sd=None if absolute_bandwidth_sd is None else float(absolute_bandwidth_sd),
     )

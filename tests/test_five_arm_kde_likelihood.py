@@ -101,3 +101,46 @@ def test_kde_propagates_complete_base_and_inverse_probability_weights():
         scott_multiplier=factor,
     )
     np.testing.assert_allclose(result.arm_e_node_density[0], expected_e0)
+
+
+
+def test_absolute_bandwidth_is_shared_by_every_arm_and_recorded_in_result():
+    arms, events = _fixture()
+    z = np.linspace(0.01, 0.40, 801)
+    h0 = np.linspace(55, 85, 31)
+    requested = 0.014
+    result = matched_five_arm_kde_selected_log_likelihood(
+        h0, arms, events, detection_threshold_mpc=250,
+        redshift_grid=z, merger_weight=np.ones_like(z),
+        absolute_bandwidth_sd=requested,
+    )
+    assert result.absolute_bandwidth_sd == requested
+    assert result.scott_multiplier is None
+    for name, raw_weights, sample in [
+        ("A_catalogue_only", arms.arm_a_catalogue_only, arms.catalogue_redshift),
+        ("B_parent_oracle", arms.arm_b_parent_oracle, arms.parent_redshift),
+        ("C_known_probability_ipw", arms.arm_c_known_probability, arms.catalogue_redshift),
+        ("D_map_plugin_ipw", arms.arm_d_map_plugin, arms.catalogue_redshift),
+    ]:
+        reference = estimate_host_density(
+            z, sample, sample_weights=raw_weights,
+            absolute_bandwidth_sd=requested,
+        )
+        np.testing.assert_allclose(result.arm_density[name], reference, rtol=1e-12, atol=1e-12)
+    for node, raw_weights in enumerate(arms.arm_e_node_weights):
+        reference = estimate_host_density(
+            z, arms.catalogue_redshift, sample_weights=raw_weights,
+            absolute_bandwidth_sd=requested,
+        )
+        np.testing.assert_allclose(result.arm_e_node_density[node], reference, rtol=1e-12, atol=1e-12)
+
+
+def test_absolute_bandwidth_rejects_simultaneous_scott_multiplier():
+    arms, events = _fixture()
+    z = np.linspace(0.01, 0.40, 101)
+    with pytest.raises(ValueError, match="exactly one"):
+        matched_five_arm_kde_selected_log_likelihood(
+            [60, 70], arms, events, detection_threshold_mpc=250,
+            redshift_grid=z, merger_weight=np.ones_like(z),
+            scott_multiplier=0.7, absolute_bandwidth_sd=0.014,
+        )
