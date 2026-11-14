@@ -96,3 +96,44 @@ def test_absolute_bandwidth_auditor_rejects_modified_scott_width_even_with_updat
     manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
     with pytest.raises(AssertionError,match="independently reconstructed realized Scott widths"):
         auditor.audit(output)
+
+def test_posterior_mean_density_metric_is_distinct_and_independently_audited(tmp_path):
+    import hashlib
+    import json
+
+    runner=_load("absolute_density_runner_mean","run_absolute_bandwidth_density_smoke.py")
+    auditor=_load("absolute_density_auditor_mean","audit_absolute_bandwidth_density_smoke.py")
+    output=tmp_path/"absolute_density_mean"
+    args=SimpleNamespace(
+        output_dir=output, seed=20261231, validation_seed=20261232,
+        n_parent=500, validation_frame=120, validation_sizes=(40,80),
+        catalogue_floor=0.10, scott_multiplier=0.7, quadrature_order=3,
+        grid_points=101, absolute_widths=(0.012,0.024),
+    )
+    runner.run(args)
+    metrics_path=output/"results"/"density_metrics.csv"
+    metrics=pd.read_csv(metrics_path)
+    mean_rows=metrics[metrics.arm=="E_posterior_mean_density"]
+    node_rows=metrics[metrics.arm=="E_posterior_weighted_node_metric"]
+    assert len(mean_rows)==4
+    assert len(node_rows)==4
+    # Convexity: loss of the posterior-mean density cannot exceed
+    # posterior expected node-specific loss for these convex metrics.
+    joined=mean_rows.merge(node_rows,on=["replicate","validation_size","absolute_bandwidth_sd"],suffixes=("_mean","_nodes"))
+    for metric in ("iae","ise","boundary_iae"):
+        assert (joined[f"{metric}_mean"] <= joined[f"{metric}_nodes"] + 1e-10).all()
+    assert mean_rows.kish_ess.isna().all()
+    assert node_rows.kish_ess.isna().all()
+    assert auditor.audit(output)["status"]=="PASS"
+
+    # Refresh the manifest after corrupting the primary posterior-mean metric.
+    metrics.loc[metrics.arm=="E_posterior_mean_density","iae"] += 0.01
+    metrics.to_csv(metrics_path,index=False)
+    manifest_path=output/"manifest.json"
+    manifest=json.loads(manifest_path.read_text())
+    rel=str(metrics_path.relative_to(output))
+    payload=metrics_path.read_bytes()
+    manifest["files"][rel]={"bytes":len(payload),"sha256":hashlib.sha256(payload).hexdigest()}
+    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n")
+    with pytest.raises(AssertionError,match="metric iae"):
+        auditor.audit(output)
