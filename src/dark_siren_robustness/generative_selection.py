@@ -240,3 +240,184 @@ def generate_independent_validation_sample(
         "validation_observed": observable,
         "validation_frame_truth": truth,
     }
+
+def quadratic_logit_parent_measure(*, z_min: float = 0.01, z_max: float = 0.40,
+                                   coordinate_center: float = 0.205,
+                                   coordinate_scale: float = 0.195,
+                                   grid_size: int = 20001) -> dict[str, float]:
+    """Return the parent-intensity centering and normalization constants.
+
+    The parent sampling density is proportional to latent_galaxy_intensity;
+    merger/host weights are deliberately not included in this measure.
+    """
+    from scipy.integrate import trapezoid
+
+    if not (0 < z_min < z_max) or coordinate_scale <= 0 or grid_size < 1001:
+        raise ValueError("invalid redshift bounds, coordinate scale, or grid size")
+    grid = np.linspace(z_min, z_max, int(grid_size))
+    intensity = latent_galaxy_intensity(grid)
+    normalizer = float(trapezoid(intensity, grid))
+    x = (grid - coordinate_center) / coordinate_scale
+    x2_center = float(trapezoid(intensity * x**2, grid) / normalizer)
+    return {"x2_center": x2_center, "intensity_normalizer": normalizer}
+
+
+def calibrate_quadratic_logit_intercept(*, gamma: float, beta: float = -3.9,
+                                        target_rate: float | None = None,
+                                        alpha_reference: float = 0.0,
+                                        z_min: float = 0.01, z_max: float = 0.40,
+                                        coordinate_center: float = 0.205,
+                                        coordinate_scale: float = 0.195,
+                                        grid_size: int = 20001) -> dict[str, float]:
+    """Calibrate alpha_gamma to preserve the gamma=0 parent-averaged rate.
+
+    If target_rate is omitted, it is defined by alpha_reference and gamma=0
+    under the actual parent intensity measure. This avoids importing a rate
+    from a different parent distribution or an undocumented numerical grid.
+    """
+    from scipy.integrate import trapezoid
+    from scipy.optimize import brentq
+    from scipy.special import expit
+
+    if not np.isfinite(gamma) or not np.isfinite(beta) or not np.isfinite(alpha_reference):
+        raise ValueError("gamma, beta, and reference intercept must be finite")
+    constants = quadratic_logit_parent_measure(
+        z_min=z_min, z_max=z_max, coordinate_center=coordinate_center,
+        coordinate_scale=coordinate_scale, grid_size=grid_size,
+    )
+    grid = np.linspace(z_min, z_max, int(grid_size))
+    intensity = latent_galaxy_intensity(grid)
+    x = (grid - coordinate_center) / coordinate_scale
+    centered_x2 = x**2 - constants["x2_center"]
+    normalizer = constants["intensity_normalizer"]
+    if target_rate is None:
+        target_rate = float(trapezoid(
+            intensity * expit(alpha_reference + beta * x), grid
+        ) / normalizer)
+    if not np.isfinite(target_rate) or not 0 < target_rate < 1:
+        raise ValueError("target_rate must be finite and strictly between zero and one")
+    if gamma == 0.0:
+        alpha = float(alpha_reference)
+    else:
+        def rate_difference(candidate: float) -> float:
+            probability = expit(candidate + beta * x + gamma * centered_x2)
+            return float(trapezoid(intensity * probability, grid) / normalizer - target_rate)
+        alpha = float(brentq(rate_difference, -40.0, 40.0, xtol=1e-13, rtol=1e-13))
+    achieved = float(trapezoid(
+        intensity * expit(alpha + beta * x + gamma * centered_x2), grid
+    ) / normalizer)
+    return {
+        "alpha": alpha, "beta": float(beta), "gamma": float(gamma),
+        "target_rate": float(target_rate), "achieved_rate": achieved,
+        "x2_center": constants["x2_center"],
+        "coordinate_center": float(coordinate_center),
+        "coordinate_scale": float(coordinate_scale),
+    }
+
+
+def quadratic_logit_inclusion_probability(
+    redshift: np.ndarray, *, gamma: float, beta: float = -3.9,
+    alpha: float | None = None, target_rate: float | None = None,
+    z_min: float = 0.01, z_max: float = 0.40,
+    coordinate_center: float = 0.205, coordinate_scale: float = 0.195,
+) -> np.ndarray:
+    """Quadratic-logit catalogue inclusion probability for curvature stress tests."""
+    from scipy.special import expit
+
+    z = np.asarray(redshift, dtype=float)
+    if z.ndim != 1 or not np.all(np.isfinite(z)) or np.any(z <= 0):
+        raise ValueError("redshift must be a finite, positive one-dimensional array")
+    if np.any((z < z_min) | (z > z_max)):
+        raise ValueError("redshift values must lie within the declared parent domain")
+    calibration = calibrate_quadratic_logit_intercept(
+        gamma=gamma, beta=beta, target_rate=target_rate,
+        z_min=z_min, z_max=z_max, coordinate_center=coordinate_center,
+        coordinate_scale=coordinate_scale,
+    )
+    alpha_use = calibration["alpha"] if alpha is None else float(alpha)
+    if not np.isfinite(alpha_use):
+        raise ValueError("alpha must be finite")
+    x = (z - coordinate_center) / coordinate_scale
+    return expit(alpha_use + beta * x + gamma * (x**2 - calibration["x2_center"]))
+
+
+def generate_quadratic_logit_inclusion_samples(
+    *, population_seed: int, validation_seed: int, n_parent: int = 4000,
+    n_validation_frame: int = 1500, n_validation: int = 1000,
+    gamma: float = 0.0, beta: float = -3.9,
+    z_min: float = 0.01, z_max: float = 0.40,
+    coordinate_center: float = 0.205, coordinate_scale: float = 0.195,
+) -> dict[str, object]:
+    """Generate paired parent-catalogue and independent validation samples.
+
+    The observable validation table contains only redshift and retention.
+    Inclusion probabilities and the unobserved validation frame are truth-only.
+    """
+    for name, seed in (("population_seed", population_seed), ("validation_seed", validation_seed)):
+        if not isinstance(seed, (int, np.integer)) or isinstance(seed, (bool, np.bool_)) or seed < 0:
+            raise ValueError(f"{name} must be a non-negative integer")
+    if n_parent < 100 or n_validation_frame < 5 or not 5 <= n_validation <= n_validation_frame:
+        raise ValueError("invalid parent or validation sample sizes")
+    if not (0 < z_min < z_max):
+        raise ValueError("invalid redshift bounds")
+
+    calibration = calibrate_quadratic_logit_intercept(
+        gamma=gamma, beta=beta, z_min=z_min, z_max=z_max,
+        coordinate_center=coordinate_center, coordinate_scale=coordinate_scale,
+    )
+    rng_parent = np.random.default_rng(int(population_seed))
+    z_parent = _sample_from_density(n_parent, rng_parent, z_min=z_min, z_max=z_max)
+    p_parent = quadratic_logit_inclusion_probability(
+        z_parent, gamma=gamma, beta=beta, alpha=calibration["alpha"],
+        target_rate=calibration["target_rate"], z_min=z_min, z_max=z_max,
+        coordinate_center=coordinate_center, coordinate_scale=coordinate_scale,
+    )
+    retained_parent = (rng_parent.random(n_parent) < p_parent).astype(np.int8)
+    parent_truth = pd.DataFrame({
+        "object_id": np.arange(n_parent, dtype=np.int64),
+        "redshift": z_parent, "inclusion_probability": p_parent,
+        "retained": retained_parent,
+    })
+    catalogue_observed = parent_truth.loc[
+        retained_parent.astype(bool), ["object_id", "redshift"]
+    ].reset_index(drop=True)
+
+    rng_validation = np.random.default_rng(int(validation_seed))
+    z_frame = _sample_from_density(
+        n_validation_frame, rng_validation, z_min=z_min, z_max=z_max
+    )
+    p_frame = quadratic_logit_inclusion_probability(
+        z_frame, gamma=gamma, beta=beta, alpha=calibration["alpha"],
+        target_rate=calibration["target_rate"], z_min=z_min, z_max=z_max,
+        coordinate_center=coordinate_center, coordinate_scale=coordinate_scale,
+    )
+    retained_frame = (rng_validation.random(n_validation_frame) < p_frame).astype(np.int8)
+    selected = rng_validation.permutation(n_validation_frame)[:n_validation]
+    validation_observed = pd.DataFrame({
+        "validation_id": selected.astype(np.int64),
+        "redshift": z_frame[selected], "retained": retained_frame[selected],
+    })
+    validation_frame_truth = pd.DataFrame({
+        "frame_id": np.arange(n_validation_frame, dtype=np.int64),
+        "redshift": z_frame, "inclusion_probability": p_frame,
+        "retained": retained_frame,
+        "selected_for_validation": np.isin(
+            np.arange(n_validation_frame), selected
+        ).astype(np.int8),
+    })
+    config = {
+        "population_seed": int(population_seed), "validation_seed": int(validation_seed),
+        "n_parent": int(n_parent), "n_validation_frame": int(n_validation_frame),
+        "n_validation": int(n_validation), "sampling_design": "independent_parent_frames_with_nested_srs_validation_prefix",
+        "catalogue_selection_model": "quadratic_logit",
+        "validation_observable_columns": ["validation_id", "redshift", "retained"],
+        "truth_only_columns": ["frame_id", "redshift", "inclusion_probability", "retained", "selected_for_validation"],
+        **calibration,
+    }
+    return {
+        "config": config, "parent_truth": parent_truth,
+        "catalogue_observed": catalogue_observed,
+        "validation_observed": validation_observed,
+        "validation_frame_truth": validation_frame_truth,
+    }
+
