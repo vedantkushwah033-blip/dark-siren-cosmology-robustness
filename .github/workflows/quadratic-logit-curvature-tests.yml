@@ -49,7 +49,7 @@ jobs:
         if: matrix.python-version == '3.12'
         run: |
           python scripts/run_quadratic_logit_curvature_density_replicates.py \\
-            --master-seed 20261220 --replicates 2 --gammas -1,0,1 \\
+            --master-seed 20261220 --replicates 2 --gammas=-1,0,1 \\
             --n-parent 350 --validation-frame 120 --validation-sizes 40,80 \\
             --quadrature-order 3 --grid-points 101 --absolute-widths 0.012,0.024 \\
             --output-dir artifacts/quadratic_logit_curvature_density_replicates_smoke
