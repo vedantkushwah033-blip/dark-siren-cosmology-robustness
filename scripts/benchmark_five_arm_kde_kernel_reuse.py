@@ -33,7 +33,6 @@ def _scalar_reference(h0, z, densities, distances, sigmas, threshold):
             )
             log_num = np.log(trapezoid(numerator, z, axis=1))
             log_eff = np.log(trapezoid(efficiency, z, axis=1))
-            all_ll[density_index] += 0.0 if event_index else 0.0
             all_eff[density_index, event_index] = log_eff
             if event_index == 0:
                 all_ll[density_index] = log_num - log_eff
