@@ -170,9 +170,15 @@ def audit(root:Path):
    paired_frames_by_replicate[rid]=current_common
   report=child_audit(child)
   child_reports.append({"replicate":rid,"gamma":gamma,**report})
+  expected_child_counts={
+   "density_metrics.csv":("metric_rows","cell metric count"),
+   "weight_diagnostics.csv":("weight_diagnostic_rows","cell weight-diagnostic count"),
+   "scott_widths.csv":("scott_width_rows","cell Scott-width count"),
+  }
   for fn,frames in [("density_metrics.csv",metric_frames),("weight_diagnostics.csv",diagnostic_frames),("scott_widths.csv",scott_frames)]:
    frame=pd.read_csv(child/"results"/fn)
-   if fn=="density_metrics.csv" and len(frame)!=int(row["metric_rows"]): raise AssertionError("cell metric count differs from ledger")
+   count_field,count_label=expected_child_counts[fn]
+   if len(frame)!=int(row[count_field]): raise AssertionError(f"{count_label} differs from ledger")
    frame.insert(0,"replicate",rid); frame.insert(1,"gamma",gamma); frames.append(frame)
  metric_rows=_compare_aggregate(root,"density_metrics_all_cells.csv",metric_frames,
   ["replicate","gamma","validation_size","absolute_bandwidth_sd","arm","node"],
