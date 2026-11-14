@@ -45,6 +45,11 @@ def test_paired_curvature_runner_and_independent_outer_audit(tmp_path):
  assert report["planned_cells"]==6
  assert report["child_raw_audits_passed"]==6
  assert report["aggregate_metric_rows_reconstructed"]==len(metrics)
+ assert report["paired_contrast_rows_reconstructed"]==528
+ assert report["paired_contrast_summary_rows_reconstructed"]==264
+ contrasts=pd.read_csv(out/"paired_contrasts_all_cells.csv")
+ assert set(contrasts["contrast_type"])=={"gamma_vs_zero","arm_pair"}
+ assert len(contrasts)==528
 
 def test_curvature_outer_auditor_rejects_aggregate_corruption_even_with_updated_manifest(tmp_path):
  runner=_load("curvature_multi_runner_corrupt","run_quadratic_logit_curvature_density_replicates.py")
