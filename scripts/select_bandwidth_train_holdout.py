@@ -120,7 +120,9 @@ def select_bandwidth(
         })
     return {
         "schema_version": 1,
-        "status": "PASS_SELECTION_ONLY_NOT_CONFIRMATORY",
+        "status": ("BOUNDARY_LIMITED_EXPAND_GRID" if selected_multiplier in (candidates[0], candidates[-1]) else "PASS_SELECTION_ONLY_NOT_CONFIRMATORY"),
+        "selection_eligible": bool(selected_multiplier not in (candidates[0], candidates[-1])),
+        "boundary_limited": bool(selected_multiplier in (candidates[0], candidates[-1])),
         "estimand": "analytic merger-weighted parent-host redshift density",
         "selection_metric": "integrated absolute error against analytic parent density",
         "selection_population": "parent_sample_kde only; no H0 likelihood or posterior metric",
