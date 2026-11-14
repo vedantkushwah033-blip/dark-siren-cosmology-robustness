@@ -156,3 +156,16 @@ Lifecycle semantics are explicit: successful cells are marked `PENDING_OUTER_AUD
 The workflow's configured three replicates per gamma are an engineering pilot only. At the latest source review, the updated runner, auditor, and regression-test files were fetched from GitHub, but the exact-head Actions results and uploaded artifact had not yet been retrieved and independently verified. Therefore no seven-gamma performance result is claimed.
 
 The full seven-gamma × 20-replicate experiment has not been run. No curvature-family performance conclusion, leakage-free bandwidth selection, held-out density validation, or H0 propagation is authorized by this pilot.
+
+
+## Outer-manifest inventory hardening (2026-11-15)
+
+A follow-up audit review identified that the outer auditor verified every file named in the manifest, including byte counts and SHA-256 hashes, but did not reject additional files that were present in the artifact directory and absent from the manifest. Such extra files could not silently change the reconstructed CSV metrics, but their presence meant the manifest was not an exact inventory of the artifact.
+
+The outer auditor now compares the complete set of files under the artifact root (excluding the manifest itself) with the manifest's listed paths. It rejects both missing listed files and unmanifested extra files before proceeding to child audits and numerical reconstruction. A regression test creates a valid paired pilot, adds an extra file without updating the manifest, and requires the auditor to reject the artifact.
+
+Implementation commits on the research branch:
+- `f434904391247c9a43a9c75d80dff7d9c7daec8f`: exact artifact-inventory check.
+- `fc713b0aa106d47c1e9134510346c5eba52925e9`: unmanifested-file regression test.
+
+The exact branch head was re-fetched after both writes. The GitHub combined-status endpoint returned no status records for that head at inspection time; therefore this change is implemented but its CI result is **not yet verified**. This audit hardening does not change the statistical estimands or provide any new experimental result.
