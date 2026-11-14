@@ -62,6 +62,7 @@ def run(args):
         row={"replicate_id":rid,"population_seed":seed,"validation_seed":validation_seed,
              "status":"NOT_RUN","audit_status":"NOT_RUN","metric_rows":0,"error":""}
         dest=root/"replicates"/f"replicate_{rid:04d}"
+        dest.mkdir(parents=True,exist_ok=True)
         try:
             one=SimpleNamespace(
               output_dir=dest,seed=seed,validation_seed=validation_seed,
