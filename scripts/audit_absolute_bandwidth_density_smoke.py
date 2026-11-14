@@ -68,6 +68,97 @@ def _independent_scott_width(sample,weights,multiplier):
  if not np.isfinite(width) or width<=0: raise AssertionError("independent Scott width is invalid")
  return float(width)
 
+def _independent_logistic_quadrature(validation_redshift, retained, cfg):
+ """Rebuild the proper degree-one logistic posterior without production code.
+
+ The reference uses BFGS plus an independently coded Newton polish, then
+ reconstructs the Laplace-proposal tensor Gauss-Hermite importance weights.
+ """
+ z=np.asarray(validation_redshift,float); y=np.asarray(retained,float)
+ if z.ndim!=1 or y.shape!=z.shape or z.size<5 or not np.all(np.isfinite(z)):
+  raise AssertionError("invalid validation inputs for independent posterior")
+ if np.any((y!=0)&(y!=1)): raise AssertionError("validation labels are not binary")
+ degree=1
+ center=float(cfg["coordinate_center"]); scale=float(cfg["coordinate_scale"])
+ if not np.isfinite(center) or not np.isfinite(scale) or scale<=0:
+  raise AssertionError("invalid coefficient coordinate system")
+ x=(z-center)/scale
+ design=np.column_stack((np.ones(z.size),x))
+ prior=cfg["coefficient_prior"]
+ if prior.get("family")!="independent_gaussian":
+  raise AssertionError("unsupported coefficient prior family")
+ mu=np.asarray(prior["mean"],float); sd=np.asarray(prior["sd"],float)
+ if mu.shape!=(2,) or sd.shape!=(2,) or not np.all(np.isfinite(mu)) or np.any(sd<=0):
+  raise AssertionError("invalid persisted coefficient prior")
+ precision=1.0/(sd*sd)
+ def objective(beta):
+  eta=design@beta
+  loglik=np.sum(y*eta-np.logaddexp(0.0,eta))
+  standardized=(beta-mu)/sd
+  logprior=-0.5*float(standardized@standardized)-float(np.sum(np.log(sd)))-math.log(2.0*math.pi)
+  return float(-(loglik+logprior))
+ def gradient(beta):
+  return design.T@(expit(design@beta)-y)+(beta-mu)*precision
+ def hessian(beta):
+  p=expit(design@beta)
+  return design.T@((p*(1-p))[:,None]*design)+np.diag(precision)
+ fit=minimize(objective,mu.copy(),jac=gradient,method="BFGS",
+              options={"gtol":1e-10,"maxiter":4000})
+ mode=np.asarray(fit.x,float)
+ if not np.all(np.isfinite(mode)): raise AssertionError("independent posterior mode is non-finite")
+ # Deterministic damped Newton polishing, independent of the production trust-exact optimizer.
+ for _ in range(100):
+  score=gradient(mode)
+  if np.linalg.norm(score,ord=np.inf)<=1e-6: break
+  info=hessian(mode)
+  try: direction=np.linalg.solve(info,score)
+  except np.linalg.LinAlgError as exc: raise AssertionError("independent posterior Hessian solve failed") from exc
+  decrement=float(score@direction)
+  if not np.isfinite(decrement) or decrement<=0: raise AssertionError("invalid independent Newton decrement")
+  current=objective(mode); step=1.0; accepted=False
+  while step>=2.0**-35:
+   candidate=mode-step*direction
+   if objective(candidate)<=current-1e-4*step*decrement:
+    mode=candidate; accepted=True; break
+   step*=0.5
+  if not accepted:
+   # At machine precision the objective can stop decreasing before the score
+   # reaches 1e-11. Accept only the same narrow residual bound as the production
+   # fit; retain the Hessian and positive-definiteness checks below.
+   if np.linalg.norm(gradient(mode),ord=np.inf)<=1e-6: break
+   raise AssertionError("independent posterior Newton polish stalled")
+ else:
+  if np.linalg.norm(gradient(mode),ord=np.inf)>1e-6:
+   raise AssertionError("independent posterior mode did not converge")
+ information=hessian(mode)
+ eigen=np.linalg.eigvalsh(information)
+ if np.min(eigen)<=0 or not np.all(np.isfinite(eigen)):
+  raise AssertionError("independent posterior information is not positive definite")
+ covariance=np.linalg.inv(information)
+ chol=np.linalg.cholesky(covariance)
+ order=int(cfg["quadrature_order"])
+ if order<3: raise AssertionError("invalid posterior quadrature order")
+ gh_nodes,gh_weights=roots_hermitenorm(order)
+ tuples=list(product(range(order),repeat=degree+1))
+ standard=np.asarray([[gh_nodes[i] for i in ix] for ix in tuples],float)
+ base_log=np.asarray([sum(math.log(gh_weights[i]) for i in ix)
+                      -0.5*(degree+1)*math.log(2.0*math.pi) for ix in tuples])
+ nodes=mode[None,:]+standard@chol.T
+ log_proposal=(-0.5*(degree+1)*math.log(2.0*math.pi)
+               -0.5*np.sum(standard*standard,axis=1)
+               -float(np.sum(np.log(np.diag(chol)))))
+ eta=design@nodes.T
+ log_likelihood=np.sum(y[:,None]*eta-np.logaddexp(0.0,eta),axis=0)
+ standardized_prior=(nodes-mu[None,:])/sd[None,:]
+ log_prior=(-0.5*np.sum(standardized_prior**2,axis=1)
+            -float(np.sum(np.log(sd)))-(degree+1)*0.5*math.log(2.0*math.pi))
+ log_importance=base_log+log_likelihood+log_prior-log_proposal
+ log_norm=float(logsumexp(log_importance))
+ q=np.exp(log_importance-log_norm)
+ q/=q.sum()
+ return mode,nodes,q
+
+
 def audit(root:Path):
  root=root.resolve()
  manifest=json.loads((root/"manifest.json").read_text())
@@ -122,6 +213,10 @@ def audit(root:Path):
   _close(truth_join.retained_obs.to_numpy(int),truth_join.retained_truth.to_numpy(int),f"validation retention join n={n}",atol=0)
   nodes=z[f"posterior_nodes_n{n}"]; q=z[f"posterior_weights_n{n}"]; mode=z[f"posterior_mode_n{n}"]
   if nodes.ndim!=2 or nodes.shape[1]!=2 or q.shape!=(len(nodes),) or np.any(q<0) or not np.isclose(q.sum(),1): raise AssertionError("invalid persisted coefficient quadrature")
+  ref_mode,ref_nodes,ref_q=_independent_logistic_quadrature(v.redshift.to_numpy(float),v.retained.to_numpy(int),cfg)
+  _close(mode,ref_mode,"independently reconstructed inclusion posterior mode",atol=1e-7)
+  _close(nodes,ref_nodes,"independently reconstructed inclusion posterior nodes",atol=1e-7)
+  _close(q,ref_q,"independently reconstructed inclusion posterior weights",atol=1e-7)
   xv=(v.redshift.to_numpy(float)-float(cfg["coordinate_center"]))/float(cfg["coordinate_scale"])
   design=np.column_stack([np.ones(n),xv])
   pmap=expit(np.column_stack([np.ones(len(zcat)),(zcat-float(cfg["coordinate_center"]))/float(cfg["coordinate_scale"])])@mode)
