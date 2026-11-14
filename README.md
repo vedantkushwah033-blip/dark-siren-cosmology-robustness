@@ -2,7 +2,7 @@
 
 ## Density-stage update (2026-11-14)
 
-- The expanded 11-width, 20-replicate-per-floor rerun has now completed with 20/20 success in all three floor cells and independent outer audit PASS; see the [expanded-width readout](docs/expanded_absolute_width_density_pilot_readout_2026-11-15.md). Its pooled descriptive IAE minimum is 0.016, but this is not a frozen bandwidth: catalogue-only minima remain at the upper grid edge in two floors, and no disjoint holdout has been run. The artifact configuration also has a stale audit-scope limitation string that must be reconciled before the runner is treated as provenance-clean.
+- The expanded 11-width, 20-replicate-per-floor rerun has now completed with 20/20 success in all three floor cells and independent outer audit PASS; see the [expanded-width readout](docs/expanded_absolute_width_density_pilot_readout_2026-11-15.md). Its pooled descriptive IAE minimum is 0.016, but this is not a frozen bandwidth: catalogue-only minima remain at the upper grid edge in two floors, and no disjoint holdout has been run. The artifact configuration retains a stale audit-scope limitation string; the runner source and regression test now correct it, pending an exact-head rerun.
 
 The active density-only follow-up is being developed on [`research/absolute-width-distribution-pilot-20261114`](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/tree/research/absolute-width-distribution-pilot-20261114), separate from draft PR #54.
 
