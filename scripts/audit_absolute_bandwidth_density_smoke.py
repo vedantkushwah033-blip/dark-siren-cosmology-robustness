@@ -53,9 +53,12 @@ def _independent_weight_diagnostics(weights):
  k1=max(1,int(np.ceil(0.01*w.size)))
  k5=max(1,int(np.ceil(0.05*w.size)))
  ess=float(1.0/np.sum(normalized**2))
+ positive=normalized[normalized>0]
+ entropy_ess=float(np.exp(-np.sum(positive*np.log(positive))))
  return {
   "kish_ess":ess,
   "kish_ess_fraction":ess/w.size,
+  "entropy_ess":entropy_ess,
   "maximum_normalized_weight":float(ordered[0]),
   "top_1_percent_mass":float(np.sum(ordered[:k1])),
   "top_5_percent_mass":float(np.sum(ordered[:k5])),
@@ -282,6 +285,7 @@ def audit(root:Path):
    "validation_size":n,"arm":"E_uncertainty_integrated_ipw","node":-1,
    "kish_ess":min(x["kish_ess"] for x in e_node_diagnostics),
    "kish_ess_fraction":min(x["kish_ess_fraction"] for x in e_node_diagnostics),
+   "entropy_ess":min(x["entropy_ess"] for x in e_node_diagnostics),
    "maximum_normalized_weight":max(x["maximum_normalized_weight"] for x in e_node_diagnostics),
    "top_1_percent_mass":max(x["top_1_percent_mass"] for x in e_node_diagnostics),
    "top_5_percent_mass":max(x["top_5_percent_mass"] for x in e_node_diagnostics),
@@ -346,7 +350,7 @@ def audit(root:Path):
  expected_diagnostics_df=pd.DataFrame(expected_diagnostics)
  diagnostic_key=["validation_size","arm","node"]
  diagnostic_columns=[
-  "kish_ess","kish_ess_fraction","maximum_normalized_weight",
+  "kish_ess","kish_ess_fraction","entropy_ess","maximum_normalized_weight",
   "top_1_percent_mass","top_5_percent_mass",
  ]
  if diagnostics.duplicated(diagnostic_key).any() or expected_diagnostics_df.duplicated(diagnostic_key).any():
