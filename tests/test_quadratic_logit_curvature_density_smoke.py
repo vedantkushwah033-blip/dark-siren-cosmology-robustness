@@ -175,3 +175,23 @@ def test_independent_posterior_audit_uses_score_improvement_when_objective_stall
         assert np.all(np.isfinite(nodes))
         assert np.all(np.isfinite(weights))
         assert weights.sum() == pytest.approx(1.0, abs=1e-12)
+
+
+def test_independent_curvature_dgp_reconstruction_matches_seeded_truth_and_observables():
+    from dark_siren_robustness.generative_selection import generate_quadratic_logit_inclusion_samples
+
+    auditor = _load_auditor()
+    for gamma in (-2.0, 0.0, 0.5, 2.0):
+        production = generate_quadratic_logit_inclusion_samples(
+            population_seed=88401, validation_seed=88402,
+            n_parent=600, n_validation_frame=240, n_validation=180,
+            gamma=gamma, beta=-3.9, z_min=0.01, z_max=0.40,
+        )
+        independent = auditor._reference_generate(
+            population_seed=88401, validation_seed=88402,
+            n_parent=600, n_validation_frame=240, n_validation=180,
+            gamma=gamma, beta=-3.9, z_min=0.01, z_max=0.40,
+            center=0.205, scale=0.195,
+        )
+        for key in ("parent_truth", "catalogue_observed", "validation_observed", "validation_frame_truth"):
+            pd.testing.assert_frame_equal(production[key], independent[key], check_exact=False, rtol=1e-12, atol=1e-13)
