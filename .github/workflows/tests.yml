@@ -303,6 +303,15 @@ jobs:
         run: |
           python scripts/run_catalogue_thinning_audit.py --n-parent 40000 --seed 20261028 --output-dir artifacts/catalogue_thinning
           python scripts/audit_catalogue_thinning_audit.py artifacts/catalogue_thinning
+      - name: Upload five-arm KDE optimization and bandwidth-selection artifacts (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: five-arm-kde-bandwidth-pilot
+          path: |
+            artifacts/five_arm_kde_kernel_benchmark.json
+            artifacts/parent_density_bandwidth_pilot/
+          if-no-files-found: error
       - name: Upload numerical diagnostic results
         uses: actions/upload-artifact@v4
         with:
