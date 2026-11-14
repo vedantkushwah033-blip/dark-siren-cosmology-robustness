@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 
@@ -13,15 +14,20 @@ from dark_siren_robustness.generative_selection import (
     generate_quadratic_logit_inclusion_samples,
     latent_galaxy_intensity,
 )
-from dark_siren_robustness.five_arm_comparison import (
-    build_five_arm_weights,
-    weight_concentration_diagnostics,
-)
-from dark_siren_robustness.catalogue_density import (
-    estimate_host_density,
-    reflected_weighted_kde_bandwidth,
-)
 from scipy.integrate import trapezoid
+from scipy.special import expit
+
+# Reuse the separately implemented numerical reference routines used by the
+# floor-family raw-input auditor; these do not call the production fitter/KDE.
+_reference_path = Path(__file__).with_name("audit_absolute_bandwidth_density_smoke.py")
+_reference_spec = importlib.util.spec_from_file_location("independent_floor_density_reference", _reference_path)
+_reference = importlib.util.module_from_spec(_reference_spec)
+assert _reference_spec.loader is not None
+_reference_spec.loader.exec_module(_reference)
+_independent_logistic_quadrature = _reference._independent_logistic_quadrature
+_independent_weight_diagnostics = _reference._independent_weight_diagnostics
+_independent_scott_width = _reference._independent_scott_width
+_independent_kde = _reference._independent_kde
 
 Z_MIN, Z_MAX = 0.01, 0.40
 BOUNDARY_LOWER, BOUNDARY_UPPER = 0.049, 0.361
@@ -115,42 +121,46 @@ def audit(root: Path) -> dict[str, object]:
         validation = pd.read_csv(root / "observable" / f"validation_n{int(n)}.csv")
         expected_prefix = validation_max.iloc[:int(n)].reset_index(drop=True)
         pd.testing.assert_frame_equal(validation, expected_prefix, check_exact=True)
-        arms = build_five_arm_weights(
-            pz, cz,
+        mode, posterior_nodes, posterior_weights = _independent_logistic_quadrature(
             validation["redshift"].to_numpy(float),
             validation["retained"].to_numpy(int),
-            catalogue_floor=None,
-            degree=1,
-            coordinate_center=0.205,
-            coordinate_scale=0.195,
-            quadrature_order=int(cfg["quadrature_order"]),
-            parent_base_weights=parent_base,
-            catalogue_base_weights=catalogue_base,
-            known_inclusion_probability=p_catalogue,
+            cfg,
         )
+        archive = np.load(root / "results" / "density_reconstruction_inputs.npz")
+        stored_mode = archive[f"posterior_mode_n{int(n)}"]
+        stored_nodes = archive[f"posterior_nodes_n{int(n)}"]
+        stored_q = archive[f"posterior_weights_n{int(n)}"]
+        if not np.allclose(stored_mode, mode, rtol=2e-7, atol=2e-7):
+            raise AssertionError("stored inclusion posterior mode differs from independent refit")
+        if not np.allclose(stored_nodes, posterior_nodes, rtol=2e-7, atol=2e-7):
+            raise AssertionError("stored inclusion posterior nodes differ from independent refit")
+        if not np.allclose(stored_q, posterior_weights, rtol=2e-7, atol=2e-7):
+            raise AssertionError("stored inclusion posterior weights differ from independent refit")
+        xcat = (cz - float(cfg["coordinate_center"])) / float(cfg["coordinate_scale"])
+        design_cat = np.column_stack((np.ones(cz.size), xcat))
+        p_map = expit(design_cat @ mode)
+        p_nodes = expit(design_cat @ posterior_nodes.T).T
+        node_weights = catalogue_base[None, :] / p_nodes
         raw_inputs = {
-            "A_catalogue_only": (cz, arms.arm_a_catalogue_only),
-            "B_parent_oracle": (pz, arms.arm_b_parent_oracle),
-            "C_known_probability_ipw": (cz, arms.arm_c_known_probability),
-            "D_map_plugin_ipw": (cz, arms.arm_d_map_plugin),
+            "A_catalogue_only": (cz, catalogue_base),
+            "B_parent_oracle": (pz, parent_base),
+            "C_known_probability_ipw": (cz, catalogue_base / p_catalogue),
+            "D_map_plugin_ipw": (cz, catalogue_base / p_map),
         }
         node_diag = [
-            weight_concentration_diagnostics(w)
-            for w in arms.arm_e_node_weights
+            _independent_weight_diagnostics(w)
+            for w in node_weights
         ]
         for name, (sample_z, weights) in raw_inputs.items():
             expected_diagnostics.append({
                 "validation_size": int(n), "arm": name, "node": -1,
-                **weight_concentration_diagnostics(weights),
+                **_independent_weight_diagnostics(weights),
             })
             expected_scott.append({
                 "validation_size": int(n), "arm": name, "node": -1,
-                "realized_bandwidth_redshift": reflected_weighted_kde_bandwidth(
-                    sample_z, lower_bound=Z_MIN, upper_bound=Z_MAX,
-                    sample_weights=weights, scott_multiplier=float(cfg["scott_multiplier"]),
-                ),
+                "realized_bandwidth_redshift": _independent_scott_width(sample_z, weights, float(cfg["scott_multiplier"])),
             })
-        for j, weights in enumerate(arms.arm_e_node_weights):
+        for j, weights in enumerate(node_weights):
             expected_diagnostics.append({
                 "validation_size": int(n), "arm": "E_uncertainty_integrated_ipw",
                 "node": j, **node_diag[j],
@@ -158,10 +168,7 @@ def audit(root: Path) -> dict[str, object]:
             expected_scott.append({
                 "validation_size": int(n), "arm": "E_uncertainty_integrated_ipw",
                 "node": j,
-                "realized_bandwidth_redshift": reflected_weighted_kde_bandwidth(
-                    cz, lower_bound=Z_MIN, upper_bound=Z_MAX,
-                    sample_weights=weights, scott_multiplier=float(cfg["scott_multiplier"]),
-                ),
+                "realized_bandwidth_redshift": _independent_scott_width(cz, weights, float(cfg["scott_multiplier"])),
             })
         expected_diagnostics.append({
             "validation_size": int(n), "arm": "E_uncertainty_integrated_ipw",
@@ -175,24 +182,18 @@ def audit(root: Path) -> dict[str, object]:
 
         for width in widths:
             for name, (sample_z, weights) in raw_inputs.items():
-                density = estimate_host_density(
-                    grid, sample_z, sample_weights=weights,
-                    merger_weight=merger, absolute_bandwidth_sd=width,
-                )
+                density = _independent_kde(grid, sample_z, weights, merger, width)
                 expected_metrics.append({
                     "validation_size": int(n), "absolute_bandwidth_sd": width,
                     "arm": name, "node": -1, **_metric(density, truth_density, grid),
                     "status": "SUCCESS",
-                    "kish_ess": weight_concentration_diagnostics(weights)["kish_ess"],
+                    "kish_ess": _independent_weight_diagnostics(weights)["kish_ess"],
                 })
             node_densities = np.asarray([
-                estimate_host_density(
-                    grid, cz, sample_weights=weights, merger_weight=merger,
-                    absolute_bandwidth_sd=width,
-                )
-                for weights in arms.arm_e_node_weights
+                _independent_kde(grid, cz, weights, merger, width)
+                for weights in node_weights
             ])
-            q = arms.arm_e_quadrature_weights
+            q = posterior_weights
             for j, weights in enumerate(arms.arm_e_node_weights):
                 expected_metrics.append({
                     "validation_size": int(n), "absolute_bandwidth_sd": width,
