@@ -199,7 +199,9 @@ def run(args):
     pd.DataFrame(rows).to_csv(out/"results"/"density_metrics.csv",index=False)
     pd.DataFrame(diag).to_csv(out/"results"/"weight_diagnostics.csv",index=False)
     pd.DataFrame(scott_rows).to_csv(out/"results"/"scott_widths.csv",index=False)
-    config={"schema_version":1,"experiment":"absolute_physical_bandwidth_five_arm_density_smoke",
+    config={"schema_version":1,
+      "experiment":("quadratic_logit_curvature_density_smoke" if gamma is not None
+                    else "absolute_physical_bandwidth_five_arm_density_smoke"),
       "status":"ENGINEERING_SMOKE_NOT_SELECTION_NOT_CONFIRMATORY",
       "seed":args.seed,"validation_seed":args.validation_seed,"n_parent":args.n_parent,
       "n_catalogue":len(catalogue),"validation_frame":args.validation_frame,"validation_sizes":sizes,
