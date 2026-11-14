@@ -87,6 +87,8 @@ def audit(root:Path):
  if cfg.get("experiment")!="paired_quadratic_logit_curvature_density_pilot": raise AssertionError("wrong experiment identifier")
  if cfg.get("status")!="DEVELOPMENT_PILOT_NOT_CONFIRMATORY_NOT_BANDWIDTH_SELECTION": raise AssertionError("claim status mismatch")
  if cfg.get("analysis_model")!="degree_one_logistic": raise AssertionError("analysis model mismatch")
+ if float(cfg.get("coordinate_center",float("nan")))!=0.205 or float(cfg.get("coordinate_scale",float("nan")))!=0.195: raise AssertionError("coordinate specification mismatch")
+ if cfg.get("coefficient_prior")!={"family":"independent_gaussian","mean":[0.0,0.0],"sd":[5.0,2.5]}: raise AssertionError("coefficient prior mismatch")
  gammas=[float(x) for x in cfg["gammas"]]
  reps=int(cfg["replicates"]); stride=int(cfg["seed_stride"]); master=int(cfg["master_seed"])
  if reps<2 or len(gammas)<2 or len(set(gammas))!=len(gammas) or stride<2: raise AssertionError("invalid planned design")
@@ -134,6 +136,9 @@ def audit(root:Path):
   if int(child_cfg["validation_frame"])!=int(cfg["validation_frame"]) or float(child_cfg["beta"])!=float(cfg["beta"]): raise AssertionError("child validation-frame or beta mismatch")
   if int(child_cfg["quadrature_order"])!=int(cfg["quadrature_order"]) or int(child_cfg["grid_points"])!=int(cfg["grid_points"]): raise AssertionError("child numerical-resolution mismatch")
   if float(child_cfg["scott_multiplier"])!=float(cfg["scott_multiplier"]): raise AssertionError("child Scott multiplier mismatch")
+  if float(child_cfg["coordinate_center"])!=float(cfg["coordinate_center"]) or float(child_cfg["coordinate_scale"])!=float(cfg["coordinate_scale"]): raise AssertionError("child coordinate specification mismatch")
+  if child_cfg["coefficient_prior"]!=cfg["coefficient_prior"]: raise AssertionError("child coefficient prior mismatch")
+  if child_cfg.get("analysis_model")!=cfg["analysis_model"] or child_cfg.get("arm_C")!=cfg["arm_C"] or child_cfg.get("arm_D_E")!=cfg["arm_D_E"]: raise AssertionError("child analysis or arm-label mismatch")
   report=child_audit(child)
   child_reports.append({"replicate":rid,"gamma":gamma,**report})
   for fn,frames in [("density_metrics.csv",metric_frames),("weight_diagnostics.csv",diagnostic_frames),("scott_widths.csv",scott_frames)]:
