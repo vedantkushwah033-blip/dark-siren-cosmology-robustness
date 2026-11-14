@@ -65,15 +65,25 @@ jobs:
           assert len(selection["holdout_replicate_ids"]) == 60
           assert set(selection["training_replicate_ids"]).isdisjoint(selection["holdout_replicate_ids"])
           assert selection["selected_multiplier"] in selection["candidate_multipliers"]
+          selected = float(selection["selected_multiplier"])
+          candidates = [float(x) for x in selection["candidate_multipliers"]]
+          boundary_limited = selected in (min(candidates), max(candidates))
+          selected_holdout = selection["selected_holdout_score"]
           print(json.dumps({
               "audit_status": "PASS",
-              "selected_multiplier": selection["selected_multiplier"],
-              "boundary_limited": selection["boundary_limited"],
-              "selection_eligible": selection["selection_eligible"],
+              "selected_multiplier": selected,
+              "boundary_limited": boundary_limited,
+              "selection_eligible_for_density_only_sensitivity": not boundary_limited,
               "training_replicates": len(selection["training_replicate_ids"]),
               "holdout_replicates": len(selection["holdout_replicate_ids"]),
+              "selected_holdout_score": selected_holdout,
               "holdout_scores": selection["holdout_scores"],
-              "interpretation": "Fresh-seed synthetic density-only pilot; endpoint minima remain unresolved and cannot be frozen."
+              "interpretation": (
+                  "Interior density-only candidate; still requires grid-resolution checks "
+                  "and separate H0 evaluation seeds."
+                  if not boundary_limited else
+                  "Boundary-limited density-only candidate; expand the grid before freezing."
+              )
           }, indent=2, sort_keys=True))
           PY
       - name: Upload fresh-seed raw inputs and independent audit reports
