@@ -1,0 +1,96 @@
+# Parent-density bandwidth pilot: audited result and interpretation
+
+**Date:** 2026-11-14  
+**Status:** source and selection audits pass; bandwidth optimum unresolved  
+**Scope:** synthetic parent-host density recovery only. This report makes no claim about H0 calibration, estimator ranking, or observational data.
+
+## 1. Primary 200-replicate experiment
+
+Workflow run: [43548695692](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/43548695692)  
+Artifact ID: `14095293801`  
+Artifact SHA-256: `d35d7081882ccb0b987230eb6115acec5449ba6fa1a0318f96189e87056153fe`  
+Source commit: `9f077d151a8eb0a875e44e3505bf31b464aed7bd`
+
+Design:
+- 200 independent parent-population replicates, 4,000 parent units each;
+- 801-point redshift grid over [0.01, 0.40];
+- analytic target proportional to the declared two-component parent intensity times the common merger weight;
+- nine weighted-Scott multipliers: 0.05, 0.08, 0.10, 0.12, 0.15, 0.20, 0.25, 0.30, 0.40;
+- deterministic 140/60 training/holdout split;
+- selection objective: mean integrated absolute error (IAE) against the analytic target.
+
+### 1.1 Independent source audit
+
+The source auditor independently reconstructed all 1,800 replicate × multiplier attempts and verified all 800,000 parent units. The maximum absolute difference between recorded and independently reconstructed IAE was:
+
+`4.163336342344337e-16`
+
+Source audit status: **PASS**.
+
+### 1.2 Train/holdout results
+
+| Scott multiplier | Training mean IAE (n=140) | Holdout mean IAE (n=60) |
+|---:|---:|---:|
+| 0.05 | 0.1305253 | 0.1307963 |
+| 0.08 | 0.1031205 | 0.1032066 |
+| 0.10 | 0.0921284 | 0.0922072 |
+| 0.12 | 0.0839649 | 0.0840997 |
+| 0.15 | 0.0749159 | 0.0750892 |
+| 0.20 | 0.0646492 | 0.0647632 |
+| 0.25 | 0.0577219 | 0.0576946 |
+| 0.30 | 0.0528231 | 0.0526713 |
+| 0.40 | 0.0467434 | 0.0466049 |
+
+The independently audited training selector returned `0.40`, and the selection auditor returned **PASS**. The training and holdout ID sets are disjoint (140 and 60 replicates).
+
+### 1.3 Critical interpretation: boundary minimum
+
+IAE decreases monotonically over the entire candidate grid in both training and holdout. The selected value, 0.40, is the largest tested multiplier.
+
+Therefore, the experiment **does not locate an interior bandwidth optimum**. It establishes only that 0.40 is the best candidate among the nine values tested under this one synthetic parent-density DGP and this particular sample size/grid. It does not justify freezing 0.40 as an optimal, universal, or confirmatory bandwidth.
+
+Recommended status label:
+
+`PASS_AUDIT_BOUNDARY_MINIMUM_UNRESOLVED`
+
+The audit passes; the scientific selection question remains unresolved.
+
+## 2. Overlapping 100-replicate pilot in PR #54
+
+The exact-head PR #54 workflow also completed a 100-replicate pilot and selected 0.40 from a 12-value grid (0.03 through 0.40). Its selection audit passed.
+
+This is **not an independent replication** of the 200-replicate run:
+- both use master seed 20261114 and the same parent DGP;
+- the 100-replicate pilot uses replicate IDs 0–99;
+- the 200-replicate experiment uses replicate IDs 0–199;
+- hence the first 100 replicate IDs overlap exactly, while candidate grids and split definitions differ.
+
+The two results are consistent as overlapping sensitivity analyses, but must not be pooled or described as independent confirmation. Both point to the upper edge of their tested range.
+
+## 3. Batched likelihood engineering benchmark in PR #54
+
+Exact-head workflow run: [43550061324](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/43550061324). All Python 3.10, 3.11, and 3.12 jobs passed.
+
+At 321 H0 points × 801 redshift points × 30 events × 23 density nodes (three timing repeats):
+- scalar median: 6.07149 s;
+- batched median: 0.31343 s;
+- observed ratio: 19.37×;
+- maximum absolute log-likelihood difference: 1.42e-13;
+- maximum absolute log-detection-efficiency difference: 2.66e-15.
+
+This is evidence of numerical equivalence and a useful speed improvement for the isolated likelihood-kernel calculation on that runner. It excludes KDE construction, is hardware/BLAS/load dependent, and is not a universal performance claim. It does not establish scientific calibration or estimator superiority.
+
+## 4. Next required work before freezing a bandwidth
+
+1. Keep the completed 200-replicate source artifact immutable.
+2. Predeclare an expanded multiplier grid extending beyond 0.40, with a new master seed and replicate IDs disjoint from both existing pilots.
+3. Run the expanded range as an engineering bandwidth-only pilot; retain all candidates and all failures.
+4. Check redshift-grid refinement and boundary behavior so apparent improvement is not a finite-grid artifact.
+5. If the expanded curve develops an interior minimum, conduct a fresh train/holdout selection on disjoint replicate IDs and independently audit it.
+6. Only then freeze a density-only bandwidth rule for the later five-arm H0 study.
+
+The bandwidth must not be selected using H0 posterior error, coverage, PIT, or any event-level outcome. The later H0 study must separately verify H0-grid and coefficient-quadrature convergence.
+
+## 5. Claim boundary
+
+This pilot concerns one synthetic parent population, one parent sample size, and a parent-density IAE objective. It does not evaluate catalogue-inclusion corrections A–E, does not measure H0, does not test real galaxy catalogues, and does not support a claim that any inclusion estimator is superior.
