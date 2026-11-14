@@ -51,7 +51,7 @@ def test_absolute_bandwidth_auditor_rejects_non_nested_validation_ids(tmp_path):
         output_dir=output, seed=20261116, validation_seed=20261117,
         n_parent=500, validation_frame=120, validation_sizes=(40,80),
         catalogue_floor=0.10, quadrature_order=3, grid_points=101,
-        absolute_widths=(0.012,),
+        absolute_widths=(0.012,0.024),
     )
     runner.run(args)
     path=output/"observable"/"validation_n80.csv"
