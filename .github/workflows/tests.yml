@@ -76,6 +76,8 @@ jobs:
       - name: Independently audit absolute-bandwidth density smoke (Python 3.12 only)
         if: matrix.python-version == '3.12'
         run: python scripts/audit_absolute_bandwidth_density_smoke.py artifacts/absolute_bandwidth_density_smoke --output artifacts/absolute_bandwidth_density_smoke_audit.json
+      - name: Test absolute-bandwidth density smoke and independent auditor
+        run: python -m pytest tests/test_absolute_bandwidth_density_smoke.py -q
       - name: Test raw artifact preservation for failed five-arm replicates
         run: python -m pytest tests/test_five_arm_smoke_failure_artifacts.py -q
       - name: Test multi-replicate five-arm aggregation and failure bounds
