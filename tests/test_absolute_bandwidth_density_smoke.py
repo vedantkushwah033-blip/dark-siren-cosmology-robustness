@@ -206,6 +206,6 @@ def test_absolute_bandwidth_auditor_rejects_corrupted_inclusion_posterior_weight
     payload = raw_path.read_bytes()
     rel = str(raw_path.relative_to(output))
     manifest["files"][rel] = {"bytes": len(payload), "sha256": hashlib.sha256(payload).hexdigest()}
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n")
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     with pytest.raises(AssertionError, match="independently reconstructed inclusion posterior weights"):
         auditor.audit(output)
