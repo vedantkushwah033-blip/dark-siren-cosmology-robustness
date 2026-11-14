@@ -143,6 +143,22 @@ def test_quadratic_logit_auditor_rejects_corrupted_weight_diagnostic_even_with_u
         auditor.audit(output)
 
 
+def test_arm_e_jensen_audit_rejects_secondary_loss_below_primary():
+    auditor = _load_auditor()
+    valid = pd.DataFrame([
+        {"validation_size": 100, "absolute_bandwidth_sd": 0.02,
+         "arm": "E_posterior_mean_density", "iae": 0.10, "ise": 0.02, "boundary_iae": 0.03},
+        {"validation_size": 100, "absolute_bandwidth_sd": 0.02,
+         "arm": "E_posterior_weighted_node_metric", "iae": 0.12, "ise": 0.025, "boundary_iae": 0.04},
+    ])
+    auditor._assert_arm_e_jensen(valid)
+
+    invalid = valid.copy()
+    invalid.loc[invalid.arm == "E_posterior_weighted_node_metric", "ise"] = 0.01
+    with pytest.raises(AssertionError, match="Arm E Jensen inequality violated for ise"):
+        auditor._assert_arm_e_jensen(invalid)
+
+
 def test_independent_posterior_audit_uses_score_improvement_when_objective_stalls():
     from dark_siren_robustness.generative_selection import generate_quadratic_logit_inclusion_samples
 
