@@ -40,6 +40,27 @@ def _kish_ess(weights):
  p=scaled/np.sum(scaled)
  return float(1.0/np.sum(p*p))
 
+
+def _independent_weight_diagnostics(weights):
+ w=np.asarray(weights,float)
+ if w.ndim!=1 or w.size==0 or not np.all(np.isfinite(w)) or np.any(w<=0):
+  raise AssertionError("invalid raw weights for independent concentration diagnostics")
+ scaled=w/np.max(w)
+ if np.any(scaled==0):
+  raise AssertionError("positive mass underflowed in independent concentration diagnostics")
+ normalized=scaled/np.sum(scaled)
+ ordered=np.sort(normalized)[::-1]
+ k1=max(1,int(np.ceil(0.01*w.size)))
+ k5=max(1,int(np.ceil(0.05*w.size)))
+ ess=float(1.0/np.sum(normalized**2))
+ return {
+  "kish_ess":ess,
+  "kish_ess_fraction":ess/w.size,
+  "maximum_normalized_weight":float(ordered[0]),
+  "top_1_percent_mass":float(np.sum(ordered[:k1])),
+  "top_5_percent_mass":float(np.sum(ordered[:k5])),
+ }
+
 def _independent_kde(z,sample,weights,rate,width):
  w=np.asarray(weights,float)
  if w.shape!=sample.shape or np.any(w<=0) or not np.all(np.isfinite(w)): raise AssertionError("invalid raw weights")
@@ -206,7 +227,7 @@ def audit(root:Path):
  scott_multiplier=float(cfg["scott_multiplier"])
  if not np.isfinite(scott_multiplier) or scott_multiplier<=0: raise AssertionError("invalid Scott multiplier")
  metrics=pd.read_csv(root/"results"/"density_metrics.csv")
- expected=[]; expected_scott=[]; maxdiff=0.0
+ expected=[]; expected_scott=[]; expected_diagnostics=[]; maxdiff=0.0
  for n in sizes:
   v=pd.read_csv(root/"observable"/f"validation_n{n}.csv")
   if "validation_id" not in v or "validation_id" not in vfull or "frame_id" not in vf:
@@ -239,6 +260,28 @@ def audit(root:Path):
   _close(z[f"weights_C_known_probability_ipw_n{n}"],bc/ptrue,"C raw weights")
   _close(z[f"weights_D_map_plugin_ipw_n{n}"],bc/pmap,"D raw weights")
   _close(z[f"weights_E_nodes_n{n}"],bc[None,:]/pnodes,"E raw weights")
+  diagnostic_inputs={
+   "A_catalogue_only":bc,
+   "B_parent_oracle":bp,
+   "C_known_probability_ipw":bc/ptrue,
+   "D_map_plugin_ipw":bc/pmap,
+  }
+  for diagnostic_arm,diagnostic_weights in diagnostic_inputs.items():
+   expected_diagnostics.append({
+    "validation_size":n,"arm":diagnostic_arm,"node":-1,
+    **_independent_weight_diagnostics(diagnostic_weights),
+   })
+  e_node_diagnostics=[
+   _independent_weight_diagnostics(row) for row in (bc[None,:]/pnodes)
+  ]
+  expected_diagnostics.append({
+   "validation_size":n,"arm":"E_uncertainty_integrated_ipw","node":-1,
+   "kish_ess":min(x["kish_ess"] for x in e_node_diagnostics),
+   "kish_ess_fraction":min(x["kish_ess_fraction"] for x in e_node_diagnostics),
+   "maximum_normalized_weight":max(x["maximum_normalized_weight"] for x in e_node_diagnostics),
+   "top_1_percent_mass":max(x["top_1_percent_mass"] for x in e_node_diagnostics),
+   "top_5_percent_mass":max(x["top_5_percent_mass"] for x in e_node_diagnostics),
+  })
   _close(z[f"weights_E_quadrature_n{n}"],q,"E quadrature weights")
   inputs={"A_catalogue_only":(zcat,bc),"B_parent_oracle":(zparent,bp),
     "C_known_probability_ipw":(zcat,bc/ptrue),"D_map_plugin_ipw":(zcat,bc/pmap)}
@@ -295,12 +338,31 @@ def audit(root:Path):
  _close(scott.realized_bandwidth_redshift.to_numpy(float),
         expected_scott_df.realized_bandwidth_redshift.to_numpy(float),
         "independently reconstructed realized Scott widths")
+ diagnostics=pd.read_csv(root/"results"/"weight_diagnostics.csv")
+ expected_diagnostics_df=pd.DataFrame(expected_diagnostics)
+ diagnostic_key=["validation_size","arm","node"]
+ diagnostic_columns=[
+  "kish_ess","kish_ess_fraction","maximum_normalized_weight",
+  "top_1_percent_mass","top_5_percent_mass",
+ ]
+ if diagnostics.duplicated(diagnostic_key).any() or expected_diagnostics_df.duplicated(diagnostic_key).any():
+  raise AssertionError("duplicate weight-diagnostic key")
+ diagnostics=diagnostics.sort_values(diagnostic_key).reset_index(drop=True)
+ expected_diagnostics_df=expected_diagnostics_df.sort_values(diagnostic_key).reset_index(drop=True)
+ if len(diagnostics)!=len(expected_diagnostics_df):
+  raise AssertionError("weight-diagnostic row count mismatch")
+ for col in diagnostic_key:
+  if diagnostics[col].tolist()!=expected_diagnostics_df[col].tolist():
+   raise AssertionError(f"weight-diagnostic key mismatch: {col}")
+ for col in diagnostic_columns:
+  _close(diagnostics[col].to_numpy(float),expected_diagnostics_df[col].to_numpy(float),
+         f"independently reconstructed weight diagnostic {col}")
  return {"status":"PASS","manifest_files_verified":checked,"metric_rows_reconstructed":len(want),
-  "scott_width_rows_reconstructed":len(expected_scott_df),
+  "scott_width_rows_reconstructed":len(expected_scott_df),\n  "weight_diagnostic_rows_reconstructed":len(expected_diagnostics_df),
   "realized_scott_width_min":float(expected_scott_df.realized_bandwidth_redshift.min()),
   "realized_scott_width_max":float(expected_scott_df.realized_bandwidth_redshift.max()),
   "validation_sizes":sizes,"absolute_widths":widths,
-  "scope":"Independent raw-input reconstruction of five-arm KDE density curves, IAE/ISE/boundary IAE, and realized common-Scott physical widths; stored validation-posterior nodes are consumed, not independently refitted. No H0 inference."}
+  "scope":"Independent raw-input reconstruction of five-arm KDE density curves, IAE/ISE/boundary IAE, realized common-Scott physical widths, and raw-weight concentration diagnostics; stored validation-posterior nodes are consumed, not independently refitted. No H0 inference."}
 
 def main():
  p=argparse.ArgumentParser(description=__doc__); p.add_argument("artifact_dir",type=Path); p.add_argument("--output",type=Path)
