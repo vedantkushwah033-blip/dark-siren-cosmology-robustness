@@ -39,7 +39,7 @@ All three workflow jobs completed successfully. Each separate artifact audit rep
 
 The aggregate auditor now verifies the diagnostic keys (replicate, validation size, arm, and posterior node) and independently checks Kish ESS, ESS fraction, maximum normalized weight, top-1% mass, and top-5% mass. The child raw-input auditor independently checks the per-replicate diagnostics. The adversarial regression test deliberately alters an aggregate Kish ESS value and refreshes the manifest; it is designed to ensure that a self-consistent hash cannot conceal a numerical mismatch.
 
-The three-floor pilot workflow at source commit `9894307` completed successfully. The full repository test matrix had Python 3.10 and 3.11 passing when this readout was prepared; Python 3.12 was still running. Therefore the pilot artifact audit is PASS, while the latest complete three-version test matrix should not yet be described as fully passed.
+The three-floor pilot workflow at source commit `9894307` completed successfully. The full repository test matrix subsequently completed successfully on Python 3.10, 3.11, and 3.12 at the same source commit. Thus both the three-floor artifact audit and the aggregate-diagnostics regression suite are PASS at `9894307`. Later quadratic-curvature smoke-runner additions are separate changes and have their own CI validation pending.
 
 ## Fixed-width paired comparison
 
@@ -110,11 +110,11 @@ No bandwidth is selected here. The next density stage must widen the grid where 
 
 Next gates, in order:
 
-1. Finish and record the full test matrix on Python 3.10, 3.11, and 3.12.
+1. The full Python 3.10/3.11/3.12 matrix is PASS at source commit `9894307`; rerun it for the subsequent curvature-smoke commits.
 2. Finish the expanded-width re-evaluation and verify its independent audit, including the new aggregate weight diagnostics.
-3. Build the seven-gamma quadratic-logit curvature benchmark using the true quadratic inclusion probabilities for Arm C.
+3. Exercise the new quadratic-logit curvature smoke runner and independent raw-input auditor; then scale to the seven-gamma paired-replicate benchmark.
 4. Independently validate the inclusion fitter and posterior quadrature from raw validation records.
 5. Freeze bandwidth selection on training replicates and pass held-out density validation.
-6. Only then begin a separately audited H0 propagation study with the shared-(H_0) joint selected likelihood and explicit separation of catalogue inclusion from GW detection selection.
+6. Only then begin a separately audited H0 propagation study with the shared-`H_0` joint selected likelihood and explicit separation of catalogue inclusion from GW detection selection.
 
 **Conclusion:** The new aggregate diagnostic audit is now exercised on all three 20-replicate floor cells and reports PASS. The results reinforce the central synthetic research question: estimated inclusion correction can work well under correct specification, but functional-form misspecification can eliminate or reverse its benefit even when weight concentration is not extreme. This remains an exploratory density-only result, not a general estimator claim.
