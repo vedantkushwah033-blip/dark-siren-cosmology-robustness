@@ -118,32 +118,19 @@ def test_five_arm_weights_apply_common_base_population_mass_to_all_arms():
     )
 
 
-@pytest.mark.parametrize(
-    "parent_base,catalogue_base,match",
-    [
-        (np.ones(599), None, "parent_base_weights"),
-        (None, np.ones(2), "catalogue_base_weights"),
-        (np.r_[np.ones(599), np.nan], None, "parent_base_weights"),
-        (None, np.r_[np.ones(2), 0.0], "catalogue_base_weights"),
-    ],
-)
 def test_five_arm_builder_uses_explicit_truth_probabilities_for_nondefault_dgp():
     parent, catalogue, validation, retained = _fixture()
     true_probability = 0.35 + 0.25 * (catalogue - 0.01) / 0.39
     result = build_five_arm_weights(
         parent, catalogue, validation, retained,
-        catalogue_floor=0.10,
         true_catalogue_inclusion_probability=true_probability,
         quadrature_order=5,
     )
     assert np.array_equal(
         result.arm_c_true_inclusion_probability, true_probability
     )
-    assert np.allclose(
-        result.arm_c_known_probability, 1.0 / true_probability
-    )
-    # The validation-only D/E arms must remain fitted from observable labels,
-    # rather than being overwritten by the supplied simulation truth.
+    assert np.allclose(result.arm_c_known_probability, 1.0 / true_probability)
+    # D/E must still be fitted only from the observable validation labels.
     assert np.allclose(
         result.arm_d_map_plugin,
         1.0 / result.arm_d_map_inclusion_probability,
@@ -154,10 +141,6 @@ def test_five_arm_builder_uses_explicit_truth_probabilities_for_nondefault_dgp()
     )
 
 
-@pytest.mark.parametrize(
-    "kind",
-    ["wrong_shape", "zero", "above_one", "nan"],
-)
 def test_quadratic_logit_dgp_known_arm_uses_truth_but_estimated_arms_use_validation():
     sample = generate_quadratic_logit_inclusion_samples(
         population_seed=20261122,
@@ -193,6 +176,10 @@ def test_quadratic_logit_dgp_known_arm_uses_truth_but_estimated_arms_use_validat
     )
 
 
+@pytest.mark.parametrize(
+    "kind",
+    ["wrong_shape", "zero", "above_one", "nan"],
+)
 def test_five_arm_builder_rejects_invalid_explicit_truth_probabilities(kind):
     parent, catalogue, validation, retained = _fixture()
     if kind == "wrong_shape":
@@ -212,9 +199,24 @@ def test_five_arm_builder_rejects_invalid_explicit_truth_probabilities(kind):
         )
 
 
-def test_five_arm_builder_rejects_invalid_base_population_weights(
-    parent_base, catalogue_base, match
-):
+def test_five_arm_builder_requires_floor_only_for_legacy_truth_model():
+    parent, catalogue, validation, retained = _fixture()
+    with pytest.raises(ValueError, match="catalogue_floor"):
+        build_five_arm_weights(
+            parent, catalogue, validation, retained,
+            quadrature_order=5,
+        )
+
+
+@pytest.mark.parametrize(
+    "parent_base,catalogue_base,match",
+    [
+        (np.ones(599), None, "parent_base_weights"),
+        (None, np.ones(2), "catalogue_base_weights"),
+        (np.r_[np.ones(599), np.nan], None, "parent_base_weights"),
+        (None, np.r_[np.ones(2), 0.0], "catalogue_base_weights"),
+    ],
+)
     parent, catalogue, validation, retained = _fixture()
     with pytest.raises(ValueError, match=match):
         build_five_arm_weights(
