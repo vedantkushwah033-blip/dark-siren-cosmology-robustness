@@ -31,6 +31,14 @@ def run(args):
     if any(not __import__("math").isfinite(x) for x in gammas): raise ValueError("gamma values must be finite")
     if args.replicates<2 or args.seed_stride<2: raise ValueError("at least two replicates and seed_stride >= 2 are required")
     if len(widths)<2 or any(not __import__("math").isfinite(x) or x<=0 for x in widths): raise ValueError("invalid absolute bandwidth grid")
+    if not any(x == 0.0 for x in gammas): raise ValueError("gamma grid must include zero for paired reference contrasts")
+    if args.master_seed < 0: raise ValueError("master seed must be non-negative")
+    if args.n_parent < 100 or args.validation_frame < 5: raise ValueError("invalid parent or validation-frame size")
+    if not args.validation_sizes or sorted(set(args.validation_sizes)) != list(args.validation_sizes): raise ValueError("validation sizes must be strictly increasing")
+    if args.validation_sizes[0] < 5 or args.validation_sizes[-1] > args.validation_frame: raise ValueError("validation sizes exceed the validation frame")
+    if args.quadrature_order < 3 or args.grid_points < 51: raise ValueError("invalid quadrature order or redshift grid")
+    if not __import__("math").isfinite(args.beta): raise ValueError("beta must be finite")
+    if not __import__("math").isfinite(args.scott_multiplier) or args.scott_multiplier <= 0: raise ValueError("Scott multiplier must be finite and positive")
     cfg={
       "schema_version":1,
       "experiment":"paired_quadratic_logit_curvature_density_pilot",
