@@ -217,6 +217,9 @@ def test_five_arm_builder_requires_floor_only_for_legacy_truth_model():
         (None, np.r_[np.ones(2), 0.0], "catalogue_base_weights"),
     ],
 )
+def test_five_arm_builder_rejects_invalid_base_population_weights(
+    parent_base, catalogue_base, match
+):
     parent, catalogue, validation, retained = _fixture()
     with pytest.raises(ValueError, match=match):
         build_five_arm_weights(
