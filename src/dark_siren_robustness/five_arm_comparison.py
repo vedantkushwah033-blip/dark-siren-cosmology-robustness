@@ -94,6 +94,7 @@ def build_five_arm_weights(
     quadrature_order: int = 15,
     parent_base_weights: ArrayLike | None = None,
     catalogue_base_weights: ArrayLike | None = None,
+    true_catalogue_inclusion_probability: ArrayLike | None = None,
 ) -> FiveArmWeights:
     """Construct A-E raw weights from one matched synthetic replicate.
 
@@ -105,10 +106,15 @@ def build_five_arm_weights(
 
     Supply parent_base_weights and catalogue_base_weights evaluated from the
     same declared population/rate function. If omitted, equal base weights are
-    used in both populations. No clipping or normalization is performed. The
-    caller must use the same fixed KDE and downstream selection-conditioned
-    likelihood for every arm. E's coefficient nodes are integrated at the
-    complete joint-likelihood level, not by averaging host weights first.
+    used in both populations. For the default logistic catalogue DGP, C's true
+    probabilities are generated from catalogue_floor/midpoint/width. For any
+    other known DGP (including curved-logit stress tests), supply the exact
+    true_catalogue_inclusion_probability vector in catalogue row order. This
+    argument is simulation truth and must never enter D/E fitting. No clipping
+    or normalization is performed. The caller must use the same fixed KDE and
+    downstream selection-conditioned likelihood for every arm. E's coefficient
+    nodes are integrated at the complete joint-likelihood level, not by
+    averaging host weights first.
     """
     parent = _validate_redshifts(parent_redshift, "parent_redshift")
     catalogue = _validate_redshifts(catalogue_redshift, "catalogue_redshift")
@@ -142,12 +148,28 @@ def build_five_arm_weights(
         order=quadrature_order,
     )
 
-    true_probability = catalogue_inclusion_probability(
-        catalogue,
-        floor=float(catalogue_floor),
-        midpoint=float(catalogue_midpoint),
-        width=float(catalogue_width),
-    )
+    if true_catalogue_inclusion_probability is None:
+        true_probability = catalogue_inclusion_probability(
+            catalogue,
+            floor=float(catalogue_floor),
+            midpoint=float(catalogue_midpoint),
+            width=float(catalogue_width),
+        )
+    else:
+        true_probability = np.asarray(
+            true_catalogue_inclusion_probability, dtype=float
+        )
+        if (
+            true_probability.shape != catalogue.shape
+            or not np.all(np.isfinite(true_probability))
+            or np.any(true_probability <= 0.0)
+            or np.any(true_probability > 1.0)
+        ):
+            raise ValueError(
+                "true_catalogue_inclusion_probability must be finite, in (0, 1], "
+                "and match catalogue_redshift"
+            )
+        true_probability = true_probability.copy()
     map_probability = _probabilities_for_nodes(
         catalogue,
         posterior.mode[None, :],
