@@ -80,25 +80,25 @@ jobs:
           python scripts/benchmark_five_arm_kde_kernel_reuse.py \
             --h0-points 321 --z-points 801 --events 30 --density-nodes 23 \
             --repeats 3 --output artifacts/five_arm_kde_kernel_benchmark.json
-      - name: Run parent-density bandwidth training/holdout pilot (Python 3.12 only)
+      - name: Run overlapping 100-replicate bandwidth-grid sensitivity check (Python 3.12 only)
         if: matrix.python-version == '3.12'
         run: |
           python scripts/run_parent_density_bandwidth_pilot.py \
             --replicates 100 --n-parent 4000 --seed 20261114 --grid-points 801 \
             --bandwidth-multipliers 0.03,0.04,0.05,0.06,0.08,0.10,0.12,0.15,0.20,0.25,0.30,0.40,0.50,0.60,0.80,1.00,1.20 \
             --output-dir artifacts/parent_density_bandwidth_pilot
-      - name: Independently audit raw parent-density bandwidth pilot (Python 3.12 only)
+      - name: Independently audit overlapping 100-replicate raw-density sensitivity check (Python 3.12 only)
         if: matrix.python-version == '3.12'
         run: |
           python scripts/audit_parent_density_bandwidth_pilot.py artifacts/parent_density_bandwidth_pilot \
             --output artifacts/parent_density_bandwidth_pilot/raw_audit.json
-      - name: Select KDE multiplier on training seeds and score held-out seeds (Python 3.12 only)
+      - name: Audit train/holdout split within overlapping 100-replicate sensitivity check (Python 3.12 only)
         if: matrix.python-version == '3.12'
         run: |
           python scripts/select_bandwidth_train_holdout.py artifacts/parent_density_bandwidth_pilot \
             --output artifacts/parent_density_bandwidth_pilot/selection.json \
             --split-seed 20261115 --training-fraction 0.70
-      - name: Independently audit training/holdout bandwidth selection (Python 3.12 only)
+      - name: Independently audit 100-replicate sensitivity split and scores (Python 3.12 only)
         if: matrix.python-version == '3.12'
         run: |
           python scripts/audit_bandwidth_train_holdout.py artifacts/parent_density_bandwidth_pilot \
