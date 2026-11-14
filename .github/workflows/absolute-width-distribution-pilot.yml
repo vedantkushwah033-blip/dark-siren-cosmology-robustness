@@ -1,0 +1,103 @@
+name: absolute-width-distribution-pilot
+
+on:
+  push:
+    branches:
+      - research/absolute-width-distribution-pilot-20261114
+    paths:
+      - .github/workflows/absolute-width-distribution-pilot.yml
+      - scripts/run_absolute_bandwidth_density_replicates.py
+      - scripts/audit_absolute_bandwidth_density_replicates.py
+      - scripts/run_absolute_bandwidth_density_smoke.py
+      - scripts/audit_absolute_bandwidth_density_smoke.py
+  workflow_dispatch:
+
+concurrency:
+  group: absolute-width-distribution-pilot-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  density-pilot:
+    name: floor ${{ matrix.floor_label }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - floor_label: no-floor
+            catalogue_floor: "0.0"
+          - floor_label: floor-010
+            catalogue_floor: "0.10"
+          - floor_label: floor-025
+            catalogue_floor: "0.25"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run focused absolute-bandwidth runner and auditor tests
+        run: python -m pytest tests/test_absolute_bandwidth_density_smoke.py tests/test_absolute_bandwidth_density_replicates.py -q
+      - name: Run paired-seed 20-replicate density-only pilot
+        env:
+          PILOT_DIR: artifacts/absolute_width_density_pilot_${{ matrix.floor_label }}
+        run: |
+          python scripts/run_absolute_bandwidth_density_replicates.py \
+            --master-seed 20261215 --seed-stride 10 --replicates 20 \
+            --n-parent 4000 --validation-frame 1500 --validation-sizes 100,300,1000 \
+            --catalogue-floor ${{ matrix.catalogue_floor }} --scott-multiplier 0.7 \
+            --quadrature-order 5 --grid-points 401 \
+            --absolute-widths 0.012,0.016,0.024,0.032,0.040 \
+            --output-dir "${PILOT_DIR}"
+      - name: Independently audit all replicate children and aggregate widths
+        env:
+          PILOT_DIR: artifacts/absolute_width_density_pilot_${{ matrix.floor_label }}
+          AUDIT_PATH: artifacts/absolute_width_density_pilot_${{ matrix.floor_label }}_audit.json
+        run: |
+          python scripts/audit_absolute_bandwidth_density_replicates.py "${PILOT_DIR}" --output "${AUDIT_PATH}"
+      - name: Summarize audited physical widths and density errors
+        env:
+          PILOT_DIR: artifacts/absolute_width_density_pilot_${{ matrix.floor_label }}
+          FLOOR_LABEL: ${{ matrix.floor_label }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path(os.environ["PILOT_DIR"])
+          label = os.environ["FLOOR_LABEL"]
+          widths = pd.read_csv(root / "scott_widths_all_replicates.csv")
+          width_summary = (
+              widths.groupby(["validation_size", "arm", "node"])["realized_bandwidth_redshift"]
+              .agg(
+                  count="count", mean="mean", sd="std", minimum="min",
+                  q05=lambda x: x.quantile(0.05), median="median",
+                  q95=lambda x: x.quantile(0.95), maximum="max",
+              )
+              .reset_index()
+          )
+          width_summary.to_csv(root.parent / f"absolute_width_{label}_scott_width_summary.csv", index=False)
+
+          metrics = pd.read_csv(root / "density_metrics_all_replicates.csv")
+          metric_summary = (
+              metrics.groupby(["validation_size", "absolute_bandwidth_sd", "arm", "node"])["iae"]
+              .agg(count="count", mean="mean", sd="std", median="median")
+              .reset_index()
+          )
+          metric_summary.to_csv(root.parent / f"absolute_width_{label}_density_iae_summary.csv", index=False)
+          print(f"wrote {len(width_summary)} Scott-width and {len(metric_summary)} density-IAE summary rows")
+          PY
+      - name: Upload raw pilot, independent audit and summaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: absolute-width-density-pilot-${{ matrix.floor_label }}-${{ github.sha }}
+          path: |
+            artifacts/absolute_width_density_pilot_${{ matrix.floor_label }}/
+            artifacts/absolute_width_density_pilot_${{ matrix.floor_label }}_audit.json
+            artifacts/absolute_width_${{ matrix.floor_label }}_scott_width_summary.csv
+            artifacts/absolute_width_${{ matrix.floor_label }}_density_iae_summary.csv
+          if-no-files-found: error
+          retention-days: 90

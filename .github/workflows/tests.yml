@@ -2,6 +2,9 @@ name: tests
 
 on:
   push:
+    paths-ignore:
+      - .github/workflows/absolute-width-distribution-pilot.yml
+      - .github/workflows/tests.yml
   pull_request:
   workflow_dispatch:
 
