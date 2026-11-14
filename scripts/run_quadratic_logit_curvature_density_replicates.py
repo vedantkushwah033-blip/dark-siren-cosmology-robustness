@@ -162,6 +162,11 @@ def run(args):
       "replicate", "validation_size", "absolute_bandwidth_sd", "metric", "value",
       "reference_value", "difference"]
     contrasts = pd.DataFrame(contrast_rows, columns=contrast_columns)
+    # Do not report paired summaries from a selectively incomplete gamma grid.
+    # Preserve raw successful-cell metrics and the full failure ledger, but make
+    # the paired contrast estimand unavailable unless every planned cell ran.
+    if not all(row["status"] == "SUCCESS" for row in ledger):
+      contrasts = contrasts.iloc[0:0].copy()
     contrasts.to_csv(root/"paired_contrasts_all_cells.csv", index=False)
     group_columns = ["contrast_type", "gamma", "reference_gamma", "arm", "reference_arm",
       "validation_size", "absolute_bandwidth_sd", "metric"]
