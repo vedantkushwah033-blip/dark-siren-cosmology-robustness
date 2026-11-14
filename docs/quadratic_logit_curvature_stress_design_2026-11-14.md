@@ -89,6 +89,18 @@ Regression tests check:
 - separation of observable and truth-only fields;
 - deterministic reproduction under fixed seeds.
 
+## Implementation readiness update (2026-11-14)
+
+The following infrastructure is now implemented on the curvature-fix draft PR:
+
+- The single-replicate density runner supports the parent-rate-calibrated quadratic-logit DGP and supplies the exact truth probabilities only to Arm C.
+- The independent raw-input auditor independently reconstructs the parent-measure centering constant, gamma-zero target rate, achieved parent-average inclusion rate, validation-frame probabilities, and degree-one logistic posterior/quadrature.
+- The multi-replicate runner and outer auditor support one gamma cell per run, preserve all replicate attempts, and verify each child independently.
+- The cross-gamma auditor checks the seven gamma artifacts, common configuration, shared seed schedule, paired parent/validation redshift samples, calibration constants, and produces density summaries plus paired IAE contrasts.
+- A manual-only workflow is defined at `.github/workflows/quadratic-logit-curvature-density-pilot.yml`.
+
+The focused regression workflow passed on Python 3.10, 3.11, and 3.12 at code head `1febb30fc8571088073ea9d878404705917c82ec`. The seven-gamma workflow has **not** been dispatched; no curvature-family experiment results exist yet.
+
 ## Proposed full density experiment (not yet run)
 
 The next stage should use:
@@ -113,4 +125,4 @@ Do not use gamma values or validation sizes to tune the model after inspecting h
 
 This experiment is density-only. It does not evaluate the GW detection-selection function, H0 likelihood, H0 posterior calibration, real galaxy surveys, or public LVK/GWTC data. The separate GW host-weighting model and GW detection-selection normalization remain distinct from catalogue inclusion.
 
-No curvature-family performance claim is made until the multi-replicate runner, independent auditor, and artifacts are complete.
+No curvature-family performance claim is made until the seven-gamma workflow has completed, every per-gamma child and outer audit has passed, and the cross-gamma paired audit has verified the shared design.
