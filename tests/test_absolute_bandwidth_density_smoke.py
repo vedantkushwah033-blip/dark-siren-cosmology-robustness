@@ -94,7 +94,7 @@ def test_absolute_bandwidth_auditor_rejects_modified_scott_width_even_with_updat
     rel=str(path.relative_to(output))
     payload=path.read_bytes()
     manifest["files"][rel]={"bytes":len(payload),"sha256":hashlib.sha256(payload).hexdigest()}
-    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
+    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True))
     with pytest.raises(AssertionError,match="independently reconstructed realized Scott widths"):
         auditor.audit(output)
 
@@ -139,7 +139,7 @@ def test_posterior_mean_density_metric_is_distinct_and_independently_audited(tmp
     rel=str(metrics_path.relative_to(output))
     payload=metrics_path.read_bytes()
     manifest["files"][rel]={"bytes":len(payload),"sha256":hashlib.sha256(payload).hexdigest()}
-    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
+    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True))
     with pytest.raises(AssertionError,match="metric iae"):
         auditor.audit(output)
 
