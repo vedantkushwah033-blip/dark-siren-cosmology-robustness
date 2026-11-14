@@ -118,10 +118,10 @@ def run(args):
     metric_all = pd.concat(metric_frames, ignore_index=True) if metric_frames else pd.DataFrame(columns=metric_columns)
     metric_all["gamma"] = pd.to_numeric(metric_all["gamma"], errors="coerce")
     metric_all["node"] = pd.to_numeric(metric_all["node"], errors="coerce")
-    primary_arms = ("A_catalogue_only", "B_parent_oracle", "C_known_probability_ipw",
+    contrast_arms = ("A_catalogue_only", "B_parent_oracle", "C_known_probability_ipw",
                     "D_map_plugin_ipw", "E_posterior_mean_density",
                     "E_posterior_weighted_node_metric")
-    metric_all = metric_all[metric_all["arm"].isin(primary_arms) & (metric_all["node"] == -1)].copy()
+    metric_all = metric_all[metric_all["arm"].isin(contrast_arms) & (metric_all["node"] == -1)].copy()
     metric_names = ("iae", "ise", "boundary_iae")
     contrast_rows = []
     pair_keys = ["replicate", "validation_size", "absolute_bandwidth_sd"]
@@ -134,7 +134,7 @@ def run(args):
       if gamma == 0.0:
         continue
       current = metric_all[np.isclose(metric_all["gamma"], gamma)]
-      for arm in primary_arms:
+      for arm in contrast_arms:
         paired = current[current.arm == arm].merge(
           zero_rows[zero_rows.arm == arm], on=pair_keys,
           suffixes=("", "_reference"), validate="one_to_one")
