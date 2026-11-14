@@ -37,7 +37,7 @@ All three workflow jobs completed successfully. Each separate artifact audit rep
 | 0.10 | 20 | 20 | 0 | 20 | 245 | 9,300 | 1,740 | 300 |
 | 0.25 | 20 | 20 | 0 | 20 | 245 | 9,300 | 1,740 | 300 |
 
-The aggregate auditor now verifies the diagnostic keys (replicate, validation size, arm, and posterior node) and independently checks Kish ESS, ESS fraction, maximum normalized weight, top-1% mass, and top-5% mass. The child raw-input auditor independently checks the per-replicate diagnostics. The adversarial regression test deliberately alters an aggregate Kish ESS value and refreshes the manifest; it is designed to ensure that a self-consistent hash cannot conceal a numerical mismatch.
+The aggregate auditor now verifies the diagnostic keys (replicate, validation size, arm, and posterior node) and independently checks Kish ESS, ESS fraction, maximum normalized weight, top-1% mass, and top-5% mass. The child raw-input auditor independently refits the degree-one logistic posterior from observable validation records using a separate BFGS/Newton and quadrature reconstruction, then rebuilds the per-replicate weights, density metrics, and diagnostics. This is an internal numerical implementation audit, not external validation of the assumed logistic model. The adversarial regression test deliberately alters an aggregate Kish ESS value and refreshes the manifest; it is designed to ensure that a self-consistent hash cannot conceal a numerical mismatch.
 
 The three-floor pilot workflow at source commit `9894307` completed successfully. The full repository test matrix subsequently completed successfully on Python 3.10, 3.11, and 3.12 at the same source commit. Thus both the three-floor artifact audit and the aggregate-diagnostics regression suite are PASS at `9894307`. Later quadratic-curvature smoke-runner additions are separate changes and have their own CI validation pending.
 
@@ -103,7 +103,7 @@ No bandwidth is selected here. The next density stage must widen the grid where 
 
 - Only 20 paired replicates per floor; uncertainty is exploratory.
 - The five-width grid is not guaranteed to bracket the optimum for every arm.
-- Stored inclusion posterior nodes are consumed from the production fitter; this experiment does not independently refit the inclusion model from raw validation data in the outer auditor.
+- The outer auditor delegates each child to an independent raw-input auditor that refits the degree-one logistic posterior and reconstructs quadrature from observable validation records; this validates numerical reproduction, not the adequacy of the degree-one logistic model.
 - The experiment does not yet establish finite-validation posterior calibration or repeated-sampling coverage.
 - No H0 likelihood, posterior, PIT, coverage, or selection-normalization analysis is included.
 - No observational data, real galaxy catalogue, LVK/GWTC public data, or measured H0 result is used.
