@@ -12,7 +12,10 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 
-from run_quadratic_logit_curvature_density_smoke import (\n    INCLUSION_COORDINATE_CENTER, INCLUSION_COORDINATE_SCALE,\n    INCLUSION_PRIOR_MEAN, INCLUSION_PRIOR_SD, run as run_one,\n)
+from run_quadratic_logit_curvature_density_smoke import (
+    INCLUSION_COORDINATE_CENTER, INCLUSION_COORDINATE_SCALE,
+    INCLUSION_PRIOR_MEAN, INCLUSION_PRIOR_SD, run as run_one,
+)
 
 DEFAULT_GAMMAS=(-2.0,-1.0,-0.5,0.0,0.5,1.0,2.0)
 DEFAULT_WIDTHS=(0.008,0.012,0.016,0.024,0.032,0.040,0.050,0.060,0.080)
@@ -55,8 +58,8 @@ def run(args):
       "grid_points":int(args.grid_points),"scott_multiplier":float(args.scott_multiplier),
       "seed_design":"Within each replicate, all gamma cells share population_seed and validation_seed (common random numbers); replicate seed pairs are disjoint.",
       "analysis_model":"degree_one_logistic",
-      "coordinate_center":0.205,"coordinate_scale":0.195,
-      "coefficient_prior":{"family":"independent_gaussian","mean":[0.0,0.0],"sd":[5.0,2.5]},
+      "coordinate_center":INCLUSION_COORDINATE_CENTER,"coordinate_scale":INCLUSION_COORDINATE_SCALE,
+      "coefficient_prior":{"family":"independent_gaussian","mean":list(INCLUSION_PRIOR_MEAN),"sd":list(INCLUSION_PRIOR_SD)},
       "arm_C":"true quadratic inclusion probabilities; oracle diagnostic only",
       "arm_D_E":"degree-one logistic fitted to independent validation outcomes",
       "arm_E_primary":"loss of posterior-mean density",
