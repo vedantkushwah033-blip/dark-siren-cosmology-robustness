@@ -5,7 +5,10 @@ from dark_siren_robustness.five_arm_comparison import (
     build_five_arm_weights,
     weight_concentration_diagnostics,
 )
-from dark_siren_robustness.generative_selection import catalogue_inclusion_probability
+from dark_siren_robustness.generative_selection import (
+    catalogue_inclusion_probability,
+    generate_quadratic_logit_inclusion_samples,
+)
 
 
 def _fixture():
@@ -146,6 +149,42 @@ def test_five_arm_builder_uses_explicit_truth_probabilities_for_nondefault_dgp()
     "kind",
     ["wrong_shape", "zero", "above_one", "nan"],
 )
+def test_quadratic_logit_dgp_known_arm_uses_truth_but_estimated_arms_use_validation():
+    sample = generate_quadratic_logit_inclusion_samples(
+        population_seed=20261122,
+        validation_seed=20261123,
+        n_parent=700,
+        n_validation_frame=300,
+        n_validation=240,
+        gamma=1.0,
+    )
+    parent = sample["parent_truth"]
+    catalogue = sample["catalogue_observed"]
+    validation = sample["validation_observed"]
+    true_probability = parent.loc[
+        parent.retained.astype(bool), "inclusion_probability"
+    ].to_numpy()
+    result = build_five_arm_weights(
+        parent.redshift.to_numpy(),
+        catalogue.redshift.to_numpy(),
+        validation.redshift.to_numpy(),
+        validation.retained.to_numpy(),
+        catalogue_floor=0.10,
+        true_catalogue_inclusion_probability=true_probability,
+        quadrature_order=5,
+    )
+    assert np.allclose(result.arm_c_true_inclusion_probability, true_probability)
+    assert np.allclose(result.arm_c_known_probability, 1.0 / true_probability)
+    assert not np.allclose(
+        result.arm_d_map_inclusion_probability, true_probability,
+        rtol=1e-3, atol=1e-3,
+    )
+    assert np.allclose(
+        result.arm_d_map_plugin,
+        1.0 / result.arm_d_map_inclusion_probability,
+    )
+
+
 def test_five_arm_builder_rejects_invalid_explicit_truth_probabilities(kind):
     parent, catalogue, validation, retained = _fixture()
     if kind == "wrong_shape":
