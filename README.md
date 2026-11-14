@@ -383,3 +383,12 @@ These are in the draft research-readiness pull request and must pass exact-commi
 ### Dataset-level likelihood scope audit
 
 The [dataset-level likelihood grid and scope audit](docs/dataset_likelihood_grid_and_scope_audit_2026-10-28.md) reviews the new independent-event composition prototype. It highlights that the code does not require the numerical grid to include the declared prior boundaries, and that shared completeness/nuisance parameters and selection conditioning remain outside its scope. These are source-review findings and recommendations, not evidence of a runtime failure. Resolve the prior-grid convention and add convergence tests before using this prototype for confirmatory calibration.
+
+## Estimated catalogue-inclusion correction: density-only pilot (2026-11-14)
+
+The five-arm density experiment now has a completed, exact-head three-floor run (20 paired replicates per floor; independent child and aggregate audit PASS for all three floors). The fixed-width exploratory comparison shows that MAP estimated-IPW can approach known-probability IPW under a correctly specified degree-one logistic inclusion model, while structural misspecification can substantially degrade density recovery and, in the strongest tested floor condition, reverse the improvement over catalogue-only. This is a synthetic density result, not an H0 result or a real-survey claim. See the [corrected three-floor readout](docs/corrected_three_floor_density_pilot_readout_2026-11-14.md).
+
+A separate parent-calibrated quadratic-logit curvature DGP is now implemented and unit-tested. It centers the quadratic term under the actual parent intensity measure and preserves parent-average inclusion across gamma values. The corrected target inclusion rate is 0.5101919962; an earlier preliminary value of 0.5487448435 was incorrect and is superseded. The seven-gamma density experiment has not yet been run. See the [curvature stress design](docs/quadratic_logit_curvature_stress_design_2026-11-14.md).
+
+The exact-head test matrix passed on Python 3.10, 3.11, and 3.12 before the curvature DGP addition. The new curvature regression test is being validated by the next workflow run. The expanded 11-width pilot remains in progress. No bandwidth has been selected, no H0 propagation has been authorized by the density-stage gates, and no branch has been merged.
+
