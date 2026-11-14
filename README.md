@@ -1,5 +1,18 @@
 # Dark-Siren Cosmology Robustness
 
+## Density-stage update (2026-11-14)
+
+The active density-only follow-up is being developed on [`research/absolute-width-distribution-pilot-20261114`](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/tree/research/absolute-width-distribution-pilot-20261114), separate from draft PR #54.
+
+- The first three-floor 20-replicate pilot and same-seed expanded-grid run were independently audited. Floors 0.00 and 0.10 completed 20/20; floor 0.25 preserved one logistic-posterior optimizer failure (19/20). An outer audit PASS means the successful children and failure ledger reconcile, not that all 20 replicates succeeded.
+- Review found that the earlier Arm E artifacts persisted the posterior-mean density but omitted its own loss row; they contained node-specific losses and posterior expected node loss only. Those outputs must not be used for the primary five-arm bandwidth objective.
+- The active branch now records the loss of the posterior-mean Arm E density separately, keeps posterior expected node loss secondary, independently reconstructs the validation logistic posterior and node-specific Kish ESS, and uses deterministic Newton refinement while retaining the final (10^{-6}) posterior-score threshold.
+- A corrected three-floor 20-replicate rerun and independent audits are in progress/queued. Do not claim these latest changes passed exact-head CI until the corresponding run finishes.
+
+See the [expanded-grid pilot review](docs/expanded_absolute_width_pilot_review_2026-11-14.md) and the [statistical estimands and paired analysis plan](docs/statistical_estimands_and_paired_analysis_plan_2026-11-14.md).
+
+No bandwidth has been frozen, no training/holdout bandwidth selection has been completed, and no H0 inference or calibration claim follows from this density-only stage. Synthetic low-redshift Euclidean methodology only.
+
 > **Current validation gate (2026-10-27):** The direct missing-host mixture likelihood had a transient extra catalogue-mass factor during a log-space rewrite; the correction and explicit full-mixture regression test are now on this branch. All four directly identified hidden-host experiments have since been rerun from corrected revision `ecb260886716c54fdd2d5e47390701949f5a18d5`, and their independent reconstruction workflows passed. The general numerical-diagnostics workflow also passed on Python 3.10, 3.11, and 3.12. See the [corrected rerun provenance report](docs/corrected_hidden_host_rerun_provenance_2026-10-27.md), [impact audit](docs/missing_host_mixture_likelihood_impact_audit_2026-10-27.md), and [host-misspecification results](docs/host_misspecification_results_2026-10-26.md). This establishes reproducible outputs for the declared synthetic model, not astrophysical validity or novelty. External CHIMERA/reference-pipeline validation remains outstanding; the benchmark must not be described as run until its required inputs and provenance are verified.
 
 - **Pinned CHIMERA v2.2 execution contract:** [notebook configuration, input inventory, and go/no-go gate for the incomplete-catalogue benchmark](docs/chimera_v2_2_notebook_execution_contract_2026-10-26.md).
