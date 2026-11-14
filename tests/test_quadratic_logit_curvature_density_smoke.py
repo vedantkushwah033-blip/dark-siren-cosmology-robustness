@@ -128,3 +128,49 @@ def test_quadratic_logit_auditor_rejects_corrupted_weight_diagnostic_even_with_u
     import pytest
     with pytest.raises(AssertionError, match="weight diagnostic numerical mismatch: top_1_percent_mass"):
         auditor.audit(output)
+
+
+def test_independent_posterior_audit_uses_score_improvement_when_objective_stalls():
+    from dark_siren_robustness.generative_selection import generate_quadratic_logit_inclusion_samples
+
+    reference_path = ROOT / "scripts" / "audit_absolute_bandwidth_density_smoke.py"
+    spec = importlib.util.spec_from_file_location("independent_logistic_reference", reference_path)
+    reference = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(reference)
+
+    cfg = {
+        "coordinate_center": 0.205,
+        "coordinate_scale": 0.195,
+        "coefficient_prior": {
+            "family": "independent_gaussian",
+            "mean": [0.0, 0.0],
+            "sd": [5.0, 2.5],
+        },
+        "quadrature_order": 5,
+    }
+    for gamma in (0.5, 1.0):
+        sample = generate_quadratic_logit_inclusion_samples(
+            population_seed=20261115,
+            validation_seed=20261116,
+            n_parent=4000,
+            n_validation_frame=1500,
+            n_validation=1000,
+            gamma=gamma,
+            beta=-3.9,
+            z_min=0.01,
+            z_max=0.40,
+        )
+        validation = sample["validation_observed"]
+        mode, nodes, weights = reference._independent_logistic_quadrature(
+            validation["redshift"].to_numpy(float),
+            validation["retained"].to_numpy(int),
+            cfg,
+        )
+        assert mode.shape == (2,)
+        assert nodes.shape == (25, 2)
+        assert weights.shape == (25,)
+        assert np.all(np.isfinite(mode))
+        assert np.all(np.isfinite(nodes))
+        assert np.all(np.isfinite(weights))
+        assert weights.sum() == pytest.approx(1.0, abs=1e-12)
