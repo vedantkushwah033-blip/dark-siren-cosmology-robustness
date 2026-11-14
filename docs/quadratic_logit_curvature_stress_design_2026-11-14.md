@@ -185,3 +185,14 @@ Commits:
 - `18889829ddacb05f4fbd5a219fb60071b0d089da`: regression test for nested child-manifest tampering.
 
 The latest branch head was re-fetched after these changes. CI is still pending/cancelled on earlier intermediate heads because subsequent commits triggered new runs; no passing CI claim is made for the latest head yet. This change is artifact-integrity hardening only and does not alter the simulation or its estimands.
+
+
+## Independent posterior auditor: objective-resolution follow-up (2026-11-15)
+
+The seven-gamma engineering smoke reached the independent raw-input audit for its positive-curvature cells and exposed a numerical issue in the auditor's separately coded Newton polish. The reference implementation accepted a Newton step only when the objective satisfied an Armijo decrease. Near floating-point objective resolution, that decrease can round away even when the independently evaluated posterior score is still strictly improving. The production fitter already permits either Armijo decrease or strict score-norm improvement during its damped Newton refinement.
+
+The independent reference now uses the same mathematical acceptance alternatives while retaining its own BFGS initialization, independently evaluated gradient/Hessian, damped Newton solve, and final score/Hessian checks. This is a convergence-control alignment, not a change to the posterior target, prior, quadrature rule, or analysis model. The final independent score threshold remains 1e-6; no threshold was loosened.
+
+A focused regression test now regenerates the paired-seed gamma=0.5 and gamma=1.0 validation samples at N=4,000 and n_validation=1,000, then exercises the independent posterior reconstruction and checks finite mode, quadrature nodes, normalized weights, and positive output structure.
+
+The paired multi-replicate runner also had a missing NumPy import in its contrast-construction path; that import was added separately. The prior exact-head CI logs confirmed both issues: the runner failed with NameError before contrast generation, while the seven-gamma smoke failed because the independent Newton reference did not converge. Both code paths have now been patched. The newest branch commits have not yet been confirmed by a completed exact-head Actions run, so these fixes remain **pending CI verification**. The earlier engineering artifact remains failed and is not retroactively converted into a passing result.
