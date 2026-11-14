@@ -93,12 +93,17 @@ def run(args):
         frame.insert(0,"replicate",int(row["replicate"]))
         frame.insert(1,"gamma",float(row["gamma"]))
         frames.append(frame)
-    def combine(frames,name):
-      if frames: pd.concat(frames,ignore_index=True).to_csv(root/name,index=False)
-      else: pd.DataFrame().to_csv(root/name,index=False)
-    combine(metric_frames,"density_metrics_all_cells.csv")
-    combine(diagnostic_frames,"weight_diagnostics_all_cells.csv")
-    combine(scott_frames,"scott_widths_all_cells.csv")
+    def combine(frames,name,columns):
+      combined=pd.concat(frames,ignore_index=True) if frames else pd.DataFrame(columns=columns)
+      combined.to_csv(root/name,index=False)
+    combine(metric_frames,"density_metrics_all_cells.csv",[
+      "replicate","gamma","validation_size","absolute_bandwidth_sd","arm","node",
+      "iae","ise","boundary_iae","status","kish_ess"])
+    combine(diagnostic_frames,"weight_diagnostics_all_cells.csv",[
+      "replicate","gamma","validation_size","arm","node","kish_ess","kish_ess_fraction",
+      "maximum_normalized_weight","top_1_percent_mass","top_5_percent_mass"])
+    combine(scott_frames,"scott_widths_all_cells.csv",[
+      "replicate","gamma","validation_size","arm","node","realized_bandwidth_redshift"])
     # Paired gamma and arm contrasts use common random numbers.
     metric_columns = ["gamma", "replicate", "validation_size", "absolute_bandwidth_sd", "arm", "node", "iae", "ise", "boundary_iae", "status", "kish_ess"]
     metric_all = pd.concat(metric_frames, ignore_index=True) if metric_frames else pd.DataFrame(columns=metric_columns)
