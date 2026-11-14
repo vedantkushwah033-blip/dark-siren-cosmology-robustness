@@ -4,7 +4,10 @@ from scipy.special import log_ndtr
 from scipy.stats import norm
 
 from dark_siren_robustness.five_arm_comparison import build_five_arm_weights
-from dark_siren_robustness.five_arm_kde_likelihood import matched_five_arm_kde_selected_log_likelihood
+from dark_siren_robustness.five_arm_kde_likelihood import (
+    _batched_density_likelihood,
+    matched_five_arm_kde_selected_log_likelihood,
+)
 from dark_siren_robustness.dataset_likelihood import C_KM_S
 
 
@@ -116,3 +119,55 @@ def test_five_arm_likelihood_accepts_one_common_absolute_physical_bandwidth():
         ) == requested
     assert result.arm_density["A_catalogue_only"].shape == (241,)
     assert result.arm_e_node_density.shape[1] == 241
+
+
+
+def test_batched_kernel_h0_chunk_sizes_match_scalar_reference_including_tail_chunk():
+    z = np.linspace(0.01, 0.40, 241)
+    h0 = np.linspace(55.0, 85.0, 37)  # not divisible by the smaller chunk sizes
+    raw = np.stack([
+        0.2 + np.exp(-0.5 * ((z - center) / width) ** 2)
+        for center, width in ((0.08, 0.025), (0.19, 0.04), (0.31, 0.03))
+    ])
+    densities = raw / np.asarray([trapezoid(row, z) for row in raw])[:, None]
+    events = [
+        (275.0, 140.0),
+        (410.0, 155.0),
+        (720.0, 190.0),
+    ]
+    distances = np.asarray([item[0] for item in events])
+    sigmas = np.asarray([item[1] for item in events])
+    threshold = 250.0
+
+    expected_ll = []
+    expected_eff = []
+    for density in densities:
+        ll, eff = _reference(
+            h0, z, density,
+            [{"gw_distance": d, "gw_sigma": s} for d, s in events],
+            threshold,
+        )
+        expected_ll.append(ll)
+        expected_eff.append(eff)
+    expected_ll = np.asarray(expected_ll)
+    expected_eff = np.asarray(expected_eff)
+
+    for chunk_size in (1, 7, 16, 128):
+        actual_ll, actual_eff = _batched_density_likelihood(
+            h0, z, densities, distances, sigmas, threshold,
+            h0_chunk_size=chunk_size,
+        )
+        np.testing.assert_allclose(actual_ll, expected_ll, rtol=2e-12, atol=2e-12)
+        np.testing.assert_allclose(actual_eff, expected_eff, rtol=2e-12, atol=2e-12)
+
+
+def test_batched_kernel_rejects_nonpositive_h0_chunk_size():
+    z = np.linspace(0.01, 0.40, 101)
+    density = np.ones((1, z.size))
+    density /= trapezoid(density[0], z)
+    with pytest.raises(ValueError, match="h0_chunk_size"):
+        _batched_density_likelihood(
+            np.linspace(55.0, 85.0, 21), z, density,
+            np.asarray([275.0]), np.asarray([140.0]), 250.0,
+            h0_chunk_size=0,
+        )
