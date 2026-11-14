@@ -1,0 +1,113 @@
+name: parent-density-redshift-grid-refinement
+
+on:
+  push:
+    branches:
+      - research/five-arm-comparison-preregistration-20261113
+
+concurrency:
+  group: parent-density-redshift-grid-refinement-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  grid-refinement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Test bandwidth runner and independent auditor
+        run: python -m pytest tests/test_parent_density_bandwidth_pilot.py tests/test_bandwidth_train_holdout.py -q
+      - name: Run paired 801-point density pilot
+        run: |
+          python scripts/run_parent_density_bandwidth_pilot.py \
+            --replicates 200 --n-parent 4000 --seed 20261116 \
+            --grid-points 801 --bandwidth-multipliers 0.50,0.55 \
+            --output-dir artifacts/grid_refinement_801
+      - name: Independently audit 801-point source
+        run: |
+          python scripts/audit_parent_density_bandwidth_pilot.py \
+            artifacts/grid_refinement_801 --output artifacts/grid_refinement_801/raw_audit.json
+      - name: Run paired 1601-point density pilot
+        run: |
+          python scripts/run_parent_density_bandwidth_pilot.py \
+            --replicates 200 --n-parent 4000 --seed 20261116 \
+            --grid-points 1601 --bandwidth-multipliers 0.50,0.55 \
+            --output-dir artifacts/grid_refinement_1601
+      - name: Independently audit 1601-point source
+        run: |
+          python scripts/audit_parent_density_bandwidth_pilot.py \
+            artifacts/grid_refinement_1601 --output artifacts/grid_refinement_1601/raw_audit.json
+      - name: Compare paired IAE across grid resolutions
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          import pandas as pd
+
+          root = Path("artifacts")
+          summaries = {}
+          frames = {}
+          for points in (801, 1601):
+              folder = root / f"grid_refinement_{points}"
+              config = json.loads((folder / "config.json").read_text())
+              audit = json.loads((folder / "raw_audit.json").read_text())
+              manifest = json.loads((folder / "manifest.json").read_text())
+              assert config["seed"] == 20261116
+              assert config["n_replicates"] == 200
+              assert config["grid_points"] == points
+              assert audit["status"] == "PASS", audit
+              assert audit["replicates_verified"] == 200
+              assert audit["parent_units_verified"] == 800000
+              assert audit["bandwidth_attempts_reconstructed"] == 400
+              frames[points] = pd.read_csv(folder / "attempt_metrics.csv")
+              summaries[points] = manifest
+          assert summaries[801]["files"]["parent_samples.csv"]["sha256"] == summaries[1601]["files"]["parent_samples.csv"]["sha256"]
+          a = frames[801].pivot(index="replicate", columns="bandwidth_multiplier", values="iae").sort_index()
+          b = frames[1601].pivot(index="replicate", columns="bandwidth_multiplier", values="iae").sort_index()
+          assert a.index.equals(b.index)
+          assert list(a.columns) == [0.50, 0.55] == list(b.columns)
+          rows = []
+          for multiplier in (0.50, 0.55):
+              diff = b[multiplier] - a[multiplier]
+              rows.append({
+                  "bandwidth_multiplier": multiplier,
+                  "mean_iae_801": float(a[multiplier].mean()),
+                  "mean_iae_1601": float(b[multiplier].mean()),
+                  "mean_grid_delta_1601_minus_801": float(diff.mean()),
+                  "max_abs_replicate_grid_delta": float(np.max(np.abs(diff))),
+                  "rmse_replicate_grid_delta": float(np.sqrt(np.mean(diff.to_numpy()**2))),
+              })
+          paired_delta_801 = a[0.55] - a[0.50]
+          paired_delta_1601 = b[0.55] - b[0.50]
+          interaction = paired_delta_1601 - paired_delta_801
+          report = {
+              "status": "PASS_GRID_REFINEMENT_AUDIT",
+              "scope": "Paired synthetic parent-density IAE numerical grid sensitivity only; no H0 inference.",
+              "replicates": 200,
+              "parent_units_per_resolution": 800000,
+              "same_parent_samples_sha256": summaries[801]["files"]["parent_samples.csv"]["sha256"],
+              "grid_points": [801, 1601],
+              "per_candidate": rows,
+              "paired_candidate_delta_iae_055_minus_050": {
+                  "mean_801": float(paired_delta_801.mean()),
+                  "mean_1601": float(paired_delta_1601.mean()),
+                  "grid_interaction_mean": float(interaction.mean()),
+                  "grid_interaction_max_abs": float(np.max(np.abs(interaction))),
+              },
+          }
+          (root / "grid_refinement_comparison.json").write_text(json.dumps(report, indent=2) + "\n")
+          print(json.dumps(report, indent=2))
+          PY
+      - name: Upload paired grid-refinement inputs and audits
+        uses: actions/upload-artifact@v4
+        with:
+          name: parent-density-grid-refinement-${{ github.sha }}
+          path: artifacts/grid_refinement_*/
+          if-no-files-found: error
+          retention-days: 90
