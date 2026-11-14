@@ -25,4 +25,5 @@ jobs:
       - run: pytest -q tests/test_quadratic_logit_curvature_density_smoke.py tests/test_absolute_bandwidth_density_smoke.py
       - run: pytest -q tests/test_quadratic_logit_curvature_density_pilot.py
       - run: pytest -q tests/test_quadratic_logit_curvature_density_replicates.py
+      - run: pytest -q tests/test_quadratic_logit_curvature_incomplete_reference.py
       - run: python scripts/run_quadratic_logit_curvature_density_replicates.py --help && python scripts/audit_quadratic_logit_curvature_density_replicates.py --help
