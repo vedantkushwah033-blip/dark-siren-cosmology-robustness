@@ -142,20 +142,27 @@ def test_five_arm_builder_accepts_external_known_inclusion_probabilities():
     assert np.allclose(result.arm_c_known_probability, catalogue_base / supplied)
 
 
+
 @pytest.mark.parametrize(
-    "supplied,match",
+    "case,match",
     [
-        (np.ones(2), "match catalogue_redshift"),
-        (np.zeros(600), "in \(0, 1\]"),
-        (np.full(600, 1.01), "in \(0, 1\]"),
-        (np.full(600, np.nan), "finite"),
+        ("wrong_shape", "match catalogue_redshift"),
+        ("zero", "in \(0, 1\]"),
+        ("above_one", "in \(0, 1\]"),
+        ("nan", "finite"),
     ],
 )
-def test_five_arm_builder_rejects_invalid_external_known_probabilities(supplied, match):
+def test_five_arm_builder_rejects_invalid_external_known_probabilities(case, match):
     parent, catalogue, validation, retained = _fixture()
-    if supplied.size == 600 and supplied.size != catalogue.size:
-        # Force the mismatch case to remain a mismatch even if the fixture changes.
+    supplied = np.full(catalogue.size, 0.5)
+    if case == "wrong_shape":
         supplied = np.ones(catalogue.size + 1)
+    elif case == "zero":
+        supplied[0] = 0.0
+    elif case == "above_one":
+        supplied[0] = 1.01
+    elif case == "nan":
+        supplied[0] = np.nan
     with pytest.raises(ValueError, match=match):
         build_five_arm_weights(
             parent, catalogue, validation, retained,
