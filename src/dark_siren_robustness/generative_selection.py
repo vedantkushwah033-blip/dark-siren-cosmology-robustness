@@ -252,8 +252,15 @@ def quadratic_logit_parent_measure(*, z_min: float = 0.01, z_max: float = 0.40,
     """
     from scipy.integrate import trapezoid
 
-    if not (0 < z_min < z_max) or coordinate_scale <= 0 or grid_size < 1001:
-        raise ValueError("invalid redshift bounds, coordinate scale, or grid size")
+    if (
+        not np.isfinite(z_min) or not np.isfinite(z_max)
+        or not 0 < z_min < z_max
+        or not np.isfinite(coordinate_center)
+        or not np.isfinite(coordinate_scale) or coordinate_scale <= 0
+        or isinstance(grid_size, (bool, np.bool_))
+        or not isinstance(grid_size, (int, np.integer)) or grid_size < 1001
+    ):
+        raise ValueError("redshift bounds and coordinate parameters must be finite and valid; grid_size must be an integer >= 1001")
     grid = np.linspace(z_min, z_max, int(grid_size))
     intensity = latent_galaxy_intensity(grid)
     normalizer = float(trapezoid(intensity, grid))
