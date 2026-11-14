@@ -105,7 +105,7 @@ def run(args):
     combined_scott.to_csv(root/"scott_widths_all_replicates.csv",index=False)
     combined_diagnostics=pd.concat(diagnostic_frames,ignore_index=True) if diagnostic_frames else pd.DataFrame(
        columns=["replicate","validation_size","arm","node","kish_ess","kish_ess_fraction",
-                "maximum_normalized_weight","top_1_percent_mass","top_5_percent_mass"])
+                "entropy_ess","maximum_normalized_weight","top_1_percent_mass","top_5_percent_mass"])
     combined_diagnostics.to_csv(root/"weight_diagnostics_all_replicates.csv",index=False)
     cfg["attempted"]=len(ledger)
     cfg["successful"]=sum(x["status"]=="SUCCESS" for x in ledger)
