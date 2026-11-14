@@ -30,6 +30,13 @@ def _metric(d,t,z):
   "ise":float(trapezoid(x*x,z)),
   "boundary_iae":float(trapezoid(np.abs(x[left]),z[left])+trapezoid(np.abs(x[right]),z[right]))}
 
+def _kish_ess(weights):
+ w=np.asarray(weights,float)
+ if w.ndim!=1 or w.size==0 or np.any(w<=0) or not np.all(np.isfinite(w)):
+  raise AssertionError("invalid weights for independent Kish ESS")
+ p=w/np.sum(w)
+ return float(1.0/np.sum(p*p))
+
 def _independent_kde(z,sample,weights,rate,width):
  w=np.asarray(weights,float)
  if w.shape!=sample.shape or np.any(w<=0) or not np.all(np.isfinite(w)): raise AssertionError("invalid raw weights")
@@ -245,18 +252,18 @@ def audit(root:Path):
     stored=z[f"density_{arm}_n{n}_w{bw:.6f}"]
     _close(stored,d,f"{arm} density n={n} width={bw}")
     met=_metric(d,truth,grid)
-    expected.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":bw,"arm":arm,"node":-1,**met,"status":"SUCCESS"})
+    expected.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":bw,"arm":arm,"node":-1,**met,"status":"SUCCESS","kish_ess":_kish_ess(raw_weights)})
    for j,w in enumerate(bc[None,:]/pnodes):
     d=_independent_kde(grid,zcat,w,rate,bw); node_ds.append(d)
     _close(z[f"density_E_nodes_n{n}_w{bw:.6f}"][j],d,f"E node density n={n} width={bw} node={j}")
-    expected.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":bw,"arm":"E_uncertainty_integrated_ipw","node":j,**_metric(d,truth,grid),"status":"SUCCESS"})
+    expected.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":bw,"arm":"E_uncertainty_integrated_ipw","node":j,**_metric(d,truth,grid),"status":"SUCCESS","kish_ess":_kish_ess(w)})
    node_ds=np.asarray(node_ds)
    qmetric={k:float(np.dot(q,[_metric(d,truth,grid)[k] for d in node_ds])) for k in ("iae","ise","boundary_iae")}
    _close(z[f"density_E_posterior_mean_n{n}_w{bw:.6f}"],np.tensordot(q,node_ds,axes=(0,0)),f"E posterior mean density n={n} width={bw}")
    mean_density=np.tensordot(q,node_ds,axes=(0,0))
    mean_metric=_metric(mean_density,truth,grid)
-   expected.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":bw,"arm":"E_posterior_mean_density","node":-1,**mean_metric,"status":"SUCCESS"})
-   expected.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":bw,"arm":"E_posterior_weighted_node_metric","node":-1,**qmetric,"status":"SUCCESS"})
+   expected.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":bw,"arm":"E_posterior_mean_density","node":-1,**mean_metric,"status":"SUCCESS","kish_ess":float("nan")})
+   expected.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":bw,"arm":"E_posterior_weighted_node_metric","node":-1,**qmetric,"status":"SUCCESS","kish_ess":float("nan")})
  expected_df=pd.DataFrame(expected)
  key=["replicate","validation_size","absolute_bandwidth_sd","arm","node"]
  if metrics.duplicated(key).any() or expected_df.duplicated(key).any(): raise AssertionError("duplicate metric key")
@@ -265,7 +272,10 @@ def audit(root:Path):
  for col in key+["status"]:
   if not got[col].equals(want[col]): raise AssertionError(f"metric key/status mismatch: {col}")
  for col in ["iae","ise","boundary_iae"]:
-  _close(got[col].to_numpy(float),want[col].to_numpy(float),f"metric {col}")
+   _close(got[col].to_numpy(float),want[col].to_numpy(float),f"metric {col}")
+  if "kish_ess" not in got or not np.array_equal(got.kish_ess.isna().to_numpy(),want.kish_ess.isna().to_numpy()):
+   raise AssertionError("metric Kish ESS missingness mismatch")
+  _close(got.kish_ess.to_numpy(float),want.kish_ess.to_numpy(float),"metric Kish ESS")
  scott=pd.read_csv(root/"results"/"scott_widths.csv")
  expected_scott_df=pd.DataFrame(expected_scott)
  scott_key=["validation_size","arm","node"]
