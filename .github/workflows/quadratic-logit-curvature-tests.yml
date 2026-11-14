@@ -7,6 +7,12 @@ on:
     paths:
       - src/dark_siren_robustness/generative_selection.py
       - tests/test_absolute_bandwidth_density_smoke.py
+      - scripts/run_quadratic_logit_curvature_density_smoke.py
+      - scripts/audit_quadratic_logit_curvature_density_smoke.py
+      - scripts/run_quadratic_logit_curvature_density_replicates.py
+      - scripts/audit_quadratic_logit_curvature_density_replicates.py
+      - tests/test_quadratic_logit_curvature_density_smoke.py
+      - tests/test_quadratic_logit_curvature_density_replicates.py
       - .github/workflows/quadratic-logit-curvature-tests.yml
   workflow_dispatch:
 
@@ -31,3 +37,22 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
       - name: Test quadratic-logit DGP, inclusion posterior and density auditor regressions
         run: python -m pytest tests/test_absolute_bandwidth_density_smoke.py tests/test_inclusion_posterior.py -q
+      - name: Test one-cell curvature density runner and raw-input auditor
+        run: python -m pytest tests/test_quadratic_logit_curvature_density_smoke.py -q
+      - name: Test paired multi-replicate curvature runner and independent outer auditor
+        run: python -m pytest tests/test_quadratic_logit_curvature_density_replicates.py -q
+      - name: Validate curvature multi-replicate command-line interfaces
+        run: |
+          python scripts/run_quadratic_logit_curvature_density_replicates.py --help
+          python scripts/audit_quadratic_logit_curvature_density_replicates.py --help
+      - name: Run compact paired curvature orchestration pilot (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python scripts/run_quadratic_logit_curvature_density_replicates.py \\
+            --master-seed 20261220 --replicates 2 --gammas -1,0,1 \\
+            --n-parent 350 --validation-frame 120 --validation-sizes 40,80 \\
+            --quadrature-order 3 --grid-points 101 --absolute-widths 0.012,0.024 \\
+            --output-dir artifacts/quadratic_logit_curvature_density_replicates_smoke
+          python scripts/audit_quadratic_logit_curvature_density_replicates.py \\
+            artifacts/quadratic_logit_curvature_density_replicates_smoke \\
+            --output artifacts/quadratic_logit_curvature_density_replicates_smoke/audit.json
