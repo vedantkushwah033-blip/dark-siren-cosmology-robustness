@@ -34,7 +34,10 @@ def _kish_ess(weights):
  w=np.asarray(weights,float)
  if w.ndim!=1 or w.size==0 or np.any(w<=0) or not np.all(np.isfinite(w)):
   raise AssertionError("invalid weights for independent Kish ESS")
- p=w/np.sum(w)
+ scaled=w/np.max(w)
+ if np.any(scaled==0):
+  raise AssertionError("positive weights underflowed during independent Kish ESS")
+ p=scaled/np.sum(scaled)
  return float(1.0/np.sum(p*p))
 
 def _independent_kde(z,sample,weights,rate,width):
