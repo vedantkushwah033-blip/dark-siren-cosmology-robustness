@@ -109,12 +109,13 @@ def matched_five_arm_kde_selected_log_likelihood(
     detection_threshold_mpc: float,
     redshift_grid: ArrayLike,
     merger_weight: ArrayLike,
-    scott_multiplier: float,
+    scott_multiplier: float | None = None,
+    absolute_bandwidth_sd: float | None = None,
 ) -> FiveArmKDELikelihoodResult:
-    """Evaluate all five arms through a common weighted-Scott reflected KDE.
+    """Evaluate all five arms through one shared reflected-KDE bandwidth rule.
 
-    The multiplier is applied to each arm weighted Scott factor using its
-    original-sample effective size. FiveArmWeights carries the complete
+    Supply either a common Scott multiplier or a common absolute redshift-space
+    kernel SD. FiveArmWeights carries the complete
     base-population and inverse-inclusion weights. Use a unit merger_weight
     when those arrays already include the base measure.
     """
@@ -125,8 +126,12 @@ def matched_five_arm_kde_selected_log_likelihood(
     rate = np.asarray(merger_weight, dtype=float)
     if rate.shape != z_grid.shape or not np.all(np.isfinite(rate)) or np.any(rate <= 0):
         raise ValueError("merger_weight must be finite, positive, and match redshift_grid")
-    if not np.isfinite(scott_multiplier) or scott_multiplier <= 0:
+    if (scott_multiplier is None) == (absolute_bandwidth_sd is None):
+        raise ValueError("supply exactly one of scott_multiplier or absolute_bandwidth_sd")
+    if scott_multiplier is not None and (not np.isfinite(scott_multiplier) or scott_multiplier <= 0):
         raise ValueError("scott_multiplier must be finite and positive")
+    if absolute_bandwidth_sd is not None and (not np.isfinite(absolute_bandwidth_sd) or absolute_bandwidth_sd <= 0):
+        raise ValueError("absolute_bandwidth_sd must be finite and positive")
     threshold = float(detection_threshold_mpc)
     if not np.isfinite(threshold) or threshold <= 0:
         raise ValueError("detection_threshold_mpc must be finite and positive")
@@ -145,7 +150,8 @@ def matched_five_arm_kde_selected_log_likelihood(
     def density(sample: np.ndarray, raw_weights: np.ndarray) -> np.ndarray:
         return estimate_host_density(
             z_grid, sample, sample_weights=raw_weights,
-            merger_weight=rate, scott_multiplier=float(scott_multiplier),
+            merger_weight=rate, scott_multiplier=scott_multiplier,
+            absolute_bandwidth_sd=absolute_bandwidth_sd,
         )
 
     p_a = density(arms.catalogue_redshift, arms.arm_a_catalogue_only)
