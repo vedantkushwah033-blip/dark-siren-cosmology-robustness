@@ -300,6 +300,7 @@ def audit(root: Path) -> dict[str, object]:
             "node": -1,
             "kish_ess": min(x["kish_ess"] for x in node_diag),
             "kish_ess_fraction": min(x["kish_ess_fraction"] for x in node_diag),
+            "entropy_ess": min(x["entropy_ess"] for x in node_diag),
             "maximum_normalized_weight": max(x["maximum_normalized_weight"] for x in node_diag),
             "top_1_percent_mass": max(x["top_1_percent_mass"] for x in node_diag),
             "top_5_percent_mass": max(x["top_5_percent_mass"] for x in node_diag),
@@ -355,7 +356,7 @@ def audit(root: Path) -> dict[str, object]:
     expected_diag_df = pd.DataFrame(expected_diagnostics)
     diag_keys = ["validation_size", "arm", "node"]
     diag_values = [
-        "kish_ess", "kish_ess_fraction", "maximum_normalized_weight",
+        "kish_ess", "kish_ess_fraction", "entropy_ess", "maximum_normalized_weight",
         "top_1_percent_mass", "top_5_percent_mass",
     ]
     _compare_frames(actual_diag, expected_diag_df, diag_keys, diag_values, "weight diagnostic")
