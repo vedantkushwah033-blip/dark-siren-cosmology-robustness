@@ -197,18 +197,12 @@ def reflected_weighted_kde_bandwidth(
     scott_multiplier: float | None = None,
     absolute_bandwidth_sd: float | None = None,
 ) -> float:
-    if (scott_multiplier is None) == (absolute_bandwidth_sd is None):
-        raise ValueError("supply exactly one of scott_multiplier or absolute_bandwidth_sd")
-    if absolute_bandwidth_sd is not None:
-        if not np.isfinite(absolute_bandwidth_sd) or absolute_bandwidth_sd <= 0:
-            raise ValueError("absolute_bandwidth_sd must be finite and positive")
-        return float(absolute_bandwidth_sd)
     """Return the physical redshift-space kernel SD used by the reflected KDE.
 
-    The covariance adjustment in :func:`estimate_host_density` makes the
-    physical bandwidth equal to the original-sample weighted SD multiplied
-    by the weighted Scott factor. This reports that quantity directly.
+    Exactly one of the Scott multiplier or a common absolute width is supplied.
     """
+    if (scott_multiplier is None) == (absolute_bandwidth_sd is None):
+        raise ValueError("supply exactly one of scott_multiplier or absolute_bandwidth_sd")
     sample = np.asarray(observed_redshift, dtype=float)
     weights = np.asarray(sample_weights, dtype=float)
     if (sample.ndim != 1 or sample.size < 5 or not np.all(np.isfinite(sample))
@@ -221,6 +215,10 @@ def reflected_weighted_kde_bandwidth(
             or lower_bound <= 0 or upper_bound <= lower_bound
             or np.any((sample < lower_bound) | (sample > upper_bound))):
         raise ValueError("bounds must be finite, positive, ordered, and contain all samples")
+    if absolute_bandwidth_sd is not None:
+        if not np.isfinite(absolute_bandwidth_sd) or absolute_bandwidth_sd <= 0:
+            raise ValueError("absolute_bandwidth_sd must be finite and positive")
+        return float(absolute_bandwidth_sd)
     if scott_multiplier is not None and (not np.isfinite(scott_multiplier) or scott_multiplier <= 0):
         raise ValueError("scott_multiplier must be finite and positive")
     scaled = weights / np.max(weights)
