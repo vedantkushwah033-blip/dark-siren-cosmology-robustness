@@ -43,6 +43,7 @@ def test_two_replicate_density_pilot_and_independent_orchestration_audit(tmp_pat
     assert report["child_raw_audits_passed"]==2
     assert report["aggregate_metric_rows_reconstructed"]==len(pd.read_csv(out/"density_metrics_all_replicates.csv"))
     assert report["scott_width_rows_reconstructed"]==len(pd.read_csv(out/"scott_widths_all_replicates.csv"))
+    assert report["weight_diagnostic_rows_reconstructed"]==len(pd.read_csv(out/"weight_diagnostics_all_replicates.csv"))
 
 def test_orchestration_auditor_rejects_duplicate_aggregate_key_even_with_updated_manifest(tmp_path):
     runner=_load("absolute_density_replicates_runner_badkey","run_absolute_bandwidth_density_replicates.py")
@@ -93,4 +94,18 @@ def test_outer_auditor_rejects_modified_aggregate_scott_width_even_with_updated_
     frame.to_csv(path,index=False)
     _rehash(out,path)
     with pytest.raises(AssertionError,match="aggregate Scott width values mismatch"):
+        auditor.audit(out)
+
+
+def test_outer_auditor_rejects_corrupted_aggregate_weight_diagnostic_even_with_updated_manifest(tmp_path):
+    runner=_load("absolute_density_replicates_runner_bad_diag","run_absolute_bandwidth_density_replicates.py")
+    auditor=_load("absolute_density_replicates_auditor_bad_diag","audit_absolute_bandwidth_density_replicates.py")
+    out=tmp_path/"replicate_bad_weight_diagnostic"
+    runner.run(_args(out))
+    path=out/"weight_diagnostics_all_replicates.csv"
+    frame=pd.read_csv(path)
+    frame.loc[0,"kish_ess"] += 5.0
+    frame.to_csv(path,index=False)
+    _rehash(out,path)
+    with pytest.raises(AssertionError,match="aggregate weight-diagnostic values mismatch: kish_ess"):
         auditor.audit(out)
