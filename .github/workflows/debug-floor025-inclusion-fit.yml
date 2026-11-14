@@ -1,0 +1,103 @@
+name: debug-floor025-inclusion-fit
+
+on:
+  push:
+    branches:
+      - research/absolute-width-distribution-pilot-20261114
+    paths:
+      - .github/workflows/debug-floor025-inclusion-fit.yml
+  workflow_dispatch:
+
+jobs:
+  reproduce-failed-replicate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Reproduce validation-posterior fits for failed seed
+        run: |
+          mkdir -p artifacts/debug_floor025_replicate5
+          python - <<'PY'
+          import json
+          import traceback
+          from pathlib import Path
+          import numpy as np
+          from dark_siren_robustness.generative_selection import (
+              generate_synthetic_population,
+              generate_independent_validation_sample,
+          )
+          from dark_siren_robustness.inclusion_posterior import fit_inclusion_posterior_quadrature
+
+          out = Path("artifacts/debug_floor025_replicate5")
+          population = generate_synthetic_population(
+              seed=20261265, n_parent=4000, n_detected=1,
+              catalogue_floor=0.25, catalogue_midpoint=0.22, catalogue_width=0.05,
+          )
+          validation = generate_independent_validation_sample(
+              seed=20261266, n_validation_frame=1500, n_validation=1000,
+              catalogue_floor=0.25, catalogue_midpoint=0.22, catalogue_width=0.05,
+          )
+          population["parent_truth"].to_csv(out / "parent_truth.csv", index=False)
+          validation["validation_frame_truth"].to_csv(out / "validation_frame_truth.csv", index=False)
+          validation["validation_observed"].to_csv(out / "validation_observed.csv", index=False)
+
+          records = []
+          for n in (100, 300, 1000):
+              frame = validation["validation_observed"].iloc[:n]
+              record = {
+                  "validation_size": n,
+                  "retained_count": int(frame["retained"].sum()),
+                  "retained_fraction": float(frame["retained"].mean()),
+                  "redshift_min": float(frame["redshift"].min()),
+                  "redshift_max": float(frame["redshift"].max()),
+              }
+              try:
+                  fit = fit_inclusion_posterior_quadrature(
+                      frame["redshift"].to_numpy(float),
+                      frame["retained"].to_numpy(int),
+                      order=5, degree=1,
+                      coordinate_center=0.205, coordinate_scale=0.195,
+                  )
+                  record["status"] = "SUCCESS"
+                  record["fit_repr"] = repr(fit)
+                  if hasattr(fit, "__dict__"):
+                      record["fit_fields"] = {
+                          key: (value.tolist() if isinstance(value, np.ndarray)
+                                else float(value) if isinstance(value, (np.floating, np.integer))
+                                else value if isinstance(value, (str, int, float, bool, type(None)))
+                                else repr(value))
+                          for key, value in fit.__dict__.items()
+                      }
+              except Exception as exc:
+                  record["status"] = "FAILED"
+                  record["error_type"] = type(exc).__name__
+                  record["error"] = str(exc)
+                  record["traceback"] = traceback.format_exc()
+              records.append(record)
+              print(json.dumps(record, indent=2, default=str))
+              if record["status"] == "FAILED":
+                  break
+
+          report = {
+              "status": "DEBUG_COMPLETE",
+              "population_seed": 20261265,
+              "validation_seed": 20261266,
+              "catalogue_floor": 0.25,
+              "quadrature_order": 5,
+              "records": records,
+              "scope": "Reproduction of the inclusion-posterior mode fit only; no H0 inference.",
+          }
+          (out / "fit_reproduction.json").write_text(json.dumps(report, indent=2, default=str) + "\n")
+          PY
+      - name: Upload raw sample and fit reproduction report
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-floor025-replicate5-${{ github.sha }}
+          path: artifacts/debug_floor025_replicate5/
+          if-no-files-found: error
+          retention-days: 90

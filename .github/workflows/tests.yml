@@ -5,6 +5,7 @@ on:
     paths-ignore:
       - .github/workflows/absolute-width-distribution-pilot.yml
       - .github/workflows/absolute-width-expanded-grid-pilot.yml
+      - .github/workflows/debug-floor025-inclusion-fit.yml
       - .github/workflows/tests.yml
   pull_request:
   workflow_dispatch:
