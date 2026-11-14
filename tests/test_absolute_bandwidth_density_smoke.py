@@ -139,6 +139,20 @@ def test_posterior_mean_density_metric_is_distinct_and_independently_audited(tmp
     with pytest.raises(AssertionError,match="metric iae"):
         auditor.audit(output)
 
+    # Restore the original metrics, then corrupt a node-specific ESS while
+    # refreshing the manifest; the auditor must reconstruct ESS from raw weights.
+    metrics.to_csv(metrics_path,index=False)
+    payload=metrics_path.read_bytes()
+    manifest["files"][rel]={"bytes":len(payload),"sha256":hashlib.sha256(payload).hexdigest()}
+    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True))
+    metrics.loc[metrics.arm=="E_uncertainty_integrated_ipw","kish_ess"] += 5.0
+    metrics.to_csv(metrics_path,index=False)
+    payload=metrics_path.read_bytes()
+    manifest["files"][rel]={"bytes":len(payload),"sha256":hashlib.sha256(payload).hexdigest()}
+    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True))
+    with pytest.raises(AssertionError,match="metric Kish ESS"):
+        auditor.audit(output)
+
 def test_floor_025_failed_validation_posterior_uses_strict_newton_refinement():
     from scipy.special import expit
     from dark_siren_robustness.generative_selection import generate_independent_validation_sample
