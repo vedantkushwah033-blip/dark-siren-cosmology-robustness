@@ -6,6 +6,9 @@ on:
       - research/absolute-width-distribution-pilot-20261114
     paths:
       - src/dark_siren_robustness/generative_selection.py
+      - src/dark_siren_robustness/catalogue_density.py
+      - src/dark_siren_robustness/five_arm_comparison.py
+      - src/dark_siren_robustness/inclusion_posterior.py
       - tests/test_absolute_bandwidth_density_smoke.py
       - scripts/run_quadratic_logit_curvature_density_smoke.py
       - scripts/audit_quadratic_logit_curvature_density_smoke.py
