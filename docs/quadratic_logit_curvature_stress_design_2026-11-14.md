@@ -169,3 +169,19 @@ Implementation commits on the research branch:
 - `fc713b0aa106d47c1e9134510346c5eba52925e9`: unmanifested-file regression test.
 
 The exact branch head was re-fetched after both writes. The GitHub combined-status endpoint returned no status records for that head at inspection time; therefore this change is implemented but its CI result is **not yet verified**. This audit hardening does not change the statistical estimands or provide any new experimental result.
+
+
+## Nested child-manifest coverage hardening (2026-11-15)
+
+A second inventory review found that the outer manifest builder and auditor excluded every file whose basename was `manifest.json`, rather than excluding only the top-level outer manifest. Each successful child cell has its own `manifest.json`; consequently, those child manifests were not themselves covered by the outer SHA-256 inventory.
+
+The runner now excludes only `<output-root>/manifest.json` when constructing the outer manifest. Nested child manifests are included in the outer file inventory. The outer auditor applies the same exact-path rule, so changes to a child manifest are detected before the child audit is trusted.
+
+A regression test now tampers with a nested child manifest and requires the outer auditor to reject it with an outer-manifest verification failure. The existing extra-file test continues to check exact directory inventory.
+
+Commits:
+- `40543c2f2cd76165662e5df4739ca01a2798c75e`: include nested child manifests in the outer manifest.
+- `e6f73948364ab6c2290dba9605705412547cad18`: verify nested child manifests in the outer auditor.
+- `18889829ddacb05f4fbd5a219fb60071b0d089da`: regression test for nested child-manifest tampering.
+
+The latest branch head was re-fetched after these changes. CI is still pending/cancelled on earlier intermediate heads because subsequent commits triggered new runs; no passing CI claim is made for the latest head yet. This change is artifact-integrity hardening only and does not alter the simulation or its estimands.
