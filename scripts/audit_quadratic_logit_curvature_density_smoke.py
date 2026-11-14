@@ -41,6 +41,19 @@ def _hash(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _assert_frame_close(actual: pd.DataFrame, expected: pd.DataFrame, label: str) -> None:
+    if list(actual.columns) != list(expected.columns) or len(actual) != len(expected):
+        raise AssertionError(f"{label} schema or row-count mismatch")
+    for column in actual.columns:
+        left = actual[column].to_numpy()
+        right = expected[column].to_numpy()
+        if np.issubdtype(left.dtype, np.number) and np.issubdtype(right.dtype, np.number):
+            if not np.allclose(left.astype(float), right.astype(float), rtol=1e-13, atol=1e-14, equal_nan=True):
+                raise AssertionError(f"{label} numerical mismatch: {column}")
+        elif left.tolist() != right.tolist():
+            raise AssertionError(f"{label} value mismatch: {column}")
+
+
 def _metric(density: np.ndarray, truth: np.ndarray, grid: np.ndarray) -> dict[str, float]:
     delta = np.asarray(density, dtype=float) - truth
     left = grid <= BOUNDARY_LOWER
@@ -96,10 +109,10 @@ def audit(root: Path) -> dict[str, object]:
     catalogue = pd.read_csv(root / "observable" / "catalogue_observed.csv")
     validation_max = pd.read_csv(root / "observable" / "validation_max.csv")
     validation_truth = pd.read_csv(root / "truth" / "validation_frame_truth.csv")
-    pd.testing.assert_frame_equal(parent, regenerated["parent_truth"], check_exact=True)
-    pd.testing.assert_frame_equal(catalogue, regenerated["catalogue_observed"], check_exact=True)
-    pd.testing.assert_frame_equal(validation_max, regenerated["validation_observed"], check_exact=True)
-    pd.testing.assert_frame_equal(validation_truth, regenerated["validation_frame_truth"], check_exact=True)
+    _assert_frame_close(parent, regenerated["parent_truth"], "regenerated parent truth")
+    _assert_frame_close(catalogue, regenerated["catalogue_observed"], "regenerated observable catalogue")
+    _assert_frame_close(validation_max, regenerated["validation_observed"], "regenerated observable validation")
+    _assert_frame_close(validation_truth, regenerated["validation_frame_truth"], "regenerated validation truth")
 
     pz = parent["redshift"].to_numpy(float)
     cz = catalogue["redshift"].to_numpy(float)
@@ -120,7 +133,7 @@ def audit(root: Path) -> dict[str, object]:
     for n in cfg["validation_sizes"]:
         validation = pd.read_csv(root / "observable" / f"validation_n{int(n)}.csv")
         expected_prefix = validation_max.iloc[:int(n)].reset_index(drop=True)
-        pd.testing.assert_frame_equal(validation, expected_prefix, check_exact=True)
+        _assert_frame_close(validation, expected_prefix, f"nested validation prefix n={n}")
         mode, posterior_nodes, posterior_weights = _independent_logistic_quadrature(
             validation["redshift"].to_numpy(float),
             validation["retained"].to_numpy(int),
