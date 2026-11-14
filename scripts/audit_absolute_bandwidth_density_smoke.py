@@ -152,13 +152,17 @@ def _independent_logistic_quadrature(validation_redshift, retained, cfg):
   current=objective(mode); step=1.0; accepted=False
   while step>=2.0**-35:
    candidate=mode-step*direction
-   if objective(candidate)<=current-1e-4*step*decrement:
+   candidate_score=float(np.linalg.norm(gradient(candidate),ord=np.inf))
+   candidate_objective=objective(candidate)
+   # Near floating-point objective resolution, Armijo decrease can disappear
+   # while the posterior score still improves. Accept either a valid Armijo
+   # step or a strict reduction in the independently evaluated score.
+   armijo=candidate_objective<=current-1e-4*step*decrement
+   score_improved=np.isfinite(candidate_score) and candidate_score < float(np.linalg.norm(score,ord=np.inf))
+   if np.isfinite(candidate_score) and (armijo or score_improved):
     mode=candidate; accepted=True; break
    step*=0.5
   if not accepted:
-   # At machine precision the objective can stop decreasing before the score
-   # reaches 1e-11. Accept only the same narrow residual bound as the production
-   # fit; retain the Hessian and positive-definiteness checks below.
    if np.linalg.norm(gradient(mode),ord=np.inf)<=1e-6: break
    raise AssertionError("independent posterior Newton polish stalled")
  else:
