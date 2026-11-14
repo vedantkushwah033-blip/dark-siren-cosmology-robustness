@@ -130,11 +130,11 @@ def audit(root:Path):
         expected_scott.realized_bandwidth_redshift.to_numpy(float),rtol=2e-10,atol=2e-10,equal_nan=False):
         raise AssertionError("aggregate Scott width values mismatch")
     expected_diagnostics=pd.concat(expected_diagnostic_frames,ignore_index=True) if expected_diagnostic_frames else pd.DataFrame(
-        columns=["validation_size","arm","node","kish_ess","kish_ess_fraction",
+        columns=["validation_size","arm","node","kish_ess","kish_ess_fraction","entropy_ess",
                  "maximum_normalized_weight","top_1_percent_mass","top_5_percent_mass","replicate"])
     actual_diagnostics=pd.read_csv(root/"weight_diagnostics_all_replicates.csv")
     diagnostic_key=["replicate","validation_size","arm","node"]
-    diagnostic_columns=["kish_ess","kish_ess_fraction","maximum_normalized_weight",
+    diagnostic_columns=["kish_ess","kish_ess_fraction","entropy_ess","maximum_normalized_weight",
                         "top_1_percent_mass","top_5_percent_mass"]
     if len(actual_diagnostics)!=len(expected_diagnostics):
         raise AssertionError("aggregate weight-diagnostic row count mismatch")
