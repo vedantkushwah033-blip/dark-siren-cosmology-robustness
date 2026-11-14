@@ -137,3 +137,25 @@ def test_posterior_mean_density_metric_is_distinct_and_independently_audited(tmp
     manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n")
     with pytest.raises(AssertionError,match="metric iae"):
         auditor.audit(output)
+
+def test_floor_025_failed_validation_posterior_uses_strict_newton_refinement():
+    from scipy.special import expit
+    from dark_siren_robustness.generative_selection import generate_independent_validation_sample
+    from dark_siren_robustness.inclusion_posterior import fit_inclusion_posterior_quadrature
+
+    sample=generate_independent_validation_sample(
+        seed=20261266, n_validation_frame=1500, n_validation=1000,
+        z_min=0.01, z_max=0.40, catalogue_floor=0.25,
+        catalogue_midpoint=0.22, catalogue_width=0.05,
+    )
+    validation=sample["validation_observed"]
+    z=validation.redshift.to_numpy(float)
+    y=validation.retained.to_numpy(int)
+    fit=fit_inclusion_posterior_quadrature(
+        z,y,degree=1,prior_mean=(0.0,0.0),prior_sd=(5.0,2.5),
+        coordinate_center=0.205,coordinate_scale=0.195,order=5,
+    )
+    design=np.column_stack((np.ones(len(z)),(z-0.205)/0.195))
+    score=design.T@(expit(design@fit.mode)-y)+fit.mode/np.square((5.0,2.5))
+    assert np.linalg.norm(score,ord=np.inf)<=1e-6
+    assert np.all(np.linalg.eigvalsh(fit.laplace_covariance)>0)
