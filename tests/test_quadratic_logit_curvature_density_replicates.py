@@ -38,6 +38,23 @@ def test_paired_curvature_runner_and_independent_outer_audit(tmp_path):
   assert group.validation_seed.nunique()==1
   assert group.population_seed.iloc[0]==20261220+int(rid)*10
   assert group.validation_seed.iloc[0]==20261221+int(rid)*10
+  first_parent=None; first_frame=None; first_selected=None; first_validation=None
+  for gamma in (-1.0,0.0,1.0):
+   label=f"gamma_{gamma:+.2f}".replace("+","p").replace("-","m").replace(".","_")
+   child=out/"cells"/label/f"replicate_{int(rid):04d}"
+   parent=pd.read_csv(child/"truth"/"parent_truth.csv")
+   frame=pd.read_csv(child/"truth"/"validation_frame_truth.csv")
+   validation=pd.read_csv(child/"observable"/"validation_max.csv")
+   if first_parent is None:
+    first_parent=parent.redshift.to_numpy(float)
+    first_frame=frame.redshift.to_numpy(float)
+    first_selected=frame.selected_for_validation.to_numpy(int)
+    first_validation=validation.validation_id.to_numpy(int)
+   else:
+    np.testing.assert_allclose(parent.redshift.to_numpy(float),first_parent,rtol=0,atol=1e-14)
+    np.testing.assert_allclose(frame.redshift.to_numpy(float),first_frame,rtol=0,atol=1e-14)
+    np.testing.assert_array_equal(frame.selected_for_validation.to_numpy(int),first_selected)
+    np.testing.assert_array_equal(validation.validation_id.to_numpy(int),first_validation)
  metrics=pd.read_csv(out/"density_metrics_all_cells.csv")
  assert set(metrics.gamma)=={-1.0,0.0,1.0}
  assert set(metrics.replicate)=={0,1}
