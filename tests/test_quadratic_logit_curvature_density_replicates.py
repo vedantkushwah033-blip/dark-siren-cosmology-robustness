@@ -118,3 +118,21 @@ def test_curvature_outer_auditor_rejects_unmanifested_files(tmp_path):
  (out/"unexpected_extra.txt").write_text("not covered by manifest\\n")
  with pytest.raises(AssertionError,match="outer manifest inventory mismatch"):
   auditor.audit(out)
+
+
+def test_curvature_outer_auditor_rejects_false_child_audit_claim_with_updated_manifest(tmp_path):
+ runner=_load("curvature_multi_runner_false_audit","run_quadratic_logit_curvature_density_replicates.py")
+ auditor=_load("curvature_multi_auditor_false_audit","audit_quadratic_logit_curvature_density_replicates.py")
+ out=tmp_path/"curvature_false_audit_claim"
+ runner.run(_args(out))
+ ledger_path=out/"cell_ledger.csv"
+ ledger=pd.read_csv(ledger_path)
+ ledger.loc[ledger.status=="SUCCESS","audit_status"]="PASS"
+ ledger.to_csv(ledger_path,index=False)
+ manifest_path=out/"manifest.json"
+ manifest=json.loads(manifest_path.read_text())
+ rel=str(ledger_path.relative_to(out))
+ manifest["files"][rel]={"bytes":ledger_path.stat().st_size,"sha256":hashlib.sha256(ledger_path.read_bytes()).hexdigest()}
+ manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n")
+ with pytest.raises(AssertionError,match="successful cells must await"):
+  auditor.audit(out)
