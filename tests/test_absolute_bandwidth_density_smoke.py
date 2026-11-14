@@ -42,6 +42,77 @@ def test_absolute_bandwidth_density_smoke_independent_reconstruction_and_corrupt
         auditor.audit(output)
 
 
+def test_quadratic_logit_density_smoke_independently_audits_true_probability_arm(tmp_path):
+    import json
+
+    runner=_load("quadratic_density_runner","run_absolute_bandwidth_density_smoke.py")
+    auditor=_load("quadratic_density_auditor","audit_absolute_bandwidth_density_smoke.py")
+    output=tmp_path/"quadratic_density"
+    args=SimpleNamespace(
+        output_dir=output, seed=20261124, validation_seed=20261125,
+        n_parent=700, validation_frame=300, validation_sizes=(80,160),
+        gamma=1.0, beta=-3.9, scott_multiplier=0.7,
+        quadrature_order=3, grid_points=101, absolute_widths=(0.012,0.024),
+    )
+    result=runner.run(args)
+    assert result["status"]=="PASS"
+    cfg=json.loads((output/"config.json").read_text())
+    assert cfg["catalogue_selection_model"]=="quadratic_logit"
+    assert cfg["catalogue_floor"] is None
+    assert cfg["quadratic_logit_calibration"]["gamma"]==pytest.approx(1.0)
+
+    report=auditor.audit(output)
+    assert report["status"]=="PASS"
+    assert report["metric_rows_reconstructed"]==len(
+        pd.read_csv(output/"results"/"density_metrics.csv")
+    )
+
+    # A refreshed checksum must not allow a false parent-measure centering constant.
+    import hashlib
+    config_path=output/"config.json"
+    cfg=json.loads(config_path.read_text())
+    cfg["quadratic_logit_calibration"]["x2_center"] += 0.01
+    config_path.write_text(json.dumps(cfg,indent=2,sort_keys=True)+"\n")
+    manifest_path=output/"manifest.json"
+    manifest=json.loads(manifest_path.read_text())
+    payload=config_path.read_bytes()
+    manifest["files"]["config.json"]={"bytes":len(payload),"sha256":hashlib.sha256(payload).hexdigest()}
+    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True))
+    with pytest.raises(AssertionError,match="quadratic-logit parent-measure x2 centering mismatch"):
+        auditor.audit(output)
+
+
+def test_absolute_bandwidth_auditor_rejects_corrupt_weight_diagnostics_after_manifest_refresh(tmp_path):
+    import hashlib
+    import json
+
+    runner=_load("absolute_density_runner_weight_diag","run_absolute_bandwidth_density_smoke.py")
+    auditor=_load("absolute_density_auditor_weight_diag","audit_absolute_bandwidth_density_smoke.py")
+    output=tmp_path/"absolute_density_weight_diag"
+    args=SimpleNamespace(
+        output_dir=output, seed=20261120, validation_seed=20261121,
+        n_parent=500, validation_frame=120, validation_sizes=(40,80),
+        catalogue_floor=0.10, scott_multiplier=0.7, quadrature_order=3,
+        grid_points=101, absolute_widths=(0.012,0.024),
+    )
+    runner.run(args)
+    path=output/"results"/"weight_diagnostics.csv"
+    frame=pd.read_csv(path)
+    assert "entropy_ess" in frame
+    frame.loc[0,"entropy_ess"] += 0.25
+    frame.to_csv(path,index=False)
+
+    manifest_path=output/"manifest.json"
+    manifest=json.loads(manifest_path.read_text())
+    rel=str(path.relative_to(output))
+    payload=path.read_bytes()
+    manifest["files"][rel]={"bytes":len(payload),"sha256":hashlib.sha256(payload).hexdigest()}
+    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True))
+
+    with pytest.raises(AssertionError,match="independently reconstructed weight diagnostic entropy_ess"):
+        auditor.audit(output)
+
+
 def test_absolute_bandwidth_auditor_rejects_non_nested_validation_ids(tmp_path):
     import hashlib
     import json

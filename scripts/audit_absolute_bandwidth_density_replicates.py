@@ -31,6 +31,17 @@ def audit(root:Path):
     cfg=json.loads((root/"config.json").read_text())
     if cfg.get("status")!="DEVELOPMENT_PILOT_NOT_CONFIRMATORY_NOT_BANDWIDTH_SELECTION":
         raise AssertionError("unexpected experiment claim status")
+    selection_model=cfg.get("catalogue_selection_model","floor_logistic")
+    if selection_model=="floor_logistic":
+        floor=float(cfg["catalogue_floor"])
+        if not np.isfinite(floor) or not 0.0<=floor<=1.0:
+            raise AssertionError("invalid floor-logistic catalogue floor")
+    elif selection_model=="quadratic_logit":
+        gamma=float(cfg["gamma"]); beta=float(cfg["beta"])
+        if not np.all(np.isfinite([gamma,beta])):
+            raise AssertionError("invalid quadratic-logit gamma/beta")
+    else:
+        raise AssertionError(f"unsupported catalogue selection model: {selection_model}")
     planned=int(cfg["replicates"])
     if planned<2: raise AssertionError("not a multi-replicate experiment")
     ledger=pd.read_csv(root/"replicate_ledger.csv").fillna("")
@@ -67,8 +78,17 @@ def audit(root:Path):
                 raise AssertionError(f"replicate {rid} bandwidth-grid/config mismatch")
             if int(child_cfg["grid_points"])!=int(cfg["grid_points"]) or int(child_cfg["quadrature_order"])!=int(cfg["quadrature_order"]):
                 raise AssertionError(f"replicate {rid} numerical-resolution/config mismatch")
-            if not np.isclose(float(child_cfg["catalogue_floor"]),float(cfg["catalogue_floor"])):
-                raise AssertionError(f"replicate {rid} catalogue-floor/config mismatch")
+            if child_cfg.get("catalogue_selection_model","floor_logistic")!=selection_model:
+                raise AssertionError(f"replicate {rid} catalogue-selection-model/config mismatch")
+            if selection_model=="floor_logistic":
+                if not np.isclose(float(child_cfg["catalogue_floor"]),floor):
+                    raise AssertionError(f"replicate {rid} catalogue-floor/config mismatch")
+            else:
+                child_cal=child_cfg.get("quadratic_logit_calibration") or {}
+                if not np.isclose(float(child_cal.get("gamma",np.nan)),gamma):
+                    raise AssertionError(f"replicate {rid} quadratic gamma/config mismatch")
+                if not np.isclose(float(child_cal.get("beta",np.nan)),beta):
+                    raise AssertionError(f"replicate {rid} quadratic beta/config mismatch")
             if not np.isclose(float(child_cfg["scott_multiplier"]),float(cfg["scott_multiplier"])):
                 raise AssertionError(f"replicate {rid} Scott-multiplier/config mismatch")
             report=audit_one(child)

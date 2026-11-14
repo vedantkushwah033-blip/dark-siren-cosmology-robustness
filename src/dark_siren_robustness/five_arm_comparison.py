@@ -83,7 +83,7 @@ def build_five_arm_weights(
     validation_redshift: ArrayLike,
     validation_retained: ArrayLike,
     *,
-    catalogue_floor: float,
+    catalogue_floor: float | None = None,
     catalogue_midpoint: float = 0.22,
     catalogue_width: float = 0.05,
     degree: int = 1,
@@ -94,6 +94,7 @@ def build_five_arm_weights(
     quadrature_order: int = 15,
     parent_base_weights: ArrayLike | None = None,
     catalogue_base_weights: ArrayLike | None = None,
+    true_catalogue_inclusion_probability: ArrayLike | None = None,
 ) -> FiveArmWeights:
     """Construct A-E raw weights from one matched synthetic replicate.
 
@@ -105,10 +106,15 @@ def build_five_arm_weights(
 
     Supply parent_base_weights and catalogue_base_weights evaluated from the
     same declared population/rate function. If omitted, equal base weights are
-    used in both populations. No clipping or normalization is performed. The
-    caller must use the same fixed KDE and downstream selection-conditioned
-    likelihood for every arm. E's coefficient nodes are integrated at the
-    complete joint-likelihood level, not by averaging host weights first.
+    used in both populations. For the default logistic catalogue DGP, C's true
+    probabilities are generated from catalogue_floor/midpoint/width. For any
+    other known DGP (including curved-logit stress tests), supply the exact
+    true_catalogue_inclusion_probability vector in catalogue row order. This
+    argument is simulation truth and must never enter D/E fitting. No clipping
+    or normalization is performed. The caller must use the same fixed KDE and
+    downstream selection-conditioned likelihood for every arm. E's coefficient
+    nodes are integrated at the complete joint-likelihood level, not by
+    averaging host weights first.
     """
     parent = _validate_redshifts(parent_redshift, "parent_redshift")
     catalogue = _validate_redshifts(catalogue_redshift, "catalogue_redshift")
@@ -122,12 +128,13 @@ def build_five_arm_weights(
     retained = np.asarray(validation_retained)
     if retained.shape != validation.shape or np.any((retained != 0) & (retained != 1)):
         raise ValueError("validation_retained must be binary and match validation_redshift")
-    if not np.isfinite(catalogue_floor) or not 0 <= catalogue_floor <= 1:
-        raise ValueError("catalogue_floor must lie in [0, 1]")
-    if not np.isfinite(catalogue_midpoint) or catalogue_midpoint <= 0:
-        raise ValueError("catalogue_midpoint must be finite and positive")
-    if not np.isfinite(catalogue_width) or catalogue_width <= 0:
-        raise ValueError("catalogue_width must be finite and positive")
+    if true_catalogue_inclusion_probability is None:
+        if catalogue_floor is None or not np.isfinite(catalogue_floor) or not 0 <= catalogue_floor <= 1:
+            raise ValueError("catalogue_floor must lie in [0, 1] when true probabilities are not supplied")
+        if not np.isfinite(catalogue_midpoint) or catalogue_midpoint <= 0:
+            raise ValueError("catalogue_midpoint must be finite and positive")
+        if not np.isfinite(catalogue_width) or catalogue_width <= 0:
+            raise ValueError("catalogue_width must be finite and positive")
     if not np.isfinite(coordinate_center) or not np.isfinite(coordinate_scale) or coordinate_scale <= 0:
         raise ValueError("coefficient coordinates must have finite center and positive scale")
 
@@ -142,12 +149,28 @@ def build_five_arm_weights(
         order=quadrature_order,
     )
 
-    true_probability = catalogue_inclusion_probability(
-        catalogue,
-        floor=float(catalogue_floor),
-        midpoint=float(catalogue_midpoint),
-        width=float(catalogue_width),
-    )
+    if true_catalogue_inclusion_probability is None:
+        true_probability = catalogue_inclusion_probability(
+            catalogue,
+            floor=float(catalogue_floor),
+            midpoint=float(catalogue_midpoint),
+            width=float(catalogue_width),
+        )
+    else:
+        true_probability = np.asarray(
+            true_catalogue_inclusion_probability, dtype=float
+        )
+        if (
+            true_probability.shape != catalogue.shape
+            or not np.all(np.isfinite(true_probability))
+            or np.any(true_probability <= 0.0)
+            or np.any(true_probability > 1.0)
+        ):
+            raise ValueError(
+                "true_catalogue_inclusion_probability must be finite, in (0, 1], "
+                "and match catalogue_redshift"
+            )
+        true_probability = true_probability.copy()
     map_probability = _probabilities_for_nodes(
         catalogue,
         posterior.mode[None, :],
@@ -197,12 +220,16 @@ def weight_concentration_diagnostics(raw_weights: ArrayLike) -> dict[str, float]
     total = float(np.sum(scaled))
     normalized = scaled / total
     ess = float(total * total / np.sum(scaled * scaled))
+    positive = normalized[normalized > 0.0]
+    entropy = float(-np.sum(positive * np.log(positive)))
+    entropy_ess = float(np.exp(entropy))
     ordered = np.sort(normalized)[::-1]
     n1 = max(1, int(np.ceil(0.01 * weights.size)))
     n5 = max(1, int(np.ceil(0.05 * weights.size)))
     return {
         "kish_ess": ess,
         "kish_ess_fraction": ess / weights.size,
+        "entropy_ess": entropy_ess,
         "maximum_normalized_weight": float(ordered[0]),
         "top_1_percent_mass": float(np.sum(ordered[:n1])),
         "top_5_percent_mass": float(np.sum(ordered[:n5])),

@@ -40,6 +40,28 @@ def _kish_ess(weights):
  p=scaled/np.sum(scaled)
  return float(1.0/np.sum(p*p))
 
+def _independent_weight_diagnostics(weights):
+ w=np.asarray(weights,float)
+ if w.ndim!=1 or w.size==0 or np.any(w<=0) or not np.all(np.isfinite(w)):
+  raise AssertionError("invalid weights for independent concentration diagnostics")
+ scaled=w/np.max(w)
+ if np.any(scaled==0):
+  raise AssertionError("positive weights underflowed during independent diagnostics")
+ p=scaled/np.sum(scaled)
+ positive=p[p>0]
+ entropy_ess=float(np.exp(-np.sum(positive*np.log(positive))))
+ ordered=np.sort(p)[::-1]
+ n1=max(1,int(np.ceil(0.01*w.size)))
+ n5=max(1,int(np.ceil(0.05*w.size)))
+ return {
+  "kish_ess":float(1.0/np.sum(p*p)),
+  "kish_ess_fraction":float(1.0/np.sum(p*p)/w.size),
+  "entropy_ess":entropy_ess,
+  "maximum_normalized_weight":float(ordered[0]),
+  "top_1_percent_mass":float(np.sum(ordered[:n1])),
+  "top_5_percent_mass":float(np.sum(ordered[:n5])),
+ }
+
 def _independent_kde(z,sample,weights,rate,width):
  w=np.asarray(weights,float)
  if w.shape!=sample.shape or np.any(w<=0) or not np.all(np.isfinite(w)): raise AssertionError("invalid raw weights")
@@ -192,9 +214,51 @@ def audit(root:Path):
  if set(cat.object_id.astype(int))!=set(parent.loc[parent.retained==1,"object_id"].astype(int)): raise AssertionError("catalogue does not match parent retention")
  zparent=parent.redshift.to_numpy(float); zcat=cat.redshift.to_numpy(float)
  _close(zcat,parent.set_index("object_id").loc[cat.object_id,"redshift"].to_numpy(float),"catalogue-parent redshift join")
- floor=float(cfg["catalogue_floor"]); midpoint=float(cfg["catalogue_midpoint"]); width=float(cfg["catalogue_width"])
- ptrue=floor+(1-floor)/(1+np.exp((zcat-midpoint)/width))
- _close(parent.inclusion_probability.to_numpy(float),floor+(1-floor)/(1+np.exp((zparent-midpoint)/width)),"parent inclusion probabilities")
+ selection_model=cfg.get("catalogue_selection_model","floor_logistic")
+ if selection_model=="floor_logistic":
+  floor=float(cfg["catalogue_floor"]); midpoint=float(cfg["catalogue_midpoint"]); width=float(cfg["catalogue_width"])
+  def inclusion_probability(redshift):
+   return floor+(1-floor)/(1+np.exp((np.asarray(redshift,float)-midpoint)/width))
+ elif selection_model=="quadratic_logit":
+  cal=cfg.get("quadratic_logit_calibration") or {}
+  alpha=float(cal["alpha"]); beta=float(cal["beta"]); gamma=float(cal["gamma"])
+  x2_center=float(cal["x2_center"])
+  center=float(cal["coordinate_center"]); scale=float(cal["coordinate_scale"])
+  if not np.all(np.isfinite([alpha,beta,gamma,x2_center,center,scale])) or scale<=0:
+   raise AssertionError("invalid quadratic-logit calibration in config")
+  z_min,z_max=map(float,cfg["redshift_bounds"])
+  calibration_grid=np.linspace(z_min,z_max,20001)
+  parent_measure=(1.0+2.2*np.exp(-0.5*((calibration_grid-0.105)/0.025)**2)
+                    +1.6*np.exp(-0.5*((calibration_grid-0.275)/0.04)**2))
+  parent_normalizer=float(trapezoid(parent_measure,calibration_grid))
+  x_cal=(calibration_grid-center)/scale
+  independently_centered_x2=float(
+   trapezoid(parent_measure*x_cal*x_cal,calibration_grid)/parent_normalizer)
+  _close(np.asarray([x2_center]),np.asarray([independently_centered_x2]),
+         "quadratic-logit parent-measure x2 centering")
+  independently_target_rate=float(
+   trapezoid(parent_measure*expit(beta*x_cal),calibration_grid)/parent_normalizer)
+  independently_achieved_rate=float(
+   trapezoid(parent_measure*expit(alpha+beta*x_cal
+      +gamma*(x_cal*x_cal-independently_centered_x2)),calibration_grid)
+   /parent_normalizer)
+  _close(np.asarray([float(cal["target_rate"])]),
+         np.asarray([independently_target_rate]),
+         "quadratic-logit gamma-zero target inclusion rate")
+  _close(np.asarray([float(cal["achieved_rate"])]),
+         np.asarray([independently_achieved_rate]),
+         "quadratic-logit achieved parent-average inclusion rate")
+  _close(np.asarray([np.asarray([independently_achieved_rate])[0]]),
+         np.asarray([float(cal["target_rate"])]),
+         "quadratic-logit preserved parent-average inclusion rate")
+  def inclusion_probability(redshift):
+   x=(np.asarray(redshift,float)-center)/scale
+   return expit(alpha+beta*x+gamma*(x*x-x2_center))
+ else:
+  raise AssertionError(f"unsupported catalogue selection model: {selection_model}")
+ ptrue=inclusion_probability(zcat)
+ _close(parent.inclusion_probability.to_numpy(float),inclusion_probability(zparent),
+        "parent inclusion probabilities")
  bp=1+1.5*(zparent-Z_MIN)/(Z_MAX-Z_MIN); bc=1+1.5*(zcat-Z_MIN)/(Z_MAX-Z_MIN)
  z=np.load(root/"results"/"density_reconstruction_inputs.npz")
  grid=z["redshift_grid"]; rate=z["merger_weight_grid"]; truth=z["truth_density"]
@@ -206,7 +270,7 @@ def audit(root:Path):
  scott_multiplier=float(cfg["scott_multiplier"])
  if not np.isfinite(scott_multiplier) or scott_multiplier<=0: raise AssertionError("invalid Scott multiplier")
  metrics=pd.read_csv(root/"results"/"density_metrics.csv")
- expected=[]; expected_scott=[]; maxdiff=0.0
+ expected=[]; expected_scott=[]; expected_diag=[]; maxdiff=0.0
  for n in sizes:
   v=pd.read_csv(root/"observable"/f"validation_n{n}.csv")
   if "validation_id" not in v or "validation_id" not in vfull or "frame_id" not in vf:
@@ -219,11 +283,14 @@ def audit(root:Path):
    raise AssertionError("truth validation-frame IDs are not unique")
   _close(v.redshift.to_numpy(float),vfull.iloc[:n].redshift.to_numpy(float),f"nested validation redshift n={n}")
   _close(v.retained.to_numpy(int),vfull.iloc[:n].retained.to_numpy(int),f"nested validation outcomes n={n}",atol=0)
-  truth_join=v.merge(vf[["frame_id","redshift","retained"]],left_on="validation_id",right_on="frame_id",suffixes=("_obs","_truth"),validate="one_to_one")
+  truth_join=v.merge(vf[["frame_id","redshift","retained","inclusion_probability"]],left_on="validation_id",right_on="frame_id",suffixes=("_obs","_truth"),validate="one_to_one")
   if len(truth_join)!=n or truth_join.frame_id.isna().any():
    raise AssertionError(f"validation ID-to-truth join is incomplete n={n}")
   _close(truth_join.redshift_obs.to_numpy(float),truth_join.redshift_truth.to_numpy(float),f"validation frame join n={n}")
   _close(truth_join.retained_obs.to_numpy(int),truth_join.retained_truth.to_numpy(int),f"validation retention join n={n}",atol=0)
+  _close(truth_join.inclusion_probability.to_numpy(float),
+         inclusion_probability(truth_join.redshift_truth.to_numpy(float)),
+         f"validation-frame inclusion probabilities n={n}")
   nodes=z[f"posterior_nodes_n{n}"]; q=z[f"posterior_weights_n{n}"]; mode=z[f"posterior_mode_n{n}"]
   if nodes.ndim!=2 or nodes.shape[1]!=2 or q.shape!=(len(nodes),) or np.any(q<0) or not np.isclose(q.sum(),1): raise AssertionError("invalid persisted coefficient quadrature")
   ref_mode,ref_nodes,ref_q=_independent_logistic_quadrature(v.redshift.to_numpy(float),v.retained.to_numpy(int),cfg)
@@ -245,6 +312,16 @@ def audit(root:Path):
   for arm,(sample,raw_weights) in inputs.items():
    expected_scott.append({"validation_size":n,"arm":arm,"node":-1,
      "realized_bandwidth_redshift":_independent_scott_width(sample,raw_weights,scott_multiplier)})
+   expected_diag.append({"validation_size":n,"arm":arm,"node":-1,
+     **_independent_weight_diagnostics(raw_weights)})
+  e_node_diagnostics=[_independent_weight_diagnostics(w) for w in bc[None,:]/pnodes]
+  expected_diag.append({"validation_size":n,"arm":"E_uncertainty_integrated_ipw","node":-1,
+    "kish_ess":min(x["kish_ess"] for x in e_node_diagnostics),
+    "kish_ess_fraction":min(x["kish_ess_fraction"] for x in e_node_diagnostics),
+    "entropy_ess":min(x["entropy_ess"] for x in e_node_diagnostics),
+    "maximum_normalized_weight":max(x["maximum_normalized_weight"] for x in e_node_diagnostics),
+    "top_1_percent_mass":max(x["top_1_percent_mass"] for x in e_node_diagnostics),
+    "top_5_percent_mass":max(x["top_5_percent_mass"] for x in e_node_diagnostics)})
   for node,raw_weights in enumerate(bc[None,:]/pnodes):
    expected_scott.append({"validation_size":n,"arm":"E_uncertainty_integrated_ipw","node":node,
      "realized_bandwidth_redshift":_independent_scott_width(zcat,raw_weights,scott_multiplier)})
@@ -282,6 +359,22 @@ def audit(root:Path):
  ess_want=want.kish_ess.to_numpy(float)
  finite=np.isfinite(ess_want)
  _close(ess_got[finite],ess_want[finite],"metric Kish ESS")
+ diag=pd.read_csv(root/"results"/"weight_diagnostics.csv")
+ expected_diag_df=pd.DataFrame(expected_diag)
+ diag_key=["validation_size","arm","node"]
+ if diag.duplicated(diag_key).any() or expected_diag_df.duplicated(diag_key).any():
+  raise AssertionError("duplicate weight-diagnostic key")
+ diag=diag.sort_values(diag_key).reset_index(drop=True)
+ expected_diag_df=expected_diag_df.sort_values(diag_key).reset_index(drop=True)
+ if len(diag)!=len(expected_diag_df):
+  raise AssertionError("weight-diagnostic row count mismatch")
+ for col in diag_key:
+  if diag[col].tolist()!=expected_diag_df[col].tolist():
+   raise AssertionError(f"weight-diagnostic key mismatch: {col}")
+ for col in ["kish_ess","kish_ess_fraction","entropy_ess",
+             "maximum_normalized_weight","top_1_percent_mass","top_5_percent_mass"]:
+  _close(diag[col].to_numpy(float),expected_diag_df[col].to_numpy(float),
+         f"independently reconstructed weight diagnostic {col}")
  scott=pd.read_csv(root/"results"/"scott_widths.csv")
  expected_scott_df=pd.DataFrame(expected_scott)
  scott_key=["validation_size","arm","node"]
@@ -300,7 +393,7 @@ def audit(root:Path):
   "realized_scott_width_min":float(expected_scott_df.realized_bandwidth_redshift.min()),
   "realized_scott_width_max":float(expected_scott_df.realized_bandwidth_redshift.max()),
   "validation_sizes":sizes,"absolute_widths":widths,
-  "scope":"Independent raw-input reconstruction of five-arm KDE density curves, IAE/ISE/boundary IAE, and realized common-Scott physical widths; stored validation-posterior nodes are consumed, not independently refitted. No H0 inference."}
+  "scope":"Independent raw-input reconstruction of five-arm KDE density curves, IAE/ISE/boundary IAE, weight diagnostics, and realized common-Scott physical widths. The validation logistic posterior and quadrature are independently refitted from observable validation records. No H0 inference."}
 
 def main():
  p=argparse.ArgumentParser(description=__doc__); p.add_argument("artifact_dir",type=Path); p.add_argument("--output",type=Path)

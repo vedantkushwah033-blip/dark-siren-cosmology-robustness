@@ -5,7 +5,10 @@ from dark_siren_robustness.five_arm_comparison import (
     build_five_arm_weights,
     weight_concentration_diagnostics,
 )
-from dark_siren_robustness.generative_selection import catalogue_inclusion_probability
+from dark_siren_robustness.generative_selection import (
+    catalogue_inclusion_probability,
+    generate_quadratic_logit_inclusion_samples,
+)
 
 
 def _fixture():
@@ -54,6 +57,8 @@ def test_weight_diagnostics_are_finite_and_report_concentration():
     result = weight_concentration_diagnostics([1.0, 1.0, 2.0, 6.0])
     assert result["kish_ess"] == pytest.approx(100.0 / 42.0)
     assert result["kish_ess_fraction"] == pytest.approx((100.0 / 42.0) / 4.0)
+    p = np.array([0.1, 0.1, 0.2, 0.6])
+    assert result["entropy_ess"] == pytest.approx(np.exp(-np.sum(p * np.log(p))))
     assert result["maximum_normalized_weight"] == pytest.approx(0.6)
     assert result["top_1_percent_mass"] == pytest.approx(0.6)
     assert result["top_5_percent_mass"] == pytest.approx(0.6)
@@ -64,6 +69,15 @@ def test_weight_diagnostics_reject_nonpositive_or_nonfinite_weights():
         weight_concentration_diagnostics([1.0, 0.0])
     with pytest.raises(ValueError):
         weight_concentration_diagnostics([1.0, np.inf])
+
+
+def test_five_arm_builder_requires_floor_only_for_legacy_truth_model():
+    parent, catalogue, validation, retained = _fixture()
+    with pytest.raises(ValueError, match="catalogue_floor"):
+        build_five_arm_weights(
+            parent, catalogue, validation, retained,
+            quadrature_order=5,
+        )
 
 
 def test_five_arm_builder_rejects_mismatched_validation_labels():
@@ -102,6 +116,96 @@ def test_five_arm_weights_apply_common_base_population_mass_to_all_arms():
         result.arm_e_node_weights,
         catalogue_base[None, :] / result.arm_e_node_inclusion_probability,
     )
+
+
+def test_five_arm_builder_uses_explicit_truth_probabilities_for_nondefault_dgp():
+    parent, catalogue, validation, retained = _fixture()
+    true_probability = 0.35 + 0.25 * (catalogue - 0.01) / 0.39
+    result = build_five_arm_weights(
+        parent, catalogue, validation, retained,
+        true_catalogue_inclusion_probability=true_probability,
+        quadrature_order=5,
+    )
+    assert np.array_equal(
+        result.arm_c_true_inclusion_probability, true_probability
+    )
+    assert np.allclose(result.arm_c_known_probability, 1.0 / true_probability)
+    # D/E must still be fitted only from the observable validation labels.
+    assert np.allclose(
+        result.arm_d_map_plugin,
+        1.0 / result.arm_d_map_inclusion_probability,
+    )
+    assert np.allclose(
+        result.arm_e_node_weights,
+        1.0 / result.arm_e_node_inclusion_probability,
+    )
+
+
+def test_quadratic_logit_dgp_known_arm_uses_truth_but_estimated_arms_use_validation():
+    sample = generate_quadratic_logit_inclusion_samples(
+        population_seed=20261122,
+        validation_seed=20261123,
+        n_parent=700,
+        n_validation_frame=300,
+        n_validation=240,
+        gamma=1.0,
+    )
+    parent = sample["parent_truth"]
+    catalogue = sample["catalogue_observed"]
+    validation = sample["validation_observed"]
+    true_probability = parent.loc[
+        parent.retained.astype(bool), "inclusion_probability"
+    ].to_numpy()
+    result = build_five_arm_weights(
+        parent.redshift.to_numpy(),
+        catalogue.redshift.to_numpy(),
+        validation.redshift.to_numpy(),
+        validation.retained.to_numpy(),
+        true_catalogue_inclusion_probability=true_probability,
+        quadrature_order=5,
+    )
+    assert np.allclose(result.arm_c_true_inclusion_probability, true_probability)
+    assert np.allclose(result.arm_c_known_probability, 1.0 / true_probability)
+    assert not np.allclose(
+        result.arm_d_map_inclusion_probability, true_probability,
+        rtol=1e-3, atol=1e-3,
+    )
+    assert np.allclose(
+        result.arm_d_map_plugin,
+        1.0 / result.arm_d_map_inclusion_probability,
+    )
+
+
+@pytest.mark.parametrize(
+    "kind",
+    ["wrong_shape", "zero", "above_one", "nan"],
+)
+def test_five_arm_builder_rejects_invalid_explicit_truth_probabilities(kind):
+    parent, catalogue, validation, retained = _fixture()
+    if kind == "wrong_shape":
+        probability = np.ones(catalogue.size + 1)
+    elif kind == "zero":
+        probability = np.zeros(catalogue.size)
+    elif kind == "above_one":
+        probability = np.full(catalogue.size, 1.01)
+    else:
+        probability = np.full(catalogue.size, np.nan)
+    with pytest.raises(ValueError, match="true_catalogue_inclusion_probability"):
+        build_five_arm_weights(
+            parent, catalogue, validation, retained,
+            catalogue_floor=0.10,
+            true_catalogue_inclusion_probability=probability,
+            quadrature_order=5,
+        )
+
+
+def test_five_arm_builder_requires_floor_only_for_legacy_truth_model():
+    parent, catalogue, validation, retained = _fixture()
+    with pytest.raises(ValueError, match="catalogue_floor"):
+        build_five_arm_weights(
+            parent, catalogue, validation, retained,
+            quadrature_order=5,
+        )
 
 
 @pytest.mark.parametrize(

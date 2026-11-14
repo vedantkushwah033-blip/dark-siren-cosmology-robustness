@@ -36,15 +36,24 @@ def run(args):
     scott_multiplier=float(getattr(args,"scott_multiplier",0.7))
     if not __import__("math").isfinite(scott_multiplier) or scott_multiplier<=0:
         raise ValueError("scott multiplier must be finite and positive")
+    gamma=getattr(args,"gamma",None)
+    beta=float(getattr(args,"beta",-3.9))
+    if gamma is not None and (not __import__("math").isfinite(float(gamma)) or not __import__("math").isfinite(beta)):
+        raise ValueError("quadratic-logit gamma and beta must be finite")
+    selection_model="floor_logistic" if gamma is None else "quadratic_logit"
     cfg={
       "schema_version":1,
-      "experiment":"multi_replicate_absolute_physical_bandwidth_density_pilot",
+      "experiment":("multi_replicate_quadratic_logit_curvature_density_pilot"
+                    if gamma is not None else "multi_replicate_absolute_physical_bandwidth_density_pilot"),
       "status":"DEVELOPMENT_PILOT_NOT_CONFIRMATORY_NOT_BANDWIDTH_SELECTION",
       "master_seed":int(args.master_seed),"seed_stride":int(args.seed_stride),
       "replicates":int(args.replicates),"n_parent":int(args.n_parent),
       "validation_frame":int(args.validation_frame),
       "validation_sizes":list(args.validation_sizes),
-      "catalogue_floor":float(args.catalogue_floor),
+      "catalogue_selection_model":selection_model,
+      "catalogue_floor":float(args.catalogue_floor) if gamma is None else None,
+      "gamma":None if gamma is None else float(gamma),
+      "beta":None if gamma is None else beta,
       "scott_multiplier":scott_multiplier,
       "quadrature_order":int(args.quadrature_order),
       "grid_points":int(args.grid_points),
@@ -52,7 +61,8 @@ def run(args):
       "seed_schedule":"population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
       "limitations":[
         "density recovery only; no H0 likelihood, posterior, calibration, PIT or coverage",
-        "stored inclusion posterior nodes are consumed from the production fitter and are not independently refitted",
+        "each successful child is independently audited from observable validation records, including a separate degree-one logistic-posterior refit and quadrature reconstruction",
+        "for quadratic-logit runs, Arm C receives simulation-truth inclusion probabilities while Arms D/E use only validation records",
         "no bandwidth selection; no holdout split; no estimator-superiority claim",
         "synthetic low-redshift Euclidean methodology only"
       ]
@@ -72,7 +82,8 @@ def run(args):
               output_dir=dest,seed=seed,validation_seed=validation_seed,
               n_parent=args.n_parent,validation_frame=args.validation_frame,
               validation_sizes=tuple(args.validation_sizes),
-              catalogue_floor=args.catalogue_floor,
+              catalogue_floor=getattr(args,"catalogue_floor",None),
+              gamma=gamma,beta=beta,
               scott_multiplier=scott_multiplier,
               quadrature_order=args.quadrature_order,grid_points=args.grid_points,
               absolute_widths=widths)
@@ -122,6 +133,10 @@ def main():
     p.add_argument("--validation-frame",type=int,default=1500)
     p.add_argument("--validation-sizes",type=lambda x:tuple(int(v) for v in x.split(",")),default=(100,300,1000))
     p.add_argument("--catalogue-floor",type=float,default=0.10)
+    p.add_argument("--gamma",type=float,default=None,
+                   help="Use the parent-rate-calibrated quadratic-logit catalogue DGP instead of the floor-logistic DGP.")
+    p.add_argument("--beta",type=float,default=-3.9,
+                   help="Linear coefficient for the quadratic-logit DGP; used only when --gamma is supplied.")
     p.add_argument("--scott-multiplier",type=float,default=0.7)
     p.add_argument("--quadrature-order",type=int,default=5)
     p.add_argument("--grid-points",type=int,default=501)
