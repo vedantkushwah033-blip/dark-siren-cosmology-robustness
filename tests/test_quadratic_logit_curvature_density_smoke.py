@@ -99,6 +99,22 @@ def test_quadratic_logit_density_smoke_writes_five_arm_artifacts(tmp_path: Path,
     diagnostics = pd.read_csv(output / "results" / "weight_diagnostics.csv")
     assert len(diagnostics) == 42
     assert set(diagnostics["validation_size"]) == {60, 120, 180}
+    assert "entropy_ess" in diagnostics.columns
+    for n in (60, 120, 180):
+        node_rows = diagnostics[
+            (diagnostics["validation_size"] == n)
+            & (diagnostics["arm"] == "E_uncertainty_integrated_ipw")
+            & (diagnostics["node"] >= 0)
+        ]
+        aggregate_row = diagnostics[
+            (diagnostics["validation_size"] == n)
+            & (diagnostics["arm"] == "E_uncertainty_integrated_ipw")
+            & (diagnostics["node"] == -1)
+        ]
+        assert len(aggregate_row) == 1
+        assert aggregate_row["entropy_ess"].iloc[0] == pytest.approx(
+            node_rows["entropy_ess"].min()
+        )
     audit = _load_auditor().audit(output)
     assert audit["status"] == "PASS"
     assert audit["weight_diagnostic_rows_reconstructed"] == 42
@@ -135,11 +151,11 @@ def test_quadratic_logit_auditor_rejects_corrupted_weight_diagnostic_even_with_u
     runner.run(_args(output, gamma=0.0))
     path = Path("results") / "weight_diagnostics.csv"
     diagnostics = pd.read_csv(output / path)
-    diagnostics.loc[0, "top_1_percent_mass"] += 0.03
+    diagnostics.loc[0, "entropy_ess"] += 0.25
     diagnostics.to_csv(output / path, index=False)
     _rehash(output, path)
     import pytest
-    with pytest.raises(AssertionError, match="weight diagnostic numerical mismatch: top_1_percent_mass"):
+    with pytest.raises(AssertionError, match="weight diagnostic numerical mismatch: entropy_ess"):
         auditor.audit(output)
 
 
