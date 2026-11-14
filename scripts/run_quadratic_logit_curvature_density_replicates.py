@@ -30,6 +30,8 @@ def run(args):
     gammas=tuple(float(x) for x in args.gammas)
     widths=tuple(sorted(set(float(x) for x in args.absolute_widths)))
     if len(gammas)<2 or len(set(gammas))!=len(gammas): raise ValueError("gamma grid must contain at least two unique values")
+    labels=[f"gamma_{gamma:+.2f}".replace("+","p").replace("-","m").replace(".","_") for gamma in gammas]
+    if len(set(labels))!=len(labels): raise ValueError("gamma values collide under the two-decimal child-directory naming convention")
     if any(not __import__("math").isfinite(x) for x in gammas): raise ValueError("gamma values must be finite")
     if args.replicates<2 or args.seed_stride<2: raise ValueError("at least two replicates and seed_stride >= 2 are required")
     if len(widths)<2 or any(not __import__("math").isfinite(x) or x<=0 for x in widths): raise ValueError("invalid absolute bandwidth grid")
