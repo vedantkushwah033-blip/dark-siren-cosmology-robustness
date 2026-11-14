@@ -69,3 +69,29 @@ The batched likelihood refactor bounds the **temporary event/H0/redshift kernel*
 ## 8. Current-head validation boundary
 
 The previously recorded successful run `43550061324` belongs to source head `b4ec9a16065ae14ab3a8856299e00cbaa00535b9`, not to later edits that expanded the candidate grid, tightened the selection audit, or added H0 chunk-boundary regression tests. Those later changes require a new exact-head workflow run. The old benchmark and audit results remain valid for the old artifact and configuration only; they must not be relabelled as validation of the current head.
+
+
+## 6. Expanded candidate-grid result (workflow #43554565338)
+
+The exact-head workflow for commit `2deee87dd7ccaad2b0c4e95c65c7825d0149a038` completed successfully on Python 3.10, 3.11 and 3.12. The expanded 17-candidate bandwidth source was generated and both independent auditors passed.
+
+- Raw-data reconstruction: 1,700 replicate-by-candidate KDE/IAE calculations; 100 replicates; 400,000 parent objects; maximum absolute IAE discrepancy (7.49\times10^{-16}).
+- Training/holdout split: 70/30, or 70 training and 30 holdout replicates.
+- Selected training multiplier: **0.50**, now an interior candidate.
+- Training mean IAE at 0.50: **0.0443212**.
+- Holdout mean IAE at 0.50: **0.0439975** (MCSE **0.0016767**).
+- Nearest competing candidate 0.60: training mean IAE **0.0453722**; holdout mean IAE **0.0441885**.
+- Selection auditor: PASS; `boundary_limited=false`; `selection_eligible=true`.
+
+The holdout result is consistent with the training-selected 0.50 candidate, but the holdout was not used to select it. This is a successful density-only selection pilot for the single parent DGP, N=4,000, grid=801, and this candidate set. It is not yet a common bandwidth selected across all five arms, catalogue-inclusion scenarios, or validation sizes. It must not be automatically substituted as a common Scott multiplier in the five-arm experiment.
+
+The exact-head workflow also completed the production-like batched likelihood benchmark: observed ratio **19.531×**, scalar median **8.58972 s**, batched median **0.43980 s**, maximum log-likelihood discrepancy (1.42\times10^{-13}), and maximum log-efficiency discrepancy (2.66\times10^{-15}). The benchmark is runner-specific and excludes KDE construction.
+
+## 7. Interpretation and next gate
+
+The expanded Scott grid now has an interior density-recovery minimum. This closes the narrow *parent-only Scott-multiplier pilot* gate, not the broader five-arm bandwidth gate. Before any confirmatory five-arm H0 run, the project still needs:
+
+1. common absolute-bandwidth density recovery across A–E, all E coefficient nodes, validation sizes, and preregistered inclusion DGP cells;
+2. independent raw-input reconstruction and failure-inclusive accounting for that experiment;
+3. a disjoint density-only training/holdout design for selecting a common physical bandwidth, with candidate-grid boundary checks;
+4. downstream H0 propagation only after the density stage is frozen and audited.
