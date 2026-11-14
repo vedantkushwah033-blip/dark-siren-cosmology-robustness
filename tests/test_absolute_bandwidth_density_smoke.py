@@ -270,6 +270,6 @@ def test_absolute_bandwidth_auditor_reconstructs_weight_diagnostics(tmp_path):
         "bytes":len(payload),
         "sha256":hashlib.sha256(payload).hexdigest(),
     }
-    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n")
+    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
     with pytest.raises(AssertionError,match="independently reconstructed weight diagnostic kish_ess"):
         auditor.audit(output)
