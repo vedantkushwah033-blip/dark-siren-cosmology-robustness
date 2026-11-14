@@ -62,6 +62,6 @@ def test_outer_auditor_rejects_aggregate_metric_corruption_with_refreshed_manife
  manifest=json.loads(manifest_path.read_text())
  raw=path.read_bytes()
  manifest["files"]["results/density_metrics.csv"]={"bytes":len(raw),"sha256":hashlib.sha256(raw).hexdigest()}
- manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n")
+ manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
  with pytest.raises(AssertionError,match="aggregate numerical mismatch: iae"):
   auditor.audit(out)
