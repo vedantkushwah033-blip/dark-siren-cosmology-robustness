@@ -119,6 +119,7 @@ def audit(root:Path):
   raise AssertionError("config totals disagree with cell ledger")
  child_audit=_load_child_auditor()
  metric_frames=[]; diagnostic_frames=[]; scott_frames=[]; child_reports=[]
+ paired_frames_by_replicate={}
  for row in ledger.to_dict("records"):
   rid=int(row["replicate"]); gamma=float(row["gamma"])
   seed=master+rid*stride
@@ -139,6 +140,32 @@ def audit(root:Path):
   if float(child_cfg["coordinate_center"])!=float(cfg["coordinate_center"]) or float(child_cfg["coordinate_scale"])!=float(cfg["coordinate_scale"]): raise AssertionError("child coordinate specification mismatch")
   if child_cfg["coefficient_prior"]!=cfg["coefficient_prior"]: raise AssertionError("child coefficient prior mismatch")
   if child_cfg.get("analysis_model")!=cfg["analysis_model"] or child_cfg.get("arm_C")!=cfg["arm_C"] or child_cfg.get("arm_D_E")!=cfg["arm_D_E"]: raise AssertionError("child analysis or arm-label mismatch")
+  # Verify the common-random-number design from persisted raw inputs, not merely
+  # from repeated seed labels: the parent/frame draws and validation subsample
+  # must be identical across gamma cells within each replicate.
+  parent_raw=pd.read_csv(child/"truth"/"parent_truth.csv")
+  validation_frame_raw=pd.read_csv(child/"truth"/"validation_frame_truth.csv")
+  validation_raw=pd.read_csv(child/"observable"/"validation_max.csv")
+  current_common={
+   "parent_object_id":parent_raw.object_id.to_numpy(),
+   "parent_redshift":parent_raw.redshift.to_numpy(float),
+   "validation_frame_id":validation_frame_raw.frame_id.to_numpy(),
+   "validation_frame_redshift":validation_frame_raw.redshift.to_numpy(float),
+   "validation_selected":validation_frame_raw.selected_for_validation.to_numpy(),
+   "validation_id":validation_raw.validation_id.to_numpy(),
+   "validation_redshift":validation_raw.redshift.to_numpy(float),
+  }
+  if rid in paired_frames_by_replicate:
+   reference_common=paired_frames_by_replicate[rid]
+   for key,values in current_common.items():
+    reference_values=reference_common[key]
+    if np.issubdtype(np.asarray(values).dtype,np.number) and np.issubdtype(np.asarray(reference_values).dtype,np.number):
+     equal=np.array_equal(values,reference_values) if not np.issubdtype(np.asarray(values).dtype,np.floating) else np.allclose(values,reference_values,rtol=0,atol=1e-14)
+    else:
+     equal=np.array_equal(values,reference_values)
+    if not equal: raise AssertionError(f"common-random-number raw input mismatch within replicate {rid}: {key}")
+  else:
+   paired_frames_by_replicate[rid]=current_common
   report=child_audit(child)
   child_reports.append({"replicate":rid,"gamma":gamma,**report})
   for fn,frames in [("density_metrics.csv",metric_frames),("weight_diagnostics.csv",diagnostic_frames),("scott_widths.csv",scott_frames)]:
