@@ -83,7 +83,7 @@ def run(args):
             row.update(status="FAILED",error=f"{type(exc).__name__}: {exc}")
         ledger.append(row)
         pd.DataFrame(ledger).to_csv(root/"replicate_ledger.csv",index=False)
-    metrics=[]; scott_frames=[]
+    metrics=[]; scott_frames=[]; diagnostic_frames=[]
     for row in ledger:
         if row["status"]=="SUCCESS":
             child=root/"replicates"/f"replicate_{row['replicate_id']:04d}"
@@ -93,12 +93,19 @@ def run(args):
             scott=pd.read_csv(child/"results"/"scott_widths.csv")
             scott["replicate"]=int(row["replicate_id"])
             scott_frames.append(scott)
+            diagnostics=pd.read_csv(child/"results"/"weight_diagnostics.csv")
+            diagnostics["replicate"]=int(row["replicate_id"])
+            diagnostic_frames.append(diagnostics)
     combined=pd.concat(metrics,ignore_index=True) if metrics else pd.DataFrame(
        columns=["replicate","validation_size","absolute_bandwidth_sd","arm","node","iae","ise","boundary_iae","status","kish_ess"])
     combined.to_csv(root/"density_metrics_all_replicates.csv",index=False)
     combined_scott=pd.concat(scott_frames,ignore_index=True) if scott_frames else pd.DataFrame(
        columns=["replicate","validation_size","arm","node","realized_bandwidth_redshift"])
     combined_scott.to_csv(root/"scott_widths_all_replicates.csv",index=False)
+    combined_diagnostics=pd.concat(diagnostic_frames,ignore_index=True) if diagnostic_frames else pd.DataFrame(
+       columns=["replicate","validation_size","arm","node","kish_ess","kish_ess_fraction",
+                "maximum_normalized_weight","top_1_percent_mass","top_5_percent_mass"])
+    combined_diagnostics.to_csv(root/"weight_diagnostics_all_replicates.csv",index=False)
     cfg["attempted"]=len(ledger)
     cfg["successful"]=sum(x["status"]=="SUCCESS" for x in ledger)
     cfg["failed"]=sum(x["status"]=="FAILED" for x in ledger)
@@ -111,7 +118,8 @@ def run(args):
     return {"status":"COMPLETED_WITH_FAILURES" if cfg["failed"] else "PASS",
       "planned_replicates":args.replicates,"successful_replicates":cfg["successful"],
       "failed_replicates":cfg["failed"],"metric_rows":len(combined),
-      "scott_width_rows":len(combined_scott),"manifest_files":len(files)}
+      "scott_width_rows":len(combined_scott),
+      "weight_diagnostic_rows":len(combined_diagnostics),"manifest_files":len(files)}
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
