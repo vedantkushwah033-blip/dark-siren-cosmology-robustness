@@ -212,3 +212,12 @@ The existing injected-failure regression now additionally requires both paired o
 The paired outer configuration now records the fixed degree-one logistic coordinate transform (center 0.205, scale 0.195) and independent Gaussian coefficient prior (mean [0, 0], standard deviations [5, 2.5]). The independent outer auditor checks these fixed specifications and verifies that every successful child artifact agrees on the coordinate transform, coefficient prior, analysis-model label, and estimator-arm labels. A regression test changes the outer prior while refreshing its manifest hash and requires the auditor to reject the artifact. This closes a configuration-drift route in which a validly hashed outer manifest could otherwise describe a different inferential prior from the one used in its child runs.
 
 This remains an engineering-integrity improvement, not a scientific result. The pilot still requires execution, independent artifact audit, a frozen training-only bandwidth-selection protocol, and held-out density validation before confirmatory interpretation or any H0 propagation.
+
+
+## Explicit inclusion-prior handoff (2026-11-15)
+
+A reproducibility review found that the single-cell runner recorded the fixed Gaussian coefficient prior in its configuration, while relying on the fitter's matching defaults when constructing Arms D/E. The numerical target was the same at this revision, but the implementation had an avoidable implicit dependency: a future change to fitter defaults could make the recorded prior differ from the prior actually used.
+
+The single-cell runner now defines the coordinate transform and Gaussian prior once as named constants, records those constants in each child configuration, and passes the prior mean and standard deviations explicitly to the posterior fitter. The paired runner imports the same constants when writing its outer configuration. A regression test intercepts the five-arm builder and verifies that the declared center, scale, prior mean, and prior standard deviations are passed explicitly.
+
+This is a specification-to-implementation consistency fix. It does not change the current numerical prior (mean [0, 0], standard deviations [5, 2.5]), the posterior target, or any reported experimental result.
