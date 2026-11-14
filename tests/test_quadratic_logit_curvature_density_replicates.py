@@ -221,3 +221,21 @@ def test_curvature_runner_rejects_gamma_values_with_colliding_child_labels(tmp_p
  with pytest.raises(ValueError,match="collide under the two-decimal child-directory"):
   runner.run(args)
  assert list(args.output_dir.iterdir())==[]
+
+
+def test_curvature_outer_auditor_rejects_child_diagnostic_count_drift_even_with_updated_manifest(tmp_path):
+ runner=_load("curvature_multi_runner_count_drift","run_quadratic_logit_curvature_density_replicates.py")
+ auditor=_load("curvature_multi_auditor_count_drift","audit_quadratic_logit_curvature_density_replicates.py")
+ out=tmp_path/"curvature_count_drift"
+ runner.run(_args(out))
+ ledger_path=out/"cell_ledger.csv"
+ ledger=pd.read_csv(ledger_path)
+ ledger.loc[0,"weight_diagnostic_rows"]+=1
+ ledger.to_csv(ledger_path,index=False)
+ manifest_path=out/"manifest.json"
+ manifest=json.loads(manifest_path.read_text())
+ rel=str(ledger_path.relative_to(out))
+ manifest["files"][rel]={"bytes":ledger_path.stat().st_size,"sha256":hashlib.sha256(ledger_path.read_bytes()).hexdigest()}
+ manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
+ with pytest.raises(AssertionError,match="cell weight-diagnostic count differs from ledger"):
+  auditor.audit(out)
