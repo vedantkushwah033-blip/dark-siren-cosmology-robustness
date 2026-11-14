@@ -50,9 +50,10 @@ def run(args):
       "grid_points":int(args.grid_points),
       "absolute_widths":list(widths),
       "seed_schedule":"population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+      "validation_posterior_audit":"The child raw-input auditor independently refits the degree-one logistic posterior and reconstructs the Laplace proposal, quadrature nodes, and normalized importance weights from observable validation records.",
       "limitations":[
         "density recovery only; no H0 likelihood, posterior, calibration, PIT or coverage",
-        "stored inclusion posterior nodes are consumed from the production fitter and are not independently refitted",
+        "the validation-posterior reconstruction is an internal numerical audit, not external validation of the assumed logistic model",
         "no bandwidth selection; no holdout split; no estimator-superiority claim",
         "synthetic low-redshift Euclidean methodology only"
       ]
