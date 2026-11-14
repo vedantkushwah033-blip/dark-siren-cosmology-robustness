@@ -89,6 +89,16 @@ Regression tests check:
 - separation of observable and truth-only fields;
 - deterministic reproduction under fixed seeds.
 
+## Density smoke implementation (added 2026-11-15)
+
+Two separate scripts now exercise the five-arm density calculation under the quadratic-logit DGP:
+
+- `scripts/run_quadratic_logit_curvature_density_smoke.py` creates one gamma-specific synthetic replicate, stores observable and truth-only records separately, passes true quadratic inclusion probabilities to Arm C as an oracle diagnostic, and fits the degree-one logistic analysis model for Arms D/E.
+- `scripts/audit_quadratic_logit_curvature_density_smoke.py` verifies the manifest, regenerates the population and independent validation frame from recorded seeds, checks the observable/truth artifacts, then independently reconstructs density metrics, weight diagnostics, and Scott widths from raw inputs.
+- `tests/test_quadratic_logit_curvature_density_smoke.py` checks the gamma-zero and curved cases, nested validation prefixes, observable-field separation, oracle-weight construction, and output structure.
+
+This is a one-replicate engineering smoke path, not the seven-gamma experiment. Its CI result is pending at the time of this design update; no curvature-family performance conclusion is made from it.
+
 ## Proposed full density experiment (not yet run)
 
 The next stage should use:
