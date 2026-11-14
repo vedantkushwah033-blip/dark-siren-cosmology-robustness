@@ -55,3 +55,28 @@ def test_orchestration_auditor_rejects_duplicate_aggregate_key_even_with_updated
     _rehash(out,path)
     with pytest.raises(AssertionError,match="aggregate metric row count mismatch|duplicate aggregate metric key"):
         auditor.audit(out)
+
+
+def test_failed_replicate_is_preserved_in_planned_denominator(tmp_path, monkeypatch):
+    runner=_load("absolute_density_replicates_runner_failure","run_absolute_bandwidth_density_replicates.py")
+    auditor=_load("absolute_density_replicates_auditor_failure","audit_absolute_bandwidth_density_replicates.py")
+    original=runner.run_one
+    calls={"count":0}
+    def fail_second(args):
+        calls["count"]+=1
+        if calls["count"]==2:
+            raise RuntimeError("injected replicate failure for lifecycle test")
+        return original(args)
+    monkeypatch.setattr(runner,"run_one",fail_second)
+    out=tmp_path/"replicate_failure"
+    result=runner.run(_args(out))
+    assert result["successful_replicates"]==1
+    assert result["failed_replicates"]==1
+    ledger=pd.read_csv(out/"replicate_ledger.csv")
+    assert ledger.status.tolist()==["SUCCESS","FAILED"]
+    assert "injected replicate failure" in ledger.loc[1,"error"]
+    assert (out/"replicates"/"replicate_0001").is_dir()
+    report=auditor.audit(out)
+    assert report["status"]=="PASS"
+    assert report["planned_replicates"]==2
+    assert report["failed_replicates"]==1
