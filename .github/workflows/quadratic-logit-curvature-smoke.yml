@@ -84,7 +84,7 @@ jobs:
               "population_seed": 20261115,
               "validation_seed": 20261116,
               "gamma_cells": rows,
-          }, indent=2, sort_keys=True) + "\\n")
+          }, indent=2, sort_keys=True) + "\n")
           print(json.dumps(rows, indent=2))
           PY
       - uses: actions/upload-artifact@v4
