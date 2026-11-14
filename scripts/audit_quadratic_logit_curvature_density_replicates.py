@@ -209,7 +209,7 @@ def main():
  p=argparse.ArgumentParser(description=__doc__); p.add_argument("artifact_dir",type=Path)
  p.add_argument("--output",type=Path); a=p.parse_args()
  report=audit(a.artifact_dir)
- if a.output: a.output.write_text(json.dumps(report,indent=2,sort_keys=True)+"\\n")
+ if a.output: a.output.write_text(json.dumps(report,indent=2,sort_keys=True)+"\n")
  print(json.dumps(report,indent=2,sort_keys=True))
  if report["status"] != "PASS": raise SystemExit(2)
 if __name__=="__main__": main()
