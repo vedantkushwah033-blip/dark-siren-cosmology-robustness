@@ -1,0 +1,77 @@
+import numpy as np
+from scipy.integrate import trapezoid
+from scipy.special import log_ndtr
+from scipy.stats import norm
+
+from dark_siren_robustness.five_arm_comparison import build_five_arm_weights
+from dark_siren_robustness.five_arm_kde_likelihood import matched_five_arm_kde_selected_log_likelihood
+from dark_siren_robustness.dataset_likelihood import C_KM_S
+
+
+def _reference(h0, z, density, events, threshold):
+    means = C_KM_S * z[None, :] / h0[:, None]
+    log_num = []
+    log_eff = []
+    for event in events:
+        numerator = density[None, :] * norm.pdf(
+            float(event["gw_distance"]), loc=means, scale=float(event["gw_sigma"])
+        )
+        efficiency = density[None, :] * np.exp(
+            log_ndtr((means - threshold) / float(event["gw_sigma"]))
+        )
+        log_num.append(np.log(trapezoid(numerator, z, axis=1)))
+        log_eff.append(np.log(trapezoid(efficiency, z, axis=1)))
+    log_num = np.asarray(log_num)
+    log_eff = np.asarray(log_eff)
+    return np.sum(log_num - log_eff, axis=0), log_eff
+
+
+def test_batched_kernel_reuse_matches_scalar_trapezoid_reference_for_all_arms():
+    parent = np.linspace(0.0101, 0.3999, 420)
+    catalogue = parent[::2]
+    validation = np.linspace(0.0101, 0.3999, 150)
+    retained = (np.arange(validation.size) % 4 != 0).astype(int)
+    base_parent = 1.0 + 1.5 * (parent - 0.01) / 0.39
+    base_catalogue = 1.0 + 1.5 * (catalogue - 0.01) / 0.39
+    arms = build_five_arm_weights(
+        parent, catalogue, validation, retained,
+        catalogue_floor=0.1, quadrature_order=5,
+        parent_base_weights=base_parent,
+        catalogue_base_weights=base_catalogue,
+    )
+    events = [
+        {"gw_distance": 275.0, "gw_sigma": 140.0},
+        {"gw_distance": 340.0, "gw_sigma": 125.0},
+        {"gw_distance": 410.0, "gw_sigma": 155.0},
+    ]
+    z = np.linspace(0.01, 0.40, 241)
+    h0 = np.linspace(55.0, 85.0, 37)
+    threshold = 250.0
+    result = matched_five_arm_kde_selected_log_likelihood(
+        h0, arms, events, detection_threshold_mpc=threshold,
+        redshift_grid=z, merger_weight=np.ones_like(z), scott_multiplier=0.7,
+    )
+
+    densities = [
+        result.arm_density["A_catalogue_only"],
+        result.arm_density["B_parent_oracle"],
+        result.arm_density["C_known_probability_ipw"],
+        result.arm_density["D_map_plugin_ipw"],
+        *list(result.arm_e_node_density),
+    ]
+    actual = [
+        result.arm_a_log_likelihood,
+        result.arm_b_log_likelihood,
+        result.arm_c_log_likelihood,
+        result.arm_d_log_likelihood,
+        *list(result.arm_e_node_log_likelihood),
+    ]
+    actual_eff = [
+        *[None] * 4,
+        *list(result.arm_e_node_log_detection_efficiency),
+    ]
+    for index, density in enumerate(densities):
+        expected_ll, expected_eff = _reference(h0, z, density, events, threshold)
+        np.testing.assert_allclose(actual[index], expected_ll, rtol=2e-12, atol=2e-12)
+        if index >= 4:
+            np.testing.assert_allclose(actual_eff[index], expected_eff, rtol=2e-12, atol=2e-12)
