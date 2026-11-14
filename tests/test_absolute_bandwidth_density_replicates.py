@@ -44,6 +44,23 @@ def test_two_replicate_density_pilot_and_independent_orchestration_audit(tmp_pat
     assert report["aggregate_metric_rows_reconstructed"]==len(pd.read_csv(out/"density_metrics_all_replicates.csv"))
     assert report["scott_width_rows_reconstructed"]==len(pd.read_csv(out/"scott_widths_all_replicates.csv"))
 
+def test_two_replicate_quadratic_logit_density_pilot_and_independent_audit(tmp_path):
+    runner=_load("quadratic_density_replicates_runner","run_absolute_bandwidth_density_replicates.py")
+    auditor=_load("quadratic_density_replicates_auditor","audit_absolute_bandwidth_density_replicates.py")
+    args=_args(tmp_path/"quadratic_replicate_pilot")
+    args.gamma=1.0
+    args.beta=-3.9
+    result=runner.run(args)
+    assert result["planned_replicates"]==2
+    assert result["successful_replicates"]==2
+    cfg=json.loads((args.output_dir/"config.json").read_text())
+    assert cfg["catalogue_selection_model"]=="quadratic_logit"
+    assert cfg["gamma"]==pytest.approx(1.0)
+    report=auditor.audit(args.output_dir)
+    assert report["status"]=="PASS"
+    assert report["child_raw_audits_passed"]==2
+
+
 def test_orchestration_auditor_rejects_duplicate_aggregate_key_even_with_updated_manifest(tmp_path):
     runner=_load("absolute_density_replicates_runner_badkey","run_absolute_bandwidth_density_replicates.py")
     auditor=_load("absolute_density_replicates_auditor_badkey","audit_absolute_bandwidth_density_replicates.py")
