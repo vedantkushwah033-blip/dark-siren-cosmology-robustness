@@ -90,6 +90,20 @@ def audit(root:Path):
  gammas=[float(x) for x in cfg["gammas"]]
  reps=int(cfg["replicates"]); stride=int(cfg["seed_stride"]); master=int(cfg["master_seed"])
  if reps<2 or len(gammas)<2 or len(set(gammas))!=len(gammas) or stride<2: raise AssertionError("invalid planned design")
+ if master<0 or not np.isfinite(gammas).all() or not any(g==0.0 for g in gammas):
+  raise AssertionError("invalid seed or gamma reference design")
+ widths=[float(x) for x in cfg["absolute_widths"]]
+ sizes=[int(x) for x in cfg["validation_sizes"]]
+ if len(widths)<2 or widths!=sorted(set(widths)) or not np.isfinite(widths).all() or any(x<=0 for x in widths):
+  raise AssertionError("invalid absolute bandwidth design")
+ if not sizes or sizes!=sorted(set(sizes)) or sizes[0]<5 or sizes[-1]>int(cfg["validation_frame"]):
+  raise AssertionError("invalid nested validation-size design")
+ if int(cfg["n_parent"])<100 or int(cfg["validation_frame"])<sizes[-1]:
+  raise AssertionError("invalid parent or validation-frame size")
+ if int(cfg["quadrature_order"])<3 or int(cfg["grid_points"])<51:
+  raise AssertionError("invalid numerical resolution")
+ if not np.isfinite(float(cfg["beta"])) or not np.isfinite(float(cfg["scott_multiplier"])) or float(cfg["scott_multiplier"])<=0:
+  raise AssertionError("invalid model or bandwidth parameter")
  ledger=pd.read_csv(root/"cell_ledger.csv").fillna("")
  expected=[(r,g) for r in range(reps) for g in gammas]
  got=list(zip(ledger.replicate.astype(int),ledger.gamma.astype(float)))
@@ -117,6 +131,9 @@ def audit(root:Path):
   if float(child_cfg["gamma"])!=gamma or int(child_cfg["n_parent"])!=int(cfg["n_parent"]): raise AssertionError("child DGP/config mismatch")
   if list(child_cfg["validation_sizes"])!=list(cfg["validation_sizes"]): raise AssertionError("child validation-size mismatch")
   if list(child_cfg["absolute_bandwidth_candidates"])!=list(cfg["absolute_widths"]): raise AssertionError("child width-grid mismatch")
+  if int(child_cfg["validation_frame"])!=int(cfg["validation_frame"]) or float(child_cfg["beta"])!=float(cfg["beta"]): raise AssertionError("child validation-frame or beta mismatch")
+  if int(child_cfg["quadrature_order"])!=int(cfg["quadrature_order"]) or int(child_cfg["grid_points"])!=int(cfg["grid_points"]): raise AssertionError("child numerical-resolution mismatch")
+  if float(child_cfg["scott_multiplier"])!=float(cfg["scott_multiplier"]): raise AssertionError("child Scott multiplier mismatch")
   report=child_audit(child)
   child_reports.append({"replicate":rid,"gamma":gamma,**report})
   for fn,frames in [("density_metrics.csv",metric_frames),("weight_diagnostics.csv",diagnostic_frames),("scott_widths.csv",scott_frames)]:
