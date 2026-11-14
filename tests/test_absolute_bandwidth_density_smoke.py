@@ -42,6 +42,32 @@ def test_absolute_bandwidth_density_smoke_independent_reconstruction_and_corrupt
         auditor.audit(output)
 
 
+def test_quadratic_logit_density_smoke_independently_audits_true_probability_arm(tmp_path):
+    import json
+
+    runner=_load("quadratic_density_runner","run_absolute_bandwidth_density_smoke.py")
+    auditor=_load("quadratic_density_auditor","audit_absolute_bandwidth_density_smoke.py")
+    output=tmp_path/"quadratic_density"
+    args=SimpleNamespace(
+        output_dir=output, seed=20261124, validation_seed=20261125,
+        n_parent=700, validation_frame=300, validation_sizes=(80,160),
+        gamma=1.0, beta=-3.9, scott_multiplier=0.7,
+        quadrature_order=3, grid_points=101, absolute_widths=(0.012,0.024),
+    )
+    result=runner.run(args)
+    assert result["status"]=="PASS"
+    cfg=json.loads((output/"config.json").read_text())
+    assert cfg["catalogue_selection_model"]=="quadratic_logit"
+    assert cfg["catalogue_floor"] is None
+    assert cfg["quadratic_logit_calibration"]["gamma"]==pytest.approx(1.0)
+
+    report=auditor.audit(output)
+    assert report["status"]=="PASS"
+    assert report["metric_rows_reconstructed"]==len(
+        pd.read_csv(output/"results"/"density_metrics.csv")
+    )
+
+
 def test_absolute_bandwidth_auditor_rejects_corrupt_weight_diagnostics_after_manifest_refresh(tmp_path):
     import hashlib
     import json
