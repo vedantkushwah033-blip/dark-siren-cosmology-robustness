@@ -99,7 +99,7 @@ The following infrastructure is now implemented on the curvature-fix draft PR:
 - The cross-gamma auditor checks the seven gamma artifacts, common configuration, shared seed schedule, paired parent/validation redshift samples, calibration constants, and produces density summaries plus paired IAE contrasts.
 - A manual-only workflow is defined at `.github/workflows/quadratic-logit-curvature-density-pilot.yml`.
 
-The focused regression workflow passed on Python 3.10, 3.11, and 3.12 at code head `1febb30fc8571088073ea9d878404705917c82ec`. The seven-gamma workflow has **not** been dispatched; no curvature-family experiment results exist yet.
+The focused regression workflow passed on Python 3.10, 3.11, and 3.12 at code head `1febb30fc8571088073ea9d878404705917c82ec`. The seven-gamma workflow has **not** been dispatched; no curvature-family experiment results exist yet. The cross-gamma gate now also requires every planned replicate to succeed in every gamma cell; a child-level audit may preserve and report failures, but the paired curvature summary will refuse an incomplete cell rather than silently analyze a reduced successful subset.
 
 ## Proposed full density experiment (not yet run)
 
