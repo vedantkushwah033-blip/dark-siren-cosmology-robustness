@@ -101,6 +101,62 @@ def _paired_contrasts(metrics: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def _paired_curvature_contrasts(
+    metrics: pd.DataFrame, reference_gamma: float = 0.0
+) -> pd.DataFrame:
+    """Compare each curvature cell with gamma=0 using matched replicate IDs."""
+    primary = metrics[metrics.node == -1].copy()
+    if reference_gamma not in set(primary.gamma.astype(float)):
+        raise AssertionError(f"reference gamma={reference_gamma} is absent")
+    keys = ["replicate", "validation_size", "absolute_bandwidth_sd", "arm"]
+    reference = primary[primary.gamma.astype(float) == float(reference_gamma)][
+        keys + ["iae"]
+    ].rename(columns={"iae": "reference_iae"})
+    rows = []
+    for gamma in sorted(primary.gamma.astype(float).unique()):
+        if gamma == float(reference_gamma):
+            continue
+        candidate = primary[primary.gamma.astype(float) == gamma][
+            keys + ["iae"]
+        ].rename(columns={"iae": "curvature_iae"})
+        paired = candidate.merge(reference, on=keys, how="inner", validate="one_to_one")
+        if paired.empty:
+            continue
+        if len(paired) != len(candidate) or len(paired) != len(reference):
+            raise AssertionError(
+                f"gamma={gamma} and reference gamma={reference_gamma} "
+                "do not have identical paired metric keys"
+            )
+        paired["difference"] = paired.curvature_iae - paired.reference_iae
+        for (n, width, arm), group in paired.groupby(
+            ["validation_size", "absolute_bandwidth_sd", "arm"], sort=True
+        ):
+            differences = group.difference.to_numpy(float)
+            count = int(differences.size)
+            if count < 2:
+                continue
+            mean = float(np.mean(differences))
+            sd = float(np.std(differences, ddof=1))
+            se = sd / np.sqrt(count)
+            critical = float(t.ppf(0.975, count - 1))
+            rows.append({
+                "gamma": float(gamma),
+                "reference_gamma": float(reference_gamma),
+                "validation_size": int(n),
+                "absolute_bandwidth_sd": float(width),
+                "arm": str(arm),
+                "contrast": "gamma_minus_gamma0_iae",
+                "replicate_count": count,
+                "mean_paired_difference": mean,
+                "sd_paired_difference": sd,
+                "standard_error": se,
+                "ci95_lower": mean - critical * se,
+                "ci95_upper": mean + critical * se,
+                "interval_method": "paired t interval; exploratory pilot only",
+            })
+    return pd.DataFrame(rows)
+
+
 def audit(root: Path, expected_gammas=DEFAULT_GAMMAS,
           output_dir: Path | None = None) -> dict:
     root = root.resolve()
@@ -229,6 +285,7 @@ def audit(root: Path, expected_gammas=DEFAULT_GAMMAS,
         )
     )
     contrasts = _paired_contrasts(metrics)
+    curvature_contrasts = _paired_curvature_contrasts(metrics, reference_gamma=0.0)
 
     report = {
         "status": "PASS",
@@ -242,6 +299,7 @@ def audit(root: Path, expected_gammas=DEFAULT_GAMMAS,
         "metric_rows": int(len(metrics)),
         "summary_rows": int(len(summary)),
         "paired_contrast_rows": int(len(contrasts)),
+        "paired_gamma_vs_zero_contrast_rows": int(len(curvature_contrasts)),
         "scope": (
             "Cross-gamma config, calibration, paired-seed, parent/validation "
             "sample, and per-gamma raw-input audits. Density-only synthetic "
@@ -253,6 +311,9 @@ def audit(root: Path, expected_gammas=DEFAULT_GAMMAS,
         output_dir.mkdir(parents=True, exist_ok=True)
         summary.to_csv(output_dir / "curvature_density_iae_summary.csv", index=False)
         contrasts.to_csv(output_dir / "curvature_paired_iae_contrasts.csv", index=False)
+        curvature_contrasts.to_csv(
+            output_dir / "curvature_vs_gamma0_paired_iae_contrasts.csv", index=False
+        )
         (output_dir / "audit.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     return report
 
