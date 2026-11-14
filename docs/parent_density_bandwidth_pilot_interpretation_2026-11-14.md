@@ -94,3 +94,23 @@ The bandwidth must not be selected using H0 posterior error, coverage, PIT, or a
 ## 5. Claim boundary
 
 This pilot concerns one synthetic parent population, one parent sample size, and a parent-density IAE objective. It does not evaluate catalogue-inclusion corrections A–E, does not measure H0, does not test real galaxy catalogues, and does not support a claim that any inclusion estimator is superior.
+
+
+## 6. Expanded-grid sensitivity artifact from PR #54 (same-day update)
+
+**Workflow:** [43554721287](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/43554721287)  
+**Artifact:** `five-arm-kde-bandwidth-pilot`, artifact ID `14098956423`  
+**Exact source head:** `e8a55f9126d286b2a764d709fc3379f504930fc4`  
+**Exact-head CI:** Python 3.10, 3.11, and 3.12 all passed.
+
+The expanded 100-replicate pilot evaluates 17 multipliers from 0.03 to 1.20. Its independent raw-data auditor reconstructed 1,700 replicate-by-multiplier IAE values across 400,000 parent units; maximum absolute reconstruction discrepancy was `7.494005416219807e-16`. The raw and train/holdout audits both returned **PASS**.
+
+The training selector chose multiplier **0.50** (training mean IAE 0.0443212, 70 replicates). The untouched-within-this-artifact holdout mean at 0.50 was 0.0439975 (30 replicates; MCSE 0.0016767). The neighboring 0.60 holdout mean was 0.0441885. The selected value is interior to the expanded candidate grid, unlike the earlier 0.40 boundary result.
+
+**Critical limitation:** this is not a fresh independent sample. The expanded pilot uses master seed `20261114` and replicate IDs 0–99, which overlap the first 100 IDs of the 200-replicate primary experiment and the earlier 100-replicate PR #54 pilot. Its changed grid and split make it a useful expanded-grid sensitivity analysis, but do not turn it into independent confirmation. The 0.50 value is therefore an exploratory density-only candidate for this DGP, N=4,000, grid, and candidate set—not a confirmatory frozen bandwidth.
+
+The same exact-head artifact reports a batched likelihood-kernel numerical-equivalence pass (maximum absolute log-likelihood discrepancy 1.42e-13; maximum log-efficiency discrepancy 2.66e-15). The observed scalar/batched ratio was 19.10× for the isolated kernel benchmark on that runner; KDE construction is excluded and the timing is hardware/BLAS dependent.
+
+### Required gate
+
+Before using 0.50 in a confirmatory five-arm H0 experiment, run a new density-only training/holdout pilot with a master seed and replicate IDs disjoint from every prior bandwidth pilot. Then reserve a separate, disjoint replicate set for H0 evaluation. Preserve the present artifacts unchanged. Do not tune the bandwidth using H0 error, coverage, PIT, or event-level outcomes.
