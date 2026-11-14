@@ -6,7 +6,10 @@ import numpy as np
 import pandas as pd
 from scipy.integrate import trapezoid
 from scipy.stats import gaussian_kde
-from scipy.special import expit
+from scipy.special import expit, logsumexp, roots_hermitenorm
+from scipy.optimize import minimize
+from itertools import product
+import math
 
 Z_MIN,Z_MAX=0.01,0.40
 BOUNDARY_LOWER,BOUNDARY_UPPER=0.049,0.361
