@@ -358,7 +358,8 @@ def audit(root:Path):
   _close(diagnostics[col].to_numpy(float),expected_diagnostics_df[col].to_numpy(float),
          f"independently reconstructed weight diagnostic {col}")
  return {"status":"PASS","manifest_files_verified":checked,"metric_rows_reconstructed":len(want),
-  "scott_width_rows_reconstructed":len(expected_scott_df),\n  "weight_diagnostic_rows_reconstructed":len(expected_diagnostics_df),
+  "scott_width_rows_reconstructed":len(expected_scott_df),
+  "weight_diagnostic_rows_reconstructed":len(expected_diagnostics_df),
   "realized_scott_width_min":float(expected_scott_df.realized_bandwidth_redshift.min()),
   "realized_scott_width_max":float(expected_scott_df.realized_bandwidth_redshift.max()),
   "validation_sizes":sizes,"absolute_widths":widths,
