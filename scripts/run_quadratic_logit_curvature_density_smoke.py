@@ -200,6 +200,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             "node": -1,
             "kish_ess": min(x["kish_ess"] for x in node_diagnostics),
             "kish_ess_fraction": min(x["kish_ess_fraction"] for x in node_diagnostics),
+            "entropy_ess": min(x["entropy_ess"] for x in node_diagnostics),
             "maximum_normalized_weight": max(x["maximum_normalized_weight"] for x in node_diagnostics),
             "top_1_percent_mass": max(x["top_1_percent_mass"] for x in node_diagnostics),
             "top_5_percent_mass": max(x["top_5_percent_mass"] for x in node_diagnostics),
