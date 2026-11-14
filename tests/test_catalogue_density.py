@@ -265,3 +265,36 @@ def test_kde_rejects_positive_weights_lost_during_scaling():
         estimate_host_density(
             grid, sample, sample_weights=weights, scott_multiplier=1.0
         )
+
+
+
+def test_absolute_bandwidth_sd_sets_exact_physical_kernel_width():
+    from dark_siren_robustness.catalogue_density import reflected_weighted_kde_bandwidth
+
+    grid = np.linspace(0.01, 0.40, 801)
+    sample = np.linspace(0.012, 0.398, 120)
+    weights = 1.0 + 3.0 * sample
+    requested = 0.0125
+    density = estimate_host_density(
+        grid, sample, sample_weights=weights,
+        absolute_bandwidth_sd=requested,
+    )
+    assert trapezoid(density, grid) == pytest.approx(1.0, abs=1e-10)
+    reported = reflected_weighted_kde_bandwidth(
+        sample, lower_bound=0.01, upper_bound=0.40,
+        sample_weights=weights, absolute_bandwidth_sd=requested,
+    )
+    assert reported == pytest.approx(requested, rel=0, abs=0)
+
+
+def test_absolute_bandwidth_rejects_competing_or_invalid_options():
+    grid = np.linspace(0.01, 0.40, 101)
+    sample = np.linspace(0.02, 0.39, 20)
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        estimate_host_density(
+            grid, sample, scott_multiplier=0.8,
+            absolute_bandwidth_sd=0.01,
+        )
+    for invalid in (0.0, -0.01, np.nan, np.inf):
+        with pytest.raises(ValueError, match="absolute_bandwidth_sd"):
+            estimate_host_density(grid, sample, absolute_bandwidth_sd=invalid)
