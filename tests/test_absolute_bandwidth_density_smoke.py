@@ -179,3 +179,45 @@ def test_floor_025_failed_validation_posterior_uses_strict_newton_refinement():
     score=design.T@(expit(design@fit.mode)-y)+fit.mode/np.square((5.0,2.5))
     assert np.linalg.norm(score,ord=np.inf)<=1e-6
     assert np.all(np.linalg.eigvalsh(fit.laplace_covariance)>0)
+
+def test_quadratic_logit_curvature_dgp_preserves_parent_mean_and_separates_truth(tmp_path):
+    from dark_siren_robustness.generative_selection import (
+        calibrate_quadratic_logit_intercept,
+        generate_quadratic_logit_inclusion_samples,
+        quadratic_logit_inclusion_probability,
+        quadratic_logit_parent_measure,
+    )
+
+    measure=quadratic_logit_parent_measure()
+    assert measure["x2_center"] == pytest.approx(0.284500557,abs=2e-8)
+    gammas=(-2.0,-1.0,-0.5,0.0,0.5,1.0,2.0)
+    calibrations=[calibrate_quadratic_logit_intercept(gamma=g) for g in gammas]
+    rates=np.array([x["achieved_rate"] for x in calibrations])
+    assert np.ptp(rates) < 2e-12
+    assert all(x["achieved_rate"] == pytest.approx(x["target_rate"],abs=2e-12) for x in calibrations)
+    assert calibrations[3]["alpha"] == pytest.approx(0.0,abs=1e-12)
+
+    z=np.linspace(0.01,0.40,501)
+    p0=quadratic_logit_inclusion_probability(z,gamma=0.0)
+    expected=1.0/(1.0+np.exp(3.9*(z-0.205)/0.195))
+    assert np.allclose(p0,expected,rtol=0,atol=2e-12)
+    p_curved=quadratic_logit_inclusion_probability(z,gamma=2.0)
+    assert not np.allclose(p_curved,p0)
+
+    sample=generate_quadratic_logit_inclusion_samples(
+        population_seed=2026111401,validation_seed=2026111402,
+        n_parent=1000,n_validation_frame=500,n_validation=300,gamma=1.0,
+    )
+    assert set(sample["validation_observed"].columns)=={"validation_id","redshift","retained"}
+    assert "inclusion_probability" not in sample["validation_observed"].columns
+    assert len(sample["parent_truth"])==1000
+    assert len(sample["catalogue_observed"])==int(sample["parent_truth"].retained.sum())
+    assert len(sample["validation_observed"])==300
+    assert sample["config"]["catalogue_selection_model"]=="quadratic_logit"
+    repeat=generate_quadratic_logit_inclusion_samples(
+        population_seed=2026111401,validation_seed=2026111402,
+        n_parent=1000,n_validation_frame=500,n_validation=300,gamma=1.0,
+    )
+    pd.testing.assert_frame_equal(sample["parent_truth"],repeat["parent_truth"])
+    pd.testing.assert_frame_equal(sample["validation_observed"],repeat["validation_observed"])
+
