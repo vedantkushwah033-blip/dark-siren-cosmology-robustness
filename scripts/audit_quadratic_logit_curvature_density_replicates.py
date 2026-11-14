@@ -38,6 +38,34 @@ def _compare_aggregate(root,filename,frames,keys,values):
    raise AssertionError(f"{filename}: aggregate values mismatch {col}")
  return len(expected)
 
+def _assert_frame_equivalent(root, filename, expected, key_columns, numeric_columns, categorical_columns=()):
+ actual=pd.read_csv(root/filename)
+ if len(actual)!=len(expected): raise AssertionError(f"{filename}: row count mismatch")
+ if len(expected)==0: return 0
+ sort_keys=[c for c in key_columns if c!="reference_gamma"]
+ left=expected.copy(); right=actual.copy()
+ left["_sort_reference_gamma"]=left.get("reference_gamma",pd.Series(index=left.index,dtype=float)).fillna(-999.0)
+ right["_sort_reference_gamma"]=right.get("reference_gamma",pd.Series(index=right.index,dtype=float)).fillna(-999.0)
+ sort_keys=sort_keys+["_sort_reference_gamma"]
+ left=left.sort_values(sort_keys).reset_index(drop=True)
+ right=right.sort_values(sort_keys).reset_index(drop=True)
+ for col in key_columns:
+  if col=="reference_gamma":
+   if not np.allclose(left[col].to_numpy(float),right[col].to_numpy(float),rtol=0,atol=0,equal_nan=True):
+    raise AssertionError(f"{filename}: key mismatch {col}")
+  elif pd.api.types.is_numeric_dtype(left[col]):
+   if not np.array_equal(left[col].to_numpy(),right[col].to_numpy()):
+    raise AssertionError(f"{filename}: key mismatch {col}")
+  elif left[col].fillna("").astype(str).tolist()!=right[col].fillna("").astype(str).tolist():
+   raise AssertionError(f"{filename}: key mismatch {col}")
+ for col in categorical_columns:
+  if left[col].fillna("").astype(str).tolist()!=right[col].fillna("").astype(str).tolist():
+   raise AssertionError(f"{filename}: categorical mismatch {col}")
+ for col in numeric_columns:
+  if not np.allclose(left[col].to_numpy(float),right[col].to_numpy(float),rtol=2e-10,atol=2e-10,equal_nan=True):
+   raise AssertionError(f"{filename}: numeric mismatch {col}")
+ return len(expected)
+
 def audit(root:Path):
  root=Path(root).resolve()
  manifest=json.loads((root/"manifest.json").read_text())
@@ -93,11 +121,73 @@ def audit(root:Path):
   ["kish_ess","kish_ess_fraction","maximum_normalized_weight","top_1_percent_mass","top_5_percent_mass"])
  scott_rows=_compare_aggregate(root,"scott_widths_all_cells.csv",scott_frames,
   ["replicate","gamma","validation_size","arm","node"],["realized_bandwidth_redshift"])
+
+ # Reconstruct paired gamma-vs-zero and within-gamma estimator contrasts from
+ # the independently audited child metric records, not the saved contrast CSV.
+ metric_all=pd.concat(metric_frames,ignore_index=True) if metric_frames else pd.DataFrame()
+ primary_arms=("A_catalogue_only","B_parent_oracle","C_known_probability_ipw",
+               "D_map_plugin_ipw","E_posterior_mean_density")
+ metric_all=metric_all[metric_all.arm.isin(primary_arms) & (metric_all.node==-1)].copy()
+ metric_names=("iae","ise","boundary_iae")
+ zero_rows=metric_all[np.isclose(metric_all.gamma,0.0)]
+ if zero_rows.empty: raise AssertionError("gamma=0 reference cell is required")
+ pair_keys=["replicate","validation_size","absolute_bandwidth_sd"]
+ expected_contrasts=[]
+ for gamma in gammas:
+  if gamma==0.0: continue
+  current=metric_all[np.isclose(metric_all.gamma,gamma)]
+  for arm in primary_arms:
+   paired=current[current.arm==arm].merge(zero_rows[zero_rows.arm==arm],
+    on=pair_keys,suffixes=("","_reference"),validate="one_to_one")
+   for _,row in paired.iterrows():
+    for metric in metric_names:
+     expected_contrasts.append({"contrast_type":"gamma_vs_zero","gamma":gamma,
+      "reference_gamma":0.0,"arm":arm,"reference_arm":arm,"replicate":int(row.replicate),
+      "validation_size":int(row.validation_size),"absolute_bandwidth_sd":float(row.absolute_bandwidth_sd),
+      "metric":metric,"value":float(row[metric]),"reference_value":float(row[f"{metric}_reference"]),
+      "difference":float(row[metric]-row[f"{metric}_reference"])})
+ arm_pairs=(("D_map_plugin_ipw","A_catalogue_only"),
+  ("D_map_plugin_ipw","C_known_probability_ipw"),
+  ("C_known_probability_ipw","B_parent_oracle"),
+  ("E_posterior_mean_density","D_map_plugin_ipw"))
+ for gamma in gammas:
+  at_gamma=metric_all[np.isclose(metric_all.gamma,gamma)]
+  for arm,reference_arm in arm_pairs:
+   paired=at_gamma[at_gamma.arm==arm].merge(at_gamma[at_gamma.arm==reference_arm],
+    on=pair_keys,suffixes=("","_reference"),validate="one_to_one")
+   for _,row in paired.iterrows():
+    for metric in metric_names:
+     expected_contrasts.append({"contrast_type":"arm_pair","gamma":gamma,
+      "reference_gamma":float("nan"),"arm":arm,"reference_arm":reference_arm,
+      "replicate":int(row.replicate),"validation_size":int(row.validation_size),
+      "absolute_bandwidth_sd":float(row.absolute_bandwidth_sd),"metric":metric,
+      "value":float(row[metric]),"reference_value":float(row[f"{metric}_reference"]),
+      "difference":float(row[metric]-row[f"{metric}_reference"])})
+ contrast_columns=["contrast_type","gamma","reference_gamma","arm","reference_arm",
+  "replicate","validation_size","absolute_bandwidth_sd","metric","value","reference_value","difference"]
+ expected_contrasts_frame=pd.DataFrame(expected_contrasts,columns=contrast_columns)
+ contrast_rows=_assert_frame_equivalent(root,"paired_contrasts_all_cells.csv",
+  expected_contrasts_frame,
+  ["contrast_type","gamma","reference_gamma","arm","reference_arm","replicate",
+   "validation_size","absolute_bandwidth_sd","metric"],
+  ["value","reference_value","difference"])
+ group_columns=["contrast_type","gamma","reference_gamma","arm","reference_arm",
+  "validation_size","absolute_bandwidth_sd","metric"]
+ if len(expected_contrasts_frame):
+  expected_summary=expected_contrasts_frame.groupby(group_columns,dropna=False).difference.agg(
+   n_pairs="count",mean_difference="mean",sd_difference="std").reset_index()
+  expected_summary["mcse"]=expected_summary.sd_difference/expected_summary.n_pairs.pow(0.5)
+ else:
+  expected_summary=pd.DataFrame(columns=group_columns+["n_pairs","mean_difference","sd_difference","mcse"])
+ summary_rows=_assert_frame_equivalent(root,"paired_contrast_summary.csv",expected_summary,
+  group_columns,["n_pairs","mean_difference","sd_difference","mcse"])
  return {"status":"PASS","manifest_files_verified":checked,"planned_cells":len(expected),
   "successful_cells":len(child_reports),"failed_cells":int((ledger.status=="FAILED").sum()),
   "child_raw_audits_passed":len(child_reports),"aggregate_metric_rows_reconstructed":metric_rows,
   "aggregate_weight_diagnostic_rows_reconstructed":diag_rows,
   "aggregate_scott_width_rows_reconstructed":scott_rows,
+  "paired_contrast_rows_reconstructed":contrast_rows,
+  "paired_contrast_summary_rows_reconstructed":summary_rows,
   "scope":"Independent child raw-input audits plus exact outer lifecycle and aggregation reconstruction; synthetic density stage only."}
 
 def main():
