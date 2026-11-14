@@ -58,12 +58,12 @@ jobs:
           assert selection["status"] == "PASS_SELECTION_ONLY_NOT_CONFIRMATORY", selection
           assert selection["selected_multiplier"] in selection["candidate_multipliers"]
           assert set(selection["training_replicate_ids"]).isdisjoint(selection["holdout_replicate_ids"])
-          assert len(selection["training_replicates"]) + len(selection["holdout_replicates"]) == 200
+          assert len(selection["training_replicate_ids"]) + len(selection["holdout_replicate_ids"]) == 200
           print(json.dumps({
               "status": "PASS",
-              "selected_bandwidth_multiplier": selection["selected_bandwidth_multiplier"],
-              "training_replicates": len(selection["training_replicates"]),
-              "holdout_replicates": len(selection["holdout_replicates"]),
+              "selected_bandwidth_multiplier": selection["selected_multiplier"],
+              "training_replicates": len(selection["training_replicate_ids"]),
+              "holdout_replicates": len(selection["holdout_replicate_ids"]),
               "holdout_scores": selection["holdout_scores"],
               "interpretation": "Synthetic parent-density bandwidth selection only; no H0 inference."
           }, indent=2, sort_keys=True))
