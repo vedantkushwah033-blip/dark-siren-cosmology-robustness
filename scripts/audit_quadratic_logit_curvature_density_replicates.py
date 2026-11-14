@@ -75,6 +75,12 @@ def audit(root:Path):
   if not path.is_file() or path.stat().st_size!=int(meta["bytes"]) or _hash(path)!=meta["sha256"]:
    raise AssertionError(f"outer manifest verification failed: {rel}")
   checked+=1
+ actual_files={str(path.relative_to(root)) for path in root.rglob("*") if path.is_file() and path.name!="manifest.json"}
+ listed_files=set(manifest["files"])
+ if actual_files!=listed_files:
+  missing=sorted(listed_files-actual_files)
+  unlisted=sorted(actual_files-listed_files)
+  raise AssertionError(f"outer manifest inventory mismatch: missing={missing[:5]}, unmanifested={unlisted[:5]}")
  if checked!=int(manifest["file_count"]): raise AssertionError("outer manifest file count mismatch")
  cfg=json.loads((root/"config.json").read_text())
  if manifest.get("status") not in {"PASS", "INCOMPLETE"}: raise AssertionError("invalid outer manifest status")
