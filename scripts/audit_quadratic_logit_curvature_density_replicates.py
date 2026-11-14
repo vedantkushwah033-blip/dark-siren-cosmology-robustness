@@ -89,6 +89,9 @@ def audit(root:Path):
  got=list(zip(ledger.replicate.astype(int),ledger.gamma.astype(float)))
  if got!=expected: raise AssertionError("cell ledger does not enumerate exact replicate x gamma design")
  if set(ledger.status)-{"SUCCESS","FAILED"}: raise AssertionError("invalid lifecycle status")
+ if set(ledger.audit_status)-{"PENDING_OUTER_AUDIT","NOT_RUN"}: raise AssertionError("invalid child audit lifecycle status")
+ if not (ledger.loc[ledger.status=="SUCCESS","audit_status"]=="PENDING_OUTER_AUDIT").all(): raise AssertionError("successful cells must await the independent outer child audit")
+ if not (ledger.loc[ledger.status=="FAILED","audit_status"]=="NOT_RUN").all(): raise AssertionError("failed cells cannot claim a child audit")
  if int(cfg["attempted_cells"])!=len(expected): raise AssertionError("attempted cell count mismatch")
  if int(cfg["successful_cells"])!=int((ledger.status=="SUCCESS").sum()) or int(cfg["failed_cells"])!=int((ledger.status=="FAILED").sum()):
   raise AssertionError("config totals disagree with cell ledger")
