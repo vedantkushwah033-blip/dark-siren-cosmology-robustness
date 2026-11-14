@@ -137,3 +137,19 @@ Do not use gamma values or validation sizes to tune the model after inspecting h
 This experiment is density-only. It does not evaluate the GW detection-selection function, H0 likelihood, H0 posterior calibration, real galaxy surveys, or public LVK/GWTC data. The separate GW host-weighting model and GW detection-selection normalization remain distinct from catalogue inclusion.
 
 No curvature-family performance claim is made until the multi-replicate runner, independent auditor, and artifacts are complete.
+
+## Paired multi-gamma pilot runner and outer auditor (2026-11-15)
+
+The first multi-replicate orchestration layer is now implemented:
+
+- `scripts/run_quadratic_logit_curvature_density_pilot.py` runs all seven gamma values with paired population/validation seeds and a configurable replicate count (default 3).
+- Each gamma-replicate is written as a self-contained child artifact and passed through the existing independent raw-input child auditor before its metrics are admitted to the aggregate.
+- `results/replicate_ledger.csv` records SUCCESS, FAILED, NON_EVALUABLE, or NOT_RUN-compatible lifecycle states, seeds, child paths, and error text. Current runner records SUCCESS or FAILED and does not silently drop failures.
+- Aggregate density metrics, weight diagnostics, and realized Scott widths carry gamma, replicate, and seed identifiers.
+- `scripts/audit_quadratic_logit_curvature_density_pilot.py` verifies the outer manifest, exact gamma-replicate ledger coverage, reruns every successful child audit, and checks aggregate keys and coverage.
+- `tests/test_quadratic_logit_curvature_density_pilot.py` exercises a one-replicate seven-gamma smoke run and deliberate ledger corruption.
+- Cross-version smoke CI and a separate 3-replicate GitHub Actions pilot workflow have been added.
+
+The seven-gamma multi-replicate experiment has **not yet been verified as completed**. The workflow is configured to run 3 replicates per gamma (21 child artifacts) and independently audit them. Its output must be retrieved and audited before reporting performance results. The smoke test is engineering validation only. A 3-replicate pilot is not sufficient for confirmatory claims or stable uncertainty estimates.
+
+The runner uses common population and validation seeds across gamma within each replicate. This creates paired random-number streams; the gamma-specific retention outcomes differ under the changed probability function. The validation sizes remain nested prefixes of one independent validation frame. Arm C consumes truth-only quadratic probabilities and remains an oracle diagnostic. Arms D/E fit the degree-one logistic analysis model.
