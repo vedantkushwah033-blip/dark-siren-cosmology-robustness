@@ -24,8 +24,15 @@ def run(args):
         raise ValueError("output directory must be empty")
     if args.replicates<2: raise ValueError("multi-replicate pilot requires at least two replicates")
     if args.seed_stride<2: raise ValueError("seed stride must be >=2 to keep streams disjoint")
-    widths=tuple(float(x) for x in args.absolute_widths)
-    if len(widths)<2: raise ValueError("at least two absolute widths are required")
+    widths=tuple(sorted(set(float(x) for x in args.absolute_widths)))
+    if len(widths)<2 or any(not __import__("math").isfinite(x) or x<=0 for x in widths):
+        raise ValueError("at least two distinct positive finite absolute widths are required")
+    if args.n_parent<100 or args.quadrature_order<3 or args.grid_points<51:
+        raise ValueError("invalid parent size, quadrature order, or redshift grid")
+    if not args.validation_sizes or sorted(set(args.validation_sizes))!=list(args.validation_sizes):
+        raise ValueError("validation sizes must be strictly increasing")
+    if args.validation_sizes[0]<5 or args.validation_sizes[-1]>args.validation_frame:
+        raise ValueError("validation sizes exceed the validation frame")
     cfg={
       "schema_version":1,
       "experiment":"multi_replicate_absolute_physical_bandwidth_density_pilot",
