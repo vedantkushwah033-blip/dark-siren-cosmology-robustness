@@ -255,7 +255,7 @@ def audit(root:Path):
     stored=z[f"density_{arm}_n{n}_w{bw:.6f}"]
     _close(stored,d,f"{arm} density n={n} width={bw}")
     met=_metric(d,truth,grid)
-    expected.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":bw,"arm":arm,"node":-1,**met,"status":"SUCCESS","kish_ess":_kish_ess(raw_weights)})
+    expected.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":bw,"arm":arm,"node":-1,**met,"status":"SUCCESS","kish_ess":_kish_ess(w)})
    for j,w in enumerate(bc[None,:]/pnodes):
     d=_independent_kde(grid,zcat,w,rate,bw); node_ds.append(d)
     _close(z[f"density_E_nodes_n{n}_w{bw:.6f}"][j],d,f"E node density n={n} width={bw} node={j}")
@@ -274,7 +274,7 @@ def audit(root:Path):
  if len(got)!=len(want): raise AssertionError("metric row count mismatch")
  for col in key+["status"]:
   if not got[col].equals(want[col]): raise AssertionError(f"metric key/status mismatch: {col}")
- for col in ["iae","ise","boundary_iae"]:
+  for col in ["iae","ise","boundary_iae"]:
    _close(got[col].to_numpy(float),want[col].to_numpy(float),f"metric {col}")
   if "kish_ess" not in got or not np.array_equal(got.kish_ess.isna().to_numpy(),want.kish_ess.isna().to_numpy()):
    raise AssertionError("metric Kish ESS missingness mismatch")
