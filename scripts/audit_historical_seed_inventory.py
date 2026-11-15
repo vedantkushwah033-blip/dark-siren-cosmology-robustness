@@ -43,6 +43,11 @@ def _walk_json(value: Any, source: str, prefix: str = "$") -> list[dict[str, Any
     if isinstance(value, dict):
         for key, child in value.items():
             field = f"{prefix}.{key}"
+            # These fields describe deterministic seed-generation rules; they are
+            # metadata, not consumed integer RNG seeds. Their concrete values are
+            # inventoried from the master/stride fields and replicate ledgers.
+            if str(key).lower() in {"seed_schedule", "seed_design", "seed_description"} and isinstance(child, str):
+                continue
             if SEED_KEY.search(str(key)):
                 if isinstance(child, (list, tuple)):
                     for index, item in enumerate(child):
