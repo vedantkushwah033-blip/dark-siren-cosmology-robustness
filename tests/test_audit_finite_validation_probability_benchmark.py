@@ -205,5 +205,5 @@ def test_audit_cli_writes_valid_json_with_real_terminal_newline(tmp_path: Path):
     )
     assert completed.returncode == 0, completed.stdout + completed.stderr
     payload = report_path.read_bytes()
-    assert payload.endswith(b"\\n")
+    assert payload.endswith(b"\n")
     assert json.loads(payload.decode("utf-8"))["status"] == "PASS"
