@@ -444,6 +444,7 @@ def validate_source_register(
         "artifacts_listed": len(records),
         "unique_run_ids": len(run_ids),
         "artifacts_downloaded_sha256_verified": download_counts.get("DOWNLOADED_SHA256_VERIFIED", 0),
+        "downloaded_archive_count": download_counts.get("DOWNLOADED_SHA256_VERIFIED", 0),
         "metadata_only_artifact_count": download_counts.get("METADATA_ONLY", 0),
         "seed_inventory_payload_verified_count": status_counts.get("PAYLOAD_SHA256_VERIFIED", 0),
         "seed_inventory_schedule_source_verified_count": status_counts.get("SEED_SCHEDULE_SOURCE_VERIFIED", 0),
