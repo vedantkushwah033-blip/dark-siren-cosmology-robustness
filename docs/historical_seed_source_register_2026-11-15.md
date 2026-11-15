@@ -505,3 +505,30 @@ Accordingly, these are **not** classified as seed-free artifacts. The three repr
 
 The source register remains PARTIAL / NOT COMPLETE. The remaining workflows on the 500-run branch, the 318 non-success test runs, failed/cancelled partial artifacts, and the 210 unlisted successful test artifacts must be reconciled before global seed disjointness can be claimed. No training or holdout run is authorized.
 
+
+
+## Full posterior-grid branch run census — 2026-11-15
+
+The Actions run census for `research/audit-posterior-grid-integrity` is now reconciled to 500 observed runs across 13 workflow paths. The run-level outcome counts are:
+
+| Workflow | Runs | Successful | Non-success |
+|---|---:|---:|---:|
+| `tests.yml` | 389 | 71 | 318 |
+| `host-misspecification-audit.yml` | 13 | 13 | 0 |
+| `paired-host-misspecification.yml` | 13 | 13 | 0 |
+| `host-misspecification-sensitivity-surface.yml` | 13 | 13 | 0 |
+| `host-prior-support-factorial.yml` | 13 | 13 | 0 |
+| `hidden-host-assumption-sensitivity.yml` | 13 | 13 | 0 |
+| `catalogue-selection-confirmatory-replication.yml` | 2 | 2 | 0 |
+| `catalogue-selection-stress-screen.yml` | 5 | 2 | 3 |
+| `selection-misspecification-pilot.yml` | 20 | 9 | 11 |
+| `audit-stage-b-artifact.yml` | 9 | 2 | 7 |
+| `host-density-validation-campaign.yml` | 6 | 4 | 2 |
+| `h0-dependent-noise-sbc.yml` | 3 | 3 | 0 |
+| `selection-misspecification-confirmatory.yml` | 1 | 1 | 0 |
+| **Total** | **500** | **159** | **341** |
+
+The 159 successful runs split into 88 successful research-workflow runs (100 artifacts) and 71 successful test-workflow runs (213 artifacts). Three representative test artifacts are persisted and verified; the other 210 successful test artifacts are known but not individually persisted. The 341 non-success runs comprise 318 test-workflow runs, three catalogue-selection stress-screen runs, eleven selection-misspecification pilot runs, seven Stage B audit runs, and two host-density campaign runs. Their possible partial artifacts have not been enumerated.
+
+This run census closes the **run-count** gap for this branch, not the artifact/source gap. The 500-run branch is still not fully audited: 210 successful test artifacts are unlisted, partial artifacts from 341 non-success runs are unknown, and the test workflow's seed-bearing smoke commands/defaults have not been source-reconciled across all 71 successful heads.
+
