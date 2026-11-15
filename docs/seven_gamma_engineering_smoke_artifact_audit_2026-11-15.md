@@ -53,3 +53,20 @@ These values are **not** a result about average performance, calibration, estima
 **Training/holdout and H0 stages: remain blocked.**
 
 The next valid gate is the corrected workflow run followed by the full multi-replicate seven-gamma pilot and its outer auditor. The training/holdout protocol remains unapproved until historical source-register completeness and seed-overlap checks are independently established.
+
+
+## Corrected workflow rerun and second artifact audit
+
+The row-count assertion was corrected in commit `180011a96790284ef01b93d8752924290c8f1653`. The rerun completed successfully:
+
+- Workflow run: `43685339718`
+- Workflow conclusion: **success**
+- Artifact ID: `14150446621`
+- Artifact ZIP SHA-256: `b8c5af4e37a4cf69a4bd2ea1459880efaa54920d71ec2959605949e02079f895`
+- Artifact size: 29,333,334 bytes
+
+I downloaded the new artifact and independently checked its outer summary and all seven child manifests. The summary reports PASS for all seven gamma cells. The local re-check found **84/84 child-manifest files verified**, zero byte-count or SHA-256 mismatches, 5,859 density metric rows, 630 weight-diagnostic rows and 609 Scott-width rows. The seven child independent audit reports all remain PASS.
+
+This resolves the engineering smoke workflow failure: the old run `43671806461` remains correctly recorded as failed at its summary assertion, while the corrected rerun `43685339718` is a separate successful run with a separately hashed artifact.
+
+**This is still one replicate per gamma.** It validates orchestration, common-seed setup, child generation, row-count aggregation and artifact integrity. It does not establish sampling performance, estimator superiority, calibration, a bandwidth choice, or readiness for H0 inference.
