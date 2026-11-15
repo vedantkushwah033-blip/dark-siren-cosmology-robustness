@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "status": "CANDIDATE_SCHEDULE_ONLY_NOT_SEED_INVENTORY_VERIFIED_NOT_AUTHORIZATION",
+  "design_note": "12 training and 24 holdout replicate seed pairs; stride 10; population and validation streams are distinct. Historical overlap must be checked before use.",
+  "training": [
+    {
+      "population_seed": 2026111600,
+      "validation_seed": 2026111601
+    },
+    {
+      "population_seed": 2026111610,
+      "validation_seed": 2026111611
+    },
+    {
+      "population_seed": 2026111620,
+      "validation_seed": 2026111621
+    },
+    {
+      "population_seed": 2026111630,
+      "validation_seed": 2026111631
+    },
+    {
+      "population_seed": 2026111640,
+      "validation_seed": 2026111641
+    },
+    {
+      "population_seed": 2026111650,
+      "validation_seed": 2026111651
+    },
+    {
+      "population_seed": 2026111660,
+      "validation_seed": 2026111661
+    },
+    {
+      "population_seed": 2026111670,
+      "validation_seed": 2026111671
+    },
+    {
+      "population_seed": 2026111680,
+      "validation_seed": 2026111681
+    },
+    {
+      "population_seed": 2026111690,
+      "validation_seed": 2026111691
+    },
+    {
+      "population_seed": 2026111700,
+      "validation_seed": 2026111701
+    },
+    {
+      "population_seed": 2026111710,
+      "validation_seed": 2026111711
+    }
+  ],
+  "holdout": [
+    {
+      "population_seed": 2026112600,
+      "validation_seed": 2026112601
+    },
+    {
+      "population_seed": 2026112610,
+      "validation_seed": 2026112611
+    },
+    {
+      "population_seed": 2026112620,
+      "validation_seed": 2026112621
+    },
+    {
+      "population_seed": 2026112630,
+      "validation_seed": 2026112631
+    },
+    {
+      "population_seed": 2026112640,
+      "validation_seed": 2026112641
+    },
+    {
+      "population_seed": 2026112650,
+      "validation_seed": 2026112651
+    },
+    {
+      "population_seed": 2026112660,
+      "validation_seed": 2026112661
+    },
+    {
+      "population_seed": 2026112670,
+      "validation_seed": 2026112671
+    },
+    {
+      "population_seed": 2026112680,
+      "validation_seed": 2026112681
+    },
+    {
+      "population_seed": 2026112690,
+      "validation_seed": 2026112691
+    },
+    {
+      "population_seed": 2026112700,
+      "validation_seed": 2026112701
+    },
+    {
+      "population_seed": 2026112710,
+      "validation_seed": 2026112711
+    },
+    {
+      "population_seed": 2026112720,
+      "validation_seed": 2026112721
+    },
+    {
+      "population_seed": 2026112730,
+      "validation_seed": 2026112731
+    },
+    {
+      "population_seed": 2026112740,
+      "validation_seed": 2026112741
+    },
+    {
+      "population_seed": 2026112750,
+      "validation_seed": 2026112751
+    },
+    {
+      "population_seed": 2026112760,
+      "validation_seed": 2026112761
+    },
+    {
+      "population_seed": 2026112770,
+      "validation_seed": 2026112771
+    },
+    {
+      "population_seed": 2026112780,
+      "validation_seed": 2026112781
+    },
+    {
+      "population_seed": 2026112790,
+      "validation_seed": 2026112791
+    },
+    {
+      "population_seed": 2026112800,
+      "validation_seed": 2026112801
+    },
+    {
+      "population_seed": 2026112810,
+      "validation_seed": 2026112811
+    },
+    {
+      "population_seed": 2026112820,
+      "validation_seed": 2026112821
+    },
+    {
+      "population_seed": 2026112830,
+      "validation_seed": 2026112831
+    }
+  ]
+}
