@@ -108,3 +108,26 @@ def test_inventory_rejects_non_integer_seed_value(tmp_path):
     (root / "bad.json").write_text(json.dumps({"population_seed": "unknown"}))
     with pytest.raises(ValueError, match="non-integer seed"):
         module.audit([root], _schedule(tmp_path / "schedule.json"))
+
+
+def test_schedule_checks_additional_random_streams(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    schedule = _schedule(
+        tmp_path / "schedule.json",
+        training=[{"population_seed": 10, "validation_seed": 11, "bootstrap_seed": 12}],
+        holdout=[{"population_seed": 20, "validation_seed": 21, "bootstrap_seed": 11}],
+    )
+    with pytest.raises(ValueError, match="training and holdout schedules share"):
+        module.audit([root], schedule)
+
+
+def test_inventory_does_not_pass_when_sources_contain_no_seed_fields(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "metrics.json").write_text(json.dumps({"iae": 0.2, "replicates": 3}))
+    report = module.audit([root], _schedule(tmp_path / "schedule.json"))
+    assert report["status"] == "NOT_EVALUABLE"
+    assert report["historical_seed_count"] == 0
