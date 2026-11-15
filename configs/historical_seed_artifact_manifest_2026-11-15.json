@@ -4,9 +4,9 @@
   "scope": "Successful selected density/bandwidth/curvature workflow artifacts from research/absolute-width-distribution-pilot-20261114. Failed/cancelled runs and other historical branches remain unresolved.",
   "coverage": {
     "branch": "research/absolute-width-distribution-pilot-20261114",
-    "successful_runs_enumerated": 20,
-    "artifacts_listed": 34,
-    "artifacts_downloaded_sha256_verified": 7,
+    "successful_runs_enumerated": 30,
+    "artifacts_listed": 64,
+    "artifacts_downloaded_sha256_verified": 15,
     "artifact_sources_complete": false
   },
   "artifacts": [
@@ -315,6 +315,276 @@
       "sha256": "8e3f4417014f24540d0e5c6511b9065842002cf61a79184be807442a676a1f82",
       "expired": false,
       "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43628935789,
+      "artifact_id": 14128610331,
+      "name": "absolute-width-expanded-grid-floor-025-1ae056dac1b90c12a9a63eaaa6387fd6ae78886a",
+      "size_bytes": 103682734,
+      "sha256": "7d09b45f60dd01961a654195360f36fc8bc2d36b43a1836180d44ceae79fb6e3",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43628935789,
+      "artifact_id": 14128496362,
+      "name": "absolute-width-expanded-grid-floor-010-1ae056dac1b90c12a9a63eaaa6387fd6ae78886a",
+      "size_bytes": 100222756,
+      "sha256": "2f3c7a53f47cd3d2a75d96525c36d39309373ae8ed0d6ea7a5255d3df858e89a",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43628935789,
+      "artifact_id": 14127209953,
+      "name": "absolute-width-expanded-grid-no-floor-1ae056dac1b90c12a9a63eaaa6387fd6ae78886a",
+      "size_bytes": 97836055,
+      "sha256": "c269f77fd65fe6c6c05a5be8a4bcf0ca6afd505bd6dbf77ea815a72134f48daf",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43622877251,
+      "artifact_id": 14125935086,
+      "name": "absolute-width-density-pilot-floor-025-44b504660269c4a7fd0003bc8663bb18fb8a9489",
+      "size_bytes": 69496090,
+      "sha256": "eb062742846de52c4315ab49a70f7b9c5dcf27be42deaa109dd8c50168c4cb57",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43622877251,
+      "artifact_id": 14125342434,
+      "name": "absolute-width-density-pilot-floor-010-44b504660269c4a7fd0003bc8663bb18fb8a9489",
+      "size_bytes": 66001638,
+      "sha256": "3f424bfe1c6950af3f03132ccc471573ed50fe2fe650731f9e83f6c2910c4d77",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43622877251,
+      "artifact_id": 14124639751,
+      "name": "absolute-width-density-pilot-no-floor-44b504660269c4a7fd0003bc8663bb18fb8a9489",
+      "size_bytes": 63634648,
+      "sha256": "8f3340e2082f9fc5cf0ab402ddf1dcff1ae3b3a6fe59b64496d11e052d2f8752",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43620497522,
+      "artifact_id": 14124561640,
+      "name": "absolute-width-density-pilot-floor-025-a1182711577f83f7d61b8a2b6906ba594377a913",
+      "size_bytes": 69496090,
+      "sha256": "67c870d7cf2a052142f239d58b3372992e0a3a18bb6c0e8cff5a85e140ce9805",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43620497522,
+      "artifact_id": 14124114034,
+      "name": "absolute-width-density-pilot-floor-010-a1182711577f83f7d61b8a2b6906ba594377a913",
+      "size_bytes": 66002917,
+      "sha256": "04fc921b75975e1b846cb738080d822628977583e3361a12343943147c02511c",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43620497522,
+      "artifact_id": 14124113689,
+      "name": "absolute-width-density-pilot-no-floor-a1182711577f83f7d61b8a2b6906ba594377a913",
+      "size_bytes": 63634648,
+      "sha256": "b04f52517c27a62a1a95a88ec1b5e30efb65d87c2d3a300869ae622c1e58b69a",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43615384270,
+      "artifact_id": 14122801897,
+      "name": "absolute-width-density-pilot-floor-025-3998718b12d33fa05debd13dec5b94ef459be054",
+      "size_bytes": 69495083,
+      "sha256": "6dda29a6d7ce1fc9370a67fb3ad8bedee6ab53fff736c6314b7b07ef7fe13c38",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43615384270,
+      "artifact_id": 14122536928,
+      "name": "absolute-width-density-pilot-floor-010-3998718b12d33fa05debd13dec5b94ef459be054",
+      "size_bytes": 66002917,
+      "sha256": "b61032093536d257322eb13b6c774067747a6c2be0e09a1deabce9f7ace561ce",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43615384270,
+      "artifact_id": 14121687969,
+      "name": "absolute-width-density-pilot-no-floor-3998718b12d33fa05debd13dec5b94ef459be054",
+      "size_bytes": 63634648,
+      "sha256": "1b8622145fa616d81c1b5937970133d090bbaa6ffa1f7afdc8fa61f8645cb3d1",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43615227004,
+      "artifact_id": 14122832526,
+      "name": "absolute-width-expanded-grid-floor-010-7dcfec2f9fc611b2ebcaf21b224ad3f373196ff1",
+      "size_bytes": 100212567,
+      "sha256": "39c8950ec4de677edc73be9e40620e550d3dffc9795c87db44d30ec1d22cbd5f",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43615227004,
+      "artifact_id": 14122814843,
+      "name": "absolute-width-expanded-grid-floor-025-7dcfec2f9fc611b2ebcaf21b224ad3f373196ff1",
+      "size_bytes": 98682389,
+      "sha256": "d55cd048f0b53a976b27a22d110ce9ac054016562c007a905992eac0547244aa",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43615227004,
+      "artifact_id": 14122527725,
+      "name": "absolute-width-expanded-grid-no-floor-7dcfec2f9fc611b2ebcaf21b224ad3f373196ff1",
+      "size_bytes": 97825778,
+      "sha256": "03e0dc5e706f376676eb7f4c81452faf968ecf6edf7eb5081801ff67684d451b",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43617052487,
+      "artifact_id": 14122916425,
+      "name": "absolute-width-density-pilot-floor-010-d94fdd62e514c81c20444196e166d2ebbb341a40",
+      "size_bytes": 66002917,
+      "sha256": "bd52f2b8a0acbf81a2380ae2b67c686c8210910393d75fcc9606dbecb398e814",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43617052487,
+      "artifact_id": 14122767902,
+      "name": "absolute-width-density-pilot-floor-025-d94fdd62e514c81c20444196e166d2ebbb341a40",
+      "size_bytes": 69496090,
+      "sha256": "5718cd1dc572265975e2ab9b03e866641d95c9ed38e88af4f35d653052e2c64f",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43617052487,
+      "artifact_id": 14122697946,
+      "name": "absolute-width-density-pilot-no-floor-d94fdd62e514c81c20444196e166d2ebbb341a40",
+      "size_bytes": 63634648,
+      "sha256": "42ae86be7900f5fb3a1a738115f85b46713db1b7cb43fd1337ca2223d3731e02",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43619594762,
+      "artifact_id": 14124565039,
+      "name": "absolute-width-density-pilot-floor-010-17466326a4be59ca7698c6c1f34529801e6e5507",
+      "size_bytes": 66001638,
+      "sha256": "caeec4bad484aa7baf1b963c0f914900f96de39db8e3bb1bc1fe0bbb0777e753",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 43619594762,
+      "artifact_id": 14123753124,
+      "name": "absolute-width-density-pilot-no-floor-17466326a4be59ca7698c6c1f34529801e6e5507",
+      "size_bytes": 63634331,
+      "sha256": "9a3ba516f9f63919d0aa49e57d5636cafcc322aed4aa752e90b9fc578c9d1c4b",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 43619594762,
+      "artifact_id": 14123414834,
+      "name": "absolute-width-density-pilot-floor-025-17466326a4be59ca7698c6c1f34529801e6e5507",
+      "size_bytes": 69496090,
+      "sha256": "a78a66f79d8cab8ef0179d55ba07881c302666b8d3cc12add2b93b9d0811cdb7",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 43617052462,
+      "artifact_id": 14123894369,
+      "name": "absolute-width-expanded-grid-no-floor-d94fdd62e514c81c20444196e166d2ebbb341a40",
+      "size_bytes": 97825684,
+      "sha256": "26f9ccc6d711cff45ea7ac4a130eba48dcde7b243185d2f6c2fc2bb6c9a8af86",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 43617052462,
+      "artifact_id": 14123867382,
+      "name": "absolute-width-expanded-grid-floor-010-d94fdd62e514c81c20444196e166d2ebbb341a40",
+      "size_bytes": 100214396,
+      "sha256": "e83f944b22cc153c1b6354515f42ed25978db2cf7b94b2e66c13f16e04768d1a",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 43617052462,
+      "artifact_id": 14123634445,
+      "name": "absolute-width-expanded-grid-floor-025-d94fdd62e514c81c20444196e166d2ebbb341a40",
+      "size_bytes": 103672379,
+      "sha256": "f7eb0576f0b9dc5badafb2a3b3b136bc125106856345df4749e173f94669c627",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 43574613209,
+      "artifact_id": 14107380789,
+      "name": "absolute-width-expanded-grid-floor-010-836ecff9060d83c18bc0a9c18b0ed86f54fcc79e",
+      "size_bytes": 100168115,
+      "sha256": "78b22f4574a37450972c075de778789030be93c441e5addd42fa041c1c9a0733",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43574613209,
+      "artifact_id": 14106387924,
+      "name": "absolute-width-expanded-grid-no-floor-836ecff9060d83c18bc0a9c18b0ed86f54fcc79e",
+      "size_bytes": 97780326,
+      "sha256": "e381296ce6a6cd920f05b7cc5a73544ac1a3b42fea149c94ff774631f57af604",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 43574613209,
+      "artifact_id": 14105479927,
+      "name": "absolute-width-expanded-grid-floor-025-836ecff9060d83c18bc0a9c18b0ed86f54fcc79e",
+      "size_bytes": 98643774,
+      "sha256": "ee87f308d5c76474f9fa0ec247c15870ff6d583b377702883be9630d769cd3d0",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43573059988,
+      "artifact_id": 14105816022,
+      "name": "absolute-width-density-pilot-floor-010-4f125de03c01eccbd4cb81e069e8af2dfa49b4db",
+      "size_bytes": 65981622,
+      "sha256": "1ffc4127cf6df555cbeeedede0e3ef11aa9eaf75e164e27aadbb756d3ba2980f",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43573059988,
+      "artifact_id": 14105676098,
+      "name": "absolute-width-density-pilot-floor-025-4f125de03c01eccbd4cb81e069e8af2dfa49b4db",
+      "size_bytes": 66192200,
+      "sha256": "5cf8c81b75a633c13baf967252bf6c2f3e9fb562667ecd0598af3bc2ea5c8d91",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43573059988,
+      "artifact_id": 14104914934,
+      "name": "absolute-width-density-pilot-no-floor-4f125de03c01eccbd4cb81e069e8af2dfa49b4db",
+      "size_bytes": 63613195,
+      "sha256": "e0a59eb546cf0db2a33eecc69e4231d09a3dd82e5b5d53b22aef5365727f8ce9",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
     }
   ]
 }
