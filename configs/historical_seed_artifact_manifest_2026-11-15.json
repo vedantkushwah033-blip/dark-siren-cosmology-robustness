@@ -5,7 +5,7 @@
   "coverage": {
     "branch": "research/absolute-width-distribution-pilot-20261114",
     "successful_runs_enumerated": 32,
-    "artifacts_listed": 308,
+    "artifacts_listed": 334,
     "artifacts_downloaded_sha256_verified": 191,
     "artifact_sources_complete": false,
     "source_branches": [
@@ -29,10 +29,10 @@
     ],
     "other_selected_workflow_artifacts_enumerated": true,
     "run_metadata_complete": true,
-    "unique_run_ids": 147,
+    "unique_run_ids": 173,
     "downloaded_archive_scan_complete": true,
     "downloaded_archive_count": 191,
-    "metadata_only_artifact_count": 117,
+    "metadata_only_artifact_count": 143,
     "test_workflow_runs_enumerated": 19,
     "test_workflow_artifacts_metadata_only": 57,
     "estimated_inclusion_branch_successful_runs_enumerated": 43,
@@ -67,22 +67,24 @@
         "metadata_only": 57
       },
       "totals": {
-        "runs": 147,
-        "artifacts": 308,
+        "runs": 173,
+        "artifacts": 334,
         "downloaded_sha256_verified": 191,
-        "metadata_only": 117,
-        "seed_schedule_source_verified": 87
+        "metadata_only": 143,
+        "seed_schedule_source_verified": 113
       },
       "posterior_grid_integrity_selected_workflows": {
-        "runs": 39,
-        "artifacts": 39,
+        "runs": 65,
+        "artifacts": 65,
         "downloaded_sha256_verified": 27,
-        "metadata_only": 12,
-        "seed_schedule_source_verified": 39,
+        "metadata_only": 38,
+        "seed_schedule_source_verified": 65,
         "workflows": [
           ".github/workflows/host-misspecification-audit.yml",
           ".github/workflows/paired-host-misspecification.yml",
-          ".github/workflows/host-misspecification-sensitivity-surface.yml"
+          ".github/workflows/host-misspecification-sensitivity-surface.yml",
+          ".github/workflows/host-prior-support-factorial.yml",
+          ".github/workflows/hidden-host-assumption-sensitivity.yml"
         ]
       }
     },
@@ -91,13 +93,15 @@
         "branch": "research/audit-posterior-grid-integrity",
         "run_count_observed": 500,
         "artifact_enumeration": "PARTIAL_SELECTED_WORKFLOWS",
-        "reason": "Three selected host-misspecification workflows are now enumerated: 39 successful run artifacts across 13 reruns per workflow, with exact workflow/runner seed-schedule proofs. The other workflows on this 500-run branch, failed/cancelled outcomes, and partial artifacts remain unresolved.",
-        "selected_successful_runs_enumerated": 39,
-        "selected_artifacts_added": 39,
+        "reason": "Five selected host-misspecification workflows are now enumerated: 65 successful run artifacts across 13 reruns per workflow, with exact workflow/runner (and, where applicable, summarizer) seed proofs. The other workflows on this 500-run branch, failed/cancelled outcomes, and partial artifacts remain unresolved.",
+        "selected_successful_runs_enumerated": 65,
+        "selected_artifacts_added": 65,
         "selected_workflows": [
           "host-misspecification-audit.yml",
           "paired-host-misspecification.yml",
-          "host-misspecification-sensitivity-surface.yml"
+          "host-misspecification-sensitivity-surface.yml",
+          "host-prior-support-factorial.yml",
+          "hidden-host-assumption-sensitivity.yml"
         ]
       },
       {
@@ -115,11 +119,11 @@
     ],
     "seed_inventory_status_counts": {
       "PAYLOAD_SHA256_VERIFIED": 164,
-      "SEED_SCHEDULE_SOURCE_VERIFIED": 87,
+      "SEED_SCHEDULE_SOURCE_VERIFIED": 113,
       "UNRESOLVED": 57
     },
     "seed_inventory_unresolved_artifact_count": 57,
-    "seed_inventory_schedule_source_verified_count": 87,
+    "seed_inventory_schedule_source_verified_count": 113,
     "seed_inventory_payload_verified_count": 164
   },
   "artifacts": [
@@ -137,6 +141,34 @@
       "run_created_at": "2026-10-29T00:41:55Z",
       "run_conclusion": "success",
       "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 40900390213,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12908293579,
+      "name": "hidden-host-assumption-sensitivity",
+      "size_bytes": 7156249,
+      "sha256": "e15e39009a9f6b42b449fd01aaba4d4f1fc651231496b67effb2197f5f23afef",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "e03de64df538713ab9411d7be27a9b17a686b5ef",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/hidden-host-assumption-sensitivity.yml",
+      "run_created_at": "2026-10-29T15:19:31Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "5a6c85e164ed4d0ae454b4ee7e7a25d6882c4abf",
+        "runner_blob_sha": "7a3f68b8b027724df495a88fbcc9ff731160a79a",
+        "master_seed": 20261032,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261032); bootstrap_rng=np.random.default_rng(20261033); 200 sequential replicates per factorial cell; summarizer uses seed 20261033.",
+        "source_commit": "e03de64df538713ab9411d7be27a9b17a686b5ef",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261033
+      }
     },
     {
       "run_id": 40900390241,
@@ -188,6 +220,34 @@
         "replicates": 200,
         "formula": "data_rng=np.random.default_rng(20261029); bootstrap_rng=np.random.default_rng(20261030); 200 sequential replicates per factorial cell across 108 cells, shared across four inference arms; no replicate-specific seed stride; repeated workflow runs reuse the same data and bootstrap streams.",
         "source_commit": "e03de64df538713ab9411d7be27a9b17a686b5ef"
+      }
+    },
+    {
+      "run_id": 40900390326,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12908692958,
+      "name": "host-prior-support-factorial",
+      "size_bytes": 5802372,
+      "sha256": "fc27ad1cd2c6f276966522b0ea234752b00005db61a7e559eb79f3fb2ed631af",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "e03de64df538713ab9411d7be27a9b17a686b5ef",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/host-prior-support-factorial.yml",
+      "run_created_at": "2026-10-29T15:19:31Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "4bbf3ccdca0a5d86fede62baa239c18dd0c40f8b",
+        "runner_blob_sha": "1a311d772c8119e8a38eaaea0cfa1ebaa1fc163c",
+        "master_seed": 20261030,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261030); bootstrap_rng=np.random.default_rng(20261031); 200 sequential replicates per factorial cell; summarizer uses independent bootstrap seed 20261031.",
+        "source_commit": "e03de64df538713ab9411d7be27a9b17a686b5ef",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261031
       }
     },
     {
@@ -295,6 +355,62 @@
       }
     },
     {
+      "run_id": 40900401005,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12910061380,
+      "name": "hidden-host-assumption-sensitivity",
+      "size_bytes": 7156136,
+      "sha256": "7543e7e651a892dd5e8bcd37ad8abf4317e3973de29a224959a0103b051b0357",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "e03de64df538713ab9411d7be27a9b17a686b5ef",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/hidden-host-assumption-sensitivity.yml",
+      "run_created_at": "2026-10-29T15:19:35Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "5a6c85e164ed4d0ae454b4ee7e7a25d6882c4abf",
+        "runner_blob_sha": "7a3f68b8b027724df495a88fbcc9ff731160a79a",
+        "master_seed": 20261032,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261032); bootstrap_rng=np.random.default_rng(20261033); 200 sequential replicates per factorial cell; summarizer uses seed 20261033.",
+        "source_commit": "e03de64df538713ab9411d7be27a9b17a686b5ef",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261033
+      }
+    },
+    {
+      "run_id": 40900401035,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12910000411,
+      "name": "host-prior-support-factorial",
+      "size_bytes": 5802261,
+      "sha256": "eb50e141586f114ed214e36f5651a9cb3473ad730dbbca7a31eadd480f6f01ac",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "e03de64df538713ab9411d7be27a9b17a686b5ef",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/host-prior-support-factorial.yml",
+      "run_created_at": "2026-10-29T15:19:35Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "4bbf3ccdca0a5d86fede62baa239c18dd0c40f8b",
+        "runner_blob_sha": "1a311d772c8119e8a38eaaea0cfa1ebaa1fc163c",
+        "master_seed": 20261030,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261030); bootstrap_rng=np.random.default_rng(20261031); 200 sequential replicates per factorial cell; summarizer uses independent bootstrap seed 20261031.",
+        "source_commit": "e03de64df538713ab9411d7be27a9b17a686b5ef",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261031
+      }
+    },
+    {
       "run_id": 40900435379,
       "branch": "research/audit-posterior-grid-integrity",
       "artifact_id": 12909281826,
@@ -347,6 +463,34 @@
       }
     },
     {
+      "run_id": 40900435573,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12908703734,
+      "name": "hidden-host-assumption-sensitivity",
+      "size_bytes": 7156136,
+      "sha256": "4c4310502d30841b6f239ef071bde26588d1e884ed6bb033991312c53fba53d5",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "160afd5b0488039f419598b21acad4a5d0ca1caf",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/hidden-host-assumption-sensitivity.yml",
+      "run_created_at": "2026-10-29T15:19:48Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "5a6c85e164ed4d0ae454b4ee7e7a25d6882c4abf",
+        "runner_blob_sha": "7a3f68b8b027724df495a88fbcc9ff731160a79a",
+        "master_seed": 20261032,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261032); bootstrap_rng=np.random.default_rng(20261033); 200 sequential replicates per factorial cell; summarizer uses seed 20261033.",
+        "source_commit": "160afd5b0488039f419598b21acad4a5d0ca1caf",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261033
+      }
+    },
+    {
       "run_id": 40900435618,
       "branch": "research/audit-posterior-grid-integrity",
       "artifact_id": 12908986696,
@@ -370,6 +514,34 @@
         "replicates": 1000,
         "formula": "data_rng=np.random.default_rng(20261027); one global stream generates 1000 sequential replicates in each of four scenarios; no replicate-specific seed stride; all repeated workflow runs reuse the same seeded data.",
         "source_commit": "160afd5b0488039f419598b21acad4a5d0ca1caf"
+      }
+    },
+    {
+      "run_id": 40900435796,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12909066943,
+      "name": "host-prior-support-factorial",
+      "size_bytes": 5802261,
+      "sha256": "4547d844b7875be98b32da9c1165b60a68910d65bfe923b39a282c7bf78b3e24",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "160afd5b0488039f419598b21acad4a5d0ca1caf",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/host-prior-support-factorial.yml",
+      "run_created_at": "2026-10-29T15:19:48Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "4bbf3ccdca0a5d86fede62baa239c18dd0c40f8b",
+        "runner_blob_sha": "1a311d772c8119e8a38eaaea0cfa1ebaa1fc163c",
+        "master_seed": 20261030,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261030); bootstrap_rng=np.random.default_rng(20261031); 200 sequential replicates per factorial cell; summarizer uses independent bootstrap seed 20261031.",
+        "source_commit": "160afd5b0488039f419598b21acad4a5d0ca1caf",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261031
       }
     },
     {
@@ -496,6 +668,62 @@
       }
     },
     {
+      "run_id": 40900659970,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12910375420,
+      "name": "hidden-host-assumption-sensitivity",
+      "size_bytes": 7156136,
+      "sha256": "63529567fa77c953689dbee3ef9c5248d789149fc4f85e748b7eabb38bdad59a",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "602ab5bad8b48815d7ff83ea3de31bf9bf7d0f65",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/hidden-host-assumption-sensitivity.yml",
+      "run_created_at": "2026-10-29T15:21:06Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "5a6c85e164ed4d0ae454b4ee7e7a25d6882c4abf",
+        "runner_blob_sha": "7a3f68b8b027724df495a88fbcc9ff731160a79a",
+        "master_seed": 20261032,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261032); bootstrap_rng=np.random.default_rng(20261033); 200 sequential replicates per factorial cell; summarizer uses seed 20261033.",
+        "source_commit": "602ab5bad8b48815d7ff83ea3de31bf9bf7d0f65",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261033
+      }
+    },
+    {
+      "run_id": 40900660110,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12908314310,
+      "name": "host-prior-support-factorial",
+      "size_bytes": 5802261,
+      "sha256": "24703673ce037115fb221af4c5c8d7b57aa8f3306be30b255ea64f8ec351405f",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "602ab5bad8b48815d7ff83ea3de31bf9bf7d0f65",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/host-prior-support-factorial.yml",
+      "run_created_at": "2026-10-29T15:21:06Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "4bbf3ccdca0a5d86fede62baa239c18dd0c40f8b",
+        "runner_blob_sha": "1a311d772c8119e8a38eaaea0cfa1ebaa1fc163c",
+        "master_seed": 20261030,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261030); bootstrap_rng=np.random.default_rng(20261031); 200 sequential replicates per factorial cell; summarizer uses independent bootstrap seed 20261031.",
+        "source_commit": "602ab5bad8b48815d7ff83ea3de31bf9bf7d0f65",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261031
+      }
+    },
+    {
       "run_id": 40900853951,
       "branch": "research/audit-posterior-grid-integrity",
       "artifact_id": 12909406261,
@@ -545,6 +773,62 @@
         "replicates": 1000,
         "formula": "data_rng=np.random.default_rng(20261027); one global stream generates 1000 sequential replicates in each of four scenarios; no replicate-specific seed stride; all repeated workflow runs reuse the same seeded data.",
         "source_commit": "c8a56e4f662dc60b74a564620c958f4801322c28"
+      }
+    },
+    {
+      "run_id": 40900854059,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12910365775,
+      "name": "hidden-host-assumption-sensitivity",
+      "size_bytes": 7156136,
+      "sha256": "5725134256e8c29a5c0c7eeba7a3735e46b103cdee276cbb02436a9df8d8761d",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "c8a56e4f662dc60b74a564620c958f4801322c28",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/hidden-host-assumption-sensitivity.yml",
+      "run_created_at": "2026-10-29T15:22:15Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "5a6c85e164ed4d0ae454b4ee7e7a25d6882c4abf",
+        "runner_blob_sha": "7a3f68b8b027724df495a88fbcc9ff731160a79a",
+        "master_seed": 20261032,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261032); bootstrap_rng=np.random.default_rng(20261033); 200 sequential replicates per factorial cell; summarizer uses seed 20261033.",
+        "source_commit": "c8a56e4f662dc60b74a564620c958f4801322c28",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261033
+      }
+    },
+    {
+      "run_id": 40900854255,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12908748610,
+      "name": "host-prior-support-factorial",
+      "size_bytes": 5802261,
+      "sha256": "d1cccd59b15e7102a3b39e9967cae6bd67e5164431a372015189922301a9d9af",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "c8a56e4f662dc60b74a564620c958f4801322c28",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/host-prior-support-factorial.yml",
+      "run_created_at": "2026-10-29T15:22:15Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "4bbf3ccdca0a5d86fede62baa239c18dd0c40f8b",
+        "runner_blob_sha": "1a311d772c8119e8a38eaaea0cfa1ebaa1fc163c",
+        "master_seed": 20261030,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261030); bootstrap_rng=np.random.default_rng(20261031); 200 sequential replicates per factorial cell; summarizer uses independent bootstrap seed 20261031.",
+        "source_commit": "c8a56e4f662dc60b74a564620c958f4801322c28",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261031
       }
     },
     {
@@ -617,6 +901,62 @@
       "run_created_at": "2026-10-29T15:30:32Z",
       "run_conclusion": "success",
       "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 40902542037,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12910576789,
+      "name": "hidden-host-assumption-sensitivity",
+      "size_bytes": 7156136,
+      "sha256": "ebbc0969d323774351e9de85b96ec1b8ab181654de282e4d462fe6ec3ee83f2e",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "f1da2b43dad7aa0c4c5cae478845923d4b9090e8",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/hidden-host-assumption-sensitivity.yml",
+      "run_created_at": "2026-10-29T15:32:07Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "5a6c85e164ed4d0ae454b4ee7e7a25d6882c4abf",
+        "runner_blob_sha": "7a3f68b8b027724df495a88fbcc9ff731160a79a",
+        "master_seed": 20261032,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261032); bootstrap_rng=np.random.default_rng(20261033); 200 sequential replicates per factorial cell; summarizer uses seed 20261033.",
+        "source_commit": "f1da2b43dad7aa0c4c5cae478845923d4b9090e8",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261033
+      }
+    },
+    {
+      "run_id": 40902542076,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12910670697,
+      "name": "host-prior-support-factorial",
+      "size_bytes": 5802261,
+      "sha256": "35c764c48db3ae37d86fc06b6cdedfd325b1a2def40ad472d173804fa0ebfa51",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "f1da2b43dad7aa0c4c5cae478845923d4b9090e8",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/host-prior-support-factorial.yml",
+      "run_created_at": "2026-10-29T15:32:07Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "4bbf3ccdca0a5d86fede62baa239c18dd0c40f8b",
+        "runner_blob_sha": "1a311d772c8119e8a38eaaea0cfa1ebaa1fc163c",
+        "master_seed": 20261030,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261030); bootstrap_rng=np.random.default_rng(20261031); 200 sequential replicates per factorial cell; summarizer uses independent bootstrap seed 20261031.",
+        "source_commit": "f1da2b43dad7aa0c4c5cae478845923d4b9090e8",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261031
+      }
     },
     {
       "run_id": 40902542116,
@@ -749,6 +1089,62 @@
       }
     },
     {
+      "run_id": 40902713043,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12909079300,
+      "name": "host-prior-support-factorial",
+      "size_bytes": 5802372,
+      "sha256": "fbcd892a02a69d3342a435169339e81b88d7318fa39945971c64349004282774",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "c520199890c15025e91d27c0e136002a973879de",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/host-prior-support-factorial.yml",
+      "run_created_at": "2026-10-29T15:33:08Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "4bbf3ccdca0a5d86fede62baa239c18dd0c40f8b",
+        "runner_blob_sha": "1a311d772c8119e8a38eaaea0cfa1ebaa1fc163c",
+        "master_seed": 20261030,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261030); bootstrap_rng=np.random.default_rng(20261031); 200 sequential replicates per factorial cell; summarizer uses independent bootstrap seed 20261031.",
+        "source_commit": "c520199890c15025e91d27c0e136002a973879de",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261031
+      }
+    },
+    {
+      "run_id": 40902713055,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12910083805,
+      "name": "hidden-host-assumption-sensitivity",
+      "size_bytes": 7156136,
+      "sha256": "23460494fb37a98e967b0a67667d0c37e9e8333044002d666f2e73b27264def4",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "c520199890c15025e91d27c0e136002a973879de",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/hidden-host-assumption-sensitivity.yml",
+      "run_created_at": "2026-10-29T15:33:08Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "5a6c85e164ed4d0ae454b4ee7e7a25d6882c4abf",
+        "runner_blob_sha": "7a3f68b8b027724df495a88fbcc9ff731160a79a",
+        "master_seed": 20261032,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261032); bootstrap_rng=np.random.default_rng(20261033); 200 sequential replicates per factorial cell; summarizer uses seed 20261033.",
+        "source_commit": "c520199890c15025e91d27c0e136002a973879de",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261033
+      }
+    },
+    {
       "run_id": 40902713218,
       "branch": "research/audit-posterior-grid-integrity",
       "artifact_id": 12910232597,
@@ -801,6 +1197,34 @@
       }
     },
     {
+      "run_id": 40902726602,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12910561879,
+      "name": "host-prior-support-factorial",
+      "size_bytes": 5802372,
+      "sha256": "38f8ec4f0b10f9864a9c926cb3f9337de24d548abaf6ecf633e44fe8c16c576c",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "fb378a6f75b6cd5256eff03d989050fc96720429",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/host-prior-support-factorial.yml",
+      "run_created_at": "2026-10-29T15:33:13Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "4bbf3ccdca0a5d86fede62baa239c18dd0c40f8b",
+        "runner_blob_sha": "1a311d772c8119e8a38eaaea0cfa1ebaa1fc163c",
+        "master_seed": 20261030,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261030); bootstrap_rng=np.random.default_rng(20261031); 200 sequential replicates per factorial cell; summarizer uses independent bootstrap seed 20261031.",
+        "source_commit": "fb378a6f75b6cd5256eff03d989050fc96720429",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261031
+      }
+    },
+    {
       "run_id": 40902726682,
       "branch": "research/audit-posterior-grid-integrity",
       "artifact_id": 12908504838,
@@ -824,6 +1248,34 @@
         "replicates": 1000,
         "formula": "data_rng=np.random.default_rng(20261027); one global stream generates 1000 sequential replicates in each of four scenarios; no replicate-specific seed stride; all repeated workflow runs reuse the same seeded data.",
         "source_commit": "fb378a6f75b6cd5256eff03d989050fc96720429"
+      }
+    },
+    {
+      "run_id": 40902726726,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12910626326,
+      "name": "hidden-host-assumption-sensitivity",
+      "size_bytes": 7156249,
+      "sha256": "d41fb0f3b6e4c26d86467d233225656238546d260756782b85d9aabffe195530",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "fb378a6f75b6cd5256eff03d989050fc96720429",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/hidden-host-assumption-sensitivity.yml",
+      "run_created_at": "2026-10-29T15:33:13Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "5a6c85e164ed4d0ae454b4ee7e7a25d6882c4abf",
+        "runner_blob_sha": "7a3f68b8b027724df495a88fbcc9ff731160a79a",
+        "master_seed": 20261032,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261032); bootstrap_rng=np.random.default_rng(20261033); 200 sequential replicates per factorial cell; summarizer uses seed 20261033.",
+        "source_commit": "fb378a6f75b6cd5256eff03d989050fc96720429",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261033
       }
     },
     {
@@ -879,6 +1331,34 @@
       }
     },
     {
+      "run_id": 40902772269,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12911085282,
+      "name": "host-prior-support-factorial",
+      "size_bytes": 5802372,
+      "sha256": "c4bf6ef899d54a821389dbc5a027ce4c781951e1e10762b493361bec4296b64f",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "913e6c3ee339938bc7a2ec06eecdcdb5acaea497",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/host-prior-support-factorial.yml",
+      "run_created_at": "2026-10-29T15:33:28Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "4bbf3ccdca0a5d86fede62baa239c18dd0c40f8b",
+        "runner_blob_sha": "1a311d772c8119e8a38eaaea0cfa1ebaa1fc163c",
+        "master_seed": 20261030,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261030); bootstrap_rng=np.random.default_rng(20261031); 200 sequential replicates per factorial cell; summarizer uses independent bootstrap seed 20261031.",
+        "source_commit": "913e6c3ee339938bc7a2ec06eecdcdb5acaea497",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261031
+      }
+    },
+    {
       "run_id": 40902772302,
       "branch": "research/audit-posterior-grid-integrity",
       "artifact_id": 12910586076,
@@ -928,6 +1408,62 @@
         "replicates": 1000,
         "formula": "data_rng=np.random.default_rng(20261027); bootstrap_rng=np.random.default_rng(20261028); 1000 sequential paired replicates shared across inference arms; no replicate-specific seed stride; repeated workflow runs reuse the same data and bootstrap streams.",
         "source_commit": "913e6c3ee339938bc7a2ec06eecdcdb5acaea497"
+      }
+    },
+    {
+      "run_id": 40902772377,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12909334371,
+      "name": "hidden-host-assumption-sensitivity",
+      "size_bytes": 7156249,
+      "sha256": "99035f59886d62fad05ebcf745c7ed62dc553fe6b2e892d838631329c9f63731",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "913e6c3ee339938bc7a2ec06eecdcdb5acaea497",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/hidden-host-assumption-sensitivity.yml",
+      "run_created_at": "2026-10-29T15:33:28Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "5a6c85e164ed4d0ae454b4ee7e7a25d6882c4abf",
+        "runner_blob_sha": "7a3f68b8b027724df495a88fbcc9ff731160a79a",
+        "master_seed": 20261032,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261032); bootstrap_rng=np.random.default_rng(20261033); 200 sequential replicates per factorial cell; summarizer uses seed 20261033.",
+        "source_commit": "913e6c3ee339938bc7a2ec06eecdcdb5acaea497",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261033
+      }
+    },
+    {
+      "run_id": 40902796577,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12910901315,
+      "name": "hidden-host-assumption-sensitivity",
+      "size_bytes": 7156136,
+      "sha256": "d488f55d24670ca2a6ca902942902e1e18f72b97da22dccb39c542c3800374ec",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "f8e74da2e0c98bd91d9f71c19011befff3240e18",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/hidden-host-assumption-sensitivity.yml",
+      "run_created_at": "2026-10-29T15:33:37Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "5a6c85e164ed4d0ae454b4ee7e7a25d6882c4abf",
+        "runner_blob_sha": "7a3f68b8b027724df495a88fbcc9ff731160a79a",
+        "master_seed": 20261032,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261032); bootstrap_rng=np.random.default_rng(20261033); 200 sequential replicates per factorial cell; summarizer uses seed 20261033.",
+        "source_commit": "f8e74da2e0c98bd91d9f71c19011befff3240e18",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261033
       }
     },
     {
@@ -983,6 +1519,34 @@
       }
     },
     {
+      "run_id": 40902796698,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12910836042,
+      "name": "host-prior-support-factorial",
+      "size_bytes": 5802261,
+      "sha256": "a549e401b90500eeee7a75df911c4d9f7f04fdb9748b8824e875fa4473f148b0",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "f8e74da2e0c98bd91d9f71c19011befff3240e18",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/host-prior-support-factorial.yml",
+      "run_created_at": "2026-10-29T15:33:37Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "4bbf3ccdca0a5d86fede62baa239c18dd0c40f8b",
+        "runner_blob_sha": "1a311d772c8119e8a38eaaea0cfa1ebaa1fc163c",
+        "master_seed": 20261030,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261030); bootstrap_rng=np.random.default_rng(20261031); 200 sequential replicates per factorial cell; summarizer uses independent bootstrap seed 20261031.",
+        "source_commit": "f8e74da2e0c98bd91d9f71c19011befff3240e18",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261031
+      }
+    },
+    {
       "run_id": 40902796728,
       "branch": "research/audit-posterior-grid-integrity",
       "artifact_id": 12910251991,
@@ -1006,6 +1570,34 @@
         "replicates": 200,
         "formula": "data_rng=np.random.default_rng(20261029); bootstrap_rng=np.random.default_rng(20261030); 200 sequential replicates per factorial cell across 108 cells, shared across four inference arms; no replicate-specific seed stride; repeated workflow runs reuse the same data and bootstrap streams.",
         "source_commit": "f8e74da2e0c98bd91d9f71c19011befff3240e18"
+      }
+    },
+    {
+      "run_id": 40902828363,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12909828178,
+      "name": "host-prior-support-factorial",
+      "size_bytes": 5802261,
+      "sha256": "d00560d9470b2667f95c3684bd6fc3ed8133d77777ee321a7d5d8692fb0deaf9",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "d25b34a1ec824e88b4b38c224bfabe4402f6ed61",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/host-prior-support-factorial.yml",
+      "run_created_at": "2026-10-29T15:33:48Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "4bbf3ccdca0a5d86fede62baa239c18dd0c40f8b",
+        "runner_blob_sha": "1a311d772c8119e8a38eaaea0cfa1ebaa1fc163c",
+        "master_seed": 20261030,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261030); bootstrap_rng=np.random.default_rng(20261031); 200 sequential replicates per factorial cell; summarizer uses independent bootstrap seed 20261031.",
+        "source_commit": "d25b34a1ec824e88b4b38c224bfabe4402f6ed61",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261031
       }
     },
     {
@@ -1087,6 +1679,34 @@
       }
     },
     {
+      "run_id": 40902832400,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12911150660,
+      "name": "hidden-host-assumption-sensitivity",
+      "size_bytes": 7156136,
+      "sha256": "407e71a2dd6971a92415ba6462876189835799dde0f47bcf37a3f486ed5334f7",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "d25b34a1ec824e88b4b38c224bfabe4402f6ed61",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/hidden-host-assumption-sensitivity.yml",
+      "run_created_at": "2026-10-29T15:33:48Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "5a6c85e164ed4d0ae454b4ee7e7a25d6882c4abf",
+        "runner_blob_sha": "7a3f68b8b027724df495a88fbcc9ff731160a79a",
+        "master_seed": 20261032,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261032); bootstrap_rng=np.random.default_rng(20261033); 200 sequential replicates per factorial cell; summarizer uses seed 20261033.",
+        "source_commit": "d25b34a1ec824e88b4b38c224bfabe4402f6ed61",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261033
+      }
+    },
+    {
       "run_id": 40903014669,
       "branch": "research/audit-posterior-grid-integrity",
       "artifact_id": 12911020264,
@@ -1110,6 +1730,34 @@
         "replicates": 1000,
         "formula": "data_rng=np.random.default_rng(20261027); one global stream generates 1000 sequential replicates in each of four scenarios; no replicate-specific seed stride; all repeated workflow runs reuse the same seeded data.",
         "source_commit": "155d02a7a6e3f9550ab3979f51ac838723a3ac13"
+      }
+    },
+    {
+      "run_id": 40903014680,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12910377882,
+      "name": "hidden-host-assumption-sensitivity",
+      "size_bytes": 7156249,
+      "sha256": "4adfd6484de02900952628b17cf624cbf1e620d9332aeb9b1d0638d1e8e1e10f",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "155d02a7a6e3f9550ab3979f51ac838723a3ac13",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/hidden-host-assumption-sensitivity.yml",
+      "run_created_at": "2026-10-29T15:34:54Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "5a6c85e164ed4d0ae454b4ee7e7a25d6882c4abf",
+        "runner_blob_sha": "7a3f68b8b027724df495a88fbcc9ff731160a79a",
+        "master_seed": 20261032,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261032); bootstrap_rng=np.random.default_rng(20261033); 200 sequential replicates per factorial cell; summarizer uses seed 20261033.",
+        "source_commit": "155d02a7a6e3f9550ab3979f51ac838723a3ac13",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261033
       }
     },
     {
@@ -1165,6 +1813,34 @@
       }
     },
     {
+      "run_id": 40903014743,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12909799696,
+      "name": "host-prior-support-factorial",
+      "size_bytes": 5802261,
+      "sha256": "5f56acac59037e7afe3e6a754b3886610c119d8c4f8cdb6ec3bb499b3cfc0faf",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "155d02a7a6e3f9550ab3979f51ac838723a3ac13",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/host-prior-support-factorial.yml",
+      "run_created_at": "2026-10-29T15:34:54Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "4bbf3ccdca0a5d86fede62baa239c18dd0c40f8b",
+        "runner_blob_sha": "1a311d772c8119e8a38eaaea0cfa1ebaa1fc163c",
+        "master_seed": 20261030,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261030); bootstrap_rng=np.random.default_rng(20261031); 200 sequential replicates per factorial cell; summarizer uses independent bootstrap seed 20261031.",
+        "source_commit": "155d02a7a6e3f9550ab3979f51ac838723a3ac13",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261031
+      }
+    },
+    {
       "run_id": 40904011735,
       "branch": "research/audit-posterior-grid-integrity",
       "artifact_id": 12911016099,
@@ -1188,6 +1864,62 @@
         "replicates": 1000,
         "formula": "data_rng=np.random.default_rng(20261027); bootstrap_rng=np.random.default_rng(20261028); 1000 sequential paired replicates shared across inference arms; no replicate-specific seed stride; repeated workflow runs reuse the same data and bootstrap streams.",
         "source_commit": "a7d6c5b6cb58fea3d5d073a8272387c07231cdad"
+      }
+    },
+    {
+      "run_id": 40904011866,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12910807429,
+      "name": "hidden-host-assumption-sensitivity",
+      "size_bytes": 7156136,
+      "sha256": "e610d6c9d614fcdebb20ff02885b940d2cbb97edd52c432bbc6e5b13586c107d",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "a7d6c5b6cb58fea3d5d073a8272387c07231cdad",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/hidden-host-assumption-sensitivity.yml",
+      "run_created_at": "2026-10-29T15:40:51Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "5a6c85e164ed4d0ae454b4ee7e7a25d6882c4abf",
+        "runner_blob_sha": "7a3f68b8b027724df495a88fbcc9ff731160a79a",
+        "master_seed": 20261032,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261032); bootstrap_rng=np.random.default_rng(20261033); 200 sequential replicates per factorial cell; summarizer uses seed 20261033.",
+        "source_commit": "a7d6c5b6cb58fea3d5d073a8272387c07231cdad",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261033
+      }
+    },
+    {
+      "run_id": 40904011902,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12911765453,
+      "name": "host-prior-support-factorial",
+      "size_bytes": 5802372,
+      "sha256": "dd531ffbc56e7ce41d49a185be18f5f0b1877f3cb2ded8d79949ec8822feff84",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "a7d6c5b6cb58fea3d5d073a8272387c07231cdad",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/host-prior-support-factorial.yml",
+      "run_created_at": "2026-10-29T15:40:51Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "4bbf3ccdca0a5d86fede62baa239c18dd0c40f8b",
+        "runner_blob_sha": "1a311d772c8119e8a38eaaea0cfa1ebaa1fc163c",
+        "master_seed": 20261030,
+        "seed_stride": "not_applicable_single_global_rng_stream",
+        "replicates": 200,
+        "formula": "data_rng=np.random.default_rng(20261030); bootstrap_rng=np.random.default_rng(20261031); 200 sequential replicates per factorial cell; summarizer uses independent bootstrap seed 20261031.",
+        "source_commit": "a7d6c5b6cb58fea3d5d073a8272387c07231cdad",
+        "summarizer_blob_sha": "91e30767c52491b15497f1cde60f0cb85c453cae",
+        "summarizer_seed": 20261031
       }
     },
     {
