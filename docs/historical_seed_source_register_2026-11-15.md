@@ -532,3 +532,31 @@ The 159 successful runs split into 88 successful research-workflow runs (100 art
 
 This run census closes the **run-count** gap for this branch, not the artifact/source gap. The 500-run branch is still not fully audited: 210 successful test artifacts are unlisted, partial artifacts from 341 non-success runs are unknown, and the test workflow's seed-bearing smoke commands/defaults have not been source-reconciled across all 71 successful heads.
 
+
+
+## Host-prior and hidden-host representative payload readout — 2026-11-15
+
+Two representative payloads previously listed as metadata-only have now been downloaded and SHA-256 verified:
+
+- Host-prior-support factorial: artifact 12911765453; 86,400 per-run rows, 432 summary rows, 1,296 cell-level arm-contrast rows, 108 factorial cells and four inference arms.
+- Hidden-host-assumption sensitivity: artifact 12910807429; 105,600 per-run rows, 528 summary rows, 2,880 paired-contrast rows, 48 factorial cells and eleven inference arms.
+
+Their CSVs expose the bootstrap streams directly: host-prior contrasts use bootstrap seed 20261031; hidden-host contrasts use 20261033. The data-generation seeds 20261030 and 20261032 are established by the exact workflow/runner source proofs, not by per-run CSV columns. These are representative payload checks; the other 24 repeated workflow-run artifacts remain metadata-only.
+
+Descriptive equal-cell averages from the host-prior `summary.csv` (not a universal estimator ranking):
+
+| Arm | Mean error | RMSE | 68% coverage |
+|---|---:|---:|---:|
+| base_weights | -1.84 | 12.88 | 0.713 |
+| equal_weights | +4.71 | 12.43 | 0.705 |
+| hidden_host_modelled | +1.16 | 11.75 | 0.740 |
+| reversed_weights | +7.45 | 14.21 | 0.642 |
+
+For the hidden-host experiment, the `oracle_hidden` arm averages RMSE 8.53 and 68% coverage 0.682; `base_omitted` averages RMSE 9.59 and coverage 0.602. Across the nine assumed-hidden-fraction/redshift arms, average RMSE ranges roughly 9.07–11.47 and 68% coverage roughly 0.616–0.675. These are equal-cell descriptive averages across the archived 48-cell factorial, not inferential guarantees.
+
+These experiments concern host-prior weighting and hidden-host assumptions, not the current logistic finite-validation catalogue-inclusion estimator. They should inform the project's separation of catalogue inclusion, host/merger weighting and hidden-host modeling, but must not be presented as direct validation of estimated IPW.
+
+### Updated payload inventory snapshot
+
+The two downloads bring the persisted manifest to **372 artifact records across 197 run IDs, 205 downloaded and SHA-256-verified archives, 167 metadata-only artifacts, 148 source-proven schedules, and 60 persisted unresolved artifacts**. The 210 known unlisted successful test artifacts remain outside the persisted artifact records. The provisional seed-field occurrence count is now 3,311,919 and still requires a complete rescan with the corrected parser; the exact distinct-seed union remains unreconciled.
+
