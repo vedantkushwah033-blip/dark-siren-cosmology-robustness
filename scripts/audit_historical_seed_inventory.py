@@ -73,7 +73,12 @@ def _walk_json(value: Any, source: str, prefix: str = "$") -> list[dict[str, Any
 
 
 def _ledger_seed_reuse_warnings(path: Path, relative: str) -> list[dict[str, str]]:
-    """Flag seed-stream reuse across replicate IDs while allowing within-replicate pairing."""
+    """Flag seed reuse across replicates within design strata.
+
+    Repeated rows for nested validation sizes are collapsed. Scenario columns
+    separate independent design strata, while gamma remains a stratum so both
+    common-random-number and independently seeded gamma designs are admissible.
+    """
     warnings: list[dict[str, str]] = []
     with path.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
@@ -82,52 +87,62 @@ def _ledger_seed_reuse_warnings(path: Path, relative: str) -> list[dict[str, str
         seed_columns = [
             column for column in reader.fieldnames
             if column and SEED_KEY.search(column)
-            and column.lower() not in {"seed", "seeds", "seed_start"}
+            and column.lower() not in {"seed", "seeds", "seed_start", "master_seed", "base_seed"}
         ]
         if len(seed_columns) < 2:
             return warnings
-
-        by_replicate: dict[str, dict[str, set[int]]] = {}
+        context_columns = [
+            column for column in (
+                "experiment", "gamma", "catalogue_floor", "target_retention",
+                "floor", "scenario", "scenario_id", "dgp", "dgp_id",
+                "cell_type", "condition", "replicate_group",
+            )
+            if column in reader.fieldnames
+        ]
+        by_stratum_replicate: dict[tuple[tuple[str, str], ...], dict[str, dict[str, set[int]]]] = {}
         for row_number, row in enumerate(reader, start=2):
             replicate = row.get("replicate")
             if replicate in (None, ""):
                 continue
-            stream_values = by_replicate.setdefault(str(replicate), {
-                column: set() for column in seed_columns
-            })
+            stratum = tuple((column, str(row.get(column, ""))) for column in context_columns)
+            streams = by_stratum_replicate.setdefault(stratum, {}).setdefault(
+                str(replicate), {column: set() for column in seed_columns}
+            )
             for column in seed_columns:
                 raw = row.get(column)
                 if raw not in (None, ""):
-                    stream_values[column].add(
+                    streams[column].add(
                         _seed_int(raw, source=relative, field=f"{column}@row{row_number}")
                     )
 
-    stable_by_replicate: dict[str, dict[str, int]] = {}
-    for replicate, streams in by_replicate.items():
-        stable: dict[str, int] = {}
-        for column, values in streams.items():
-            if len(values) > 1:
-                warnings.append({
-                    "path": relative,
-                    "kind": "seed_stream_varies_within_replicate",
-                    "detail": f"replicate={replicate} stream={column} has {len(values)} distinct values",
-                })
-            elif len(values) == 1:
-                stable[column] = next(iter(values))
-        stable_by_replicate[replicate] = stable
+    for stratum, by_replicate in by_stratum_replicate.items():
+        stratum_label = ",".join(f"{key}={value}" for key, value in stratum) or "all_rows"
+        stable_by_replicate: dict[str, dict[str, int]] = {}
+        for replicate, streams in by_replicate.items():
+            stable: dict[str, int] = {}
+            for column, values in streams.items():
+                if len(values) > 1:
+                    warnings.append({
+                        "path": relative,
+                        "kind": "seed_stream_varies_within_replicate_stratum",
+                        "detail": f"stratum={stratum_label} replicate={replicate} stream={column} has {len(values)} distinct values",
+                    })
+                elif len(values) == 1:
+                    stable[column] = next(iter(values))
+            stable_by_replicate[replicate] = stable
 
-    for column in seed_columns:
-        by_value: dict[int, list[str]] = {}
-        for replicate, streams in stable_by_replicate.items():
-            if column in streams:
-                by_value.setdefault(streams[column], []).append(replicate)
-        for seed_value, replicate_ids in by_value.items():
-            if len(replicate_ids) > 1:
-                warnings.append({
-                    "path": relative,
-                    "kind": f"{column}_reused_across_replicates",
-                    "detail": f"seed={seed_value} appears in replicate IDs {','.join(sorted(replicate_ids))}",
-                })
+        for column in seed_columns:
+            by_value: dict[int, list[str]] = {}
+            for replicate, streams in stable_by_replicate.items():
+                if column in streams:
+                    by_value.setdefault(streams[column], []).append(replicate)
+            for seed_value, replicate_ids in by_value.items():
+                if len(replicate_ids) > 1:
+                    warnings.append({
+                        "path": relative,
+                        "kind": f"{column}_reused_across_replicates",
+                        "detail": f"stratum={stratum_label} seed={seed_value} appears in replicate IDs {','.join(sorted(replicate_ids))}",
+                    })
     return warnings
 
 
