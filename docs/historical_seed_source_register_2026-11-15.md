@@ -32,6 +32,8 @@ Status: **PARTIAL / NOT COMPLETE**. This register records known density-pilot wo
 | 42481464991 | 13620045169 | finite-validation-density-confirmatory-py3.12 | 215,628,452 | 7ba17940acd7c3c71565a72aea6aa47b36992360d96e6c5274f68a79ab61cf10 | Downloaded; SHA-256 verified; seed_start=20261108; repeated base-seed metadata |
 | 42481059735 | 13616999063 | fixed-analysis-catalogue-density-confirmatory-py3.12 | 78,030,562 | c375e84168b55d1cc91a3b774485b6f6402ff9355ccc276718b906c49e95f4fa | Downloaded; SHA-256 verified |
 | 42481059738 | 13617671733 | fixed-analysis-catalogue-density-pilot-py3.12 | 3,920,710 | 5a494eeb515e87d0799f4bf701f95fa5409a5d483deb9ae6dfb77fecf0682037 | Downloaded; SHA-256 verified |
+| 42481456702 | 13617909211 | finite-validation-density-recovery-confirmatory-py3.12 | 215,628,450 | fc136f6b1b508616b43d23c61f6666239152f9a13363d6eb09f928447e27212f | Downloaded; SHA-256 verified; same seed_start=20261108 base seed |
+| 40795743899 | 12863708515 | selection-misspecification-sensitivity-243e1bdc3210951dadcf5b2d05d2b97a6ebba4b9 | 3,161,553 | 5d2a9f5922438490dfe735a21a021aa52a07d60e18bf61da56aeec0cad04b9eb | Downloaded; SHA-256 verified; 32 distinct seed values |
 
 ## Initial partial artifact inspection (superseded by expanded scan below)
 
@@ -120,26 +122,26 @@ The branch has since received documentation-only updates (latest source-register
 
 ## Expanded historical inventory — 2026-11-15 (supersedes interim counts above)
 
-The machine-readable artifact register is now `configs/historical_seed_artifact_manifest_2026-11-15.json`. It contains **74 unique artifact records** across 37 successful workflow runs and four branches. For each record it stores the run ID, artifact ID, artifact name, exact byte count, GitHub SHA-256 digest, expiration state, download status, run head SHA, branch, workflow path, and creation timestamp.
+The machine-readable artifact register is now `configs/historical_seed_artifact_manifest_2026-11-15.json`. It contains **76 unique artifact records** across 39 successful workflow runs and five branches. For each record it stores the run ID, artifact ID, artifact name, exact byte count, GitHub SHA-256 digest, expiration state, download status, run head SHA, branch, workflow path, and creation timestamp.
 
-- 26 of the 74 artifacts were downloaded and their full ZIP SHA-256 digests verified against GitHub metadata.
+- 28 of the 76 artifacts were downloaded and their full ZIP SHA-256 digests verified against GitHub metadata.
 - 48 artifacts have metadata only; their ZIP payloads have not been downloaded.
 - The selected density/bandwidth/curvature workflows on the current research branch yielded 109 relevant run records: 30 successful, 39 failed, and 40 cancelled. Artifact enumeration for failed/cancelled runs is still unresolved.
 - Other historical branches may contain additional relevant workflows/runs. The source register is therefore still **PARTIAL / NOT COMPLETE**.
 
-### Consolidated scan of the 26 downloaded archives
+### Consolidated scan of the 28 downloaded archives
 
 An independent local scan of all 26 downloaded ZIP archives processed JSON, CSV, and NPZ members. The scan used the corrected field rules now implemented in the repository auditor: it includes singular seed fields, explicit plural seed arrays, and `seed_start`; it excludes seed-count and `*_across_seeds` summary metrics.
 
 | Scan item | Result |
 |---|---:|
-| ZIP archives | 26 |
-| JSON members | 2,736 |
-| CSV members | 9,248 |
+| ZIP archives | 28 |
+| JSON members | 2,755 |
+| CSV members | 9,259 |
 | NPZ members | 360 |
-| Total supported members | 12,344 |
-| Seed-field occurrences | 2,929,248 |
-| Distinct integer seed values | 541 |
+| Total supported members | 12,374 |
+| Seed-field occurrences | 2,944,032 |
+| Distinct integer seed values | 573 |
 | Remaining parse errors | 0 |
 | Explicit terminal-literal-\\n JSON repairs | 4 |
 | Ledger reuse warnings after design-stratum grouping | 0 |
@@ -149,7 +151,7 @@ An independent local scan of all 26 downloaded ZIP archives processed JSON, CSV,
 
 Every downloaded ZIP digest matched the corresponding GitHub artifact digest. Four older audit-report JSON files contained an otherwise valid JSON document followed by the two literal characters `\\n`; the auditor now repairs only that exact terminal defect and emits an `inventory_warnings` record. Original archive bytes and their hashes remain unchanged.
 
-The expanded 26-archive union contains 541 distinct seed values. Repeated occurrences are not independent draws: they include row-level seed metadata, duplicated floor arms, repeated validation-size views, Python-version artifacts, and repeated workflow executions.
+The expanded 28-archive union contains 573 distinct seed values. Repeated occurrences are not independent draws: they include row-level seed metadata, duplicated floor arms, repeated validation-size views, Python-version artifacts, and repeated workflow executions.
 
 ### Repeated workflow seed schedules identified
 
@@ -157,7 +159,7 @@ The expanded 26-archive union contains 541 distinct seed values. Repeated occurr
 - Two older 20-replicate absolute-bandwidth runs on `research/five-arm-kde-kernel-reuse-v2-20261114` use a separate 40-value family beginning at 20261201/20261202 and ending at 20261391/20261392.
 - The 12 successful curvature-pilot runs include early single-runner artifacts and later paired-runner artifacts. The later runner uses `master_seed=2026111500`, three replicates, stride 10, and a shared population/validation pair across gamma cells within each replicate. The early runner's ledger schedule is recorded separately above.
 - The seven-gamma smoke artifact (run 43685339718) is one engineering replicate, with seeds 20261115 and 20261116. It is not confirmatory and did not select a bandwidth or open a holdout.
-- The inclusion-posterior calibration artifact (run 42505936771) contributes 241 distinct seed values across its planned/realized scenario cells. Its ledger checks were performed within experiment/floor strata, so repeated nested validation-size rows were not misclassified as cross-replicate reuse.
+- The inclusion-posterior calibration artifact (run 42505936771) contributes 241 distinct seed values across its planned/realized scenario cells. Its ledger checks were performed within experiment/floor strata, so repeated nested validation-size rows were not misclassified as cross-replicate reuse. The older selection-misspecification sensitivity artifact (run 40795743899) contributes 32 additional distinct seed values; the second finite-validation confirmatory artifact (run 42481456702) repeats the 20261108 base seed already present in the first run.
 - The finite-validation confirmatory artifact (run 42481464991) records `seed_start=20261108` and repeated copies of the same base seed in row-level metrics; those copies are not independent seed draws.
 
 ### Auditor hardening in this update
