@@ -6676,7 +6676,7 @@
       "seed_stride": 10,
       "replicates": 24
     },
-    "limitation": "Results apply only to the listed downloaded archives and source-proven schedules. The 105+18 metadata-only artifacts, remaining workflows and run outcomes on the 500-run posterior-grid-integrity branch, other failed/cancelled runs, and any unenumerated historical workflows are not covered; exact distinct-seed union remains unreconciled. No global disjointness certification.",
+    "limitation": "Results apply only to the listed downloaded archives and source-proven schedules. The 149 metadata-only artifacts, remaining workflows and run outcomes on the 500-run posterior-grid-integrity branch, other failed/cancelled runs, and any unenumerated historical workflows are not covered. The 3,297,699 seed-field occurrence count is provisional because the scanner has since been fixed to extract scalar values from nested seed maps; a full rescan of all 193 downloaded archives is required. The exact distinct-seed union also remains unreconciled. No global disjointness certification.",
     "estimated_inclusion_py312_subset": {
       "archives": 43,
       "json_members": 1499,
@@ -6853,6 +6853,9 @@
       "parse_errors": 0,
       "sha256_verified": true,
       "distinct_union_recomputed_against_previous_archives": false
-    }
+    },
+    "seed_field_occurrences_reconciled": false,
+    "seed_field_occurrence_count_status": "PROVISIONAL_PRE_NESTED_SEED_MAP_PARSER_FIX",
+    "full_rescan_required_after_parser_fix": true
   }
 }
