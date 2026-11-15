@@ -259,3 +259,35 @@ def test_inventory_ignores_across_seeds_summary_metrics(tmp_path):
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
     assert report["status"] == "PASS"
     assert report["historical_seed_values"] == [3000]
+
+
+
+def test_ledger_diagnostic_allows_common_random_numbers_across_gamma(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "replicate_ledger.csv").write_text(
+        "gamma,replicate,population_seed,validation_seed\\n"
+        "-1,0,10,11\\n0,0,10,11\\n"
+        "-1,1,20,21\\n0,1,20,21\\n"
+    )
+    report = module.audit([root], _schedule(tmp_path / "schedule.json"))
+    assert report["status"] == "PASS"
+    assert report["historical_seed_warnings"] == []
+
+
+def test_ledger_diagnostic_warns_when_validation_seed_is_reused_across_replicates(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "replicate_ledger.csv").write_text(
+        "gamma,replicate,population_seed,validation_seed\\n"
+        "-1,0,10,99\\n0,0,10,99\\n"
+        "-1,1,20,99\\n0,1,20,99\\n"
+    )
+    report = module.audit([root], _schedule(tmp_path / "schedule.json"))
+    assert report["status"] == "PASS"
+    warnings = report["historical_seed_warnings"]
+    assert len(warnings) == 1
+    assert warnings[0]["kind"] == "validation_seed_reused_across_replicates"
+    assert "seed=99" in warnings[0]["detail"]
