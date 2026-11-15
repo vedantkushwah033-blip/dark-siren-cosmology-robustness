@@ -5,20 +5,21 @@
   "coverage": {
     "branch": "research/absolute-width-distribution-pilot-20261114",
     "successful_runs_enumerated": 30,
-    "artifacts_listed": 74,
-    "artifacts_downloaded_sha256_verified": 26,
+    "artifacts_listed": 76,
+    "artifacts_downloaded_sha256_verified": 28,
     "artifact_sources_complete": false,
     "source_branches": [
       "research/absolute-width-distribution-pilot-20261114",
       "research/five-arm-kde-kernel-reuse-v2-20261114",
       "research/inclusion-posterior-quadrature-prototype",
-      "research/independent-posterior-audit-claim-fix"
+      "research/independent-posterior-audit-claim-fix",
+      "research/selection-misspecification-sensitivity"
     ],
     "other_selected_workflow_artifacts_enumerated": true,
     "run_metadata_complete": true,
-    "unique_run_ids": 37,
+    "unique_run_ids": 39,
     "downloaded_archive_scan_complete": true,
-    "downloaded_archive_count": 26,
+    "downloaded_archive_count": 28,
     "metadata_only_artifact_count": 48
   },
   "artifacts": [
@@ -1067,6 +1068,34 @@
       "workflow_path": ".github/workflows/fixed-analysis-catalogue-density-pilot.yml",
       "run_created_at": "2026-11-08T12:36:32Z",
       "run_conclusion": "success"
+    },
+    {
+      "run_id": 42481456702,
+      "artifact_id": 13617909211,
+      "name": "finite-validation-density-recovery-confirmatory-py3.12",
+      "size_bytes": 215628450,
+      "sha256": "fc136f6b1b508616b43d23c61f6666239152f9a13363d6eb09f928447e27212f",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "3c2c48e727778dfc36a016588075a4f034c0e6eb",
+      "head_branch": "research/independent-posterior-audit-claim-fix",
+      "workflow_path": ".github/workflows/finite-validation-density-confirmatory.yml",
+      "run_created_at": "2026-11-08T12:41:54Z",
+      "run_conclusion": "success"
+    },
+    {
+      "run_id": 40795743899,
+      "artifact_id": 12863708515,
+      "name": "selection-misspecification-sensitivity-243e1bdc3210951dadcf5b2d05d2b97a6ebba4b9",
+      "size_bytes": 3161553,
+      "sha256": "5d2a9f5922438490dfe735a21a021aa52a07d60e18bf61da56aeec0cad04b9eb",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "243e1bdc3210951dadcf5b2d05d2b97a6ebba4b9",
+      "head_branch": "research/selection-misspecification-sensitivity",
+      "workflow_path": ".github/workflows/selection-misspecification-sensitivity.yml",
+      "run_created_at": "2026-10-29T00:41:55Z",
+      "run_conclusion": "success"
     }
   ],
   "artifact_sources_complete": false,
@@ -1074,14 +1103,14 @@
   "completeness_note": "PARTIAL: 48 artifact payloads are metadata-only; failed/cancelled runs and additional historical branches remain unresolved. This register must not authorize training or holdout execution.",
   "scan_summary": {
     "scan_date": "2026-11-15",
-    "downloaded_archives_scanned": 26,
-    "sha256_verified_archives": 26,
-    "json_members": 2736,
-    "csv_members": 9248,
+    "downloaded_archives_scanned": 28,
+    "sha256_verified_archives": 28,
+    "json_members": 2755,
+    "csv_members": 9259,
     "npz_members": 360,
-    "total_supported_members": 12344,
-    "seed_field_occurrences": 2929248,
-    "distinct_integer_seed_values": 541,
+    "total_supported_members": 12374,
+    "seed_field_occurrences": 2944032,
+    "distinct_integer_seed_values": 573,
     "remaining_parse_errors": 0,
     "terminal_literal_backslash_n_repairs": 4,
     "design_stratum_ledger_reuse_warnings": 0,
@@ -1098,6 +1127,6 @@
       "seed_stride": 10,
       "replicates": 24
     },
-    "limitation": "Results apply only to the 26 downloaded archives. The other 48 metadata-only artifacts, failed/cancelled runs, and additional historical workflows are not covered; no global disjointness certification."
+    "limitation": "Results apply only to the 28 downloaded archives. The other 48 metadata-only artifacts, failed/cancelled runs, and additional historical workflows are not covered; no global disjointness certification."
   }
 }
