@@ -1065,5 +1065,8 @@
       "run_created_at": "2026-11-08T12:36:32Z",
       "run_conclusion": "success"
     }
-  ]
+  ],
+  "artifact_sources_complete": false,
+  "artifact_roots": [],
+  "completeness_note": "PARTIAL: 48 artifact payloads are metadata-only; failed/cancelled runs and additional historical branches remain unresolved. This register must not authorize training or holdout execution."
 }
