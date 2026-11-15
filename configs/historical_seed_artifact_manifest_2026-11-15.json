@@ -5,9 +5,16 @@
   "coverage": {
     "branch": "research/absolute-width-distribution-pilot-20261114",
     "successful_runs_enumerated": 30,
-    "artifacts_listed": 64,
-    "artifacts_downloaded_sha256_verified": 15,
-    "artifact_sources_complete": false
+    "artifacts_listed": 75,
+    "artifacts_downloaded_sha256_verified": 26,
+    "artifact_sources_complete": false,
+    "source_branches": [
+      "research/absolute-width-distribution-pilot-20261114",
+      "research/five-arm-kde-kernel-reuse-v2-20261114",
+      "research/inclusion-posterior-quadrature-prototype",
+      "research/independent-posterior-audit-claim-fix"
+    ],
+    "other_selected_workflow_artifacts_enumerated": true
   },
   "artifacts": [
     {
@@ -583,6 +590,116 @@
       "name": "absolute-width-density-pilot-no-floor-4f125de03c01eccbd4cb81e069e8af2dfa49b4db",
       "size_bytes": 63613195,
       "sha256": "e0a59eb546cf0db2a33eecc69e4231d09a3dd82e5b5d53b22aef5365727f8ce9",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 43619577181,
+      "branch": "research/absolute-width-distribution-pilot-20261114",
+      "artifact_id": 14123904013,
+      "name": "five-arm-kde-bandwidth-pilot",
+      "size_bytes": 8157332,
+      "sha256": "c840a912f1cfc7ddcef930d2c92984f748d34859452dc54112cda6df76985d36",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 43619577181,
+      "branch": "research/absolute-width-distribution-pilot-20261114",
+      "artifact_id": 14123779398,
+      "name": "numerical-diagnostics-py3.12",
+      "size_bytes": 74359526,
+      "sha256": "3fc0e848d45526cfbd222c6fc2fa9684a1fc4408390dc2c4b5538f85eb715dff",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 43619577181,
+      "branch": "research/absolute-width-distribution-pilot-20261114",
+      "artifact_id": 14123673249,
+      "name": "numerical-diagnostics-py3.11",
+      "size_bytes": 12279818,
+      "sha256": "b8b10c69a19857b9dfd837cd2b96ccf2531ee7b86475e171c8c3431370719206",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 43619577181,
+      "branch": "research/absolute-width-distribution-pilot-20261114",
+      "artifact_id": 14122914778,
+      "name": "numerical-diagnostics-py3.10",
+      "size_bytes": 12280279,
+      "sha256": "f73e22abd9c6e88218052dd47a6dcb514e0f40454ebaab95a0a018c2c69f0e6c",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 43685339718,
+      "branch": "research/absolute-width-distribution-pilot-20261114",
+      "artifact_id": 14150446621,
+      "name": "quadratic-logit-curvature-seven-gamma-smoke",
+      "size_bytes": 29333334,
+      "sha256": "b8c5af4e37a4cf69a4bd2ea1459880efaa54920d71ec2959605949e02079f895",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 43615127763,
+      "branch": "research/five-arm-kde-kernel-reuse-v2-20261114",
+      "artifact_id": 14122952198,
+      "name": "absolute-bandwidth-density-pilot-20rep",
+      "size_bytes": 115545773,
+      "sha256": "641c17cbd04e348c8dc6215df642728a9fcc7cc2b8f25b6b230231ad4e29b579",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 43582872046,
+      "branch": "research/five-arm-kde-kernel-reuse-v2-20261114",
+      "artifact_id": 14110630053,
+      "name": "absolute-bandwidth-density-pilot-20rep",
+      "size_bytes": 115740778,
+      "sha256": "2aeb84f875dc3f436e0894c138a153d3a86fc5cac248d534b6b821a472b63131",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 42505936771,
+      "branch": "research/inclusion-posterior-quadrature-prototype",
+      "artifact_id": 13634748714,
+      "name": "inclusion-posterior-calibration-pilot-py3.12",
+      "size_bytes": 336763743,
+      "sha256": "c3e18b8726133ff1795fbbcbb9971e67f8eaa01222914db826b57ddf6fd29d4e",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 42481464991,
+      "branch": "research/independent-posterior-audit-claim-fix",
+      "artifact_id": 13620045169,
+      "name": "finite-validation-density-confirmatory-py3.12",
+      "size_bytes": 215628452,
+      "sha256": "7ba17940acd7c3c71565a72aea6aa47b36992360d96e6c5274f68a79ab61cf10",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 42481059735,
+      "branch": "research/independent-posterior-audit-claim-fix",
+      "artifact_id": 13616999063,
+      "name": "fixed-analysis-catalogue-density-confirmatory-py3.12",
+      "size_bytes": 78030562,
+      "sha256": "c375e84168b55d1cc91a3b774485b6f6402ff9355ccc276718b906c49e95f4fa",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 42481059738,
+      "branch": "research/independent-posterior-audit-claim-fix",
+      "artifact_id": 13617671733,
+      "name": "fixed-analysis-catalogue-density-pilot-py3.12",
+      "size_bytes": 3920710,
+      "sha256": "5a494eeb515e87d0799f4bf701f95fa5409a5d483deb9ae6dfb77fecf0682037",
       "expired": false,
       "download_status": "DOWNLOADED_SHA256_VERIFIED"
     }
