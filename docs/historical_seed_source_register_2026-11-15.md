@@ -316,3 +316,33 @@ The workflow files pass the fixed data seeds and replicate counts explicitly. Th
 This is **not** a complete audit of the 500-run branch. Other workflows on it remain unresolved, including host-prior-support factorial, hidden-host assumption sensitivity, host-density validation, H0-dependent-noise SBC, selection-misspecification and catalogue-selection workflows. Failed/cancelled runs and possible partial artifacts are also not enumerated. I have identified successful artifact metadata for the host-prior-support and hidden-host workflows, but have not yet verified their exact runner seed schedules or included them as source-proven records. The branch remains marked PARTIAL in the manifest, and the overall source register remains NOT COMPLETE.
 
 No training or holdout run is authorized.
+
+
+## Additional host-density campaign source reconciliation — 2026-11-15
+
+I extended the partial `research/audit-posterior-grid-integrity` branch review to the `host-density-validation-campaign.yml` workflow. Four successful workflow runs were found, each with two artifacts (campaign output and exact-density oracle-bias output). All four run heads were checked against the workflow and runner source. The workflow and campaign-analyzer/benchmark runner blobs are stable across the four run heads; the oracle-bias runner has a later source revision for the fourth run, and both versions explicitly preserve the same seed design.
+
+- Campaign analyzer: workflow commands use seed 20261029 and 40 replicates; the analyzer records replicate seeds 20261029 through 20261068 and reuses this same seed sequence across 13 configurations as common random numbers.
+- Independent host-density benchmark: same workflow uses seed 20261029 and two replicates (seed values 20261029 and 20261030).
+- Exact-density oracle-bias diagnostic: base seed 20261029, 300 replicates per mode, with `MODE_OFFSETS={prior:0,fixed_60:100000,fixed_70:200000,fixed_80:300000}`. Thus its four mode seeds are 20261029, 20361029, 20461029, and 20561029.
+- The first three runs use diagnostic runner blob `8e1a3876aa321a33b107fe0af75d74ac44dd2947`; the fourth uses `02f6a01af4d5c9ba43e6d9c3a00918ac68d518b5`. The workflow commands and mode-offset schedule are recorded in the manifest for each exact run head.
+
+Two representative ZIPs (one campaign artifact and one oracle-bias artifact from run 40809254773) were downloaded and SHA-256 verified. They contain five and three JSON files, and fourteen and one CSV files respectively. The campaign payload exposes the 40-seed sequence in replicate tables and manifests; the oracle-bias payload exposes four mode seeds in its JSON configuration and 1,200 replicate-level `mode_seed` rows. The other six artifacts are metadata-only but have exact source proofs. These eight records raise the partial posterior-grid branch audit to **73 successful run IDs and 81 artifacts across six selected workflows**.
+
+### Nested seed-map parser correction
+
+The oracle-bias configuration stores mode seeds in a JSON object named `mode_seeds`, for example `{"fixed_60": 20361029, ...}`. The historical inventory parser previously recursed into such a mapping but did not extract its scalar values because the child labels themselves do not end in `_seed`. The CSV's `mode_seed` column exposed the same seeds, so the four unique values were visible in the payload, but JSON seed-occurrence accounting was incomplete.
+
+I fixed `scripts/audit_historical_seed_inventory.py` to extract scalar values from seed-named mappings and fail closed on non-integer values. Regression tests now cover both valid labelled mappings and malformed mappings. The latest code/test commits are `924d6b6c6978424a4feedc150a5e3f30792c4ba5` and `356b9b5c0f01d63aaacbb5b64dc02bc2aaa40de9`. A fresh exact-head CI run is still pending.
+
+Because the earlier aggregate occurrence totals were computed before this parser correction, they should now be treated as **provisional pre-fix counts**, not as final exact occurrence totals. The exact distinct-seed union also remains unreconciled. The next audit must re-run the corrected parser against all 193 downloaded archives, then reconcile the 18 source-proof-only artifacts and the 57 unresolved artifacts without inferring payload coverage from metadata.
+
+### Current partial inventory snapshot
+
+- 342 artifact records across 177 enumerated successful run IDs and 17 source branches.
+- 193 ZIP archives downloaded and SHA-256 verified.
+- 149 artifacts remain metadata-only; 121 have workflow/runner seed-source proofs and 57 remain unresolved.
+- The selected posterior-grid branch scope now includes 73 successful run IDs and 81 artifacts across six workflows; the remaining branch workflows, failed/cancelled runs, and partial artifacts are still unresolved.
+- The manifest remains explicitly `artifact_sources_complete: false`; no global seed-disjointness certification exists.
+- The candidate training and holdout schedules remain unapproved. No new training, holdout, or H0 experiment has been launched.
+
