@@ -303,3 +303,24 @@ def test_outer_auditor_checks_required_schema_for_empty_aggregate(tmp_path, monk
     _refresh_outer_manifest_entry(out, path)
     with pytest.raises(AssertionError, match="empty aggregate schema missing required columns"):
         auditor.audit(out)
+
+
+
+def test_outer_auditor_rejects_extra_column_in_empty_aggregate(tmp_path, monkeypatch):
+    runner = _load("curvature_multi_runner_empty_extra", "run_quadratic_logit_curvature_density_replicates.py")
+    auditor = _load("curvature_multi_auditor_empty_extra", "audit_quadratic_logit_curvature_density_replicates.py")
+
+    def fail_all(args):
+        raise RuntimeError("injected all-cell failure for empty extra-column test")
+
+    monkeypatch.setattr(runner, "run_one", fail_all)
+    out = tmp_path / "curvature_empty_extra_column"
+    runner.run(_args(out))
+    path = out / "weight_diagnostics_all_cells.csv"
+    frame = pd.read_csv(path)
+    assert frame.empty
+    frame["unverified_payload"] = pd.Series(dtype=str)
+    frame.to_csv(path, index=False)
+    _refresh_outer_manifest_entry(out, path)
+    with pytest.raises(AssertionError, match="empty aggregate column schema mismatch"):
+        auditor.audit(out)
