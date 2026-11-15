@@ -78,7 +78,17 @@ The primary comparison is paired replicate-level differences, not differences of
 
 ## 7. Replication and precision
 
-The existing 20-replicate pilot is engineering-scale only. For nominal 68% coverage, approximate MCSE is sqrt(0.68*0.32/1000)=0.0148 at 1,000 replicates, versus about 0.104 at 20. Thus 20 replicates cannot support fine coverage comparisons. Before confirmatory execution, freeze replicate count using a target MCSE or confidence-interval half-width, including precision for paired contrasts. About 1,000 replicates per cell is a planning benchmark, not a substitute for precision calculation.
+The existing two-replicate orchestration smoke (and any earlier 20-replicate engineering pilot) is not a confirmatory Monte Carlo study. For nominal 68% coverage, the binomial MCSE is sqrt(0.68*0.32/R): approximately 0.104 at R=20, 0.0148 at R=1,000, and 0.00660 at R=5,000. A nominal 95% normal-approximation half-width at R=1,000 is about 0.029 before multiplicity adjustment.
+
+**Proposed primary coverage precision target:** within each fixed data-generating condition, treat the 68% coverage estimates across 5 arms × 3 validation sizes (15 cells) as one family. A Bonferroni simultaneous 95% normal-approximation half-width of 0.02 requires
+R >= p(1-p) [z_(1-0.05/(2×15))/0.02]^2,
+which is about 4,687 replicates at p=0.68. Round up to **5,000 planned replicates per data-generating condition** as the initial planning target. This is a planning calculation, not a claim that 5,000 is sufficient for every paired contrast or every failure rate. Use Wilson or exact binomial intervals in the final report; the normal approximation here is only for planning.
+
+If 68%, 90% and 95% coverage across all 15 arm × validation-size cells are all designated co-primary (45 intervals), the corresponding Bonferroni normal-approximation requirement at p=0.68 is about 5,785; round to **6,000 replicates per data-generating condition**. Otherwise designate 68% as primary and report 90%/95% coverage as secondary with their MC uncertainty clearly shown.
+
+For paired contrasts, calculate MCSE from the replicate-level paired differences, not from unpaired arm summaries: MCSE(mean difference)=s_D/sqrt(R). For binary coverage differences D in {-1,0,1}, estimate s_D from a separately designated blinded variance pilot; do not use the two-replicate smoke to estimate it. Freeze the confirmatory R from the target half-width and blinded variance estimate before inspecting the direction or magnitude of confirmatory mean differences. If no credible variance pilot is available, state that paired-contrast precision is not guaranteed by the coverage-based R target. Keep failed and non-evaluable attempts in the planned denominator and report failure-inclusive bounds.
+
+The final R must also account for the number of distinct DGP conditions (curvature/misspecification, catalogue floor and validation design), any multiplicity family spanning those conditions, and expected computational/non-evaluable rates. The 5,000/6,000 figures apply per fixed DGP condition under the stated family definitions; they must not be presented as a universal total sample size.
 
 ## 8. Required gates before confirmatory run
 
