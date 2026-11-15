@@ -560,3 +560,17 @@ These experiments concern host-prior weighting and hidden-host assumptions, not 
 
 The two downloads bring the persisted manifest to **372 artifact records across 197 run IDs, 205 downloaded and SHA-256-verified archives, 167 metadata-only artifacts, 148 source-proven schedules, and 60 persisted unresolved artifacts**. The 210 known unlisted successful test artifacts remain outside the persisted artifact records. The provisional seed-field occurrence count is now 3,311,919 and still requires a complete rescan with the corrected parser; the exact distinct-seed union remains unreconciled.
 
+
+
+## Strict artifact-manifest validator CI result — 2026-11-15
+
+The auditor now validates every persisted artifact record's ID uniqueness, positive run/artifact IDs, SHA-256 and commit-hash formats, workflow/name fields, download status, seed-schedule proof structure, source-commit/head equality, and reconciliation of declared coverage counts against the actual artifact records. It also refuses to mark a source register COMPLETE while known unlisted or unresolved artifacts remain.
+
+The first CI attempt after adding this validator exposed two stale CLI test fixtures that no longer met the stricter manifest schema; the failure was confined to those fixtures. I updated them to use complete valid source-register records. GitHub Actions run `43723561485` then passed all three Python matrix jobs at code/test commit `37ed2bf83819478027123b052c569df713d627c1`:
+- Python 3.10: 39 historical seed inventory tests passed;
+- Python 3.11: 39 passed;
+- Python 3.12: 39 passed;
+- CLI help checks passed in all three jobs.
+
+Later changes to this branch have been documentation and manifest updates only; the source-register validator and its tests have not changed since the passing code/test commit. The general repository `tests` workflow was repeatedly cancelled by subsequent pushes and is not claimed as a full-suite pass.
+
