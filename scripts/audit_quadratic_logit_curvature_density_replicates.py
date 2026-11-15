@@ -116,6 +116,10 @@ def audit(root:Path):
  if not np.isfinite(float(cfg["beta"])) or not np.isfinite(float(cfg["scott_multiplier"])) or float(cfg["scott_multiplier"])<=0:
   raise AssertionError("invalid model or bandwidth parameter")
  ledger=pd.read_csv(root/"cell_ledger.csv").fillna("")
+ expected_ledger_columns=["replicate","gamma","population_seed","validation_seed","status","audit_status",
+  "metric_rows","weight_diagnostic_rows","scott_width_rows","error"]
+ if list(ledger.columns)!=expected_ledger_columns:
+  raise AssertionError("cell ledger column schema mismatch")
  expected=[(r,g) for r in range(reps) for g in gammas]
  got=list(zip(ledger.replicate.astype(int),ledger.gamma.astype(float)))
  if got!=expected: raise AssertionError("cell ledger does not enumerate exact replicate x gamma design")
@@ -123,6 +127,17 @@ def audit(root:Path):
  if set(ledger.audit_status)-{"PENDING_OUTER_AUDIT","NOT_RUN"}: raise AssertionError("invalid child audit lifecycle status")
  if not (ledger.loc[ledger.status=="SUCCESS","audit_status"]=="PENDING_OUTER_AUDIT").all(): raise AssertionError("successful cells must await the independent outer child audit")
  if not (ledger.loc[ledger.status=="FAILED","audit_status"]=="NOT_RUN").all(): raise AssertionError("failed cells cannot claim a child audit")
+ count_columns=["metric_rows","weight_diagnostic_rows","scott_width_rows"]
+ for column in count_columns:
+  counts=pd.to_numeric(ledger[column],errors="coerce")
+  if counts.isna().any() or (counts<0).any() or not np.equal(counts,np.floor(counts)).all():
+   raise AssertionError(f"invalid lifecycle row count: {column}")
+  if (counts.loc[ledger.status=="FAILED"]!=0).any():
+   raise AssertionError(f"failed cells must retain zero {column}")
+ if not (ledger.loc[ledger.status=="SUCCESS","error"]=="").all():
+  raise AssertionError("successful cells cannot carry a failure message")
+ if not (ledger.loc[ledger.status=="FAILED","error"]!="").all():
+  raise AssertionError("failed cells require a preserved failure message")
  if int(cfg["attempted_cells"])!=len(expected): raise AssertionError("attempted cell count mismatch")
  if int(cfg["successful_cells"])!=int((ledger.status=="SUCCESS").sum()) or int(cfg["failed_cells"])!=int((ledger.status=="FAILED").sum()):
   raise AssertionError("config totals disagree with cell ledger")
