@@ -6,7 +6,7 @@
     "branch": "research/absolute-width-distribution-pilot-20261114",
     "successful_runs_enumerated": 30,
     "artifacts_listed": 74,
-    "artifacts_downloaded_sha256_verified": 25,
+    "artifacts_downloaded_sha256_verified": 26,
     "artifact_sources_complete": false,
     "source_branches": [
       "research/absolute-width-distribution-pilot-20261114",
@@ -24,7 +24,7 @@
       "size_bytes": 29333334,
       "sha256": "b8c5af4e37a4cf69a4bd2ea1459880efaa54920d71ec2959605949e02079f895",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
     },
     {
       "run_id": 43634886771,
