@@ -22,7 +22,7 @@ Status: **PARTIAL / NOT COMPLETE**. This register records known density-pilot wo
 | 43574613209 | 14106387924 | absolute-width-expanded-grid-no-floor-836ecff9060d83c18bc0a9c18b0ed86f54fcc79e | 97,780,326 | e381296ce6a6cd920f05b7cc5a73544ac1a3b42fea149c94ff774631f57af604 | Downloaded; SHA-256 verified; 248 JSON/CSV files scanned |
 | 43634886771 | 14131016569 | quadratic-logit-curvature-density-pilot | 89,906,048 | a3bd60ef6f31e4b9880d20af6968ab8e7f6d7a4b64da28122c5b4995f54e06cc | Downloaded; SHA-256 verified; 260 JSON/CSV files scanned |
 | 43634885089 | 14130517646 | quadratic-logit-curvature-density-pilot | 89,904,154 | ccb742912d993c52b0c8b9bc11ba0fcf9da13ba4e9920e8737f9b4c1ed393464 | Downloaded; SHA-256 verified; 260 JSON/CSV files scanned |
-| 43633559278 | 14130158861 | quadratic-logit-curvature-density-pilot | 89,278,234 | f24599b56d3ca5c165dd41cd196a08e0925f371a267fa8a0b9ff5927a44bd13a | Downloaded; SHA-256 verified; 258 JSON/CSV files scanned; seed-reuse warning |
+| 43633559278 | 14130158861 | quadratic-logit-curvature-density-pilot | 89,278,234 | f24599b56d3ca5c165dd41cd196a08e0925f371a267fa8a0b9ff5927a44bd13a | Downloaded; SHA-256 verified; 258 JSON/CSV files scanned; ledger pairing checked |
 | 43633572255 | 14130121464 | quadratic-logit-curvature-density-pilot | 89,279,520 | 6e259b7b999306c606d0458fcfa0d6ecab8c2941106d311a7caabd3d1813b4bd | Downloaded; SHA-256 verified; 258 JSON/CSV files scanned; seed-reuse warning |
 
 ## Partial artifact inspection
@@ -63,14 +63,20 @@ The six ZIP artifacts from runs 43619594762 and 43617052462 have now been downlo
 This establishes an internally consistent inventory for these six artifact archives only. It does **not** establish global historical completeness: the smoke/engineering artifact, numerical-diagnostics artifacts, curvature workflow artifacts, earlier smoke runs, and any other relevant historical Actions runs remain to be reviewed. The candidate schedule remains non-authorized until the source register is complete and every relevant artifact is accounted for.
 
 
-## Earlier curvature pilot seed-reuse finding
+## Early curvature pilot seed-ledger reconciliation
 
-Two early successful engineering-pilot artifacts (runs 43633559278 and 43633572255) were downloaded and checksum-verified. Both contain the same three population seeds across gamma strata, but the **same validation seed, 2026111529, is reused for all three replicate indices**. The population seeds vary by replicate (2026111517, 2026211517, 2026311517). This means those three rows are not independent with respect to validation-frame randomness; they must not be treated as three fully independent repeated-sampling replicates for uncertainty or calibration claims.
+Two early successful engineering-pilot artifacts (runs 43633559278 and 43633572255) were downloaded and checksum-verified. Their ledgers contain three replicate IDs, each reused across gamma strata as intended for common-random-number pairing. The population/validation seed pairs are distinct across replicate IDs:
 
-The artifact configuration labels these runs as engineering pilots, not confirmatory analyses. Their repeated validation seed is recorded as a historical design limitation, not silently repaired after the fact. Later curvature pilot artifacts (runs 43634885089 and 43634886771) use distinct population/validation seed pairs across the three replicate indices: 2026111500/2026111501, 2026111510/2026111511, and 2026111520/2026111521. The later artifacts therefore correct this particular seed-pair reuse pattern, but remain small engineering pilots rather than confirmatory evidence.
+- replicate 0: 2026111517 / 2026111529;
+- replicate 1: 2026211517 / 2026211529;
+- replicate 2: 2026311517 / 2026311529.
 
-The additional verified absolute-width artifacts listed above reproduce the already documented 40-value set from 20261215/20261216 through 20261405/20261406. They are repeated executions/expanded-grid companions, not independent seed inventories.
+The base seed 2026111500 is also recorded in the parent configuration. The raw ledger therefore does **not** show validation-seed reuse across replicate IDs. An earlier interpretation of the truncated ledger output suggested that 2026111529 was reused for all three replicates; inspection of the complete CSV disproves that reading. The two early artifacts should not be marked as having a pseudo-replication defect on this basis.
 
+Later curvature pilot artifacts (runs 43634885089 and 43634886771) use a different, likewise distinct seed-pair schedule across the three replicate indices: 2026111500/2026111501, 2026111510/2026111511, and 2026111520/2026111521. Both designs preserve seed pairing across gamma within replicate while using different seed pairs between replicates. All four inspected curvature artifacts are still small engineering pilots, not confirmatory evidence.
+
+The historical auditor now independently checks ledger rows with `replicate`, `population_seed`, and `validation_seed` columns. It allows common-random-number pairing across gamma within the same replicate, but warns if either random stream is reused across different replicate IDs. The four inspected curvature artifacts produced no such warning.
+ 
 ## Current candidate schedule comparison
 
 The ten verified absolute-width artifacts and the four verified curvature artifacts inspected in this update show no exact integer-seed overlap with the candidate training or holdout schedule. This is a **partial-scope disjointness result only**. Other relevant Actions artifacts and earlier workflows remain unresolved; no training or holdout execution is authorized.
