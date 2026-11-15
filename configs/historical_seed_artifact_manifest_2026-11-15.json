@@ -30,7 +30,7 @@
     "unique_run_ids": 101,
     "downloaded_archive_scan_complete": true,
     "downloaded_archive_count": 71,
-    "metadata_only_artifact_count": 263,
+    "metadata_only_artifact_count": 191,
     "test_workflow_runs_enumerated": 19,
     "test_workflow_artifacts_metadata_only": 57,
     "estimated_inclusion_branch_successful_runs_enumerated": 43,
@@ -3722,7 +3722,7 @@
   ],
   "artifact_sources_complete": false,
   "artifact_roots": [],
-  "completeness_note": "PARTIAL: 263 artifacts remain metadata-only; failed/cancelled runs and additional historical branches remain unresolved. This register must not authorize training or holdout execution.",
+  "completeness_note": "PARTIAL: 191 artifacts remain metadata-only; failed/cancelled runs and additional historical branches remain unresolved. This register must not authorize training or holdout execution.",
   "scan_summary": {
     "scan_date": "2026-11-15",
     "downloaded_archives_scanned": 71,
@@ -3749,7 +3749,7 @@
       "seed_stride": 10,
       "replicates": 24
     },
-    "limitation": "Results apply only to the 71 downloaded archives. The 263 metadata-only artifacts, failed/cancelled runs, and additional historical workflows are not covered; no global disjointness certification.",
+    "limitation": "Results apply only to the 71 downloaded archives. The 191 metadata-only artifacts, failed/cancelled runs, and additional historical workflows are not covered; no global disjointness certification.",
     "estimated_inclusion_py312_subset": {
       "archives": 43,
       "json_members": 1499,
