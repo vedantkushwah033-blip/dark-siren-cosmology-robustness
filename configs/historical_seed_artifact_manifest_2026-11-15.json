@@ -38,7 +38,59 @@
     "estimated_inclusion_branch_artifacts_listed": 129,
     "estimated_inclusion_branch_artifacts_downloaded": 129,
     "other_test_workflow_runs_enumerated": 19,
-    "other_test_workflow_artifacts_metadata_only": 57
+    "other_test_workflow_artifacts_metadata_only": 57,
+    "branch_group_summary": {
+      "current_research_branch": {
+        "runs": 31,
+        "artifacts": 68,
+        "downloaded_sha256_verified": 20,
+        "metadata_only": 48
+      },
+      "estimated_inclusion_audit_branch": {
+        "runs": 43,
+        "artifacts": 129,
+        "downloaded_sha256_verified": 129,
+        "metadata_only": 0
+      },
+      "auxiliary_completed_research_branches": {
+        "runs": 8,
+        "artifacts": 8,
+        "downloaded_sha256_verified": 8,
+        "metadata_only": 0
+      },
+      "other_test_workflow_branches": {
+        "runs": 19,
+        "artifacts": 57,
+        "downloaded_sha256_verified": 0,
+        "metadata_only": 57
+      },
+      "totals": {
+        "runs": 101,
+        "artifacts": 262,
+        "downloaded_sha256_verified": 157,
+        "metadata_only": 105
+      }
+    },
+    "unresolved_branch_scopes": [
+      {
+        "branch": "research/audit-posterior-grid-integrity",
+        "run_count_observed": 500,
+        "artifact_enumeration": "NOT_STARTED",
+        "reason": "Large historical branch with posterior-grid/host-misspecification workflows; not yet reconciled against the density/inclusion seed inventory."
+      },
+      {
+        "branch": "research/estimated-inclusion-audit",
+        "run_count_observed": 274,
+        "successful_runs_enumerated": 43,
+        "failed_cancelled_or_other_runs": "NOT_ENUMERATED",
+        "reason": "All 129 artifacts from 43 successful runs are downloaded and verified; non-success/other run outcomes have not been checked for partial artifacts."
+      },
+      {
+        "branch": "other_14_branches_in_register",
+        "failed_cancelled_or_other_runs": "NOT_ENUMERATED",
+        "reason": "Only successful run artifact sets are currently represented."
+      }
+    ]
   },
   "artifacts": [
     {
