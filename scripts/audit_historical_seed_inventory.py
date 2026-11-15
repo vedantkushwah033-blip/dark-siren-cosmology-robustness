@@ -46,7 +46,10 @@ def _walk_json(value: Any, source: str, prefix: str = "$") -> list[dict[str, Any
             if SEED_KEY.search(str(key)):
                 if isinstance(child, (list, tuple)):
                     for index, item in enumerate(child):
-                        found.append({"field": f"{field}[{index}]", "seed": _seed_int(item, source=source, field=field)})
+                        if isinstance(item, (dict, list)):
+                            found.extend(_walk_json(item, source, f"{field}[{index}]"))
+                        else:
+                            found.append({"field": f"{field}[{index}]", "seed": _seed_int(item, source=source, field=field)})
                 elif isinstance(child, dict):
                     # Preserve nested seed maps by recursively inspecting them.
                     found.extend(_walk_json(child, source, field))
