@@ -68,7 +68,7 @@ jobs:
           for path in sorted(root.glob("gamma_*/independent_audit.json")):
               report = json.loads(path.read_text())
               assert report["status"] == "PASS"
-              assert report["weight_diagnostic_rows_reconstructed"] == 42
+              assert report["weight_diagnostic_rows_reconstructed"] == 90
               rows.append({
                   "gamma_directory": path.parent.name,
                   "gamma": report["gamma"],
