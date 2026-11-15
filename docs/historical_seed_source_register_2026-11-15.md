@@ -346,3 +346,30 @@ Because the earlier aggregate occurrence totals were computed before this parser
 - The manifest remains explicitly `artifact_sources_complete: false`; no global seed-disjointness certification exists.
 - The candidate training and holdout schedules remain unapproved. No new training, holdout, or H0 experiment has been launched.
 
+
+
+## H0-dependent-noise SBC source reconciliation — 2026-11-15
+
+A further three successful runs from `h0-dependent-noise-sbc.yml` were inspected. Their workflow and runner blob hashes are identical across all three exact run heads:
+
+- workflow blob: `7c90be6770431480000046731b0a3a4303e84364`;
+- runner blob: `e0e87eeac275ae9523c64b1a00e9cee4fb73b47a`;
+- data seed base: 20261030;
+- 300 replicates per mode; four modes in the declared insertion order `prior, fixed_60, fixed_70, fixed_80`;
+- replicate seed formula: `20261030 + mode_index * 100000 + replicate`.
+
+All three artifacts were downloaded and SHA-256 verified. Each contains 1,200 replicate rows and the same 1,200 distinct seed values:
+
+- prior: 20261030–20261329;
+- fixed 60: 20361030–20361329;
+- fixed 70: 20461030–20461329;
+- fixed 80: 20561030–20561329.
+
+The independent audit reports PASS for all three artifacts and reconstructs 1,200 rows; maximum posterior-summary reconstruction differences are at floating-point scale (roughly (4.3\times10^{-14})). The three Actions runs use the same workflow, runner, and seed schedule, so they are repeated executions of the same simulation design—not three independent 1,200-replicate studies.
+
+The stored synthetic summaries are descriptive of a separate H0-dependent-noise toy with three detected events per replicate and four truth modes. They are not an H0 measurement, not a validation of the current five-arm catalogue-inclusion estimator, and not permission to reopen H0 inference before the current density and selection gates are passed.
+
+### Updated partial branch totals
+
+The selected posterior-grid branch review now covers seven workflows, 75 successful run IDs and 84 artifact records. The overall manifest now contains 345 artifact records across 180 enumerated successful run IDs and 17 branches: 196 archives are downloaded and SHA-256 verified, 149 artifacts are metadata-only, 124 artifacts have source-proven seed schedules, and 57 remain unresolved. The branch itself still contains 500 observed Actions runs, so this is only a selected-workflow partial audit.
+
