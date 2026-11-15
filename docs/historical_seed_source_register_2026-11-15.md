@@ -99,7 +99,7 @@ The historical seed auditor now emits a separate `historical_seed_warnings` fiel
 
 ## Superseded interim consolidated archive scan — 15 artifacts
 
-An earlier independent scan of an interim subset of downloaded ZIPs processed JSON and CSV members using the then-current seed-key matching rules. Its counts are superseded by the expanded 26-archive scan below.
+An earlier independent scan of an interim subset of downloaded ZIPs processed JSON and CSV members using the then-current seed-key matching rules. Its counts are superseded by the expanded 71-archive scan below.
 
 - 15 ZIP archives; every archive SHA-256 matched the GitHub artifact metadata.
 - 3,776 JSON/CSV members scanned.
@@ -131,7 +131,7 @@ The machine-readable artifact register is now `configs/historical_seed_artifact_
 
 ### Consolidated scan of the 71 downloaded archives
 
-An independent local scan of all 28 downloaded ZIP archives processed JSON, CSV, and NPZ members. The scan used the corrected field rules now implemented in the repository auditor: it includes singular seed fields, explicit plural seed arrays, and `seed_start`; it excludes seed-count and `*_across_seeds` summary metrics.
+An independent local scan of all 71 downloaded ZIP archives processed JSON, CSV, and NPZ members. The scan used the corrected field rules now implemented in the repository auditor: it includes singular seed fields, explicit plural seed arrays, and `seed_start`; it excludes seed-count and `*_across_seeds` summary metrics.
 
 | Scan item | Result |
 |---|---:|
@@ -193,4 +193,4 @@ Subsequent branch commits through `5e23c3cd605860094c5f784fe33fe7bcdc525898` upd
 
 The fail-closed CLI gate and its regression test were validated by workflow run `43693143281` on code/test commit `e39cda7d199d83e62edfed92926284095283dcbe`. All three Python jobs (3.10, 3.11, 3.12) passed. The historical seed inventory test module reported **29 passed** in each job; the existing curvature smoke/pilot test groups and CLI checks also passed. The new CLI regression confirms that a mechanically disjoint partial inventory is returned as `NOT_EVALUABLE` when the source register is incomplete, while exposing the separate `mechanical_status=PASS` result.
 
-Subsequent commits through `05d2f52b0ba715c9dcd7688e97c314f0b6f54dab` update only the artifact manifest, README, and documentation. The latest source register remains explicitly incomplete; the 48 metadata-only artifacts and unresolved failed/cancelled runs continue to block training/holdout authorization.
+Subsequent commits through `f394c8f0978e54e385ab0dcc48c9553e9d8360f5` update only the artifact manifest, README, and documentation. The latest source register remains explicitly incomplete; the 191 metadata-only artifacts and unresolved failed/cancelled runs continue to block training/holdout authorization.
