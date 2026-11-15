@@ -50,12 +50,12 @@ At the time this initial note was written, only one listed artifact had been dow
 
 ## Original source-register checklist (remaining tasks updated below)
 
-1. Enumerate all relevant workflow runs, including older floor-family, absolute-width, curvature, smoke, and manual pilot runs.
-2. Record every artifact ID, full GitHub digest, run ID, head SHA, expiration state, and extraction result.
-3. Download and verify each artifact against its GitHub digest before extraction.
-4. Preserve the original ZIP and extraction log; scan only a copy.
-5. Reconcile child-level seeds with parent configs and ledgers; distinguish actual seed values from master-seed derivation parameters such as stride.
-6. Record expired, missing, or non-enumerable artifacts as unresolved blockers, never as empty seed sets.
+1. Enumerate artifact outputs for failed/cancelled runs across the 15 branches already represented, then search remaining historical branches and workflows (including the posterior-grid-integrity branch).
+2. Resolve the 191 metadata-only artifact records. The 86 py3.10/py3.11 artifacts from the estimated-inclusion branch are a priority because they may not be identical to the downloaded py3.12 outputs.
+3. For repeated workflow artifacts, compare the workflow and runner blob hashes and document any seed schedule that can be proven from source; do not silently infer equivalence from artifact names.
+4. Download and verify every remaining artifact unless its seed schedule is independently and reproducibly established from the exact run configuration and runner revision.
+5. Preserve original ZIPs and extraction logs; reconcile child-level seeds with parent configs and ledgers, distinguishing actual seed values from master-seed derivation parameters such as stride.
+6. Record expired, missing, unsupported, or non-enumerable artifacts as unresolved blockers, never as empty seed sets.
 
 **Gate decision: NOT VERIFIED. No training run and no holdout run is authorized by this partial register.**
 
