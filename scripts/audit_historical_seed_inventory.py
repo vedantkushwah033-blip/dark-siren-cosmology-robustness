@@ -19,6 +19,14 @@ from typing import Any
 SUPPORTED = {".json", ".csv", ".npz"}
 SEED_KEY = re.compile(r"(?:^seed$|_seed$|^seeds$|_seeds$|^seed_start$|_seed_start$)", re.IGNORECASE)
 
+def is_seed_field(name: Any) -> bool:
+    """Match concrete seed fields, not aggregate metrics such as *_across_seeds."""
+    normalized = str(name).lower()
+    if normalized.endswith("_across_seeds"):
+        return False
+    return SEED_KEY.search(normalized) is not None
+
+
 
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
@@ -52,7 +60,7 @@ def _walk_json(value: Any, source: str, prefix: str = "$") -> list[dict[str, Any
             # inventoried from the master/stride fields and replicate ledgers.
             if str(key).lower() in {"seed_schedule", "seed_design", "seed_description"} and isinstance(child, str):
                 continue
-            if SEED_KEY.search(str(key)):
+            if is_seed_field(key):
                 if isinstance(child, (list, tuple)):
                     for index, item in enumerate(child):
                         if isinstance(item, (dict, list)):
@@ -86,7 +94,7 @@ def _ledger_seed_reuse_warnings(path: Path, relative: str) -> list[dict[str, str
             return warnings
         seed_columns = [
             column for column in reader.fieldnames
-            if column and SEED_KEY.search(column)
+            if column and is_seed_field(column)
             and column.lower() not in {"seed", "seeds", "seed_start", "master_seed", "base_seed"}
         ]
         if len(seed_columns) < 2:
@@ -177,7 +185,7 @@ def inventory_file(path: Path, root: Path) -> dict[str, Any]:
                 raise ValueError(f"{relative}: CSV has no header")
             for row_number, row in enumerate(reader, start=2):
                 for column, value in row.items():
-                    if SEED_KEY.search(column or "") and value not in (None, ""):
+                    if is_seed_field(column or "") and value not in (None, ""):
                         seeds.append({
                             "field": f"{column}@row{row_number}",
                             "seed": _seed_int(value, source=relative, field=column),
@@ -187,7 +195,7 @@ def inventory_file(path: Path, root: Path) -> dict[str, Any]:
         # Never enable pickle while inspecting research artifacts.
         with np.load(path, allow_pickle=False) as archive:
             for key in archive.files:
-                if not SEED_KEY.search(key):
+                if not is_seed_field(key):
                     continue
                 values = np.asarray(archive[key]).reshape(-1)
                 for index, value in enumerate(values):
@@ -233,7 +241,7 @@ def _schedule_pairs(schedule: dict[str, Any], block: str) -> list[dict[str, int]
     for index, row in enumerate(rows):
         if not isinstance(row, dict) or not {"population_seed", "validation_seed"} <= row.keys():
             raise ValueError(f"schedule.{block}[{index}] must contain population_seed and validation_seed")
-        seed_fields = [key for key in row if SEED_KEY.search(str(key))]
+        seed_fields = [key for key in row if is_seed_field(key)]
         if set(seed_fields) != set(row):
             raise ValueError(f"schedule.{block}[{index}] contains non-seed fields; use explicit *_seed stream names only")
         values: dict[str, int] = {}
