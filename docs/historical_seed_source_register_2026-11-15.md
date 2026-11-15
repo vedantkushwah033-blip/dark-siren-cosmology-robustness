@@ -183,3 +183,10 @@ The repository CLI now requires `--source-register`. A CLI result can be `PASS` 
 The latest code/test hardening was validated by workflow run `43692729261` on commit `d89ce910a38ae0232bb1d1cca2d7c10dd911906b`. All three Python matrix jobs completed successfully (3.10, 3.11, 3.12). The historical seed inventory module reported **28 passed** in each matrix job; the existing smoke/pilot test groups and CLI help checks also completed without failures. No `FAILED` or `ERROR` entries were present in the three job logs.
 
 Subsequent branch commits through `5e23c3cd605860094c5f784fe33fe7bcdc525898` updated only the artifact manifest and documentation; they did not change the tested auditor or test files. A fresh CI run is currently queued for that documentation-only head, so the successful code/test validation remains tied to commit `d89ce91`, not asserted as a new exact-head run.
+
+
+## CLI source-register gate CI validation — 2026-11-15
+
+The fail-closed CLI gate and its regression test were validated by workflow run `43693143281` on code/test commit `e39cda7d199d83e62edfed92926284095283dcbe`. All three Python jobs (3.10, 3.11, 3.12) passed. The historical seed inventory test module reported **29 passed** in each job; the existing curvature smoke/pilot test groups and CLI checks also passed. The new CLI regression confirms that a mechanically disjoint partial inventory is returned as `NOT_EVALUABLE` when the source register is incomplete, while exposing the separate `mechanical_status=PASS` result.
+
+Subsequent commits through `05d2f52b0ba715c9dcd7688e97c314f0b6f54dab` update only the artifact manifest, README, and documentation. The latest source register remains explicitly incomplete; the 48 metadata-only artifacts and unresolved failed/cancelled runs continue to block training/holdout authorization.
