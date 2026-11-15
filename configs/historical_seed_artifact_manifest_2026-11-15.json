@@ -5,8 +5,8 @@
   "coverage": {
     "branch": "research/absolute-width-distribution-pilot-20261114",
     "successful_runs_enumerated": 30,
-    "artifacts_listed": 75,
-    "artifacts_downloaded_sha256_verified": 26,
+    "artifacts_listed": 74,
+    "artifacts_downloaded_sha256_verified": 25,
     "artifact_sources_complete": false,
     "source_branches": [
       "research/absolute-width-distribution-pilot-20261114",
@@ -630,16 +630,6 @@
       "name": "numerical-diagnostics-py3.10",
       "size_bytes": 12280279,
       "sha256": "f73e22abd9c6e88218052dd47a6dcb514e0f40454ebaab95a0a018c2c69f0e6c",
-      "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
-    },
-    {
-      "run_id": 43685339718,
-      "branch": "research/absolute-width-distribution-pilot-20261114",
-      "artifact_id": 14150446621,
-      "name": "quadratic-logit-curvature-seven-gamma-smoke",
-      "size_bytes": 29333334,
-      "sha256": "b8c5af4e37a4cf69a4bd2ea1459880efaa54920d71ec2959605949e02079f895",
       "expired": false,
       "download_status": "DOWNLOADED_SHA256_VERIFIED"
     },
