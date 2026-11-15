@@ -162,7 +162,7 @@ def test_curvature_outer_auditor_rejects_false_child_audit_claim_with_updated_ma
  rel=str(ledger_path.relative_to(out))
  manifest["files"][rel]={"bytes":ledger_path.stat().st_size,"sha256":hashlib.sha256(ledger_path.read_bytes()).hexdigest()}
  manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
- with pytest.raises(AssertionError,match="successful cells must await"):
+ with pytest.raises(AssertionError,match="invalid child audit lifecycle status"):
   auditor.audit(out)
 
 
