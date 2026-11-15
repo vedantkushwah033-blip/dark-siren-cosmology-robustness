@@ -202,7 +202,7 @@ def test_cli_writes_parseable_json_with_terminal_newline(tmp_path):
     source_register.write_text(json.dumps({
         "artifact_sources_complete": True,
         "artifact_roots": [str(root.resolve())],
-        "artifacts": [{"download_status": "DOWNLOADED_SHA256_VERIFIED"}],
+        "artifacts": [{"download_status": "DOWNLOADED_SHA256_VERIFIED", "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"}],
     }))
     output = tmp_path / "out" / "report.json"
     result = subprocess.run(
@@ -222,6 +222,51 @@ def test_cli_writes_parseable_json_with_terminal_newline(tmp_path):
     payload = output.read_bytes()
     assert payload.endswith(b"\n")
     assert json.loads(payload.decode("utf-8"))["status"] == "PASS"
+
+
+def test_cli_accepts_source_verified_schedule_without_download(tmp_path):
+    import subprocess
+
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "config.json").write_text(json.dumps({"population_seed": 3000}))
+    schedule = _schedule(tmp_path / "schedule.json")
+    source_register = tmp_path / "source-register.json"
+    source_register.write_text(json.dumps({
+        "artifact_sources_complete": True,
+        "artifact_roots": [str(root.resolve())],
+        "artifacts": [{
+            "download_status": "METADATA_ONLY",
+            "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+            "head_sha": "abc123",
+            "seed_schedule_proof": {
+                "workflow_blob_sha": "workflowblob",
+                "runner_blob_sha": "runnerblob",
+                "master_seed": 4000,
+                "seed_stride": 10,
+                "replicates": 20,
+                "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+                "source_commit": "abc123",
+            },
+        }],
+    }))
+    output = tmp_path / "report.json"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPTS / "audit_historical_seed_inventory.py"),
+            "--artifact-root", str(root),
+            "--schedule", str(schedule),
+            "--source-register", str(source_register),
+            "--output", str(output),
+        ],
+        check=False, capture_output=True, text=True,
+    )
+    report = json.loads(output.read_text())
+    assert result.returncode == 0
+    assert report["mechanical_status"] == "PASS"
+    assert report["source_register_status"] == "COMPLETE"
+    assert report["status"] == "PASS"
 
 
 def test_inventory_reads_integer_seed_arrays_from_npz_without_pickle(tmp_path):
@@ -476,7 +521,7 @@ def test_cli_refuses_pass_when_source_register_is_incomplete(tmp_path):
     source_register.write_text(json.dumps({
         "artifact_sources_complete": False,
         "artifact_roots": [str(root.resolve())],
-        "artifacts": [{"download_status": "METADATA_ONLY"}],
+        "artifacts": [{"download_status": "METADATA_ONLY", "seed_inventory_status": "UNRESOLVED"}],
     }))
     output = tmp_path / "report.json"
     result = subprocess.run(
