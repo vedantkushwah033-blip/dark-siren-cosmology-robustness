@@ -541,3 +541,37 @@ def test_cli_refuses_pass_when_source_register_is_incomplete(tmp_path):
     assert report["status"] == "NOT_EVALUABLE"
     assert report["source_register_status"] == "INCOMPLETE"
     assert report["source_register_errors"]
+
+
+
+def test_inventory_extracts_seed_values_from_named_seed_mapping(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "oracle_config.json").write_text(
+        json.dumps({"configuration": {"mode_seeds": {
+            "prior": 20261029,
+            "fixed_60": 20361029,
+            "fixed_70": 20461029,
+            "fixed_80": 20561029,
+        }}})
+    )
+    report = module.audit([root], _schedule(tmp_path / "schedule.json"))
+    assert report["status"] == "PASS"
+    assert report["historical_seed_values"] == [
+        20261029, 20361029, 20461029, 20561029
+    ]
+    assert {
+        item["field"] for item in report["historical_seed_occurrences"][20261029]
+    } == {"$.configuration.mode_seeds.prior"}
+
+
+def test_inventory_rejects_noninteger_value_in_named_seed_mapping(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "bad_seed_map.json").write_text(
+        json.dumps({"mode_seeds": {"prior": 123, "fixed_60": "not-a-seed"}})
+    )
+    with pytest.raises(ValueError, match="non-integer seed value"):
+        module.audit([root], _schedule(tmp_path / "schedule.json"))
