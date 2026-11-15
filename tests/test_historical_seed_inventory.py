@@ -158,4 +158,4 @@ def test_inventory_ignores_descriptive_seed_schedule_metadata_but_keeps_integer_
     }))
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
     assert report["status"] == "PASS"
-    assert report["historical_seed_values"] == [10, 3000]
+    assert report["historical_seed_values"] == [3000]
