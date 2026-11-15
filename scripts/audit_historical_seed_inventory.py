@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 SUPPORTED = {".json", ".csv", ".npz"}
-SEED_KEY = re.compile(r"(?:^seed$|_seed$|^seeds$|_seeds$|^seed_start$|_seed_start$)", re.IGNORECASE)
+SEED_KEY = re.compile(r"(?:^seed$|_seed$|^seeds$|_seeds$|^seed_(?:start|end)(?:_by_[a-z0-9]+)?$|_seed_(?:start|end)(?:_by_[a-z0-9]+)?$)", re.IGNORECASE)
 
 def is_seed_field(name: Any) -> bool:
     """Match concrete seed fields, not aggregate metrics such as *_across_seeds."""
