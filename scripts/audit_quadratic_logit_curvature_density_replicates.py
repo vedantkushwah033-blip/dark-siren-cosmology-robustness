@@ -100,7 +100,7 @@ def audit(root:Path):
  if cfg.get("coefficient_prior")!={"family":"independent_gaussian","mean":[0.0,0.0],"sd":[5.0,2.5]}: raise AssertionError("coefficient prior mismatch")
  gammas=[float(x) for x in cfg["gammas"]]
  reps=int(cfg["replicates"]); stride=int(cfg["seed_stride"]); master=int(cfg["master_seed"])
- if reps<2 or len(gammas)<2 or len(set(gammas))!=len(gammas) or stride<2: raise AssertionError("invalid planned design")
+ if reps<2 or len(gammas)<2 or len(set(gammas))!=len(gammas) or stride<3: raise AssertionError("invalid planned design: seed_stride must be >= 3 so adjacent population/validation streams cannot collide")
  if master<0 or not np.isfinite(gammas).all() or not any(g==0.0 for g in gammas):
   raise AssertionError("invalid seed or gamma reference design")
  widths=[float(x) for x in cfg["absolute_widths"]]
