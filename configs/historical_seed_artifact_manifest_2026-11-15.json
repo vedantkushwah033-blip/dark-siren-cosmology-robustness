@@ -105,6 +105,25 @@
         "known_successful_test_artifacts": 213,
         "unlisted_test_runs": 70,
         "unlisted_test_artifacts": 210
+      },
+      "posterior_grid_integrity_branch_census": {
+        "observed_runs": 500,
+        "successful_runs": 159,
+        "non_success_runs": 341,
+        "successful_research_runs": 88,
+        "successful_tests_runs": 71,
+        "successful_research_artifacts": 100,
+        "successful_test_artifacts": 213,
+        "test_artifacts_persisted": 3,
+        "test_artifacts_unlisted": 210,
+        "non_success_breakdown": {
+          "tests_workflow": 318,
+          "catalogue_selection_stress_screen": 3,
+          "selection_misspecification_pilot": 11,
+          "audit_stage_b_artifact": 7,
+          "host_density_validation_campaign": 2
+        },
+        "non_success_partial_artifacts_enumerated": false
       }
     },
     "unresolved_branch_scopes": [
@@ -134,7 +153,21 @@
         "test_workflow_artifacts_persisted": 3,
         "test_workflow_artifacts_unlisted": 210,
         "test_workflow_non_success_runs": 318,
-        "test_workflow_source_schedule_status": "NOT_VERIFIED_ACROSS_ALL_71_HEADS"
+        "test_workflow_source_schedule_status": "NOT_VERIFIED_ACROSS_ALL_71_HEADS",
+        "successful_run_ids_observed": 159,
+        "non_success_run_ids_observed": 341,
+        "non_success_run_breakdown": {
+          "tests_workflow": 318,
+          "catalogue_selection_stress_screen": 3,
+          "selection_misspecification_pilot": 11,
+          "audit_stage_b_artifact": 7,
+          "host_density_validation_campaign": 2
+        },
+        "known_successful_research_workflow_runs": 88,
+        "known_successful_research_workflow_artifacts": 100,
+        "known_successful_test_workflow_runs": 71,
+        "known_successful_test_workflow_artifacts": 213,
+        "partial_artifacts_from_non_success_runs": "NOT_ENUMERATED"
       },
       {
         "branch": "research/estimated-inclusion-audit",
@@ -165,7 +198,13 @@
     "known_unlisted_artifact_count": 210,
     "total_known_successful_run_ids": 267,
     "total_known_successful_artifacts": 582,
-    "total_known_unresolved_artifacts": 270
+    "total_known_unresolved_artifacts": 270,
+    "total_observed_run_ids_in_posterior_grid_branch": 500,
+    "total_successful_run_ids_observed_in_posterior_grid_branch": 159,
+    "total_non_success_run_ids_observed_in_posterior_grid_branch": 341,
+    "total_known_successful_artifacts_in_posterior_grid_branch": 313,
+    "total_known_unlisted_successful_artifacts_in_posterior_grid_branch": 210,
+    "total_known_partial_artifacts_from_non_success_runs": "NOT_ENUMERATED"
   },
   "artifacts": [
     {
