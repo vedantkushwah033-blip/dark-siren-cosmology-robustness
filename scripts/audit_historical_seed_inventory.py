@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 SUPPORTED = {".json", ".csv", ".npz"}
-SEED_KEY = re.compile(r"(?:^seed$|_seed$|^seeds$|_seeds$)", re.IGNORECASE)
+SEED_KEY = re.compile(r"(?:^seed$|_seed$|^seeds$|_seeds$|^seed_start$|_seed_start$)", re.IGNORECASE)
 
 
 def sha256_file(path: Path) -> str:
@@ -73,55 +73,61 @@ def _walk_json(value: Any, source: str, prefix: str = "$") -> list[dict[str, Any
 
 
 def _ledger_seed_reuse_warnings(path: Path, relative: str) -> list[dict[str, str]]:
-    """Flag seed reuse across replicate IDs while allowing CRN pairing across gamma."""
+    """Flag seed-stream reuse across replicate IDs while allowing within-replicate pairing."""
     warnings: list[dict[str, str]] = []
     with path.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
-        required = {"replicate", "population_seed", "validation_seed"}
-        if reader.fieldnames is None or not required <= set(reader.fieldnames):
+        if reader.fieldnames is None or "replicate" not in reader.fieldnames:
             return warnings
-        by_replicate: dict[str, set[tuple[int, int]]] = {}
+        seed_columns = [
+            column for column in reader.fieldnames
+            if column and SEED_KEY.search(column)
+            and column.lower() not in {"seed", "seeds", "seed_start"}
+        ]
+        if len(seed_columns) < 2:
+            return warnings
+
+        by_replicate: dict[str, dict[str, set[int]]] = {}
         for row_number, row in enumerate(reader, start=2):
-            if not row.get("replicate") or row.get("population_seed") in (None, "") or row.get("validation_seed") in (None, ""):
+            replicate = row.get("replicate")
+            if replicate in (None, ""):
                 continue
-            replicate = str(row["replicate"])
-            pair = (
-                _seed_int(row["population_seed"], source=relative, field=f"population_seed@row{row_number}"),
-                _seed_int(row["validation_seed"], source=relative, field=f"validation_seed@row{row_number}"),
-            )
-            by_replicate.setdefault(replicate, set()).add(pair)
+            stream_values = by_replicate.setdefault(str(replicate), {
+                column: set() for column in seed_columns
+            })
+            for column in seed_columns:
+                raw = row.get(column)
+                if raw not in (None, ""):
+                    stream_values[column].add(
+                        _seed_int(raw, source=relative, field=f"{column}@row{row_number}")
+                    )
 
-    stable_pairs: dict[str, tuple[int, int]] = {}
-    for replicate, pairs in by_replicate.items():
-        if len(pairs) != 1:
-            warnings.append({
-                "path": relative,
-                "kind": "replicate_seed_pair_varies_across_rows",
-                "detail": f"replicate={replicate} has {len(pairs)} distinct population/validation seed pairs",
-            })
-        else:
-            stable_pairs[replicate] = next(iter(pairs))
+    stable_by_replicate: dict[str, dict[str, int]] = {}
+    for replicate, streams in by_replicate.items():
+        stable: dict[str, int] = {}
+        for column, values in streams.items():
+            if len(values) > 1:
+                warnings.append({
+                    "path": relative,
+                    "kind": "seed_stream_varies_within_replicate",
+                    "detail": f"replicate={replicate} stream={column} has {len(values)} distinct values",
+                })
+            elif len(values) == 1:
+                stable[column] = next(iter(values))
+        stable_by_replicate[replicate] = stable
 
-    # A seed cannot be reused by a different replicate, even if its stream
-    # role changes. Repeated rows for the same replicate across gamma are the
-    # intended common-random-number design and were collapsed above.
-    by_value: dict[int, set[str]] = {}
-    for replicate, pair in stable_pairs.items():
-        for seed_value in pair:
-            by_value.setdefault(seed_value, set()).add(replicate)
-        if pair[0] == pair[1]:
-            warnings.append({
-                "path": relative,
-                "kind": "seed_reused_across_streams_within_replicate",
-                "detail": f"seed={pair[0]} is both population and validation seed in replicate={replicate}",
-            })
-    for seed_value, replicate_ids in by_value.items():
-        if len(replicate_ids) > 1:
-            warnings.append({
-                "path": relative,
-                "kind": "seed_reused_across_replicates",
-                "detail": f"seed={seed_value} appears in replicate IDs {','.join(sorted(replicate_ids))}",
-            })
+    for column in seed_columns:
+        by_value: dict[int, list[str]] = {}
+        for replicate, streams in stable_by_replicate.items():
+            if column in streams:
+                by_value.setdefault(streams[column], []).append(replicate)
+        for seed_value, replicate_ids in by_value.items():
+            if len(replicate_ids) > 1:
+                warnings.append({
+                    "path": relative,
+                    "kind": f"{column}_reused_across_replicates",
+                    "detail": f"seed={seed_value} appears in replicate IDs {','.join(sorted(replicate_ids))}",
+                })
     return warnings
 
 
