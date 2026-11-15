@@ -458,3 +458,22 @@ All 12 condition artifacts are currently metadata-only in the manifest, but thei
 
 The selected posterior-grid branch inventory now covers **91 successful run IDs and 108 artifact records across 12 workflows**. The overall manifest contains **369 artifacts across 196 enumerated successful run IDs**: 200 archives downloaded and SHA-256 verified, 169 metadata-only, 148 source-proven, and 57 unresolved. The branch and overall inventory remain partial.
 
+
+
+## Inventory arithmetic correction — 2026-11-15
+
+I reconciled the narrative run counts against the machine-readable artifact manifest. Two earlier paragraphs overstated the selected posterior-grid branch totals as 91 runs / 108 artifacts. The actual artifact records contain **88 unique successful run IDs and 100 artifacts across 12 selected workflows**. The corrected per-workflow run counts are:
+
+- 13 each: host-misspecification audit, paired host-misspecification, sensitivity surface, host-prior-support factorial, hidden-host-assumption sensitivity (65 total);
+- 4: host-density validation campaign;
+- 3: H0-dependent-noise SBC;
+- 9: selection-misspecification Stage A pilot;
+- 1: locked Stage B selection-misspecification run;
+- 2: independent Stage B paired-analysis runs;
+- 2: catalogue-selection confirmatory replication;
+- 2: catalogue-selection stress screen.
+
+Those 88 runs produced 100 artifacts because the host-density campaign and catalogue-selection matrix workflows emit multiple artifacts per run. Of the 100 selected-branch artifacts, 36 have downloaded and SHA-256-verified payloads and 64 are metadata-only; all 100 have source-proven seed schedules.
+
+The reconciled overall manifest totals remain **369 artifacts, 196 unique run IDs, 200 downloaded archives, 169 metadata-only artifacts, 148 source-proven schedules, and 57 unresolved artifacts**. The manifest has been corrected to 88/100 for the selected branch. The 500-run branch is still only partially inventoried; this arithmetic correction does not imply completeness.
+
