@@ -253,3 +253,45 @@ def test_independent_curvature_dgp_reconstruction_matches_seeded_truth_and_obser
         )
         for key in ("parent_truth", "catalogue_observed", "validation_observed", "validation_frame_truth"):
             pd.testing.assert_frame_equal(production[key], independent[key], check_exact=False, rtol=1e-12, atol=1e-13)
+
+
+
+def test_independent_posterior_quadrature_remains_finite_under_degenerate_and_separated_labels():
+    """The proper Gaussian prior must regularize extreme finite validation samples."""
+    reference_path = ROOT / "scripts" / "audit_absolute_bandwidth_density_smoke.py"
+    spec = importlib.util.spec_from_file_location("independent_logistic_extreme_reference", reference_path)
+    reference = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(reference)
+
+    cfg = {
+        "coordinate_center": 0.205,
+        "coordinate_scale": 0.195,
+        "coefficient_prior": {
+            "family": "independent_gaussian",
+            "mean": [0.0, 0.0],
+            "sd": [5.0, 2.5],
+        },
+        "quadrature_order": 5,
+    }
+    z = np.linspace(0.01, 0.40, 40)
+    x = (z - cfg["coordinate_center"]) / cfg["coordinate_scale"]
+    label_cases = {
+        "all_zero": np.zeros(z.size, dtype=int),
+        "all_one": np.ones(z.size, dtype=int),
+        "complete_separation": (x > 0.0).astype(int),
+        "near_separation": np.where(x > 0.0, 1, 0).astype(int),
+    }
+    design = np.column_stack((np.ones(z.size), x))
+    prior_sd = np.asarray(cfg["coefficient_prior"]["sd"], dtype=float)
+    for label, y in label_cases.items():
+        mode, nodes, weights = reference._independent_logistic_quadrature(z, y, cfg)
+        score = design.T @ (1.0 / (1.0 + np.exp(-np.clip(design @ mode, -700, 700))) - y)
+        score += mode / np.square(prior_sd)
+        assert np.all(np.isfinite(mode)), label
+        assert np.linalg.norm(score, ord=np.inf) <= 1e-6, label
+        assert nodes.shape == (25, 2), label
+        assert weights.shape == (25,), label
+        assert np.all(np.isfinite(nodes)), label
+        assert np.all(np.isfinite(weights)) and np.all(weights >= 0.0), label
+        assert weights.sum() == pytest.approx(1.0, abs=1e-12), label
