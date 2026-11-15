@@ -7513,7 +7513,7 @@
       "seed_stride": 10,
       "replicates": 24
     },
-    "limitation": "Results apply only to the listed downloaded archives and source-proven schedules. There are 210 known but unlisted test-workflow artifacts from 70 successful test runs, plus 157 metadata-only artifacts and other unresolved run outcomes. The 3,301,923 seed-field occurrence count is provisional because the scanner has since been fixed to extract nested seed maps and seed-range fields; a full rescan of all 203 downloaded archives is required. The exact distinct-seed union also remains unreconciled. No global disjointness certification.",
+    "limitation": "Results apply only to the listed downloaded archives and source-proven schedules. There are 210 known but unlisted test-workflow artifacts from 70 successful test runs, plus 169 persisted metadata-only artifacts and other unresolved run outcomes. The 3,301,923 seed-field occurrence count is provisional because the scanner has since been fixed to extract nested seed maps and seed-range fields; a full rescan of all 203 downloaded archives is required. The exact distinct-seed union also remains unreconciled. No global disjointness certification.",
     "estimated_inclusion_py312_subset": {
       "archives": 43,
       "json_members": 1499,
