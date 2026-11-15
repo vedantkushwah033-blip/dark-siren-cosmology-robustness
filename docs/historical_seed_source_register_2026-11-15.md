@@ -418,3 +418,19 @@ The independent paired analysis also finds the oracle-vs-analytic-truth absolute
 
 The Stage B and two independent-analysis artifacts are now included in the source manifest. The selected posterior-grid branch review covers **87 successful run IDs and 96 artifacts across ten workflows**. The overall manifest contains **357 artifacts across 192 enumerated successful run IDs**; 200 archives are downloaded and SHA-256 verified, 157 are metadata-only, 136 have source-proven seed schedules, and 57 remain unresolved. The 500-run branch and overall inventory remain partial.
 
+
+
+## Seed-range parser validation — 2026-11-15
+
+A second parser edge case was identified while auditing Stage B artifacts: fields such as `seed_end`, `analysis_seed_start`, and `seed_end_by_mode` were not matched by the previous exact-`*_seed` suffix rule. The inventory now recognizes concrete seed-start/seed-end fields (including per-mode mappings) while continuing to exclude `seed_stride` as a generation-rule parameter. Regression tests cover direct range fields, per-mode range mappings, and stride exclusion.
+
+GitHub Actions run `43722223574` tested the code/test tree at commit `13613847de69e30678de41a4add8fe30665072b6`:
+- Python 3.10: 33 historical-seed-inventory tests passed.
+- Python 3.11: 33 passed.
+- Python 3.12: 33 passed.
+- All three curvature-density-pilot workflow matrix jobs completed successfully, including the CLI help check.
+
+The separate general `tests` workflow was cancelled during repeated pushes, so this is focused workflow evidence, not a claim that the entire repository test suite passed. The current branch head has since received documentation/manifest-only commits; a new focused workflow run on the latest head was still in progress at the last status check.
+
+The manifest's 3,301,923 seed-field occurrence total remains explicitly provisional: the corrected parser has not yet been run across all 200 downloaded archives. The next validation task is a complete rescan and exact seed-union reconciliation before any training schedule is authorized.
+
