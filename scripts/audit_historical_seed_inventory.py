@@ -72,6 +72,50 @@ def _walk_json(value: Any, source: str, prefix: str = "$") -> list[dict[str, Any
     return found
 
 
+def _ledger_seed_reuse_warnings(path: Path, relative: str) -> list[dict[str, str]]:
+    """Flag seed reuse across replicate IDs while allowing CRN pairing across gamma."""
+    warnings: list[dict[str, str]] = []
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        required = {"replicate", "population_seed", "validation_seed"}
+        if reader.fieldnames is None or not required <= set(reader.fieldnames):
+            return warnings
+        by_replicate: dict[str, set[tuple[int, int]]] = {}
+        for row_number, row in enumerate(reader, start=2):
+            if not row.get("replicate") or row.get("population_seed") in (None, "") or row.get("validation_seed") in (None, ""):
+                continue
+            replicate = str(row["replicate"])
+            pair = (
+                _seed_int(row["population_seed"], source=relative, field=f"population_seed@row{row_number}"),
+                _seed_int(row["validation_seed"], source=relative, field=f"validation_seed@row{row_number}"),
+            )
+            by_replicate.setdefault(replicate, set()).add(pair)
+
+    stable_pairs: dict[str, tuple[int, int]] = {}
+    for replicate, pairs in by_replicate.items():
+        if len(pairs) != 1:
+            warnings.append({
+                "path": relative,
+                "kind": "replicate_seed_pair_varies_across_rows",
+                "detail": f"replicate={replicate} has {len(pairs)} distinct population/validation seed pairs",
+            })
+        else:
+            stable_pairs[replicate] = next(iter(pairs))
+
+    for stream_name, pair_index in (("population_seed", 0), ("validation_seed", 1)):
+        by_value: dict[int, list[str]] = {}
+        for replicate, pair in stable_pairs.items():
+            by_value.setdefault(pair[pair_index], []).append(replicate)
+        for seed_value, replicate_ids in by_value.items():
+            if len(replicate_ids) > 1:
+                warnings.append({
+                    "path": relative,
+                    "kind": f"{stream_name}_reused_across_replicates",
+                    "detail": f"seed={seed_value} appears in replicate IDs {','.join(sorted(replicate_ids))}",
+                })
+    return warnings
+
+
 def inventory_file(path: Path, root: Path) -> dict[str, Any]:
     suffix = path.suffix.lower()
     relative = path.relative_to(root).as_posix()
@@ -107,7 +151,8 @@ def inventory_file(path: Path, root: Path) -> dict[str, Any]:
                     })
     else:
         raise ValueError(f"{relative}: unsupported artifact format {suffix}")
-    return {"path": relative, "bytes": path.stat().st_size, "sha256": digest, "seeds": seeds}
+    ledger_warnings = _ledger_seed_reuse_warnings(path, relative) if suffix == ".csv" else []
+    return {"path": relative, "bytes": path.stat().st_size, "sha256": digest, "seeds": seeds, "ledger_warnings": ledger_warnings}
 
 
 def inventory_roots(roots: list[Path]) -> tuple[list[dict[str, Any]], list[str]]:
@@ -168,7 +213,9 @@ def audit(roots: list[Path], schedule_path: Path) -> dict[str, Any]:
 
     records, errors = inventory_roots(roots)
     historical: dict[int, list[dict[str, str]]] = {}
+    ledger_warnings: list[dict[str, str]] = []
     for record in records:
+        ledger_warnings.extend(record.get("ledger_warnings", []))
         for item in record["seeds"]:
             historical.setdefault(item["seed"], []).append({
                 "root": record["root"], "path": record["path"], "field": item["field"]
@@ -190,6 +237,7 @@ def audit(roots: list[Path], schedule_path: Path) -> dict[str, Any]:
         "training_historical_overlap": overlap_training,
         "holdout_historical_overlap": overlap_holdout,
         "inventory_errors": errors,
+        "historical_seed_warnings": ledger_warnings,
         "schedule_sha256": sha256_file(schedule_path),
     }
 
