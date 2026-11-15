@@ -199,10 +199,20 @@ def _schedule_pairs(schedule: dict[str, Any], block: str) -> list[dict[str, int]
         seed_fields = [key for key in row if SEED_KEY.search(str(key))]
         if set(seed_fields) != set(row):
             raise ValueError(f"schedule.{block}[{index}] contains non-seed fields; use explicit *_seed stream names only")
-        values = {
-            str(key): _seed_int(row[key], source=f"schedule.{block}", field=str(key))
-            for key in seed_fields
-        }
+        values: dict[str, int] = {}
+        for key in seed_fields:
+            raw = row[key]
+            if isinstance(raw, (list, tuple)):
+                if not raw:
+                    raise ValueError(f"schedule.{block}[{index}].{key} must not be empty")
+                for stream_index, item in enumerate(raw):
+                    values[f"{key}[{stream_index}]"] = _seed_int(
+                        item, source=f"schedule.{block}", field=f"{key}[{stream_index}]"
+                    )
+            else:
+                values[str(key)] = _seed_int(
+                    raw, source=f"schedule.{block}", field=str(key)
+                )
         if len(values.values()) != len(set(values.values())):
             raise ValueError(f"schedule.{block}[{index}] reuses population and validation seed values across random streams")
         pairs.append(values)
