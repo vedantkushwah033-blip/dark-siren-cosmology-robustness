@@ -552,7 +552,7 @@ Descriptive equal-cell averages from the host-prior `summary.csv` (not a univers
 | hidden_host_modelled | +1.16 | 11.75 | 0.740 |
 | reversed_weights | +7.45 | 14.21 | 0.642 |
 
-For the hidden-host experiment, the `oracle_hidden` arm averages RMSE 8.53 and 68% coverage 0.682; `base_omitted` averages RMSE 9.59 and coverage 0.602. Across the nine assumed-hidden-fraction/redshift arms, average RMSE ranges roughly 9.07–11.47 and 68% coverage roughly 0.616–0.675. These are equal-cell descriptive averages across the archived 48-cell factorial, not inferential guarantees.
+For the hidden-host experiment, the `oracle_hidden` arm averages RMSE 8.53 and 68% coverage 0.682; `base_omitted` averages RMSE 9.59 and coverage 0.602. Across the nine assumed-hidden-fraction/redshift arms, average RMSE ranges roughly 9.07–11.47 and 68% coverage roughly 0.616–0.675. Mean error and RMSE are in km s⁻¹ Mpc⁻¹; coverage is a proportion. These are equal-cell descriptive averages across the archived 48-cell factorial, not inferential guarantees.
 
 These experiments concern host-prior weighting and hidden-host assumptions, not the current logistic finite-validation catalogue-inclusion estimator. They should inform the project's separation of catalogue inclusion, host/merger weighting and hidden-host modeling, but must not be presented as direct validation of estimated IPW.
 
