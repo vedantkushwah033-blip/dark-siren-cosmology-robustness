@@ -276,3 +276,16 @@ The focused workflow run [43635486478](https://github.com/vedantkushwah033-blip/
 
 The current research-branch source now includes entropy ESS in the independent weight-diagnostic reconstruction and comparison paths, including the absolute-bandwidth and quadratic-logit density smoke auditors; the paired outer auditor also reconstructs and compares the aggregate entropy-ESS column. This is a source-level follow-up only. **The failure above remains a recorded failure, not a pass**, and the current branch still requires a fresh exact-head Python 3.10/3.11/3.12 test run. No seven-gamma performance artifact or scientific result is inferred from this CI run.
 
+## Compact paired orchestration artifact: first independent PASS (2026-11-15)
+
+At commit `f8081e0f14977ac541a0e975f8fb8d6c49277e92`, the focused curvature workflow completed successfully on Python 3.10, 3.11, and 3.12. Its Python 3.12 job also ran and independently audited the compact paired orchestration artifact.
+
+- Actions run: `43674316806` (completed `success`).
+- Artifact: `compact-quadratic-logit-curvature-43674316806` (artifact ID `14145680789`).
+- Compact design: 2 replicates × 3 gamma values (`-1, 0, +1`), parent N=350, independent validation frame 120, nested validation sizes 40 and 80, quadrature order 3, 101-point redshift grid, and two absolute widths (0.012, 0.024).
+- Outer audit: `PASS`; 6/6 planned cells successful; 6/6 child raw-input audits passed; 79 manifest files verified; 360 density-metric rows, 168 weight-diagnostic rows, 156 Scott-width rows, 576 paired-contrast rows, and 288 paired-summary rows independently reconstructed; zero failed cells.
+- The separate three-version curvature density pilot test workflow also completed successfully at this exact commit (run `43674316841`).
+
+This is the first retrieved compact paired artifact for which the complete child and outer audit chain has been observed to pass after the entropy-ESS diagnostic was added. It verifies the compact runner/auditor integration and artifact lifecycle. It is **not** the planned seven-gamma engineering pilot: it has only two replicates, three gamma values, smaller parent/validation samples, coarse quadrature, a coarse redshift grid, and two bandwidths. Its paired contrasts are engineering diagnostics with extremely limited Monte Carlo precision. They must not be used to select bandwidths, claim estimator superiority, estimate calibration, or authorize H0 propagation.
+
+The compact artifact is preserved in GitHub Actions rather than committed into the source repository. The seven-gamma × three-replicate manual workflow remains the next development-pilot gate; its artifact must be separately retrieved and audited before the proposed training/holdout bandwidth protocol is considered.
