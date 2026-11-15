@@ -90,7 +90,15 @@
         "failed_cancelled_or_other_runs": "NOT_ENUMERATED",
         "reason": "Only successful run artifact sets are currently represented."
       }
-    ]
+    ],
+    "seed_inventory_status_counts": {
+      "PAYLOAD_SHA256_VERIFIED": 157,
+      "SEED_SCHEDULE_SOURCE_VERIFIED": 48,
+      "UNRESOLVED": 57
+    },
+    "seed_inventory_unresolved_artifact_count": 57,
+    "seed_inventory_schedule_source_verified_count": 48,
+    "seed_inventory_payload_verified_count": 157
   },
   "artifacts": [
     {
@@ -105,7 +113,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/quadratic-logit-curvature-smoke.yml",
       "run_created_at": "2026-11-15T06:25:06Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43634886771,
@@ -119,7 +128,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
       "run_created_at": "2026-11-14T19:57:38Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43634885089,
@@ -133,7 +143,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
       "run_created_at": "2026-11-14T19:57:36Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43634881358,
@@ -147,7 +158,19 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
       "run_created_at": "2026-11-14T19:57:33Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "d7680d0fa32cd92e4379849bae986b8967a74baf",
+        "runner_blob_sha": "a17c8c0d1e3853fa7ac96c8b70a740302450e17e",
+        "master_seed": 2026111500,
+        "seed_stride": 10,
+        "replicates": 3,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "common_random_numbers_across_gamma": true,
+        "source_commit": "4566a8497432a0051b2cbfe55974802bc520b574"
+      }
     },
     {
       "run_id": 43634841047,
@@ -161,7 +184,19 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
       "run_created_at": "2026-11-14T19:57:05Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "d7680d0fa32cd92e4379849bae986b8967a74baf",
+        "runner_blob_sha": "a17c8c0d1e3853fa7ac96c8b70a740302450e17e",
+        "master_seed": 2026111500,
+        "seed_stride": 10,
+        "replicates": 3,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "common_random_numbers_across_gamma": true,
+        "source_commit": "5e440e6c34c16c8f408511a827608844921dba37"
+      }
     },
     {
       "run_id": 43634839052,
@@ -175,7 +210,19 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
       "run_created_at": "2026-11-14T19:57:03Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "d7680d0fa32cd92e4379849bae986b8967a74baf",
+        "runner_blob_sha": "a17c8c0d1e3853fa7ac96c8b70a740302450e17e",
+        "master_seed": 2026111500,
+        "seed_stride": 10,
+        "replicates": 3,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "common_random_numbers_across_gamma": true,
+        "source_commit": "975394f6d119cedcf4004238608594bce1f8ad0f"
+      }
     },
     {
       "run_id": 43634831443,
@@ -189,7 +236,19 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
       "run_created_at": "2026-11-14T19:56:58Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "d7680d0fa32cd92e4379849bae986b8967a74baf",
+        "runner_blob_sha": "a17c8c0d1e3853fa7ac96c8b70a740302450e17e",
+        "master_seed": 2026111500,
+        "seed_stride": 10,
+        "replicates": 3,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "common_random_numbers_across_gamma": true,
+        "source_commit": "3a666f2067b5fdcf53d3c73030582a4f15594a0a"
+      }
     },
     {
       "run_id": 43634678059,
@@ -203,7 +262,19 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
       "run_created_at": "2026-11-14T19:55:12Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "d7680d0fa32cd92e4379849bae986b8967a74baf",
+        "runner_blob_sha": "aa69da6386003df9561ee2b49728c1ea14c02ae0",
+        "master_seed": 2026111500,
+        "seed_stride": 10,
+        "replicates": 3,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "common_random_numbers_across_gamma": true,
+        "source_commit": "ab060d8e02c6a6dee9e58324418db14ef416a28e"
+      }
     },
     {
       "run_id": 43634672001,
@@ -217,7 +288,19 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
       "run_created_at": "2026-11-14T19:55:09Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "d7680d0fa32cd92e4379849bae986b8967a74baf",
+        "runner_blob_sha": "aa69da6386003df9561ee2b49728c1ea14c02ae0",
+        "master_seed": 2026111500,
+        "seed_stride": 10,
+        "replicates": 3,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "common_random_numbers_across_gamma": true,
+        "source_commit": "b63e992ae0214f70e5b21d858260ab2576c5509d"
+      }
     },
     {
       "run_id": 43634661809,
@@ -231,7 +314,19 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
       "run_created_at": "2026-11-14T19:55:02Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "d7680d0fa32cd92e4379849bae986b8967a74baf",
+        "runner_blob_sha": "aa69da6386003df9561ee2b49728c1ea14c02ae0",
+        "master_seed": 2026111500,
+        "seed_stride": 10,
+        "replicates": 3,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "common_random_numbers_across_gamma": true,
+        "source_commit": "6532f589e71e6352d6364f2cbe1784cceeefc915"
+      }
     },
     {
       "run_id": 43634540727,
@@ -245,7 +340,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
       "run_created_at": "2026-11-14T19:53:37Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43634540727,
@@ -259,7 +355,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
       "run_created_at": "2026-11-14T19:53:37Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "24f87a4cc16864a02aa2026f0c1d3894f28a8404",
+        "runner_blob_sha": "360e97641fe67f93818febf099ea8d6fa1140740",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "414175baf0b3f0af2421517804e1521d1666dfbc"
+      }
     },
     {
       "run_id": 43634540727,
@@ -273,7 +380,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
       "run_created_at": "2026-11-14T19:53:37Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "24f87a4cc16864a02aa2026f0c1d3894f28a8404",
+        "runner_blob_sha": "360e97641fe67f93818febf099ea8d6fa1140740",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "414175baf0b3f0af2421517804e1521d1666dfbc"
+      }
     },
     {
       "run_id": 43634540773,
@@ -287,7 +405,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T19:53:37Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "360e97641fe67f93818febf099ea8d6fa1140740",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "414175baf0b3f0af2421517804e1521d1666dfbc"
+      }
     },
     {
       "run_id": 43634540773,
@@ -301,7 +430,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T19:53:37Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "360e97641fe67f93818febf099ea8d6fa1140740",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "414175baf0b3f0af2421517804e1521d1666dfbc"
+      }
     },
     {
       "run_id": 43634540773,
@@ -315,7 +455,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T19:53:37Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "360e97641fe67f93818febf099ea8d6fa1140740",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "414175baf0b3f0af2421517804e1521d1666dfbc"
+      }
     },
     {
       "run_id": 43633611845,
@@ -329,7 +480,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
       "run_created_at": "2026-11-14T19:43:14Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43633572255,
@@ -343,7 +495,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
       "run_created_at": "2026-11-14T19:42:48Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43633559278,
@@ -357,7 +510,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
       "run_created_at": "2026-11-14T19:42:40Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43632142013,
@@ -371,7 +525,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T19:26:58Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43632142013,
@@ -385,7 +540,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T19:26:58Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "360e97641fe67f93818febf099ea8d6fa1140740",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "e26b47607ce0c80717787c20a0ed527ad89a8c51"
+      }
     },
     {
       "run_id": 43632142013,
@@ -399,7 +565,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T19:26:58Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "360e97641fe67f93818febf099ea8d6fa1140740",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "e26b47607ce0c80717787c20a0ed527ad89a8c51"
+      }
     },
     {
       "run_id": 43632134863,
@@ -413,7 +590,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T19:26:53Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "360e97641fe67f93818febf099ea8d6fa1140740",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "efb4b2b8eb6b4ca67bc338d97cdefafe4789ac6b"
+      }
     },
     {
       "run_id": 43632134863,
@@ -427,7 +615,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T19:26:53Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "360e97641fe67f93818febf099ea8d6fa1140740",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "efb4b2b8eb6b4ca67bc338d97cdefafe4789ac6b"
+      }
     },
     {
       "run_id": 43632134863,
@@ -441,7 +640,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T19:26:53Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "360e97641fe67f93818febf099ea8d6fa1140740",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "efb4b2b8eb6b4ca67bc338d97cdefafe4789ac6b"
+      }
     },
     {
       "run_id": 43628956224,
@@ -455,7 +665,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T18:51:57Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "d0ee84601a192223040ab1cdc1b1c426ac6f010e",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "9894307b78c569adcc137c27b530afbdaf2247bb"
+      }
     },
     {
       "run_id": 43628956224,
@@ -469,7 +690,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T18:51:57Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "d0ee84601a192223040ab1cdc1b1c426ac6f010e",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "9894307b78c569adcc137c27b530afbdaf2247bb"
+      }
     },
     {
       "run_id": 43628956224,
@@ -483,7 +715,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T18:51:57Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "d0ee84601a192223040ab1cdc1b1c426ac6f010e",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "9894307b78c569adcc137c27b530afbdaf2247bb"
+      }
     },
     {
       "run_id": 43628948365,
@@ -497,7 +740,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
       "run_created_at": "2026-11-14T18:51:52Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "24f87a4cc16864a02aa2026f0c1d3894f28a8404",
+        "runner_blob_sha": "d0ee84601a192223040ab1cdc1b1c426ac6f010e",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "614c2a4bc733299aa4479fee8bb5e98dfe92b82c"
+      }
     },
     {
       "run_id": 43628948365,
@@ -511,7 +765,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
       "run_created_at": "2026-11-14T18:51:52Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "24f87a4cc16864a02aa2026f0c1d3894f28a8404",
+        "runner_blob_sha": "d0ee84601a192223040ab1cdc1b1c426ac6f010e",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "614c2a4bc733299aa4479fee8bb5e98dfe92b82c"
+      }
     },
     {
       "run_id": 43628948365,
@@ -525,7 +790,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
       "run_created_at": "2026-11-14T18:51:52Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "24f87a4cc16864a02aa2026f0c1d3894f28a8404",
+        "runner_blob_sha": "d0ee84601a192223040ab1cdc1b1c426ac6f010e",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "614c2a4bc733299aa4479fee8bb5e98dfe92b82c"
+      }
     },
     {
       "run_id": 43628935766,
@@ -539,7 +815,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T18:51:43Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "d0ee84601a192223040ab1cdc1b1c426ac6f010e",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "1ae056dac1b90c12a9a63eaaa6387fd6ae78886a"
+      }
     },
     {
       "run_id": 43628935766,
@@ -553,7 +840,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T18:51:43Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "d0ee84601a192223040ab1cdc1b1c426ac6f010e",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "1ae056dac1b90c12a9a63eaaa6387fd6ae78886a"
+      }
     },
     {
       "run_id": 43628935766,
@@ -567,7 +865,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T18:51:43Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "d0ee84601a192223040ab1cdc1b1c426ac6f010e",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "1ae056dac1b90c12a9a63eaaa6387fd6ae78886a"
+      }
     },
     {
       "run_id": 43628935789,
@@ -581,7 +890,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
       "run_created_at": "2026-11-14T18:51:43Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "24f87a4cc16864a02aa2026f0c1d3894f28a8404",
+        "runner_blob_sha": "d0ee84601a192223040ab1cdc1b1c426ac6f010e",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "1ae056dac1b90c12a9a63eaaa6387fd6ae78886a"
+      }
     },
     {
       "run_id": 43628935789,
@@ -595,7 +915,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
       "run_created_at": "2026-11-14T18:51:43Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "24f87a4cc16864a02aa2026f0c1d3894f28a8404",
+        "runner_blob_sha": "d0ee84601a192223040ab1cdc1b1c426ac6f010e",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "1ae056dac1b90c12a9a63eaaa6387fd6ae78886a"
+      }
     },
     {
       "run_id": 43628935789,
@@ -609,7 +940,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
       "run_created_at": "2026-11-14T18:51:43Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "24f87a4cc16864a02aa2026f0c1d3894f28a8404",
+        "runner_blob_sha": "d0ee84601a192223040ab1cdc1b1c426ac6f010e",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "1ae056dac1b90c12a9a63eaaa6387fd6ae78886a"
+      }
     },
     {
       "run_id": 43622877251,
@@ -623,7 +965,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T17:45:59Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "44b504660269c4a7fd0003bc8663bb18fb8a9489"
+      }
     },
     {
       "run_id": 43622877251,
@@ -637,7 +990,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T17:45:59Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "44b504660269c4a7fd0003bc8663bb18fb8a9489"
+      }
     },
     {
       "run_id": 43622877251,
@@ -651,7 +1015,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T17:45:59Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "44b504660269c4a7fd0003bc8663bb18fb8a9489"
+      }
     },
     {
       "run_id": 43620497522,
@@ -665,7 +1040,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T17:19:44Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "a1182711577f83f7d61b8a2b6906ba594377a913"
+      }
     },
     {
       "run_id": 43620497522,
@@ -679,7 +1065,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T17:19:44Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "a1182711577f83f7d61b8a2b6906ba594377a913"
+      }
     },
     {
       "run_id": 43620497522,
@@ -693,7 +1090,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T17:19:44Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "a1182711577f83f7d61b8a2b6906ba594377a913"
+      }
     },
     {
       "run_id": 43615384270,
@@ -707,7 +1115,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T16:23:53Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "3998718b12d33fa05debd13dec5b94ef459be054"
+      }
     },
     {
       "run_id": 43615384270,
@@ -721,7 +1140,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T16:23:53Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "3998718b12d33fa05debd13dec5b94ef459be054"
+      }
     },
     {
       "run_id": 43615384270,
@@ -735,7 +1165,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T16:23:53Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "3998718b12d33fa05debd13dec5b94ef459be054"
+      }
     },
     {
       "run_id": 43615227004,
@@ -749,7 +1190,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
       "run_created_at": "2026-11-14T16:22:09Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "24f87a4cc16864a02aa2026f0c1d3894f28a8404",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "7dcfec2f9fc611b2ebcaf21b224ad3f373196ff1"
+      }
     },
     {
       "run_id": 43615227004,
@@ -763,7 +1215,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
       "run_created_at": "2026-11-14T16:22:09Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "24f87a4cc16864a02aa2026f0c1d3894f28a8404",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "7dcfec2f9fc611b2ebcaf21b224ad3f373196ff1"
+      }
     },
     {
       "run_id": 43615227004,
@@ -777,7 +1240,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
       "run_created_at": "2026-11-14T16:22:09Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "24f87a4cc16864a02aa2026f0c1d3894f28a8404",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "7dcfec2f9fc611b2ebcaf21b224ad3f373196ff1"
+      }
     },
     {
       "run_id": 43617052487,
@@ -791,7 +1265,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T16:42:18Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "d94fdd62e514c81c20444196e166d2ebbb341a40"
+      }
     },
     {
       "run_id": 43617052487,
@@ -805,7 +1290,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T16:42:18Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "d94fdd62e514c81c20444196e166d2ebbb341a40"
+      }
     },
     {
       "run_id": 43617052487,
@@ -819,7 +1315,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T16:42:18Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "f8b9fddb786c6984e7ab69d11043696a8cb009cc",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "d94fdd62e514c81c20444196e166d2ebbb341a40"
+      }
     },
     {
       "run_id": 43619594762,
@@ -833,7 +1340,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T17:09:52Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43619594762,
@@ -847,7 +1355,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T17:09:52Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43619594762,
@@ -861,7 +1370,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T17:09:52Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43617052462,
@@ -875,7 +1385,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
       "run_created_at": "2026-11-14T16:42:18Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43617052462,
@@ -889,7 +1400,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
       "run_created_at": "2026-11-14T16:42:18Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43617052462,
@@ -903,7 +1415,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
       "run_created_at": "2026-11-14T16:42:18Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43574613209,
@@ -917,7 +1430,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
       "run_created_at": "2026-11-14T08:11:29Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "24f87a4cc16864a02aa2026f0c1d3894f28a8404",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "836ecff9060d83c18bc0a9c18b0ed86f54fcc79e"
+      }
     },
     {
       "run_id": 43574613209,
@@ -931,7 +1455,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
       "run_created_at": "2026-11-14T08:11:29Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43574613209,
@@ -945,7 +1470,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
       "run_created_at": "2026-11-14T08:11:29Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "24f87a4cc16864a02aa2026f0c1d3894f28a8404",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "836ecff9060d83c18bc0a9c18b0ed86f54fcc79e"
+      }
     },
     {
       "run_id": 43573059988,
@@ -959,7 +1495,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T07:51:44Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "077c2f5650aeeba0e23e35b62a2baf0e5f158160",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "4f125de03c01eccbd4cb81e069e8af2dfa49b4db"
+      }
     },
     {
       "run_id": 43573059988,
@@ -973,7 +1520,18 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T07:51:44Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "077c2f5650aeeba0e23e35b62a2baf0e5f158160",
+        "runner_blob_sha": "85bc02556577e9e58925f20d619d74cf5e227308",
+        "master_seed": 20261215,
+        "seed_stride": 10,
+        "replicates": 20,
+        "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+        "source_commit": "4f125de03c01eccbd4cb81e069e8af2dfa49b4db"
+      }
     },
     {
       "run_id": 43573059988,
@@ -987,7 +1545,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
       "run_created_at": "2026-11-14T07:51:44Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43619577181,
@@ -1002,7 +1561,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-14T17:09:41Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43619577181,
@@ -1017,7 +1577,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-14T17:09:41Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43619577181,
@@ -1032,7 +1593,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-14T17:09:41Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43619577181,
@@ -1047,7 +1609,8 @@
       "head_branch": "research/absolute-width-distribution-pilot-20261114",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-14T17:09:41Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43615127763,
@@ -1062,7 +1625,8 @@
       "head_branch": "research/five-arm-kde-kernel-reuse-v2-20261114",
       "workflow_path": ".github/workflows/absolute-bandwidth-density-pilot.yml",
       "run_created_at": "2026-11-14T16:21:04Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 43582872046,
@@ -1077,7 +1641,8 @@
       "head_branch": "research/five-arm-kde-kernel-reuse-v2-20261114",
       "workflow_path": ".github/workflows/absolute-bandwidth-density-pilot.yml",
       "run_created_at": "2026-11-14T09:56:14Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 42505936771,
@@ -1092,7 +1657,8 @@
       "head_branch": "research/inclusion-posterior-quadrature-prototype",
       "workflow_path": ".github/workflows/inclusion-posterior-calibration-pilot.yml",
       "run_created_at": "2026-11-08T17:38:06Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 42481464991,
@@ -1107,7 +1673,8 @@
       "head_branch": "research/independent-posterior-audit-claim-fix",
       "workflow_path": ".github/workflows/finite-validation-density-confirmatory.yml",
       "run_created_at": "2026-11-08T12:42:00Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 42481059735,
@@ -1122,7 +1689,8 @@
       "head_branch": "research/independent-posterior-audit-claim-fix",
       "workflow_path": ".github/workflows/fixed-analysis-catalogue-density-confirmatory.yml",
       "run_created_at": "2026-11-08T12:36:32Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 42481059738,
@@ -1137,7 +1705,8 @@
       "head_branch": "research/independent-posterior-audit-claim-fix",
       "workflow_path": ".github/workflows/fixed-analysis-catalogue-density-pilot.yml",
       "run_created_at": "2026-11-08T12:36:32Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 42481456702,
@@ -1151,7 +1720,8 @@
       "head_branch": "research/independent-posterior-audit-claim-fix",
       "workflow_path": ".github/workflows/finite-validation-density-confirmatory.yml",
       "run_created_at": "2026-11-08T12:41:54Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40795743899,
@@ -1165,7 +1735,8 @@
       "head_branch": "research/selection-misspecification-sensitivity",
       "workflow_path": ".github/workflows/selection-misspecification-sensitivity.yml",
       "run_created_at": "2026-10-29T00:41:55Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41004012836,
@@ -1179,7 +1750,8 @@
       "head_branch": "research/validation-bootstrap-uncertainty",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:38:25Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 41004012836,
@@ -1193,7 +1765,8 @@
       "head_branch": "research/validation-bootstrap-uncertainty",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:38:25Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 41004012836,
@@ -1207,7 +1780,8 @@
       "head_branch": "research/validation-bootstrap-uncertainty",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:38:25Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 41003812359,
@@ -1221,7 +1795,8 @@
       "head_branch": "research/validation-bootstrap-uncertainty",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:36:13Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 41003812359,
@@ -1235,7 +1810,8 @@
       "head_branch": "research/validation-bootstrap-uncertainty",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:36:13Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 41003812359,
@@ -1249,7 +1825,8 @@
       "head_branch": "research/validation-bootstrap-uncertainty",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:36:13Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 41003332023,
@@ -1263,7 +1840,8 @@
       "head_branch": "research/validation-bootstrap-uncertainty",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:31:02Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 41003332023,
@@ -1277,7 +1855,8 @@
       "head_branch": "research/validation-bootstrap-uncertainty",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:31:02Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 41003332023,
@@ -1291,7 +1870,8 @@
       "head_branch": "research/validation-bootstrap-uncertainty",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:31:02Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 41002829153,
@@ -1305,7 +1885,8 @@
       "head_branch": "research/validation-bootstrap-uncertainty",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:25:40Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 41002829153,
@@ -1319,7 +1900,8 @@
       "head_branch": "research/validation-bootstrap-uncertainty",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:25:40Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 41002829153,
@@ -1333,7 +1915,8 @@
       "head_branch": "research/validation-bootstrap-uncertainty",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:25:40Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42475489947,
@@ -1347,7 +1930,8 @@
       "head_branch": "research/fix-density-dgp-rng-stream-collision",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-08T11:22:49Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42475489947,
@@ -1361,7 +1945,8 @@
       "head_branch": "research/fix-density-dgp-rng-stream-collision",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-08T11:22:49Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42475489947,
@@ -1375,7 +1960,8 @@
       "head_branch": "research/fix-density-dgp-rng-stream-collision",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-08T11:22:49Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42474044847,
@@ -1389,7 +1975,8 @@
       "head_branch": "research/density-fit-objective-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-08T11:03:30Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42474044847,
@@ -1403,7 +1990,8 @@
       "head_branch": "research/density-fit-objective-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-08T11:03:30Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42474044847,
@@ -1417,7 +2005,8 @@
       "head_branch": "research/density-fit-objective-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-08T11:03:30Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 43456193530,
@@ -1431,7 +2020,8 @@
       "head_branch": "research/finite-validation-kde-audit-bandwidth-20261113",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-13T15:47:52Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 43456193530,
@@ -1445,7 +2035,8 @@
       "head_branch": "research/finite-validation-kde-audit-bandwidth-20261113",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-13T15:47:52Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 43456193530,
@@ -1459,7 +2050,8 @@
       "head_branch": "research/finite-validation-kde-audit-bandwidth-20261113",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-13T15:47:52Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42558592331,
@@ -1473,7 +2065,8 @@
       "head_branch": "research/fix-reflected-kde-bandwidth-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T03:50:55Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42558592331,
@@ -1487,7 +2080,8 @@
       "head_branch": "research/fix-reflected-kde-bandwidth-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T03:50:55Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42558592331,
@@ -1501,7 +2095,8 @@
       "head_branch": "research/fix-reflected-kde-bandwidth-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T03:50:55Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42558586720,
@@ -1515,7 +2110,8 @@
       "head_branch": "research/fix-reflected-kde-bandwidth-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T03:50:50Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42558586720,
@@ -1529,7 +2125,8 @@
       "head_branch": "research/fix-reflected-kde-bandwidth-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T03:50:50Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42558586720,
@@ -1543,7 +2140,8 @@
       "head_branch": "research/fix-reflected-kde-bandwidth-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T03:50:50Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42558011502,
@@ -1557,7 +2155,8 @@
       "head_branch": "research/fix-reflected-kde-bandwidth-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T03:44:15Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42558011502,
@@ -1571,7 +2170,8 @@
       "head_branch": "research/fix-reflected-kde-bandwidth-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T03:44:15Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42558011502,
@@ -1585,7 +2185,8 @@
       "head_branch": "research/fix-reflected-kde-bandwidth-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T03:44:15Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42557453195,
@@ -1599,7 +2200,8 @@
       "head_branch": "research/fix-reflected-kde-bandwidth-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T03:37:48Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42557453195,
@@ -1613,7 +2215,8 @@
       "head_branch": "research/fix-reflected-kde-bandwidth-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T03:37:48Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42557453195,
@@ -1627,7 +2230,8 @@
       "head_branch": "research/fix-reflected-kde-bandwidth-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T03:37:48Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42584185691,
@@ -1641,7 +2245,8 @@
       "head_branch": "research/forensic-review-inclusion-pilot-2026-11-09",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T08:11:49Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42584185691,
@@ -1655,7 +2260,8 @@
       "head_branch": "research/forensic-review-inclusion-pilot-2026-11-09",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T08:11:49Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42584185691,
@@ -1669,7 +2275,8 @@
       "head_branch": "research/forensic-review-inclusion-pilot-2026-11-09",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T08:11:49Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42584100432,
@@ -1683,7 +2290,8 @@
       "head_branch": "research/forensic-review-inclusion-pilot-2026-11-09",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T08:11:03Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42584100432,
@@ -1697,7 +2305,8 @@
       "head_branch": "research/forensic-review-inclusion-pilot-2026-11-09",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T08:11:03Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42584100432,
@@ -1711,7 +2320,8 @@
       "head_branch": "research/forensic-review-inclusion-pilot-2026-11-09",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T08:11:03Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 43462257888,
@@ -1725,7 +2335,8 @@
       "head_branch": "research/inclusion-near-separation-reference-20261113",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-13T16:23:33Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 43462257888,
@@ -1739,7 +2350,8 @@
       "head_branch": "research/inclusion-near-separation-reference-20261113",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-13T16:23:33Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 43462257888,
@@ -1753,7 +2365,8 @@
       "head_branch": "research/inclusion-near-separation-reference-20261113",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-13T16:23:33Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42478426622,
@@ -1767,7 +2380,8 @@
       "head_branch": "research/inclusion-posterior-modular-design",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-08T12:03:08Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42478426622,
@@ -1781,7 +2395,8 @@
       "head_branch": "research/inclusion-posterior-modular-design",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-08T12:03:08Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42478426622,
@@ -1795,7 +2410,8 @@
       "head_branch": "research/inclusion-posterior-modular-design",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-08T12:03:08Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42478374969,
@@ -1809,7 +2425,8 @@
       "head_branch": "research/inclusion-posterior-modular-design",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-08T12:02:28Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42478374969,
@@ -1823,7 +2440,8 @@
       "head_branch": "research/inclusion-posterior-modular-design",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-08T12:02:28Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42478374969,
@@ -1837,7 +2455,8 @@
       "head_branch": "research/inclusion-posterior-modular-design",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-08T12:02:28Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42635790597,
@@ -1851,7 +2470,8 @@
       "head_branch": "research/independent-logistic-posterior-auditor-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T14:33:09Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42635790597,
@@ -1865,7 +2485,8 @@
       "head_branch": "research/independent-logistic-posterior-auditor-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T14:33:09Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42635790597,
@@ -1879,7 +2500,8 @@
       "head_branch": "research/independent-logistic-posterior-auditor-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T14:33:09Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42635781399,
@@ -1893,7 +2515,8 @@
       "head_branch": "research/independent-logistic-posterior-auditor-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T14:33:05Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42635781399,
@@ -1907,7 +2530,8 @@
       "head_branch": "research/independent-logistic-posterior-auditor-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T14:33:05Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42635781399,
@@ -1921,7 +2545,8 @@
       "head_branch": "research/independent-logistic-posterior-auditor-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T14:33:05Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42628495318,
@@ -1935,7 +2560,8 @@
       "head_branch": "research/independent-logistic-posterior-auditor-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T13:47:01Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42628495318,
@@ -1949,7 +2575,8 @@
       "head_branch": "research/independent-logistic-posterior-auditor-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T13:47:01Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 42628495318,
@@ -1963,7 +2590,8 @@
       "head_branch": "research/independent-logistic-posterior-auditor-20261109",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-09T13:47:01Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED"
     },
     {
       "run_id": 41191647803,
@@ -1977,7 +2605,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T10:10:15Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41191647803,
@@ -1991,7 +2620,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T10:10:15Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41191647803,
@@ -2005,7 +2635,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T10:10:15Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41191616131,
@@ -2019,7 +2650,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T10:09:50Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41191616131,
@@ -2033,7 +2665,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T10:09:50Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41191616131,
@@ -2047,7 +2680,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T10:09:50Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41191064990,
@@ -2061,7 +2695,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T10:01:53Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41191064990,
@@ -2075,7 +2710,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T10:01:53Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41191064990,
@@ -2089,7 +2725,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T10:01:53Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41190643654,
@@ -2103,7 +2740,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T09:55:32Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41190643654,
@@ -2117,7 +2755,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T09:55:32Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41190643654,
@@ -2131,7 +2770,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T09:55:32Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41190464337,
@@ -2145,7 +2785,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T09:52:44Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41190464337,
@@ -2159,7 +2800,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T09:52:44Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41190464337,
@@ -2173,7 +2815,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T09:52:44Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41187304820,
@@ -2187,7 +2830,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T09:06:25Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41187304820,
@@ -2201,7 +2845,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T09:06:25Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41187304820,
@@ -2215,7 +2860,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T09:06:25Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41187296745,
@@ -2229,7 +2875,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T09:06:18Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41187296745,
@@ -2243,7 +2890,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T09:06:18Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41187296745,
@@ -2257,7 +2905,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T09:06:18Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41002703937,
@@ -2271,7 +2920,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:24:19Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41002703937,
@@ -2285,7 +2935,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:24:19Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41002703937,
@@ -2299,7 +2950,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:24:19Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41002694829,
@@ -2313,7 +2965,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:24:13Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41002694829,
@@ -2327,7 +2980,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:24:13Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41002694829,
@@ -2341,7 +2995,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:24:13Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41001160389,
@@ -2355,7 +3010,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:07:52Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41001160389,
@@ -2369,7 +3025,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:07:52Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41001160389,
@@ -2383,7 +3040,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:07:52Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41001146580,
@@ -2397,7 +3055,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:07:43Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41001146580,
@@ -2411,7 +3070,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:07:43Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41001146580,
@@ -2425,7 +3085,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T04:07:43Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40993832262,
@@ -2439,7 +3100,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T02:48:39Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40993832262,
@@ -2453,7 +3115,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T02:48:39Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40993832262,
@@ -2467,7 +3130,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T02:48:39Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40991581004,
@@ -2481,7 +3145,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T02:25:18Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40991581004,
@@ -2495,7 +3160,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T02:25:18Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40991581004,
@@ -2509,7 +3175,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T02:25:18Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40990328227,
@@ -2523,7 +3190,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T02:12:28Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40990328227,
@@ -2537,7 +3205,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T02:12:28Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40990328227,
@@ -2551,7 +3220,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T02:12:28Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40990173828,
@@ -2565,7 +3235,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T02:10:52Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40990173828,
@@ -2579,7 +3250,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T02:10:52Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40990173828,
@@ -2593,7 +3265,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T02:10:52Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40988111116,
@@ -2607,7 +3280,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T01:49:36Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40988111116,
@@ -2621,7 +3295,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T01:49:36Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40988111116,
@@ -2635,7 +3310,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T01:49:36Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40987458196,
@@ -2649,7 +3325,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T01:42:47Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40987458196,
@@ -2663,7 +3340,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T01:42:47Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40987458196,
@@ -2677,7 +3355,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T01:42:47Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40986594961,
@@ -2691,7 +3370,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T01:33:55Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40986594961,
@@ -2705,7 +3385,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T01:33:55Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40986594961,
@@ -2719,7 +3400,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-30T01:33:55Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40932432360,
@@ -2733,7 +3415,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-29T18:36:39Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40932432360,
@@ -2747,7 +3430,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-29T18:36:39Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40932432360,
@@ -2761,7 +3445,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-29T18:36:39Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40931451302,
@@ -2775,7 +3460,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-29T18:30:26Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40931451302,
@@ -2789,7 +3475,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-29T18:30:26Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40931451302,
@@ -2803,7 +3490,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-29T18:30:26Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40904951533,
@@ -2817,7 +3505,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-29T15:46:29Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40904951533,
@@ -2831,7 +3520,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-29T15:46:29Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40904951533,
@@ -2845,7 +3535,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-29T15:46:29Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40904150582,
@@ -2859,7 +3550,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-29T15:41:41Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40904150582,
@@ -2873,7 +3565,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-29T15:41:41Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40904150582,
@@ -2887,7 +3580,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-29T15:41:41Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40902269014,
@@ -2901,7 +3595,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-29T15:30:32Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40902269014,
@@ -2915,7 +3610,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-29T15:30:32Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40902269014,
@@ -2929,7 +3625,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-29T15:30:32Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40900539286,
@@ -2943,7 +3640,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-29T15:20:24Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40900539286,
@@ -2957,7 +3655,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-29T15:20:24Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 40900539286,
@@ -2971,7 +3670,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-29T15:20:24Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41458235794,
@@ -2985,7 +3685,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-02T14:02:42Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41458235794,
@@ -2999,7 +3700,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-02T14:02:42Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41458235794,
@@ -3013,7 +3715,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-02T14:02:42Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41449790940,
@@ -3027,7 +3730,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-02T13:04:10Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41449790940,
@@ -3041,7 +3745,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-02T13:04:10Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41449790940,
@@ -3055,7 +3760,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-02T13:04:10Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41449421010,
@@ -3069,7 +3775,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-02T13:01:26Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41449421010,
@@ -3083,7 +3790,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-02T13:01:26Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41449421010,
@@ -3097,7 +3805,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-02T13:01:26Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41446737511,
@@ -3111,7 +3820,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-02T12:41:21Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41446737511,
@@ -3125,7 +3835,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-02T12:41:21Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41446737511,
@@ -3139,7 +3850,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-02T12:41:21Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41446495147,
@@ -3153,7 +3865,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-02T12:39:32Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41446495147,
@@ -3167,7 +3880,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-02T12:39:32Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41446495147,
@@ -3181,7 +3895,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-02T12:39:32Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41440725708,
@@ -3195,7 +3910,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-02T11:56:37Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41440725708,
@@ -3209,7 +3925,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-02T11:56:37Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41440725708,
@@ -3223,7 +3940,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-02T11:56:37Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41295697876,
@@ -3237,7 +3955,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-01T10:02:36Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41295697876,
@@ -3251,7 +3970,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-01T10:02:36Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41295697876,
@@ -3265,7 +3985,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-01T10:02:36Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41290350352,
@@ -3279,7 +4000,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-01T09:47:50Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41290350352,
@@ -3293,7 +4015,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-01T09:47:50Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41290350352,
@@ -3307,7 +4030,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-11-01T09:47:50Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41221090014,
@@ -3321,7 +4045,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T16:44:00Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41221090014,
@@ -3335,7 +4060,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T16:44:00Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41221090014,
@@ -3349,7 +4075,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T16:44:00Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41220068870,
@@ -3363,7 +4090,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T16:31:13Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41220068870,
@@ -3377,7 +4105,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T16:31:13Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41220068870,
@@ -3391,7 +4120,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T16:31:13Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41218363907,
@@ -3405,7 +4135,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T16:10:16Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41218363907,
@@ -3419,7 +4150,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T16:10:16Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41218363907,
@@ -3433,7 +4165,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T16:10:16Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41218035186,
@@ -3447,7 +4180,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T16:06:17Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41218035186,
@@ -3461,7 +4195,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T16:06:17Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41218035186,
@@ -3475,7 +4210,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T16:06:17Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41217535923,
@@ -3489,7 +4225,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T16:00:25Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41217535923,
@@ -3503,7 +4240,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T16:00:25Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41217535923,
@@ -3517,7 +4255,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T16:00:25Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41215517095,
@@ -3531,7 +4270,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T15:34:39Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41215517095,
@@ -3545,7 +4285,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T15:34:39Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41215517095,
@@ -3559,7 +4300,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T15:34:39Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41215463945,
@@ -3573,7 +4315,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T15:34:01Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41215463945,
@@ -3587,7 +4330,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T15:34:01Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41215463945,
@@ -3601,7 +4345,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T15:34:01Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41211553617,
@@ -3615,7 +4360,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T14:44:52Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41211553617,
@@ -3629,7 +4375,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T14:44:52Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41211553617,
@@ -3643,7 +4390,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T14:44:52Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41211512454,
@@ -3657,7 +4405,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T14:44:19Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41211512454,
@@ -3671,7 +4420,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T14:44:19Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41211512454,
@@ -3685,7 +4435,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T14:44:19Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41210594217,
@@ -3699,7 +4450,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T14:32:23Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41210594217,
@@ -3713,7 +4465,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T14:32:23Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41210594217,
@@ -3727,7 +4480,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T14:32:23Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41210585140,
@@ -3741,7 +4495,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T14:32:17Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41210585140,
@@ -3755,7 +4510,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T14:32:17Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     },
     {
       "run_id": 41210585140,
@@ -3769,7 +4525,8 @@
       "head_branch": "research/estimated-inclusion-audit",
       "workflow_path": ".github/workflows/tests.yml",
       "run_created_at": "2026-10-31T14:32:17Z",
-      "run_conclusion": "success"
+      "run_conclusion": "success",
+      "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
     }
   ],
   "artifact_sources_complete": false,
