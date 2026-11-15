@@ -267,9 +267,9 @@ def test_ledger_diagnostic_allows_common_random_numbers_across_gamma(tmp_path):
     root = tmp_path / "history"
     root.mkdir()
     (root / "replicate_ledger.csv").write_text(
-        "gamma,replicate,population_seed,validation_seed\\n"
-        "-1,0,10,11\\n0,0,10,11\\n"
-        "-1,1,20,21\\n0,1,20,21\\n"
+        "gamma,replicate,population_seed,validation_seed\n"
+        "-1,0,10,11\n0,0,10,11\n"
+        "-1,1,20,21\n0,1,20,21\n"
     )
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
     assert report["status"] == "PASS"
@@ -281,9 +281,9 @@ def test_ledger_diagnostic_warns_when_validation_seed_is_reused_across_replicate
     root = tmp_path / "history"
     root.mkdir()
     (root / "replicate_ledger.csv").write_text(
-        "gamma,replicate,population_seed,validation_seed\\n"
-        "-1,0,10,99\\n0,0,10,99\\n"
-        "-1,1,20,99\\n0,1,20,99\\n"
+        "gamma,replicate,population_seed,validation_seed\n"
+        "-1,0,10,99\n0,0,10,99\n"
+        "-1,1,20,99\n0,1,20,99\n"
     )
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
     assert report["status"] == "PASS"
