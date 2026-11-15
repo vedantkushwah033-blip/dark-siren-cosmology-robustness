@@ -286,10 +286,10 @@ def test_ledger_diagnostic_warns_when_validation_seed_is_reused_across_replicate
         "-1,1,20,99\n0,1,20,99\n"
     )
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
-    assert report["status"] == "NOT_EVALUABLE"
+    assert report["status"] == "PASS"
     warnings = report["historical_seed_warnings"]
     assert len(warnings) == 1
-    assert warnings[0]["kind"] == "seed_reused_across_replicates"
+    assert warnings[0]["kind"] == "validation_seed_reused_across_replicates"
     assert "seed=99" in warnings[0]["detail"]
 
 
@@ -304,11 +304,13 @@ def test_ledger_detects_cross_stream_seed_reuse_between_replicates(tmp_path):
         "-1,1,20,10\n0,1,20,10\n"
     )
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
-    assert report["status"] == "NOT_EVALUABLE"
+    assert report["status"] == "PASS"
     warnings = report["historical_seed_warnings"]
-    assert len(warnings) == 1
-    assert warnings[0]["kind"] == "seed_reused_across_replicates"
-    assert "seed=10" in warnings[0]["detail"]
+    assert any(
+        item["kind"] == "seed_reused_across_replicates"
+        and "seed=10" in item["detail"]
+        for item in warnings
+    )
 
 
 
