@@ -434,3 +434,27 @@ The separate general `tests` workflow was cancelled during repeated pushes, so t
 
 The manifest's 3,301,923 seed-field occurrence total remains explicitly provisional: the corrected parser has not yet been run across all 200 downloaded archives. The next validation task is a complete rescan and exact seed-union reconciliation before any training schedule is authorized.
 
+
+
+## Catalogue-selection stress and confirmatory replication schedules — 2026-11-15
+
+Two more workflows on the posterior-grid branch are now source-reconciled. Both have two successful Actions runs, each producing three condition artifacts. Their workflow, runner and model-module blobs are identical across the two run heads; all six artifacts per workflow therefore repeat the same declared condition seed schedule rather than providing new independent replicate sets.
+
+**Confirmatory replication workflow**
+- 250 replicates per condition, six inference arms, (N_{parent}=4000), 30 detected events.
+- Low inclusion floor: seed 20271000, floor 0.05, midpoint 0.22, width 0.05.
+- High inclusion floor: seed 20271100, floor 0.25, midpoint 0.22, width 0.05.
+- Broad transition: seed 20271200, floor 0.10, midpoint 0.22, width 0.08.
+- Replicate seed is condition seed + replicate ID; primary bootstrap seed is condition seed + 104729.
+
+**Stress-screen workflow**
+- 50 replicates per condition, six inference arms, same (N_{parent}=4000) and 30 detected events.
+- Low inclusion floor: seed 20270000, floor 0.05, midpoint 0.22, width 0.05.
+- High inclusion floor: seed 20270100, floor 0.25, midpoint 0.22, width 0.05.
+- Broad transition: seed 20270200, floor 0.10, midpoint 0.22, width 0.08.
+- Replicate seed is condition seed + replicate ID; primary bootstrap seed is condition seed + 104729.
+
+All 12 condition artifacts are currently metadata-only in the manifest, but their exact workflow/runner/module seed schedules are source-proven. These workflows vary the true catalogue-selection floor or transition width and use the known/assumed selection-law arms from the older misspecification model. They are useful historical stress context, but they do not implement the current finite-validation logistic inclusion-probability estimator.
+
+The selected posterior-grid branch inventory now covers **91 successful run IDs and 108 artifact records across 12 workflows**. The overall manifest contains **369 artifacts across 196 enumerated successful run IDs**: 200 archives downloaded and SHA-256 verified, 169 metadata-only, 148 source-proven, and 57 unresolved. The branch and overall inventory remain partial.
+
