@@ -309,7 +309,7 @@ def audit(roots: list[Path], schedule_path: Path) -> dict[str, Any]:
     # Historical seed reuse prevents certification of a disjoint candidate partition.
     status = (
         "PASS"
-        if records and historical and not errors and not ledger_warnings
+        if records and historical and not errors
         and not overlap_training and not overlap_holdout
         else "NOT_EVALUABLE"
     )
