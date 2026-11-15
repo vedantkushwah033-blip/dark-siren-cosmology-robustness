@@ -23,7 +23,8 @@ Status: **PARTIAL / NOT COMPLETE**. This register records known density-pilot wo
 | 43634886771 | 14131016569 | quadratic-logit-curvature-density-pilot | 89,906,048 | a3bd60ef6f31e4b9880d20af6968ab8e7f6d7a4b64da28122c5b4995f54e06cc | Downloaded; SHA-256 verified; 260 JSON/CSV files scanned |
 | 43634885089 | 14130517646 | quadratic-logit-curvature-density-pilot | 89,904,154 | ccb742912d993c52b0c8b9bc11ba0fcf9da13ba4e9920e8737f9b4c1ed393464 | Downloaded; SHA-256 verified; 260 JSON/CSV files scanned |
 | 43633559278 | 14130158861 | quadratic-logit-curvature-density-pilot | 89,278,234 | f24599b56d3ca5c165dd41cd196a08e0925f371a267fa8a0b9ff5927a44bd13a | Downloaded; SHA-256 verified; 258 JSON/CSV files scanned; ledger pairing checked |
-| 43633572255 | 14130121464 | quadratic-logit-curvature-density-pilot | 89,279,520 | 6e259b7b999306c606d0458fcfa0d6ecab8c2941106d311a7caabd3d1813b4bd | Downloaded; SHA-256 verified; 258 JSON/CSV files scanned; seed-reuse warning |
+| 43633572255 | 14130121464 | quadratic-logit-curvature-density-pilot | 89,279,520 | 6e259b7b999306c606d0458fcfa0d6ecab8c2941106d311a7caabd3d1813b4bd | Downloaded; SHA-256 verified; 258 JSON/CSV files scanned; ledger pairing checked |
+| 43633611845 | 14130066887 | quadratic-logit-curvature-density-pilot | 89,279,520 | d34f58ea693a003fb51e888650470d502680097b4fe5ac352d3e9486bbb7e7c4 | Downloaded; SHA-256 verified; 258 JSON/CSV files scanned; ledger pairing checked |
 
 ## Partial artifact inspection
 
@@ -65,7 +66,7 @@ This establishes an internally consistent inventory for these six artifact archi
 
 ## Early curvature pilot seed-ledger reconciliation
 
-Two early successful engineering-pilot artifacts (runs 43633559278 and 43633572255) were downloaded and checksum-verified. Their ledgers contain three replicate IDs, each reused across gamma strata as intended for common-random-number pairing. The population/validation seed pairs are distinct across replicate IDs:
+Three early successful engineering-pilot artifacts (runs 43633559278, 43633572255, and 43633611845) were downloaded and checksum-verified. Their ledgers contain three replicate IDs, each reused across gamma strata as intended for common-random-number pairing. The population/validation seed pairs are distinct across replicate IDs:
 
 - replicate 0: 2026111517 / 2026111529;
 - replicate 1: 2026211517 / 2026211529;
@@ -73,13 +74,13 @@ Two early successful engineering-pilot artifacts (runs 43633559278 and 436335722
 
 The base seed 2026111500 is also recorded in the parent configuration. The raw ledger therefore does **not** show validation-seed reuse across replicate IDs. An earlier interpretation of the truncated ledger output suggested that 2026111529 was reused for all three replicates; inspection of the complete CSV disproves that reading. The two early artifacts should not be marked as having a pseudo-replication defect on this basis.
 
-Later curvature pilot artifacts (runs 43634885089 and 43634886771) use a different, likewise distinct seed-pair schedule across the three replicate indices: 2026111500/2026111501, 2026111510/2026111511, and 2026111520/2026111521. Both designs preserve seed pairing across gamma within replicate while using different seed pairs between replicates. All four inspected curvature artifacts are still small engineering pilots, not confirmatory evidence.
+Later curvature pilot artifacts (runs 43634885089 and 43634886771) use a different, likewise distinct seed-pair schedule across the three replicate indices: 2026111500/2026111501, 2026111510/2026111511, and 2026111520/2026111521. Both designs preserve seed pairing across gamma within replicate while using different seed pairs between replicates. All five inspected curvature artifacts are still small engineering pilots, not confirmatory evidence.
 
-The historical auditor now independently checks ledger rows with `replicate`, `population_seed`, and `validation_seed` columns. It allows common-random-number pairing across gamma within the same replicate, but warns if either random stream is reused across different replicate IDs. The four inspected curvature artifacts produced no such warning.
+The historical auditor now independently checks ledger rows with `replicate`, `population_seed`, and `validation_seed` columns. It allows common-random-number pairing across gamma within the same replicate, but warns if either random stream is reused across different replicate IDs. The five inspected curvature artifacts produced no such warning.
  
 ## Current candidate schedule comparison
 
-The ten verified absolute-width artifacts and the four verified curvature artifacts inspected in this update show no exact integer-seed overlap with the candidate training or holdout schedule. This is a **partial-scope disjointness result only**. Other relevant Actions artifacts and earlier workflows remain unresolved; no training or holdout execution is authorized.
+The ten verified absolute-width artifacts and the five verified curvature artifacts inspected in this update show no exact integer-seed overlap with the candidate training or holdout schedule. This is a **partial-scope disjointness result only**. Other relevant Actions artifacts and earlier workflows remain unresolved; no training or holdout execution is authorized.
 
 
 ## Auditor follow-up
@@ -87,13 +88,13 @@ The ten verified absolute-width artifacts and the four verified curvature artifa
 The historical seed auditor now emits a separate `historical_seed_warnings` field for seed-ledger files that expose `replicate`, `population_seed`, and `validation_seed`. It allows common-random-number pairing across gamma strata within the same replicate, but flags a population or validation seed reused across different replicate IDs. These warnings do not alter the mechanical schedule-disjointness status; they identify historical design limitations that must be considered when interpreting repeated-sampling uncertainty.
 
 
-## Consolidated archive scan — 14 verified artifacts
+## Consolidated archive scan — 15 verified artifacts
 
 An independent consolidated scan of all 14 downloaded ZIPs listed in this register processed every JSON and CSV member using the auditor's seed-key matching rules. Results:
 
-- 14 ZIP archives; every archive SHA-256 matched the GitHub artifact metadata.
-- 3,518 JSON/CSV members scanned.
-- 86,494 seed-field occurrences inspected (many are repeated metadata copies across child configs, ledgers, and metric rows).
+- 15 ZIP archives; every archive SHA-256 matched the GitHub artifact metadata.
+- 3,776 JSON/CSV members scanned.
+- 129,209 seed-field occurrences inspected (many are repeated metadata copies across child configs, ledgers, and metric rows).
 - 52 distinct integer seed values across the inspected artifacts.
 - Zero JSON/CSV parse errors.
 - Zero exact integer-seed overlaps with the 12-pair candidate training schedule or the 24-pair candidate holdout schedule.
