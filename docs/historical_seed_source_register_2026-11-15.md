@@ -73,4 +73,9 @@ The additional verified absolute-width artifacts listed above reproduce the alre
 
 ## Current candidate schedule comparison
 
-The six verified absolute-width artifacts and the four verified curvature artifacts inspected in this update show no exact integer-seed overlap with the candidate training or holdout schedule. This is a **partial-scope disjointness result only**. Other relevant Actions artifacts and earlier workflows remain unresolved; no training or holdout execution is authorized.
+The ten verified absolute-width artifacts and the four verified curvature artifacts inspected in this update show no exact integer-seed overlap with the candidate training or holdout schedule. This is a **partial-scope disjointness result only**. Other relevant Actions artifacts and earlier workflows remain unresolved; no training or holdout execution is authorized.
+
+
+## Auditor follow-up
+
+The historical seed auditor now emits a separate `historical_seed_warnings` field for seed-ledger files that expose `replicate`, `population_seed`, and `validation_seed`. It allows common-random-number pairing across gamma strata within the same replicate, but flags a population or validation seed reused across different replicate IDs. These warnings do not alter the mechanical schedule-disjointness status; they identify historical design limitations that must be considered when interpreting repeated-sampling uncertainty.
