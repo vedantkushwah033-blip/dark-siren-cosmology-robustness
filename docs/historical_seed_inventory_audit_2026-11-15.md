@@ -10,9 +10,9 @@ Before the proposed density training and holdout experiments, compare every hist
 
 The tool accepts one or more extracted artifact roots and a JSON schedule with non-empty `training` and `holdout` arrays. Each schedule row must explicitly provide integer `population_seed` and `validation_seed` values; any additional random stream must be represented by another integer field whose name contains `seed` (for example, `bootstrap_seed`). Seed values must be unique across all streams and replicates within a block, and the blocks must be mutually disjoint.
 
-The scanner currently parses JSON and CSV files. It recursively extracts scalar values from field names ending in `seed` or `seeds` (so `seed_stride` is not mistaken for a seed value), including nested JSON records and seed-named CSV columns. It hashes every supported source file with SHA-256 and records source-relative paths, byte counts, field names, and seed occurrences.
+The scanner parses JSON, CSV, and NumPy NPZ files. It extracts scalar values from fields named exactly `seed`/`seeds` or ending in `_seed` (so `seed_stride` and aggregate fields such as `mean_pit_mean_across_seeds` are not treated as RNG seeds). NPZ loading uses `allow_pickle=False`; only arrays with seed-valued keys are inventoried. It hashes every supported source file with SHA-256 and records source-relative paths, byte counts, field names, and seed occurrences.
 
-YAML files are deliberately unsupported and cause a non-evaluable result. Convert them to reviewed JSON/CSV without changing values, retain the originals in the audit package, and document the conversion. Malformed files and non-integer seed values fail closed rather than being skipped.
+YAML files are deliberately unsupported and cause a non-evaluable result. Convert them to reviewed JSON/CSV without changing values, retain the originals in the audit package, and document the conversion. Malformed files and non-integer seed values fail closed rather than being skipped. NPZ object arrays are not loaded because pickle is disabled.
 
 ## Example schedule
 
@@ -92,3 +92,21 @@ The seven-gamma development workflow currently specifies master seed 2026111500 
 This was an independent manual scan of the listed retained artifacts, **not** a completed run of `audit_historical_seed_inventory.py` over a certified source register. It does not prove that all relevant historical Actions artifacts have been found; expired, missing, or older workflow artifacts may remain unenumerated. Binary files (including stored `.npz` reconstruction inputs) were not parsed for embedded seed metadata. The three numerical-diagnostics artifacts contain many bootstrap-seed records and were included in the overlap check, but the scan does not prove that every random stream in every historical experiment is represented in those artifacts.
 
 Accordingly, the result is **PARTIAL_OVERLAP_SCAN_PASS / INVENTORY_COMPLETENESS_NOT_ESTABLISHED**. Keep the candidate schedule unapproved. Before training, finish the source register, identify and retrieve every relevant historical artifact (or document why it is excluded), inspect any additional seed-bearing binary/config formats, then run the repository inventory auditor over the extracted, hashed source roots. A no-overlap result from only the nine artifacts above is not permission to launch.
+
+
+## Follow-up parser hardening and artifact-format review (2026-11-15)
+
+The inventory implementation was hardened after a broader artifact-format review:
+
+- Added NPZ support with `numpy.load(..., allow_pickle=False)` and scalar seed extraction from seed-named arrays.
+- Added regression tests for integer seed arrays and rejection of object arrays without enabling pickle.
+- Tightened the seed-field matcher to exclude plural suffixes such as `_across_seeds`. This prevents a numeric summary statistic such as `mean_pit_mean_across_seeds=0.5138` from being misread as a seed ID.
+- Added a regression test for that exact class of summary-metric false positive.
+
+The nine retained ZIPs listed above contain **81 NPZ files**. An independent inspection of their array keys found no seed-named arrays. This is now consistent with the scanner's NPZ support, but it does not cover other binary formats.
+
+The strict follow-up scan also identified **four malformed JSON audit-report files** in the three numerical-diagnostics artifacts. Each contains a valid JSON object followed by a literal escaped newline token outside the object. The inventory auditor correctly fails closed on these files rather than silently skipping or repairing them. These are retained as source artifacts; any normalization must occur in a separate, hashed audit-staging copy with the original ZIPs and conversion provenance preserved.
+
+A parseable-file-only pass over the nine archives found 201 seed-bearing JSON/CSV files, 2,784,484 seed-field occurrences and 258 distinct integer values; these are **provisional partial counts**, not a certified total, because the four malformed JSON reports prevent the strict inventory from returning PASS. The earlier 198 / 2,784,487 / 260 summary should likewise be treated as superseded and provisional until the corrected scanner is run against a complete, reviewed source register and all malformed reports are handled transparently.
+
+Current gate remains **NOT EVALUABLE / INVENTORY COMPLETENESS NOT ESTABLISHED**. Do not authorize training or holdout from the no-overlap comparison of only the parseable subset.
