@@ -117,6 +117,7 @@ def test_quadratic_logit_density_smoke_writes_five_arm_artifacts(tmp_path: Path,
         )
     audit = _load_auditor().audit(output)
     assert audit["status"] == "PASS"
+    assert "independent raw-input reconstruction of the degree-one logistic inclusion posterior and quadrature" in audit["scope"]
     assert audit["weight_diagnostic_rows_reconstructed"] == 42
 
     with np.load(output / "results" / "density_reconstruction_inputs.npz") as archive:
