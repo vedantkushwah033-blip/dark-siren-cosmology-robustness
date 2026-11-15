@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "status": "PARTIAL_NOT_AUTHORIZED",
+  "scope": "Successful selected density/bandwidth/curvature workflow artifacts from research/absolute-width-distribution-pilot-20261114. Failed/cancelled runs and other historical branches remain unresolved.",
+  "coverage": {
+    "branch": "research/absolute-width-distribution-pilot-20261114",
+    "successful_runs_enumerated": 10,
+    "artifacts_listed": 10,
+    "artifacts_downloaded_sha256_verified": 2,
+    "artifact_sources_complete": false
+  },
+  "artifacts": [
+    {
+      "run_id": 43685339718,
+      "artifact_id": 14150446621,
+      "name": "quadratic-logit-curvature-seven-gamma-smoke",
+      "size_bytes": 29333334,
+      "sha256": "b8c5af4e37a4cf69a4bd2ea1459880efaa54920d71ec2959605949e02079f895",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43634886771,
+      "artifact_id": 14131016569,
+      "name": "quadratic-logit-curvature-density-pilot",
+      "size_bytes": 89906048,
+      "sha256": "a3bd60ef6f31e4b9880d20af6968ab8e7f6d7a4b64da28122c5b4995f54e06cc",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 43634885089,
+      "artifact_id": 14130517646,
+      "name": "quadratic-logit-curvature-density-pilot",
+      "size_bytes": 89904154,
+      "sha256": "ccb742912d993c52b0c8b9bc11ba0fcf9da13ba4e9920e8737f9b4c1ed393464",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 43634881358,
+      "artifact_id": 14130521521,
+      "name": "quadratic-logit-curvature-density-pilot",
+      "size_bytes": 89904154,
+      "sha256": "b1a19dad27be3c6fa924eb21c43e5dc3587bd2057e29a1f151affa41bfacb789",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43634841047,
+      "artifact_id": 14130860715,
+      "name": "quadratic-logit-curvature-density-pilot",
+      "size_bytes": 89904154,
+      "sha256": "2e86f4bca75dc154c2e4a6e13807fcff8c6659051742263e73cd1ce292322564",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43634839052,
+      "artifact_id": 14129539550,
+      "name": "quadratic-logit-curvature-density-pilot",
+      "size_bytes": 89904154,
+      "sha256": "bb3cd207d4c2dd4deb0efc11df6aa538b74d0b1bb251eaff00b0be340d989653",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43634831443,
+      "artifact_id": 14130855354,
+      "name": "quadratic-logit-curvature-density-pilot",
+      "size_bytes": 89904154,
+      "sha256": "765722b7444c12c0540870711a30ca22c75850f5925137af9f5676734f8a7ee0",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43634678059,
+      "artifact_id": 14130550953,
+      "name": "quadratic-logit-curvature-density-pilot",
+      "size_bytes": 89904069,
+      "sha256": "2666978344fe84a451d17abec6a8d048885b2b891f7feca3c1da040a6d78190e",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43634672001,
+      "artifact_id": 14130274018,
+      "name": "quadratic-logit-curvature-density-pilot",
+      "size_bytes": 89904069,
+      "sha256": "0f0f773a92347bb1ea137104b6fa8df0a88af9660aa3589756c6f28e3d4f35bb",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    },
+    {
+      "run_id": 43634661809,
+      "artifact_id": 14130248846,
+      "name": "quadratic-logit-curvature-density-pilot",
+      "size_bytes": 89904069,
+      "sha256": "91fe8f0d0d765943a5f45451a1031a40920b3e07267ba0cbc5c3a5a1670815ec",
+      "expired": false,
+      "download_status": "METADATA_ONLY"
+    }
+  ]
+}
