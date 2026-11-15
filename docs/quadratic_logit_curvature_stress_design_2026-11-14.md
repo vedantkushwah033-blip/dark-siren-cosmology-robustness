@@ -321,3 +321,8 @@ Exact code/test head: `7bb91edb2c9d758b36e55c5b91a65be430a556ff`.
 - Curvature density smoke-test workflow `43724564585`: Python 3.10, 3.11, and 3.12 all PASS.
 
 The full repository test workflow and the push-triggered seven-gamma engineering smoke are separate checks and are not implied by these focused passes. This regression changes no DGP, estimand, density metric, or scientific conclusion.
+
+
+The subsequent exact-head density-pilot test workflow also completed successfully on documentation head `acd88a01b469d132ff39f93f96144c7ea5d83e64`: workflow `43724693132`, with Python 3.10, 3.11, and 3.12 all passing. This run includes the extreme-label posterior regression, density-smoke tests, curvature-pilot tests, paired multi-replicate runner/auditor tests, historical seed-inventory tests, incomplete-reference lifecycle tests, and CLI help checks. The focused DGP workflow `43724564580` and focused density-smoke workflow `43724564585` also passed on the immediately preceding code/test head `7bb91edb2c9d758b36e55c5b91a65be430a556ff`.
+
+These are exact-head automated software checks, not a full scientific experiment or a substitute for the manual multi-replicate development-pilot workflow.
