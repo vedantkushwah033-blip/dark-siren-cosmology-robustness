@@ -85,3 +85,19 @@ The ten verified absolute-width artifacts and the four verified curvature artifa
 ## Auditor follow-up
 
 The historical seed auditor now emits a separate `historical_seed_warnings` field for seed-ledger files that expose `replicate`, `population_seed`, and `validation_seed`. It allows common-random-number pairing across gamma strata within the same replicate, but flags a population or validation seed reused across different replicate IDs. These warnings do not alter the mechanical schedule-disjointness status; they identify historical design limitations that must be considered when interpreting repeated-sampling uncertainty.
+
+
+## Consolidated archive scan — 14 verified artifacts
+
+An independent consolidated scan of all 14 downloaded ZIPs listed in this register processed every JSON and CSV member using the auditor's seed-key matching rules. Results:
+
+- 14 ZIP archives; every archive SHA-256 matched the GitHub artifact metadata.
+- 3,518 JSON/CSV members scanned.
+- 86,494 seed-field occurrences inspected (many are repeated metadata copies across child configs, ledgers, and metric rows).
+- 52 distinct integer seed values across the inspected artifacts.
+- Zero JSON/CSV parse errors.
+- Zero exact integer-seed overlaps with the 12-pair candidate training schedule or the 24-pair candidate holdout schedule.
+- Zero training/holdout schedule overlap.
+- Zero cross-replicate population- or validation-seed reuse warnings in the inspected ledgers.
+
+This is an independent local archive scan, not yet a persisted run of the repository CLI against every artifact root. The project CLI has regression tests for extraction, ledger reuse, schedule overlap, malformed input, and output serialization; the exact-head Actions result for the latest branch head remains to be checked. Most importantly, the scan is still only as complete as the 14 artifact sources enumerated here. It does not certify the entire repository's Actions history or any artifacts that have expired, were omitted, or belong to an unlisted workflow.
