@@ -373,3 +373,15 @@ The stored synthetic summaries are descriptive of a separate H0-dependent-noise 
 
 The selected posterior-grid branch review now covers seven workflows, 75 successful run IDs and 84 artifact records. The overall manifest now contains 345 artifact records across 180 enumerated successful run IDs and 17 branches: 196 archives are downloaded and SHA-256 verified, 149 artifacts are metadata-only, 124 artifacts have source-proven seed schedules, and 57 remain unresolved. The branch itself still contains 500 observed Actions runs, so this is only a selected-workflow partial audit.
 
+
+
+## Selection-misspecification Stage A pilot source reconciliation — 2026-11-15
+
+Nine successful `selection-misspecification-pilot.yml` runs were added to the partial posterior-grid branch inventory. The workflow passes `--replicates 200 --seed 20261030`. Exact workflow, runner, and model-module blobs were recovered at all nine run-head commits. The module source uses `replicate_seed = 20261030 + replicate_id`, with replicate IDs 0–199, and reuses each seed across six inference arms. Earlier module revisions additionally use `analysis_seed = 20261030 + 104729 = 20365759` for a 10,000-resample paired bootstrap; the final module revision no longer contains that analysis-seed stream.
+
+One artifact (12869859795) was downloaded and SHA-256 verified. It contains 1,200 rows (200 replicates × six arms), 200 distinct replicate seeds from 20261030 through 20261229, and a summary explicitly labelled as a synthetic selection-misspecification pilot rather than a real H0 measurement. The other eight artifacts remain metadata-only but have exact source proofs. These nine runs repeat the same seed schedule and must not be counted as nine independent simulation studies; the code revisions differ, so their output changes should be interpreted as implementation-version comparisons, not repeated-sampling uncertainty.
+
+This Stage A design studies assumed catalogue-selection-law misspecification (including shifted transition and shallow-slope arms). It does not estimate the catalogue inclusion probabilities with the current logistic validation-sample procedure. It is relevant historical context, but it is not a substitute for the current five-arm estimated-IPW density benchmark.
+
+The selected posterior-grid branch inventory now covers **84 successful run IDs and 93 artifacts across eight workflows**. The overall manifest contains 354 artifacts across 189 enumerated successful run IDs; 197 archives are downloaded and SHA-256 verified, 157 remain metadata-only, 133 have source-proven seed schedules, and 57 remain unresolved. The 500-run branch and overall historical source register remain partial.
+
