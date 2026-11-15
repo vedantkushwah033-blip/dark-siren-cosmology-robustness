@@ -130,6 +130,12 @@ Report gamma zero separately as the correctly specified degree-one logistic refe
 
 Do not interpret a larger Kish ESS as evidence that functional-form bias is absent. Do not combine ESS and density error into an unvalidated scalar score.
 
+### Primary contrast family and uncertainty reporting
+
+The confirmatory family, if this proposal is later frozen as confirmatory, is the 21 estimator-specific held-out D-minus-A contrasts across seven gamma values and three validation sizes. For each stratum, report the 24 planned replicate-level paired differences, their mean, sample standard deviation, MCSE, and a two-sided 95% paired-mean t interval with 23 degrees of freedom. Report the paired t-test p-values with Holm family-wise adjustment across the complete 21-contrast family at 0.05. The unadjusted intervals remain descriptive; do not interpret an isolated unadjusted interval excluding zero as confirmatory evidence after examining all 21 strata.
+
+The common-bandwidth D-minus-A contrasts are secondary and should be presented with the same replicate-level summaries but labelled secondary. Oracle-arm comparisons, Arm E comparisons, ISE, boundary IAE, and weight diagnostics are descriptive secondary analyses; do not promote whichever secondary contrast looks most favourable into the primary claim. If the 24-replicate holdout has a failed planned cell, preserve its failure record and mark the affected primary stratum non-evaluable rather than calculating an interval from a reduced denominator. If the planned primary family is incomplete, report the family as incomplete and do not apply Holm only to the surviving subset as though the original family had been completed.
+
 ## 8. Failure and decision gates
 
 The bandwidth protocol is not ready to execute until all of the following hold:
