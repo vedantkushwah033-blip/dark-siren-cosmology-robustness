@@ -38,7 +38,7 @@ def run(args):
     labels=[f"gamma_{gamma:+.2f}".replace("+","p").replace("-","m").replace(".","_") for gamma in gammas]
     if len(set(labels))!=len(labels): raise ValueError("gamma values collide under the two-decimal child-directory naming convention")
     if any(not __import__("math").isfinite(x) for x in gammas): raise ValueError("gamma values must be finite")
-    if args.replicates<2 or args.seed_stride<2: raise ValueError("at least two replicates and seed_stride >= 2 are required")
+    if args.replicates<2 or args.seed_stride<3: raise ValueError("at least two replicates and seed_stride >= 3 are required to keep population and validation seeds disjoint")
     if len(widths)<2 or any(not __import__("math").isfinite(x) or x<=0 for x in widths): raise ValueError("invalid absolute bandwidth grid")
     if not any(x == 0.0 for x in gammas): raise ValueError("gamma grid must include zero for paired reference contrasts")
     if args.master_seed < 0: raise ValueError("master seed must be non-negative")
