@@ -58,3 +58,37 @@ The repository currently does not contain the full set of extracted historical A
 - It does not authorize the training run or open the holdout.
 
 **Current decision: seed partition NOT YET VERIFIED; development pilot remains blocked.**
+
+
+## Partial retained-artifact scan (2026-11-15; not a completeness certification)
+
+A manual byte-level scan was performed on the following retained GitHub Actions artifacts. JSON/CSV fields whose names are exactly `seed`/`seeds` or end in `_seed`/`_seeds` were inventoried. ZIP SHA-256 hashes are included so the exact downloaded sources can be identified.
+
+| Workflow run | Artifact ID | Artifact | ZIP SHA-256 |
+|---|---:|---|---|
+| 43617052462 | 14123634445 | expanded grid, floor 0.25 | `f7eb0576f0b9dc5badafb2a3b3b136bc125106856345df4749e173f94669c627` |
+| 43617052462 | 14123867382 | expanded grid, floor 0.10 | `e83f944b22cc153c1b6354515f42ed25978db2cf7b94b2e66c13f16e04768d1a` |
+| 43617052462 | 14123894369 | expanded grid, no floor | `26f9ccc6d711cff45ea7ac4a130eba48dcde7b243185d2f6c2fc2bb6c9a8af86` |
+| 43671806461 | 14144815968 | seven-gamma engineering smoke | `290d77d9ff07bb949b10895d56fc510c84a8d6957d302fd3c18ab2f9f393a7e0` |
+| 43674316806 | 14145680789 | compact paired curvature pilot | `c5972b12450fd70cc0e5041b934732d845b80eee97026c834a5035a66e09a77c` |
+| 43674496952 | 14145857269 | numerical diagnostics, Python 3.10 | `b15717ef29cecf7e750181b6fde5ad1b5a196fae358c14cfa9a20bdff94a8e6b` |
+| 43674496952 | 14146636130 | numerical diagnostics, Python 3.11 | `1f1ba6ba38c07eb67b2cea8e693e36c2da08080c1d3dccbcfa6e37cc9227375d` |
+| 43674496952 | 14146830851 | numerical diagnostics, Python 3.12 | `a136dd553bee96fecd79de316e6386da9d3c9e4edeb9a4a2f81742e0b803b8ab` |
+| 43674496952 | 14146747139 | five-arm KDE bandwidth pilot | `d1c2b65fb5f309a6d2fa43f3882315b2bf48f63a5fde22d74c9eb50b05c0f4d5` |
+
+Across these nine retained ZIPs, the byte-level scan found **198 seed-bearing JSON/CSV files, 2,784,487 seed-field occurrences, and 260 distinct historical integer values**. No YAML files were present in these ZIPs. The three expanded-grid floor artifacts intentionally reuse the same replicate seed schedule; repeated occurrences across those three arms are not counted as additional distinct seeds.
+
+For the proposed candidate schedule:
+- training: 12 replicate pairs, 24 distinct stream seeds, range 2026111600–2026111711;
+- holdout: 24 replicate pairs, 48 distinct stream seeds, range 2026112600–2026112831;
+- training versus holdout overlap: **none**;
+- training versus the historical values in these nine artifacts: **none**;
+- holdout versus the historical values in these nine artifacts: **none**.
+
+The seven-gamma development workflow currently specifies master seed 2026111500 with stride 10 and three replicates (population seeds 2026111500, 2026111510, 2026111520; validation seeds one greater). These are also disjoint from the candidate training and holdout sets. The full seven-gamma workflow has not yet been run, so these are planned rather than consumed seeds.
+
+### Why this remains non-evaluable as a final gate
+
+This was an independent manual scan of the listed retained artifacts, **not** a completed run of `audit_historical_seed_inventory.py` over a certified source register. It does not prove that all relevant historical Actions artifacts have been found; expired, missing, or older workflow artifacts may remain unenumerated. Binary files (including stored `.npz` reconstruction inputs) were not parsed for embedded seed metadata. The three numerical-diagnostics artifacts contain many bootstrap-seed records and were included in the overlap check, but the scan does not prove that every random stream in every historical experiment is represented in those artifacts.
+
+Accordingly, the result is **PARTIAL_OVERLAP_SCAN_PASS / INVENTORY_COMPLETENESS_NOT_ESTABLISHED**. Keep the candidate schedule unapproved. Before training, finish the source register, identify and retrieve every relevant historical artifact (or document why it is excluded), inspect any additional seed-bearing binary/config formats, then run the repository inventory auditor over the extracted, hashed source roots. A no-overlap result from only the nine artifacts above is not permission to launch.
