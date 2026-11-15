@@ -255,6 +255,6 @@ def test_curvature_outer_auditor_rejects_entropy_ess_aggregate_corruption_after_
  manifest=json.loads(manifest_path.read_text())
  rel=str(path.relative_to(out))
  manifest["files"][rel]={"bytes":path.stat().st_size,"sha256":hashlib.sha256(path.read_bytes()).hexdigest()}
- manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n")
+ manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
  with pytest.raises(AssertionError,match="aggregate values mismatch entropy_ess"):
   auditor.audit(out)
