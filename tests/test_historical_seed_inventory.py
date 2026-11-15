@@ -595,3 +595,97 @@ def test_inventory_extracts_seed_end_and_per_mode_seed_range_fields(tmp_path):
     assert report["status"] == "PASS"
     assert report["historical_seed_values"] == [100, 199, 500, 100199]
     assert all("seed_stride" not in x["field"] for rows in report["historical_seed_occurrences"].values() for x in rows)
+
+
+
+def _valid_source_register(tmp_path):
+    module = _load()
+    root = tmp_path / "artifact-root"
+    root.mkdir()
+    artifact = {
+        "artifact_id": 123,
+        "run_id": 456,
+        "name": "verified-test-artifact",
+        "size_bytes": 12,
+        "sha256": "a" * 64,
+        "head_sha": "b" * 40,
+        "head_branch": "research/test",
+        "workflow_path": ".github/workflows/test.yml",
+        "download_status": "METADATA_ONLY",
+        "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+        "seed_schedule_proof": {
+            "workflow_blob_sha": "c" * 40,
+            "runner_blob_sha": "d" * 40,
+            "master_seed": 42,
+            "seed_stride": 1,
+            "replicates": 2,
+            "formula": "seed=42+replicate",
+            "source_commit": "b" * 40,
+        },
+    }
+    register = {
+        "artifact_sources_complete": True,
+        "artifact_roots": [str(root)],
+        "artifacts": [artifact],
+        "coverage": {
+            "artifacts_listed": 1,
+            "unique_run_ids": 1,
+            "artifacts_downloaded_sha256_verified": 0,
+            "downloaded_archive_count": 0,
+            "metadata_only_artifact_count": 1,
+            "seed_inventory_payload_verified_count": 0,
+            "seed_inventory_schedule_source_verified_count": 1,
+            "seed_inventory_unresolved_artifact_count": 0,
+            "unresolved_artifact_count": 0,
+            "seed_inventory_status_counts": {
+                "SEED_SCHEDULE_SOURCE_VERIFIED": 1,
+            },
+        },
+    }
+    return module, root, register
+
+
+def test_source_register_validator_accepts_consistent_complete_manifest(tmp_path):
+    module, root, register = _valid_source_register(tmp_path)
+    assert module.validate_source_register(register, [root]) == []
+
+
+def test_source_register_validator_rejects_duplicate_artifact_ids(tmp_path):
+    module, root, register = _valid_source_register(tmp_path)
+    register["artifacts"].append(dict(register["artifacts"][0]))
+    register["coverage"]["artifacts_listed"] = 2
+    register["coverage"]["metadata_only_artifact_count"] = 2
+    register["coverage"]["seed_inventory_schedule_source_verified_count"] = 2
+    register["coverage"]["seed_inventory_status_counts"]["SEED_SCHEDULE_SOURCE_VERIFIED"] = 2
+    errors = module.validate_source_register(register, [root])
+    assert any("duplicates artifact_id" in item for item in errors)
+
+
+def test_source_register_validator_rejects_malformed_sha_and_head(tmp_path):
+    module, root, register = _valid_source_register(tmp_path)
+    register["artifacts"][0]["sha256"] = "bad"
+    register["artifacts"][0]["head_sha"] = "bad"
+    errors = module.validate_source_register(register, [root])
+    assert any("invalid SHA-256" in item for item in errors)
+    assert any("invalid head_sha" in item for item in errors)
+
+
+def test_source_register_validator_reconciles_coverage_counts(tmp_path):
+    module, root, register = _valid_source_register(tmp_path)
+    register["coverage"]["artifacts_listed"] = 2
+    errors = module.validate_source_register(register, [root])
+    assert any("coverage.artifacts_listed" in item for item in errors)
+
+
+def test_source_register_validator_rejects_source_proof_from_different_commit(tmp_path):
+    module, root, register = _valid_source_register(tmp_path)
+    register["artifacts"][0]["seed_schedule_proof"]["source_commit"] = "e" * 40
+    errors = module.validate_source_register(register, [root])
+    assert any("does not match artifact run head" in item for item in errors)
+
+
+def test_source_register_validator_rejects_complete_flag_with_unlisted_artifacts(tmp_path):
+    module, root, register = _valid_source_register(tmp_path)
+    register["coverage"]["known_unlisted_artifact_count"] = 1
+    errors = module.validate_source_register(register, [root])
+    assert any("known unlisted artifacts remain" in item for item in errors)
