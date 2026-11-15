@@ -51,7 +51,7 @@ At the time this initial note was written, only one listed artifact had been dow
 ## Original source-register checklist (remaining tasks updated below)
 
 1. Enumerate artifact outputs for failed/cancelled runs across the 15 branches already represented, then search remaining historical branches and workflows (including the posterior-grid-integrity branch).
-2. Resolve the 105 metadata-only artifact records: 48 artifacts from the current research branch and 57 numerical-diagnostics artifacts from nine other test-workflow branches. The estimated-inclusion branch's 129 artifacts are now all downloaded and SHA-256 verified across Python 3.10, 3.11, and 3.12.
+2. Resolve the 57 artifacts whose seed inventory is still unresolved: all are metadata-only numerical-diagnostics artifacts from nine other test-workflow branches. The 48 metadata-only payloads from the current research branch now have source-derived seed-schedule proofs; the estimated-inclusion branch's 129 artifacts are all downloaded and SHA-256 verified across Python 3.10, 3.11, and 3.12.
 3. For repeated workflow artifacts, compare the workflow and runner blob hashes and document any seed schedule that can be proven from source; do not silently infer equivalence from artifact names.
 4. Download and verify every remaining artifact unless its seed schedule is independently and reproducibly established from the exact run configuration and runner revision.
 5. Preserve original ZIPs and extraction logs; reconcile child-level seeds with parent configs and ledgers, distinguishing actual seed values from master-seed derivation parameters such as stride.
@@ -134,7 +134,7 @@ The machine-readable artifact register is now `configs/historical_seed_artifact_
 | Nine other test-workflow branches | 19 | 57 | 0 | 57 |
 | **Total** | **101** | **262** | **157** | **105** |
 
-The 43 successful estimated-inclusion runs are now fully represented across all three Python-version artifacts (129 ZIPs; all downloaded and checksum-verified). The 86 py3.10/py3.11 archives were separately scanned rather than assumed equivalent to py3.12. The 57 artifacts from the nine other test-workflow branches remain metadata-only.
+The 43 successful estimated-inclusion runs are now fully represented across all three Python-version artifacts (129 ZIPs; all downloaded and checksum-verified). The 86 py3.10/py3.11 archives were separately scanned rather than assumed equivalent to py3.12. The 57 artifacts from the nine other test-workflow branches remain metadata-only and seed-inventory-unresolved. The 48 metadata-only artifacts from the current research branch are not payload-verified, but their seed schedules are source-verified against the exact workflow and runner revisions.
 
 Two important historical scopes remain unresolved: the `research/audit-posterior-grid-integrity` branch has 500 observed workflow runs and has not yet had its artifact sets inventoried; and failed/cancelled/other run outcomes across the branches represented here have not been checked for partial artifact uploads. Therefore, 262 artifacts is a verified register of the enumerated successful runs, not a complete repository-wide inventory.
 
@@ -193,7 +193,7 @@ The source register still cannot authorize the candidate schedule. The 105 metad
 
 ### Fail-closed command-line gate
 
-The repository CLI now requires `--source-register`. A CLI result can be `PASS` only when the supplied register is explicitly marked `artifact_sources_complete: true`, its `artifact_roots` exactly match the supplied roots, it contains artifact records, and every listed artifact is marked `DOWNLOADED_SHA256_VERIFIED`. The current manifest intentionally has `artifact_sources_complete: false`, an empty `artifact_roots` list, and 105 metadata-only records. Therefore, even though the mechanical comparison over the 157 downloaded archives has no overlap, running the CLI against the current partial register must return `NOT_EVALUABLE`. The CLI reports the mechanical comparison separately as `mechanical_status` so the two meanings cannot be confused.
+The repository CLI now requires `--source-register`. A CLI result can be `PASS` only when the supplied register is explicitly marked `artifact_sources_complete: true`, its `artifact_roots` exactly match the supplied roots, it contains artifact records, and every artifact has either `seed_inventory_status=PAYLOAD_SHA256_VERIFIED` (with a matching verified-download status) or `seed_inventory_status=SEED_SCHEDULE_SOURCE_VERIFIED` with workflow/runner blob hashes, seed formula, schedule parameters, and a proof commit matching the artifact's run head. The current manifest intentionally has `artifact_sources_complete: false`, an empty `artifact_roots` list, and 57 unresolved artifacts (105 payloads are not downloaded; 48 of those have source-derived schedule proofs). Therefore, even though the mechanical comparison over the 157 downloaded archives has no overlap, running the CLI against the current partial register must return `NOT_EVALUABLE`. The CLI reports the mechanical comparison separately as `mechanical_status` so the two meanings cannot be confused.
 
 
 
