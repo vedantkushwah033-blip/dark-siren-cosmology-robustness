@@ -143,6 +143,22 @@ def _ledger_seed_reuse_warnings(path: Path, relative: str) -> list[dict[str, str
                         "kind": f"{column}_reused_across_replicates",
                         "detail": f"stratum={stratum_label} seed={seed_value} appears in replicate IDs {','.join(sorted(replicate_ids))}",
                     })
+
+        # A seed used by different stream columns in different replicates is
+        # still a collision, even if no single column repeats it by itself.
+        cross_stream_uses: dict[int, list[tuple[str, str]]] = {}
+        for replicate, streams in stable_by_replicate.items():
+            for column, seed_value in streams.items():
+                cross_stream_uses.setdefault(seed_value, []).append((replicate, column))
+        for seed_value, uses in cross_stream_uses.items():
+            replicate_ids = sorted({replicate for replicate, _ in uses})
+            stream_names = sorted({column for _, column in uses})
+            if len(replicate_ids) > 1 and len(stream_names) > 1:
+                warnings.append({
+                    "path": relative,
+                    "kind": "seed_reused_across_replicates",
+                    "detail": f"stratum={stratum_label} seed={seed_value} is reused across streams {','.join(stream_names)} and replicate IDs {','.join(replicate_ids)}",
+                })
     return warnings
 
 
