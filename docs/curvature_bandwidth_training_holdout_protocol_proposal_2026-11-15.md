@@ -66,6 +66,18 @@ Validation sizes remain nested at (n=100,300,1000), drawn from the same independ
 
 The 12/24 split is a first computational benchmark, not a universal guarantee of adequate Monte Carlo precision. Report the holdout MCSE and interval for every primary contrast. If precision is inadequate, any larger holdout replication must be specified before inspecting the additional outcomes.
 
+### Reproducible seed-partition audit
+
+Before freezing either split, create a machine-readable seed inventory from every prior development and floor-family artifact that could be reused accidentally. Extract the actual population and validation seeds from each replicate/cell ledger and child configuration; where an artifact stores only a master seed and deterministic schedule, independently expand that schedule and reconcile it against the child-level values. Do not infer seed use from directory names or from a single master-seed label.
+
+For the proposed schedule, the population/validation seed pairs are
+\[
+(s_r,s_r+1),\qquad s_r=M+10r,
+\]
+with \(M=2026111600\) for training and \(M=2026112600\) for holdout. Enumerate every integer seed actually consumed by each split, including any separately seeded validation frame, bootstrap, or posterior simulation if those are not derived deterministically from the pair. Require exact set intersections to be empty for training versus holdout, training versus every prior development artifact, and holdout versus every prior development artifact. Also check that each replicate's two seeds are distinct and that no replicate pair is reused within a split.
+
+The audit record must contain the source artifact path and hash, the extracted seed pairs, the expanded schedule where applicable, the three pairwise disjointness results, and the code/version used to extract them. If any prior artifact cannot be enumerated reliably, the seed partition is **not yet verified**: do not freeze the proposed seeds or launch training. This is an inventory check, not a claim that distinct seeds make all random streams statistically independent.
+
 ## 5. Training-stage algorithm
 
 For each gamma, validation size, and arm:
