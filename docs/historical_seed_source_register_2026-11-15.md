@@ -587,3 +587,21 @@ A programmatic cross-check of the current JSON manifest's persisted artifact rec
 
 This is a **manifest bookkeeping PASS only**. It does not resolve the 210 known unlisted successful test artifacts, the 318 non-success test-workflow run artifact lists, the 167 metadata-only payloads, or the 60 persisted unresolved records. The source register remains PARTIAL and no global seed-disjointness certification is issued.
 
+
+
+## Sampled tests-workflow seed-source versions
+
+I inspected ten representative `tests.yml` workflow blobs from successful run heads. The repository history for this workflow contains 51 commits, so the ten samples do not yet establish the exact workflow version used by every one of the 71 successful test runs.
+
+Across the ten sampled workflow versions, the explicit seed arguments observed were **101, 202, 55129, 4182026, 20261025, 20261026, and 20261028**. In the sampled `a7d6c5b` version:
+- `run_synthetic_selection_experiment` and `run_catalogue_thinning_audit` use 20261028;
+- `run_selection_misspecification` uses 55129 (this command is absent from the sampled latest workflow version);
+- `run_distance_uncertainty_sensitivity` uses 20261026 for both the small smoke and larger sensitivity run, reusing the same base seed;
+- `run_calibration_grid_sensitivity` uses 20261025;
+- `run_multiseed_grid_sensitivity` uses seeds 101 and 202;
+- `summarize_distance_uncertainty_paired_contrasts` uses bootstrap seed 4182026.
+
+The same sampled version invokes `run_selected_likelihood_sbc.py` without an explicit seed; its source default is 20261025. It invokes `run_host_density_benchmark.py` without an explicit seed; its source default is 20261028. These two defaults were verified at the sampled `a7d6c5b` commit only, not across all 51 workflow revisions.
+
+The 71 successful test runs therefore cannot yet be assigned a complete historical seed set. Exact run-head-to-workflow-blob mapping and script-default/secondary-stream reconciliation remain open. These test commands are repeated across many CI runs and must not be counted as independent scientific replications merely because they appear in separate Actions runs.
+
