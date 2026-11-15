@@ -245,3 +245,17 @@ def test_inventory_rejects_object_seed_arrays_without_enabling_pickle(tmp_path):
     np.savez(root / "unsafe.npz", population_seed=np.array([3000], dtype=object))
     with pytest.raises(ValueError, match="Object arrays cannot be loaded when allow_pickle=False"):
         module.audit([root], _schedule(tmp_path / "schedule.json"))
+
+
+def test_inventory_ignores_across_seeds_summary_metrics(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "config.json").write_text(json.dumps({"population_seed": 3000}))
+    (root / "summary.csv").write_text(
+        "mean_pit_mean_across_seeds,mean_coverage_across_seeds\\n"
+        "0.5138380959669132,0.681\\n"
+    )
+    report = module.audit([root], _schedule(tmp_path / "schedule.json"))
+    assert report["status"] == "PASS"
+    assert report["historical_seed_values"] == [3000]
