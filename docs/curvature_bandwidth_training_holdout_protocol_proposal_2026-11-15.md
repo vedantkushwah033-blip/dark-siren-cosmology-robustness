@@ -80,6 +80,14 @@ For the common-bandwidth estimand, average Arms A and D equally at each candidat
 
 Do not select on ISE, boundary IAE, ESS, or holdout outcomes. These remain secondary diagnostics. No bandwidth may be changed after holdout scoring begins.
 
+### Training-stage failure and denominator rule
+
+Bandwidth selection requires a complete, fixed training denominator. For each \((\gamma,n,\mathrm{arm})\) selection stratum, every one of the 12 planned training replicates must have a finite IAE at every candidate bandwidth. For the common-bandwidth A/D estimand, both A and D must be present for all 12 replicates at every candidate bandwidth. Do not average over whichever replicates happen to survive, do not allow the effective training denominator to vary by bandwidth, and do not impute missing metrics.
+
+If any required replicate, arm, or candidate-width result is failed, non-evaluable, missing, duplicated, or non-finite, do not freeze a bandwidth for that affected stratum. Preserve the original failure and artifact. A corrected implementation may rerun the complete affected training design using the same prespecified seeds when the failure is demonstrably a software or infrastructure defect; record both attempts and audit the replacement artifact. Do not replace a difficult replicate with a newly chosen seed after examining its outcome. If a complete denominator cannot be recovered, mark the stratum non-evaluable and do not score its corresponding holdout contrast as though a bandwidth had been selected.
+
+The training auditor must independently verify the full replicate × gamma × validation-size × arm × bandwidth grid, one-to-one replicate keys, finite metric values, and the common 12-replicate denominator before accepting any selection file. The selection file must retain the per-replicate training values and the full candidate-width curves, not just the selected bandwidth.
+
 ## 6. Holdout-stage algorithm
 
 1. Load the frozen training selection file and verify its hash.
