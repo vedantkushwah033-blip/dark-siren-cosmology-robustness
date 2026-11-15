@@ -141,7 +141,7 @@ def audit(root:Path):
   if float(child_cfg["coordinate_center"])!=float(cfg["coordinate_center"]) or float(child_cfg["coordinate_scale"])!=float(cfg["coordinate_scale"]): raise AssertionError("child coordinate specification mismatch")
   if child_cfg["coefficient_prior"]!=cfg["coefficient_prior"]: raise AssertionError("child coefficient prior mismatch")
   if child_cfg.get("analysis_model")!=cfg["analysis_model"] or child_cfg.get("arm_C")!=cfg["arm_C"] or child_cfg.get("arm_D_E")!=cfg["arm_D_E"]: raise AssertionError("child analysis or arm-label mismatch")
-  if child_cfg.get("arm_E_metric")!="posterior-mean density loss is primary; posterior expected node-specific loss is secondary": raise AssertionError("child Arm E estimand specification mismatch")
+  if child_cfg.get("arm_E_metric")!="posterior-mean density loss is primary; posterior expected node-specific density loss is secondary": raise AssertionError("child Arm E estimand specification mismatch")
   # Verify the common-random-number design from persisted raw inputs, not merely
   # from repeated seed labels: the parent/frame draws and validation subsample
   # must be identical across gamma cells within each replicate.
