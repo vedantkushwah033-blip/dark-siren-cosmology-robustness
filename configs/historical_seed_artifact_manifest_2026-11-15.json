@@ -5,8 +5,8 @@
   "coverage": {
     "branch": "research/absolute-width-distribution-pilot-20261114",
     "successful_runs_enumerated": 32,
-    "artifacts_listed": 369,
-    "artifacts_downloaded_sha256_verified": 200,
+    "artifacts_listed": 372,
+    "artifacts_downloaded_sha256_verified": 203,
     "artifact_sources_complete": false,
     "source_branches": [
       "research/absolute-width-distribution-pilot-20261114",
@@ -29,9 +29,9 @@
     ],
     "other_selected_workflow_artifacts_enumerated": true,
     "run_metadata_complete": true,
-    "unique_run_ids": 196,
+    "unique_run_ids": 197,
     "downloaded_archive_scan_complete": true,
-    "downloaded_archive_count": 200,
+    "downloaded_archive_count": 203,
     "metadata_only_artifact_count": 169,
     "test_workflow_runs_enumerated": 19,
     "test_workflow_artifacts_metadata_only": 57,
@@ -67,11 +67,12 @@
         "metadata_only": 57
       },
       "totals": {
-        "runs": 196,
-        "artifacts": 369,
-        "downloaded_sha256_verified": 200,
+        "runs": 197,
+        "artifacts": 372,
+        "downloaded_sha256_verified": 203,
         "metadata_only": 169,
-        "seed_schedule_source_verified": 148
+        "seed_schedule_source_verified": 148,
+        "unresolved": 3
       },
       "posterior_grid_integrity_selected_workflows": {
         "runs": 88,
@@ -93,6 +94,16 @@
           ".github/workflows/catalogue-selection-confirmatory-replication.yml",
           ".github/workflows/catalogue-selection-stress-screen.yml"
         ]
+      },
+      "posterior_grid_integrity_tests_sample": {
+        "runs": 1,
+        "artifacts": 3,
+        "downloaded_sha256_verified": 3,
+        "seed_inventory_unresolved": 3,
+        "known_successful_test_runs": 71,
+        "known_successful_test_artifacts": 213,
+        "unlisted_test_runs": 70,
+        "unlisted_test_artifacts": 210
       }
     },
     "unresolved_branch_scopes": [
@@ -100,7 +111,7 @@
         "branch": "research/audit-posterior-grid-integrity",
         "run_count_observed": 500,
         "artifact_enumeration": "PARTIAL_SELECTED_WORKFLOWS",
-        "reason": "Twelve selected synthetic host-density/host-misspecification workflows are enumerated: 88 successful run IDs and 100 artifacts, with exact workflow/runner/module/analysis seed proofs. The other workflows on this 500-run branch, failed/cancelled outcomes, and partial artifacts remain unresolved.",
+        "reason": "Twelve selected research workflows are enumerated (88 successful run IDs, 100 artifacts). The tests.yml workflow has 71 successful runs and 213 artifacts; three representative Python-matrix artifacts are persisted and payload-verified, while 210 test artifacts and exact seed sources across all 71 heads remain unresolved. The other workflows, 318 non-success test runs, failed/cancelled outcomes and partial artifacts remain unresolved.",
         "selected_successful_runs_enumerated": 88,
         "selected_artifacts_added": 100,
         "selected_workflows": [
@@ -116,7 +127,13 @@
           "audit-stage-b-artifact.yml",
           "catalogue-selection-confirmatory-replication.yml",
           "catalogue-selection-stress-screen.yml"
-        ]
+        ],
+        "known_test_workflow_runs": 71,
+        "known_test_workflow_artifacts": 213,
+        "test_workflow_artifacts_persisted": 3,
+        "test_workflow_artifacts_unlisted": 210,
+        "test_workflow_non_success_runs": 318,
+        "test_workflow_source_schedule_status": "NOT_VERIFIED_ACROSS_ALL_71_HEADS"
       },
       {
         "branch": "research/estimated-inclusion-audit",
@@ -134,11 +151,20 @@
     "seed_inventory_status_counts": {
       "PAYLOAD_SHA256_VERIFIED": 164,
       "SEED_SCHEDULE_SOURCE_VERIFIED": 148,
-      "UNRESOLVED": 57
+      "UNRESOLVED": 60
     },
-    "seed_inventory_unresolved_artifact_count": 57,
+    "seed_inventory_unresolved_artifact_count": 60,
     "seed_inventory_schedule_source_verified_count": 148,
-    "seed_inventory_payload_verified_count": 164
+    "seed_inventory_payload_verified_count": 164,
+    "unresolved_artifact_count": null,
+    "known_test_workflow_runs": 71,
+    "known_test_workflow_artifacts": 213,
+    "known_unlisted_successful_test_runs": 70,
+    "known_unlisted_successful_test_artifacts": 210,
+    "known_unlisted_artifact_count": 210,
+    "total_known_successful_run_ids": 267,
+    "total_known_successful_artifacts": 582,
+    "total_known_unresolved_artifacts": 270
   },
   "artifacts": [
     {
@@ -2944,6 +2970,57 @@
         "formula": "data_rng=np.random.default_rng(20261027); one global stream generates 1000 sequential replicates in each of four scenarios; no replicate-specific seed stride; all repeated workflow runs reuse the same seeded data.",
         "source_commit": "a7d6c5b6cb58fea3d5d073a8272387c07231cdad"
       }
+    },
+    {
+      "run_id": 40904011976,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12910184326,
+      "name": "numerical-diagnostics-py3.11",
+      "size_bytes": 138459,
+      "sha256": "7a6922b3f31ba36be55df837d4c2a844756cef99d181ea656a279c7b79185783",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "a7d6c5b6cb58fea3d5d073a8272387c07231cdad",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/tests.yml",
+      "run_created_at": "2026-10-29T15:40:51Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED",
+      "unresolved_reason": "Representative numerical-diagnostics test artifact; payload contains no explicit seed fields. The tests workflow executes multiple seeded synthetic smoke experiments, and exact workflow/script seed sources across all 71 successful test-run heads have not yet been reconciled."
+    },
+    {
+      "run_id": 40904011976,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12910483130,
+      "name": "numerical-diagnostics-py3.12",
+      "size_bytes": 3704446,
+      "sha256": "e2637721be129c7442d0b2a2226ee8ba752b73e3f36305944033ba2fb51c6975",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "a7d6c5b6cb58fea3d5d073a8272387c07231cdad",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/tests.yml",
+      "run_created_at": "2026-10-29T15:40:51Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED",
+      "unresolved_reason": "Representative numerical-diagnostics test artifact; payload contains no explicit seed fields. The tests workflow executes multiple seeded synthetic smoke experiments, and exact workflow/script seed sources across all 71 successful test-run heads have not yet been reconciled."
+    },
+    {
+      "run_id": 40904011976,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12910529061,
+      "name": "numerical-diagnostics-py3.10",
+      "size_bytes": 138468,
+      "sha256": "d6be1327fe03292da9756c49ce738e25a0a149bd31963dd37e08df96e6278619",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "a7d6c5b6cb58fea3d5d073a8272387c07231cdad",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/tests.yml",
+      "run_created_at": "2026-10-29T15:40:51Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "UNRESOLVED",
+      "unresolved_reason": "Representative numerical-diagnostics test artifact; payload contains no explicit seed fields. The tests workflow executes multiple seeded synthetic smoke experiments, and exact workflow/script seed sources across all 71 successful test-run heads have not yet been reconciled."
     },
     {
       "run_id": 40904012000,
@@ -7411,12 +7488,12 @@
   "completeness_note": "PARTIAL: 105 artifacts remain metadata-only; failed/cancelled runs and additional historical branches remain unresolved. This register must not authorize training or holdout execution.",
   "scan_summary": {
     "scan_date": "2026-11-15",
-    "downloaded_archives_scanned": 200,
-    "sha256_verified_archives": 200,
-    "json_members": 6708,
+    "downloaded_archives_scanned": 203,
+    "sha256_verified_archives": 203,
+    "json_members": 6711,
     "csv_members": 11707,
-    "npz_members": 360,
-    "total_supported_members": 18775,
+    "npz_members": 363,
+    "total_supported_members": 18781,
     "seed_field_occurrences": 3305523,
     "distinct_integer_seed_values": 595,
     "remaining_parse_errors": 0,
@@ -7435,7 +7512,7 @@
       "seed_stride": 10,
       "replicates": 24
     },
-    "limitation": "Results apply only to the listed downloaded archives and source-proven schedules. The 157 metadata-only artifacts, remaining workflows and run outcomes on the 500-run posterior-grid-integrity branch, other failed/cancelled runs, and any unenumerated historical workflows are not covered. The 3,301,923 seed-field occurrence count is provisional because the scanner has since been fixed to extract nested seed maps and seed-range fields; a full rescan of all 200 downloaded archives is required. The exact distinct-seed union also remains unreconciled. No global disjointness certification.",
+    "limitation": "Results apply only to the listed downloaded archives and source-proven schedules. There are 210 known but unlisted test-workflow artifacts from 70 successful test runs, plus 157 metadata-only artifacts and other unresolved run outcomes. The 3,301,923 seed-field occurrence count is provisional because the scanner has since been fixed to extract nested seed maps and seed-range fields; a full rescan of all 203 downloaded archives is required. The exact distinct-seed union also remains unreconciled. No global disjointness certification.",
     "estimated_inclusion_py312_subset": {
       "archives": 43,
       "json_members": 1499,
@@ -7700,6 +7777,34 @@
       "unique_seed_values_in_batch": 501,
       "parse_errors": 0,
       "distinct_union_recomputed_against_previous_archives": false
+    },
+    "incremental_tests_workflow_sample": {
+      "run_id": 40904011976,
+      "artifact_ids": [
+        12910529061,
+        12910483130,
+        12910184326
+      ],
+      "artifact_count": 3,
+      "downloaded_and_sha256_verified": 3,
+      "json_members": 3,
+      "npz_members": 3,
+      "seed_fields_in_sample_payload": 0,
+      "known_successful_test_runs": 71,
+      "known_successful_test_artifacts": 213,
+      "remaining_unlisted_successful_test_runs": 70,
+      "remaining_unlisted_test_artifacts": 210,
+      "explicit_seeded_smoke_commands_seen_in_sample_workflow_version": [
+        20261028,
+        55129,
+        20261026,
+        20261025,
+        101,
+        202
+      ],
+      "workflow_head": "a7d6c5b6cb58fea3d5d073a8272387c07231cdad",
+      "workflow_blob_sha": "6e648f0895ad89d295102c548fe64a05a6b7ba8b",
+      "source_schedule_complete_across_all_heads": false
     }
   }
 }
