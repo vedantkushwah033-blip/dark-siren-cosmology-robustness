@@ -102,17 +102,26 @@ def _ledger_seed_reuse_warnings(path: Path, relative: str) -> list[dict[str, str
         else:
             stable_pairs[replicate] = next(iter(pairs))
 
-    for stream_name, pair_index in (("population_seed", 0), ("validation_seed", 1)):
-        by_value: dict[int, list[str]] = {}
-        for replicate, pair in stable_pairs.items():
-            by_value.setdefault(pair[pair_index], []).append(replicate)
-        for seed_value, replicate_ids in by_value.items():
-            if len(replicate_ids) > 1:
-                warnings.append({
-                    "path": relative,
-                    "kind": f"{stream_name}_reused_across_replicates",
-                    "detail": f"seed={seed_value} appears in replicate IDs {','.join(sorted(replicate_ids))}",
-                })
+    # A seed cannot be reused by a different replicate, even if its stream
+    # role changes. Repeated rows for the same replicate across gamma are the
+    # intended common-random-number design and were collapsed above.
+    by_value: dict[int, set[str]] = {}
+    for replicate, pair in stable_pairs.items():
+        for seed_value in pair:
+            by_value.setdefault(seed_value, set()).add(replicate)
+        if pair[0] == pair[1]:
+            warnings.append({
+                "path": relative,
+                "kind": "seed_reused_across_streams_within_replicate",
+                "detail": f"seed={pair[0]} is both population and validation seed in replicate={replicate}",
+            })
+    for seed_value, replicate_ids in by_value.items():
+        if len(replicate_ids) > 1:
+            warnings.append({
+                "path": relative,
+                "kind": "seed_reused_across_replicates",
+                "detail": f"seed={seed_value} appears in replicate IDs {','.join(sorted(replicate_ids))}",
+            })
     return warnings
 
 
@@ -222,7 +231,13 @@ def audit(roots: list[Path], schedule_path: Path) -> dict[str, Any]:
             })
     overlap_training = sorted(train_values & historical.keys())
     overlap_holdout = sorted(holdout_values & historical.keys())
-    status = "PASS" if records and historical and not errors and not overlap_training and not overlap_holdout else "NOT_EVALUABLE"
+    # Historical seed reuse prevents certification of a disjoint candidate partition.
+    status = (
+        "PASS"
+        if records and historical and not errors and not ledger_warnings
+        and not overlap_training and not overlap_holdout
+        else "NOT_EVALUABLE"
+    )
     return {
         "schema_version": 1,
         "status": status,
