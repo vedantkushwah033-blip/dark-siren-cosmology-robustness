@@ -131,7 +131,7 @@ The machine-readable artifact register is now `configs/historical_seed_artifact_
 
 ### Consolidated scan of the 28 downloaded archives
 
-An independent local scan of all 26 downloaded ZIP archives processed JSON, CSV, and NPZ members. The scan used the corrected field rules now implemented in the repository auditor: it includes singular seed fields, explicit plural seed arrays, and `seed_start`; it excludes seed-count and `*_across_seeds` summary metrics.
+An independent local scan of all 28 downloaded ZIP archives processed JSON, CSV, and NPZ members. The scan used the corrected field rules now implemented in the repository auditor: it includes singular seed fields, explicit plural seed arrays, and `seed_start`; it excludes seed-count and `*_across_seeds` summary metrics.
 
 | Scan item | Result |
 |---|---:|
