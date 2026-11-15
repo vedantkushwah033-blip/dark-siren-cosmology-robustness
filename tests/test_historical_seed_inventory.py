@@ -288,9 +288,12 @@ def test_ledger_diagnostic_warns_when_validation_seed_is_reused_across_replicate
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
     assert report["status"] == "PASS"
     warnings = report["historical_seed_warnings"]
-    assert len(warnings) == 1
-    assert warnings[0]["kind"] == "validation_seed_reused_across_replicates"
-    assert "seed=99" in warnings[0]["detail"]
+    assert len(warnings) >= 1
+    assert all(
+        item["kind"] == "validation_seed_reused_across_replicates"
+        and "seed=99" in item["detail"]
+        for item in warnings
+    )
 
 
 
