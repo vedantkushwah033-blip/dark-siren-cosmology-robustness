@@ -286,8 +286,26 @@ def test_ledger_diagnostic_warns_when_validation_seed_is_reused_across_replicate
         "-1,1,20,99\n0,1,20,99\n"
     )
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
-    assert report["status"] == "PASS"
+    assert report["status"] == "NOT_EVALUABLE"
     warnings = report["historical_seed_warnings"]
     assert len(warnings) == 1
-    assert warnings[0]["kind"] == "validation_seed_reused_across_replicates"
+    assert warnings[0]["kind"] == "seed_reused_across_replicates"
     assert "seed=99" in warnings[0]["detail"]
+
+
+
+def test_ledger_detects_cross_stream_seed_reuse_between_replicates(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "replicate_ledger.csv").write_text(
+        "gamma,replicate,population_seed,validation_seed\\n"
+        "-1,0,10,11\\n0,0,10,11\\n"
+        "-1,1,20,10\\n0,1,20,10\\n"
+    )
+    report = module.audit([root], _schedule(tmp_path / "schedule.json"))
+    assert report["status"] == "NOT_EVALUABLE"
+    warnings = report["historical_seed_warnings"]
+    assert len(warnings) == 1
+    assert warnings[0]["kind"] == "seed_reused_across_replicates"
+    assert "seed=10" in warnings[0]["detail"]
