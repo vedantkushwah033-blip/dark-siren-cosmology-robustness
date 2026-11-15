@@ -385,3 +385,36 @@ This Stage A design studies assumed catalogue-selection-law misspecification (in
 
 The selected posterior-grid branch inventory now covers **84 successful run IDs and 93 artifacts across eight workflows**. The overall manifest contains 354 artifacts across 189 enumerated successful run IDs; 197 archives are downloaded and SHA-256 verified, 157 remain metadata-only, 133 have source-proven seed schedules, and 57 remain unresolved. The 500-run branch and overall historical source register remain partial.
 
+
+
+## Locked Stage B selection-misspecification confirmation — 2026-11-15
+
+The Stage B workflow run `40794942601` produced artifact `12864010259`, which has now been downloaded and SHA-256 verified. Its exact workflow, runner, and model-module source establish:
+
+- 500 paired replicates, six arms, 4,000 parent objects and 30 detected events per replicate;
+- data seed sequence `20262030 + replicate_id`, giving 20262030–20262529;
+- primary paired-bootstrap seed `20366759 = 20262030 + 104729`, with 10,000 resamples;
+- fixed toy truth (H_0=70), catalogue floor 0.10, midpoint 0.22 and width 0.05.
+
+Two later independent-analysis workflow runs produced artifacts `12870189585` and `12863333924`. Both were downloaded and SHA-256 verified. Their inner `paired_analysis.json` files are byte-identical (SHA-256 `0179f98d7a26c0aa43c8fc2488288db201f1d1ff232d026185226ec3b80c873b`). They read the same locked Stage B artifact; they are two repeated audits, not independent simulation replications. The supplementary analysis reuses the primary analysis seed 20366759 and uses secondary paired-contrast seed `20485637 = 20262030 + 223607`, also with 10,000 bootstrap resamples.
+
+### Historical result (strictly limited to this toy)
+
+The locked primary estimand is the reduction in absolute posterior-mean error for correct weighting relative to catalogue-only:
+[
+|\hat H_{0,\,catalogue}-70|-|\hat H_{0,\,correct}-70|.
+]
+Across 500 paired replicates, its mean is **5.952 km s⁻¹ Mpc⁻¹**, standard error 0.209, and paired bootstrap 95% interval **[5.541, 6.357]**. Correct weighting has lower absolute error in 442/500 replicates (88.4%). In the same toy, catalogue-only 68% interval coverage is 9.6%, versus 69.6% for correct weighting; their mean posterior-mean RMSEs are 9.37 and 3.79 respectively.
+
+The independent paired analysis also finds the oracle-vs-analytic-truth absolute-error difference near zero (mean 0.0228; bootstrap interval approximately [-0.01695, 0.06267]), consistent with those two controls being close in this simulation. These are results from the archived synthetic fixed-H0 experiment, not from the current estimated-inclusion-probability design.
+
+### Important interpretation limits
+
+- The correct-weighting arm is supplied the true catalogue-selection law. It is not a finite-validation logistic estimate and does not answer the current estimated-IPW research question.
+- The analytic-truth and parent-oracle arms are inaccessible diagnostic controls.
+- The toy has fixed (H_0=70), 4,000 parent objects and 30 events; it omits realistic detector response, event-rate marginalization, peculiar velocities and redshift uncertainty.
+- The Stage B workflow is named “confirmatory”, but the stored summary's status string still says `synthetic_selection_misspecification_pilot_not_real_H0_measurement`. This is a metadata-label inconsistency; the scientific scope is determined by the declared model and design, not the workflow name.
+- This old Stage B result cannot be used as evidence that estimated catalogue-inclusion probabilities improve the current five-arm density estimator.
+
+The Stage B and two independent-analysis artifacts are now included in the source manifest. The selected posterior-grid branch review covers **87 successful run IDs and 96 artifacts across ten workflows**. The overall manifest contains **357 artifacts across 192 enumerated successful run IDs**; 200 archives are downloaded and SHA-256 verified, 157 are metadata-only, 136 have source-proven seed schedules, and 57 remain unresolved. The 500-run branch and overall inventory remain partial.
+
