@@ -306,7 +306,7 @@ def audit(roots: list[Path], schedule_path: Path) -> dict[str, Any]:
             })
     overlap_training = sorted(train_values & historical.keys())
     overlap_holdout = sorted(holdout_values & historical.keys())
-    # Historical seed reuse prevents certification of a disjoint candidate partition.
+    # Historical reuse is reported as a diagnostic; this status is only the mechanical seed-set comparison.
     status = (
         "PASS"
         if records and historical and not errors
@@ -337,10 +337,36 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--artifact-root", action="append", required=True, type=Path)
     parser.add_argument("--schedule", required=True, type=Path)
+    parser.add_argument("--source-register", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
     try:
         report = audit(args.artifact_root, args.schedule)
+        source_register = json.loads(args.source_register.read_text(encoding="utf-8"))
+        registered_roots = {
+            str(Path(item).resolve())
+            for item in source_register.get("artifact_roots", [])
+        }
+        supplied_roots = {str(Path(item).resolve()) for item in args.artifact_root}
+        source_errors: list[str] = []
+        if source_register.get("artifact_sources_complete") is not True:
+            source_errors.append("source register is not explicitly marked complete")
+        if not registered_roots:
+            source_errors.append("source register has no artifact_roots list")
+        if registered_roots != supplied_roots:
+            source_errors.append("registered artifact_roots do not exactly match supplied --artifact-root values")
+        artifact_records = source_register.get("artifacts", [])
+        if not artifact_records:
+            source_errors.append("source register has no artifact records")
+        if any(item.get("download_status") != "DOWNLOADED_SHA256_VERIFIED" for item in artifact_records):
+            source_errors.append("one or more source-register artifacts are not downloaded and SHA-256 verified")
+        report["mechanical_status"] = report["status"]
+        report["source_register_status"] = "COMPLETE" if not source_errors else "INCOMPLETE"
+        report["source_register_sha256"] = sha256_file(args.source_register)
+        report["source_register_artifact_count"] = len(artifact_records)
+        report["source_register_errors"] = source_errors
+        if source_errors:
+            report["status"] = "NOT_EVALUABLE"
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         report = {"schema_version": 1, "status": "NOT_EVALUABLE", "fatal_error": str(exc)}
     args.output.parent.mkdir(parents=True, exist_ok=True)
