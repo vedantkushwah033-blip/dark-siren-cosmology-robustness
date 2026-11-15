@@ -358,4 +358,5 @@ def test_schedule_accepts_additional_plural_random_stream(tmp_path):
     )
     report = module.audit([root], schedule)
     assert report["status"] == "NOT_EVALUABLE"
-    assert report["training_pairs"][0]["bootstrap_seeds"] == [12, 13]
+    assert report["training_pairs"][0]["bootstrap_seeds[0]"] == 12
+    assert report["training_pairs"][0]["bootstrap_seeds[1]"] == 13
