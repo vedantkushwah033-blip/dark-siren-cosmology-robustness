@@ -6,7 +6,7 @@
     "branch": "research/absolute-width-distribution-pilot-20261114",
     "successful_runs_enumerated": 32,
     "artifacts_listed": 372,
-    "artifacts_downloaded_sha256_verified": 203,
+    "artifacts_downloaded_sha256_verified": 205,
     "artifact_sources_complete": false,
     "source_branches": [
       "research/absolute-width-distribution-pilot-20261114",
@@ -31,8 +31,8 @@
     "run_metadata_complete": true,
     "unique_run_ids": 197,
     "downloaded_archive_scan_complete": true,
-    "downloaded_archive_count": 203,
-    "metadata_only_artifact_count": 169,
+    "downloaded_archive_count": 205,
+    "metadata_only_artifact_count": 167,
     "test_workflow_runs_enumerated": 19,
     "test_workflow_artifacts_metadata_only": 57,
     "estimated_inclusion_branch_successful_runs_enumerated": 43,
@@ -69,8 +69,8 @@
       "totals": {
         "runs": 197,
         "artifacts": 372,
-        "downloaded_sha256_verified": 203,
-        "metadata_only": 169,
+        "downloaded_sha256_verified": 205,
+        "metadata_only": 167,
         "seed_schedule_source_verified": 148,
         "unresolved": 60,
         "payload_sha256_verified": 164
@@ -78,8 +78,8 @@
       "posterior_grid_integrity_selected_workflows": {
         "runs": 88,
         "artifacts": 100,
-        "downloaded_sha256_verified": 36,
-        "metadata_only": 64,
+        "downloaded_sha256_verified": 38,
+        "metadata_only": 62,
         "seed_schedule_source_verified": 100,
         "workflows": [
           ".github/workflows/host-misspecification-audit.yml",
@@ -2937,7 +2937,7 @@
       "size_bytes": 7156136,
       "sha256": "e610d6c9d614fcdebb20ff02885b940d2cbb97edd52c432bbc6e5b13586c107d",
       "expired": false,
-      "download_status": "METADATA_ONLY",
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
       "head_sha": "a7d6c5b6cb58fea3d5d073a8272387c07231cdad",
       "head_branch": "research/audit-posterior-grid-integrity",
       "workflow_path": ".github/workflows/hidden-host-assumption-sensitivity.yml",
@@ -2965,7 +2965,7 @@
       "size_bytes": 5802372,
       "sha256": "dd531ffbc56e7ce41d49a185be18f5f0b1877f3cb2ded8d79949ec8822feff84",
       "expired": false,
-      "download_status": "METADATA_ONLY",
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
       "head_sha": "a7d6c5b6cb58fea3d5d073a8272387c07231cdad",
       "head_branch": "research/audit-posterior-grid-integrity",
       "workflow_path": ".github/workflows/host-prior-support-factorial.yml",
@@ -7528,13 +7528,13 @@
   "completeness_note": "PARTIAL: 105 artifacts remain metadata-only; failed/cancelled runs and additional historical branches remain unresolved. This register must not authorize training or holdout execution.",
   "scan_summary": {
     "scan_date": "2026-11-15",
-    "downloaded_archives_scanned": 203,
-    "sha256_verified_archives": 203,
+    "downloaded_archives_scanned": 205,
+    "sha256_verified_archives": 205,
     "json_members": 6711,
-    "csv_members": 11707,
+    "csv_members": 11719,
     "npz_members": 363,
-    "total_supported_members": 18781,
-    "seed_field_occurrences": 3305523,
+    "total_supported_members": 18793,
+    "seed_field_occurrences": 3311919,
     "distinct_integer_seed_values": 595,
     "remaining_parse_errors": 0,
     "terminal_literal_backslash_n_repairs": 4,
@@ -7552,7 +7552,7 @@
       "seed_stride": 10,
       "replicates": 24
     },
-    "limitation": "Results apply only to the listed downloaded archives and source-proven schedules. There are 210 known but unlisted test-workflow artifacts from 70 successful test runs, plus 169 persisted metadata-only artifacts and other unresolved run outcomes. The 3,301,923 seed-field occurrence count is provisional because the scanner has since been fixed to extract nested seed maps and seed-range fields; a full rescan of all 203 downloaded archives is required. The exact distinct-seed union also remains unreconciled. No global disjointness certification.",
+    "limitation": "Results apply only to the listed downloaded archives and source-proven schedules. There are 210 known but unlisted test-workflow artifacts from 70 successful test runs, plus 167 persisted metadata-only artifacts and other unresolved run outcomes. The 3,308,319 seed-field occurrence count is provisional because the scanner has since been fixed to extract nested seed maps and seed-range fields; a full rescan of all 205 downloaded archives is required. The exact distinct-seed union also remains unreconciled. No global disjointness certification.",
     "estimated_inclusion_py312_subset": {
       "archives": 43,
       "json_members": 1499,
@@ -7845,6 +7845,22 @@
       "workflow_head": "a7d6c5b6cb58fea3d5d073a8272387c07231cdad",
       "workflow_blob_sha": "6e648f0895ad89d295102c548fe64a05a6b7ba8b",
       "source_schedule_complete_across_all_heads": false
+    },
+    "incremental_host_prior_hidden_payload_batch": {
+      "artifact_ids": [
+        12911765453,
+        12910807429
+      ],
+      "artifact_count": 2,
+      "downloaded_and_sha256_verified": 2,
+      "json_members": 0,
+      "csv_members": 12,
+      "seed_field_occurrences": 6396,
+      "host_prior_bootstrap_seed": 20261031,
+      "hidden_host_bootstrap_seed": 20261033,
+      "all_seed_columns_reconciled": true,
+      "parse_errors": 0,
+      "distinct_union_recomputed_against_previous_archives": false
     }
   }
 }
