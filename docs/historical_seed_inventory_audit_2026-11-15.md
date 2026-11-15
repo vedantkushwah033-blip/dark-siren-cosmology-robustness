@@ -10,7 +10,7 @@ Before the proposed density training and holdout experiments, compare every hist
 
 The tool accepts one or more extracted artifact roots and a JSON schedule with non-empty `training` and `holdout` arrays. Each schedule row must explicitly provide integer `population_seed` and `validation_seed` values; any additional random stream must be represented by another integer field whose name contains `seed` (for example, `bootstrap_seed`). Seed values must be unique across all streams and replicates within a block, and the blocks must be mutually disjoint.
 
-The scanner currently parses JSON and CSV files. It recursively extracts scalar values from field names containing `seed`, including nested JSON records and seed-named CSV columns. It hashes every supported source file with SHA-256 and records source-relative paths, byte counts, field names, and seed occurrences.
+The scanner currently parses JSON and CSV files. It recursively extracts scalar values from field names ending in `seed` or `seeds` (so `seed_stride` is not mistaken for a seed value), including nested JSON records and seed-named CSV columns. It hashes every supported source file with SHA-256 and records source-relative paths, byte counts, field names, and seed occurrences.
 
 YAML files are deliberately unsupported and cause a non-evaluable result. Convert them to reviewed JSON/CSV without changing values, retain the originals in the audit package, and document the conversion. Malformed files and non-integer seed values fail closed rather than being skipped.
 
@@ -37,7 +37,7 @@ After extracting all relevant historical run artifacts into a reviewed directory
 python scripts/audit_historical_seed_inventory.py \
   --artifact-root artifacts/historical_density_runs \
   --artifact-root artifacts/historical_curvature_runs \
-  --schedule configs/density_training_holdout_seed_schedule.json \
+  --schedule configs/density_training_holdout_seed_schedule_candidate_v1.json \
   --output reports/historical_seed_inventory_audit.json
 ```
 
