@@ -11,9 +11,9 @@ Status: **PARTIAL / NOT COMPLETE**. This register records known density-pilot wo
 | 43617052462 | 14123867382 | absolute-width-expanded-grid-floor-010-d94fdd62e514c81c20444196e166d2ebbb341a40 | 100,214,396 | e83f944b22cc153c1b6354515f42ed25978db2cf7b94b2e66c13f16e04768d1a | Downloaded; SHA-256 verified; 248 JSON/CSV files scanned |
 | 43617052462 | 14123634445 | absolute-width-expanded-grid-floor-025-d94fdd62e514c81c20444196e166d2ebbb341a40 | 103,672,379 | f7eb0576f0b9dc5badafb2a3b3b136bc125106856345df4749e173f94669c627 | Downloaded; SHA-256 verified; 248 JSON/CSV files scanned |
 | 43619577181 | 14123904013 | five-arm-kde-bandwidth-pilot | 8,157,332 | c840a912f1cfc7ddcef930d2c92984f748d34859452dc54112cda6df76985d36 | Downloaded; partial smoke/engineering payload inspected |
-| 43619577181 | 14123779398 | numerical-diagnostics-py3.12 | 74,359,526 | 3fc0e848d45526cfbd222c6fc2fa9684a1fc4408390dc2c4b5538f85eb715dff | Available; extraction pending |
-| 43619577181 | 14123673249 | numerical-diagnostics-py3.11 | 12,279,818 | b8b10c69a19857b9dfd837cd2b96ccf2531ee7b86475e171c8c3431370719206 | Available; extraction pending |
-| 43619577181 | 14122914778 | numerical-diagnostics-py3.10 | 12,280,279 | f73e22abd9c6e88218052dd47a6dcb514e0f40454ebaab95a0a018c2c69f0e6c | Available; extraction pending |
+| 43619577181 | 14123779398 | numerical-diagnostics-py3.12 | 74,359,526 | 3fc0e848d45526cfbd222c6fc2fa9684a1fc4408390dc2c4b5538f85eb715dff | Downloaded; SHA-256 verified; 75 JSON, 112 CSV, 3 NPZ members |
+| 43619577181 | 14123673249 | numerical-diagnostics-py3.11 | 12,279,818 | b8b10c69a19857b9dfd837cd2b96ccf2531ee7b86475e171c8c3431370719206 | Downloaded; SHA-256 verified; 38 JSON, 47 CSV, 1 NPZ member |
+| 43619577181 | 14122914778 | numerical-diagnostics-py3.10 | 12,280,279 | f73e22abd9c6e88218052dd47a6dcb514e0f40454ebaab95a0a018c2c69f0e6c | Downloaded; SHA-256 verified; 38 JSON, 47 CSV, 1 NPZ member |
 | 43635486478 | — | Focused curvature CI run | — | — | No artifacts returned; failed job logs and checked-out commit are separate evidence |
 
 | 43634540727 | 14131475849 | absolute-width-expanded-grid-floor-010-414175baf0b3f0af2421517804e1521d1666dfbc | 100,222,894 | 046e74624576cbfb9c438da3fb59f8acb3528868196632901a490251116d7566 | Downloaded; SHA-256 verified; 248 JSON/CSV files scanned |
@@ -25,6 +25,13 @@ Status: **PARTIAL / NOT COMPLETE**. This register records known density-pilot wo
 | 43633559278 | 14130158861 | quadratic-logit-curvature-density-pilot | 89,278,234 | f24599b56d3ca5c165dd41cd196a08e0925f371a267fa8a0b9ff5927a44bd13a | Downloaded; SHA-256 verified; 258 JSON/CSV files scanned; ledger pairing checked |
 | 43633572255 | 14130121464 | quadratic-logit-curvature-density-pilot | 89,279,520 | 6e259b7b999306c606d0458fcfa0d6ecab8c2941106d311a7caabd3d1813b4bd | Downloaded; SHA-256 verified; 258 JSON/CSV files scanned; ledger pairing checked |
 | 43633611845 | 14130066887 | quadratic-logit-curvature-density-pilot | 89,279,520 | d34f58ea693a003fb51e888650470d502680097b4fe5ac352d3e9486bbb7e7c4 | Downloaded; SHA-256 verified; 258 JSON/CSV files scanned; ledger pairing checked |
+| 43685339718 | 14150446621 | quadratic-logit-curvature-seven-gamma-smoke | 29,333,334 | b8c5af4e37a4cf69a4bd2ea1459880efaa54920d71ec2959605949e02079f895 | Downloaded; SHA-256 verified; 22 JSON, 70 CSV, 7 NPZ members; one engineering replicate |
+| 43615127763 | 14122952198 | absolute-bandwidth-density-pilot-20rep | 115,545,773 | 641c17cbd04e348c8dc6215df642728a9fcc7cc2b8f25b6b230231ad4e29b579 | Downloaded; SHA-256 verified; 40 distinct seed values |
+| 43582872046 | 14110630053 | absolute-bandwidth-density-pilot-20rep | 115,740,778 | 2aeb84f875dc3f436e0894c138a153d3a86fc5cac248d534b6b821a472b63131 | Downloaded; SHA-256 verified; 40 distinct seed values |
+| 42505936771 | 13634748714 | inclusion-posterior-calibration-pilot-py3.12 | 336,763,743 | c3e18b8726133ff1795fbbcbb9971e67f8eaa01222914db826b57ddf6fd29d4e | Downloaded; SHA-256 verified; 241 distinct seed values; ledger stratum checks clean |
+| 42481464991 | 13620045169 | finite-validation-density-confirmatory-py3.12 | 215,628,452 | 7ba17940acd7c3c71565a72aea6aa47b36992360d96e6c5274f68a79ab61cf10 | Downloaded; SHA-256 verified; seed_start=20261108; repeated base-seed metadata |
+| 42481059735 | 13616999063 | fixed-analysis-catalogue-density-confirmatory-py3.12 | 78,030,562 | c375e84168b55d1cc91a3b774485b6f6402ff9355ccc276718b906c49e95f4fa | Downloaded; SHA-256 verified |
+| 42481059738 | 13617671733 | fixed-analysis-catalogue-density-pilot-py3.12 | 3,920,710 | 5a494eeb515e87d0799f4bf701f95fa5409a5d483deb9ae6dfb77fecf0682037 | Downloaded; SHA-256 verified |
 
 ## Partial artifact inspection
 
@@ -109,3 +116,58 @@ This is an independent local archive scan, not yet a persisted run of the reposi
 The seed-ledger diagnostic and its regression tests were exercised by GitHub Actions on code/test commit `ff91e9cf044c3e80c20f3dcd0f83a4b7302ec103`, workflow run `43686049372`. All three Python matrix jobs (3.10, 3.11, 3.12) completed successfully. In the Python 3.10 job, the historical seed inventory test module reported **19 passed**, and the CLI help checks completed. The same workflow also passed the existing curvature smoke, pilot, paired-runner, and independent-auditor test groups.
 
 The branch has since received documentation-only updates (latest source-register commit `41d5eb7fe960fe71766aab992a9eabd7bd193ec7`). The successful test result therefore validates the code/test tree at `ff91e9c`, not a newly executed run on the later documentation-only head. No simulation pilot or confirmatory holdout was launched.
+
+
+## Expanded historical inventory — 2026-11-15 (supersedes interim counts above)
+
+The machine-readable artifact register is now `configs/historical_seed_artifact_manifest_2026-11-15.json`. It contains **74 unique artifact records** across 37 successful workflow runs and four branches. For each record it stores the run ID, artifact ID, artifact name, exact byte count, GitHub SHA-256 digest, expiration state, download status, run head SHA, branch, workflow path, and creation timestamp.
+
+- 26 of the 74 artifacts were downloaded and their full ZIP SHA-256 digests verified against GitHub metadata.
+- 48 artifacts have metadata only; their ZIP payloads have not been downloaded.
+- The selected density/bandwidth/curvature workflows on the current research branch yielded 109 relevant run records: 30 successful, 39 failed, and 40 cancelled. Artifact enumeration for failed/cancelled runs is still unresolved.
+- Other historical branches may contain additional relevant workflows/runs. The source register is therefore still **PARTIAL / NOT COMPLETE**.
+
+### Consolidated scan of the 26 downloaded archives
+
+An independent local scan of all 26 downloaded ZIP archives processed JSON, CSV, and NPZ members. The scan used the corrected field rules now implemented in the repository auditor: it includes singular seed fields, explicit plural seed arrays, and `seed_start`; it excludes seed-count and `*_across_seeds` summary metrics.
+
+| Scan item | Result |
+|---|---:|
+| ZIP archives | 26 |
+| JSON members | 2,736 |
+| CSV members | 9,248 |
+| NPZ members | 360 |
+| Total supported members | 12,344 |
+| Seed-field occurrences | 2,929,248 |
+| Distinct integer seed values | 541 |
+| Remaining parse errors | 0 |
+| Explicit terminal-literal-\\n JSON repairs | 4 |
+| Ledger reuse warnings after design-stratum grouping | 0 |
+| Candidate training-seed overlaps | 0 |
+| Candidate holdout-seed overlaps | 0 |
+| Training/holdout schedule overlaps | 0 |
+
+Every downloaded ZIP digest matched the corresponding GitHub artifact digest. Four older audit-report JSON files contained an otherwise valid JSON document followed by the two literal characters `\\n`; the auditor now repairs only that exact terminal defect and emits an `inventory_warnings` record. Original archive bytes and their hashes remain unchanged.
+
+The 26-archive union contains 541 distinct seed values. Repeated occurrences are not independent draws: they include row-level seed metadata, duplicated floor arms, repeated validation-size views, Python-version artifacts, and repeated workflow executions.
+
+### Repeated workflow seed schedules identified
+
+- The 17 successful absolute-width / expanded-grid runs on the current branch use the same workflow configuration: `master_seed=20261215`, `seed_stride=10`, 20 replicates. The runner schedule is `population_seed = master_seed + replicate_id * seed_stride`, `validation_seed = population_seed + 1`. These runs reuse the same 40 integer seed values (20 pairs from 20261215/20261216 through 20261405/20261406); they are reruns/companion arms, not 17 independent seed families.
+- Two older 20-replicate absolute-bandwidth runs on `research/five-arm-kde-kernel-reuse-v2-20261114` use a separate 40-value family beginning at 20261201/20261202 and ending at 20261391/20261392.
+- The 12 successful curvature-pilot runs include early single-runner artifacts and later paired-runner artifacts. The later runner uses `master_seed=2026111500`, three replicates, stride 10, and a shared population/validation pair across gamma cells within each replicate. The early runner's ledger schedule is recorded separately above.
+- The seven-gamma smoke artifact (run 43685339718) is one engineering replicate, with seeds 20261115 and 20261116. It is not confirmatory and did not select a bandwidth or open a holdout.
+- The inclusion-posterior calibration artifact (run 42505936771) contributes 241 distinct seed values across its planned/realized scenario cells. Its ledger checks were performed within experiment/floor strata, so repeated nested validation-size rows were not misclassified as cross-replicate reuse.
+- The finite-validation confirmatory artifact (run 42481464991) records `seed_start=20261108` and repeated copies of the same base seed in row-level metrics; those copies are not independent seed draws.
+
+### Auditor hardening in this update
+
+The repository auditor now:
+- recognizes plural seed arrays and `seed_start`;
+- ignores `n_seeds`, `replicates_per_seed`, and `*_across_seeds` aggregate metrics;
+- repairs only the documented terminal literal-backslash-n JSON defect, with an explicit warning;
+- checks ledger stream reuse within experiment/gamma/floor design strata;
+- detects cross-stream collisions across different replicate IDs; and
+- keeps historical reuse warnings separate from the mechanical training/holdout disjointness status.
+
+The source register still cannot authorize the candidate schedule. The 48 metadata-only artifacts, failed/cancelled runs, and additional branches must be resolved before global historical seed disjointness can be certified. **No training or confirmatory holdout run is authorized.**
