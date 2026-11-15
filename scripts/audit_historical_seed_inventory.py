@@ -358,8 +358,23 @@ def main() -> int:
         artifact_records = source_register.get("artifacts", [])
         if not artifact_records:
             source_errors.append("source register has no artifact records")
-        if any(item.get("download_status") != "DOWNLOADED_SHA256_VERIFIED" for item in artifact_records):
-            source_errors.append("one or more source-register artifacts are not downloaded and SHA-256 verified")
+        for index, item in enumerate(artifact_records):
+            inventory_status = item.get("seed_inventory_status")
+            if inventory_status == "PAYLOAD_SHA256_VERIFIED":
+                if item.get("download_status") != "DOWNLOADED_SHA256_VERIFIED":
+                    source_errors.append(f"artifact[{index}] claims payload verification without a verified download")
+            elif inventory_status == "SEED_SCHEDULE_SOURCE_VERIFIED":
+                proof = item.get("seed_schedule_proof", {})
+                required_proof = (
+                    "workflow_blob_sha", "runner_blob_sha", "master_seed",
+                    "seed_stride", "replicates", "formula", "source_commit",
+                )
+                if any(proof.get(key) in (None, "") for key in required_proof):
+                    source_errors.append(f"artifact[{index}] has an incomplete seed-schedule source proof")
+                if proof.get("source_commit") != item.get("head_sha"):
+                    source_errors.append(f"artifact[{index}] seed-schedule proof commit does not match artifact run head")
+            else:
+                source_errors.append(f"artifact[{index}] has unresolved seed-inventory status")
         report["mechanical_status"] = report["status"]
         report["source_register_status"] = "COMPLETE" if not source_errors else "INCOMPLETE"
         report["source_register_sha256"] = sha256_file(args.source_register)
