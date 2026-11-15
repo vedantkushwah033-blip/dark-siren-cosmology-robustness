@@ -33,7 +33,7 @@ Status: **PARTIAL / NOT COMPLETE**. This register records known density-pilot wo
 | 42481059735 | 13616999063 | fixed-analysis-catalogue-density-confirmatory-py3.12 | 78,030,562 | c375e84168b55d1cc91a3b774485b6f6402ff9355ccc276718b906c49e95f4fa | Downloaded; SHA-256 verified |
 | 42481059738 | 13617671733 | fixed-analysis-catalogue-density-pilot-py3.12 | 3,920,710 | 5a494eeb515e87d0799f4bf701f95fa5409a5d483deb9ae6dfb77fecf0682037 | Downloaded; SHA-256 verified |
 
-## Partial artifact inspection
+## Initial partial artifact inspection (superseded by expanded scan below)
 
 Artifact 14123904013 was downloaded and its ZIP directory listing inspected. It contains a parent-density pilot configuration, a selection configuration, absolute-bandwidth smoke inputs, and a two-replicate smoke payload. The seed values observed in its JSON/CSV configuration and ledger files include:
 
@@ -44,9 +44,9 @@ Artifact 14123904013 was downloaded and its ZIP directory listing inspected. It 
 
 The smoke replicate config also contains `master_seed=20261120` and `seed_stride=10`. The stride is a design parameter, not a random seed value; the inventory parser excludes `seed_stride`.
 
-This is not a complete historical inventory: only one of the listed artifacts has been downloaded and inspected, and additional historical workflow runs/artifacts may exist. The candidate training/holdout schedule therefore remains **unverified**. Do not treat the absence of overlap in this partial sample as evidence of global disjointness.
+At the time this initial note was written, only one listed artifact had been downloaded. This paragraph is retained as a historical snapshot; the expanded scan below supersedes its counts. The source register remains incomplete because many artifacts are still metadata-only and failed/cancelled runs remain unresolved.
 
-## Required next source-register work
+## Original source-register checklist (remaining tasks updated below)
 
 1. Enumerate all relevant workflow runs, including older floor-family, absolute-width, curvature, smoke, and manual pilot runs.
 2. Record every artifact ID, full GitHub digest, run ID, head SHA, expiration state, and extraction result.
@@ -58,7 +58,7 @@ This is not a complete historical inventory: only one of the listed artifacts ha
 **Gate decision: NOT VERIFIED. No training run and no holdout run is authorized by this partial register.**
 
 
-## Verified artifact batch update — 2026-11-15
+## Initial six-artifact batch update (interim snapshot)
 
 The six ZIP artifacts from runs 43619594762 and 43617052462 have now been downloaded. Their local SHA-256 digests match the GitHub artifact metadata exactly:
 
@@ -71,7 +71,7 @@ The six ZIP artifacts from runs 43619594762 and 43617052462 have now been downlo
 This establishes an internally consistent inventory for these six artifact archives only. It does **not** establish global historical completeness: the smoke/engineering artifact, numerical-diagnostics artifacts, curvature workflow artifacts, earlier smoke runs, and any other relevant historical Actions runs remain to be reviewed. The candidate schedule remains non-authorized until the source register is complete and every relevant artifact is accounted for.
 
 
-## Early curvature pilot seed-ledger reconciliation
+## Early curvature pilot seed-ledger reconciliation (still applicable)
 
 Three early successful engineering-pilot artifacts (runs 43633559278, 43633572255, and 43633611845) were downloaded and checksum-verified. Their ledgers contain three replicate IDs, each reused across gamma strata as intended for common-random-number pairing. The population/validation seed pairs are distinct across replicate IDs:
 
@@ -85,19 +85,19 @@ Later curvature pilot artifacts (runs 43634885089 and 43634886771) use a differe
 
 The historical auditor now independently checks ledger rows with `replicate`, `population_seed`, and `validation_seed` columns. It allows common-random-number pairing across gamma within the same replicate, but warns if either random stream is reused across different replicate IDs. The five inspected curvature artifacts produced no such warning.
  
-## Current candidate schedule comparison
+## Interim candidate schedule comparison (superseded by expanded scan below)
 
 The ten verified absolute-width artifacts and the five verified curvature artifacts inspected in this update show no exact integer-seed overlap with the candidate training or holdout schedule. This is a **partial-scope disjointness result only**. Other relevant Actions artifacts and earlier workflows remain unresolved; no training or holdout execution is authorized.
 
 
-## Auditor follow-up
+## Initial auditor follow-up (superseded by hardening section below)
 
 The historical seed auditor now emits a separate `historical_seed_warnings` field for seed-ledger files that expose `replicate`, `population_seed`, and `validation_seed`. It allows common-random-number pairing across gamma strata within the same replicate, but flags a population or validation seed reused across different replicate IDs. These warnings do not alter the mechanical schedule-disjointness status; they identify historical design limitations that must be considered when interpreting repeated-sampling uncertainty.
 
 
-## Consolidated archive scan — 15 verified artifacts
+## Superseded interim consolidated archive scan — 15 artifacts
 
-An independent consolidated scan of all 14 downloaded ZIPs listed in this register processed every JSON and CSV member using the auditor's seed-key matching rules. Results:
+An earlier independent scan of an interim subset of downloaded ZIPs processed JSON and CSV members using the then-current seed-key matching rules. Its counts are superseded by the expanded 26-archive scan below.
 
 - 15 ZIP archives; every archive SHA-256 matched the GitHub artifact metadata.
 - 3,776 JSON/CSV members scanned.
@@ -111,7 +111,7 @@ An independent consolidated scan of all 14 downloaded ZIPs listed in this regist
 This is an independent local archive scan, not yet a persisted run of the repository CLI against every artifact root. The project CLI has regression tests for extraction, ledger reuse, schedule overlap, malformed input, and output serialization; the exact-head Actions result for the latest branch head remains to be checked. Most importantly, the scan is still only as complete as the 14 artifact sources enumerated here. It does not certify the entire repository's Actions history or any artifacts that have expired, were omitted, or belong to an unlisted workflow.
 
 
-## Repository test evidence for the seed auditor
+## Earlier repository test evidence (before current hardening)
 
 The seed-ledger diagnostic and its regression tests were exercised by GitHub Actions on code/test commit `ff91e9cf044c3e80c20f3dcd0f83a4b7302ec103`, workflow run `43686049372`. All three Python matrix jobs (3.10, 3.11, 3.12) completed successfully. In the Python 3.10 job, the historical seed inventory test module reported **19 passed**, and the CLI help checks completed. The same workflow also passed the existing curvature smoke, pilot, paired-runner, and independent-auditor test groups.
 
@@ -149,7 +149,7 @@ An independent local scan of all 26 downloaded ZIP archives processed JSON, CSV,
 
 Every downloaded ZIP digest matched the corresponding GitHub artifact digest. Four older audit-report JSON files contained an otherwise valid JSON document followed by the two literal characters `\\n`; the auditor now repairs only that exact terminal defect and emits an `inventory_warnings` record. Original archive bytes and their hashes remain unchanged.
 
-The 26-archive union contains 541 distinct seed values. Repeated occurrences are not independent draws: they include row-level seed metadata, duplicated floor arms, repeated validation-size views, Python-version artifacts, and repeated workflow executions.
+The expanded 26-archive union contains 541 distinct seed values. Repeated occurrences are not independent draws: they include row-level seed metadata, duplicated floor arms, repeated validation-size views, Python-version artifacts, and repeated workflow executions.
 
 ### Repeated workflow seed schedules identified
 
