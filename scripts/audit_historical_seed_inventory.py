@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 SUPPORTED = {".json", ".csv", ".npz"}
-SEED_KEY = re.compile(r"(?:^seed$|_seed$|^seeds$)", re.IGNORECASE)
+SEED_KEY = re.compile(r"(?:^seed$|_seed$|^seeds$|_seeds$)", re.IGNORECASE)
 
 
 def sha256_file(path: Path) -> str:
