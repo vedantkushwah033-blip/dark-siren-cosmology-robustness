@@ -3771,7 +3771,8 @@
       "distinct_seed_values_in_union": 205,
       "new_distinct_values_beyond_prior_71_archive_union": 0,
       "parse_errors": 0,
-      "sha256_verified": 86
+      "sha256_verified": 86,
+      "remaining_py310_py311_artifacts_metadata_only": 0
     }
   }
 }
