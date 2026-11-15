@@ -269,3 +269,10 @@ The implementation now:
 - includes an adversarial regression that alters the aggregate entropy ESS and refreshes the manifest hash, which must still be rejected.
 
 This is an audit-completeness correction, not a change to the statistical estimand or any previously computed density estimate. The seven-gamma workflow that was already running at the time of this correction checked out an earlier source revision; its artifact, if uploaded, cannot establish that entropy ESS was audited. A fresh exact-head CI run and a new pilot artifact are required before claiming this diagnostic has passed end-to-end validation.
+
+## Exact-head CI failure and follow-up (2026-11-15)
+
+The focused workflow run [43635486478](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/43635486478) checked out commit `194bb455cee8aad167bd1684f8e87789d20836bd`. All three Python matrix jobs failed in the first test step: 6 tests failed and 9 passed in each job. The common failure was `KeyError: 'entropy_ess'` in the independent density auditors. The production diagnostic had begun emitting entropy ESS, but the corresponding independently reconstructed diagnostic tables in the single-cell audit paths had not yet been updated. Later test steps were skipped, so this run does not validate the paired runner or outer auditor.
+
+The current research-branch source now includes entropy ESS in the independent weight-diagnostic reconstruction and comparison paths, including the absolute-bandwidth and quadratic-logit density smoke auditors; the paired outer auditor also reconstructs and compares the aggregate entropy-ESS column. This is a source-level follow-up only. **The failure above remains a recorded failure, not a pass**, and the current branch still requires a fresh exact-head Python 3.10/3.11/3.12 test run. No seven-gamma performance artifact or scientific result is inferred from this CI run.
+
