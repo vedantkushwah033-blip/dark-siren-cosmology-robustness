@@ -72,7 +72,8 @@
         "downloaded_sha256_verified": 203,
         "metadata_only": 169,
         "seed_schedule_source_verified": 148,
-        "unresolved": 3
+        "unresolved": 60,
+        "payload_sha256_verified": 164
       },
       "posterior_grid_integrity_selected_workflows": {
         "runs": 88,
