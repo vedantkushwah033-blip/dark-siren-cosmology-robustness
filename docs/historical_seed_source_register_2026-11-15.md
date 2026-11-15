@@ -51,7 +51,7 @@ At the time this initial note was written, only one listed artifact had been dow
 ## Original source-register checklist (remaining tasks updated below)
 
 1. Enumerate artifact outputs for failed/cancelled runs across the 15 branches already represented, then search remaining historical branches and workflows (including the posterior-grid-integrity branch).
-2. Resolve the 105 metadata-only artifact records. The 86 py3.10/py3.11 artifacts from the estimated-inclusion branch are a priority because they may not be identical to the downloaded py3.12 outputs.
+2. Resolve the 105 metadata-only artifact records: 48 artifacts from the current research branch and 57 numerical-diagnostics artifacts from nine other test-workflow branches. The estimated-inclusion branch's 129 artifacts are now all downloaded and SHA-256 verified across Python 3.10, 3.11, and 3.12.
 3. For repeated workflow artifacts, compare the workflow and runner blob hashes and document any seed schedule that can be proven from source; do not silently infer equivalence from artifact names.
 4. Download and verify every remaining artifact unless its seed schedule is independently and reproducibly established from the exact run configuration and runner revision.
 5. Preserve original ZIPs and extraction logs; reconcile child-level seeds with parent configs and ledgers, distinguishing actual seed values from master-seed derivation parameters such as stride.
