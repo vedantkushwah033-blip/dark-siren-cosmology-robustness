@@ -172,6 +172,11 @@ The repository auditor now:
 
 The source register still cannot authorize the candidate schedule. The 48 metadata-only artifacts, failed/cancelled runs, and additional branches must be resolved before global historical seed disjointness can be certified. **No training or confirmatory holdout run is authorized.**
 
+### Fail-closed command-line gate
+
+The repository CLI now requires `--source-register`. A CLI result can be `PASS` only when the supplied register is explicitly marked `artifact_sources_complete: true`, its `artifact_roots` exactly match the supplied roots, it contains artifact records, and every listed artifact is marked `DOWNLOADED_SHA256_VERIFIED`. The current manifest intentionally has `artifact_sources_complete: false`, an empty `artifact_roots` list, and 48 metadata-only records. Therefore, even though the mechanical comparison over the 26 downloaded archives has no overlap, running the CLI against the current partial register must return `NOT_EVALUABLE`. The CLI reports the mechanical comparison separately as `mechanical_status` so the two meanings cannot be confused.
+
+
 
 ## Current auditor CI validation — 2026-11-15
 
