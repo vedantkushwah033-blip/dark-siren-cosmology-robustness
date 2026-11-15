@@ -173,7 +173,7 @@ def test_curvature_outer_manifest_covers_nested_child_manifest(tmp_path):
  runner.run(_args(out))
  child_manifest=out/"cells"/"gamma_m1_00"/"replicate_0000"/"manifest.json"
  assert child_manifest.is_file()
-  child_manifest.write_text("{\n  \"tampered\": true\n}\n")
+ child_manifest.write_text("{\n  \"tampered\": true\n}\n")
  with pytest.raises(AssertionError,match="outer manifest verification failed"):
   auditor.audit(out)
 
