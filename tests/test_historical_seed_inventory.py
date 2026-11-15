@@ -213,7 +213,7 @@ def test_cli_writes_parseable_json_with_terminal_newline(tmp_path):
     )
     assert result.returncode == 0
     payload = output.read_bytes()
-    assert payload.endswith(b"\\n")
+    assert payload.endswith(b"\n")
     assert json.loads(payload.decode("utf-8"))["status"] == "PASS"
 
 
