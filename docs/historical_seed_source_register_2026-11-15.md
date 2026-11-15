@@ -122,26 +122,26 @@ The branch has since received documentation-only updates (latest source-register
 
 ## Expanded historical inventory — 2026-11-15 (supersedes interim counts above)
 
-The machine-readable artifact register is now `configs/historical_seed_artifact_manifest_2026-11-15.json`. It contains **76 unique artifact records** across 39 successful workflow runs and five branches. For each record it stores the run ID, artifact ID, artifact name, exact byte count, GitHub SHA-256 digest, expiration state, download status, run head SHA, branch, workflow path, and creation timestamp.
+The machine-readable artifact register is now `configs/historical_seed_artifact_manifest_2026-11-15.json`. It contains **262 unique artifact records** across 101 successful workflow runs and 15 branches. For each record it stores the run ID, artifact ID, artifact name, exact byte count, GitHub SHA-256 digest, expiration state, download status, run head SHA, branch, workflow path, and creation timestamp.
 
-- 28 of the 76 artifacts were downloaded and their full ZIP SHA-256 digests verified against GitHub metadata.
-- 48 artifacts have metadata only; their ZIP payloads have not been downloaded.
+- 71 of the 262 artifacts were downloaded and their full ZIP SHA-256 digests verified against GitHub metadata.
+- 191 artifacts have metadata only; their ZIP payloads have not been downloaded.
 - The selected density/bandwidth/curvature workflows on the current research branch yielded 109 relevant run records: 30 successful, 39 failed, and 40 cancelled. Artifact enumeration for failed/cancelled runs is still unresolved.
 - Other historical branches may contain additional relevant workflows/runs. The source register is therefore still **PARTIAL / NOT COMPLETE**.
 
-### Consolidated scan of the 28 downloaded archives
+### Consolidated scan of the 71 downloaded archives
 
 An independent local scan of all 28 downloaded ZIP archives processed JSON, CSV, and NPZ members. The scan used the corrected field rules now implemented in the repository auditor: it includes singular seed fields, explicit plural seed arrays, and `seed_start`; it excludes seed-count and `*_across_seeds` summary metrics.
 
 | Scan item | Result |
 |---|---:|
-| ZIP archives | 28 |
-| JSON members | 2,755 |
-| CSV members | 9,259 |
+| ZIP archives | 71 |
+| JSON members | 4,254 |
+| CSV members | 10,094 |
 | NPZ members | 360 |
-| Total supported members | 12,374 |
-| Seed-field occurrences | 2,944,032 |
-| Distinct integer seed values | 573 |
+| Total supported members | 14,708 |
+| Seed-field occurrences | 3,063,097 |
+| Distinct integer seed values | 595 |
 | Remaining parse errors | 0 |
 | Explicit terminal-literal-\\n JSON repairs | 4 |
 | Ledger reuse warnings after design-stratum grouping | 0 |
@@ -151,7 +151,7 @@ An independent local scan of all 28 downloaded ZIP archives processed JSON, CSV,
 
 Every downloaded ZIP digest matched the corresponding GitHub artifact digest. Four older audit-report JSON files contained an otherwise valid JSON document followed by the two literal characters `\\n`; the auditor now repairs only that exact terminal defect and emits an `inventory_warnings` record. Original archive bytes and their hashes remain unchanged.
 
-The expanded 28-archive union contains 573 distinct seed values. Repeated occurrences are not independent draws: they include row-level seed metadata, duplicated floor arms, repeated validation-size views, Python-version artifacts, and repeated workflow executions.
+The expanded 71-archive union contains 595 distinct seed values. Repeated occurrences are not independent draws: they include row-level seed metadata, duplicated floor arms, repeated validation-size views, Python-version artifacts, and repeated workflow executions.
 
 ### Repeated workflow seed schedules identified
 
@@ -172,11 +172,13 @@ The repository auditor now:
 - detects cross-stream collisions across different replicate IDs; and
 - keeps historical reuse warnings separate from the mechanical training/holdout disjointness status.
 
-The source register still cannot authorize the candidate schedule. The 48 metadata-only artifacts, failed/cancelled runs, and additional branches must be resolved before global historical seed disjointness can be certified. **No training or confirmatory holdout run is authorized.**
+The 43 py3.12 artifacts from the `research/estimated-inclusion-audit` branch were also downloaded and checksum-verified. These are included in the canonical JSON manifest; the table above retains the earlier 28-artifact batch for readability. The additional 43 archives contain 1,499 JSON and 835 CSV members, 119,065 seed-field occurrences, and a union of 210 distinct seed values (individual archive sets range from 188 to 210). They add 188 new integer seed values beyond the earlier 28-archive union. The corresponding 86 py3.10/py3.11 artifacts remain metadata-only; they have not been assumed equivalent to the py3.12 payloads.
+
+The source register still cannot authorize the candidate schedule. The 191 metadata-only artifacts, failed/cancelled runs, and additional branches must be resolved before global historical seed disjointness can be certified. **No training or confirmatory holdout run is authorized.**
 
 ### Fail-closed command-line gate
 
-The repository CLI now requires `--source-register`. A CLI result can be `PASS` only when the supplied register is explicitly marked `artifact_sources_complete: true`, its `artifact_roots` exactly match the supplied roots, it contains artifact records, and every listed artifact is marked `DOWNLOADED_SHA256_VERIFIED`. The current manifest intentionally has `artifact_sources_complete: false`, an empty `artifact_roots` list, and 48 metadata-only records. Therefore, even though the mechanical comparison over the 26 downloaded archives has no overlap, running the CLI against the current partial register must return `NOT_EVALUABLE`. The CLI reports the mechanical comparison separately as `mechanical_status` so the two meanings cannot be confused.
+The repository CLI now requires `--source-register`. A CLI result can be `PASS` only when the supplied register is explicitly marked `artifact_sources_complete: true`, its `artifact_roots` exactly match the supplied roots, it contains artifact records, and every listed artifact is marked `DOWNLOADED_SHA256_VERIFIED`. The current manifest intentionally has `artifact_sources_complete: false`, an empty `artifact_roots` list, and 191 metadata-only records. Therefore, even though the mechanical comparison over the 71 downloaded archives has no overlap, running the CLI against the current partial register must return `NOT_EVALUABLE`. The CLI reports the mechanical comparison separately as `mechanical_status` so the two meanings cannot be confused.
 
 
 
