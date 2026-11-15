@@ -178,3 +178,32 @@ def test_retention_fraction_scenarios_share_uniforms_and_validation_ids(tmp_path
     high_validation = high.loc[high["split_role"] == "validation", "object_id"].tolist()
     assert low_validation == high_validation
     assert np.all(low["retained"].to_numpy() <= high["retained"].to_numpy())
+
+
+def test_audit_cli_writes_valid_json_with_real_terminal_newline(tmp_path: Path):
+    root = Path(__file__).resolve().parents[1]
+    output_dir = tmp_path / "audit_inputs"
+    output_dir.mkdir()
+    raw_path = output_dir / "raw_unit_records.csv"
+    summary = run_probability_validation_benchmark(
+        n_parent=500, validation_sizes=(100,), curvature_values=(0.0,),
+        retention_fractions=(0.5,), degrees=(1,), replicates=1,
+        seed=98, raw_output=raw_path,
+    )
+    summary.to_csv(output_dir / "replicates.csv", index=False)
+    report_path = tmp_path / "audit_report.json"
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(root / "src") + os.pathsep + env.get("PYTHONPATH", "")
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(root / "scripts" / "audit_finite_validation_probability_benchmark.py"),
+            str(output_dir),
+            "--output", str(report_path),
+        ],
+        cwd=root, env=env, text=True, capture_output=True, check=False,
+    )
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    payload = report_path.read_bytes()
+    assert payload.endswith(b"\\n")
+    assert json.loads(payload.decode("utf-8"))["status"] == "PASS"
