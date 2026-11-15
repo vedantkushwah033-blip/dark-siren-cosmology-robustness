@@ -171,3 +171,10 @@ The repository auditor now:
 - keeps historical reuse warnings separate from the mechanical training/holdout disjointness status.
 
 The source register still cannot authorize the candidate schedule. The 48 metadata-only artifacts, failed/cancelled runs, and additional branches must be resolved before global historical seed disjointness can be certified. **No training or confirmatory holdout run is authorized.**
+
+
+## Current auditor CI validation — 2026-11-15
+
+The latest code/test hardening was validated by workflow run `43692729261` on commit `d89ce910a38ae0232bb1d1cca2d7c10dd911906b`. All three Python matrix jobs completed successfully (3.10, 3.11, 3.12). The historical seed inventory module reported **28 passed** in each matrix job; the existing smoke/pilot test groups and CLI help checks also completed without failures. No `FAILED` or `ERROR` entries were present in the three job logs.
+
+Subsequent branch commits through `5e23c3cd605860094c5f784fe33fe7bcdc525898` updated only the artifact manifest and documentation; they did not change the tested auditor or test files. A fresh CI run is currently queued for that documentation-only head, so the successful code/test validation remains tied to commit `d89ce91`, not asserted as a new exact-head run.
