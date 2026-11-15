@@ -575,3 +575,23 @@ def test_inventory_rejects_noninteger_value_in_named_seed_mapping(tmp_path):
     )
     with pytest.raises(ValueError, match="non-integer seed value"):
         module.audit([root], _schedule(tmp_path / "schedule.json"))
+
+
+
+def test_inventory_extracts_seed_end_and_per_mode_seed_range_fields(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "seed_ranges.json").write_text(
+        json.dumps({
+            "seed_start": 100,
+            "seed_end": 199,
+            "analysis_seed_start": 500,
+            "seed_end_by_mode": {"prior": 199, "fixed_60": 100199},
+            "seed_stride": 1,
+        })
+    )
+    report = module.audit([root], _schedule(tmp_path / "schedule.json"))
+    assert report["status"] == "PASS"
+    assert report["historical_seed_values"] == [100, 199, 500, 100199]
+    assert all("seed_stride" not in x["field"] for rows in report["historical_seed_occurrences"].values() for x in rows)
