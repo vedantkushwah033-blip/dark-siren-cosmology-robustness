@@ -307,3 +307,17 @@ The first exact-head test run exposed an overly specific test expectation becaus
 - Python 3.10, 3.11, and 3.12 jobs all passed, including smoke/raw-input audits, multi-replicate runner/auditor regressions, historical-seed inventory, incomplete-reference lifecycle checks, and CLI checks.
 
 This validates the corrected test suite on that exact head. It does not validate the unlaunched full seven-gamma development pilot, select a bandwidth, or authorize H0 propagation.
+
+
+## Extreme-validation-label posterior regression (2026-11-15)
+
+The independent logistic-posterior reference now has a focused regression covering four finite validation-label patterns: all-zero outcomes, all-one outcomes, complete separation, and near separation (with two endpoint labels flipped relative to the separating rule). The test verifies that the proper Gaussian coefficient prior yields a finite posterior mode, the independently evaluated posterior score is at most (10^{-6}) in infinity norm, the order-five tensor Gauss-Hermite rule has the expected 25 finite nodes, and its normalized importance weights form a valid probability measure.
+
+This specifically guards the finite-sample cases that can destabilize unpenalized logistic MLEs. It does not assert that the posterior approximation is accurate in every extreme regime; it checks numerical existence, stationarity, and probability-measure integrity under the declared proper prior.
+
+Exact code/test head: `7bb91edb2c9d758b36e55c5b91a65be430a556ff`.
+
+- Focused quadratic-logit DGP workflow `43724564580`: Python 3.10, 3.11, and 3.12 all PASS.
+- Curvature density smoke-test workflow `43724564585`: Python 3.10, 3.11, and 3.12 all PASS.
+
+The full repository test workflow and the push-triggered seven-gamma engineering smoke are separate checks and are not implied by these focused passes. This regression changes no DGP, estimand, density metric, or scientific conclusion.
