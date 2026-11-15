@@ -299,9 +299,9 @@ def test_ledger_detects_cross_stream_seed_reuse_between_replicates(tmp_path):
     root = tmp_path / "history"
     root.mkdir()
     (root / "replicate_ledger.csv").write_text(
-        "gamma,replicate,population_seed,validation_seed\\n"
-        "-1,0,10,11\\n0,0,10,11\\n"
-        "-1,1,20,10\\n0,1,20,10\\n"
+        "gamma,replicate,population_seed,validation_seed\n"
+        "-1,0,10,11\n0,0,10,11\n"
+        "-1,1,20,10\n0,1,20,10\n"
     )
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
     assert report["status"] == "NOT_EVALUABLE"
