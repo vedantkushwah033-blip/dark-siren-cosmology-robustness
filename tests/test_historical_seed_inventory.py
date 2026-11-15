@@ -253,8 +253,8 @@ def test_inventory_ignores_across_seeds_summary_metrics(tmp_path):
     root.mkdir()
     (root / "config.json").write_text(json.dumps({"population_seed": 3000}))
     (root / "summary.csv").write_text(
-        "mean_pit_mean_across_seeds,mean_coverage_across_seeds\\n"
-        "0.5138380959669132,0.681\\n"
+        "mean_pit_mean_across_seeds,mean_coverage_across_seeds\n"
+        "0.5138380959669132,0.681\n"
     )
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
     assert report["status"] == "PASS"
@@ -325,8 +325,8 @@ def test_inventory_extracts_plural_seed_stream_arrays_from_json_csv_and_npz(tmp_
         "seed_start": 5,
     }))
     (root / "ledger.csv").write_text(
-        "replicate,population_seeds,bootstrap_seeds\\n"
-        "0,50,60\\n1,70,80\\n"
+        "replicate,population_seeds,bootstrap_seeds\n"
+        "0,50,60\n1,70,80\n"
     )
     np.savez(
         root / "streams.npz",
@@ -412,10 +412,10 @@ def test_ledger_diagnostic_separates_distinct_experiment_and_floor_strata(tmp_pa
     root = tmp_path / "history"
     root.mkdir()
     (root / "planned_cells.csv").write_text(
-        "experiment,catalogue_floor,replicate,n_validation,analysis_seed,validation_seed\\n"
-        "A,0.0,0,100,100,101\\nA,0.0,0,300,100,101\\n"
-        "A,0.0,1,100,200,201\\nA,0.0,1,300,200,201\\n"
-        "A,0.1,0,100,300,301\\nA,0.1,1,100,400,401\\n"
+        "experiment,catalogue_floor,replicate,n_validation,analysis_seed,validation_seed\n"
+        "A,0.0,0,100,100,101\nA,0.0,0,300,100,101\n"
+        "A,0.0,1,100,200,201\nA,0.0,1,300,200,201\n"
+        "A,0.1,0,100,300,301\nA,0.1,1,100,400,401\n"
     )
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
     assert report["historical_seed_warnings"] == []
@@ -426,9 +426,9 @@ def test_ledger_diagnostic_flags_reuse_within_same_design_stratum(tmp_path):
     root = tmp_path / "history"
     root.mkdir()
     (root / "planned_cells.csv").write_text(
-        "experiment,catalogue_floor,replicate,n_validation,analysis_seed,validation_seed\\n"
-        "A,0.0,0,100,100,101\\nA,0.0,0,300,100,101\\n"
-        "A,0.0,1,100,100,201\\nA,0.0,1,300,100,201\\n"
+        "experiment,catalogue_floor,replicate,n_validation,analysis_seed,validation_seed\n"
+        "A,0.0,0,100,100,101\nA,0.0,0,300,100,101\n"
+        "A,0.0,1,100,100,201\nA,0.0,1,300,100,201\n"
     )
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
     assert any(
