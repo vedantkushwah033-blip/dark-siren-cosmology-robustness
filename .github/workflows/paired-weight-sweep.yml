@@ -2,10 +2,19 @@ name: Paired host-weight sensitivity sweep
 
 on:
   push:
-    branches: [main]
+    branches: [main, fix/known-host-wilson-edge-bounds]
     paths:
       - "scripts/run_paired_weight_sweep.py"
+      - "scripts/audit_paired_weight_sweep.py"
       - "tests/test_paired_weight_sweep.py"
+      - "tests/test_audit_paired_weight_sweep.py"
+      - ".github/workflows/paired-weight-sweep.yml"
+  pull_request:
+    paths:
+      - "scripts/run_paired_weight_sweep.py"
+      - "scripts/audit_paired_weight_sweep.py"
+      - "tests/test_paired_weight_sweep.py"
+      - "tests/test_audit_paired_weight_sweep.py"
       - ".github/workflows/paired-weight-sweep.yml"
   workflow_dispatch:
 
@@ -30,6 +39,7 @@ jobs:
           python scripts/run_paired_weight_sweep.py \
             --replicates 1000 \
             --seed 20261028 \
+            --bootstrap-resamples 4000 \
             --output-dir results/paired-weight-sweep
       - name: Validate output
         run: |
@@ -41,15 +51,27 @@ jobs:
               summaries = list(csv.DictReader(f))
           with (root / "per_run.csv").open(newline="") as f:
               rows = list(csv.DictReader(f))
-          if len(summaries) != 9 or len(rows) != 9000:
+          if len(summaries) != 18 or len(rows) != 9000:
               raise SystemExit(f"Unexpected output: {len(summaries)} cells, {len(rows)} paired observations")
           for row in summaries:
               for key in ("correct_rmse", "reversed_rmse", "mean_paired_abs_error_diff_reversed_minus_correct",
-                          "correct_coverage_68", "reversed_coverage_68"):
+                          "correct_coverage_68", "reversed_coverage_68",
+                          "paired_abs_error_diff_ci95_low", "paired_abs_error_diff_ci95_high",
+                          "coverage_68_diff_ci95_low", "coverage_68_diff_ci95_high",
+                          "rmse_diff_ci95_low", "rmse_diff_ci95_high"):
                   if not math.isfinite(float(row[key])):
                       raise SystemExit(f"Non-finite metric {key}")
-          print("PASS: 9 design cells × 1,000 paired observations = 9,000 observations and 18,000 posterior fits.")
+              for lo, hi in (("paired_abs_error_diff_ci95_low", "paired_abs_error_diff_ci95_high"),
+                             ("coverage_68_diff_ci95_low", "coverage_68_diff_ci95_high"),
+                             ("rmse_diff_ci95_low", "rmse_diff_ci95_high")):
+                  if float(row[lo]) > float(row[hi]):
+                      raise SystemExit(f"Invalid confidence interval: {lo}, {hi}")
+              if int(row["bootstrap_resamples"]) != 4000:
+                  raise SystemExit("Unexpected bootstrap resample count")
+          print("PASS: 9 redshift/noise cells × 1,000 shared observations; 18 prior-support cells; 36,000 posterior fits; 4,000 paired bootstrap resamples per metric and cell.")
           PY
+      - name: Independently audit raw records, summaries, bootstrap intervals, and hashes
+        run: python scripts/audit_paired_weight_sweep.py results/paired-weight-sweep
       - name: Upload paired sweep results
         uses: actions/upload-artifact@v4
         with:

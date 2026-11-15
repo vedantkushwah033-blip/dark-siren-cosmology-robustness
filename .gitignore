@@ -1,0 +1,3 @@
+# Large public CHIMERA benchmark inputs and derived products stay outside Git.
+external_data/chimera_v2/
+*.part

@@ -1,5 +1,10 @@
 # Validation status — 2026-10-24
 
+> **Status update — 2026-10-25:** The historical status below predates several completed experiments and should be read as a dated audit trail, not the current project state. The known-host calibration surface has since completed and passed its independent audit: [workflow run 40167238554](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40167238554), with results in [known_host_calibration_run_20261025.md](known_host_calibration_run_20261025.md). The latest full test suite and numerical-diagnostics matrix passed on PR commit `7013479a86842e601ccb00f4465160b31f9a05ec): [suite run 40166190929](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40166190929), [diagnostics run 40166191053](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/40166191053). Later README/protocol-only updates are undergoing their own CI run; see the current branch checks before treating that newest revision as verified. All results remain synthetic and scoped to their documented assumptions.
+
+---
+
+
 ## Scope
 
 This note records the verified state of the synthetic dark-siren robustness repository. It distinguishes software test status, numerical checks, and scientific validation. The project is a controlled synthetic-model study; it is not an LVK observational measurement.

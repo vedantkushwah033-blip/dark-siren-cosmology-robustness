@@ -1,10 +1,20 @@
 name: Host-weight and omitted-host misspecification audit
 
 on:
+  # Run the reproducible stress experiment on feature branches as well as main.
+  # This ensures pull-request revisions receive a full artifact-backed audit,
+  # rather than only the small regression-test fixture.
   push:
-    branches: [main]
+    branches: ["**"]
     paths:
       - "scripts/run_host_misspecification_audit.py"
+      - "scripts/audit_host_misspecification_audit.py"
+      - "tests/test_host_misspecification_audit.py"
+      - ".github/workflows/host-misspecification-audit.yml"
+  pull_request:
+    paths:
+      - "scripts/run_host_misspecification_audit.py"
+      - "scripts/audit_host_misspecification_audit.py"
       - "tests/test_host_misspecification_audit.py"
       - ".github/workflows/host-misspecification-audit.yml"
   workflow_dispatch:
@@ -44,13 +54,26 @@ jobs:
           if len(summary) != 4 or len(rows) != 4000:
               raise SystemExit(f"Unexpected output sizes: {len(summary)} summaries, {len(rows)} rows")
           for row in summary:
-              for key in ("mean_median_error", "rmse_median", "coverage_68", "coverage_95", "mean_width_68", "mean_width_95"):
+              for key in ("mean_median_error", "rmse_median", "coverage_68", "coverage_95",
+                          "coverage_68_wilson_95_low", "coverage_68_wilson_95_high",
+                          "coverage_95_wilson_95_low", "coverage_95_wilson_95_high",
+                          "mean_width_68", "mean_width_95"):
                   if not math.isfinite(float(row[key])):
                       raise SystemExit(f"Non-finite metric: {key}")
-              if not 0 <= float(row["coverage_68"]) <= 1 or not 0 <= float(row["coverage_95"]) <= 1:
-                  raise SystemExit("Coverage outside [0,1]")
+              for coverage, low, high in (
+                  ("coverage_68", "coverage_68_wilson_95_low", "coverage_68_wilson_95_high"),
+                  ("coverage_95", "coverage_95_wilson_95_low", "coverage_95_wilson_95_high"),
+              ):
+                  if not 0 <= float(row[low]) <= float(row[coverage]) <= float(row[high]) <= 1:
+                      raise SystemExit(f"Invalid coverage/Wilson interval ordering for {coverage}")
           print("PASS: 4 scenarios × 1,000 replicates = 4,000 posterior fits.")
           PY
+      - name: Independently reconstruct seeded data, posterior fits, and summaries
+        run: |
+          python scripts/audit_host_misspecification_audit.py \
+            --replicates 1000 \
+            --seed 20261027 \
+            --input-dir results/host-misspecification-audit
       - name: Upload stress-test results
         uses: actions/upload-artifact@v4
         with:

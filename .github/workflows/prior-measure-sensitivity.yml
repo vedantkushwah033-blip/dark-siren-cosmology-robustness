@@ -1,0 +1,50 @@
+name: Prior-measure sensitivity experiment
+
+on:
+  push:
+    branches: [main, fix/known-host-wilson-edge-bounds]
+    paths:
+      - "scripts/run_prior_measure_sensitivity.py"
+      - "scripts/audit_prior_measure_sensitivity.py"
+      - "tests/test_prior_measure_sensitivity.py"
+      - ".github/workflows/prior-measure-sensitivity.yml"
+  pull_request:
+    paths:
+      - "scripts/run_prior_measure_sensitivity.py"
+      - "scripts/audit_prior_measure_sensitivity.py"
+      - "tests/test_prior_measure_sensitivity.py"
+      - ".github/workflows/prior-measure-sensitivity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prior-measure-sensitivity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run prior-measure sensitivity experiment
+        run: |
+          python scripts/run_prior_measure_sensitivity.py \
+            --replicates 1000 \
+            --seed 20261029 \
+            --bootstrap-resamples 4000 \
+            --output-dir results/prior-measure-sensitivity
+      - name: Independently audit raw component masses and paired summaries
+        run: python scripts/audit_prior_measure_sensitivity.py results/prior-measure-sensitivity
+      - name: Upload audited prior-measure results
+        uses: actions/upload-artifact@v4
+        with:
+          name: prior-measure-sensitivity-results
+          path: results/prior-measure-sensitivity/
+          if-no-files-found: error
+          retention-days: 90

@@ -26,7 +26,11 @@ def wilson(successes: int, n: int, z: float = 1.959963984540054) -> tuple[float,
     denominator = 1 + z2 / n
     center = (p + z2 / (2 * n)) / denominator
     half = z * math.sqrt(p * (1 - p) / n + z2 / (4 * n * n)) / denominator
-    return max(0.0, center - half), min(1.0, center + half)
+    # Clamp mathematical endpoint cases explicitly; center-half can be a tiny
+    # positive float at zero successes due to cancellation.
+    lower = 0.0 if successes == 0 else center - half
+    upper = 1.0 if successes == n else center + half
+    return max(0.0, lower), min(1.0, upper)
 
 
 def close(actual: float, expected: float, label: str, tol: float = 1e-8) -> None:
@@ -289,8 +293,10 @@ def main() -> None:
             raise ValueError(f"duplicate raw replicate key: {key}")
         if not 0 <= key[2] < args.replicates:
             raise ValueError(f"replicate index outside requested range: {key}")
-        if row_seed != base_seed + key[2]:
-            raise ValueError(f"seed does not match replicate index for {key}")
+        truth_index = expected_truths.index(key[0]) if key[0] in expected_truths else -1
+        expected_seed = base_seed + truth_index * args.replicates + key[2]
+        if row_seed != expected_seed:
+            raise ValueError(f"seed does not match truth-stratified replicate index for {key}")
         seen.add(key)
         grouped[key[:2]].append(row)
         paired[(key[0], key[2])].append(row)

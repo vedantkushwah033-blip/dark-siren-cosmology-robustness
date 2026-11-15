@@ -1,0 +1,87 @@
+name: Paired host-misspecification experiment
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "scripts/run_paired_host_misspecification.py"
+      - "scripts/audit_paired_host_misspecification.py"
+      - "tests/test_paired_host_misspecification.py"
+      - "docs/paired_host_misspecification_protocol.md"
+      - ".github/workflows/paired-host-misspecification.yml"
+  pull_request:
+    paths:
+      - "scripts/run_paired_host_misspecification.py"
+      - "scripts/audit_paired_host_misspecification.py"
+      - "tests/test_paired_host_misspecification.py"
+      - "docs/paired_host_misspecification_protocol.md"
+      - ".github/workflows/paired-host-misspecification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paired-host-misspecification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package and development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run focused regression and adversarial audit tests
+        run: python -m pytest tests/test_paired_host_misspecification.py -q
+      - name: Run paired experiment
+        run: |
+          python scripts/run_paired_host_misspecification.py \
+            --replicates 1000 \
+            --seed 20261027 \
+            --bootstrap-resamples 4000 \
+            --output-dir results/paired-host-misspecification
+      - name: Validate row counts, paired observations, and finite outputs
+        run: |
+          python - <<'PY'
+          import csv, math
+          from pathlib import Path
+          root = Path("results/paired-host-misspecification")
+          def read(name):
+              with (root / name).open(newline="", encoding="utf-8") as f:
+                  return list(csv.DictReader(f))
+          raw, summary, contrasts = read("per_run.csv"), read("summary.csv"), read("paired_contrasts.csv")
+          if len(raw) != 4000 or len(summary) != 4 or len(contrasts) != 12:
+              raise SystemExit(f"Unexpected row counts: raw={len(raw)}, summary={len(summary)}, contrasts={len(contrasts)}")
+          arms = ("correct_weights", "reversed_weights", "hidden_host_ignored", "hidden_host_modelled")
+          for i in range(1000):
+              block = raw[4*i:4*i+4]
+              if tuple(r["inference_arm"] for r in block) != arms:
+                  raise SystemExit(f"Incorrect arm order at replicate {i}")
+              if len({r["observed_distance_mpc"] for r in block}) != 1:
+                  raise SystemExit(f"Unpaired observation at replicate {i}")
+          for row in summary + contrasts:
+              for key, value in row.items():
+                  if key not in ("inference_arm", "contrast", "left_arm", "right_arm", "metric"):
+                      if not math.isfinite(float(value)):
+                          raise SystemExit(f"Non-finite output {key}={value}")
+              if "ci95_low" in row and float(row["ci95_low"]) > float(row["ci95_high"]):
+                  raise SystemExit("Reversed paired-bootstrap interval")
+          print("PASS: 1,000 identical observations per arm, 4,000 posterior fits, 12 paired contrast rows.")
+          PY
+      - name: Independently reconstruct data, posterior fits, summaries, and paired bootstrap intervals
+        run: |
+          python scripts/audit_paired_host_misspecification.py \
+            --replicates 1000 \
+            --seed 20261027 \
+            --bootstrap-resamples 4000 \
+            --input-dir results/paired-host-misspecification
+      - name: Upload paired experiment outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: paired-host-misspecification-results
+          path: results/paired-host-misspecification/
+          if-no-files-found: error
+          retention-days: 90
