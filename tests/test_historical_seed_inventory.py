@@ -322,6 +322,7 @@ def test_inventory_extracts_plural_seed_stream_arrays_from_json_csv_and_npz(tmp_
         "population_seeds": [10, 20],
         "bootstrap_seeds": [30, 40],
         "seed_stride": 999,
+        "seed_start": 5,
     }))
     (root / "ledger.csv").write_text(
         "replicate,population_seeds,bootstrap_seeds\\n"
@@ -335,7 +336,7 @@ def test_inventory_extracts_plural_seed_stream_arrays_from_json_csv_and_npz(tmp_
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
     assert report["status"] == "PASS"
     assert report["historical_seed_values"] == [
-        10, 20, 30, 40, 50, 60, 70, 80, 90, 100
+        5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
     ]
 
 
@@ -360,3 +361,47 @@ def test_schedule_accepts_additional_plural_random_stream(tmp_path):
     assert report["status"] == "NOT_EVALUABLE"
     assert report["training_pairs"][0]["bootstrap_seeds[0]"] == 12
     assert report["training_pairs"][0]["bootstrap_seeds[1]"] == 13
+
+
+def test_ledger_diagnostic_generalizes_to_analysis_and_validation_stream_names(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "replicate_ledger.csv").write_text(
+        "gamma,replicate,analysis_seed,validation_seed\n"
+        "-1,0,100,101\n0,0,100,101\n"
+        "-1,1,200,201\n0,1,200,201\n"
+    )
+    report = module.audit([root], _schedule(tmp_path / "schedule.json"))
+    assert report["status"] == "PASS"
+    assert report["historical_seed_warnings"] == []
+
+
+def test_ledger_diagnostic_flags_analysis_seed_reuse_across_replicates(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "replicate_ledger.csv").write_text(
+        "gamma,replicate,analysis_seed,validation_seed\n"
+        "-1,0,100,101\n0,0,100,101\n"
+        "-1,1,100,201\n0,1,100,201\n"
+    )
+    report = module.audit([root], _schedule(tmp_path / "schedule.json"))
+    warnings = report["historical_seed_warnings"]
+    assert any(
+        item["kind"] == "analysis_seed_reused_across_replicates"
+        and "seed=100" in item["detail"]
+        for item in warnings
+    )
+
+
+def test_inventory_extracts_seed_start_as_declared_base_seed(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "config.json").write_text(json.dumps({
+        "seed_start": 20261108,
+        "seed_stride": 10,
+    }))
+    report = module.audit([root], _schedule(tmp_path / "schedule.json"))
+    assert report["historical_seed_values"] == [20261108]
