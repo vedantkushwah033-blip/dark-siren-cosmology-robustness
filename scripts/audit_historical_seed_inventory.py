@@ -178,8 +178,22 @@ def inventory_file(path: Path, root: Path) -> dict[str, Any]:
     suffix = path.suffix.lower()
     relative = path.relative_to(root).as_posix()
     digest = sha256_file(path)
+    parse_warnings: list[dict[str, str]] = []
     if suffix == ".json":
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        raw_text = path.read_text(encoding="utf-8")
+        try:
+            payload = json.loads(raw_text)
+        except json.JSONDecodeError:
+            # Repair only one known terminal serialization defect from older artifacts.
+            stripped = raw_text.rstrip()
+            if not stripped.endswith("\\n"):
+                raise
+            payload = json.loads(stripped[:-2])
+            parse_warnings.append({
+                "path": relative,
+                "kind": "terminal_literal_backslash_n_removed",
+                "detail": "Removed one literal backslash-n suffix after a valid JSON document; original bytes remain represented by sha256.",
+            })
         seeds = _walk_json(payload, relative)
     elif suffix == ".csv":
         seeds = []
@@ -210,7 +224,7 @@ def inventory_file(path: Path, root: Path) -> dict[str, Any]:
     else:
         raise ValueError(f"{relative}: unsupported artifact format {suffix}")
     ledger_warnings = _ledger_seed_reuse_warnings(path, relative) if suffix == ".csv" else []
-    return {"path": relative, "bytes": path.stat().st_size, "sha256": digest, "seeds": seeds, "ledger_warnings": ledger_warnings}
+    return {"path": relative, "bytes": path.stat().st_size, "sha256": digest, "seeds": seeds, "ledger_warnings": ledger_warnings, "parse_warnings": parse_warnings}
 
 
 def inventory_roots(roots: list[Path]) -> tuple[list[dict[str, Any]], list[str]]:
@@ -282,8 +296,10 @@ def audit(roots: list[Path], schedule_path: Path) -> dict[str, Any]:
     records, errors = inventory_roots(roots)
     historical: dict[int, list[dict[str, str]]] = {}
     ledger_warnings: list[dict[str, str]] = []
+    inventory_warnings: list[dict[str, str]] = []
     for record in records:
         ledger_warnings.extend(record.get("ledger_warnings", []))
+        inventory_warnings.extend(record.get("parse_warnings", []))
         for item in record["seeds"]:
             historical.setdefault(item["seed"], []).append({
                 "root": record["root"], "path": record["path"], "field": item["field"]
@@ -312,6 +328,7 @@ def audit(roots: list[Path], schedule_path: Path) -> dict[str, Any]:
         "holdout_historical_overlap": overlap_holdout,
         "inventory_errors": errors,
         "historical_seed_warnings": ledger_warnings,
+        "inventory_warnings": inventory_warnings,
         "schedule_sha256": sha256_file(schedule_path),
     }
 
