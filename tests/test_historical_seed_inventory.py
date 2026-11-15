@@ -145,3 +145,17 @@ def test_seed_stride_parameter_is_not_misclassified_as_a_random_seed(tmp_path):
     }))
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
     assert report["historical_seed_values"] == [500, 501, 502]
+
+
+def test_inventory_ignores_descriptive_seed_schedule_metadata_but_keeps_integer_seeds(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "config.json").write_text(json.dumps({
+        "master_seed": 3000,
+        "seed_stride": 10,
+        "seed_schedule": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
+    }))
+    report = module.audit([root], _schedule(tmp_path / "schedule.json"))
+    assert report["status"] == "PASS"
+    assert report["historical_seed_values"] == [10, 3000]
