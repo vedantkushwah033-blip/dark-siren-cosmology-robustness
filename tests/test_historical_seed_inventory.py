@@ -447,7 +447,7 @@ def test_inventory_repairs_only_known_terminal_literal_backslash_n_json_suffix(t
     module = _load()
     root = tmp_path / "history"
     root.mkdir()
-    (root / "legacy.json").write_text(json.dumps({"population_seed": 5000}) + "\\\\n")
+    (root / "legacy.json").write_text(json.dumps({"population_seed": 5000}) + "\\n")
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
     assert report["status"] == "PASS"
     assert report["historical_seed_values"] == [5000]
