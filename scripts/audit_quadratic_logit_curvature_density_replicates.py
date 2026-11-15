@@ -19,14 +19,14 @@ def _load_child_auditor():
  spec.loader.exec_module(module)
  return module.audit
 
-def _compare_aggregate(root,filename,frames,keys,values):
+def _compare_aggregate(root,filename,frames,keys,values,empty_columns=None):
  expected=pd.concat(frames,ignore_index=True) if frames else pd.DataFrame(columns=keys+values)
  actual=pd.read_csv(root/filename)
  if len(actual)!=len(expected): raise AssertionError(f"{filename}: aggregate row count mismatch")
  if expected.empty:
-  required=set(keys+values)
-  missing=sorted(required-set(actual.columns))
-  if missing: raise AssertionError(f"{filename}: empty aggregate schema missing required columns: {missing}")
+  required_columns=list(empty_columns) if empty_columns is not None else keys+values
+  if list(actual.columns)!=required_columns:
+   raise AssertionError(f"{filename}: empty aggregate column schema mismatch")
   return 0
  if list(actual.columns)!=list(expected.columns):
   raise AssertionError(f"{filename}: aggregate column schema mismatch")
@@ -190,12 +190,15 @@ def audit(root:Path):
    frame.insert(0,"replicate",rid); frame.insert(1,"gamma",gamma); frames.append(frame)
  metric_rows=_compare_aggregate(root,"density_metrics_all_cells.csv",metric_frames,
   ["replicate","gamma","validation_size","absolute_bandwidth_sd","arm","node"],
-  ["iae","ise","boundary_iae","status","kish_ess"])
+  ["iae","ise","boundary_iae","status","kish_ess"],
+  ["replicate","gamma","validation_size","absolute_bandwidth_sd","arm","node","iae","ise","boundary_iae","status","kish_ess"])
  diag_rows=_compare_aggregate(root,"weight_diagnostics_all_cells.csv",diagnostic_frames,
   ["replicate","gamma","validation_size","arm","node"],
-  ["kish_ess","kish_ess_fraction","entropy_ess","maximum_normalized_weight","top_1_percent_mass","top_5_percent_mass"])
+  ["kish_ess","kish_ess_fraction","entropy_ess","maximum_normalized_weight","top_1_percent_mass","top_5_percent_mass"],
+  ["replicate","gamma","validation_size","arm","node","kish_ess","kish_ess_fraction","entropy_ess","maximum_normalized_weight","top_1_percent_mass","top_5_percent_mass"])
  scott_rows=_compare_aggregate(root,"scott_widths_all_cells.csv",scott_frames,
-  ["replicate","gamma","validation_size","arm","node"],["realized_bandwidth_redshift"])
+  ["replicate","gamma","validation_size","arm","node"],["realized_bandwidth_redshift"],
+  ["replicate","gamma","validation_size","arm","node","realized_bandwidth_redshift"])
 
  # Reconstruct paired gamma-vs-zero and within-gamma estimator contrasts from
  # the independently audited child metric records, not the saved contrast CSV.
