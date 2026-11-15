@@ -131,3 +131,17 @@ def test_inventory_does_not_pass_when_sources_contain_no_seed_fields(tmp_path):
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
     assert report["status"] == "NOT_EVALUABLE"
     assert report["historical_seed_count"] == 0
+
+
+def test_seed_stride_parameter_is_not_misclassified_as_a_random_seed(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "config.json").write_text(json.dumps({
+        "master_seed": 500,
+        "seed_stride": 10,
+        "population_seed": 501,
+        "validation_seed": 502,
+    }))
+    report = module.audit([root], _schedule(tmp_path / "schedule.json"))
+    assert report["historical_seed_values"] == [500, 501, 502]
