@@ -16,6 +16,15 @@ Status: **PARTIAL / NOT COMPLETE**. This register records known density-pilot wo
 | 43619577181 | 14122914778 | numerical-diagnostics-py3.10 | 12,280,279 | f73e22abd9c6e88218052dd47a6dcb514e0f40454ebaab95a0a018c2c69f0e6c | Available; extraction pending |
 | 43635486478 | — | Focused curvature CI run | — | — | No artifacts returned; failed job logs and checked-out commit are separate evidence |
 
+| 43634540727 | 14131475849 | absolute-width-expanded-grid-floor-010-414175baf0b3f0af2421517804e1521d1666dfbc | 100,222,894 | 046e74624576cbfb9c438da3fb59f8acb3528868196632901a490251116d7566 | Downloaded; SHA-256 verified; 248 JSON/CSV files scanned |
+| 43632142013 | 14130035280 | absolute-width-density-pilot-no-floor-e26b47607ce0c80717787c20a0ed527ad89a8c51 | 63,645,156 | 995df64185bab4e05f579884eceac3890dd3d523a419c0af15bdd4d487ac272f | Downloaded; SHA-256 verified; 249 JSON/CSV files scanned |
+| 43573059988 | 14104914934 | absolute-width-density-pilot-no-floor-4f125de03c01eccbd4cb81e069e8af2dfa49b4db | 63,613,195 | e0a59eb546cf0db2a33eecc69e4231d09a3dd82e5b5d53b22aef5365727f8ce9 | Downloaded; SHA-256 verified; 248 JSON/CSV files scanned |
+| 43574613209 | 14106387924 | absolute-width-expanded-grid-no-floor-836ecff9060d83c18bc0a9c18b0ed86f54fcc79e | 97,780,326 | e381296ce6a6cd920f05b7cc5a73544ac1a3b42fea149c94ff774631f57af604 | Downloaded; SHA-256 verified; 248 JSON/CSV files scanned |
+| 43634886771 | 14131016569 | quadratic-logit-curvature-density-pilot | 89,906,048 | a3bd60ef6f31e4b9880d20af6968ab8e7f6d7a4b64da28122c5b4995f54e06cc | Downloaded; SHA-256 verified; 260 JSON/CSV files scanned |
+| 43634885089 | 14130517646 | quadratic-logit-curvature-density-pilot | 89,904,154 | ccb742912d993c52b0c8b9bc11ba0fcf9da13ba4e9920e8737f9b4c1ed393464 | Downloaded; SHA-256 verified; 260 JSON/CSV files scanned |
+| 43633559278 | 14130158861 | quadratic-logit-curvature-density-pilot | 89,278,234 | f24599b56d3ca5c165dd41cd196a08e0925f371a267fa8a0b9ff5927a44bd13a | Downloaded; SHA-256 verified; 258 JSON/CSV files scanned; seed-reuse warning |
+| 43633572255 | 14130121464 | quadratic-logit-curvature-density-pilot | 89,279,520 | 6e259b7b999306c606d0458fcfa0d6ecab8c2941106d311a7caabd3d1813b4bd | Downloaded; SHA-256 verified; 258 JSON/CSV files scanned; seed-reuse warning |
+
 ## Partial artifact inspection
 
 Artifact 14123904013 was downloaded and its ZIP directory listing inspected. It contains a parent-density pilot configuration, a selection configuration, absolute-bandwidth smoke inputs, and a two-replicate smoke payload. The seed values observed in its JSON/CSV configuration and ledger files include:
@@ -52,3 +61,16 @@ The six ZIP artifacts from runs 43619594762 and 43617052462 have now been downlo
 - Duplicate references across floor arms, ledgers, and child configurations are provenance repetition, not extra independent seeds.
 
 This establishes an internally consistent inventory for these six artifact archives only. It does **not** establish global historical completeness: the smoke/engineering artifact, numerical-diagnostics artifacts, curvature workflow artifacts, earlier smoke runs, and any other relevant historical Actions runs remain to be reviewed. The candidate schedule remains non-authorized until the source register is complete and every relevant artifact is accounted for.
+
+
+## Earlier curvature pilot seed-reuse finding
+
+Two early successful engineering-pilot artifacts (runs 43633559278 and 43633572255) were downloaded and checksum-verified. Both contain the same three population seeds across gamma strata, but the **same validation seed, 2026111529, is reused for all three replicate indices**. The population seeds vary by replicate (2026111517, 2026211517, 2026311517). This means those three rows are not independent with respect to validation-frame randomness; they must not be treated as three fully independent repeated-sampling replicates for uncertainty or calibration claims.
+
+The artifact configuration labels these runs as engineering pilots, not confirmatory analyses. Their repeated validation seed is recorded as a historical design limitation, not silently repaired after the fact. Later curvature pilot artifacts (runs 43634885089 and 43634886771) use distinct population/validation seed pairs across the three replicate indices: 2026111500/2026111501, 2026111510/2026111511, and 2026111520/2026111521. The later artifacts therefore correct this particular seed-pair reuse pattern, but remain small engineering pilots rather than confirmatory evidence.
+
+The additional verified absolute-width artifacts listed above reproduce the already documented 40-value set from 20261215/20261216 through 20261405/20261406. They are repeated executions/expanded-grid companions, not independent seed inventories.
+
+## Current candidate schedule comparison
+
+The six verified absolute-width artifacts and the four verified curvature artifacts inspected in this update show no exact integer-seed overlap with the candidate training or holdout schedule. This is a **partial-scope disjointness result only**. Other relevant Actions artifacts and earlier workflows remain unresolved; no training or holdout execution is authorized.
