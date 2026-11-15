@@ -574,3 +574,16 @@ The first CI attempt after adding this validator exposed two stale CLI test fixt
 
 Later changes to this branch have been documentation and manifest updates only; the source-register validator and its tests have not changed since the passing code/test commit. The general repository `tests` workflow was repeatedly cancelled by subsequent pushes and is not claimed as a full-suite pass.
 
+
+
+## Persisted manifest count reconciliation — 2026-11-15
+
+A programmatic cross-check of the current JSON manifest's persisted artifact records found exact agreement between records and declared coverage counts:
+
+- 372 records; 197 distinct run IDs;
+- 205 downloaded/SHA-256-verified artifacts; 167 metadata-only;
+- 164 payload-verified, 148 source-schedule-verified, and 60 unresolved records;
+- branch-group totals also reconcile exactly to those same counts.
+
+This is a **manifest bookkeeping PASS only**. It does not resolve the 210 known unlisted successful test artifacts, the 318 non-success test-workflow run artifact lists, the 167 metadata-only payloads, or the 60 persisted unresolved records. The source register remains PARTIAL and no global seed-disjointness certification is issued.
+
