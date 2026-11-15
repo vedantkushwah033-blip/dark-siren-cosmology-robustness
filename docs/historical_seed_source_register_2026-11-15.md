@@ -283,3 +283,36 @@ Subsequent branch commits through `5e23c3cd605860094c5f784fe33fe7bcdc525898` upd
 The fail-closed CLI gate and its regression test were validated by workflow run `43693143281` on code/test commit `e39cda7d199d83e62edfed92926284095283dcbe`. All three Python jobs (3.10, 3.11, 3.12) passed. The historical seed inventory test module reported **29 passed** in each job; the existing curvature smoke/pilot test groups and CLI checks also passed. The new CLI regression confirms that a mechanically disjoint partial inventory is returned as `NOT_EVALUABLE` when the source register is incomplete, while exposing the separate `mechanical_status=PASS` result.
 
 Subsequent commits through `424e52c4a5a05d163815d14d382f437604e1ed1d` update only the artifact manifest, README, and documentation. The latest source register remains explicitly incomplete; the 105 metadata-only artifacts and unresolved failed/cancelled runs continue to block training/holdout authorization.
+
+
+## Partial audit of the posterior-grid-integrity branch — 2026-11-15
+
+The previously unenumerated `research/audit-posterior-grid-integrity` branch contains 500 observed Actions runs. I began its artifact inventory and completed three selected host-misspecification workflows. Their 39 successful run artifacts (13 runs per workflow) are now recorded in the machine-readable manifest.
+
+| Workflow | Successful runs inspected | Artifacts | Data seed | Additional seed | Replicate design |
+|---|---:|---:|---:|---:|---|
+| `host-misspecification-audit.yml` | 13 | 13 | 20261027 | — | 1,000 sequential replicates in each of four scenarios |
+| `paired-host-misspecification.yml` | 13 | 13 | 20261027 | bootstrap 20261028 | 1,000 sequential replicates, paired across inference arms |
+| `host-misspecification-sensitivity-surface.yml` | 13 | 13 | 20261029 | bootstrap 20261030 | 200 sequential replicates per factorial cell, 108 cells, paired across four arms |
+
+For each workflow, I checked the workflow and runner source blobs at all 12 distinct run-head commits represented in the 13 runs (one commit was used by two separate run attempts). Each workflow file and runner file had the same blob SHA across all inspected run heads:
+
+- Host misspecification audit: workflow `bf3cb7a09a9a4b73ee893b43f2733f3824921720`; runner `75d34a0c084d8499726024b475270fc61ba97cf4`.
+- Paired host misspecification: workflow `d406eaedef90376c87f2afc50fbb60bf7820ec31`; runner `303f635684ca139dd8566e0502e38e5df687bc93`.
+- Host misspecification sensitivity surface: workflow `4607b60d992de3c9b3b5d970fc465d9c84ccafd3`; runner `7c04ba4d9732f7c82f40c3b4094ae55f4e94bafd`.
+
+The workflow files pass the fixed data seeds and replicate counts explicitly. The runner source establishes the additional bootstrap streams as `seed + 1`. These source proofs are tied to each artifact's exact `head_sha`; they do not infer seeds from artifact names.
+
+### Payload checks and repeated-run interpretation
+
+- All 13 host-audit ZIPs and all 13 paired-host ZIPs were downloaded and their SHA-256 digests matched GitHub metadata.
+- One representative sensitivity-surface ZIP (artifact 12910033585) was downloaded and checksum-verified; its 86,400 per-run rows, 432 summary rows, and 1,296 paired-contrast rows match the workflow's declared design. Its paired-contrast file records bootstrap seed 20261030. The other 12 surface ZIPs remain metadata-only but have exact workflow/runner seed proofs.
+- The 26 host-audit and paired-host archives contain repeated executions of the same seeded synthetic inputs, not 26 independent simulation replicates. Within each workflow, all 13 artifacts fall into two CSV numerical-output variants. Comparing the variants shows identical generated inputs; only posterior interval/summary floating-point values differ, with maximum absolute differences approximately (5.7\times10^{-14}) (host audit) and (4.3\times10^{-14}) (paired host). These are repeated workflow executions with tiny numerical variation, not independent evidence.
+- The paired-host CSVs repeat the bootstrap seed 20261028 across contrast rows; the surface CSV repeats 20261030. The source-proven data seeds 20261027 and 20261029 are not exposed in the per-run CSVs.
+- The 39 records have been added as `SEED_SCHEDULE_SOURCE_VERIFIED`. Twenty-seven ZIPs are also downloaded and SHA-256 verified; 12 surface artifacts remain metadata-only. This raises the manifest to 308 artifact records across 147 enumerated successful run IDs. The 191 downloaded archives contribute 18,732 supported JSON/CSV/NPZ members and 3,294,921 seed-field occurrences. The exact distinct-seed union remains unreconciled; 595 is still only the prior verified 157-archive union.
+
+### Remaining branch scope
+
+This is **not** a complete audit of the 500-run branch. Other workflows on it remain unresolved, including host-prior-support factorial, hidden-host assumption sensitivity, host-density validation, H0-dependent-noise SBC, selection-misspecification and catalogue-selection workflows. Failed/cancelled runs and possible partial artifacts are also not enumerated. I have identified successful artifact metadata for the host-prior-support and hidden-host workflows, but have not yet verified their exact runner seed schedules or included them as source-proven records. The branch remains marked PARTIAL in the manifest, and the overall source register remains NOT COMPLETE.
+
+No training or holdout run is authorized.
