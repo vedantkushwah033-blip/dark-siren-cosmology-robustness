@@ -5,8 +5,8 @@
   "coverage": {
     "branch": "research/absolute-width-distribution-pilot-20261114",
     "successful_runs_enumerated": 32,
-    "artifacts_listed": 345,
-    "artifacts_downloaded_sha256_verified": 196,
+    "artifacts_listed": 354,
+    "artifacts_downloaded_sha256_verified": 197,
     "artifact_sources_complete": false,
     "source_branches": [
       "research/absolute-width-distribution-pilot-20261114",
@@ -29,10 +29,10 @@
     ],
     "other_selected_workflow_artifacts_enumerated": true,
     "run_metadata_complete": true,
-    "unique_run_ids": 180,
+    "unique_run_ids": 189,
     "downloaded_archive_scan_complete": true,
-    "downloaded_archive_count": 196,
-    "metadata_only_artifact_count": 149,
+    "downloaded_archive_count": 197,
+    "metadata_only_artifact_count": 157,
     "test_workflow_runs_enumerated": 19,
     "test_workflow_artifacts_metadata_only": 57,
     "estimated_inclusion_branch_successful_runs_enumerated": 43,
@@ -67,18 +67,18 @@
         "metadata_only": 57
       },
       "totals": {
-        "runs": 180,
-        "artifacts": 345,
-        "downloaded_sha256_verified": 196,
-        "metadata_only": 149,
-        "seed_schedule_source_verified": 124
+        "runs": 189,
+        "artifacts": 354,
+        "downloaded_sha256_verified": 197,
+        "metadata_only": 157,
+        "seed_schedule_source_verified": 133
       },
       "posterior_grid_integrity_selected_workflows": {
-        "runs": 72,
-        "artifacts": 76,
-        "downloaded_sha256_verified": 32,
-        "metadata_only": 44,
-        "seed_schedule_source_verified": 76,
+        "runs": 81,
+        "artifacts": 85,
+        "downloaded_sha256_verified": 33,
+        "metadata_only": 52,
+        "seed_schedule_source_verified": 85,
         "workflows": [
           ".github/workflows/host-misspecification-audit.yml",
           ".github/workflows/paired-host-misspecification.yml",
@@ -86,7 +86,8 @@
           ".github/workflows/host-prior-support-factorial.yml",
           ".github/workflows/hidden-host-assumption-sensitivity.yml",
           ".github/workflows/host-density-validation-campaign.yml",
-          ".github/workflows/h0-dependent-noise-sbc.yml"
+          ".github/workflows/h0-dependent-noise-sbc.yml",
+          ".github/workflows/selection-misspecification-pilot.yml"
         ]
       }
     },
@@ -95,9 +96,9 @@
         "branch": "research/audit-posterior-grid-integrity",
         "run_count_observed": 500,
         "artifact_enumeration": "PARTIAL_SELECTED_WORKFLOWS",
-        "reason": "Seven selected synthetic host-density/host-misspecification workflows are now enumerated: 75 successful run IDs and 84 artifacts, with exact workflow/runner seed proofs. The other workflows on this 500-run branch, failed/cancelled outcomes, and partial artifacts remain unresolved.",
-        "selected_successful_runs_enumerated": 72,
-        "selected_artifacts_added": 76,
+        "reason": "Eight selected synthetic host-density/host-misspecification workflows are now enumerated: 84 successful run IDs and 93 artifacts, with exact workflow/runner/module seed proofs. The other workflows on this 500-run branch, failed/cancelled outcomes, and partial artifacts remain unresolved.",
+        "selected_successful_runs_enumerated": 81,
+        "selected_artifacts_added": 85,
         "selected_workflows": [
           "host-misspecification-audit.yml",
           "paired-host-misspecification.yml",
@@ -105,7 +106,8 @@
           "host-prior-support-factorial.yml",
           "hidden-host-assumption-sensitivity.yml",
           "host-density-validation-campaign.yml",
-          "h0-dependent-noise-sbc.yml"
+          "h0-dependent-noise-sbc.yml",
+          "selection-misspecification-pilot.yml"
         ]
       },
       {
@@ -123,14 +125,98 @@
     ],
     "seed_inventory_status_counts": {
       "PAYLOAD_SHA256_VERIFIED": 164,
-      "SEED_SCHEDULE_SOURCE_VERIFIED": 124,
+      "SEED_SCHEDULE_SOURCE_VERIFIED": 133,
       "UNRESOLVED": 57
     },
     "seed_inventory_unresolved_artifact_count": 57,
-    "seed_inventory_schedule_source_verified_count": 124,
+    "seed_inventory_schedule_source_verified_count": 133,
     "seed_inventory_payload_verified_count": 164
   },
   "artifacts": [
+    {
+      "run_id": 40793766654,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12863136005,
+      "name": "selection-misspecification-stage-a",
+      "size_bytes": 1047430,
+      "sha256": "789cea32957af9cb8943c84c31aaf76f6ac8a335a7fe6ee95ba372bf6b4ec79e",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "18863fcda677ec5df755314b1044f73a344a1bb4",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/selection-misspecification-pilot.yml",
+      "run_created_at": "2026-10-29T00:23:43Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_runner_and_module_source",
+        "workflow_blob_sha": "4a056bb7179a232da45623f9f4c63e7159647bb1",
+        "runner_blob_sha": "dc4e808cda4fc69e167256765ec8d2065200bb6a",
+        "module_blob_sha": "cd75910f724661e12e0ceb9953d86ccc2707f42e",
+        "master_seed": 20261030,
+        "seed_stride": 1,
+        "replicates": 200,
+        "formula": "replicate_seed=20261030+replicate_id for replicate IDs 0..199; the same 200 seeds are reused across six inference arms. Earlier module blobs also use analysis_seed=20261030+104729 for a 10,000-resample paired bootstrap; the final module blob no longer contains that analysis-seed stream.",
+        "analysis_seed": null,
+        "source_commit": "18863fcda677ec5df755314b1044f73a344a1bb4"
+      }
+    },
+    {
+      "run_id": 40794632904,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12863521426,
+      "name": "selection-misspecification-stage-a",
+      "size_bytes": 1047429,
+      "sha256": "039ec9924cc0a2aa0663c62e22cc807999a23904eaf09c346fa569bc4b775f13",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "da0aad6e2ab864bca2ada7badddb27cb2053fd2c",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/selection-misspecification-pilot.yml",
+      "run_created_at": "2026-10-29T00:31:39Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_runner_and_module_source",
+        "workflow_blob_sha": "4a056bb7179a232da45623f9f4c63e7159647bb1",
+        "runner_blob_sha": "dc4e808cda4fc69e167256765ec8d2065200bb6a",
+        "module_blob_sha": "cd75910f724661e12e0ceb9953d86ccc2707f42e",
+        "master_seed": 20261030,
+        "seed_stride": 1,
+        "replicates": 200,
+        "formula": "replicate_seed=20261030+replicate_id for replicate IDs 0..199; the same 200 seeds are reused across six inference arms. Earlier module blobs also use analysis_seed=20261030+104729 for a 10,000-resample paired bootstrap; the final module blob no longer contains that analysis-seed stream.",
+        "analysis_seed": null,
+        "source_commit": "da0aad6e2ab864bca2ada7badddb27cb2053fd2c"
+      }
+    },
+    {
+      "run_id": 40794942515,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12862863214,
+      "name": "selection-misspecification-stage-a",
+      "size_bytes": 1047654,
+      "sha256": "a23e7452e05dc442a86162559125020187b63b39c304eb8ece0af98bb40ddc93",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "12ed103e83bc398df37db8eba8584a9b2b9bc9ad",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/selection-misspecification-pilot.yml",
+      "run_created_at": "2026-10-29T00:34:30Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_runner_and_module_source",
+        "workflow_blob_sha": "b9cd31177cb5d6e640bb98fc37904067e2e66ff0",
+        "runner_blob_sha": "dc4e808cda4fc69e167256765ec8d2065200bb6a",
+        "module_blob_sha": "9b5189fe46659cf4bd82be0c62bb705128d82fd7",
+        "master_seed": 20261030,
+        "seed_stride": 1,
+        "replicates": 200,
+        "formula": "replicate_seed=20261030+replicate_id for replicate IDs 0..199; the same 200 seeds are reused across six inference arms. Earlier module blobs also use analysis_seed=20261030+104729 for a 10,000-resample paired bootstrap; the final module blob no longer contains that analysis-seed stream.",
+        "analysis_seed": 20365759,
+        "source_commit": "12ed103e83bc398df37db8eba8584a9b2b9bc9ad"
+      }
+    },
     {
       "run_id": 40795743899,
       "artifact_id": 12863708515,
@@ -145,6 +231,34 @@
       "run_created_at": "2026-10-29T00:41:55Z",
       "run_conclusion": "success",
       "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 40796424845,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12864077097,
+      "name": "selection-misspecification-stage-a",
+      "size_bytes": 1047654,
+      "sha256": "16cc2ea784e046c990215c219e8b4a565e056f07d173d143ece30132a5f625d1",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "e518921917b29eb7610d7079261050070c2eea90",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/selection-misspecification-pilot.yml",
+      "run_created_at": "2026-10-29T00:48:15Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_runner_and_module_source",
+        "workflow_blob_sha": "b9cd31177cb5d6e640bb98fc37904067e2e66ff0",
+        "runner_blob_sha": "dc4e808cda4fc69e167256765ec8d2065200bb6a",
+        "module_blob_sha": "9b5189fe46659cf4bd82be0c62bb705128d82fd7",
+        "master_seed": 20261030,
+        "seed_stride": 1,
+        "replicates": 200,
+        "formula": "replicate_seed=20261030+replicate_id for replicate IDs 0..199; the same 200 seeds are reused across six inference arms. Earlier module blobs also use analysis_seed=20261030+104729 for a 10,000-resample paired bootstrap; the final module blob no longer contains that analysis-seed stream.",
+        "analysis_seed": 20365759,
+        "source_commit": "e518921917b29eb7610d7079261050070c2eea90"
+      }
     },
     {
       "run_id": 40796895426,
@@ -458,6 +572,146 @@
           "fixed_70": 200000,
           "fixed_80": 300000
         }
+      }
+    },
+    {
+      "run_id": 40809254829,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12869442356,
+      "name": "selection-misspecification-stage-a",
+      "size_bytes": 1047497,
+      "sha256": "1872bff376a56a4fd150de16da67b79780a6de7fa72468b1ddcc1bb7ac65ee00",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "cb01ee4d32aa52f306b02f48e0fa01d0e80a2267",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/selection-misspecification-pilot.yml",
+      "run_created_at": "2026-10-29T02:56:05Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_runner_and_module_source",
+        "workflow_blob_sha": "b9cd31177cb5d6e640bb98fc37904067e2e66ff0",
+        "runner_blob_sha": "dc4e808cda4fc69e167256765ec8d2065200bb6a",
+        "module_blob_sha": "9b5189fe46659cf4bd82be0c62bb705128d82fd7",
+        "master_seed": 20261030,
+        "seed_stride": 1,
+        "replicates": 200,
+        "formula": "replicate_seed=20261030+replicate_id for replicate IDs 0..199; the same 200 seeds are reused across six inference arms. Earlier module blobs also use analysis_seed=20261030+104729 for a 10,000-resample paired bootstrap; the final module blob no longer contains that analysis-seed stream.",
+        "analysis_seed": 20365759,
+        "source_commit": "cb01ee4d32aa52f306b02f48e0fa01d0e80a2267"
+      }
+    },
+    {
+      "run_id": 40809420205,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12870165576,
+      "name": "selection-misspecification-stage-a",
+      "size_bytes": 1048645,
+      "sha256": "cf7cc0300af5938edfd878c353ecbb2d13c59267e750fd2d63ad4a6ca97b9184",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "c731f6d9f1a7923c4cfcbcc0ce8364812872d038",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/selection-misspecification-pilot.yml",
+      "run_created_at": "2026-10-29T02:57:53Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_runner_and_module_source",
+        "workflow_blob_sha": "b9cd31177cb5d6e640bb98fc37904067e2e66ff0",
+        "runner_blob_sha": "dc4e808cda4fc69e167256765ec8d2065200bb6a",
+        "module_blob_sha": "b99298a0c8adc63bded9a0630c1e123483673d6c",
+        "master_seed": 20261030,
+        "seed_stride": 1,
+        "replicates": 200,
+        "formula": "replicate_seed=20261030+replicate_id for replicate IDs 0..199; the same 200 seeds are reused across six inference arms. Earlier module blobs also use analysis_seed=20261030+104729 for a 10,000-resample paired bootstrap; the final module blob no longer contains that analysis-seed stream.",
+        "analysis_seed": 20365759,
+        "source_commit": "c731f6d9f1a7923c4cfcbcc0ce8364812872d038"
+      }
+    },
+    {
+      "run_id": 40809439317,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12870180501,
+      "name": "selection-misspecification-stage-a",
+      "size_bytes": 1048672,
+      "sha256": "5efc8da4c42e50fb924dfb18477d9ffc6d990c4793086d1aa321fe286ddb45ff",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "eee6fc9b010eb913fec2f3d4bde200e04354d6b0",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/selection-misspecification-pilot.yml",
+      "run_created_at": "2026-10-29T02:58:06Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_runner_and_module_source",
+        "workflow_blob_sha": "b9cd31177cb5d6e640bb98fc37904067e2e66ff0",
+        "runner_blob_sha": "50893e5a97bd044bc2412c8be0c598e3e6cc5843",
+        "module_blob_sha": "b99298a0c8adc63bded9a0630c1e123483673d6c",
+        "master_seed": 20261030,
+        "seed_stride": 1,
+        "replicates": 200,
+        "formula": "replicate_seed=20261030+replicate_id for replicate IDs 0..199; the same 200 seeds are reused across six inference arms. Earlier module blobs also use analysis_seed=20261030+104729 for a 10,000-resample paired bootstrap; the final module blob no longer contains that analysis-seed stream.",
+        "analysis_seed": 20365759,
+        "source_commit": "eee6fc9b010eb913fec2f3d4bde200e04354d6b0"
+      }
+    },
+    {
+      "run_id": 40811005383,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12869889526,
+      "name": "selection-misspecification-stage-a",
+      "size_bytes": 1048834,
+      "sha256": "f7e47a5e3af1b2ef459e77a9b27337476127c9a8583d5a53fa8e9df9ead34229",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "33c0cabb3987f3661c7aaf418a3cfb8f775ed395",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/selection-misspecification-pilot.yml",
+      "run_created_at": "2026-10-29T03:14:24Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_runner_and_module_source",
+        "workflow_blob_sha": "b9cd31177cb5d6e640bb98fc37904067e2e66ff0",
+        "runner_blob_sha": "50893e5a97bd044bc2412c8be0c598e3e6cc5843",
+        "module_blob_sha": "0116aded45d6517f03b99dd59dbfe4fdd16be1a3",
+        "master_seed": 20261030,
+        "seed_stride": 1,
+        "replicates": 200,
+        "formula": "replicate_seed=20261030+replicate_id for replicate IDs 0..199; the same 200 seeds are reused across six inference arms. Earlier module blobs also use analysis_seed=20261030+104729 for a 10,000-resample paired bootstrap; the final module blob no longer contains that analysis-seed stream.",
+        "analysis_seed": 20365759,
+        "source_commit": "33c0cabb3987f3661c7aaf418a3cfb8f775ed395"
+      }
+    },
+    {
+      "run_id": 40811157211,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12869859795,
+      "name": "selection-misspecification-stage-a",
+      "size_bytes": 1048837,
+      "sha256": "04c03adcdf38bda00462d3ee7aeb72108d5cbdee6d7c696d9f21d27e0c06afcd",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "4a95ff40b68849e0ff33c9cae8916a3e96eeaa7b",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/selection-misspecification-pilot.yml",
+      "run_created_at": "2026-10-29T03:15:56Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_runner_and_module_source",
+        "workflow_blob_sha": "b9cd31177cb5d6e640bb98fc37904067e2e66ff0",
+        "runner_blob_sha": "50893e5a97bd044bc2412c8be0c598e3e6cc5843",
+        "module_blob_sha": "0116aded45d6517f03b99dd59dbfe4fdd16be1a3",
+        "master_seed": 20261030,
+        "seed_stride": 1,
+        "replicates": 200,
+        "formula": "replicate_seed=20261030+replicate_id for replicate IDs 0..199; the same 200 seeds are reused across six inference arms. Earlier module blobs also use analysis_seed=20261030+104729 for a 10,000-resample paired bootstrap; the final module blob no longer contains that analysis-seed stream.",
+        "analysis_seed": 20365759,
+        "source_commit": "4a95ff40b68849e0ff33c9cae8916a3e96eeaa7b"
       }
     },
     {
@@ -6732,13 +6986,13 @@
   "completeness_note": "PARTIAL: 105 artifacts remain metadata-only; failed/cancelled runs and additional historical branches remain unresolved. This register must not authorize training or holdout execution.",
   "scan_summary": {
     "scan_date": "2026-11-15",
-    "downloaded_archives_scanned": 196,
-    "sha256_verified_archives": 196,
-    "json_members": 6702,
-    "csv_members": 11705,
+    "downloaded_archives_scanned": 197,
+    "sha256_verified_archives": 197,
+    "json_members": 6704,
+    "csv_members": 11706,
     "npz_members": 360,
-    "total_supported_members": 18767,
-    "seed_field_occurrences": 3301299,
+    "total_supported_members": 18770,
+    "seed_field_occurrences": 3302500,
     "distinct_integer_seed_values": 595,
     "remaining_parse_errors": 0,
     "terminal_literal_backslash_n_repairs": 4,
@@ -6756,7 +7010,7 @@
       "seed_stride": 10,
       "replicates": 24
     },
-    "limitation": "Results apply only to the listed downloaded archives and source-proven schedules. The 149 metadata-only artifacts, remaining workflows and run outcomes on the 500-run posterior-grid-integrity branch, other failed/cancelled runs, and any unenumerated historical workflows are not covered. The seed-field occurrence count remains provisional pending a full rescan with nested seed-map support. The exact distinct-seed union also remains unreconciled. No global disjointness certification.",
+    "limitation": "Results apply only to the listed downloaded archives and source-proven schedules. The 157 metadata-only artifacts, remaining workflows and run outcomes on the 500-run posterior-grid-integrity branch, other failed/cancelled runs, and any unenumerated historical workflows are not covered. The 3,298,900 seed-field occurrence count is provisional because the scanner has since been fixed to extract scalar values from nested seed maps; a full rescan of all 197 downloaded archives is required. The exact distinct-seed union also remains unreconciled. No global disjointness certification.",
     "estimated_inclusion_py312_subset": {
       "archives": 43,
       "json_members": 1499,
@@ -6968,6 +7222,34 @@
         ]
       },
       "repeated_identically_across_all_three_workflow_runs": true,
+      "parse_errors": 0,
+      "distinct_union_recomputed_against_previous_archives": false
+    },
+    "incremental_selection_misspecification_pilot": {
+      "artifact_ids": [
+        12869859795,
+        12869889526,
+        12870180501,
+        12870165576,
+        12869442356,
+        12864077097,
+        12862863214,
+        12863521426,
+        12863136005
+      ],
+      "artifact_count": 9,
+      "downloaded_and_sha256_verified": 1,
+      "source_proof_only": 8,
+      "json_members": 2,
+      "csv_members": 1,
+      "seed_field_occurrences": 1201,
+      "replicate_seed_range": [
+        20261030,
+        20261229
+      ],
+      "replicates": 200,
+      "arms": 6,
+      "paired_analysis_seed_early_versions": 20365759,
       "parse_errors": 0,
       "distinct_union_recomputed_against_previous_archives": false
     }
