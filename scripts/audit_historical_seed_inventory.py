@@ -72,8 +72,18 @@ def _walk_json(value: Any, source: str, prefix: str = "$") -> list[dict[str, Any
                         else:
                             found.append({"field": f"{field}[{index}]", "seed": _seed_int(item, source=source, field=field)})
                 elif isinstance(child, dict):
-                    # Preserve nested seed maps by recursively inspecting them.
-                    found.extend(_walk_json(child, source, field))
+                    # A seed-named mapping such as mode_seeds={"fixed_60": 123}
+                    # stores concrete RNG seeds in its values; the labels are not
+                    # themselves seed fields, so extract the mapping values here.
+                    for label, item in child.items():
+                        item_field = f"{field}.{label}"
+                        if isinstance(item, (dict, list)):
+                            found.extend(_walk_json(item, source, item_field))
+                        else:
+                            found.append({
+                                "field": item_field,
+                                "seed": _seed_int(item, source=source, field=item_field),
+                            })
                 else:
                     found.append({"field": field, "seed": _seed_int(child, source=source, field=field)})
             else:
