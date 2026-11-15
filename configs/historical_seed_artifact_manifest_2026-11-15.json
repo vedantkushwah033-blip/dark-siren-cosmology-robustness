@@ -16,7 +16,10 @@
     ],
     "other_selected_workflow_artifacts_enumerated": true,
     "run_metadata_complete": true,
-    "unique_run_ids": 37
+    "unique_run_ids": 37,
+    "downloaded_archive_scan_complete": true,
+    "downloaded_archive_count": 26,
+    "metadata_only_artifact_count": 48
   },
   "artifacts": [
     {
@@ -1068,5 +1071,33 @@
   ],
   "artifact_sources_complete": false,
   "artifact_roots": [],
-  "completeness_note": "PARTIAL: 48 artifact payloads are metadata-only; failed/cancelled runs and additional historical branches remain unresolved. This register must not authorize training or holdout execution."
+  "completeness_note": "PARTIAL: 48 artifact payloads are metadata-only; failed/cancelled runs and additional historical branches remain unresolved. This register must not authorize training or holdout execution.",
+  "scan_summary": {
+    "scan_date": "2026-11-15",
+    "downloaded_archives_scanned": 26,
+    "sha256_verified_archives": 26,
+    "json_members": 2736,
+    "csv_members": 9248,
+    "npz_members": 360,
+    "total_supported_members": 12344,
+    "seed_field_occurrences": 2929248,
+    "distinct_integer_seed_values": 541,
+    "remaining_parse_errors": 0,
+    "terminal_literal_backslash_n_repairs": 4,
+    "design_stratum_ledger_reuse_warnings": 0,
+    "candidate_training_historical_overlap": [],
+    "candidate_holdout_historical_overlap": [],
+    "candidate_training_holdout_overlap": [],
+    "training_schedule": {
+      "master_seed": 2026111600,
+      "seed_stride": 10,
+      "replicates": 12
+    },
+    "holdout_schedule": {
+      "master_seed": 2026112600,
+      "seed_stride": 10,
+      "replicates": 24
+    },
+    "limitation": "Results apply only to the 26 downloaded archives. The other 48 metadata-only artifacts, failed/cancelled runs, and additional historical workflows are not covered; no global disjointness certification."
+  }
 }
