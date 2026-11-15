@@ -309,3 +309,53 @@ def test_ledger_detects_cross_stream_seed_reuse_between_replicates(tmp_path):
     assert len(warnings) == 1
     assert warnings[0]["kind"] == "seed_reused_across_replicates"
     assert "seed=10" in warnings[0]["detail"]
+
+
+
+def test_inventory_extracts_plural_seed_stream_arrays_from_json_csv_and_npz(tmp_path):
+    import numpy as np
+
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "manifest.json").write_text(json.dumps({
+        "population_seeds": [10, 20],
+        "bootstrap_seeds": [30, 40],
+        "seed_stride": 999,
+    }))
+    (root / "ledger.csv").write_text(
+        "replicate,population_seeds,bootstrap_seeds\\n"
+        "0,50,60\\n1,70,80\\n"
+    )
+    np.savez(
+        root / "streams.npz",
+        posterior_seeds=np.array([90, 100], dtype=np.int64),
+        posterior_nodes=np.array([0.1, 0.2]),
+    )
+    report = module.audit([root], _schedule(tmp_path / "schedule.json"))
+    assert report["status"] == "PASS"
+    assert report["historical_seed_values"] == [
+        10, 20, 30, 40, 50, 60, 70, 80, 90, 100
+    ]
+
+
+def test_schedule_accepts_additional_plural_random_stream(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    schedule = _schedule(
+        tmp_path / "schedule.json",
+        training=[{
+            "population_seed": 10,
+            "validation_seed": 11,
+            "bootstrap_seeds": [12, 13],
+        }],
+        holdout=[{
+            "population_seed": 20,
+            "validation_seed": 21,
+            "bootstrap_seeds": [22, 23],
+        }],
+    )
+    report = module.audit([root], schedule)
+    assert report["status"] == "NOT_EVALUABLE"
+    assert report["training_pairs"][0]["bootstrap_seeds"] == [12, 13]
