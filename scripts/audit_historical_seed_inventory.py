@@ -33,7 +33,7 @@ def _seed_int(value: Any, *, source: str, field: str) -> int:
         return value
     if isinstance(value, float) and value.is_integer():
         return int(value)
-    if isinstance(value, str) and re.fullmatch(r"[+-]?\\d+", value.strip()):
+    if isinstance(value, str) and re.fullmatch(r"[+-]?\d+", value.strip()):
         return int(value.strip())
     raise ValueError(f"{source}: non-integer seed value in {field}: {value!r}")
 
@@ -149,7 +149,7 @@ def audit(roots: list[Path], schedule_path: Path) -> dict[str, Any]:
             })
     overlap_training = sorted(train_values & historical.keys())
     overlap_holdout = sorted(holdout_values & historical.keys())
-    status = "PASS" if records and not errors and not overlap_training and not overlap_holdout else "NOT_EVALUABLE"
+    status = "PASS" if records and historical and not errors and not overlap_training and not overlap_holdout else "NOT_EVALUABLE"
     return {
         "schema_version": 1,
         "status": status,
