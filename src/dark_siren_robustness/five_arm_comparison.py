@@ -221,9 +221,16 @@ def weight_concentration_diagnostics(raw_weights: ArrayLike) -> dict[str, float]
     ordered = np.sort(normalized)[::-1]
     n1 = max(1, int(np.ceil(0.01 * weights.size)))
     n5 = max(1, int(np.ceil(0.05 * weights.size)))
+    # Shannon-entropy effective sample size complements Kish ESS: it is
+    # sensitive to the full normalized weight distribution, not only its
+    # second moment. Keep the definition identical to the independent
+    # raw-input auditor.
+    positive = normalized[normalized > 0.0]
+    entropy_ess = float(np.exp(-np.sum(positive * np.log(positive))))
     return {
         "kish_ess": ess,
         "kish_ess_fraction": ess / weights.size,
+        "entropy_ess": entropy_ess,
         "maximum_normalized_weight": float(ordered[0]),
         "top_1_percent_mass": float(np.sum(ordered[:n1])),
         "top_5_percent_mass": float(np.sum(ordered[:n5])),
