@@ -5,7 +5,7 @@
   "coverage": {
     "branch": "research/absolute-width-distribution-pilot-20261114",
     "successful_runs_enumerated": 32,
-    "artifacts_listed": 357,
+    "artifacts_listed": 363,
     "artifacts_downloaded_sha256_verified": 200,
     "artifact_sources_complete": false,
     "source_branches": [
@@ -29,10 +29,10 @@
     ],
     "other_selected_workflow_artifacts_enumerated": true,
     "run_metadata_complete": true,
-    "unique_run_ids": 192,
+    "unique_run_ids": 194,
     "downloaded_archive_scan_complete": true,
     "downloaded_archive_count": 200,
-    "metadata_only_artifact_count": 157,
+    "metadata_only_artifact_count": 163,
     "test_workflow_runs_enumerated": 19,
     "test_workflow_artifacts_metadata_only": 57,
     "estimated_inclusion_branch_successful_runs_enumerated": 43,
@@ -67,18 +67,18 @@
         "metadata_only": 57
       },
       "totals": {
-        "runs": 192,
-        "artifacts": 357,
+        "runs": 194,
+        "artifacts": 363,
         "downloaded_sha256_verified": 200,
-        "metadata_only": 157,
-        "seed_schedule_source_verified": 136
+        "metadata_only": 163,
+        "seed_schedule_source_verified": 142
       },
       "posterior_grid_integrity_selected_workflows": {
-        "runs": 84,
-        "artifacts": 88,
+        "runs": 86,
+        "artifacts": 94,
         "downloaded_sha256_verified": 36,
-        "metadata_only": 52,
-        "seed_schedule_source_verified": 88,
+        "metadata_only": 58,
+        "seed_schedule_source_verified": 94,
         "workflows": [
           ".github/workflows/host-misspecification-audit.yml",
           ".github/workflows/paired-host-misspecification.yml",
@@ -89,7 +89,8 @@
           ".github/workflows/h0-dependent-noise-sbc.yml",
           ".github/workflows/selection-misspecification-pilot.yml",
           ".github/workflows/selection-misspecification-confirmatory.yml",
-          ".github/workflows/audit-stage-b-artifact.yml"
+          ".github/workflows/audit-stage-b-artifact.yml",
+          ".github/workflows/catalogue-selection-confirmatory-replication.yml"
         ]
       }
     },
@@ -98,9 +99,9 @@
         "branch": "research/audit-posterior-grid-integrity",
         "run_count_observed": 500,
         "artifact_enumeration": "PARTIAL_SELECTED_WORKFLOWS",
-        "reason": "Ten selected synthetic host-density/host-misspecification workflows are now enumerated: 87 successful run IDs and 96 artifacts, with exact workflow/runner/module/analysis seed proofs. The other workflows on this 500-run branch, failed/cancelled outcomes, and partial artifacts remain unresolved.",
-        "selected_successful_runs_enumerated": 84,
-        "selected_artifacts_added": 88,
+        "reason": "Eleven selected synthetic host-density/host-misspecification workflows are now enumerated: 89 successful run IDs and 102 artifacts, with exact workflow/runner/module/analysis seed proofs. The other workflows on this 500-run branch, failed/cancelled outcomes, and partial artifacts remain unresolved.",
+        "selected_successful_runs_enumerated": 86,
+        "selected_artifacts_added": 94,
         "selected_workflows": [
           "host-misspecification-audit.yml",
           "paired-host-misspecification.yml",
@@ -111,7 +112,8 @@
           "h0-dependent-noise-sbc.yml",
           "selection-misspecification-pilot.yml",
           "selection-misspecification-confirmatory.yml",
-          "audit-stage-b-artifact.yml"
+          "audit-stage-b-artifact.yml",
+          "catalogue-selection-confirmatory-replication.yml"
         ]
       },
       {
@@ -129,11 +131,11 @@
     ],
     "seed_inventory_status_counts": {
       "PAYLOAD_SHA256_VERIFIED": 164,
-      "SEED_SCHEDULE_SOURCE_VERIFIED": 136,
+      "SEED_SCHEDULE_SOURCE_VERIFIED": 142,
       "UNRESOLVED": 57
     },
     "seed_inventory_unresolved_artifact_count": 57,
-    "seed_inventory_schedule_source_verified_count": 136,
+    "seed_inventory_schedule_source_verified_count": 142,
     "seed_inventory_payload_verified_count": 164
   },
   "artifacts": [
@@ -797,6 +799,174 @@
         "formula": "replicate_seed=20261030+replicate_id for replicate IDs 0..199; the same 200 seeds are reused across six inference arms. Earlier module blobs also use analysis_seed=20261030+104729 for a 10,000-resample paired bootstrap; the final module blob no longer contains that analysis-seed stream.",
         "analysis_seed": 20365759,
         "source_commit": "4a95ff40b68849e0ff33c9cae8916a3e96eeaa7b"
+      }
+    },
+    {
+      "run_id": 40819870231,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12873663060,
+      "name": "catalogue-selection-confirmatory-low-inclusion-floor",
+      "size_bytes": 1308954,
+      "sha256": "1919b6ffbf3aae489c8b08225a129d30e244d4f748126b77d937e4cd92bc0712",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "9aadda0ffde113ebb2584aa5425424dbe154dd2b",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/catalogue-selection-confirmatory-replication.yml",
+      "run_created_at": "2026-10-29T04:49:15Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_runner_and_module_source",
+        "workflow_blob_sha": "66c9340a2d240aa0ba4b652e9b9a76a03fb3787e",
+        "runner_blob_sha": "50893e5a97bd044bc2412c8be0c598e3e6cc5843",
+        "module_blob_sha": "0116aded45d6517f03b99dd59dbfe4fdd16be1a3",
+        "master_seed": 20271000,
+        "seed_stride": 1,
+        "replicates": 250,
+        "formula": "replicate_seed=20271000+replicate_id for IDs 0..249; same seeds reused across six inference arms; primary paired bootstrap uses analysis_seed=20375729 and 10,000 resamples. Condition=low-inclusion-floor, floor=0.05, midpoint=0.22, width=0.05.",
+        "analysis_seed": 20375729,
+        "source_commit": "9aadda0ffde113ebb2584aa5425424dbe154dd2b"
+      }
+    },
+    {
+      "run_id": 40819870231,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12873737617,
+      "name": "catalogue-selection-confirmatory-high-inclusion-floor",
+      "size_bytes": 1306606,
+      "sha256": "f88015f19f11940f7e5228e6b13d2b1c4ad657cbc3140df1991873dcff54e03a",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "9aadda0ffde113ebb2584aa5425424dbe154dd2b",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/catalogue-selection-confirmatory-replication.yml",
+      "run_created_at": "2026-10-29T04:49:15Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_runner_and_module_source",
+        "workflow_blob_sha": "66c9340a2d240aa0ba4b652e9b9a76a03fb3787e",
+        "runner_blob_sha": "50893e5a97bd044bc2412c8be0c598e3e6cc5843",
+        "module_blob_sha": "0116aded45d6517f03b99dd59dbfe4fdd16be1a3",
+        "master_seed": 20271100,
+        "seed_stride": 1,
+        "replicates": 250,
+        "formula": "replicate_seed=20271100+replicate_id for IDs 0..249; same seeds reused across six inference arms; primary paired bootstrap uses analysis_seed=20375829 and 10,000 resamples. Condition=high-inclusion-floor, floor=0.25, midpoint=0.22, width=0.05.",
+        "analysis_seed": 20375829,
+        "source_commit": "9aadda0ffde113ebb2584aa5425424dbe154dd2b"
+      }
+    },
+    {
+      "run_id": 40819870231,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12873982241,
+      "name": "catalogue-selection-confirmatory-broad-transition",
+      "size_bytes": 1305535,
+      "sha256": "3ce2d085cc6669e694a953190fe995b2fd75363efaad3164a55907ef5cf2a79b",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "9aadda0ffde113ebb2584aa5425424dbe154dd2b",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/catalogue-selection-confirmatory-replication.yml",
+      "run_created_at": "2026-10-29T04:49:15Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_runner_and_module_source",
+        "workflow_blob_sha": "66c9340a2d240aa0ba4b652e9b9a76a03fb3787e",
+        "runner_blob_sha": "50893e5a97bd044bc2412c8be0c598e3e6cc5843",
+        "module_blob_sha": "0116aded45d6517f03b99dd59dbfe4fdd16be1a3",
+        "master_seed": 20271200,
+        "seed_stride": 1,
+        "replicates": 250,
+        "formula": "replicate_seed=20271200+replicate_id for IDs 0..249; same seeds reused across six inference arms; primary paired bootstrap uses analysis_seed=20375929 and 10,000 resamples. Condition=broad-transition, floor=0.1, midpoint=0.22, width=0.08.",
+        "analysis_seed": 20375929,
+        "source_commit": "9aadda0ffde113ebb2584aa5425424dbe154dd2b"
+      }
+    },
+    {
+      "run_id": 40824352848,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12875723945,
+      "name": "catalogue-selection-confirmatory-high-inclusion-floor",
+      "size_bytes": 1306610,
+      "sha256": "b7764ee9146e71976132c671e68a546ad51af611132f1dbf8a86934114a39177",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "ae82c7fcece15a5c11881ee7d95418dda8d17e60",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/catalogue-selection-confirmatory-replication.yml",
+      "run_created_at": "2026-10-29T05:36:15Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_runner_and_module_source",
+        "workflow_blob_sha": "66c9340a2d240aa0ba4b652e9b9a76a03fb3787e",
+        "runner_blob_sha": "50893e5a97bd044bc2412c8be0c598e3e6cc5843",
+        "module_blob_sha": "0116aded45d6517f03b99dd59dbfe4fdd16be1a3",
+        "master_seed": 20271100,
+        "seed_stride": 1,
+        "replicates": 250,
+        "formula": "replicate_seed=20271100+replicate_id for IDs 0..249; same seeds reused across six inference arms; primary paired bootstrap uses analysis_seed=20375829 and 10,000 resamples. Condition=high-inclusion-floor, floor=0.25, midpoint=0.22, width=0.05.",
+        "analysis_seed": 20375829,
+        "source_commit": "ae82c7fcece15a5c11881ee7d95418dda8d17e60"
+      }
+    },
+    {
+      "run_id": 40824352848,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12876355336,
+      "name": "catalogue-selection-confirmatory-broad-transition",
+      "size_bytes": 1305765,
+      "sha256": "c597c1f302406407ce7adb9ccc3c497907778ca7bf4873056dfed9ff6bcefda5",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "ae82c7fcece15a5c11881ee7d95418dda8d17e60",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/catalogue-selection-confirmatory-replication.yml",
+      "run_created_at": "2026-10-29T05:36:15Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_runner_and_module_source",
+        "workflow_blob_sha": "66c9340a2d240aa0ba4b652e9b9a76a03fb3787e",
+        "runner_blob_sha": "50893e5a97bd044bc2412c8be0c598e3e6cc5843",
+        "module_blob_sha": "0116aded45d6517f03b99dd59dbfe4fdd16be1a3",
+        "master_seed": 20271200,
+        "seed_stride": 1,
+        "replicates": 250,
+        "formula": "replicate_seed=20271200+replicate_id for IDs 0..249; same seeds reused across six inference arms; primary paired bootstrap uses analysis_seed=20375929 and 10,000 resamples. Condition=broad-transition, floor=0.1, midpoint=0.22, width=0.08.",
+        "analysis_seed": 20375929,
+        "source_commit": "ae82c7fcece15a5c11881ee7d95418dda8d17e60"
+      }
+    },
+    {
+      "run_id": 40824352848,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12876375289,
+      "name": "catalogue-selection-confirmatory-low-inclusion-floor",
+      "size_bytes": 1308947,
+      "sha256": "a27318a87d1e07f78285c4a110b79beef6e0173374503030471039bc5b8cbfd1",
+      "expired": false,
+      "download_status": "METADATA_ONLY",
+      "head_sha": "ae82c7fcece15a5c11881ee7d95418dda8d17e60",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/catalogue-selection-confirmatory-replication.yml",
+      "run_created_at": "2026-10-29T05:36:15Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_runner_and_module_source",
+        "workflow_blob_sha": "66c9340a2d240aa0ba4b652e9b9a76a03fb3787e",
+        "runner_blob_sha": "50893e5a97bd044bc2412c8be0c598e3e6cc5843",
+        "module_blob_sha": "0116aded45d6517f03b99dd59dbfe4fdd16be1a3",
+        "master_seed": 20271000,
+        "seed_stride": 1,
+        "replicates": 250,
+        "formula": "replicate_seed=20271000+replicate_id for IDs 0..249; same seeds reused across six inference arms; primary paired bootstrap uses analysis_seed=20375729 and 10,000 resamples. Condition=low-inclusion-floor, floor=0.05, midpoint=0.22, width=0.05.",
+        "analysis_seed": 20375729,
+        "source_commit": "ae82c7fcece15a5c11881ee7d95418dda8d17e60"
       }
     },
     {
