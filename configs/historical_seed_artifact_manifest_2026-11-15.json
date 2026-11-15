@@ -217,7 +217,19 @@
     "total_non_success_run_ids_observed_in_posterior_grid_branch": 341,
     "total_known_successful_artifacts_in_posterior_grid_branch": 313,
     "total_known_unlisted_successful_artifacts_in_posterior_grid_branch": 210,
-    "total_known_partial_artifacts_from_non_success_runs": "NOT_ENUMERATED"
+    "total_known_partial_artifacts_from_non_success_runs": "NOT_ENUMERATED",
+    "global_seed_disjointness_certified": false,
+    "candidate_training_schedule_authorized": false,
+    "candidate_holdout_schedule_authorized": false,
+    "candidate_schedule_status": "CANDIDATE_NOT_AUTHORIZED",
+    "remaining_gates": [
+      "Re-run the corrected nested-seed-map and seed-range parser over the full 205-archive downloaded collection; recompute occurrence counts and exact distinct-seed union.",
+      "Persist and source-reconcile the 210 unlisted successful tests.yml artifacts; reconcile the tests.yml workflow and script-default seed schedules across all 71 successful run heads.",
+      "Query artifact lists for the 318 non-success tests.yml runs; retain evidence for any partial artifacts.",
+      "Resolve the 60 persisted unresolved artifact records and confirm all remaining historical workflow scopes.",
+      "Run the source-register CLI against the complete verified artifact roots and require COMPLETE status with zero unresolved or unlisted artifacts.",
+      "Independently verify the candidate training/holdout schedules are disjoint from the completed historical seed inventory before authorizing either run."
+    ]
   },
   "artifacts": [
     {
