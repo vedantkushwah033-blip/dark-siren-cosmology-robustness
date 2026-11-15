@@ -115,21 +115,25 @@ def inventory_roots(roots: list[Path]) -> tuple[list[dict[str, Any]], list[str]]
 def _schedule_pairs(schedule: dict[str, Any], block: str) -> list[dict[str, int]]:
     rows = schedule.get(block)
     if not isinstance(rows, list) or not rows:
-        raise ValueError(f"schedule.{block} must be a non-empty list of seed-pair objects")
-    pairs = []
+        raise ValueError(f"schedule.{block} must be a non-empty list of seed-stream objects")
+    pairs: list[dict[str, int]] = []
     for index, row in enumerate(rows):
         if not isinstance(row, dict) or not {"population_seed", "validation_seed"} <= row.keys():
             raise ValueError(f"schedule.{block}[{index}] must contain population_seed and validation_seed")
-        population = _seed_int(row["population_seed"], source=f"schedule.{block}", field="population_seed")
-        validation = _seed_int(row["validation_seed"], source=f"schedule.{block}", field="validation_seed")
-        if population == validation:
-            raise ValueError(f"schedule.{block}[{index}] reuses population and validation seed")
-        pairs.append({"population_seed": population, "validation_seed": validation})
+        seed_fields = [key for key in row if SEED_KEY.search(str(key))]
+        if set(seed_fields) != set(row):
+            raise ValueError(f"schedule.{block}[{index}] contains non-seed fields; use explicit *_seed stream names only")
+        values = {
+            str(key): _seed_int(row[key], source=f"schedule.{block}", field=str(key))
+            for key in seed_fields
+        }
+        if len(values.values()) != len(set(values.values())):
+            raise ValueError(f"schedule.{block}[{index}] reuses a seed across random streams")
+        pairs.append(values)
     all_values = [value for pair in pairs for value in pair.values()]
     if len(all_values) != len(set(all_values)):
-        raise ValueError(f"schedule.{block} contains a seed collision across pairs or streams")
+        raise ValueError(f"schedule.{block} contains a seed collision across replicates or streams")
     return pairs
-
 
 def audit(roots: list[Path], schedule_path: Path) -> dict[str, Any]:
     schedule = json.loads(schedule_path.read_text(encoding="utf-8"))
