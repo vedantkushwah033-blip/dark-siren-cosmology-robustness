@@ -363,3 +363,12 @@ def test_outer_auditor_rejects_extra_cell_ledger_column_after_manifest_refresh(t
     _refresh_outer_manifest_entry(out, path)
     with pytest.raises(AssertionError, match="cell ledger column schema mismatch"):
         auditor.audit(out)
+
+
+def test_curvature_runner_rejects_seed_stride_that_overlaps_streams(tmp_path):
+    runner = _load("curvature_multi_runner_seed_overlap", "run_quadratic_logit_curvature_density_replicates.py")
+    args = _args(tmp_path / "seed_overlap")
+    args.seed_stride = 2
+    with pytest.raises(ValueError, match="seed_stride >= 3"):
+        runner.run(args)
+    assert list(args.output_dir.iterdir()) == []
