@@ -180,7 +180,20 @@
           "test_workflow_runs_queried": 0,
           "test_workflow_runs_not_queried": 318,
           "status": "PARTIAL"
-        }
+        },
+        "tests_workflow_versions_sampled": 10,
+        "tests_workflow_file_history_commits": 51,
+        "tests_workflow_blob_versions_mapped_to_all_successful_heads": false,
+        "tests_workflow_explicit_seed_values_observed": [
+          101,
+          202,
+          55129,
+          4182026,
+          20261025,
+          20261026,
+          20261028
+        ],
+        "tests_workflow_script_defaults_fully_reconciled": false
       },
       {
         "branch": "research/estimated-inclusion-audit",
@@ -229,7 +242,84 @@
       "Resolve the 60 persisted unresolved artifact records and confirm all remaining historical workflow scopes.",
       "Run the source-register CLI against the complete verified artifact roots and require COMPLETE status with zero unresolved or unlisted artifacts.",
       "Independently verify the candidate training/holdout schedules are disjoint from the completed historical seed inventory before authorizing either run."
-    ]
+    ],
+    "tests_workflow_seed_source_sample": {
+      "status": "PARTIAL_SAMPLE_NOT_COMPLETE",
+      "sampled_successful_run_heads": 10,
+      "workflow_blob_versions_sampled": 10,
+      "samples": [
+        {
+          "run_id": 40904011976,
+          "head_sha": "a7d6c5b6cb58fea3d5d073a8272387c07231cdad",
+          "workflow_blob_sha": "6e648f0895ad89d295102c548fe64a05a6b7ba8b"
+        },
+        {
+          "run_id": 40902533052,
+          "head_sha": "f1da2b43dad7aa0c4c5cae478845923d4b9090e8",
+          "workflow_blob_sha": "60c96d4bc0829ab0d80c658e0b581c1cb0114bdd"
+        },
+        {
+          "run_id": 40900435388,
+          "head_sha": "160afd5b0488039f419598b21acad4a5d0ca1caf",
+          "workflow_blob_sha": "1739a77cc138708ed017c349b1784b1692f627e9"
+        },
+        {
+          "run_id": 40899693380,
+          "head_sha": "3936eb78738c3ecaf006e39506d72fb53e41aa9f",
+          "workflow_blob_sha": "44469f2ee4325bac2b25aeff1fb49e6be4bb21f5"
+        },
+        {
+          "run_id": 40801436663,
+          "head_sha": "abd68c95b9f047db88c4ffc6ac371b21a7d1c348",
+          "workflow_blob_sha": "22985fce47a6d5300e16564e6c200a2374c25544"
+        },
+        {
+          "run_id": 40797969025,
+          "head_sha": "e9a512d46aeeb7070649ac8f851c1d86103f4379",
+          "workflow_blob_sha": "17749104c5b3efdc69e4e12fed05bb7df1be13cd"
+        },
+        {
+          "run_id": 40796784021,
+          "head_sha": "e858671e87a436b15da9f484b7c6c0966b6da47d",
+          "workflow_blob_sha": "77f9be74da9a79318d4dffb4db2b5ae3b74eae6f"
+        },
+        {
+          "run_id": 40796000490,
+          "head_sha": "33fe3a7453c71520e23e83e115eaddc53f4c0ad4",
+          "workflow_blob_sha": "59cb4a0e37c9c8446fc4a52d0c09abd91fd64e36"
+        },
+        {
+          "run_id": 40794948326,
+          "head_sha": "12ed103e83bc398df37db8eba8584a9b2b9bc9ad",
+          "workflow_blob_sha": "c13665f679bacee4e9829034f59204a9dee040bb"
+        },
+        {
+          "run_id": 40787389389,
+          "head_sha": "ed90f9a5ca394c7251f23960cbf8d776ffe319db",
+          "workflow_blob_sha": "2a0c10f539107d8fd2f644fa583ac25bce8725eb"
+        }
+      ],
+      "explicit_seed_values_observed": [
+        101,
+        202,
+        55129,
+        4182026,
+        20261025,
+        20261026,
+        20261028
+      ],
+      "version_specific_note": "The 55129 selection-misspecification smoke command is absent from the sampled latest workflow version; the other listed explicit seeds recur in the sampled versions.",
+      "verified_script_defaults_in_a7d6_version": {
+        "selected_likelihood_sbc": 20261025,
+        "host_density_benchmark": 20261028,
+        "catalogue_thinning_audit": 20261028
+      },
+      "limitations": [
+        "Only 10 representative workflow versions were inspected; the tests.yml file history contains 51 commits.",
+        "The 71 successful test run heads have not all been mapped to workflow blob versions.",
+        "Script defaults and secondary RNG streams across all workflow versions have not been fully reconciled."
+      ]
+    }
   },
   "artifacts": [
     {
