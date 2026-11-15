@@ -123,7 +123,12 @@
           "audit_stage_b_artifact": 7,
           "host_density_validation_campaign": 2
         },
-        "non_success_partial_artifacts_enumerated": false
+        "non_success_partial_artifacts_enumerated": false,
+        "non_success_artifact_check": {
+          "non_test_workflow_runs_queried": 23,
+          "non_test_workflow_runs_with_artifacts": 0,
+          "test_workflow_runs_unqueried": 318
+        }
       }
     },
     "unresolved_branch_scopes": [
@@ -167,7 +172,15 @@
         "known_successful_research_workflow_artifacts": 100,
         "known_successful_test_workflow_runs": 71,
         "known_successful_test_workflow_artifacts": 213,
-        "partial_artifacts_from_non_success_runs": "NOT_ENUMERATED"
+        "partial_artifacts_from_non_success_runs": "No artifacts returned for the 23 non-success non-test workflow runs queried; artifact lists for 318 non-success tests.yml runs remain unqueried.",
+        "non_success_run_artifact_check": {
+          "total_non_success_runs": 341,
+          "non_test_workflow_runs_queried": 23,
+          "non_test_workflow_runs_with_artifacts": 0,
+          "test_workflow_runs_queried": 0,
+          "test_workflow_runs_not_queried": 318,
+          "status": "PARTIAL"
+        }
       },
       {
         "branch": "research/estimated-inclusion-audit",
