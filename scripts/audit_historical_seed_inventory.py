@@ -188,7 +188,7 @@ def main() -> int:
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         report = {"schema_version": 1, "status": "NOT_EVALUABLE", "fatal_error": str(exc)}
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+    args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"{report['status']}: {args.output}")
     return 0 if report["status"] == "PASS" else 2
 
