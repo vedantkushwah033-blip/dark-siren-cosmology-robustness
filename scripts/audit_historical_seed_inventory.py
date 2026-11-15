@@ -128,7 +128,7 @@ def _schedule_pairs(schedule: dict[str, Any], block: str) -> list[dict[str, int]
             for key in seed_fields
         }
         if len(values.values()) != len(set(values.values())):
-            raise ValueError(f"schedule.{block}[{index}] reuses a seed across random streams")
+            raise ValueError(f"schedule.{block}[{index}] reuses population and validation seed values across random streams")
         pairs.append(values)
     all_values = [value for pair in pairs for value in pair.values()]
     if len(all_values) != len(set(all_values)):
