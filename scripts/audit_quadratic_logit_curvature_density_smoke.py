@@ -378,7 +378,7 @@ def audit(root: Path) -> dict[str, object]:
         "weight_diagnostic_rows_reconstructed": len(expected_diag_df),
         "scott_width_rows_reconstructed": len(expected_scott_df),
         "gamma": float(cfg["gamma"]),
-        "scope": "Seed-regenerated raw-input audit plus independent reconstruction of five-arm density metrics, weight diagnostics, and Scott widths; no bandwidth selection or H0 inference.",
+        "scope": "Seed-regenerated raw-input audit plus independent degree-one logistic inclusion-posterior and quadrature reconstruction, five-arm density metrics, weight diagnostics, and Scott widths; no bandwidth selection or H0 inference.",
     }
 
 
