@@ -19,6 +19,8 @@ from run_quadratic_logit_curvature_density_smoke import (
 
 DEFAULT_GAMMAS=(-2.0,-1.0,-0.5,0.0,0.5,1.0,2.0)
 DEFAULT_WIDTHS=(0.008,0.012,0.016,0.024,0.032,0.040,0.050,0.060,0.080)
+LEDGER_COLUMNS=("replicate","gamma","population_seed","validation_seed","status","audit_status",
+                "metric_rows","weight_diagnostic_rows","scott_width_rows","error")
 
 def _hash(path):
     h=hashlib.sha256()
@@ -79,7 +81,8 @@ def run(args):
         dest=root/"cells"/label/f"replicate_{rid:04d}"
         dest.mkdir(parents=True)
         row={"replicate":rid,"gamma":gamma,"population_seed":seed,"validation_seed":validation_seed,
-             "status":"NOT_RUN","audit_status":"NOT_RUN","metric_rows":0,"error":""}
+             "status":"NOT_RUN","audit_status":"NOT_RUN","metric_rows":0,
+             "weight_diagnostic_rows":0,"scott_width_rows":0,"error":""}
         try:
           result=run_one(SimpleNamespace(output_dir=dest,seed=seed,validation_seed=validation_seed,
             n_parent=args.n_parent,validation_frame=args.validation_frame,
@@ -92,7 +95,7 @@ def run(args):
         except Exception as exc:
           row.update(status="FAILED",error=f"{type(exc).__name__}: {exc}")
         ledger.append(row)
-        pd.DataFrame(ledger).to_csv(root/"cell_ledger.csv",index=False)
+        pd.DataFrame(ledger,columns=LEDGER_COLUMNS).to_csv(root/"cell_ledger.csv",index=False)
     metric_frames=[]; diagnostic_frames=[]; scott_frames=[]
     for row in ledger:
       if row["status"]!="SUCCESS": continue
