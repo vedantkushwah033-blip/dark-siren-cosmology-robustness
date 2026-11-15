@@ -324,3 +324,42 @@ def test_outer_auditor_rejects_extra_column_in_empty_aggregate(tmp_path, monkeyp
     _refresh_outer_manifest_entry(out, path)
     with pytest.raises(AssertionError, match="empty aggregate column schema mismatch"):
         auditor.audit(out)
+
+
+
+def test_all_failed_run_preserves_fixed_ledger_schema_and_is_auditable(tmp_path, monkeypatch):
+    runner = _load("curvature_multi_runner_all_failed_ledger", "run_quadratic_logit_curvature_density_replicates.py")
+    auditor = _load("curvature_multi_auditor_all_failed_ledger", "audit_quadratic_logit_curvature_density_replicates.py")
+
+    def fail_all(args):
+        raise RuntimeError("injected failure for every planned cell")
+
+    monkeypatch.setattr(runner, "run_one", fail_all)
+    out = tmp_path / "curvature_all_failed_ledger"
+    result = runner.run(_args(out))
+    ledger = pd.read_csv(out / "cell_ledger.csv")
+    assert list(ledger.columns) == [
+        "replicate", "gamma", "population_seed", "validation_seed", "status",
+        "audit_status", "metric_rows", "weight_diagnostic_rows", "scott_width_rows", "error",
+    ]
+    assert len(ledger) == result["planned_cells"] == 6
+    assert set(ledger.status) == {"FAILED"}
+    assert (ledger[["metric_rows", "weight_diagnostic_rows", "scott_width_rows"]] == 0).all().all()
+    report = auditor.audit(out)
+    assert report["status"] == "INCOMPLETE"
+    assert report["failed_cells"] == 6
+    assert report["successful_cells"] == 0
+
+
+def test_outer_auditor_rejects_extra_cell_ledger_column_after_manifest_refresh(tmp_path):
+    runner = _load("curvature_multi_runner_ledger_extra", "run_quadratic_logit_curvature_density_replicates.py")
+    auditor = _load("curvature_multi_auditor_ledger_extra", "audit_quadratic_logit_curvature_density_replicates.py")
+    out = tmp_path / "curvature_ledger_extra_column"
+    runner.run(_args(out))
+    path = out / "cell_ledger.csv"
+    frame = pd.read_csv(path)
+    frame["unverified_payload"] = "not part of the lifecycle schema"
+    frame.to_csv(path, index=False)
+    _refresh_outer_manifest_entry(out, path)
+    with pytest.raises(AssertionError, match="cell ledger column schema mismatch"):
+        auditor.audit(out)
