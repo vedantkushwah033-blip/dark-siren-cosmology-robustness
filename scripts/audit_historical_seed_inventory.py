@@ -11,10 +11,12 @@ import csv
 import hashlib
 import json
 import re
+
+import numpy as np
 from pathlib import Path
 from typing import Any
 
-SUPPORTED = {".json", ".csv"}
+SUPPORTED = {".json", ".csv", ".npz"}
 SEED_KEY = re.compile(r"(?:^seed$|_seed$|^seeds$|_seeds$)", re.IGNORECASE)
 
 
@@ -27,11 +29,13 @@ def sha256_file(path: Path) -> str:
 
 
 def _seed_int(value: Any, *, source: str, field: str) -> int:
+    if isinstance(value, np.generic):
+        value = value.item()
     if isinstance(value, bool):
         raise ValueError(f"{source}: boolean seed in {field}")
     if isinstance(value, int):
         return value
-    if isinstance(value, float) and value.is_integer():
+    if isinstance(value, float) and np.isfinite(value) and value.is_integer():
         return int(value)
     if isinstance(value, str) and re.fullmatch(r"[+-]?\d+", value.strip()):
         return int(value.strip())
@@ -88,6 +92,19 @@ def inventory_file(path: Path, root: Path) -> dict[str, Any]:
                             "field": f"{column}@row{row_number}",
                             "seed": _seed_int(value, source=relative, field=column),
                         })
+    elif suffix == ".npz":
+        seeds = []
+        # Never enable pickle while inspecting research artifacts.
+        with np.load(path, allow_pickle=False) as archive:
+            for key in archive.files:
+                if not SEED_KEY.search(key):
+                    continue
+                values = np.asarray(archive[key]).reshape(-1)
+                for index, value in enumerate(values):
+                    seeds.append({
+                        "field": f"{key}[{index}]",
+                        "seed": _seed_int(value, source=relative, field=key),
+                    })
     else:
         raise ValueError(f"{relative}: unsupported artifact format {suffix}")
     return {"path": relative, "bytes": path.stat().st_size, "sha256": digest, "seeds": seeds}
