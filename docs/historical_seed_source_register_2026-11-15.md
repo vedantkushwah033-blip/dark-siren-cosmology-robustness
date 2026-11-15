@@ -477,3 +477,31 @@ Those 88 runs produced 100 artifacts because the host-density campaign and catal
 
 The reconciled overall manifest totals remain **369 artifacts, 196 unique run IDs, 200 downloaded archives, 169 metadata-only artifacts, 148 source-proven schedules, and 57 unresolved artifacts**. The manifest has been corrected to 88/100 for the selected branch. The 500-run branch is still only partially inventoried; this arithmetic correction does not imply completeness.
 
+
+
+## Tests-workflow artifact census on the posterior-grid branch — 2026-11-15
+
+The 500-run branch also contains a large `tests.yml` workflow family. The Actions run list shows **71 successful test-workflow runs**; every one of the 71 successful runs returned exactly three artifacts, one per Python 3.10/3.11/3.12 matrix job. That is **213 known test artifacts**. The other 318 test-workflow runs were not successful; possible partial artifacts from those runs have not been enumerated.
+
+I downloaded and SHA-256 verified one representative run's three matrix artifacts:
+- Python 3.10: artifact 12910529061;
+- Python 3.11: artifact 12910184326;
+- Python 3.12: artifact 12910483130.
+
+Each contains a `numerical_diagnostics.npz` and `summary.json`; none of the inspected NPZ keys or JSON fields exposes an explicit seed. However, the workflow itself runs multiple seeded synthetic smoke experiments. In the inspected workflow version at commit `a7d6c5b6cb58fea3d5d073a8272387c07231cdad` (workflow blob `6e648f0895ad89d295102c548fe64a05a6b7ba8b`), explicit seeds include 20261028, 55129, 20261026, 20261025, and the multiseed pair 101/202. Other commands use script defaults that have not yet been reconciled across all 71 run-head commits.
+
+Accordingly, these are **not** classified as seed-free artifacts. The three representative payloads are now persisted in the manifest as UNRESOLVED; the other 210 successful test artifacts are known by run-level count but their individual artifact metadata and exact source schedules have not yet been persisted. The tests workflow's exact source blob and script defaults across all 71 run heads remain an open audit task.
+
+### Current inventory scope after the test-workflow census
+
+- 372 artifact records persisted in the manifest across 197 run IDs.
+- 203 ZIP archives downloaded and SHA-256 verified.
+- 169 persisted artifacts remain metadata-only.
+- 148 persisted artifacts have source-proven seed schedules.
+- 60 persisted artifacts are marked unresolved.
+- An additional **210 known successful test artifacts** are not yet individually persisted; the manifest records them as known unlisted artifacts.
+- Therefore the current known total is 582 artifacts, with 270 known unresolved artifacts (60 persisted unresolved + 210 unlisted test artifacts). This is not the same as the 372 persisted manifest records.
+- The selected research workflows still cover 88 successful run IDs and 100 artifacts across 12 workflows; the tests workflow adds 71 successful runs and 213 artifacts, of which three are currently persisted.
+
+The source register remains PARTIAL / NOT COMPLETE. The remaining workflows on the 500-run branch, the 318 non-success test runs, failed/cancelled partial artifacts, and the 210 unlisted successful test artifacts must be reconciled before global seed disjointness can be claimed. No training or holdout run is authorized.
+
