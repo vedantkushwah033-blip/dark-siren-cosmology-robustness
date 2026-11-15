@@ -405,3 +405,34 @@ def test_inventory_extracts_seed_start_as_declared_base_seed(tmp_path):
     }))
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
     assert report["historical_seed_values"] == [20261108]
+
+
+def test_ledger_diagnostic_separates_distinct_experiment_and_floor_strata(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "planned_cells.csv").write_text(
+        "experiment,catalogue_floor,replicate,n_validation,analysis_seed,validation_seed\\n"
+        "A,0.0,0,100,100,101\\nA,0.0,0,300,100,101\\n"
+        "A,0.0,1,100,200,201\\nA,0.0,1,300,200,201\\n"
+        "A,0.1,0,100,300,301\\nA,0.1,1,100,400,401\\n"
+    )
+    report = module.audit([root], _schedule(tmp_path / "schedule.json"))
+    assert report["historical_seed_warnings"] == []
+
+
+def test_ledger_diagnostic_flags_reuse_within_same_design_stratum(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "planned_cells.csv").write_text(
+        "experiment,catalogue_floor,replicate,n_validation,analysis_seed,validation_seed\\n"
+        "A,0.0,0,100,100,101\\nA,0.0,0,300,100,101\\n"
+        "A,0.0,1,100,100,201\\nA,0.0,1,300,100,201\\n"
+    )
+    report = module.audit([root], _schedule(tmp_path / "schedule.json"))
+    assert any(
+        item["kind"] == "analysis_seed_reused_across_replicates"
+        and "experiment=A" in item["detail"]
+        for item in report["historical_seed_warnings"]
+    )
