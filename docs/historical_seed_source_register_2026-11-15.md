@@ -138,6 +138,16 @@ The 43 successful estimated-inclusion runs are now fully represented across all 
 
 Two important historical scopes remain unresolved: the `research/audit-posterior-grid-integrity` branch has 500 observed workflow runs and has not yet had its artifact sets inventoried; and failed/cancelled/other run outcomes across the branches represented here have not been checked for partial artifact uploads. Therefore, 262 artifacts is a verified register of the enumerated successful runs, not a complete repository-wide inventory.
 
+### Source-derived seed proofs for the 48 undownloaded current-branch artifacts
+
+The 48 artifacts without payload downloads on the current research branch are now classified as `SEED_SCHEDULE_SOURCE_VERIFIED`, not as unresolved. This classification is supported by fetching the workflow and runner files at each artifact's exact run-head commit and recording their Git blob SHAs in each artifact's `seed_schedule_proof` object.
+
+- **41 absolute-width / expanded-grid artifacts:** all relevant workflow revisions specify `master_seed=20261215`, `seed_stride=10`, and 20 replicates. The verified runner revisions implement `population_seed = master_seed + replicate_id * seed_stride` and `validation_seed = population_seed + 1`. Workflow blob variants are `f8b9fddb786c6984e7ab69d11043696a8cb009cc` (standard grid), `24f87a4cc16864a02aa2026f0c1d3894f28a8404` (expanded grid), and `077c2f5650aeeba0e23e35b62a2baf0e5f158160` (earliest standard-grid revision). Runner blob variants are `360e97641fe67f93818febf099ea8d6fa1140740`, `d0ee84601a192223040ab1cdc1b1c426ac6f010e`, and `85bc02556577e9e58925f20d619d74cf5e227308`.
+- **7 curvature-pilot artifacts:** the workflow blob is `d7680d0fa32cd92e4379849bae986b8967a74baf`, specifying `master_seed=2026111500` and three replicates. The runner revisions `a17c8c0d1e3853fa7ac96c8b70a740302450e17e` and `aa69da6386003df9561ee2b49728c1ea14c02ae0` both default to `seed_stride=10` and implement the same population/validation seed formula, sharing each replicate's pair across gamma cells.
+
+These are **seed-schedule proofs**, not payload or metric verification. The 48 artifact ZIPs remain undownloaded; their seed values are derivable from the exact source revisions. The CLI can accept this explicit status only when all proof fields are present and the proof commit matches the artifact's recorded run head. The 57 other metadata-only artifacts still have `seed_inventory_status=UNRESOLVED`.
+
+
 
 - 157 of the 262 artifacts were downloaded and their full ZIP SHA-256 digests verified against GitHub metadata.
 - 105 artifacts have metadata only; their ZIP payloads have not been downloaded.
