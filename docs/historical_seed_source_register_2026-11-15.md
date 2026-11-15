@@ -187,6 +187,38 @@ The expanded 157-archive union contains 595 distinct seed values. Repeated occur
 - The inclusion-posterior calibration artifact (run 42505936771) contributes 241 distinct seed values across its planned/realized scenario cells. Its ledger checks were performed within experiment/floor strata, so repeated nested validation-size rows were not misclassified as cross-replicate reuse. The older selection-misspecification sensitivity artifact (run 40795743899) contributes 32 additional distinct seed values; the second finite-validation confirmatory artifact (run 42481456702) repeats the 20261108 base seed already present in the first run.
 - The finite-validation confirmatory artifact (run 42481464991) records `seed_start=20261108` and repeated copies of the same base seed in row-level metrics; those copies are not independent seed draws.
 
+## Additional historical workflow discovery — 2026-11-15
+
+A repository-wide Actions search found a previously omitted research branch, `research/five-arm-comparison-preregistration-20261113`, containing six successful source runs across the parent-density bandwidth-selection, independent-bandwidth, and redshift-grid-refinement workflows. It also found one previously omitted successful debug artifact on the current research branch. These seven artifacts have now been downloaded, their ZIP SHA-256 digests matched GitHub metadata, and their JSON/CSV members scanned. Their records are now included in the machine-readable manifest.
+
+| Workflow run | Artifact ID | Artifact name | Bytes | SHA-256 | Status |
+|---|---:|---|---:|---|---|
+| 43582949858 | 14108923448 | parent-density-grid-refinement-2abb4c5275235fd97f87c0818f59b4dcc1e3223c | 18,389,534 | 1bf5c8cf6f64ca893ff436cc69869ebfb0b80c0bc9c9b690985bdff5089bf6f4 | Downloaded; SHA-256 verified |
+| 43582949848 | 14108814146 | independent-parent-density-bandwidth-2abb4c5275235fd97f87c0818f59b4dcc1e3223c | 9,214,313 | ebbca71bac6636cce0d769beeda1b8ab3bcb4ed7d464f47641f0868c04940b86 | Downloaded; SHA-256 verified |
+| 43582949836 | 14108913737 | parent-density-bandwidth-selection-2abb4c5275235fd97f87c0818f59b4dcc1e3223c | 9,208,426 | 34540bf5657e02bbd6b097f4ffd2849c4948b77c8c6b667c22a3a15b4250a53f | Downloaded; SHA-256 verified |
+| 43571044944 | 14103994802 | parent-density-grid-refinement-872e4371c7b6206ff617f35317a014332225473f | 18,389,534 | c96da084f2e2b323264d100941b090fea86fd664190f1494a9bae95c0af60bd8 | Downloaded; SHA-256 verified |
+| 43571044945 | 14104731768 | independent-parent-density-bandwidth-872e4371c7b6206ff617f35317a014332225473f | 9,214,315 | 57f80270a7c6532ca338dacef4add964fe6eef23f91df385a5009e9cd8336abd | Downloaded; SHA-256 verified |
+| 43571044940 | 14103504784 | parent-density-bandwidth-selection-872e4371c7b6206ff617f35317a014332225473f | 9,208,867 | 449359f944741ef3e0773cf7caf39f91ce2eed3d879e67d06f8ccffd258aadf3 | Downloaded; SHA-256 verified |
+| 43574769678 | 14105698374 | debug-floor025-replicate5-1af7a4c60c55c80d39fe2f2b26aa37d9be96f07b | 128,765 | fa78c49ce0e25429adce0bae7abf720af41e25493dd3d9bdb3867cb5ef3013bd | Downloaded; SHA-256 verified |
+
+The seven incremental archives contained 35 JSON files and 27 CSV files, with 9,614 seed-field occurrences and no parse errors. The concrete seed values observed in this batch were `20261113, 20261114, 20261116, 20261117, 20261265, 20261266`. The distinct-seed union was **not recomputed against the previous 157-archive set**, so the manifest records 595 as the prior verified count and explicitly marks the post-incremental union as unreconciled. The candidate training and holdout schedules have no direct overlap with any of these six values, but this is not a global disjointness result.
+
+### Methodological findings from the newly recovered bandwidth artifacts
+
+The two early parent-density bandwidth-selection runs (43571044940 and 43582949836) use the same source data/configuration family and a nine-point multiplier grid ending at 0.4. Both select 0.4 on the training replicates, the upper grid boundary; the holdout curve also continues improving through that endpoint. Under the later fail-closed boundary rule, this is **boundary-limited**, not an eligible interior bandwidth selection. The historical artifact's older audit reports PASS for its own source reconstruction, but that PASS must not be interpreted as satisfying the newer boundary-selection gate.
+
+The expanded 11-point grid in runs 43571044945/43582949848 selects 0.55 from training data, an interior candidate. The held-out mean IAE is marginally lower at 0.50 than at 0.55; the training-selected 0.55 must nevertheless remain frozen because holdout outcomes cannot be used to reselect. This is a separate parent-sample KDE benchmark at gamma 0 and validation size 300, not the planned seven-gamma, five-arm D-versus-A bandwidth study.
+
+The paired 801-versus-1601 grid refinement (runs 43571044944/43582949858) uses 200 common parent-sample replicates and 800,000 parent units per grid. For the two tested multipliers 0.50 and 0.55, the maximum absolute replicate-level grid difference in IAE is approximately (3.25\times10^{-6}), and the candidate-difference grid interaction is approximately (1.51\times10^{-8}). This supports numerical stability for that narrow parent-density calculation only; it does not validate the five-arm weighted KDE or H0 likelihood.
+
+The debug artifact 14105698374 is one replicate with population/validation seeds 20261265/20261266. It is a diagnostic reproduction of an inclusion fit at catalogue floor 0.25, not a new independent experiment or performance estimate.
+
+### Updated inventory totals
+
+The manifest now records 269 artifact records across 108 successful runs and 16 branches. Of these, 164 archives have been downloaded and SHA-256 verified; 105 remain metadata-only. The 164 scanned archives contain 6,685 JSON, 11,619 CSV, and 360 NPZ members. They contribute 3,293,469 seed-field occurrences. The exact distinct-seed union after adding the seven incremental archives remains unreconciled; the prior 157-archive union of 595 distinct integers is retained as a prior-scan count, not falsely relabelled as the current exact union.
+
+The source register remains PARTIAL / NOT COMPLETE. The 500-run `research/audit-posterior-grid-integrity` branch remains unenumerated, the 57 test-workflow artifacts remain unresolved, and failed/cancelled runs may contain partial artifacts. No training or holdout run is authorized.
+
 ### Auditor hardening in this update
 
 The repository auditor now:
