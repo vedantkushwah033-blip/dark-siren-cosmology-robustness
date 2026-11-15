@@ -289,3 +289,21 @@ At commit `f8081e0f14977ac541a0e975f8fb8d6c49277e92`, the focused curvature work
 This is the first retrieved compact paired artifact for which the complete child and outer audit chain has been observed to pass after the entropy-ESS diagnostic was added. It verifies the compact runner/auditor integration and artifact lifecycle. It is **not** the planned seven-gamma engineering pilot: it has only two replicates, three gamma values, smaller parent/validation samples, coarse quadrature, a coarse redshift grid, and two bandwidths. Its paired contrasts are engineering diagnostics with extremely limited Monte Carlo precision. They must not be used to select bandwidths, claim estimator superiority, estimate calibration, or authorize H0 propagation.
 
 The compact artifact is preserved in GitHub Actions rather than committed into the source repository. The seven-gamma × three-replicate manual workflow remains the next development-pilot gate; its artifact must be separately retrieved and audited before the proposed training/holdout bandwidth protocol is considered.
+
+
+## Independent-audit scope metadata correction (2026-11-15)
+
+A source review found that the quadratic-logit smoke auditor's returned `scope` description was stale: its implementation now independently reconstructs the degree-one logistic inclusion posterior and tensor Gauss-Hermite quadrature from the observable validation records, but the report text described only density/diagnostic reconstruction. The shared floor-family auditor's scope string was stale in the same way.
+
+- Updated the floor-family auditor's scope metadata to explicitly include independent posterior-mode, quadrature-node, and quadrature-weight reconstruction.
+- Updated the quadratic-logit auditor's scope metadata to accurately include that same independent degree-one posterior/quadrature reconstruction.
+- Added a regression assertion that the quadratic-logit smoke audit report exposes the corrected scope.
+- This is a report-description and regression-test correction only; it changes no model, posterior, density estimate, or scientific result.
+
+The first exact-head test run exposed an overly specific test expectation because the quadratic auditor wraps the shared floor-family report with its own scope string. That assertion was aligned with the actual quadratic report, then the exact-head workflow passed:
+
+- Commit: `393c0f5a15d2eb6cf306c9ed97d72176c28c8570`.
+- Workflow: [43720159370](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/43720159370), completed **success**.
+- Python 3.10, 3.11, and 3.12 jobs all passed, including smoke/raw-input audits, multi-replicate runner/auditor regressions, historical-seed inventory, incomplete-reference lifecycle checks, and CLI checks.
+
+This validates the corrected test suite on that exact head. It does not validate the unlaunched full seven-gamma development pilot, select a bandwidth, or authorize H0 propagation.
