@@ -276,11 +276,15 @@ def test_independent_posterior_quadrature_remains_finite_under_degenerate_and_se
     }
     z = np.linspace(0.01, 0.40, 40)
     x = (z - cfg["coordinate_center"]) / cfg["coordinate_scale"]
+    separated = (x > 0.0).astype(int)
+    near_separated = separated.copy()
+    near_separated[0] = 1
+    near_separated[-1] = 0
     label_cases = {
         "all_zero": np.zeros(z.size, dtype=int),
         "all_one": np.ones(z.size, dtype=int),
-        "complete_separation": (x > 0.0).astype(int),
-        "near_separation": np.where(x > 0.0, 1, 0).astype(int),
+        "complete_separation": separated,
+        "near_separation": near_separated,
     }
     design = np.column_stack((np.ones(z.size), x))
     prior_sd = np.asarray(cfg["coefficient_prior"]["sd"], dtype=float)
