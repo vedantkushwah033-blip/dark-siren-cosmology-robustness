@@ -411,3 +411,17 @@ The one-replicate seven-gamma engineering test and cross-version CI have been ad
 The paired curvature auditor now also verifies the common-random-number design from persisted raw inputs—not just repeated seed labels—by checking that parent redshift draws, validation-frame redshift draws, selected validation IDs, and selected validation redshifts match across gamma cells within each replicate. Retention outcomes and catalogue membership are expected to differ with gamma. The runner also rejects gamma values that collide under its two-decimal child-directory naming convention. These are reproducibility and artifact-integrity safeguards; exact-head CI remains required before relying on the updated workflow.
 
 The paired curvature summaries also keep the two Arm E estimands separate: loss of the posterior-mean density remains primary, while posterior expected node-specific loss is reported as a distinct secondary gamma-versus-zero contrast series. It is not folded into the primary estimator-arm ranking.
+
+
+## Historical seed-inventory gate (2026-11-15)
+
+The historical Actions seed audit is substantially expanded but remains **PARTIAL / NOT COMPLETE**. The machine-readable [artifact manifest](configs/historical_seed_artifact_manifest_2026-11-15.json) currently contains 372 artifact records across 197 run IDs: 205 downloaded and SHA-256-verified archives, 167 metadata-only artifacts, 148 source-proven seed schedules, and 60 persisted unresolved artifacts.
+
+The posterior-grid-integrity branch has 500 observed Actions runs. Its run census identifies 88 successful research-workflow runs (100 artifacts) and 71 successful test-workflow runs (213 artifacts); three representative test artifacts are persisted, while 210 remain unlisted. The 341 non-success runs have not been checked for partial artifacts. Across the manifest, 210 known successful test artifacts remain outside the persisted records, so the known artifact total is 582 rather than the 372 persisted records.
+
+The historical inventory auditor now extracts nested seed maps and seed-range fields, excludes seed-stride parameters from the seed-value inventory, detects cross-replicate seed reuse, and validates artifact identity, source-proof fields, and coverage-count reconciliation. Its 39-test module passed on Python 3.10, 3.11, and 3.12 (workflow 43723561485). This is focused auditor CI, not a full repository test-suite pass.
+
+**The reported 3,311,919 seed-field occurrences are provisional** because the corrected parser has not yet been run against all 205 downloaded archives. The exact distinct-seed union is not reconciled, 167 artifacts remain metadata-only, 60 persisted artifacts remain unresolved, and 210 successful test artifacts remain unlisted. The historical source register is therefore not a global seed-disjointness certification.
+
+The candidate training and holdout schedules remain **not authorized for execution**. Do not launch the seven-gamma density pilot or open the confirmatory holdout until the corrected parser has been run over the full verified archive collection, all remaining source scopes and partial runs have been reconciled, and the seed partition is independently audited. See the [historical seed source register](docs/historical_seed_source_register_2026-11-15.md) for the full scope, limitations, and run-by-run source evidence.
+
