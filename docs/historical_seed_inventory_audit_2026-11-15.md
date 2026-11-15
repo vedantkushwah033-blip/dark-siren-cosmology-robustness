@@ -8,7 +8,7 @@ Before the proposed density training and holdout experiments, compare every hist
 
 ## Input contract
 
-The tool accepts one or more extracted artifact roots and a JSON schedule with non-empty `training` and `holdout` arrays. Each schedule row must explicitly provide integer `population_seed` and `validation_seed` values. Seed values must be unique across all streams and replicates within a block, and the blocks must be mutually disjoint.
+The tool accepts one or more extracted artifact roots and a JSON schedule with non-empty `training` and `holdout` arrays. Each schedule row must explicitly provide integer `population_seed` and `validation_seed` values; any additional random stream must be represented by another integer field whose name contains `seed` (for example, `bootstrap_seed`). Seed values must be unique across all streams and replicates within a block, and the blocks must be mutually disjoint.
 
 The scanner currently parses JSON and CSV files. It recursively extracts scalar values from field names containing `seed`, including nested JSON records and seed-named CSV columns. It hashes every supported source file with SHA-256 and records source-relative paths, byte counts, field names, and seed occurrences.
 
