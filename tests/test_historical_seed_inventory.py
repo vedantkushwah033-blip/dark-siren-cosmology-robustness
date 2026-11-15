@@ -198,6 +198,12 @@ def test_cli_writes_parseable_json_with_terminal_newline(tmp_path):
     root.mkdir()
     (root / "config.json").write_text(json.dumps({"population_seed": 3000}))
     schedule = _schedule(tmp_path / "schedule.json")
+    source_register = tmp_path / "source-register.json"
+    source_register.write_text(json.dumps({
+        "artifact_sources_complete": True,
+        "artifact_roots": [str(root.resolve())],
+        "artifacts": [{"download_status": "DOWNLOADED_SHA256_VERIFIED"}],
+    }))
     output = tmp_path / "out" / "report.json"
     result = subprocess.run(
         [
@@ -205,6 +211,7 @@ def test_cli_writes_parseable_json_with_terminal_newline(tmp_path):
             str(SCRIPTS / "audit_historical_seed_inventory.py"),
             "--artifact-root", str(root),
             "--schedule", str(schedule),
+            "--source-register", str(source_register),
             "--output", str(output),
         ],
         check=False,
@@ -456,3 +463,36 @@ def test_inventory_repairs_only_known_terminal_literal_backslash_n_json_suffix(t
         "kind": "terminal_literal_backslash_n_removed",
         "detail": "Removed one literal backslash-n suffix after a valid JSON document; original bytes remain represented by sha256.",
     }]
+
+
+def test_cli_refuses_pass_when_source_register_is_incomplete(tmp_path):
+    import subprocess
+
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "config.json").write_text(json.dumps({"population_seed": 3000}))
+    schedule = _schedule(tmp_path / "schedule.json")
+    source_register = tmp_path / "source-register.json"
+    source_register.write_text(json.dumps({
+        "artifact_sources_complete": False,
+        "artifact_roots": [str(root.resolve())],
+        "artifacts": [{"download_status": "METADATA_ONLY"}],
+    }))
+    output = tmp_path / "report.json"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPTS / "audit_historical_seed_inventory.py"),
+            "--artifact-root", str(root),
+            "--schedule", str(schedule),
+            "--source-register", str(source_register),
+            "--output", str(output),
+        ],
+        check=False, capture_output=True, text=True,
+    )
+    report = json.loads(output.read_text())
+    assert result.returncode == 2
+    assert report["mechanical_status"] == "PASS"
+    assert report["status"] == "NOT_EVALUABLE"
+    assert report["source_register_status"] == "INCOMPLETE"
+    assert report["source_register_errors"]
