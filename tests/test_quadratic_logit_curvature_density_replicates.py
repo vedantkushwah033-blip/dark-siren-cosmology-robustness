@@ -258,3 +258,48 @@ def test_curvature_outer_auditor_rejects_entropy_ess_aggregate_corruption_after_
  manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
  with pytest.raises(AssertionError,match="aggregate values mismatch entropy_ess"):
   auditor.audit(out)
+
+
+def _refresh_outer_manifest_entry(root, path):
+    manifest_path = root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    relative = str(path.relative_to(root))
+    manifest["files"][relative] = {
+        "bytes": path.stat().st_size,
+        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+    }
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n")
+
+
+def test_outer_auditor_rejects_unexpected_aggregate_column_after_manifest_refresh(tmp_path):
+    runner = _load("curvature_multi_runner_extra_column", "run_quadratic_logit_curvature_density_replicates.py")
+    auditor = _load("curvature_multi_auditor_extra_column", "audit_quadratic_logit_curvature_density_replicates.py")
+    out = tmp_path / "curvature_extra_column"
+    runner.run(_args(out))
+    path = out / "density_metrics_all_cells.csv"
+    frame = pd.read_csv(path)
+    frame["unverified_payload"] = "not independently reconstructed"
+    frame.to_csv(path, index=False)
+    _refresh_outer_manifest_entry(out, path)
+    with pytest.raises(AssertionError, match="aggregate column schema mismatch"):
+        auditor.audit(out)
+
+
+def test_outer_auditor_checks_required_schema_for_empty_aggregate(tmp_path, monkeypatch):
+    runner = _load("curvature_multi_runner_empty_schema", "run_quadratic_logit_curvature_density_replicates.py")
+    auditor = _load("curvature_multi_auditor_empty_schema", "audit_quadratic_logit_curvature_density_replicates.py")
+
+    def fail_all(args):
+        raise RuntimeError("injected all-cell failure for empty-schema test")
+
+    monkeypatch.setattr(runner, "run_one", fail_all)
+    out = tmp_path / "curvature_empty_schema"
+    runner.run(_args(out))
+    path = out / "weight_diagnostics_all_cells.csv"
+    frame = pd.read_csv(path)
+    assert frame.empty and "entropy_ess" in frame.columns
+    frame = frame.drop(columns=["entropy_ess"])
+    frame.to_csv(path, index=False)
+    _refresh_outer_manifest_entry(out, path)
+    with pytest.raises(AssertionError, match="empty aggregate schema missing required columns"):
+        auditor.audit(out)
