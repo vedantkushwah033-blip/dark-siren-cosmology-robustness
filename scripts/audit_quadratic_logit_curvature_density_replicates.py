@@ -23,7 +23,13 @@ def _compare_aggregate(root,filename,frames,keys,values):
  expected=pd.concat(frames,ignore_index=True) if frames else pd.DataFrame(columns=keys+values)
  actual=pd.read_csv(root/filename)
  if len(actual)!=len(expected): raise AssertionError(f"{filename}: aggregate row count mismatch")
- if len(expected)==0: return 0
+ if expected.empty:
+  required=set(keys+values)
+  missing=sorted(required-set(actual.columns))
+  if missing: raise AssertionError(f"{filename}: empty aggregate schema missing required columns: {missing}")
+  return 0
+ if list(actual.columns)!=list(expected.columns):
+  raise AssertionError(f"{filename}: aggregate column schema mismatch")
  if expected.duplicated(keys).any() or actual.duplicated(keys).any():
   raise AssertionError(f"{filename}: duplicate aggregate key")
  expected=expected.sort_values(keys).reset_index(drop=True)
@@ -40,6 +46,8 @@ def _compare_aggregate(root,filename,frames,keys,values):
 
 def _assert_frame_equivalent(root, filename, expected, key_columns, numeric_columns, categorical_columns=()):
  actual=pd.read_csv(root/filename)
+ if list(actual.columns)!=list(expected.columns):
+  raise AssertionError(f"{filename}: column schema mismatch")
  if len(actual)!=len(expected): raise AssertionError(f"{filename}: row count mismatch")
  if len(expected)==0: return 0
  sort_keys=[c for c in key_columns if c!="reference_gamma"]
