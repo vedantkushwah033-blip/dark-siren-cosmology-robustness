@@ -124,6 +124,21 @@ The branch has since received documentation-only updates (latest source-register
 
 The machine-readable artifact register is now `configs/historical_seed_artifact_manifest_2026-11-15.json`. It contains **262 unique artifact records** across 101 successful workflow runs and 15 branches. For each record it stores the run ID, artifact ID, artifact name, exact byte count, GitHub SHA-256 digest, expiration state, download status, run head SHA, branch, workflow path, and creation timestamp.
 
+### Artifact coverage by source branch group
+
+| Source group | Successful runs enumerated | Artifacts | SHA-256 verified downloads | Metadata-only |
+|---|---:|---:|---:|---:|
+| Current research branch (density/bandwidth/curvature plus tests run) | 31 | 68 | 20 | 48 |
+| `research/estimated-inclusion-audit` | 43 | 129 | 129 | 0 |
+| Four auxiliary completed research branches | 8 | 8 | 8 | 0 |
+| Nine other test-workflow branches | 19 | 57 | 0 | 57 |
+| **Total** | **101** | **262** | **157** | **105** |
+
+The 43 successful estimated-inclusion runs are now fully represented across all three Python-version artifacts (129 ZIPs; all downloaded and checksum-verified). The 86 py3.10/py3.11 archives were separately scanned rather than assumed equivalent to py3.12. The 57 artifacts from the nine other test-workflow branches remain metadata-only.
+
+Two important historical scopes remain unresolved: the `research/audit-posterior-grid-integrity` branch has 500 observed workflow runs and has not yet had its artifact sets inventoried; and failed/cancelled/other run outcomes across the branches represented here have not been checked for partial artifact uploads. Therefore, 262 artifacts is a verified register of the enumerated successful runs, not a complete repository-wide inventory.
+
+
 - 157 of the 262 artifacts were downloaded and their full ZIP SHA-256 digests verified against GitHub metadata.
 - 105 artifacts have metadata only; their ZIP payloads have not been downloaded.
 - The selected density/bandwidth/curvature workflows on the current research branch yielded 109 relevant run records: 30 successful, 39 failed, and 40 cancelled. Artifact enumeration for failed/cancelled runs is still unresolved.
