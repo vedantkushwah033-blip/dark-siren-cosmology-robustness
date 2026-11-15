@@ -268,7 +268,7 @@ def _refresh_outer_manifest_entry(root, path):
         "bytes": path.stat().st_size,
         "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
     }
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n")
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
 
 def test_outer_auditor_rejects_unexpected_aggregate_column_after_manifest_refresh(tmp_path):
