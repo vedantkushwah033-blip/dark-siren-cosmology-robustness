@@ -159,3 +159,59 @@ def test_inventory_ignores_descriptive_seed_schedule_metadata_but_keeps_integer_
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
     assert report["status"] == "PASS"
     assert report["historical_seed_values"] == [3000]
+
+
+
+def test_inventory_marks_missing_artifact_root_not_evaluable(tmp_path):
+    module = _load()
+    missing = tmp_path / "does-not-exist"
+    report = module.audit([missing], _schedule(tmp_path / "schedule.json"))
+    assert report["status"] == "NOT_EVALUABLE"
+    assert any("does not exist" in item for item in report["inventory_errors"])
+
+
+def test_inventory_rejects_malformed_json_artifact(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "broken.json").write_text('{"population_seed": ')
+    with pytest.raises(json.JSONDecodeError):
+        module.audit([root], _schedule(tmp_path / "schedule.json"))
+
+
+def test_schedule_rejects_missing_required_seed_stream(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    schedule = _schedule(
+        tmp_path / "schedule.json",
+        training=[{"population_seed": 1000}],
+    )
+    with pytest.raises(ValueError, match="population_seed and validation_seed"):
+        module.audit([root], schedule)
+
+
+def test_cli_writes_parseable_json_with_terminal_newline(tmp_path):
+    import subprocess
+
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "config.json").write_text(json.dumps({"population_seed": 3000}))
+    schedule = _schedule(tmp_path / "schedule.json")
+    output = tmp_path / "out" / "report.json"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPTS / "audit_historical_seed_inventory.py"),
+            "--artifact-root", str(root),
+            "--schedule", str(schedule),
+            "--output", str(output),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
+    payload = output.read_bytes()
+    assert payload.endswith(b"\\n")
+    assert json.loads(payload.decode("utf-8"))["status"] == "PASS"
