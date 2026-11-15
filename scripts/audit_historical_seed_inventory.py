@@ -22,7 +22,11 @@ SEED_KEY = re.compile(r"(?:^seed$|_seed$|^seeds$|_seeds$|^seed_start$|_seed_star
 def is_seed_field(name: Any) -> bool:
     """Match concrete seed fields, not aggregate metrics such as *_across_seeds."""
     normalized = str(name).lower()
-    if normalized.endswith("_across_seeds"):
+    if (
+        "_across_seeds" in normalized
+        or normalized in {"n_seeds", "replicates_per_seed", "seed_count", "seeds_count"}
+        or normalized.startswith(("n_", "num_", "total_")) and normalized.endswith("_seeds")
+    ):
         return False
     return SEED_KEY.search(normalized) is not None
 
