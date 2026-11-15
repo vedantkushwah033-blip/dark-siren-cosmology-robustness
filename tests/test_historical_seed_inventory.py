@@ -253,8 +253,8 @@ def test_inventory_ignores_across_seeds_summary_metrics(tmp_path):
     root.mkdir()
     (root / "config.json").write_text(json.dumps({"population_seed": 3000}))
     (root / "summary.csv").write_text(
-        "mean_pit_mean_across_seeds,mean_coverage_across_seeds\n"
-        "0.5138380959669132,0.681\n"
+        "mean_pit_mean_across_seeds,mean_coverage_across_seeds,n_seeds,replicates_per_seed,total_replicates_across_seeds\n"
+        "0.5138380959669132,0.681,2,10,20\n"
     )
     report = module.audit([root], _schedule(tmp_path / "schedule.json"))
     assert report["status"] == "PASS"
@@ -441,3 +441,18 @@ def test_ledger_diagnostic_flags_reuse_within_same_design_stratum(tmp_path):
         and "experiment=A" in item["detail"]
         for item in report["historical_seed_warnings"]
     )
+
+
+def test_inventory_repairs_only_known_terminal_literal_backslash_n_json_suffix(tmp_path):
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "legacy.json").write_text(json.dumps({"population_seed": 5000}) + "\\\\n")
+    report = module.audit([root], _schedule(tmp_path / "schedule.json"))
+    assert report["status"] == "PASS"
+    assert report["historical_seed_values"] == [5000]
+    assert report["inventory_warnings"] == [{
+        "path": "legacy.json",
+        "kind": "terminal_literal_backslash_n_removed",
+        "detail": "Removed one literal backslash-n suffix after a valid JSON document; original bytes remain represented by sha256.",
+    }]
