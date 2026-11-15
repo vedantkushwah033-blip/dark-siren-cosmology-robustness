@@ -198,12 +198,21 @@ def test_cli_writes_parseable_json_with_terminal_newline(tmp_path):
     root.mkdir()
     (root / "config.json").write_text(json.dumps({"population_seed": 3000}))
     schedule = _schedule(tmp_path / "schedule.json")
+    _, _, register = _valid_source_register(tmp_path)
+    register["artifact_roots"] = [str(root.resolve())]
+    artifact = register["artifacts"][0]
+    artifact["download_status"] = "DOWNLOADED_SHA256_VERIFIED"
+    artifact["seed_inventory_status"] = "PAYLOAD_SHA256_VERIFIED"
+    register["coverage"].update({
+        "artifacts_downloaded_sha256_verified": 1,
+        "downloaded_archive_count": 1,
+        "metadata_only_artifact_count": 0,
+        "seed_inventory_payload_verified_count": 1,
+        "seed_inventory_schedule_source_verified_count": 0,
+        "seed_inventory_status_counts": {"PAYLOAD_SHA256_VERIFIED": 1},
+    })
     source_register = tmp_path / "source-register.json"
-    source_register.write_text(json.dumps({
-        "artifact_sources_complete": True,
-        "artifact_roots": [str(root.resolve())],
-        "artifacts": [{"download_status": "DOWNLOADED_SHA256_VERIFIED", "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"}],
-    }))
+    source_register.write_text(json.dumps(register))
     output = tmp_path / "out" / "report.json"
     result = subprocess.run(
         [
@@ -231,25 +240,10 @@ def test_cli_accepts_source_verified_schedule_without_download(tmp_path):
     root.mkdir()
     (root / "config.json").write_text(json.dumps({"population_seed": 3000}))
     schedule = _schedule(tmp_path / "schedule.json")
+    _, _, register = _valid_source_register(tmp_path)
+    register["artifact_roots"] = [str(root.resolve())]
     source_register = tmp_path / "source-register.json"
-    source_register.write_text(json.dumps({
-        "artifact_sources_complete": True,
-        "artifact_roots": [str(root.resolve())],
-        "artifacts": [{
-            "download_status": "METADATA_ONLY",
-            "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
-            "head_sha": "abc123",
-            "seed_schedule_proof": {
-                "workflow_blob_sha": "workflowblob",
-                "runner_blob_sha": "runnerblob",
-                "master_seed": 4000,
-                "seed_stride": 10,
-                "replicates": 20,
-                "formula": "population_seed=master_seed+replicate_id*seed_stride; validation_seed=population_seed+1",
-                "source_commit": "abc123",
-            },
-        }],
-    }))
+    source_register.write_text(json.dumps(register))
     output = tmp_path / "report.json"
     result = subprocess.run(
         [
