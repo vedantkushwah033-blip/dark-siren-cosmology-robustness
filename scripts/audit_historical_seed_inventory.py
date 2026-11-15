@@ -343,6 +343,131 @@ def audit(roots: list[Path], schedule_path: Path) -> dict[str, Any]:
     }
 
 
+def validate_source_register(
+    source_register: dict[str, Any], supplied_roots: list[Path]
+) -> list[str]:
+    """Validate source-register completeness, artifact identity, proof fields, and counts."""
+    errors: list[str] = []
+    if source_register.get("artifact_sources_complete") is not True:
+        errors.append("source register is not explicitly marked complete")
+
+    registered_roots = {
+        str(Path(item).resolve())
+        for item in source_register.get("artifact_roots", [])
+    }
+    supplied = {str(Path(item).resolve()) for item in supplied_roots}
+    if not registered_roots:
+        errors.append("source register has no artifact_roots list")
+    if registered_roots != supplied:
+        errors.append("registered artifact_roots do not exactly match supplied --artifact-root values")
+
+    records = source_register.get("artifacts", [])
+    if not isinstance(records, list) or not records:
+        errors.append("source register has no artifact records")
+        return errors
+
+    artifact_ids: set[int] = set()
+    status_counts: dict[str, int] = {}
+    download_counts: dict[str, int] = {}
+    run_ids: set[int] = set()
+    hex40 = re.compile(r"^[0-9a-f]{40}$", re.IGNORECASE)
+    hex64 = re.compile(r"^(?:sha256:)?[0-9a-f]{64}$", re.IGNORECASE)
+
+    for index, item in enumerate(records):
+        if not isinstance(item, dict):
+            errors.append(f"artifact[{index}] is not an object")
+            continue
+
+        artifact_id = item.get("artifact_id")
+        run_id = item.get("run_id")
+        if not isinstance(artifact_id, int) or isinstance(artifact_id, bool) or artifact_id <= 0:
+            errors.append(f"artifact[{index}] has an invalid artifact_id")
+        elif artifact_id in artifact_ids:
+            errors.append(f"artifact[{index}] duplicates artifact_id {artifact_id}")
+        else:
+            artifact_ids.add(artifact_id)
+
+        if not isinstance(run_id, int) or isinstance(run_id, bool) or run_id <= 0:
+            errors.append(f"artifact[{index}] has an invalid run_id")
+        else:
+            run_ids.add(run_id)
+
+        if not isinstance(item.get("size_bytes"), int) or item.get("size_bytes", -1) < 0:
+            errors.append(f"artifact[{index}] has an invalid size_bytes")
+        if not isinstance(item.get("sha256"), str) or not hex64.fullmatch(item["sha256"]):
+            errors.append(f"artifact[{index}] has an invalid SHA-256 digest")
+        if not isinstance(item.get("head_sha"), str) or not hex40.fullmatch(item["head_sha"]):
+            errors.append(f"artifact[{index}] has an invalid head_sha")
+        for field in ("head_branch", "workflow_path", "name"):
+            if not isinstance(item.get(field), str) or not item[field]:
+                errors.append(f"artifact[{index}] is missing {field}")
+
+        download_status = item.get("download_status")
+        if download_status not in {"DOWNLOADED_SHA256_VERIFIED", "METADATA_ONLY"}:
+            errors.append(f"artifact[{index}] has an invalid download_status")
+        else:
+            download_counts[download_status] = download_counts.get(download_status, 0) + 1
+
+        inventory_status = item.get("seed_inventory_status")
+        status_counts[inventory_status] = status_counts.get(inventory_status, 0) + 1
+        if inventory_status == "PAYLOAD_SHA256_VERIFIED":
+            if download_status != "DOWNLOADED_SHA256_VERIFIED":
+                errors.append(f"artifact[{index}] claims payload verification without a verified download")
+        elif inventory_status == "SEED_SCHEDULE_SOURCE_VERIFIED":
+            proof = item.get("seed_schedule_proof", {})
+            required_proof = (
+                "workflow_blob_sha", "runner_blob_sha", "master_seed",
+                "seed_stride", "replicates", "formula", "source_commit",
+            )
+            if not isinstance(proof, dict) or any(proof.get(key) in (None, "") for key in required_proof):
+                errors.append(f"artifact[{index}] has an incomplete seed-schedule source proof")
+                continue
+            if not hex40.fullmatch(str(proof.get("workflow_blob_sha", ""))):
+                errors.append(f"artifact[{index}] has an invalid workflow_blob_sha")
+            if not hex40.fullmatch(str(proof.get("runner_blob_sha", ""))):
+                errors.append(f"artifact[{index}] has an invalid runner_blob_sha")
+            if not isinstance(proof.get("master_seed"), int) or isinstance(proof.get("master_seed"), bool):
+                errors.append(f"artifact[{index}] has a non-integer master_seed")
+            if not isinstance(proof.get("replicates"), int) or isinstance(proof.get("replicates"), bool) or proof["replicates"] < 1:
+                errors.append(f"artifact[{index}] has an invalid replicate count in its source proof")
+            if not isinstance(proof.get("formula"), str) or not proof["formula"].strip():
+                errors.append(f"artifact[{index}] has an empty seed formula")
+            if proof.get("source_commit") != item.get("head_sha"):
+                errors.append(f"artifact[{index}] seed-schedule proof commit does not match artifact run head")
+        elif inventory_status == "UNRESOLVED":
+            errors.append(f"artifact[{index}] has unresolved seed-inventory status")
+        else:
+            errors.append(f"artifact[{index}] has an unknown seed-inventory status")
+
+    coverage = source_register.get("coverage", {})
+    expected_counts = {
+        "artifacts_listed": len(records),
+        "unique_run_ids": len(run_ids),
+        "artifacts_downloaded_sha256_verified": download_counts.get("DOWNLOADED_SHA256_VERIFIED", 0),
+        "metadata_only_artifact_count": download_counts.get("METADATA_ONLY", 0),
+        "seed_inventory_payload_verified_count": status_counts.get("PAYLOAD_SHA256_VERIFIED", 0),
+        "seed_inventory_schedule_source_verified_count": status_counts.get("SEED_SCHEDULE_SOURCE_VERIFIED", 0),
+        "seed_inventory_unresolved_artifact_count": status_counts.get("UNRESOLVED", 0),
+        "unresolved_artifact_count": status_counts.get("UNRESOLVED", 0),
+    }
+    for field, expected in expected_counts.items():
+        if coverage.get(field) != expected:
+            errors.append(f"coverage.{field}={coverage.get(field)!r} does not match artifact records ({expected})")
+
+    declared_status_counts = coverage.get("seed_inventory_status_counts", {})
+    for field, expected in status_counts.items():
+        if declared_status_counts.get(field) != expected:
+            errors.append(f"coverage.seed_inventory_status_counts.{field} does not match artifact records ({expected})")
+
+    if source_register.get("artifact_sources_complete") is True:
+        if coverage.get("known_unlisted_artifact_count", 0):
+            errors.append("source register is marked complete but known unlisted artifacts remain")
+        if coverage.get("total_known_unresolved_artifacts", 0):
+            errors.append("source register is marked complete but known unresolved artifacts remain")
+
+    return errors
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--artifact-root", action="append", required=True, type=Path)
@@ -353,38 +478,8 @@ def main() -> int:
     try:
         report = audit(args.artifact_root, args.schedule)
         source_register = json.loads(args.source_register.read_text(encoding="utf-8"))
-        registered_roots = {
-            str(Path(item).resolve())
-            for item in source_register.get("artifact_roots", [])
-        }
-        supplied_roots = {str(Path(item).resolve()) for item in args.artifact_root}
-        source_errors: list[str] = []
-        if source_register.get("artifact_sources_complete") is not True:
-            source_errors.append("source register is not explicitly marked complete")
-        if not registered_roots:
-            source_errors.append("source register has no artifact_roots list")
-        if registered_roots != supplied_roots:
-            source_errors.append("registered artifact_roots do not exactly match supplied --artifact-root values")
+        source_errors = validate_source_register(source_register, args.artifact_root)
         artifact_records = source_register.get("artifacts", [])
-        if not artifact_records:
-            source_errors.append("source register has no artifact records")
-        for index, item in enumerate(artifact_records):
-            inventory_status = item.get("seed_inventory_status")
-            if inventory_status == "PAYLOAD_SHA256_VERIFIED":
-                if item.get("download_status") != "DOWNLOADED_SHA256_VERIFIED":
-                    source_errors.append(f"artifact[{index}] claims payload verification without a verified download")
-            elif inventory_status == "SEED_SCHEDULE_SOURCE_VERIFIED":
-                proof = item.get("seed_schedule_proof", {})
-                required_proof = (
-                    "workflow_blob_sha", "runner_blob_sha", "master_seed",
-                    "seed_stride", "replicates", "formula", "source_commit",
-                )
-                if any(proof.get(key) in (None, "") for key in required_proof):
-                    source_errors.append(f"artifact[{index}] has an incomplete seed-schedule source proof")
-                if proof.get("source_commit") != item.get("head_sha"):
-                    source_errors.append(f"artifact[{index}] seed-schedule proof commit does not match artifact run head")
-            else:
-                source_errors.append(f"artifact[{index}] has unresolved seed-inventory status")
         report["mechanical_status"] = report["status"]
         report["source_register_status"] = "COMPLETE" if not source_errors else "INCOMPLETE"
         report["source_register_sha256"] = sha256_file(args.source_register)
