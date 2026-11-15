@@ -14,7 +14,9 @@
       "research/inclusion-posterior-quadrature-prototype",
       "research/independent-posterior-audit-claim-fix"
     ],
-    "other_selected_workflow_artifacts_enumerated": true
+    "other_selected_workflow_artifacts_enumerated": true,
+    "run_metadata_complete": true,
+    "unique_run_ids": 37
   },
   "artifacts": [
     {
@@ -24,7 +26,12 @@
       "size_bytes": 29333334,
       "sha256": "b8c5af4e37a4cf69a4bd2ea1459880efaa54920d71ec2959605949e02079f895",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "180011a96790284ef01b93d8752924290c8f1653",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/quadratic-logit-curvature-smoke.yml",
+      "run_created_at": "2026-11-15T06:25:06Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43634886771,
@@ -33,7 +40,12 @@
       "size_bytes": 89906048,
       "sha256": "a3bd60ef6f31e4b9880d20af6968ab8e7f6d7a4b64da28122c5b4995f54e06cc",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "5e8ab61aa39b3b48f5bf09b5b82612e30721c3b5",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
+      "run_created_at": "2026-11-14T19:57:38Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43634885089,
@@ -42,7 +54,12 @@
       "size_bytes": 89904154,
       "sha256": "ccb742912d993c52b0c8b9bc11ba0fcf9da13ba4e9920e8737f9b4c1ed393464",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "10cf4a4389e10dfe409e094e6ee164365c138bbb",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
+      "run_created_at": "2026-11-14T19:57:36Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43634881358,
@@ -51,7 +68,12 @@
       "size_bytes": 89904154,
       "sha256": "b1a19dad27be3c6fa924eb21c43e5dc3587bd2057e29a1f151affa41bfacb789",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "4566a8497432a0051b2cbfe55974802bc520b574",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
+      "run_created_at": "2026-11-14T19:57:33Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43634841047,
@@ -60,7 +82,12 @@
       "size_bytes": 89904154,
       "sha256": "2e86f4bca75dc154c2e4a6e13807fcff8c6659051742263e73cd1ce292322564",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "5e440e6c34c16c8f408511a827608844921dba37",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
+      "run_created_at": "2026-11-14T19:57:05Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43634839052,
@@ -69,7 +96,12 @@
       "size_bytes": 89904154,
       "sha256": "bb3cd207d4c2dd4deb0efc11df6aa538b74d0b1bb251eaff00b0be340d989653",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "975394f6d119cedcf4004238608594bce1f8ad0f",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
+      "run_created_at": "2026-11-14T19:57:03Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43634831443,
@@ -78,7 +110,12 @@
       "size_bytes": 89904154,
       "sha256": "765722b7444c12c0540870711a30ca22c75850f5925137af9f5676734f8a7ee0",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "3a666f2067b5fdcf53d3c73030582a4f15594a0a",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
+      "run_created_at": "2026-11-14T19:56:58Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43634678059,
@@ -87,7 +124,12 @@
       "size_bytes": 89904069,
       "sha256": "2666978344fe84a451d17abec6a8d048885b2b891f7feca3c1da040a6d78190e",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "ab060d8e02c6a6dee9e58324418db14ef416a28e",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
+      "run_created_at": "2026-11-14T19:55:12Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43634672001,
@@ -96,7 +138,12 @@
       "size_bytes": 89904069,
       "sha256": "0f0f773a92347bb1ea137104b6fa8df0a88af9660aa3589756c6f28e3d4f35bb",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "b63e992ae0214f70e5b21d858260ab2576c5509d",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
+      "run_created_at": "2026-11-14T19:55:09Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43634661809,
@@ -105,7 +152,12 @@
       "size_bytes": 89904069,
       "sha256": "91fe8f0d0d765943a5f45451a1031a40920b3e07267ba0cbc5c3a5a1670815ec",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "6532f589e71e6352d6364f2cbe1784cceeefc915",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
+      "run_created_at": "2026-11-14T19:55:02Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43634540727,
@@ -114,7 +166,12 @@
       "size_bytes": 100222894,
       "sha256": "046e74624576cbfb9c438da3fb59f8acb3528868196632901a490251116d7566",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "414175baf0b3f0af2421517804e1521d1666dfbc",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
+      "run_created_at": "2026-11-14T19:53:37Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43634540727,
@@ -123,7 +180,12 @@
       "size_bytes": 97836189,
       "sha256": "d3094f649f924e88d77de1dec33655ddad1b9b549c638d270586dc261fea4f89",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "414175baf0b3f0af2421517804e1521d1666dfbc",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
+      "run_created_at": "2026-11-14T19:53:37Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43634540727,
@@ -132,7 +194,12 @@
       "size_bytes": 103682870,
       "sha256": "cbd52cb2f76382705e821f30cf0d20329bf82e470b4dabb1dee70ff2673e6b56",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "414175baf0b3f0af2421517804e1521d1666dfbc",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
+      "run_created_at": "2026-11-14T19:53:37Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43634540773,
@@ -141,7 +208,12 @@
       "size_bytes": 69506580,
       "sha256": "c72ebb5474932b01589fa4286c1a03ca8ebb1bfd8669bc2918fe482ab7bc7dbb",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "414175baf0b3f0af2421517804e1521d1666dfbc",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T19:53:37Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43634540773,
@@ -150,7 +222,12 @@
       "size_bytes": 66013413,
       "sha256": "d2ecf03b4dd662477a831de7f7554986cad615efc468094dad788f2c97255666",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "414175baf0b3f0af2421517804e1521d1666dfbc",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T19:53:37Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43634540773,
@@ -159,7 +236,12 @@
       "size_bytes": 63645156,
       "sha256": "2f1d33067ddd410e5aa8a3667b6789f168e9e56e717d8ea9d615e81209f6c5cd",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "414175baf0b3f0af2421517804e1521d1666dfbc",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T19:53:37Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43633611845,
@@ -168,7 +250,12 @@
       "size_bytes": 89279520,
       "sha256": "d34f58ea693a003fb51e888650470d502680097b4fe5ac352d3e9486bbb7e7c4",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "b9a2aea3f0125d04b3a562b208a868435dc6b26a",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
+      "run_created_at": "2026-11-14T19:43:14Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43633572255,
@@ -177,7 +264,12 @@
       "size_bytes": 89279520,
       "sha256": "6e259b7b999306c606d0458fcfa0d6ecab8c2941106d311a7caabd3d1813b4bd",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "02ba1693f1ff413f00671ffe16b96807d221515c",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
+      "run_created_at": "2026-11-14T19:42:48Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43633559278,
@@ -186,7 +278,12 @@
       "size_bytes": 89278234,
       "sha256": "f24599b56d3ca5c165dd41cd196a08e0925f371a267fa8a0b9ff5927a44bd13a",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "ee0729675124f49b0e2fedc2ad116a197b8a33db",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/quadratic-logit-curvature-density-pilot.yml",
+      "run_created_at": "2026-11-14T19:42:40Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43632142013,
@@ -195,7 +292,12 @@
       "size_bytes": 63645156,
       "sha256": "995df64185bab4e05f579884eceac3890dd3d523a419c0af15bdd4d487ac272f",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "e26b47607ce0c80717787c20a0ed527ad89a8c51",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T19:26:58Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43632142013,
@@ -204,7 +306,12 @@
       "size_bytes": 69506580,
       "sha256": "00a1251481ae1526c98eab2942f3a19992dcfb94c0a1541d33378cd41d9d8fe8",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "e26b47607ce0c80717787c20a0ed527ad89a8c51",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T19:26:58Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43632142013,
@@ -213,7 +320,12 @@
       "size_bytes": 66013413,
       "sha256": "c57640e46b6a7085b2da3e5ec0e6fb0e8e3418e662e47e617e1cf0d1136dd1c3",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "e26b47607ce0c80717787c20a0ed527ad89a8c51",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T19:26:58Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43632134863,
@@ -222,7 +334,12 @@
       "size_bytes": 63645156,
       "sha256": "0264e4ce7344e1e7e5a4c9a6a35c6ff01f3bb9a77afa43d819e6e915da238c3a",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "efb4b2b8eb6b4ca67bc338d97cdefafe4789ac6b",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T19:26:53Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43632134863,
@@ -231,7 +348,12 @@
       "size_bytes": 69505570,
       "sha256": "a555101532202c2392fbae6d2670e7c80a86361c0d8ccc8fe76fdd0ca05193f3",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "efb4b2b8eb6b4ca67bc338d97cdefafe4789ac6b",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T19:26:53Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43632134863,
@@ -240,7 +362,12 @@
       "size_bytes": 66013413,
       "sha256": "f19f3c74bdf035ea5fd9d5f31aa75f02b9bd72fe689c722d39a0b249a203e7a5",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "efb4b2b8eb6b4ca67bc338d97cdefafe4789ac6b",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T19:26:53Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43628956224,
@@ -249,7 +376,12 @@
       "size_bytes": 63644718,
       "sha256": "b206c953fd7f583644337751e6f44969905c439fd08b2f3c397b5b264b900999",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "9894307b78c569adcc137c27b530afbdaf2247bb",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T18:51:57Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43628956224,
@@ -258,7 +390,12 @@
       "size_bytes": 66013290,
       "sha256": "7565c50cdbe27748bbcca5bf9ba4cc89e0a1cf68e4b65c7ff7c627aa189a1723",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "9894307b78c569adcc137c27b530afbdaf2247bb",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T18:51:57Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43628956224,
@@ -267,7 +404,12 @@
       "size_bytes": 69506461,
       "sha256": "2178a20fb50fa85a413526c9b41210867b8cbf589143fd3f0da25a4f05707b94",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "9894307b78c569adcc137c27b530afbdaf2247bb",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T18:51:57Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43628948365,
@@ -276,7 +418,12 @@
       "size_bytes": 103682750,
       "sha256": "75590c1f1099abc92df98feab100e9295e16b5936af03ca8ba70a29419af32b4",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "614c2a4bc733299aa4479fee8bb5e98dfe92b82c",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
+      "run_created_at": "2026-11-14T18:51:52Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43628948365,
@@ -285,7 +432,12 @@
       "size_bytes": 97836070,
       "sha256": "0bf39715ca5dcf2289f308ff626a6be75b8e981096fccf871ff4d3afa561b24e",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "614c2a4bc733299aa4479fee8bb5e98dfe92b82c",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
+      "run_created_at": "2026-11-14T18:51:52Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43628948365,
@@ -294,7 +446,12 @@
       "size_bytes": 100224769,
       "sha256": "7b5b11a6d9d658bda50c699978f364795ddaded906a8f91540338678f15c9008",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "614c2a4bc733299aa4479fee8bb5e98dfe92b82c",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
+      "run_created_at": "2026-11-14T18:51:52Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43628935766,
@@ -303,7 +460,12 @@
       "size_bytes": 69506446,
       "sha256": "e6b5d7ace6baa5e189591fc6c0b164e5454124579b3163032f58b15dbb5b6f8a",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "1ae056dac1b90c12a9a63eaaa6387fd6ae78886a",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T18:51:43Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43628935766,
@@ -312,7 +474,12 @@
       "size_bytes": 66013275,
       "sha256": "9facf00a92bc47b4067f21788ebd60e0ff6e757aec103aedae0e6344e232368f",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "1ae056dac1b90c12a9a63eaaa6387fd6ae78886a",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T18:51:43Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43628935766,
@@ -321,7 +488,12 @@
       "size_bytes": 63644703,
       "sha256": "8e3f4417014f24540d0e5c6511b9065842002cf61a79184be807442a676a1f82",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "1ae056dac1b90c12a9a63eaaa6387fd6ae78886a",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T18:51:43Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43628935789,
@@ -330,7 +502,12 @@
       "size_bytes": 103682734,
       "sha256": "7d09b45f60dd01961a654195360f36fc8bc2d36b43a1836180d44ceae79fb6e3",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "1ae056dac1b90c12a9a63eaaa6387fd6ae78886a",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
+      "run_created_at": "2026-11-14T18:51:43Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43628935789,
@@ -339,7 +516,12 @@
       "size_bytes": 100222756,
       "sha256": "2f3c7a53f47cd3d2a75d96525c36d39309373ae8ed0d6ea7a5255d3df858e89a",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "1ae056dac1b90c12a9a63eaaa6387fd6ae78886a",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
+      "run_created_at": "2026-11-14T18:51:43Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43628935789,
@@ -348,7 +530,12 @@
       "size_bytes": 97836055,
       "sha256": "c269f77fd65fe6c6c05a5be8a4bcf0ca6afd505bd6dbf77ea815a72134f48daf",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "1ae056dac1b90c12a9a63eaaa6387fd6ae78886a",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
+      "run_created_at": "2026-11-14T18:51:43Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43622877251,
@@ -357,7 +544,12 @@
       "size_bytes": 69496090,
       "sha256": "eb062742846de52c4315ab49a70f7b9c5dcf27be42deaa109dd8c50168c4cb57",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "44b504660269c4a7fd0003bc8663bb18fb8a9489",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T17:45:59Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43622877251,
@@ -366,7 +558,12 @@
       "size_bytes": 66001638,
       "sha256": "3f424bfe1c6950af3f03132ccc471573ed50fe2fe650731f9e83f6c2910c4d77",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "44b504660269c4a7fd0003bc8663bb18fb8a9489",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T17:45:59Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43622877251,
@@ -375,7 +572,12 @@
       "size_bytes": 63634648,
       "sha256": "8f3340e2082f9fc5cf0ab402ddf1dcff1ae3b3a6fe59b64496d11e052d2f8752",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "44b504660269c4a7fd0003bc8663bb18fb8a9489",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T17:45:59Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43620497522,
@@ -384,7 +586,12 @@
       "size_bytes": 69496090,
       "sha256": "67c870d7cf2a052142f239d58b3372992e0a3a18bb6c0e8cff5a85e140ce9805",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "a1182711577f83f7d61b8a2b6906ba594377a913",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T17:19:44Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43620497522,
@@ -393,7 +600,12 @@
       "size_bytes": 66002917,
       "sha256": "04fc921b75975e1b846cb738080d822628977583e3361a12343943147c02511c",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "a1182711577f83f7d61b8a2b6906ba594377a913",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T17:19:44Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43620497522,
@@ -402,7 +614,12 @@
       "size_bytes": 63634648,
       "sha256": "b04f52517c27a62a1a95a88ec1b5e30efb65d87c2d3a300869ae622c1e58b69a",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "a1182711577f83f7d61b8a2b6906ba594377a913",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T17:19:44Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43615384270,
@@ -411,7 +628,12 @@
       "size_bytes": 69495083,
       "sha256": "6dda29a6d7ce1fc9370a67fb3ad8bedee6ab53fff736c6314b7b07ef7fe13c38",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "3998718b12d33fa05debd13dec5b94ef459be054",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T16:23:53Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43615384270,
@@ -420,7 +642,12 @@
       "size_bytes": 66002917,
       "sha256": "b61032093536d257322eb13b6c774067747a6c2be0e09a1deabce9f7ace561ce",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "3998718b12d33fa05debd13dec5b94ef459be054",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T16:23:53Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43615384270,
@@ -429,7 +656,12 @@
       "size_bytes": 63634648,
       "sha256": "1b8622145fa616d81c1b5937970133d090bbaa6ffa1f7afdc8fa61f8645cb3d1",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "3998718b12d33fa05debd13dec5b94ef459be054",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T16:23:53Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43615227004,
@@ -438,7 +670,12 @@
       "size_bytes": 100212567,
       "sha256": "39c8950ec4de677edc73be9e40620e550d3dffc9795c87db44d30ec1d22cbd5f",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "7dcfec2f9fc611b2ebcaf21b224ad3f373196ff1",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
+      "run_created_at": "2026-11-14T16:22:09Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43615227004,
@@ -447,7 +684,12 @@
       "size_bytes": 98682389,
       "sha256": "d55cd048f0b53a976b27a22d110ce9ac054016562c007a905992eac0547244aa",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "7dcfec2f9fc611b2ebcaf21b224ad3f373196ff1",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
+      "run_created_at": "2026-11-14T16:22:09Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43615227004,
@@ -456,7 +698,12 @@
       "size_bytes": 97825778,
       "sha256": "03e0dc5e706f376676eb7f4c81452faf968ecf6edf7eb5081801ff67684d451b",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "7dcfec2f9fc611b2ebcaf21b224ad3f373196ff1",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
+      "run_created_at": "2026-11-14T16:22:09Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43617052487,
@@ -465,7 +712,12 @@
       "size_bytes": 66002917,
       "sha256": "bd52f2b8a0acbf81a2380ae2b67c686c8210910393d75fcc9606dbecb398e814",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "d94fdd62e514c81c20444196e166d2ebbb341a40",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T16:42:18Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43617052487,
@@ -474,7 +726,12 @@
       "size_bytes": 69496090,
       "sha256": "5718cd1dc572265975e2ab9b03e866641d95c9ed38e88af4f35d653052e2c64f",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "d94fdd62e514c81c20444196e166d2ebbb341a40",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T16:42:18Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43617052487,
@@ -483,7 +740,12 @@
       "size_bytes": 63634648,
       "sha256": "42ae86be7900f5fb3a1a738115f85b46713db1b7cb43fd1337ca2223d3731e02",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "d94fdd62e514c81c20444196e166d2ebbb341a40",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T16:42:18Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43619594762,
@@ -492,7 +754,12 @@
       "size_bytes": 66001638,
       "sha256": "caeec4bad484aa7baf1b963c0f914900f96de39db8e3bb1bc1fe0bbb0777e753",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "17466326a4be59ca7698c6c1f34529801e6e5507",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T17:09:52Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43619594762,
@@ -501,7 +768,12 @@
       "size_bytes": 63634331,
       "sha256": "9a3ba516f9f63919d0aa49e57d5636cafcc322aed4aa752e90b9fc578c9d1c4b",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "17466326a4be59ca7698c6c1f34529801e6e5507",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T17:09:52Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43619594762,
@@ -510,7 +782,12 @@
       "size_bytes": 69496090,
       "sha256": "a78a66f79d8cab8ef0179d55ba07881c302666b8d3cc12add2b93b9d0811cdb7",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "17466326a4be59ca7698c6c1f34529801e6e5507",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T17:09:52Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43617052462,
@@ -519,7 +796,12 @@
       "size_bytes": 97825684,
       "sha256": "26f9ccc6d711cff45ea7ac4a130eba48dcde7b243185d2f6c2fc2bb6c9a8af86",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "d94fdd62e514c81c20444196e166d2ebbb341a40",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
+      "run_created_at": "2026-11-14T16:42:18Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43617052462,
@@ -528,7 +810,12 @@
       "size_bytes": 100214396,
       "sha256": "e83f944b22cc153c1b6354515f42ed25978db2cf7b94b2e66c13f16e04768d1a",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "d94fdd62e514c81c20444196e166d2ebbb341a40",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
+      "run_created_at": "2026-11-14T16:42:18Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43617052462,
@@ -537,7 +824,12 @@
       "size_bytes": 103672379,
       "sha256": "f7eb0576f0b9dc5badafb2a3b3b136bc125106856345df4749e173f94669c627",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "d94fdd62e514c81c20444196e166d2ebbb341a40",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
+      "run_created_at": "2026-11-14T16:42:18Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43574613209,
@@ -546,7 +838,12 @@
       "size_bytes": 100168115,
       "sha256": "78b22f4574a37450972c075de778789030be93c441e5addd42fa041c1c9a0733",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "836ecff9060d83c18bc0a9c18b0ed86f54fcc79e",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
+      "run_created_at": "2026-11-14T08:11:29Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43574613209,
@@ -555,7 +852,12 @@
       "size_bytes": 97780326,
       "sha256": "e381296ce6a6cd920f05b7cc5a73544ac1a3b42fea149c94ff774631f57af604",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "836ecff9060d83c18bc0a9c18b0ed86f54fcc79e",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
+      "run_created_at": "2026-11-14T08:11:29Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43574613209,
@@ -564,7 +866,12 @@
       "size_bytes": 98643774,
       "sha256": "ee87f308d5c76474f9fa0ec247c15870ff6d583b377702883be9630d769cd3d0",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "836ecff9060d83c18bc0a9c18b0ed86f54fcc79e",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-expanded-grid-pilot.yml",
+      "run_created_at": "2026-11-14T08:11:29Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43573059988,
@@ -573,7 +880,12 @@
       "size_bytes": 65981622,
       "sha256": "1ffc4127cf6df555cbeeedede0e3ef11aa9eaf75e164e27aadbb756d3ba2980f",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "4f125de03c01eccbd4cb81e069e8af2dfa49b4db",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T07:51:44Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43573059988,
@@ -582,7 +894,12 @@
       "size_bytes": 66192200,
       "sha256": "5cf8c81b75a633c13baf967252bf6c2f3e9fb562667ecd0598af3bc2ea5c8d91",
       "expired": false,
-      "download_status": "METADATA_ONLY"
+      "download_status": "METADATA_ONLY",
+      "head_sha": "4f125de03c01eccbd4cb81e069e8af2dfa49b4db",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T07:51:44Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43573059988,
@@ -591,7 +908,12 @@
       "size_bytes": 63613195,
       "sha256": "e0a59eb546cf0db2a33eecc69e4231d09a3dd82e5b5d53b22aef5365727f8ce9",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "4f125de03c01eccbd4cb81e069e8af2dfa49b4db",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/absolute-width-distribution-pilot.yml",
+      "run_created_at": "2026-11-14T07:51:44Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43619577181,
@@ -601,7 +923,12 @@
       "size_bytes": 8157332,
       "sha256": "c840a912f1cfc7ddcef930d2c92984f748d34859452dc54112cda6df76985d36",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "acc9b9685dd53ff0f09ab952ecc937dc23d98948",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/tests.yml",
+      "run_created_at": "2026-11-14T17:09:41Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43619577181,
@@ -611,7 +938,12 @@
       "size_bytes": 74359526,
       "sha256": "3fc0e848d45526cfbd222c6fc2fa9684a1fc4408390dc2c4b5538f85eb715dff",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "acc9b9685dd53ff0f09ab952ecc937dc23d98948",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/tests.yml",
+      "run_created_at": "2026-11-14T17:09:41Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43619577181,
@@ -621,7 +953,12 @@
       "size_bytes": 12279818,
       "sha256": "b8b10c69a19857b9dfd837cd2b96ccf2531ee7b86475e171c8c3431370719206",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "acc9b9685dd53ff0f09ab952ecc937dc23d98948",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/tests.yml",
+      "run_created_at": "2026-11-14T17:09:41Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43619577181,
@@ -631,7 +968,12 @@
       "size_bytes": 12280279,
       "sha256": "f73e22abd9c6e88218052dd47a6dcb514e0f40454ebaab95a0a018c2c69f0e6c",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "acc9b9685dd53ff0f09ab952ecc937dc23d98948",
+      "head_branch": "research/absolute-width-distribution-pilot-20261114",
+      "workflow_path": ".github/workflows/tests.yml",
+      "run_created_at": "2026-11-14T17:09:41Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43615127763,
@@ -641,7 +983,12 @@
       "size_bytes": 115545773,
       "sha256": "641c17cbd04e348c8dc6215df642728a9fcc7cc2b8f25b6b230231ad4e29b579",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "bb065b1a3574932b28e09e63a1ba7359b3a5da3f",
+      "head_branch": "research/five-arm-kde-kernel-reuse-v2-20261114",
+      "workflow_path": ".github/workflows/absolute-bandwidth-density-pilot.yml",
+      "run_created_at": "2026-11-14T16:21:04Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 43582872046,
@@ -651,7 +998,12 @@
       "size_bytes": 115740778,
       "sha256": "2aeb84f875dc3f436e0894c138a153d3a86fc5cac248d534b6b821a472b63131",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "a3c0e1644364a5d2fbf1ff7f1815805f0933a0b6",
+      "head_branch": "research/five-arm-kde-kernel-reuse-v2-20261114",
+      "workflow_path": ".github/workflows/absolute-bandwidth-density-pilot.yml",
+      "run_created_at": "2026-11-14T09:56:14Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 42505936771,
@@ -661,7 +1013,12 @@
       "size_bytes": 336763743,
       "sha256": "c3e18b8726133ff1795fbbcbb9971e67f8eaa01222914db826b57ddf6fd29d4e",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "1b3e3769ecca93f6ebb944b1e631cb622277938b",
+      "head_branch": "research/inclusion-posterior-quadrature-prototype",
+      "workflow_path": ".github/workflows/inclusion-posterior-calibration-pilot.yml",
+      "run_created_at": "2026-11-08T17:38:06Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 42481464991,
@@ -671,7 +1028,12 @@
       "size_bytes": 215628452,
       "sha256": "7ba17940acd7c3c71565a72aea6aa47b36992360d96e6c5274f68a79ab61cf10",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "f77c28581d0222943803f67e2c726c93fe19068b",
+      "head_branch": "research/independent-posterior-audit-claim-fix",
+      "workflow_path": ".github/workflows/finite-validation-density-confirmatory.yml",
+      "run_created_at": "2026-11-08T12:42:00Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 42481059735,
@@ -681,7 +1043,12 @@
       "size_bytes": 78030562,
       "sha256": "c375e84168b55d1cc91a3b774485b6f6402ff9355ccc276718b906c49e95f4fa",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "392b6b467560f2aac8db4fd24b48ef9cb56daf20",
+      "head_branch": "research/independent-posterior-audit-claim-fix",
+      "workflow_path": ".github/workflows/fixed-analysis-catalogue-density-confirmatory.yml",
+      "run_created_at": "2026-11-08T12:36:32Z",
+      "run_conclusion": "success"
     },
     {
       "run_id": 42481059738,
@@ -691,7 +1058,12 @@
       "size_bytes": 3920710,
       "sha256": "5a494eeb515e87d0799f4bf701f95fa5409a5d483deb9ae6dfb77fecf0682037",
       "expired": false,
-      "download_status": "DOWNLOADED_SHA256_VERIFIED"
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "392b6b467560f2aac8db4fd24b48ef9cb56daf20",
+      "head_branch": "research/independent-posterior-audit-claim-fix",
+      "workflow_path": ".github/workflows/fixed-analysis-catalogue-density-pilot.yml",
+      "run_created_at": "2026-11-08T12:36:32Z",
+      "run_conclusion": "success"
     }
   ]
 }
