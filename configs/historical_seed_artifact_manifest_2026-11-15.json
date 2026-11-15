@@ -5,8 +5,8 @@
   "coverage": {
     "branch": "research/absolute-width-distribution-pilot-20261114",
     "successful_runs_enumerated": 32,
-    "artifacts_listed": 354,
-    "artifacts_downloaded_sha256_verified": 197,
+    "artifacts_listed": 357,
+    "artifacts_downloaded_sha256_verified": 200,
     "artifact_sources_complete": false,
     "source_branches": [
       "research/absolute-width-distribution-pilot-20261114",
@@ -29,9 +29,9 @@
     ],
     "other_selected_workflow_artifacts_enumerated": true,
     "run_metadata_complete": true,
-    "unique_run_ids": 189,
+    "unique_run_ids": 192,
     "downloaded_archive_scan_complete": true,
-    "downloaded_archive_count": 197,
+    "downloaded_archive_count": 200,
     "metadata_only_artifact_count": 157,
     "test_workflow_runs_enumerated": 19,
     "test_workflow_artifacts_metadata_only": 57,
@@ -67,18 +67,18 @@
         "metadata_only": 57
       },
       "totals": {
-        "runs": 189,
-        "artifacts": 354,
-        "downloaded_sha256_verified": 197,
+        "runs": 192,
+        "artifacts": 357,
+        "downloaded_sha256_verified": 200,
         "metadata_only": 157,
-        "seed_schedule_source_verified": 133
+        "seed_schedule_source_verified": 136
       },
       "posterior_grid_integrity_selected_workflows": {
-        "runs": 81,
-        "artifacts": 85,
-        "downloaded_sha256_verified": 33,
+        "runs": 84,
+        "artifacts": 88,
+        "downloaded_sha256_verified": 36,
         "metadata_only": 52,
-        "seed_schedule_source_verified": 85,
+        "seed_schedule_source_verified": 88,
         "workflows": [
           ".github/workflows/host-misspecification-audit.yml",
           ".github/workflows/paired-host-misspecification.yml",
@@ -87,7 +87,9 @@
           ".github/workflows/hidden-host-assumption-sensitivity.yml",
           ".github/workflows/host-density-validation-campaign.yml",
           ".github/workflows/h0-dependent-noise-sbc.yml",
-          ".github/workflows/selection-misspecification-pilot.yml"
+          ".github/workflows/selection-misspecification-pilot.yml",
+          ".github/workflows/selection-misspecification-confirmatory.yml",
+          ".github/workflows/audit-stage-b-artifact.yml"
         ]
       }
     },
@@ -96,9 +98,9 @@
         "branch": "research/audit-posterior-grid-integrity",
         "run_count_observed": 500,
         "artifact_enumeration": "PARTIAL_SELECTED_WORKFLOWS",
-        "reason": "Eight selected synthetic host-density/host-misspecification workflows are now enumerated: 84 successful run IDs and 93 artifacts, with exact workflow/runner/module seed proofs. The other workflows on this 500-run branch, failed/cancelled outcomes, and partial artifacts remain unresolved.",
-        "selected_successful_runs_enumerated": 81,
-        "selected_artifacts_added": 85,
+        "reason": "Ten selected synthetic host-density/host-misspecification workflows are now enumerated: 87 successful run IDs and 96 artifacts, with exact workflow/runner/module/analysis seed proofs. The other workflows on this 500-run branch, failed/cancelled outcomes, and partial artifacts remain unresolved.",
+        "selected_successful_runs_enumerated": 84,
+        "selected_artifacts_added": 88,
         "selected_workflows": [
           "host-misspecification-audit.yml",
           "paired-host-misspecification.yml",
@@ -107,7 +109,9 @@
           "hidden-host-assumption-sensitivity.yml",
           "host-density-validation-campaign.yml",
           "h0-dependent-noise-sbc.yml",
-          "selection-misspecification-pilot.yml"
+          "selection-misspecification-pilot.yml",
+          "selection-misspecification-confirmatory.yml",
+          "audit-stage-b-artifact.yml"
         ]
       },
       {
@@ -125,11 +129,11 @@
     ],
     "seed_inventory_status_counts": {
       "PAYLOAD_SHA256_VERIFIED": 164,
-      "SEED_SCHEDULE_SOURCE_VERIFIED": 133,
+      "SEED_SCHEDULE_SOURCE_VERIFIED": 136,
       "UNRESOLVED": 57
     },
     "seed_inventory_unresolved_artifact_count": 57,
-    "seed_inventory_schedule_source_verified_count": 133,
+    "seed_inventory_schedule_source_verified_count": 136,
     "seed_inventory_payload_verified_count": 164
   },
   "artifacts": [
@@ -218,6 +222,33 @@
       }
     },
     {
+      "run_id": 40794942601,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12864010259,
+      "name": "selection-misspecification-stage-b",
+      "size_bytes": 2606759,
+      "sha256": "e6b56dc6703ac0af08f7a11bd28381870b5def406be3f19983f53815a6538835",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "12ed103e83bc398df37db8eba8584a9b2b9bc9ad",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/selection-misspecification-confirmatory.yml",
+      "run_created_at": "2026-10-29T00:34:30Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_runner_and_analysis_source",
+        "workflow_blob_sha": "71f0bfcf8d94f43ec6b83964f22bcab1bf550432",
+        "runner_blob_sha": "dc4e808cda4fc69e167256765ec8d2065200bb6a",
+        "module_blob_sha": "9b5189fe46659cf4bd82be0c62bb705128d82fd7",
+        "master_seed": 20262030,
+        "seed_stride": 1,
+        "replicates": 500,
+        "formula": "replicate_seed=20262030+replicate_id for 500 replicates (20262030..20262529), reused across six inference arms; primary paired bootstrap uses analysis_seed=20262030+104729=20366759 and 10,000 resamples.",
+        "source_commit": "12ed103e83bc398df37db8eba8584a9b2b9bc9ad"
+      }
+    },
+    {
       "run_id": 40795743899,
       "artifact_id": 12863708515,
       "name": "selection-misspecification-sensitivity-243e1bdc3210951dadcf5b2d05d2b97a6ebba4b9",
@@ -231,6 +262,33 @@
       "run_created_at": "2026-10-29T00:41:55Z",
       "run_conclusion": "success",
       "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 40795993174,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12863333924,
+      "name": "stage-b-independent-paired-analysis",
+      "size_bytes": 2435,
+      "sha256": "2fb1a5b1b4aa80992d2f6a16825fb31a44aa6a52a3ee49ee3fb1b9ba51f91a99",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "33fe3a7453c71520e23e83e115eaddc53f4c0ad4",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/audit-stage-b-artifact.yml",
+      "run_created_at": "2026-10-29T00:44:15Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_runner_and_analysis_source",
+        "workflow_blob_sha": "9cd1fb468cdcc7f534f996fdb2508c17f0c4660c",
+        "runner_blob_sha": "f6306b602c1d89cc7e9420c2db064f50c90af23a",
+        "module_blob_sha": null,
+        "master_seed": 20262030,
+        "seed_stride": 1,
+        "replicates": 500,
+        "formula": "Reads locked artifact 12864010259 without generating new data; verifies seed_start=20262030 and 500 replicates; recomputes primary bootstrap with seed 20366759 (base+104729) and secondary paired contrasts with seed 20485637 (base+223607), each 10,000 resamples.",
+        "source_commit": "33fe3a7453c71520e23e83e115eaddc53f4c0ad4"
+      }
     },
     {
       "run_id": 40796424845,
@@ -684,6 +742,33 @@
         "formula": "replicate_seed=20261030+replicate_id for replicate IDs 0..199; the same 200 seeds are reused across six inference arms. Earlier module blobs also use analysis_seed=20261030+104729 for a 10,000-resample paired bootstrap; the final module blob no longer contains that analysis-seed stream.",
         "analysis_seed": 20365759,
         "source_commit": "33c0cabb3987f3661c7aaf418a3cfb8f775ed395"
+      }
+    },
+    {
+      "run_id": 40811038085,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12870189585,
+      "name": "stage-b-independent-paired-analysis",
+      "size_bytes": 2435,
+      "sha256": "17e5d16e7b71f049d3bdb27ea9f57cbaa9fc270b14258072899c891d061b15c3",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "edb7e0c9100ac2c77d4ede221690aaae70f07ba9",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/audit-stage-b-artifact.yml",
+      "run_created_at": "2026-10-29T03:14:45Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_runner_and_analysis_source",
+        "workflow_blob_sha": "9cd1fb468cdcc7f534f996fdb2508c17f0c4660c",
+        "runner_blob_sha": "f6306b602c1d89cc7e9420c2db064f50c90af23a",
+        "module_blob_sha": null,
+        "master_seed": 20262030,
+        "seed_stride": 1,
+        "replicates": 500,
+        "formula": "Reads locked artifact 12864010259 without generating new data; verifies seed_start=20262030 and 500 replicates; recomputes primary bootstrap with seed 20366759 (base+104729) and secondary paired contrasts with seed 20485637 (base+223607), each 10,000 resamples.",
+        "source_commit": "edb7e0c9100ac2c77d4ede221690aaae70f07ba9"
       }
     },
     {
@@ -6986,13 +7071,13 @@
   "completeness_note": "PARTIAL: 105 artifacts remain metadata-only; failed/cancelled runs and additional historical branches remain unresolved. This register must not authorize training or holdout execution.",
   "scan_summary": {
     "scan_date": "2026-11-15",
-    "downloaded_archives_scanned": 197,
-    "sha256_verified_archives": 197,
-    "json_members": 6704,
-    "csv_members": 11706,
+    "downloaded_archives_scanned": 200,
+    "sha256_verified_archives": 200,
+    "json_members": 6708,
+    "csv_members": 11707,
     "npz_members": 360,
-    "total_supported_members": 18770,
-    "seed_field_occurrences": 3302500,
+    "total_supported_members": 18775,
+    "seed_field_occurrences": 3305523,
     "distinct_integer_seed_values": 595,
     "remaining_parse_errors": 0,
     "terminal_literal_backslash_n_repairs": 4,
@@ -7010,7 +7095,7 @@
       "seed_stride": 10,
       "replicates": 24
     },
-    "limitation": "Results apply only to the listed downloaded archives and source-proven schedules. The 157 metadata-only artifacts, remaining workflows and run outcomes on the 500-run posterior-grid-integrity branch, other failed/cancelled runs, and any unenumerated historical workflows are not covered. The 3,298,900 seed-field occurrence count is provisional because the scanner has since been fixed to extract scalar values from nested seed maps; a full rescan of all 197 downloaded archives is required. The exact distinct-seed union also remains unreconciled. No global disjointness certification.",
+    "limitation": "Results apply only to the listed downloaded archives and source-proven schedules. The 157 metadata-only artifacts, remaining workflows and run outcomes on the 500-run posterior-grid-integrity branch, other failed/cancelled runs, and any unenumerated historical workflows are not covered. The 3,301,923 seed-field occurrence count is provisional because the scanner has since been fixed to extract nested seed maps and seed-range fields; a full rescan of all 200 downloaded archives is required. The exact distinct-seed union also remains unreconciled. No global disjointness certification.",
     "estimated_inclusion_py312_subset": {
       "archives": 43,
       "json_members": 1499,
@@ -7189,7 +7274,7 @@
       "distinct_union_recomputed_against_previous_archives": false
     },
     "seed_field_occurrences_reconciled": false,
-    "seed_field_occurrence_count_status": "PROVISIONAL_PRE_NESTED_SEED_MAP_PARSER_FIX",
+    "seed_field_occurrence_count_status": "PROVISIONAL_PRE_FULL_RESCAN_WITH_UPDATED_SEED_RANGE_PARSER",
     "full_rescan_required_after_parser_fix": true,
     "incremental_h0_dependent_noise_batch": {
       "artifact_ids": [
@@ -7250,6 +7335,29 @@
       "replicates": 200,
       "arms": 6,
       "paired_analysis_seed_early_versions": 20365759,
+      "parse_errors": 0,
+      "distinct_union_recomputed_against_previous_archives": false
+    },
+    "incremental_selection_stage_b_batch": {
+      "artifact_ids": [
+        12864010259,
+        12870189585,
+        12863333924
+      ],
+      "artifact_count": 3,
+      "downloaded_and_sha256_verified": 3,
+      "json_members": 4,
+      "csv_members": 1,
+      "seed_field_occurrences": 3023,
+      "replicate_seed_range": [
+        20262030,
+        20262529
+      ],
+      "replicates": 500,
+      "arms": 6,
+      "primary_analysis_seed": 20366759,
+      "secondary_analysis_seed": 20485637,
+      "unique_seed_values_in_batch": 501,
       "parse_errors": 0,
       "distinct_union_recomputed_against_previous_archives": false
     }
