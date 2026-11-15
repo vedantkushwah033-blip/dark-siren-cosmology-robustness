@@ -100,7 +100,7 @@
         "branch": "research/audit-posterior-grid-integrity",
         "run_count_observed": 500,
         "artifact_enumeration": "PARTIAL_SELECTED_WORKFLOWS",
-        "reason": "Twelve selected synthetic host-density/host-misspecification workflows are now enumerated: 91 successful run IDs and 108 artifacts, with exact workflow/runner/module/analysis seed proofs. The other workflows on this 500-run branch, failed/cancelled outcomes, and partial artifacts remain unresolved.",
+        "reason": "Twelve selected synthetic host-density/host-misspecification workflows are enumerated: 88 successful run IDs and 100 artifacts, with exact workflow/runner/module/analysis seed proofs. The other workflows on this 500-run branch, failed/cancelled outcomes, and partial artifacts remain unresolved.",
         "selected_successful_runs_enumerated": 88,
         "selected_artifacts_added": 100,
         "selected_workflows": [
