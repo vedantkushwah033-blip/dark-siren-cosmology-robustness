@@ -5,8 +5,8 @@
   "coverage": {
     "branch": "research/absolute-width-distribution-pilot-20261114",
     "successful_runs_enumerated": 32,
-    "artifacts_listed": 342,
-    "artifacts_downloaded_sha256_verified": 193,
+    "artifacts_listed": 345,
+    "artifacts_downloaded_sha256_verified": 196,
     "artifact_sources_complete": false,
     "source_branches": [
       "research/absolute-width-distribution-pilot-20261114",
@@ -29,9 +29,9 @@
     ],
     "other_selected_workflow_artifacts_enumerated": true,
     "run_metadata_complete": true,
-    "unique_run_ids": 177,
+    "unique_run_ids": 180,
     "downloaded_archive_scan_complete": true,
-    "downloaded_archive_count": 193,
+    "downloaded_archive_count": 196,
     "metadata_only_artifact_count": 149,
     "test_workflow_runs_enumerated": 19,
     "test_workflow_artifacts_metadata_only": 57,
@@ -67,25 +67,26 @@
         "metadata_only": 57
       },
       "totals": {
-        "runs": 177,
-        "artifacts": 342,
-        "downloaded_sha256_verified": 193,
+        "runs": 180,
+        "artifacts": 345,
+        "downloaded_sha256_verified": 196,
         "metadata_only": 149,
-        "seed_schedule_source_verified": 121
+        "seed_schedule_source_verified": 124
       },
       "posterior_grid_integrity_selected_workflows": {
-        "runs": 69,
-        "artifacts": 73,
-        "downloaded_sha256_verified": 29,
+        "runs": 72,
+        "artifacts": 76,
+        "downloaded_sha256_verified": 32,
         "metadata_only": 44,
-        "seed_schedule_source_verified": 73,
+        "seed_schedule_source_verified": 76,
         "workflows": [
           ".github/workflows/host-misspecification-audit.yml",
           ".github/workflows/paired-host-misspecification.yml",
           ".github/workflows/host-misspecification-sensitivity-surface.yml",
           ".github/workflows/host-prior-support-factorial.yml",
           ".github/workflows/hidden-host-assumption-sensitivity.yml",
-          ".github/workflows/host-density-validation-campaign.yml"
+          ".github/workflows/host-density-validation-campaign.yml",
+          ".github/workflows/h0-dependent-noise-sbc.yml"
         ]
       }
     },
@@ -94,16 +95,17 @@
         "branch": "research/audit-posterior-grid-integrity",
         "run_count_observed": 500,
         "artifact_enumeration": "PARTIAL_SELECTED_WORKFLOWS",
-        "reason": "Six selected synthetic host-density/host-misspecification workflows are now enumerated: 69 successful run IDs and 81 artifacts, with exact workflow/runner seed proofs. The other workflows on this 500-run branch, failed/cancelled outcomes, and partial artifacts remain unresolved.",
-        "selected_successful_runs_enumerated": 69,
-        "selected_artifacts_added": 73,
+        "reason": "Seven selected synthetic host-density/host-misspecification workflows are now enumerated: 75 successful run IDs and 84 artifacts, with exact workflow/runner seed proofs. The other workflows on this 500-run branch, failed/cancelled outcomes, and partial artifacts remain unresolved.",
+        "selected_successful_runs_enumerated": 72,
+        "selected_artifacts_added": 76,
         "selected_workflows": [
           "host-misspecification-audit.yml",
           "paired-host-misspecification.yml",
           "host-misspecification-sensitivity-surface.yml",
           "host-prior-support-factorial.yml",
           "hidden-host-assumption-sensitivity.yml",
-          "host-density-validation-campaign.yml"
+          "host-density-validation-campaign.yml",
+          "h0-dependent-noise-sbc.yml"
         ]
       },
       {
@@ -121,11 +123,11 @@
     ],
     "seed_inventory_status_counts": {
       "PAYLOAD_SHA256_VERIFIED": 164,
-      "SEED_SCHEDULE_SOURCE_VERIFIED": 121,
+      "SEED_SCHEDULE_SOURCE_VERIFIED": 124,
       "UNRESOLVED": 57
     },
     "seed_inventory_unresolved_artifact_count": 57,
-    "seed_inventory_schedule_source_verified_count": 121,
+    "seed_inventory_schedule_source_verified_count": 124,
     "seed_inventory_payload_verified_count": 164
   },
   "artifacts": [
@@ -143,6 +145,58 @@
       "run_created_at": "2026-10-29T00:41:55Z",
       "run_conclusion": "success",
       "seed_inventory_status": "PAYLOAD_SHA256_VERIFIED"
+    },
+    {
+      "run_id": 40796895426,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12863499710,
+      "name": "h0-dependent-noise-sbc",
+      "size_bytes": 123279,
+      "sha256": "4e6a93988234c758e08fe8ea430598e59badf9678ac19304ea671de853547d8d",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "1cd5dcc0d8ffea5f231bdcf8e30fe1cf46760c65",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/h0-dependent-noise-sbc.yml",
+      "run_created_at": "2026-10-29T00:52:47Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "7c90be6770431480000046731b0a3a4303e84364",
+        "runner_blob_sha": "e0e87eeac275ae9523c64b1a00e9cee4fb73b47a",
+        "master_seed": 20261030,
+        "seed_stride": 100000,
+        "replicates": 300,
+        "formula": "replicate_seed=20261030+mode_index*100000+replicate; MODE_VALUES insertion order is prior, fixed_60, fixed_70, fixed_80; 300 replicates per mode; four disjoint 300-seed blocks, repeated identically in each workflow rerun.",
+        "source_commit": "1cd5dcc0d8ffea5f231bdcf8e30fe1cf46760c65"
+      }
+    },
+    {
+      "run_id": 40797551664,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12864761259,
+      "name": "h0-dependent-noise-sbc",
+      "size_bytes": 123389,
+      "sha256": "12259a52b37fb827e1fa158d89a8cdaa07603a081055dbea8c8f4af8cebef6c0",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "9c662b657c4472b9614bf013625af8647e1a2d5d",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/h0-dependent-noise-sbc.yml",
+      "run_created_at": "2026-10-29T00:59:00Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "7c90be6770431480000046731b0a3a4303e84364",
+        "runner_blob_sha": "e0e87eeac275ae9523c64b1a00e9cee4fb73b47a",
+        "master_seed": 20261030,
+        "seed_stride": 100000,
+        "replicates": 300,
+        "formula": "replicate_seed=20261030+mode_index*100000+replicate; MODE_VALUES insertion order is prior, fixed_60, fixed_70, fixed_80; 300 replicates per mode; four disjoint 300-seed blocks, repeated identically in each workflow rerun.",
+        "source_commit": "9c662b657c4472b9614bf013625af8647e1a2d5d"
+      }
     },
     {
       "run_id": 40797592794,
@@ -201,6 +255,32 @@
           "fixed_70": 200000,
           "fixed_80": 300000
         }
+      }
+    },
+    {
+      "run_id": 40797963979,
+      "branch": "research/audit-posterior-grid-integrity",
+      "artifact_id": 12864343125,
+      "name": "h0-dependent-noise-sbc",
+      "size_bytes": 123293,
+      "sha256": "53b671d8269a2207b36233884c36a347e06cc4c74f8b6bb08b9d7d7c94b0d00b",
+      "expired": false,
+      "download_status": "DOWNLOADED_SHA256_VERIFIED",
+      "head_sha": "e9a512d46aeeb7070649ac8f851c1d86103f4379",
+      "head_branch": "research/audit-posterior-grid-integrity",
+      "workflow_path": ".github/workflows/h0-dependent-noise-sbc.yml",
+      "run_created_at": "2026-10-29T01:02:45Z",
+      "run_conclusion": "success",
+      "seed_inventory_status": "SEED_SCHEDULE_SOURCE_VERIFIED",
+      "seed_schedule_proof": {
+        "method": "workflow_and_runner_source",
+        "workflow_blob_sha": "7c90be6770431480000046731b0a3a4303e84364",
+        "runner_blob_sha": "e0e87eeac275ae9523c64b1a00e9cee4fb73b47a",
+        "master_seed": 20261030,
+        "seed_stride": 100000,
+        "replicates": 300,
+        "formula": "replicate_seed=20261030+mode_index*100000+replicate; MODE_VALUES insertion order is prior, fixed_60, fixed_70, fixed_80; 300 replicates per mode; four disjoint 300-seed blocks, repeated identically in each workflow rerun.",
+        "source_commit": "e9a512d46aeeb7070649ac8f851c1d86103f4379"
       }
     },
     {
@@ -6652,13 +6732,13 @@
   "completeness_note": "PARTIAL: 105 artifacts remain metadata-only; failed/cancelled runs and additional historical branches remain unresolved. This register must not authorize training or holdout execution.",
   "scan_summary": {
     "scan_date": "2026-11-15",
-    "downloaded_archives_scanned": 193,
-    "sha256_verified_archives": 193,
-    "json_members": 6693,
-    "csv_members": 11702,
+    "downloaded_archives_scanned": 196,
+    "sha256_verified_archives": 196,
+    "json_members": 6702,
+    "csv_members": 11705,
     "npz_members": 360,
-    "total_supported_members": 18755,
-    "seed_field_occurrences": 3297699,
+    "total_supported_members": 18767,
+    "seed_field_occurrences": 3301299,
     "distinct_integer_seed_values": 595,
     "remaining_parse_errors": 0,
     "terminal_literal_backslash_n_repairs": 4,
@@ -6676,7 +6756,7 @@
       "seed_stride": 10,
       "replicates": 24
     },
-    "limitation": "Results apply only to the listed downloaded archives and source-proven schedules. The 149 metadata-only artifacts, remaining workflows and run outcomes on the 500-run posterior-grid-integrity branch, other failed/cancelled runs, and any unenumerated historical workflows are not covered. The 3,297,699 seed-field occurrence count is provisional because the scanner has since been fixed to extract scalar values from nested seed maps; a full rescan of all 193 downloaded archives is required. The exact distinct-seed union also remains unreconciled. No global disjointness certification.",
+    "limitation": "Results apply only to the listed downloaded archives and source-proven schedules. The 149 metadata-only artifacts, remaining workflows and run outcomes on the 500-run posterior-grid-integrity branch, other failed/cancelled runs, and any unenumerated historical workflows are not covered. The seed-field occurrence count remains provisional pending a full rescan with nested seed-map support. The exact distinct-seed union also remains unreconciled. No global disjointness certification.",
     "estimated_inclusion_py312_subset": {
       "archives": 43,
       "json_members": 1499,
@@ -6856,6 +6936,40 @@
     },
     "seed_field_occurrences_reconciled": false,
     "seed_field_occurrence_count_status": "PROVISIONAL_PRE_NESTED_SEED_MAP_PARSER_FIX",
-    "full_rescan_required_after_parser_fix": true
+    "full_rescan_required_after_parser_fix": true,
+    "incremental_h0_dependent_noise_batch": {
+      "artifact_ids": [
+        12864343125,
+        12864761259,
+        12863499710
+      ],
+      "artifact_count": 3,
+      "downloaded_and_sha256_verified": 3,
+      "json_members": 9,
+      "csv_members": 3,
+      "seed_field_occurrences": 3600,
+      "unique_seed_values_per_artifact": 1200,
+      "seed_ranges_by_mode": {
+        "prior": [
+          20261030,
+          20261329
+        ],
+        "fixed_60": [
+          20361030,
+          20361329
+        ],
+        "fixed_70": [
+          20461030,
+          20461329
+        ],
+        "fixed_80": [
+          20561030,
+          20561329
+        ]
+      },
+      "repeated_identically_across_all_three_workflow_runs": true,
+      "parse_errors": 0,
+      "distinct_union_recomputed_against_previous_archives": false
+    }
   }
 }
