@@ -301,7 +301,7 @@ def test_outer_auditor_checks_required_schema_for_empty_aggregate(tmp_path, monk
     frame = frame.drop(columns=["entropy_ess"])
     frame.to_csv(path, index=False)
     _refresh_outer_manifest_entry(out, path)
-    with pytest.raises(AssertionError, match="empty aggregate schema missing required columns"):
+    with pytest.raises(AssertionError, match="empty aggregate column schema mismatch"):
         auditor.audit(out)
 
 
