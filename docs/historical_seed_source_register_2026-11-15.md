@@ -102,3 +102,10 @@ An independent consolidated scan of all 14 downloaded ZIPs listed in this regist
 - Zero cross-replicate population- or validation-seed reuse warnings in the inspected ledgers.
 
 This is an independent local archive scan, not yet a persisted run of the repository CLI against every artifact root. The project CLI has regression tests for extraction, ledger reuse, schedule overlap, malformed input, and output serialization; the exact-head Actions result for the latest branch head remains to be checked. Most importantly, the scan is still only as complete as the 14 artifact sources enumerated here. It does not certify the entire repository's Actions history or any artifacts that have expired, were omitted, or belong to an unlisted workflow.
+
+
+## Repository test evidence for the seed auditor
+
+The seed-ledger diagnostic and its regression tests were exercised by GitHub Actions on code/test commit `ff91e9cf044c3e80c20f3dcd0f83a4b7302ec103`, workflow run `43686049372`. All three Python matrix jobs (3.10, 3.11, 3.12) completed successfully. In the Python 3.10 job, the historical seed inventory test module reported **19 passed**, and the CLI help checks completed. The same workflow also passed the existing curvature smoke, pilot, paired-runner, and independent-auditor test groups.
+
+The branch has since received documentation-only updates (latest source-register commit `41d5eb7fe960fe71766aab992a9eabd7bd193ec7`). The successful test result therefore validates the code/test tree at `ff91e9c`, not a newly executed run on the later documentation-only head. No simulation pilot or confirmatory holdout was launched.
