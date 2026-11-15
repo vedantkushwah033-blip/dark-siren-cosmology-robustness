@@ -215,3 +215,33 @@ def test_cli_writes_parseable_json_with_terminal_newline(tmp_path):
     payload = output.read_bytes()
     assert payload.endswith(b"\\n")
     assert json.loads(payload.decode("utf-8"))["status"] == "PASS"
+
+
+def test_inventory_reads_integer_seed_arrays_from_npz_without_pickle(tmp_path):
+    import numpy as np
+
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    (root / "config.json").write_text(json.dumps({"master_seed": 3000}))
+    np.savez(root / "streams.npz",
+             population_seed=np.array([4000, 4010], dtype=np.int64),
+             validation_seed=np.array([4001, 4011], dtype=np.int64),
+             posterior_nodes=np.array([0.1, 0.2]))
+    report = module.audit([root], _schedule(tmp_path / "schedule.json"))
+    assert report["status"] == "PASS"
+    assert report["historical_seed_values"] == [3000, 4000, 4001, 4010, 4011]
+    npz_records = [row for row in report["source_files"] if row["path"] == "streams.npz"]
+    assert len(npz_records) == 1
+    assert len(npz_records[0]["seeds"]) == 4
+
+
+def test_inventory_rejects_object_seed_arrays_without_enabling_pickle(tmp_path):
+    import numpy as np
+
+    module = _load()
+    root = tmp_path / "history"
+    root.mkdir()
+    np.savez(root / "unsafe.npz", population_seed=np.array([3000], dtype=object))
+    with pytest.raises(ValueError, match="Object arrays cannot be loaded when allow_pickle=False"):
+        module.audit([root], _schedule(tmp_path / "schedule.json"))
