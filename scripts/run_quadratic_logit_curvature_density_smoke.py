@@ -293,7 +293,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "absolute_bandwidth_candidates": list(widths),
         "scott_multiplier": float(args.scott_multiplier),
         "analytic_target": "normalized latent_galaxy_intensity(z) * (1+1.5*(z-z_min)/(z_max-z_min))",
-        "arm_E_metric": "posterior-mean density loss is primary; posterior expected node loss is secondary",
+        "arm_E_metric": "posterior-mean density loss is primary; posterior expected node-specific density loss is secondary",
         "limitations": [
             "one engineering replicate only",
             "no bandwidth selection or holdout validation",
