@@ -57,6 +57,28 @@ For each gamma, the intercept was solved so that \(E_g[\pi_\gamma(z)]=r_0\).
 
 The reconstructed values agree with the constants documented in the cross-gamma auditor to the stated rounding precision.
 
+
+## Analytic inclusion and weight-stress profile
+
+Using the same parent-measure grid and calibrated intercepts, I also evaluated the range of the true inclusion probability and the second-moment implication for ideal inverse-probability weights. Let r0 be the common parent-average retention rate. Under the retained-catalogue redshift law proportional to g(z) pi_gamma(z), the population coefficient of variation of the ideal weight 1/pi_gamma is
+
+\[
+\operatorname{CV}_{\mathrm{catalogue}}(1/\pi_\gamma)
+=\sqrt{r_0 E_g[1/\pi_\gamma]-1}.
+\]
+
+| gamma | min pi_gamma | max pi_gamma | E_g[1/pi_gamma] | catalogue-law CV of 1/pi_gamma |
+|---:|---:|---:|---:|---:|
+| -2.0 | 0.003790 | 0.902891 | 13.1461 | 2.3889 |
+| -1.0 | 0.008661 | 0.955203 | 8.4510 | 1.8198 |
+| -0.5 | 0.013116 | 0.970092 | 6.9865 | 1.6014 |
+| 0.0 | 0.019840 | 0.980160 | 5.9077 | 1.4192 |
+| 0.5 | 0.029912 | 0.986885 | 5.1124 | 1.2682 |
+| 1.0 | 0.044822 | 0.991344 | 4.5265 | 1.1443 |
+| 2.0 | 0.097281 | 0.996217 | 3.7850 | 0.9649 |
+
+These are deterministic population-level quantities, not empirical finite-sample ESS values or observed pilot results. They show that the symmetric gamma grid is **not symmetric in practical positivity/weight stress** under the chosen negative linear coefficient: negative curvature creates substantially smaller minimum inclusion probabilities and more variable ideal catalogue weights than positive curvature. This is scientifically relevant when interpreting gamma contrasts. It also means the seven gamma cells vary both curvature direction and the severity of inverse-weight instability; analyses should report the actual inclusion/weight profile rather than describe the stress grid as symmetric in difficulty.
+
 ## Interpretation and limitations
 
 1. Parent-measure centering is important: using the uniform-coordinate value or an arbitrary constant would change the meaning of gamma and could shift the linear component.
