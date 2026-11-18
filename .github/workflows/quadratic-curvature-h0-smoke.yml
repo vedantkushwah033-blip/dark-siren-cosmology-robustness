@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - research/quadratic-curvature-h0-smoke-20261119
+      - research/h0-artifact-auditor-20261119
+  pull_request:
+    branches:
+      - research/quadratic-curvature-h0-smoke-20261119
   workflow_dispatch:
 
 permissions:
