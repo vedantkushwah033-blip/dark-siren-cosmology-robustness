@@ -191,6 +191,24 @@ The model and generator configurations match across grids after excluding only `
 
 This establishes numerical H0-grid stability for one fixed realization only. It does not establish repeated-sampling calibration, SBC, coverage, or estimator superiority.
 
+### Preliminary H0-grid refinement: first three paired replicates
+
+A separate refinement pilot reran the first three archived replicates (27 gamma × validation-size cells) at 281- and 561-point H0 grids, giving 54 refined child runs. Its orchestration workflow ended FAILURE because it demanded byte-exact equality of regenerated floating-point input tables. All 54 child audits nevertheless reported PASS and all 54 coefficient-quadrature runs CONVERGED.
+
+I independently verified the refinement artifact (run 44408146080, artifact 14476423579, archive SHA-256 `ff6952f429d059f0a879842808d6aa8e8327aaa00d3210b07c1e8ea00f045632`): 1,271 aggregate manifest entries and 998 child-manifest entries across 54 refined runs passed hash verification. Across all seven observable/truth CSVs, IDs and non-float columns matched exactly; floating-point differences were at most (6.83\times10^{-13}), consistent with machine-roundoff. The exact-equality check was therefore too strict.
+
+Using the repository's posterior normalization and interpolation rules, I independently reconstructed the comparisons:
+
+| Comparison | Density criterion ≤0.001 | Quantile criterion ≤0.05 | Maximum density difference | Maximum quantile difference |
+|---|---:|---:|---:|---:|
+| 141 → 281 points | 27/27 pass | 1/27 pass | 0.000935 | 0.1586 |
+| 141 → 561 points | 27/27 pass | 0/27 pass | 0.000934 | 0.1887 |
+| 281 → 561 points | 27/27 pass | 27/27 pass | 0.000235 | 0.0382 |
+
+The maximum 141-to-refined median shift was only 0.035–0.040 km s⁻¹ Mpc⁻¹; the larger quantile discrepancies came from the 5th/95th-percentile tails (up to 0.159 for 281 points and 0.189 for 561 points). Thus the 141-point grid passes the density tolerance but fails the stricter tail-quantile tolerance, while 281 and 561 points agree within both predeclared tolerances on this 27-cell subset.
+
+This is numerical evidence only for three replicates. The refinement workflow itself has not yet passed end-to-end; a tolerance-aware audit fix is being tested separately. It does not establish calibration or SBC.
+
 ## Interpretation
 
 Three findings deserve further investigation:
