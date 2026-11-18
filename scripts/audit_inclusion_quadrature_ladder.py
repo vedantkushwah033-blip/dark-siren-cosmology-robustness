@@ -89,6 +89,13 @@ def audit(
 ) -> dict:
     root = artifact_root.resolve()
     cfg = json.loads((root / "config.json").read_text())
+    if (len(orders) < 2 or any(isinstance(o, bool) or not isinstance(o, int) or o < 3 for o in orders)
+            or any(b <= a for a, b in zip(orders, orders[1:]))):
+        raise ValueError("orders must be a strictly increasing tuple of integers >= 3")
+    if full_support_points < 2:
+        raise ValueError("full_support_points must be at least 2")
+    if int(cfg.get("quadrature_order", orders[0])) != orders[0]:
+        raise ValueError("first ladder order must match the density pilot's configured quadrature_order")
     if cfg.get("catalogue_selection_model") != "quadratic_logit":
         raise ValueError("quadrature gate expects a quadratic-logit curvature artifact")
     expected_replicates = int(cfg["replicates"])
@@ -241,6 +248,7 @@ def audit(
         "planned_replicate_validation_cases": expected_cases,
         "completed_replicate_validation_cases": completed_cases,
         "orders": list(orders),
+        "density_pilot_base_order": int(cfg.get("quadrature_order", orders[0])),
         "full_support": [Z_MIN, Z_MAX],
         "full_support_grid_points": full_support_points,
         "tolerances": {
