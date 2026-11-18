@@ -42,3 +42,15 @@ The common b(z) factor is applied once by the KDE density estimator after the ga
 Using the exact parent intensity form already declared in the synthetic generator and numerically integrating over z in [0.01, 0.40], the intended target proportional to g(z)b(z) has mean redshift 0.2251875. The duplicated target proportional to g(z)b(z)^2 has mean redshift 0.2469061, a shift of +0.0217186. Their total-variation distance is approximately 0.09231 (equivalently, their L1 density distance is approximately 0.18462).
 
 These are deterministic integrals of the declared population functions, not Monte Carlo estimates and not results from the seven-gamma experiment. They show that the duplicate factor is scientifically material rather than a negligible numerical perturbation.
+
+
+## Downstream H0 interface convention
+
+The existing matched KDE likelihood accepts both raw sample weights carried by FiveArmWeights and a separate merger_weight multiplier. Its API documentation explicitly permits a unit merger_weight when the raw arm weights already contain b(z). The two factors must not duplicate the same host-rate term.
+
+For consistency with the corrected density pilot, the recommended convention for the new curvature programme is:
+- build the five arms with unit base weights, so their raw sample weights contain only the inclusion correction (or are all ones for A/B);
+- pass b(z) once as merger_weight to the KDE-based selected H0 likelihood;
+- retain the GW detection-efficiency denominator inside the selected likelihood, separately from catalogue inclusion correction.
+
+The alternative convention—put b(z) into the arm sample weights and pass a unit merger_weight—is also mathematically valid, but should not be mixed with the convention above. The existing H0 test fixture uses the alternative convention and a unit merger_weight; that is not the same call pattern as the corrected curvature density runner. Future curvature H0 tests should explicitly test the selected convention before any H0 experiment is launched.
