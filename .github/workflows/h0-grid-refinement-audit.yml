@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - research/h0-grid-refinement-audit-20261119
+      - research/h0-grid-refinement-float-tolerance-20261119
     paths:
       - .github/workflows/h0-grid-refinement-audit.yml
       - scripts/audit_h0_grid_refinement.py
