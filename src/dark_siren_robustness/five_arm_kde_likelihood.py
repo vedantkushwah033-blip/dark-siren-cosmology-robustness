@@ -118,9 +118,10 @@ def matched_five_arm_kde_selected_log_likelihood(
     Supply either a common Scott multiplier or a common absolute redshift-space
     kernel SD. FiveArmWeights carries whichever base-population and
     inverse-inclusion weights were supplied when it was constructed. Apply
-    the common host-rate factor exactly once: either include it in the raw
-    arm weights and pass a unit merger_weight, or leave it out of the raw
-    weights and pass it here.
+    the common host-rate factor exactly once, either in raw arm weights or
+    through merger_weight after the KDE. These conventions target the same
+    unsmoothed population measure but are not identical finite-bandwidth
+    smoothing estimators; choose one consistently and validate its bias.
     """
     h0 = np.asarray(H0_grid, dtype=float)
     if h0.ndim != 1 or h0.size < 2 or not np.all(np.isfinite(h0)) or np.any(h0 <= 0) or np.any(np.diff(h0) <= 0):
@@ -147,9 +148,9 @@ def matched_five_arm_kde_selected_log_likelihood(
         raise ValueError("events must have finite detected distances and positive finite uncertainties")
 
     # The raw arm weights may already contain b(z), or may contain only
-    # inverse-inclusion correction. The caller's construction convention
-    # determines which is correct; merger_weight applies the remaining
-    # common host-rate factor once. Never include the same b(z) in both.
+    # inverse-inclusion correction. merger_weight multiplies the KDE by the
+    # supplied rate after smoothing. Never include the same b(z) in both;
+    # note that pre-KDE and post-KDE weighting differ at finite bandwidth.
     def density(sample: np.ndarray, raw_weights: np.ndarray) -> np.ndarray:
         return estimate_host_density(
             z_grid, sample, sample_weights=raw_weights,
