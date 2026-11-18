@@ -113,7 +113,6 @@ def audit(
         if not child_cfg_path.is_file():
             failures.append(f"replicate {replicate_id}: missing child config")
             continue
-        child_cfg = json.loads(child_cfg_path.read_text())
         catalogue_path = child / "observable" / "catalogue_observed.csv"
         if not catalogue_path.is_file():
             failures.append(f"replicate {replicate_id}: missing observed catalogue")
