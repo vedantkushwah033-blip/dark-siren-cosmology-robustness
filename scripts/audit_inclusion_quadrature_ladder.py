@@ -152,9 +152,10 @@ def audit(
                 mixtures = []
                 case_rows = []
                 for fit in ladder.fits:
-                    mixture = _mixture_host_weights(fit, catalogue)
+                    host, node_weights = _rate_weighted_node_host_weights(fit, catalogue)
+                    mixture = _mixture_host_weights(fit.weights, node_weights)
                     mixtures.append(mixture)
-                    outside_mass = _outside_validation_mass(fit, catalogue, vz)
+                    outside_mass = _outside_validation_mass(fit.weights, node_weights, catalogue, vz)
                     x_full = (full_grid - fit.center) / fit.scale
                     full_design = np.column_stack((np.ones(full_grid.size), x_full))
                     node_probability = expit(fit.nodes @ full_design.T)
@@ -179,6 +180,12 @@ def audit(
                             np.mean((catalogue < vz.min()) | (catalogue > vz.max()))
                         ),
                         "posterior_mean_outside_validation_ipw_mass": outside_mass,
+                        "minimum_node_ipw_kish_ess": float(np.min(host.kish_ess)),
+                        "minimum_node_ipw_entropy_ess": float(np.min(host.entropy_ess)),
+                        "maximum_node_ipw_normalized_weight": float(np.max(host.maximum_normalized_weight)),
+                        "maximum_node_ipw_top_1_percent_mass": float(np.max(host.top_one_percent_mass)),
+                        "maximum_node_ipw_top_5_percent_mass": float(np.max(host.top_five_percent_mass)),
+                        **_node_weight_diagnostics(node_weights),
                         **_weight_summary(mixture),
                         "ladder_status": ladder.status,
                     }
