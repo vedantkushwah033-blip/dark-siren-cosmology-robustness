@@ -24,6 +24,8 @@ jobs:
           python-version: "3.12"
       - name: Install package and test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Test paired H0 grid-refinement audit
+        run: pytest tests/test_h0_grid_refinement_audit.py -q
       - name: Run identical synthetic realization on three H0 grids
         run: |
           set -euo pipefail
