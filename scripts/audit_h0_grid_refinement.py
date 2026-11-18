@@ -35,21 +35,21 @@ def compare(records: list[dict], out: Path) -> dict:
         raise AssertionError("observable inputs differ across H0 grids; comparison is not paired")
     common=np.linspace(20.0,300.0,11201)
     ref=np.interp(common,reference["h0"],reference["density"])
-    ref/=np.trapz(ref,common)
+    ref/=np.trapezoid(ref,common)
     ref_cdf=np.concatenate([[0.0],np.cumsum((ref[1:]+ref[:-1])*np.diff(common)/2)])
     ref_cdf/=ref_cdf[-1]
     ref_quantiles={q:float(np.interp(q,ref_cdf,common)) for q in (.025,.16,.5,.84,.975)}
     rows=[]
     for r in sorted(records,key=lambda x:x["points"]):
         den=np.interp(common,r["h0"],r["density"])
-        den/=np.trapz(den,common)
+        den/=np.trapezoid(den,common)
         cdf=np.concatenate([[0.0],np.cumsum((den[1:]+den[:-1])*np.diff(common)/2)])
         cdf/=cdf[-1]
         quantiles={q:float(np.interp(q,cdf,common)) for q in (.025,.16,.5,.84,.975)}
         rows.append({"points":r["points"],"step":r["step"],
             "quadrature_order":r["quadrature_order"],
             "max_abs_density_difference_vs_finest":float(np.max(np.abs(den-ref))),
-            "total_variation_vs_finest":float(.5*np.trapz(np.abs(den-ref),common)),
+            "total_variation_vs_finest":float(.5*np.trapezoid(np.abs(den-ref),common)),
             "max_abs_quantile_difference_vs_finest":float(max(abs(quantiles[q]-ref_quantiles[q]) for q in quantiles)),
             "median":quantiles[.5],"q16":quantiles[.16],"q84":quantiles[.84],
             "quantiles":{str(k):v for k,v in quantiles.items()}})
