@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: density-kde-quadrature-convergence-audit
+  group: density-kde-quadrature-convergence-audit-bounded-v2
   cancel-in-progress: false
 
 jobs:
