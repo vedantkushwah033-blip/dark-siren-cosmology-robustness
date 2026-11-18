@@ -49,6 +49,17 @@ def main() -> None:
     env=os.environ.copy(); env["PYTHONPATH"]=str(root/"src")+os.pathsep+env.get("PYTHONPATH","")
     out=a.output_dir.resolve(); out.mkdir(parents=True,exist_ok=True)
     if any(out.iterdir()): p.error("output directory must be empty")
+    # Persist the complete plan before any expensive child run starts.
+    planned_rows=[]
+    for rep in range(a.replicates):
+        analysis_seed=seed(a.seed,rep,0); validation_seed=seed(a.seed,rep,1)
+        for gamma in gammas:
+            for nval in sizes:
+                cell=f"g{gamma:+g}_n{nval}_r{rep:03d}".replace("+","p").replace("-","m")
+                planned_rows.append({"cell_id":cell,"replicate":rep,"gamma":gamma,
+                    "n_validation":nval,"analysis_seed":analysis_seed,
+                    "validation_seed":validation_seed,"h0_true":a.h0_true})
+    pd.DataFrame(planned_rows).to_csv(out/"planned_cells.csv",index=False)
     rows=[]
     for rep in range(a.replicates):
         analysis_seed=seed(a.seed,rep,0); validation_seed=seed(a.seed,rep,1)
@@ -122,8 +133,6 @@ def main() -> None:
                 pd.DataFrame(rows).to_csv(out/"replicate_ledger.csv",index=False)
     ledger=pd.DataFrame(rows)
     ledger.to_csv(out/"replicate_ledger.csv",index=False)
-    planned=ledger[["cell_id","replicate","gamma","n_validation","analysis_seed","validation_seed","h0_true"]].copy()
-    planned.to_csv(out/"planned_cells.csv",index=False)
     summary=[]
     for (gamma,nval),g in ledger.groupby(["gamma","n_validation"]):
         ok=g[g.status=="SUCCESS"]
