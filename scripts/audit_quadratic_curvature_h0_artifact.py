@@ -286,7 +286,7 @@ def audit(root: Path):
     )
 
     z = catalogue.redshift.to_numpy(float)
-    base = 1.0 + 1.5 * (z - threshold * 0 + float(summary["z_min"])) / (
+    base = 1.0 + 1.5 * (z - float(summary["z_min"])) / (
         float(summary["z_max"]) - float(summary["z_min"])
     )
     h0 = curves.H0.to_numpy(float)
