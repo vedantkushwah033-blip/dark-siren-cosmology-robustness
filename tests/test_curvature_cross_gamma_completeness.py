@@ -77,3 +77,38 @@ def test_paired_curvature_contrasts_reject_unmatched_metric_keys():
     ]
     with pytest.raises(AssertionError, match="identical paired metric keys"):
         _paired_curvature_contrasts(pd.DataFrame(rows), reference_gamma=0.0)
+
+
+def test_paired_contrasts_include_posterior_mean_density_against_map_plugin():
+    import pandas as pd
+
+    from audit_quadratic_logit_curvature_pilot import _paired_contrasts
+
+    rows = []
+    values = {
+        "D_map_plugin_ipw": [0.30, 0.40, 0.50],
+        "E_posterior_mean_density": [0.20, 0.35, 0.50],
+        "C_known_probability_ipw": [0.10, 0.10, 0.10],
+        "A_catalogue_only": [0.70, 0.70, 0.70],
+        "B_parent_oracle": [0.08, 0.08, 0.08],
+    }
+    for arm, replicate_values in values.items():
+        for replicate, iae in enumerate(replicate_values):
+            rows.append({
+                "gamma": 0.5,
+                "replicate": replicate,
+                "validation_size": 300,
+                "absolute_bandwidth_sd": 0.016,
+                "arm": arm,
+                "node": -1,
+                "iae": iae,
+            })
+
+    result = _paired_contrasts(pd.DataFrame(rows))
+    row = result[
+        (result.arm == "E_posterior_mean_density")
+        & (result.reference_arm == "D_map_plugin_ipw")
+    ].iloc[0]
+    assert row.replicate_count == 3
+    assert row.mean_paired_difference == pytest.approx(-0.05)
+    assert row.ci95_lower < row.mean_paired_difference < row.ci95_upper
