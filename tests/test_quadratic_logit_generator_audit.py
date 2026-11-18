@@ -100,9 +100,26 @@ def test_h0_auditor_rejects_stale_catalogue_count_metadata():
 
     parent = pd.DataFrame({"object_id": [0, 1, 2]})
     catalogue = pd.DataFrame({"object_id": [0, 2]})
-    config = {"n_parent": 3, "n_catalogue_observed": 2}
-    _validate_population_counts(config, parent, catalogue)
+    validation_truth = pd.DataFrame({"frame_id": [0, 1, 2, 3]})
+    validation = pd.DataFrame({"validation_id": [0, 2]})
+    analysis_config = {"n_parent": 3, "n_catalogue_observed": 2}
+    validation_config = {"n_validation_frame": 4, "n_validation": 2}
+    _validate_population_counts(
+        analysis_config, parent, catalogue,
+        validation_config, validation_truth, validation,
+    )
 
-    config["n_catalogue_observed"] = 3
+    analysis_config["n_catalogue_observed"] = 3
     with pytest.raises(AssertionError, match="n_catalogue_observed"):
-        _validate_population_counts(config, parent, catalogue)
+        _validate_population_counts(
+            analysis_config, parent, catalogue,
+            validation_config, validation_truth, validation,
+        )
+
+    analysis_config["n_catalogue_observed"] = 2
+    validation_config["n_validation"] = 3
+    with pytest.raises(AssertionError, match="n_validation does not match"):
+        _validate_population_counts(
+            analysis_config, parent, catalogue,
+            validation_config, validation_truth, validation,
+        )
