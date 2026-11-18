@@ -202,3 +202,67 @@ The probability-stage results are useful for designing the larger study because 
 ### Workflow status clarification
 
 The focused PR #57 curvature-density test workflow run 43634450957 failed on all three Python versions during collection of the replicate test module; its earlier smoke and single-replicate pilot test groups passed. A separate broad numerical-diagnostics workflow run 43634451023 completed successfully and produced artifacts on the PR #57 merge ref. Its 3.12 job log contains successful tests for the baseline estimated-inclusion, five-arm, KDE, selected-likelihood, and other existing modules. This broad run is useful regression evidence for the merge ref but does **not** retroactively turn the focused curvature workflow into a pass, nor does it establish exact-head PR #55 CI. The current PR #55 head SHA still has no associated PR workflow runs returned by the inspected endpoint.
+
+
+## Formal target estimand and interpretation of the five arms
+
+Inspection of the actual PR #55 runner and `five_arm_comparison.py` resolves the target-density question at the implementation level.
+
+Let the superpopulation galaxy intensity on `[z_min,z_max]` be
+
+\[
+\lambda_g(z)=1+2.2\exp\!\left[-\frac12\left(\frac{z-0.105}{0.025}\right)^2\right]
++1.6\exp\!\left[-\frac12\left(\frac{z-0.275}{0.040}\right)^2\right],
+\]
+
+and let the declared merger/host-rate weight be
+
+\[
+h(z)=1+1.5\frac{z-z_{\min}}{z_{\max}-z_{\min}}.
+\]
+
+The superpopulation host-redshift target used by the density runner is
+
+\[
+f_{\mathrm{host}}(z)=
+\frac{\lambda_g(z)h(z)}
+{\int_{z_{\min}}^{z_{\max}}\lambda_g(u)h(u)\,du}.
+\]
+
+The parent sample is drawn from the normalized `lambda_g`; catalogue inclusion is Bernoulli with probability `pi_gamma(z)`; the validation frame is independently drawn from the same parent redshift law; and validation is simple random sampling without replacement from that frame. The validation observations expose redshift and retention label, not the true inclusion probability.
+
+For a catalogue draw with density proportional to `lambda_g(z) pi_gamma(z)`, the target is recovered by weighting observed catalogue objects by `h(z)/pi_gamma(z)`, subject to the usual positivity and correct-probability conditions. The five arms therefore have the following interpretations:
+
+- A: observed catalogue weighted by `h(z)`, without an inclusion correction.
+- B: finite complete-parent sample weighted by `h(z)`; an oracle Monte Carlo benchmark, not the exact superpopulation target.
+- C: observed catalogue weighted by `h(z)/pi_gamma(z)`, using simulation-truth probabilities; oracle IPW diagnostic.
+- D: observed catalogue weighted by `h(z)/pi_hat_MAP(z)`.
+- E: posterior mixture of node-specific weighted density estimates using the degree-one logistic coefficient posterior from validation data.
+
+The code's primary Arm E density loss is the loss of the posterior-mean density, i.e. IAE of the quadrature-weighted mean density. The posterior expected node-wise IAE is separately recorded as a secondary quantity. These are different estimands and must not be interchanged.
+
+This establishes a **superpopulation** density estimand. Arm B uses only a finite parent realization and so has its own finite-parent Monte Carlo error. Comparisons should preserve this distinction: the oracle arm is a finite-sample reference, not a zero-error ground truth. The analytic target is the appropriate reference for absolute IAE/ISE scoring.
+
+## Artifact-level inspection of the separate 100-replicate parent-density bandwidth study
+
+The `five-arm-kde-bandwidth-pilot` artifact from run 43634451023 contains a separate parent-density bandwidth study. Its raw audit reports:
+
+- 100 parent-sample replicates, 4,000 galaxies per replicate (400,000 parent units total).
+- 17 candidate Scott multipliers and 1,700 bandwidth attempts.
+- Independent reconstruction of every attempt, with maximum absolute IAE discrepancy (7.5\times10^{-16}).
+- 70 training and 30 holdout replicate IDs, separated by a declared split seed.
+- Selected Scott multiplier: **0.5**, with holdout mean IAE 0.043997 and holdout MCSE 0.001677.
+
+This is genuine evidence that the parent-only bandwidth selection pipeline and its holdout audit work for the stated analytic parent-host density. It is **not** a bandwidth selection for the incomplete-catalogue IPW estimators: the study uses parent samples, and does not reproduce the catalogue-thinning, estimated-probability, or weight-instability problem. It must not be used to declare 0.5 optimal for Arms C/D/E. The current curvature workflow instead tests a fixed grid of absolute redshift bandwidths and does not select a bandwidth.
+
+The same artifact reports a batched-vs-scalar five-arm likelihood kernel equivalence check: maximum absolute log-likelihood discrepancy (1.14\times10^{-13}), with a hardware-specific observed speed ratio about 20.3×. This supports numerical equivalence and engineering performance for the isolated kernel, not scientific accuracy or calibration.
+
+## Further methodological implication
+
+The existing finite-validation probability pilot suggests a potentially important bias-variance interaction: a correctly specified quadratic logistic model did not uniformly outperform the simpler linear model in held-out probability prediction at smaller validation sizes. The new five-arm density experiment must therefore not treat "correctly specified model" as automatically optimal. It must measure both probability prediction and the downstream density estimand, and distinguish:
+- probability-score performance on held-out validation records;
+- stability of the induced inverse weights on the catalogue;
+- density recovery against the analytic superpopulation host density;
+- eventual H0 posterior bias and calibration.
+
+These are related but non-equivalent endpoints.
