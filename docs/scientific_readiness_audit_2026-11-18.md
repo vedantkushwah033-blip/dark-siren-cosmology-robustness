@@ -69,6 +69,28 @@ Artifact `five-arm-kde-bandwidth-pilot` from run `43622509311` was downloaded an
 - A one-replicate five-arm absolute-bandwidth smoke with independent raw-input audit PASS (651 metric rows reconstructed), and a two-replicate orchestration smoke with both child audits and aggregate reconstruction PASS.
 - No seven-gamma curvature artifacts. The 100-replicate parent-only bandwidth selection is not a five-arm IPW bandwidth selection and must not be transferred to the curvature study.
 
+## Critical follow-up: duplicate host-rate weighting found
+
+After the initial audit, open PR #59 (`research/fix-host-weight-double-application-20261118`, head `9918d10a245b9f7ad0eb986ed0f6109e762b6778`) identified a consequential issue in the density runner.
+
+The original runner defined
+[
+b(z)=1+1.5\frac{z-z_{\min}}{z_{\max}-z_{\min}},
+]
+passed (b(z_i)) as parent/catalogue sample-level base weights to the five-arm weight builder, and also passed the same (b(z)) as `merger_weight` to `estimate_host_density`. The inspected density estimator first builds the weighted galaxy KDE and then multiplies the resulting density by `merger_weight` before normalization. Therefore the original large-sample target was proportional to (g(z)b(z)^2), whereas the declared target is proportional to (g(z)b(z)).
+
+This is independently confirmed by direct source tracing:
+- `run_absolute_bandwidth_density_smoke.py` constructed `base_p` and `base_c` from the same linear (b(z)), supplied them to `build_five_arm_weights`, and passed `merger` into `estimate_host_density`.
+- `catalogue_density.py` applies `sample_weights` inside the KDE and multiplies the KDE output by `merger_weight` afterward.
+
+PR #59 removes the duplicate sample-level base weights, so A/B use unit weights and C/D/E carry only their inclusion correction; the common (b(z)) is applied once after the KDE. Its independent auditor and a regression test are updated accordingly. This correction is mathematically consistent with the declared target.
+
+**Scientific consequence:** all previous five-arm density-smoke and multi-replicate curvature-density metrics produced by the affected runner must be treated as superseded for the declared (g(z)b(z)) target. They cannot support bandwidth selection, density-recovery conclusions, or H0 propagation. The parent-density-only bandwidth artifact described above is a distinct experiment and is not automatically affected, but it was never a valid five-arm/IPW bandwidth selector.
+
+**PR #59 remains draft and unmerged.** Its exact-head combined status is empty and no PR-triggered workflow run was found for head `9918d10a`. The fix has only source-level review and tests added; it has not yet passed CI or an independently audited rerun. Do not treat the fix as validated until exact-head CI, corrected smoke execution, and raw-artifact audit all pass.
+
+The seven-gamma curvature workflow invokes the multi-replicate orchestrator, which calls the single-replicate runner. Therefore the seven-gamma workflow must not be dispatched until the corrected runner/auditor is incorporated into the curvature branch and the corrected end-to-end smoke is independently audited.
+
 ## Scientific interpretation and risks
 
 1. **Arm E does not solve model misspecification.** It integrates uncertainty in coefficients conditional on the degree-one logistic model. At nonzero gamma, the true inclusion logit is quadratic while the fitted model remains linear. Posterior uncertainty around a misspecified pseudo-true projection is not uncertainty over the omitted curvature. Any interpretation must distinguish coefficient uncertainty from model uncertainty.
