@@ -201,3 +201,18 @@ The numerical comparisons use the predeclared thresholds: maximum posterior-dens
 Thus the original 141-point grid is too coarse under the predeclared quantile tolerance for these cells. The 281-point grid agrees with 561 points in all 27 tested cells, while the maximum 281→561 quantile change is 0.0382 km s^-1 Mpc^-1, below the 0.05 threshold. The maximum posterior-density difference is also below 0.001 in every adjacent comparison.
 
 This is evidence for local numerical stability between 281 and 561 points on these 27 selected cells, not proof of global convergence or calibration. It does not validate all 90 pilot cells, and the selection of only three replicates limits the scope. A second stage now runs the same archived inputs at 561 and 1,121 points to check whether the apparent 281→561 stability persists at a finer resolution. No final H0 grid is declared until that stage is independently audited.
+
+
+## H0 grid-refinement stage 2: 561 vs 1,121 points
+
+Workflow run `44417364702`, artifact `14480782008`, repeated the same 27 fixed-truth cells on 561- and 1,121-point grids. The archived 90-cell baseline manifest (2,110 entries) was verified. The stage-2 ZIP manifest contained 1,273 entries; an independent SHA-256 check found zero mismatches. All 54 refined runs succeeded, all 54 child raw-data audits passed, and the seven observable/truth input tables were byte-identical between 561- and 1,121-point runs in all 27 cells.
+
+| Comparison | Cells | Passed | Maximum posterior-density difference | Maximum quantile difference |
+|---|---:|---:|---:|---:|
+| 141 → 561 | 27 | 0/27 | 0.0009345 | 0.18872 |
+| 141 → 1,121 | 27 | 0/27 | 0.0009344 | 0.19647 |
+| 561 → 1,121 | 27 | **27/27** | **0.00005931** | **0.01072** |
+
+Combined with stage 1 (281→561 passed 27/27; maximum density difference 0.0002352 and maximum quantile difference 0.03813), this supports adjacent-grid stability at 281→561 and 561→1,121 on the selected 27 cells. The original 141-point grid fails the predeclared quantile tolerance in every cell. The 1,121-point grid adds little relative to 561 in this subset.
+
+For this pilot subset, **561 points is a conservative numerically stable reference**, and 281 points also passed against 561. This is not a proof for every one of the 90 calibration cells or for all possible event realizations. The 100-replicate follow-up uses 281 points; a subset-specific grid check on its own event realizations remains desirable before treating the entire follow-up as grid-validated. No coverage or SBC claim follows from this numerical experiment.
