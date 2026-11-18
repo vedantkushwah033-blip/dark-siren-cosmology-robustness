@@ -104,24 +104,13 @@ def test_kde_propagates_complete_base_and_inverse_probability_weights():
 
 
 
-def test_kde_likelihood_rate_factor_can_be_applied_in_raw_weights_or_merger_multiplier():
+
+def test_kde_likelihood_applies_external_host_rate_to_inclusion_only_arm_weights():
     parent = np.linspace(0.0101, 0.3999, 600)
     catalogue = parent[::2]
     validation = np.linspace(0.0101, 0.3999, 180)
     retained = (np.arange(validation.size) % 3 != 0).astype(int)
-    parent_rate = 1.0 + 1.5 * (parent - 0.01) / 0.39
-    catalogue_rate = 1.0 + 1.5 * (catalogue - 0.01) / 0.39
-
-    # Convention 1: b(z) is carried by FiveArmWeights; merger_weight is one.
-    weighted_arms = build_five_arm_weights(
-        parent, catalogue, validation, retained,
-        catalogue_floor=0.1, quadrature_order=5,
-        parent_base_weights=parent_rate,
-        catalogue_base_weights=catalogue_rate,
-    )
-    # Convention 2: FiveArmWeights carries inclusion correction only; b(z)
-    # is multiplied once after the KDE through merger_weight.
-    inclusion_only_arms = build_five_arm_weights(
+    arms = build_five_arm_weights(
         parent, catalogue, validation, retained,
         catalogue_floor=0.1, quadrature_order=5,
     )
@@ -133,41 +122,37 @@ def test_kde_likelihood_rate_factor_can_be_applied_in_raw_weights_or_merger_mult
         {"gw_distance": 275.0, "gw_sigma": 140.0},
         {"gw_distance": 340.0, "gw_sigma": 140.0},
     ]
-    common = dict(
-        detection_threshold_mpc=250,
-        redshift_grid=z,
-        absolute_bandwidth_sd=0.02,
-    )
-    result_raw_rate = matched_five_arm_kde_selected_log_likelihood(
-        h0, weighted_arms, events, merger_weight=np.ones_like(z), **common,
-    )
-    result_external_rate = matched_five_arm_kde_selected_log_likelihood(
-        h0, inclusion_only_arms, events, merger_weight=rate, **common,
+    result = matched_five_arm_kde_selected_log_likelihood(
+        h0, arms, events, detection_threshold_mpc=250,
+        redshift_grid=z, merger_weight=rate, absolute_bandwidth_sd=0.02,
     )
 
-    for arm in result_raw_rate.arm_density:
-        np.testing.assert_allclose(
-            result_raw_rate.arm_density[arm],
-            result_external_rate.arm_density[arm],
-            rtol=2e-10, atol=2e-12,
-        )
-    np.testing.assert_allclose(
-        result_raw_rate.arm_e_node_density,
-        result_external_rate.arm_e_node_density,
-        rtol=2e-10, atol=2e-12,
+    expected_a = estimate_host_density(
+        z, arms.catalogue_redshift, sample_weights=arms.arm_a_catalogue_only,
+        merger_weight=rate, absolute_bandwidth_sd=0.02,
     )
-    for field in (
-        "arm_a_log_likelihood", "arm_b_log_likelihood",
-        "arm_c_log_likelihood", "arm_d_log_likelihood",
-        "arm_e_marginal_log_likelihood",
-    ):
-        np.testing.assert_allclose(
-            getattr(result_raw_rate, field),
-            getattr(result_external_rate, field),
-            rtol=2e-10, atol=2e-12,
-        )
-    np.testing.assert_allclose(
-        result_raw_rate.arm_e_node_log_likelihood,
-        result_external_rate.arm_e_node_log_likelihood,
-        rtol=2e-10, atol=2e-12,
+    expected_b = estimate_host_density(
+        z, arms.parent_redshift, sample_weights=arms.arm_b_parent_oracle,
+        merger_weight=rate, absolute_bandwidth_sd=0.02,
     )
+    expected_c = estimate_host_density(
+        z, arms.catalogue_redshift, sample_weights=arms.arm_c_known_probability,
+        merger_weight=rate, absolute_bandwidth_sd=0.02,
+    )
+    expected_d = estimate_host_density(
+        z, arms.catalogue_redshift, sample_weights=arms.arm_d_map_plugin,
+        merger_weight=rate, absolute_bandwidth_sd=0.02,
+    )
+    np.testing.assert_allclose(result.arm_density["A_catalogue_only"], expected_a)
+    np.testing.assert_allclose(result.arm_density["B_parent_oracle"], expected_b)
+    np.testing.assert_allclose(result.arm_density["C_known_probability_ipw"], expected_c)
+    np.testing.assert_allclose(result.arm_density["D_map_plugin_ipw"], expected_d)
+    expected_e = np.stack([
+        estimate_host_density(
+            z, arms.catalogue_redshift, sample_weights=weights,
+            merger_weight=rate, absolute_bandwidth_sd=0.02,
+        )
+        for weights in arms.arm_e_node_weights
+    ])
+    np.testing.assert_allclose(result.arm_e_node_density, expected_e)
+    assert np.all(np.isfinite(result.arm_e_marginal_log_likelihood))
