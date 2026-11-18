@@ -1,4 +1,4 @@
-"""Independent oracle-arm audit of the archived 90-cell H0 pilot.
+"""Independent oracle-arm audit of a fixed-truth H0 calibration artifact.
 
 Computes selected-H0 posteriors using true inclusion probabilities on the
 observed catalogue and the complete finite parent population. Both are
@@ -84,8 +84,8 @@ def audit(root: Path):
     if bad:
         raise AssertionError(f"aggregate manifest mismatch: {bad[:10]}")
     ledger = pd.read_csv(root / "replicate_ledger.csv")
-    if len(ledger) != 90 or set(ledger.status) != {"SUCCESS"}:
-        raise AssertionError("expected 90 successful cells")
+    if ledger.empty or set(ledger.status) != {"SUCCESS"}:
+        raise AssertionError("input pilot must contain only successful cells")
 
     rows = []
     for (rep, gamma), block in ledger.groupby(["replicate", "gamma"]):
