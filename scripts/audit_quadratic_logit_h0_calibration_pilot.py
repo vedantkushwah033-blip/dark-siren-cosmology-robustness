@@ -40,6 +40,16 @@ def _assert_summary_matches_ledger(ledger: pd.DataFrame, summary: pd.DataFrame) 
                        (ledger.n_validation.astype(int) == int(row.n_validation))]
         for column, status in count_columns.items():
             actual = len(group) if status is None else int((group.status == status).sum())
+            if column not in summary.columns:
+                # Legacy complete-pilot summaries predate an explicit NOT_RUN
+                # field. They are safe to audit only when the ledger proves
+                # that no attempts were left unrun.
+                if column == "not_run" and actual == 0:
+                    continue
+                raise AssertionError(
+                    f"summary is missing required count column {column}; "
+                    f"ledger count is {actual}"
+                )
             if int(getattr(row, column)) != actual:
                 raise AssertionError(f"summary {column} mismatch for gamma={row.gamma}, n={row.n_validation}")
         successful = group[group.status == "SUCCESS"]
