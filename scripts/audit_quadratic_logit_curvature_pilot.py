@@ -63,6 +63,7 @@ def _paired_contrasts(metrics: pd.DataFrame) -> pd.DataFrame:
     )
     references = (
         "A_catalogue_only", "B_parent_oracle", "C_known_probability_ipw",
+        "D_map_plugin_ipw",
     )
     primary = metrics[metrics.node == -1]
     for (gamma, n, width), group in primary.groupby(
