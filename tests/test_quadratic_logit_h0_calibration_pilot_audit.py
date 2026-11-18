@@ -7,7 +7,11 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from audit_quadratic_logit_h0_calibration_pilot import (\n    _assert_summary_matches_ledger, _assert_validation_samples_paired,\n)
+from audit_quadratic_logit_h0_calibration_pilot import (
+    _assert_summary_matches_ledger,
+    _assert_validation_samples_paired,
+    _assert_nested_validation_samples,
+)
 
 
 def fixtures():
@@ -87,3 +91,35 @@ def test_validation_observations_must_match_across_curvature(tmp_path):
     changed.to_csv(dirs["g1.0"] / "observable/validation_observed.csv",index=False)
     with pytest.raises(AssertionError):
         _assert_validation_samples_paired(ledger, dirs)
+
+
+
+def test_nested_validation_audit_ignores_size_dependent_frame_indicator(tmp_path):
+    dirs = {}
+    rows = []
+    base_ids = [10, 11, 12, 13, 14]
+    for nval, selected in [(2, [1, 1, 0, 0, 0]), (4, [1, 1, 1, 1, 0]), (5, [1, 1, 1, 1, 1])]:
+        cell = f"n{nval}"
+        root = tmp_path / cell
+        (root / "observable").mkdir(parents=True)
+        (root / "truth").mkdir()
+        pd.DataFrame({"object_id":[1,2],"redshift":[.1,.2]}).to_csv(
+            root / "observable/analysis_catalogue.csv",index=False)
+        pd.DataFrame({"event_id":[1],"distance":[100.]}).to_csv(
+            root / "observable/gw_events_observed.csv",index=False)
+        pd.DataFrame({"frame_id":base_ids,"redshift":[.1,.2,.3,.4,.5],
+                      "selected_for_validation":selected}).to_csv(
+            root / "truth/validation_frame_truth.csv",index=False)
+        pd.DataFrame({"validation_id":base_ids[:nval],
+                      "redshift":[.1,.2,.3,.4,.5][:nval]}).to_csv(
+            root / "observable/validation_observed.csv",index=False)
+        dirs[cell] = root
+        rows.append({"cell_id":cell,"replicate":0,"gamma":0.0,"n_validation":nval})
+    ledger = pd.DataFrame(rows)
+    assert _assert_nested_validation_samples(ledger, dirs) == 1
+
+    bad_ids = pd.read_csv(dirs["n4"] / "observable/validation_observed.csv")
+    bad_ids.loc[0,"validation_id"] = 999
+    bad_ids.to_csv(dirs["n4"] / "observable/validation_observed.csv",index=False)
+    with pytest.raises(AssertionError,match="not nested prefixes"):
+        _assert_nested_validation_samples(ledger, dirs)
