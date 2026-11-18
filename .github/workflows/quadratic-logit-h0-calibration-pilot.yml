@@ -8,6 +8,9 @@ on:
       - .github/workflows/quadratic-logit-h0-calibration-pilot.yml
       - scripts/run_quadratic_logit_h0_calibration_pilot.py
       - scripts/audit_quadratic_logit_h0_calibration_pilot.py
+      - scripts/analyze_quadratic_logit_h0_pilot_uncertainty.py
+      - tests/test_h0_pilot_posthoc_analysis.py
+      - tests/test_quadratic_logit_h0_calibration_pilot_audit.py
       - scripts/run_quadratic_logit_inclusion_h0_smoke.py
       - scripts/audit_quadratic_logit_inclusion_h0_smoke.py
       - src/dark_siren_robustness/**
