@@ -157,9 +157,6 @@ def run(args):
         h0_grid, z_catalogue, events, constant,
         detection_threshold_mpc=args.threshold, population_base_weights=base,
     )
-    p_catalogue = data["parent_truth"].set_index("object_id").loc[
-        catalogue["object_id"], "inclusion_probability"
-    ].to_numpy(float)
     truth_theta = np.asarray([
         data["config"]["alpha"] - args.gamma * data["config"]["x2_center"],
         args.beta, args.gamma,
