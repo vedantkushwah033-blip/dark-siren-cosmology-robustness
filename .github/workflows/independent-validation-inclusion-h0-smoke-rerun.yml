@@ -1,0 +1,87 @@
+name: independent-validation-inclusion-h0-smoke-rerun
+
+on:
+  push:
+    branches:
+      - research/inclusion-h0-smoke-rerun-20261119
+    paths:
+      - .github/workflows/independent-validation-inclusion-h0-smoke-rerun.yml
+      - scripts/run_independent_validation_inclusion_h0_smoke.py
+      - scripts/audit_independent_validation_inclusion_h0_smoke.py
+      - src/dark_siren_robustness/inclusion_posterior.py
+      - src/dark_siren_robustness/shared_inclusion_likelihood.py
+      - src/dark_siren_robustness/generative_selection.py
+      - src/dark_siren_robustness/h0_posterior.py
+      - src/dark_siren_robustness/inclusion_prior_sensitivity.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: independent-validation-inclusion-h0-smoke-rerun
+  cancel-in-progress: false
+
+jobs:
+  h0-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run independent-validation selected-H0 smoke
+        run: |
+          python scripts/run_independent_validation_inclusion_h0_smoke.py \
+            --seed 2026111901 \
+            --validation-seed 2026111902 \
+            --n-parent 1200 \
+            --n-detected 4 \
+            --n-validation-frame 1000 \
+            --n-validation 150 \
+            --orders 5,7,9,11 \
+            --h0-points 81 \
+            --catalogue-floor 0.0 \
+            --output-dir artifacts/independent_validation_inclusion_h0_smoke
+      - name: Independently reconstruct raw artifacts and selected likelihood
+        run: |
+          python scripts/audit_independent_validation_inclusion_h0_smoke.py \
+            artifacts/independent_validation_inclusion_h0_smoke \
+            --output artifacts/independent_validation_inclusion_h0_smoke/independent_audit_report.json
+      - name: Validate explicit numerical status and audit completion
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/independent_validation_inclusion_h0_smoke")
+          config = json.loads((root / "config.json").read_text())
+          convergence = json.loads((root / "quadrature_convergence.json").read_text())
+          audit = json.loads((root / "independent_audit_report.json").read_text())
+          manifest = json.loads((root / "manifest.json").read_text())
+          assert audit["status"] == "PASS", audit
+          assert convergence["status"] in {"CONVERGED", "NON_CONVERGED"}
+          assert len(manifest) >= 10
+          assert config["truth_firewall"].startswith("Only validation")
+          assert config["scientific_limit"].startswith("Low-redshift Euclidean synthetic toy")
+          print(json.dumps({
+              "audit": audit["status"],
+              "quadrature": convergence["status"],
+              "orders": convergence["orders_evaluated"],
+              "manifest_files": len(manifest),
+              "independent_selected_likelihood_checks": audit["h0_posterior_normalization_checks"],
+              "claim_limit": config["scientific_limit"],
+          }, indent=2))
+          PY
+      - name: Upload raw inputs, posterior nodes, likelihood grids and independent audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: independent-validation-inclusion-h0-smoke-rerun-py3.12
+          path: artifacts/independent_validation_inclusion_h0_smoke/
+          if-no-files-found: warn
+          retention-days: 90
