@@ -122,6 +122,9 @@ def compare(records: list[dict], out: Path) -> dict:
             "quantiles":{str(k):v for k,v in quantiles.items()}})
     result={"status":"PASS","reference_grid_points":reference["points"],
         "common_comparison_grid_points":len(common),"same_observable_inputs":True,
+        "observable_comparison_atol":1e-12,
+        "observable_comparison_diagnostics":observable_diagnostics,
+        "raw_observable_hashes_may_differ_at_machine_roundoff":True,
         "grid_summaries":rows,
         "reference_quantiles":{str(k):v for k,v in ref_quantiles.items()},
         "interpretation":"Numerical H0-grid sensitivity only for one fixed synthetic realization. This does not establish calibration, SBC, coverage, or estimator performance."}
