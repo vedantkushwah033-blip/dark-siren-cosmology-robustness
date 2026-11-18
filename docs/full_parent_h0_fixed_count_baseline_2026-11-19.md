@@ -34,6 +34,10 @@ The posterior is independently reconstructed from the finite-parent selected-eve
 | Event realizations per parent | 200 |
 | Total event realizations | 2,000 |
 | Mean posterior-median bias | +6.42 km s\(^{-1}\) Mpc\(^{-1}\) |
+| Median of replicate median-bias values | +2.11 km s\(^{-1}\) Mpc\(^{-1}\) |
+| RMSE of posterior-median estimator | 19.58 km s\(^{-1}\) Mpc\(^{-1}\) |
+| Mean absolute posterior-median error | 11.48 km s\(^{-1}\) Mpc\(^{-1}\) |
+| Fraction of replicate posterior medians above truth | 57.9% |
 | Monte Carlo SE of mean bias | 0.414 |
 | Paired t 95% interval for mean bias | [+5.61, +7.23] |
 | Mean 68% interval width | 24.20 km s\(^{-1}\) Mpc\(^{-1}\) |
