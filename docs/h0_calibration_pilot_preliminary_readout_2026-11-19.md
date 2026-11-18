@@ -72,6 +72,19 @@ By contrast, changing validation size while holding replicate and curvature fixe
 
 Across all 90 prior-sensitivity records, changing the slope-prior SD multiplier from 1 to 0.5 shifts the H0 posterior median downward by a median 1.21 km s^-1 Mpc^-1 (range -6.61 to -0.24); changing it to 2 shifts the median upward by a median 0.34 (range 0.07 to 2.48) km s^-1 Mpc^-1. This confirms non-negligible prior sensitivity in some realizations, but does not by itself explain the full positive-bias pattern.
 
+## Separate four-arm feasibility smoke (not pooled with the 90-cell pilot)
+
+A separate two-replicate run in PR #82 compared catalogue-only, degree-one, degree-two, and oracle arms at γ=0 and +1, n=100/300/1000. It used a narrower uniform H0 prior [55,85], a 61-point grid, quadrature orders 5/7, and a different event-generation setup; therefore its metrics must not be pooled with the 10-replicate [20,300] pilot above. Run 44410778481 passed the full 947-test suite and completed all 48 planned arm rows. Artifact 14477209501 (ZIP SHA-256 41dcb04d9c8ce66441b4d404a7d9fb9984017e28fb75f521e56a5f0d3d1f8c6f) has 102 aggregate manifest entries and 12 child manifests; I verified all hashes, paired parent/event/frame inputs, nested validation prefixes, and independently reconstructed all 48 posterior summaries from the saved curves.
+
+At n=1000, the two-replicate RMSEs were:
+
+| Curvature | Catalogue-only | Degree one | Degree two | Oracle |
+|---:|---:|---:|---:|---:|
+| γ=0 | 7.59 | 4.20 | 3.19 | 3.63 |
+| γ=+1 | 7.21 | 3.93 | 4.52 | 4.31 |
+
+Degree two is not uniformly better in this tiny smoke: it has lower RMSE at γ=0 but higher RMSE than degree one at γ=+1. Its quadrature ESS is higher (about 29 versus 9.4–9.6 for degree one), but this is a numerical integration diagnostic, not evidence of better calibration. With only two replicates, observed coverage is either 1/2 or 2/2 and cannot establish nominal coverage. This smoke is a feasibility check for the multi-arm implementation, not an estimator ranking.
+
 ## Oracle decomposition of the positive H0 bias
 
 A separate independent post-hoc calculation on the corrected 90-cell artifact (documented in PR #89) compared estimated-inclusion IPW with two simulation-only references:
