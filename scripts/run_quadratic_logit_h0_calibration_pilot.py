@@ -81,7 +81,6 @@ def main() -> None:
         for gamma in gammas:
             for nval in sizes:
                 cell=f"g{gamma:+g}_n{nval}_r{rep:03d}".replace("+","p").replace("-","m")
-                dest=out/"replicates"/cell
                 row=row_by_cell[cell]
                 dest=Path(row["artifact_dir"])
                 dest.parent.mkdir(parents=True,exist_ok=True)
