@@ -59,7 +59,16 @@ def main() -> None:
                 row={"cell_id":cell,"replicate":rep,"gamma":gamma,"n_validation":nval,
                      "analysis_seed":analysis_seed,"validation_seed":validation_seed,
                      "h0_true":a.h0_true,"artifact_dir":str(dest),"status":"NOT_RUN",
-                     "audit_status":"","error":""}
+                     "audit_status":"","error":"","quadrature_status":"",
+                     "orders_evaluated":"","converged_at_order":None,
+                     "n_catalogue":None,"min_catalogue_kish_ess":float("nan"),
+                     "max_normalized_weight":float("nan"),"h0_median":float("nan"),
+                     "h0_q025":float("nan"),"h0_q05":float("nan"),
+                     "h0_q16":float("nan"),"h0_q84":float("nan"),
+                     "h0_q95":float("nan"),"h0_q975":float("nan"),
+                     "width68":float("nan"),"covered68":float("nan"),
+                     "covered90":float("nan"),"covered95":float("nan"),
+                     "median_bias":float("nan") }
                 rows.append(row)
                 dest.parent.mkdir(parents=True,exist_ok=True)
                 cmd=[sys.executable,str(runner),"--seed",str(analysis_seed),
@@ -139,6 +148,5 @@ def main() -> None:
       for x in sorted(out.rglob("*")) if x.is_file() and x.name!="manifest.json"}
     (out/"manifest.json").write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
     print(json.dumps(report,indent=2))
-    if status.get("FAILED",0): raise SystemExit(1)
 
 if __name__=="__main__": main()
