@@ -164,3 +164,28 @@ node-wise KDE curves. It does not establish density-reconstruction accuracy,
 statistical uncertainty, or performance across repeated samples. The
 threshold is an engineering regression tolerance and should be checked
 against finer redshift grids and repeated seeds before confirmatory use.
+
+
+## Host-rate weighting correction integrated from the companion audit
+
+A separate source audit identified and corrected a double application of the
+common host/merger factor in the absolute-bandwidth density runner. The
+previous runner passed b(z) in the parent/catalogue raw sample weights and
+again as merger_weight after KDE, targeting g(z)b(z)^2 instead of the declared
+g(z)b(z). The corrected runner now uses unit A/B sample weights and IPW-only
+C/D/E sample weights, with b(z) applied once after KDE. The independent raw
+input auditor now reconstructs that exact convention, and a regression checks
+the A/B weights are all ones.
+
+The curved-DGP selected-H0 quadrature regression now follows the same
+post-KDE convention: its five-arm weights contain only inclusion correction,
+and b(z) is passed once through merger_weight. A separate five-arm likelihood
+regression checks this external-rate convention. The alternative pre-KDE
+base-weight convention remains mathematically valid for the unsmoothed target
+but is not equivalent after finite-bandwidth smoothing, so results from the
+two conventions must not be pooled.
+
+All density artifacts produced under the prior double-weighted convention are
+superseded for the stated g(z)b(z) estimand and must be regenerated. The
+seven-gamma pilot remains blocked until the corrected runner and independent
+auditor pass exact-head CI and a corrected smoke run is independently audited.
