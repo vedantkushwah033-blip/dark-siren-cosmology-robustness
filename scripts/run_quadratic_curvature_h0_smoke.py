@@ -214,6 +214,8 @@ def run(args):
         "z_min": args.z_min,
         "z_max": args.z_max,
         "orders": list(args.orders),
+        "inclusion_prior_mean": [0.0, 0.0, 0.0],
+        "inclusion_prior_sd": [5.0, 2.5, 2.5],
         "event_seed": args.event_seed,
         "n_catalogue": int(len(catalogue)),
         "n_validation": int(len(validation)),
