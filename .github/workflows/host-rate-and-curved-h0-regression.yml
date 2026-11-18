@@ -1,0 +1,47 @@
+name: host-rate-and-curved-h0-regression
+
+on:
+  pull_request:
+    paths:
+      - "scripts/run_absolute_bandwidth_density_smoke.py"
+      - "scripts/audit_absolute_bandwidth_density_smoke.py"
+      - "src/dark_siren_robustness/**"
+      - "tests/test_curved_dgp_h0_quadrature_convergence.py"
+      - "tests/test_absolute_bandwidth_density_smoke.py"
+      - "tests/test_five_arm_kde_likelihood.py"
+      - ".github/workflows/host-rate-and-curved-h0-regression.yml"
+      - "pyproject.toml"
+  push:
+    branches:
+      - "research/quadrature-gate-implementation-20261118"
+    paths:
+      - "scripts/run_absolute_bandwidth_density_smoke.py"
+      - "scripts/audit_absolute_bandwidth_density_smoke.py"
+      - "src/dark_siren_robustness/**"
+      - "tests/test_curved_dgp_h0_quadrature_convergence.py"
+      - "tests/test_absolute_bandwidth_density_smoke.py"
+      - "tests/test_five_arm_kde_likelihood.py"
+      - ".github/workflows/host-rate-and-curved-h0-regression.yml"
+      - "pyproject.toml"
+
+permissions:
+  contents: read
+
+jobs:
+  host-rate-and-curved-h0:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Test single host-rate application in density runner and auditor
+        run: python -m pytest tests/test_absolute_bandwidth_density_smoke.py::test_density_smoke_applies_host_merger_factor_only_once -q
+      - name: Test selected likelihood with post-KDE host-rate factor
+        run: python -m pytest tests/test_five_arm_kde_likelihood.py::test_kde_likelihood_applies_external_host_rate_to_inclusion_only_arm_weights -q
+      - name: Test curved-DGP Arm-E density and H0 quadrature convergence
+        run: python -m pytest tests/test_curved_dgp_h0_quadrature_convergence.py -q

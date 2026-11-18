@@ -114,10 +114,13 @@ def run(args):
     for n in sizes:
         v=val["validation_observed"].iloc[:n]
         v.to_csv(out/"observable"/f"validation_n{n}.csv",index=False)
+        # Inclusion correction is the only sample-level weight here.
+        # The common host/merger factor b(z) is applied once, downstream by
+        # estimate_host_density(merger_weight=merger). Passing base_p/base_c
+        # here as well would target g(z)*b(z)^2 rather than g(z)*b(z).
         weight_kwargs={
           "degree":1,"coordinate_center":0.205,"coordinate_scale":0.195,
           "quadrature_order":args.quadrature_order,
-          "parent_base_weights":base_p,"catalogue_base_weights":base_c,
         }
         if true_catalogue_probability is None:
             weight_kwargs.update(catalogue_floor=catalogue_floor,

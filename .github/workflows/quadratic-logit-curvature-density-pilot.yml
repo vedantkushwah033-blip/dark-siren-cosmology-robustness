@@ -61,6 +61,29 @@ jobs:
           python scripts/audit_absolute_bandwidth_density_replicates.py \
             "artifacts/gamma_${{ matrix.key }}" \
             --output "${{ runner.temp }}/gamma_${{ matrix.key }}_audit.json"
+      - name: Gate full-support inclusion quadrature and host-weight stability
+        run: |
+          python scripts/audit_inclusion_quadrature_ladder.py \
+            "artifacts/gamma_${{ matrix.key }}" \
+            --output "${{ runner.temp }}/gamma_${{ matrix.key }}_quadrature_gate.json" \
+            --orders 5,7,9,11,13 \
+            --full-support-points 401 \
+            --mean-tolerance 0.001 \
+            --covariance-tolerance 0.001 \
+            --predictive-tolerance 0.001 \
+            --log-evidence-tolerance 0.001 \
+            --mixture-max-abs-tolerance 0.001 \
+            --mixture-total-variation-tolerance 0.005 \
+            --consecutive-passes 2 \
+            --require-convergence
+      - name: Preserve quadrature gate diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quadrature-gate-${{ matrix.key }}
+          path: ${{ runner.temp }}/gamma_${{ matrix.key }}_quadrature_gate.*
+          if-no-files-found: warn
+          retention-days: 30
       - name: Preserve raw gamma-cell artifact
         if: always()
         uses: actions/upload-artifact@v4

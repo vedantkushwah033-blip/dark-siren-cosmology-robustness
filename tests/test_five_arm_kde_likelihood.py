@@ -101,3 +101,56 @@ def test_kde_propagates_complete_base_and_inverse_probability_weights():
         scott_multiplier=factor,
     )
     np.testing.assert_allclose(result.arm_e_node_density[0], expected_e0)
+
+
+def test_kde_likelihood_applies_external_host_rate_to_inclusion_only_arm_weights():
+    parent = np.linspace(0.0101, 0.3999, 600)
+    catalogue = parent[::2]
+    validation = np.linspace(0.0101, 0.3999, 180)
+    retained = (np.arange(validation.size) % 3 != 0).astype(int)
+    arms = build_five_arm_weights(
+        parent, catalogue, validation, retained,
+        catalogue_floor=0.1, quadrature_order=5,
+    )
+
+    z = np.linspace(0.01, 0.40, 501)
+    rate = 1.0 + 1.5 * (z - 0.01) / 0.39
+    h0 = np.linspace(55, 85, 31)
+    events = [
+        {"gw_distance": 275.0, "gw_sigma": 140.0},
+        {"gw_distance": 340.0, "gw_sigma": 140.0},
+    ]
+    result = matched_five_arm_kde_selected_log_likelihood(
+        h0, arms, events, detection_threshold_mpc=250,
+        redshift_grid=z, merger_weight=rate, absolute_bandwidth_sd=0.02,
+    )
+
+    expected_a = estimate_host_density(
+        z, arms.catalogue_redshift, sample_weights=arms.arm_a_catalogue_only,
+        merger_weight=rate, absolute_bandwidth_sd=0.02,
+    )
+    expected_b = estimate_host_density(
+        z, arms.parent_redshift, sample_weights=arms.arm_b_parent_oracle,
+        merger_weight=rate, absolute_bandwidth_sd=0.02,
+    )
+    expected_c = estimate_host_density(
+        z, arms.catalogue_redshift, sample_weights=arms.arm_c_known_probability,
+        merger_weight=rate, absolute_bandwidth_sd=0.02,
+    )
+    expected_d = estimate_host_density(
+        z, arms.catalogue_redshift, sample_weights=arms.arm_d_map_plugin,
+        merger_weight=rate, absolute_bandwidth_sd=0.02,
+    )
+    np.testing.assert_allclose(result.arm_density["A_catalogue_only"], expected_a)
+    np.testing.assert_allclose(result.arm_density["B_parent_oracle"], expected_b)
+    np.testing.assert_allclose(result.arm_density["C_known_probability_ipw"], expected_c)
+    np.testing.assert_allclose(result.arm_density["D_map_plugin_ipw"], expected_d)
+    expected_e = np.stack([
+        estimate_host_density(
+            z, arms.catalogue_redshift, sample_weights=weights,
+            merger_weight=rate, absolute_bandwidth_sd=0.02,
+        )
+        for weights in arms.arm_e_node_weights
+    ])
+    np.testing.assert_allclose(result.arm_e_node_density, expected_e)
+    assert np.all(np.isfinite(result.arm_e_marginal_log_likelihood))
