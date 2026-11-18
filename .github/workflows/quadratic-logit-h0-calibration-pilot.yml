@@ -1,16 +1,6 @@
 name: quadratic-logit-h0-calibration-pilot
 
 on:
-  push:
-    branches:
-      - research/quadratic-logit-h0-calibration-pilot-20261119
-    paths:
-      - .github/workflows/quadratic-logit-h0-calibration-pilot.yml
-      - scripts/run_quadratic_logit_h0_calibration_pilot.py
-      - scripts/audit_quadratic_logit_h0_calibration_pilot.py
-      - scripts/run_quadratic_logit_inclusion_h0_smoke.py
-      - scripts/audit_quadratic_logit_inclusion_h0_smoke.py
-      - src/dark_siren_robustness/**
   pull_request:
     paths:
       - .github/workflows/quadratic-logit-h0-calibration-pilot.yml
