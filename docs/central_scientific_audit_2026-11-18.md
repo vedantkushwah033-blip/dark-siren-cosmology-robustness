@@ -495,3 +495,12 @@ All seven raw gamma artifacts were preserved by run `44366440872`. To avoid payi
 The original density-pilot workflow has been returned to its manual-only trigger after the initial push-triggered run, so later audit-code commits will not silently launch another full 140-replicate simulation. The posthoc workflow is separately triggered by changes to its own file or relevant audit scripts.
 
 **Current scientific status:** raw runner output exists for all 140 planned replicates, but no cross-gamma summary is yet accepted. The +2 cell's posthoc audit and the full paired cross-gamma audit must pass before any density-performance interpretation. Even after that, the 20-replicate cells remain exploratory pilot evidence, not confirmatory results, and do not authorize H0 inference.
+
+
+### Follow-up: posthoc audit workflow debugging
+
+The first posthoc attempt (`44372235700`) successfully downloaded all seven original gamma artifacts, but stopped before auditing because my Pandas-warning cleanup edit introduced an indentation error in `audit_absolute_bandwidth_density_replicates.py` line 48. The same syntax error caused the focused regression workflow on commit `ad9f51a` to fail in all three Python versions. This was an implementation mistake in the cleanup edit, not a failure of the underlying simulation artifacts.
+
+I corrected the indentation in commit `9596481733fdd301d3228219285c25830e2b659e` and verified the affected source lines from the live branch. A new posthoc audit run (`44374047661`) downloaded the same seven preserved artifacts and was executing the corrected independent per-cell/cross-gamma audit at the latest status check. The full test workflow for the corrected head (`44374047652`) was also running: Python 3.11 had completed successfully; Python 3.10 and 3.12 were still in progress, with the Python 3.12 job on its configured 100-replicate bandwidth-grid sensitivity check.
+
+No corrected posthoc audit result is claimed until run `44374047661` completes. The original gamma +2 numerical-node discrepancy remains unresolved at the workflow level pending this re-audit. The earlier exact-head CI pass at `ecea98a` remains valid for that older head; it does not override the later failed audit-script commits.
