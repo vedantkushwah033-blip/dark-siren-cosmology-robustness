@@ -216,10 +216,14 @@ def audit(root: Path):
     selected_validation = validation_frame.loc[
         validation_frame.selected_for_validation == 1,
         ["frame_id", "redshift", "retained"],
-    ].reset_index(drop=True)
-    _assert_close("validation IDs", validation.validation_id.to_numpy(float), selected_validation.frame_id.to_numpy(float), atol=0)
-    _assert_close("validation redshifts", validation.redshift.to_numpy(float), selected_validation.redshift.to_numpy(float), atol=2e-15)
-    _assert_close("validation labels", validation.retained.to_numpy(float), selected_validation.retained.to_numpy(float), atol=0)
+    ].sort_values("frame_id").reset_index(drop=True)
+    observed_validation = validation[
+        ["validation_id", "redshift", "retained"]
+    ].sort_values("validation_id").reset_index(drop=True)
+    # The generator stores the random-permutation order; compare by stable frame ID.
+    _assert_close("validation IDs", observed_validation.validation_id.to_numpy(float), selected_validation.frame_id.to_numpy(float), atol=0)
+    _assert_close("validation redshifts", observed_validation.redshift.to_numpy(float), selected_validation.redshift.to_numpy(float), atol=2e-15)
+    _assert_close("validation labels", observed_validation.retained.to_numpy(float), selected_validation.retained.to_numpy(float), atol=0)
 
     if np.any(events.distance_mpc.to_numpy(float) < float(summary.get("threshold_mpc", 250.0))):
         # The threshold is stored in run metadata below for all new artifacts.
