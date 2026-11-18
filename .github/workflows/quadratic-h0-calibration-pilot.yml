@@ -38,11 +38,13 @@ jobs:
             --validation-sizes 100,300,1000 \
             --output-dir artifacts/quadratic_h0_calibration_pilot
       - name: Independently audit pilot artifact
+        if: always()
         run: python scripts/audit_quadratic_h0_calibration_pilot.py --output-dir artifacts/quadratic_h0_calibration_pilot
       - name: Upload paired raw and summary artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: quadratic-h0-calibration-pilot-${{ github.sha }}
           path: artifacts/quadratic_h0_calibration_pilot/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
