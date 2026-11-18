@@ -36,6 +36,15 @@ def _assert_summary_matches_ledger(ledger: pd.DataFrame, summary: pd.DataFrame) 
                        (ledger.n_validation.astype(int) == int(row.n_validation))]
         for column, status in count_columns.items():
             actual = len(group) if status is None else int((group.status == status).sum())
+            # Historical complete artifacts omitted the explicit not_run
+            # summary field. Infer zero only when every planned cell is in
+            # the ledger and no ledger row has status NOT_RUN.
+            if column not in summary.columns:
+                if column == "not_run" and actual == 0 and len(group) == int(
+                    planned_count := len(group)
+                ):
+                    continue
+                raise AssertionError(f"summary is missing required count column: {column}")
             if int(getattr(row, column)) != actual:
                 raise AssertionError(f"summary {column} mismatch for gamma={row.gamma}, n={row.n_validation}")
         successful = group[group.status == "SUCCESS"]
