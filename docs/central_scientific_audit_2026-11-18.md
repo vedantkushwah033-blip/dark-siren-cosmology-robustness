@@ -415,3 +415,38 @@ Mean IAE across the 50 replicates:
 | +2 | 2041.46 | 0.0550 | 0.1813 | 0.0834 | 0.1957 |
 
 This is a stand-alone Monte Carlo sanity check, not an execution of the patched repository runner or its tests. It shows that the corrected oracle constructions move toward the declared target under this finite design, while the duplicated-host-weight construction has substantially larger IAE. The known-probability IPW arm remains noisier than the parent oracle because it uses the thinned catalogue and can have unstable weights, especially at gamma=-2. These results are diagnostic only and must not be used as confirmatory evidence or as a claim about D/E.
+
+
+## Exact-head CI and corrected density-pilot launch — 2026-11-18
+
+### Corrected implementation CI
+
+The final correction commit `ecea98a77cabd5473dbb438f475d55f05ee59d2e` received two successful GitHub Actions runs:
+
+1. **Focused curvature regressions:** run `44362902183`, workflow `curvature-known-probability-fix`, event `push`, conclusion **success**. All three matrix jobs (Python 3.10, 3.11, 3.12) completed successfully. The logged test groups included:
+   - five-arm weights, explicit truth probabilities, entropy ESS: 18 passed;
+   - absolute-bandwidth density smoke and independent raw-input auditor: 8 passed;
+   - multi-replicate density runner and auditor: 5 passed;
+   - synthetic quadratic-logit DGP invariants: 8 passed;
+   - cross-gamma completeness gate: 5 passed.
+   The counts above are from the Python 3.10 log; the Python 3.11 and 3.12 jobs also completed with success and matching test-group success.
+
+2. **Full repository numerical-diagnostics workflow:** run `44362902057`, workflow `tests`, event `push`, conclusion **success**. Python 3.10, 3.11 and 3.12 matrix jobs all completed successfully on the same code head. The Python 3.12 job completed the full configured sequence, including the relevant density, five-arm, posterior, calibration, and independent-audit test groups. Some explicitly marked large optional experiments were skipped by workflow conditions; this is not a claim that those skipped experiments ran.
+
+This resolves the earlier exact-head CI uncertainty for the corrected runner/auditor/tests at `ecea98a`. The focused and full test runs are engineering validation, not evidence of estimator performance.
+
+### Density-only pilot was launched
+
+To execute the already configured seven-gamma pilot, I added a branch-specific `push` trigger to `.github/workflows/quadratic-logit-curvature-density-pilot.yml` while retaining `workflow_dispatch`. This change is confined to the research branch and does not alter `main`.
+
+- Workflow commit: `35da06224585849839f3dc458f73a550f107a0a6`.
+- New PR #55 head: `35da06224585849839f3dc458f73a550f107a0a6`.
+- Pilot run: `44366440872`, URL: https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/44366440872
+- Design: seven gamma cells, 20 paired-seed replicates per cell (140 planned), N_parent=4,000, validation frame=1,500, validation sizes 100/300/1,000, 11 absolute bandwidths, 401-point redshift grid, quadrature order 5.
+- At the latest status check, all seven gamma jobs had passed checkout, Python setup, and dependency installation and were executing the multi-replicate density-only runner. No gamma-cell artifact or cross-gamma result had yet been returned.
+
+A second full test workflow was automatically queued for the workflow-trigger commit (`44366440973`); it was still running at the latest check. The prior full test workflow on the corrected code head had already passed.
+
+### Interpretation and limits
+
+The successful CI means the corrected density runner, independent auditor, and regression tests execute successfully on all supported Python versions in the configured test workflow. It does not mean the seven-gamma simulation has completed. The 20-replicate design remains a development pilot, not a confirmatory result or a bandwidth-selection dataset. No H0 likelihood, posterior, PIT, SBC, or coverage experiment is included in this workflow.
