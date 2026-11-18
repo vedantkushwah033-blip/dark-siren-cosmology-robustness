@@ -115,6 +115,14 @@ def test_partial_arm_failure_records_one_failed_row_per_planned_arm(tmp_path, mo
     assert metrics["error"].str.contains("injected third-arm posterior failure").all()
     assert len(pd.read_csv(args.output_dir / "failure_ledger.csv")) == 4
 
+    # Failed cells must remain independently auditable even when only partial
+    # raw files exist and no success-style cell manifest was written.
+    from scripts.audit_quadratic_h0_calibration_pilot import audit
+    audit_result = audit(args.output_dir)
+    assert audit_result["status"] == "PASS"
+    assert audit_result["successful_raw_cells_reconstructed"] == 0
+    assert audit_result["failed_raw_cells_accounted_for"] == 1
+
 
 
 def test_incomplete_pilot_status_fails_closed():
