@@ -42,6 +42,7 @@ def _sha256(path: Path) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input-dir", type=Path, default=None, help="Reuse archived observable/truth inputs instead of regenerating them")
     parser.add_argument("--seed", type=int, default=20261108)
     parser.add_argument("--validation-seed", type=int, default=20261109)
     parser.add_argument("--n-parent", type=int, default=2400)
@@ -95,7 +96,28 @@ def main() -> None:
     observable_dir.mkdir(parents=True, exist_ok=True)
     truth_dir.mkdir(parents=True, exist_ok=True)
 
-    if args.catalogue_model == "floor_logistic":
+    if args.input_dir is not None:
+        # Grid-refinement runs must condition on the exact archived data, not
+        # regenerate them with whatever generator implementation happens to
+        # be present on the current branch.
+        input_dir = args.input_dir.resolve()
+        input_config = json.loads((input_dir / "config.json").read_text(encoding="utf-8"))
+        analysis_config = input_config["analysis_generator_config"]
+        validation_config = input_config["validation_generator_config"]
+        analysis = {
+            "config": analysis_config,
+            "catalogue_observed": pd.read_csv(input_dir / "observable" / "analysis_catalogue.csv"),
+            "gw_events_observed": pd.read_csv(input_dir / "observable" / "gw_events_observed.csv"),
+            "parent_truth": pd.read_csv(input_dir / "truth" / "analysis_parent_truth.csv"),
+            "gw_event_truth": pd.read_csv(input_dir / "truth" / "gw_event_truth.csv"),
+            "gw_generation_trace_truth": pd.read_csv(input_dir / "truth" / "gw_generation_trace_truth.csv"),
+        }
+        validation = {
+            "config": validation_config,
+            "validation_observed": pd.read_csv(input_dir / "observable" / "validation_observed.csv"),
+            "validation_frame_truth": pd.read_csv(input_dir / "truth" / "validation_frame_truth.csv"),
+        }
+    elif args.catalogue_model == "floor_logistic":
         analysis = generate_synthetic_population(
             seed=args.seed, n_parent=args.n_parent, n_detected=args.n_detected,
             h0_true=args.h0_true,
