@@ -196,6 +196,23 @@ def audit(root: Path):
     _assert_close("catalogue object IDs", catalogue.object_id.to_numpy(float), retained_parent.object_id.to_numpy(float), atol=0)
     _assert_close("catalogue redshifts", catalogue.redshift.to_numpy(float), retained_parent.redshift.to_numpy(float), atol=2e-15)
 
+    # Independently check the held-out validation frame's DGP probabilities.
+    x_validation_frame = (
+        validation_frame.redshift.to_numpy(float) - float(cfg["coordinate_center"])
+    ) / float(cfg["coordinate_scale"])
+    eta_validation_frame = (
+        float(cfg["alpha"]) + float(cfg["beta"]) * x_validation_frame
+        + float(cfg["gamma"]) * (
+            x_validation_frame * x_validation_frame - float(cfg["x2_center"])
+        )
+    )
+    _assert_close(
+        "validation-frame inclusion probabilities",
+        validation_frame.inclusion_probability.to_numpy(float),
+        expit(eta_validation_frame),
+        atol=2e-12,
+    )
+
     selected_validation = validation_frame.loc[
         validation_frame.selected_for_validation == 1,
         ["frame_id", "redshift", "retained"],
