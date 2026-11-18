@@ -1,0 +1,96 @@
+name: h0-propagation-independent-validation-smoke
+
+on:
+  push:
+    branches:
+      - research/h0-propagation-smoke-20261119
+    paths:
+      - .github/workflows/h0-propagation-independent-validation-smoke.yml
+      - src/dark_siren_robustness/**
+      - scripts/run_independent_validation_inclusion_h0_smoke.py
+      - scripts/audit_independent_validation_inclusion_h0_smoke.py
+      - tests/test_inclusion_posterior.py
+      - tests/test_shared_inclusion_likelihood.py
+      - tests/test_h0_posterior.py
+      - tests/test_inclusion_h0_convergence.py
+      - tests/test_inclusion_prior_sensitivity.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: h0-propagation-independent-validation-smoke-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  h0-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run focused coefficient-posterior and selected-likelihood tests
+        run: |
+          python -m pytest -q \
+            tests/test_inclusion_posterior.py \
+            tests/test_shared_inclusion_likelihood.py \
+            tests/test_h0_posterior.py \
+            tests/test_inclusion_h0_convergence.py \
+            tests/test_inclusion_prior_sensitivity.py
+      - name: Run independent-validation selected-H0 smoke with quadrature ladder
+        run: |
+          python scripts/run_independent_validation_inclusion_h0_smoke.py \
+            --seed 2026111901 \
+            --validation-seed 2026111902 \
+            --n-parent 1200 \
+            --n-detected 4 \
+            --n-validation-frame 1500 \
+            --n-validation 200 \
+            --orders 5,7,9,11 \
+            --h0-points 41 \
+            --output-dir artifacts/independent_validation_inclusion_h0_smoke
+      - name: Independently reconstruct raw H0 smoke artifacts
+        run: |
+          python scripts/audit_independent_validation_inclusion_h0_smoke.py \
+            artifacts/independent_validation_inclusion_h0_smoke \
+            --output artifacts/independent_validation_inclusion_h0_smoke/audit_report.json
+      - name: Assert artifact provenance, normalized posterior and explicit convergence status
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          import pandas as pd
+          root = Path("artifacts/independent_validation_inclusion_h0_smoke")
+          audit = json.loads((root / "audit_report.json").read_text())
+          config = json.loads((root / "config.json").read_text())
+          convergence = json.loads((root / "quadrature_convergence.json").read_text())
+          posterior = pd.read_csv(root / "h0_posterior_density_by_order.csv")
+          assert audit["status"] == "PASS", audit
+          assert config["analysis_generator_config"]["seed"] != config["validation_generator_config"]["seed"]
+          assert len(posterior) == 41
+          assert np.all(np.isfinite(posterior.select_dtypes(include=[np.number]).to_numpy()))
+          assert convergence["status"] in {"CONVERGED", "NON_CONVERGED"}
+          print(json.dumps({
+              "audit": audit["status"],
+              "quadrature_status": convergence["status"],
+              "orders_evaluated": convergence["orders_evaluated"],
+              "h0_grid_points": len(posterior),
+              "interpretation": "single-dataset numerical smoke only; not SBC or fixed-truth coverage",
+          }, indent=2))
+          PY
+      - name: Preserve complete raw and audited artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: independent-validation-h0-smoke-py3.12
+          path: artifacts/independent_validation_inclusion_h0_smoke/
+          if-no-files-found: warn
+          retention-days: 90
