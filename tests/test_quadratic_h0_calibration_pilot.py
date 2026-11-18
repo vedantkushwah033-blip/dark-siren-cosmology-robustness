@@ -59,6 +59,8 @@ def test_partial_arm_failure_records_one_failed_row_per_planned_arm(tmp_path, mo
     import scripts.run_quadratic_h0_calibration_pilot as pilot
 
     def fake_single(args):
+        from pathlib import Path
+        Path(args.output_dir).mkdir(parents=True, exist_ok=True)
         grid = np.array([55.0, 70.0, 85.0])
         curves = pd.DataFrame({
             "H0": grid,
