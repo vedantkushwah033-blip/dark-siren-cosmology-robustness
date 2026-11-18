@@ -301,20 +301,22 @@ def audit(root:Path):
   design=np.column_stack([np.ones(n),xv])
   pmap=expit(np.column_stack([np.ones(len(zcat)),(zcat-float(cfg["coordinate_center"]))/float(cfg["coordinate_scale"])])@mode)
   pnodes=expit(np.column_stack([np.ones(len(zcat)),(zcat-float(cfg["coordinate_center"]))/float(cfg["coordinate_scale"])])@nodes.T).T
-  _close(z[f"weights_A_catalogue_only_n{n}"],bc,"A base weights")
-  _close(z[f"weights_B_parent_oracle_n{n}"],bp,"B base weights")
-  _close(z[f"weights_C_known_probability_ipw_n{n}"],bc/ptrue,"C raw weights")
-  _close(z[f"weights_D_map_plugin_ipw_n{n}"],bc/pmap,"D raw weights")
-  _close(z[f"weights_E_nodes_n{n}"],bc[None,:]/pnodes,"E raw weights")
+  # Host-rate factor is applied once after the KDE; sample weights carry only IPW.
+  one_c=np.ones_like(bc); one_p=np.ones_like(bp)
+  _close(z[f"weights_A_catalogue_only_n{n}"],one_c,"A inclusion-only weights")
+  _close(z[f"weights_B_parent_oracle_n{n}"],one_p,"B oracle inclusion-only weights")
+  _close(z[f"weights_C_known_probability_ipw_n{n}"],1.0/ptrue,"C raw weights")
+  _close(z[f"weights_D_map_plugin_ipw_n{n}"],1.0/pmap,"D raw weights")
+  _close(z[f"weights_E_nodes_n{n}"],1.0/pnodes,"E raw weights")
   _close(z[f"weights_E_quadrature_n{n}"],q,"E quadrature weights")
-  inputs={"A_catalogue_only":(zcat,bc),"B_parent_oracle":(zparent,bp),
-    "C_known_probability_ipw":(zcat,bc/ptrue),"D_map_plugin_ipw":(zcat,bc/pmap)}
+  inputs={"A_catalogue_only":(zcat,one_c),"B_parent_oracle":(zparent,one_p),
+    "C_known_probability_ipw":(zcat,1.0/ptrue),"D_map_plugin_ipw":(zcat,1.0/pmap)}
   for arm,(sample,raw_weights) in inputs.items():
    expected_scott.append({"validation_size":n,"arm":arm,"node":-1,
      "realized_bandwidth_redshift":_independent_scott_width(sample,raw_weights,scott_multiplier)})
    expected_diag.append({"validation_size":n,"arm":arm,"node":-1,
      **_independent_weight_diagnostics(raw_weights)})
-  e_node_diagnostics=[_independent_weight_diagnostics(w) for w in bc[None,:]/pnodes]
+  e_node_diagnostics=[_independent_weight_diagnostics(w) for w in 1.0/pnodes]
   expected_diag.append({"validation_size":n,"arm":"E_uncertainty_integrated_ipw","node":-1,
     "kish_ess":min(x["kish_ess"] for x in e_node_diagnostics),
     "kish_ess_fraction":min(x["kish_ess_fraction"] for x in e_node_diagnostics),
@@ -322,7 +324,7 @@ def audit(root:Path):
     "maximum_normalized_weight":max(x["maximum_normalized_weight"] for x in e_node_diagnostics),
     "top_1_percent_mass":max(x["top_1_percent_mass"] for x in e_node_diagnostics),
     "top_5_percent_mass":max(x["top_5_percent_mass"] for x in e_node_diagnostics)})
-  for node,raw_weights in enumerate(bc[None,:]/pnodes):
+  for node,raw_weights in enumerate(1.0/pnodes):
    expected_scott.append({"validation_size":n,"arm":"E_uncertainty_integrated_ipw","node":node,
      "realized_bandwidth_redshift":_independent_scott_width(zcat,raw_weights,scott_multiplier)})
   for bw in widths:
@@ -333,7 +335,7 @@ def audit(root:Path):
     _close(stored,d,f"{arm} density n={n} width={bw}")
     met=_metric(d,truth,grid)
     expected.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":bw,"arm":arm,"node":-1,**met,"status":"SUCCESS","kish_ess":_kish_ess(w)})
-   for j,w in enumerate(bc[None,:]/pnodes):
+   for j,w in enumerate(1.0/pnodes):
     d=_independent_kde(grid,zcat,w,rate,bw); node_ds.append(d)
     _close(z[f"density_E_nodes_n{n}_w{bw:.6f}"][j],d,f"E node density n={n} width={bw} node={j}")
     expected.append({"replicate":0,"validation_size":n,"absolute_bandwidth_sd":bw,"arm":"E_uncertainty_integrated_ipw","node":j,**_metric(d,truth,grid),"status":"SUCCESS","kish_ess":_kish_ess(w)})

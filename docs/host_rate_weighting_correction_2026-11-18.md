@@ -1,0 +1,56 @@
+# Host-rate weighting correction — follow-up record (18 November 2026)
+
+## Finding
+
+A source-level trace found that the density smoke runner supplied the same host/merger-rate function b(z) twice:
+1. as parent/catalogue sample-level base weights to the five-arm builder; and
+2. as the post-KDE merger_weight multiplier to the density estimator.
+
+The truth density was defined proportional to g(z)b(z), so the prior implementation's large-sample target was proportional to g(z)b(z)^2. This made the old A-E density metrics unsuitable as evidence for recovery of the declared target.
+
+## Correction submitted in PR #59
+
+The runner now omits parent_base_weights and catalogue_base_weights when building the five arms. Consequently:
+- A and B use unit sample weights;
+- C uses 1/pi_true;
+- D uses 1/pi_MAP;
+- E uses node-specific 1/pi(theta_k).
+
+The common b(z) factor is applied once by the KDE density estimator after the galaxy-density estimate. The independent raw-input auditor was updated to reconstruct exactly these inclusion-only sample weights, and a regression test asserts that the A and B sample weights saved by the runner are all ones.
+
+## Scope and validation boundary
+
+- Code branch: research/fix-host-weight-double-application-20261118
+- Pull request: #59 (draft, unmerged)
+- Changes: density smoke runner, independent density smoke auditor, and regression test.
+- No main-branch changes and no merge.
+- Tests have not yet been executed in this environment.
+- No seven-gamma run has been dispatched.
+- Existing density artifacts generated before this correction must be treated as superseded for the stated g(z)b(z) target and regenerated before any density conclusion or bandwidth selection.
+
+## Remaining follow-up
+
+1. Obtain green exact-head CI for PR #59.
+2. Run the corrected single-replicate density smoke and independently audit its raw artifacts.
+3. Run the corrected multi-replicate pilot and independently audit all replicate records.
+4. Reassess the 11-bandwidth grid and only then prepare a fresh-seed holdout.
+5. Keep H0 propagation blocked until density-stage estimands and results are independently validated.
+
+
+## Deterministic size of the target distortion
+
+Using the exact parent intensity form already declared in the synthetic generator and numerically integrating over z in [0.01, 0.40], the intended target proportional to g(z)b(z) has mean redshift 0.2251875. The duplicated target proportional to g(z)b(z)^2 has mean redshift 0.2469061, a shift of +0.0217186. Their total-variation distance is approximately 0.09231 (equivalently, their L1 density distance is approximately 0.18462).
+
+These are deterministic integrals of the declared population functions, not Monte Carlo estimates and not results from the seven-gamma experiment. They show that the duplicate factor is scientifically material rather than a negligible numerical perturbation.
+
+
+## Downstream H0 interface convention
+
+The existing matched KDE likelihood accepts both raw sample weights carried by FiveArmWeights and a separate merger_weight multiplier. Its API documentation explicitly permits a unit merger_weight when the raw arm weights already contain b(z). The two factors must not duplicate the same host-rate term.
+
+For consistency with the corrected density pilot, the recommended convention for the new curvature programme is:
+- build the five arms with unit base weights, so their raw sample weights contain only the inclusion correction (or are all ones for A/B);
+- pass b(z) once as merger_weight to the KDE-based selected H0 likelihood;
+- retain the GW detection-efficiency denominator inside the selected likelihood, separately from catalogue inclusion correction.
+
+An alternative is to put b(z) into the arm sample weights and pass a unit merger_weight. This targets the same unsmoothed population measure, but it is not numerically equivalent at finite KDE bandwidth: weighting observations before smoothing estimates a smoothed g(z)b(z), whereas multiplying by b(z) after smoothing estimates b(z) times a smoothed g(z). The two conventions therefore have different finite-bandwidth bias and must not be described as interchangeable. The existing H0 test fixture uses the pre-KDE convention; the corrected curvature density runner uses the post-KDE convention. A new H0 regression test checks that the selected post-KDE convention is propagated consistently; its CI result is pending.
