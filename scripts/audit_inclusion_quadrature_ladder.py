@@ -91,16 +91,6 @@ def _weight_summary(weights: np.ndarray) -> dict[str, float]:
     }
 
 
-def _outside_validation_mass(
-    fit, catalogue_redshift: np.ndarray, validation_redshift: np.ndarray
-) -> float:
-    node_weights = _rate_weighted_node_host_weights(fit, catalogue_redshift)
-    outside = ((catalogue_redshift < np.min(validation_redshift))
-               | (catalogue_redshift > np.max(validation_redshift)))
-    node_mass = node_weights[:, outside].sum(axis=1)
-    return float(fit.weights @ node_mass)
-
-
 def audit(
     artifact_root: Path,
     *,
