@@ -40,8 +40,6 @@ def test_curved_inclusion_dgp_arm_e_h0_posterior_stabilizes_with_quadrature_orde
     )
     retained = (rng.random(validation.size) < validation_probability).astype(int)
 
-    parent_base = 1.0 + 1.5 * (parent - 0.01) / 0.39
-    catalogue_base = 1.0 + 1.5 * (catalogue - 0.01) / 0.39
     events = [
         {"gw_distance": 275.0, "gw_sigma": 140.0},
         {"gw_distance": 340.0, "gw_sigma": 140.0},
@@ -62,8 +60,6 @@ def test_curved_inclusion_dgp_arm_e_h0_posterior_stabilizes_with_quadrature_orde
             coordinate_center=0.205,
             coordinate_scale=0.195,
             quadrature_order=order,
-            parent_base_weights=parent_base,
-            catalogue_base_weights=catalogue_base,
             true_catalogue_inclusion_probability=catalogue_probability,
         )
         result = matched_five_arm_kde_selected_log_likelihood(
@@ -72,7 +68,7 @@ def test_curved_inclusion_dgp_arm_e_h0_posterior_stabilizes_with_quadrature_orde
             events,
             detection_threshold_mpc=250.0,
             redshift_grid=z_grid,
-            merger_weight=np.ones_like(z_grid),
+            merger_weight=1.0 + 1.5 * (z_grid - 0.01) / 0.39,
             scott_multiplier=0.7,
         )
         posterior_mean_densities[order] = np.average(
