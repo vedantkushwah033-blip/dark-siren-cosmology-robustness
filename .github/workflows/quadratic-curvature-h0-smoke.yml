@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - research/quadratic-curvature-h0-smoke-20261119
+      - research/h0-artifact-auditor-20261119
+  pull_request:
+    branches:
+      - research/quadratic-curvature-h0-smoke-20261119
   workflow_dispatch:
 
 permissions:
@@ -33,6 +37,8 @@ jobs:
             --gamma 1.0 \
             --orders 5,7 \
             --output-dir artifacts/quadratic_curvature_h0_smoke
+      - name: Independently audit reconstructed H0 likelihood artifact
+        run: python scripts/audit_quadratic_curvature_h0_artifact.py artifacts/quadratic_curvature_h0_smoke
       - name: Upload observable, truth-separated and posterior artifacts
         uses: actions/upload-artifact@v4
         with:

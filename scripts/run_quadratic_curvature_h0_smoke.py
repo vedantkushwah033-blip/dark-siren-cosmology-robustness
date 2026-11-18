@@ -113,6 +113,7 @@ def run(args):
     results = {}
     curves = {"H0": h0_grid}
     fits = {}
+    node_payloads = {}
     for degree in (1, 2):
         previous = None
         max_density_difference = None
@@ -136,6 +137,12 @@ def run(args):
                 ))
             previous = posterior
             fits[(degree, order)] = fit
+            prefix = f"degree{degree}_order{order}"
+            node_payloads[f"{prefix}_nodes"] = fit.nodes
+            node_payloads[f"{prefix}_weights"] = fit.weights
+            node_payloads[f"{prefix}_node_log_selected"] = likelihood.node_log_selected_likelihood
+            node_payloads[f"{prefix}_node_log_beta"] = likelihood.node_log_detection_efficiency
+            node_payloads[f"{prefix}_host_weights"] = likelihood.node_catalogue_weights
         results[f"degree_{degree}"] = {
             "last_order": args.orders[-1],
             "posterior_mean_coefficients": fits[(degree, args.orders[-1])].posterior_mean.tolist(),
@@ -167,6 +174,12 @@ def run(args):
         h0_grid, z_catalogue, events, oracle,
         detection_threshold_mpc=args.threshold, population_base_weights=base,
     )
+    node_payloads["catalogue_only_node_log_selected"] = no_correction.node_log_selected_likelihood
+    node_payloads["catalogue_only_node_log_beta"] = no_correction.node_log_detection_efficiency
+    node_payloads["catalogue_only_host_weights"] = no_correction.node_catalogue_weights
+    node_payloads["oracle_node_log_selected"] = oracle_likelihood.node_log_selected_likelihood
+    node_payloads["oracle_node_log_beta"] = oracle_likelihood.node_log_detection_efficiency
+    node_payloads["oracle_host_weights"] = oracle_likelihood.node_catalogue_weights
     for label, loglike in (
         ("catalogue_only", no_correction.marginal_log_likelihood),
         ("oracle_true_inclusion", oracle_likelihood.marginal_log_likelihood),
@@ -191,11 +204,19 @@ def run(args):
     data["validation_frame_truth"].to_csv(output / "truth/validation_frame_truth.csv", index=False, float_format="%.17g")
     events_truth.to_csv(output / "truth/event_hosts.csv", index=False, float_format="%.17g")
     pd.DataFrame(curves).to_csv(output / "h0_posterior_curves.csv", index=False, float_format="%.17g")
+    np.savez_compressed(output / "node_level_likelihoods.npz", **node_payloads)
     summary = {
         "status": "synthetic_smoke_not_measurement",
         "data_generating_config": data["config"],
         "truth_h0": args.h0_true,
         "gamma": args.gamma,
+        "threshold_mpc": args.threshold,
+        "z_min": args.z_min,
+        "z_max": args.z_max,
+        "orders": list(args.orders),
+        "inclusion_prior_mean": [0.0, 0.0, 0.0],
+        "inclusion_prior_sd": [5.0, 2.5, 2.5],
+        "event_seed": args.event_seed,
         "n_catalogue": int(len(catalogue)),
         "n_validation": int(len(validation)),
         "n_detected_events": int(len(events_observed)),
