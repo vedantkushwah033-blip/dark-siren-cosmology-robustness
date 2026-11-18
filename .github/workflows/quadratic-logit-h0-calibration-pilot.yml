@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - research/quadratic-logit-h0-calibration-pilot-20261119
+      - research/h0-calibration-summary-audit-20261119
     paths:
       - .github/workflows/quadratic-logit-h0-calibration-pilot.yml
       - scripts/run_quadratic_logit_h0_calibration_pilot.py
