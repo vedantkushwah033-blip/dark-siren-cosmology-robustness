@@ -1,5 +1,9 @@
 name: h0-oracle-diagnostic-tests
 
+permissions:
+  contents: read
+  actions: read
+
 on:
   push:
     branches:
@@ -27,3 +31,24 @@ jobs:
         run: python -m py_compile scripts/audit_h0_known_inclusion_oracle_sensitivity.py scripts/run_full_parent_h0_fixed_count_baseline.py
       - name: Run independent H0 diagnostic regression tests
         run: pytest tests/test_h0_known_inclusion_oracle_sensitivity.py tests/test_full_parent_h0_fixed_count_baseline.py -q
+      - name: Download archived 90-cell fixed-truth H0 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: quadratic-logit-h0-calibration-pilot-py3.12
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44408479569
+          path: artifacts/h0_calibration_baseline
+      - name: Reconstruct oracle arms on a 1,121-point H0 grid
+        run: |
+          python scripts/audit_h0_known_inclusion_oracle_sensitivity.py \
+            artifacts/h0_calibration_baseline \
+            --h0-points 1121 \
+            --output-dir artifacts/h0_oracle_refined
+      - name: Upload refined oracle-arm readout
+        uses: actions/upload-artifact@v4
+        with:
+          name: h0-oracle-refined-grid-1121
+          path: artifacts/h0_oracle_refined/
+          if-no-files-found: error
+          retention-days: 90
