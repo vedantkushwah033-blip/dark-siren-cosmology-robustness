@@ -40,9 +40,10 @@ def _assert_summary_matches_ledger(ledger: pd.DataFrame, summary: pd.DataFrame) 
             # summary field. Infer zero only when every planned cell is in
             # the ledger and no ledger row has status NOT_RUN.
             if column not in summary.columns:
-                if column == "not_run" and actual == 0 and len(group) == int(
-                    planned_count := len(group)
-                ):
+                # The outer audit first proves planned cell IDs equal ledger
+                # cell IDs, so a missing legacy not_run field is safely zero
+                # only when the ledger also contains no NOT_RUN statuses.
+                if column == "not_run" and actual == 0:
                     continue
                 raise AssertionError(f"summary is missing required count column: {column}")
             if int(getattr(row, column)) != actual:
