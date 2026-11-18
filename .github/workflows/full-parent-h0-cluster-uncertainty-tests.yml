@@ -1,0 +1,26 @@
+name: full-parent-h0-cluster-uncertainty-tests
+
+on:
+  push:
+    branches:
+      - research/full-parent-baseline-cluster-uncertainty-20261119
+    paths:
+      - .github/workflows/full-parent-h0-cluster-uncertainty-tests.yml
+      - scripts/analyze_full_parent_h0_cluster_uncertainty.py
+      - tests/test_full_parent_h0_cluster_uncertainty.py
+  workflow_dispatch:
+
+jobs:
+  cluster-uncertainty-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install analysis dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Compile cluster uncertainty analysis
+        run: python -m py_compile scripts/analyze_full_parent_h0_cluster_uncertainty.py
+      - name: Test parent-cluster uncertainty
+        run: pytest tests/test_full_parent_h0_cluster_uncertainty.py -q
