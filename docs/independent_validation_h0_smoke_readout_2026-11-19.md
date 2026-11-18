@@ -55,7 +55,7 @@ Prior slope-scale sensitivity, holding the data and H0 grid fixed:
 
 This run establishes that the existing independent-validation coefficient-posterior → shared selected-H0 likelihood → marginalization → raw-artifact auditor pipeline executes coherently for this small floor-logistic synthetic design. It is not a repeated-sampling calibration result. One posterior containing the generating H0 does not establish coverage, and quadrature convergence does not establish H0-grid convergence or model adequacy.
 
-The H0 grid has only 41 points over [50, 90]. A separate finer-grid comparison remains necessary before treating quantiles as numerically final. The quadratic-logit matched-DGP smoke and repeated fixed-truth calibration pilot remain separate gates.
+The initial H0 grid had 41 points over [50, 90]. A same-data 81-point refinement has now passed; see Section 5 below. This establishes grid stability for this one realization, not across the full parameter or DGP space. The quadratic-logit matched-DGP smoke and repeated fixed-truth calibration pilot remain separate gates.
 
 ## Next gate
 
@@ -63,3 +63,24 @@ The H0 grid has only 41 points over [50, 90]. A separate finer-grid comparison r
 2. Complete the curvature-matched quadratic-logit H0 smoke and independent audit.
 3. Finish the paired fixed-truth repeated-sampling pilot; report success, non-evaluable, failed, and not-run counts alongside coverage.
 4. Keep conditional H0 PIT distinct from joint SBC; the latter requires generating inclusion coefficients from the declared coefficient prior.
+
+
+## 5. Same-realization H0-grid refinement (completed)
+
+**Workflow:** 44407318606  
+**Artifact:** 14476521866 (`independent-validation-h0-smoke-py3.12`)  
+**ZIP SHA-256:** `31dd6c95e58392cac93f1ed72e3d36cc7a11570b7d56e09ccf5a62ee4d7b4877` (matches GitHub artifact digest).
+
+The exact same analysis and validation seeds, parent catalogue, observed GW events, validation sample, coefficient prior, and quadrature orders were run on 41- and 81-point H0 grids. Both independent raw-artifact audits passed; both internal manifests (18 entries each) were independently checked and all entries matched.
+
+At quadrature order 9:
+- 41-point posterior median: 73.53528667.
+- 81-point posterior median: 73.53898610.
+- Absolute median shift: 0.00369943 km s\(^{-1}\) Mpc\(^{-1}\).
+- Maximum absolute shift across the seven reported quantiles (2.5%, 5%, 16%, 50%, 84%, 95%, 97.5%): 0.01035126 km s\(^{-1}\) Mpc\(^{-1}\).
+- L1 difference between posterior densities after interpolation to the coarse grid: 0.00017062.
+- Comparison status: PASS.
+
+The workflow also reran focused coefficient-posterior, shared selected-likelihood, H0 normalization, quadrature-convergence, and prior-sensitivity tests; all passed. Coefficient quadrature converged at order 9 on both grids (orders 5, 7, 9).
+
+This is a numerical grid-resolution result for one floor-logistic synthetic realization. It does not establish calibration, SBC, fixed-truth coverage, or robustness under the quadratic-logit curvature DGP.
