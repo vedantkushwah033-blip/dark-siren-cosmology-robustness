@@ -77,6 +77,8 @@ def _assert_nested_validation_frames(ledger: pd.DataFrame, dirs: dict[str, Path]
         reference_frame = pd.read_csv(first_dir / "truth/validation_frame_truth.csv")
         reference_core = reference_frame[invariant_columns]
         reference_catalogue = pd.read_csv(first_dir / "observable/analysis_catalogue.csv")
+        reference_parent = pd.read_csv(first_dir / "truth/analysis_parent_truth.csv")
+        reference_events = pd.read_csv(first_dir / "observable/gw_events_observed.csv")
         previous_ids = None
         for row in usable.itertuples(index=False):
             directory = dirs[row.cell_id]
@@ -84,6 +86,10 @@ def _assert_nested_validation_frames(ledger: pd.DataFrame, dirs: dict[str, Path]
             pd.testing.assert_frame_equal(frame[invariant_columns], reference_core)
             catalogue = pd.read_csv(directory / "observable/analysis_catalogue.csv")
             pd.testing.assert_frame_equal(catalogue, reference_catalogue)
+            parent = pd.read_csv(directory / "truth/analysis_parent_truth.csv")
+            pd.testing.assert_frame_equal(parent, reference_parent)
+            events = pd.read_csv(directory / "observable/gw_events_observed.csv")
+            pd.testing.assert_frame_equal(events, reference_events)
             observed = pd.read_csv(directory / "observable/validation_observed.csv")
             ids = observed["validation_id"].to_numpy(dtype=int)
             if len(ids) != int(row.n_validation):
