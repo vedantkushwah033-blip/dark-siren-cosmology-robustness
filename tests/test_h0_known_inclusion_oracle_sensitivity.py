@@ -7,7 +7,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from audit_h0_known_inclusion_oracle_sensitivity import (
-    assert_cross_gamma_pairing, make_h0_grid, selected_posterior_quantiles,
+    assert_complete_planned_ledger, assert_cross_gamma_pairing,
+    make_h0_grid, selected_posterior_quantiles,
 )
 
 
@@ -93,3 +94,67 @@ def test_cross_gamma_pairing_rejects_changed_event_or_validation_stream():
     changed_validation.loc[0, "redshift"] += 1e-6
     with pytest.raises(AssertionError, match="validation IDs/redshifts"):
         assert_cross_gamma_pairing(parent, parent, events, events, validation, changed_validation)
+
+
+
+def test_complete_planned_ledger_accepts_exact_complete_factorial():
+    import pandas as pd
+
+    planned = pd.DataFrame([
+        {"cell_id": "r0_gm1_n100", "replicate": 0, "gamma": -1.0,
+         "n_validation": 100, "analysis_seed": 10, "validation_seed": 20,
+         "h0_true": 70.0},
+        {"cell_id": "r0_gm1_n500", "replicate": 0, "gamma": -1.0,
+         "n_validation": 500, "analysis_seed": 10, "validation_seed": 20,
+         "h0_true": 70.0},
+        {"cell_id": "r0_gp0_n100", "replicate": 0, "gamma": 0.0,
+         "n_validation": 100, "analysis_seed": 10, "validation_seed": 20,
+         "h0_true": 70.0},
+        {"cell_id": "r0_gp0_n500", "replicate": 0, "gamma": 0.0,
+         "n_validation": 500, "analysis_seed": 10, "validation_seed": 20,
+         "h0_true": 70.0},
+    ])
+    ledger = planned.copy()
+    ledger["status"] = "SUCCESS"
+    assert_complete_planned_ledger(planned, ledger)
+
+
+def test_complete_planned_ledger_rejects_missing_cell_even_if_remaining_succeed():
+    import pandas as pd
+
+    planned = pd.DataFrame([
+        {"cell_id": "a", "replicate": 0, "gamma": -1.0,
+         "n_validation": 100, "analysis_seed": 10, "validation_seed": 20,
+         "h0_true": 70.0},
+        {"cell_id": "b", "replicate": 0, "gamma": -1.0,
+         "n_validation": 500, "analysis_seed": 10, "validation_seed": 20,
+         "h0_true": 70.0},
+    ])
+    with pytest.raises(AssertionError, match="planned-cell inventory"):
+        assert_complete_planned_ledger(planned, planned.iloc[:1].copy())
+
+
+def test_complete_planned_ledger_rejects_changed_pairing_seed():
+    import pandas as pd
+
+    planned = pd.DataFrame([{
+        "cell_id": "a", "replicate": 0, "gamma": -1.0,
+        "n_validation": 100, "analysis_seed": 10, "validation_seed": 20,
+        "h0_true": 70.0,
+    }])
+    ledger = planned.copy()
+    ledger.loc[0, "validation_seed"] = 21
+    with pytest.raises(AssertionError, match="planned-cell inventory"):
+        assert_complete_planned_ledger(planned, ledger)
+
+
+def test_complete_planned_ledger_rejects_duplicate_rows():
+    import pandas as pd
+
+    planned = pd.DataFrame([{
+        "cell_id": "a", "replicate": 0, "gamma": -1.0,
+        "n_validation": 100, "analysis_seed": 10, "validation_seed": 20,
+        "h0_true": 70.0,
+    }])
+    with pytest.raises(AssertionError, match="duplicate"):
+        assert_complete_planned_ledger(planned, pd.concat([planned, planned]))
