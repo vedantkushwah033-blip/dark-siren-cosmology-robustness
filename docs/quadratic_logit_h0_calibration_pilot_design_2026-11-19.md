@@ -16,6 +16,7 @@ This pilot is a software-validated, fixed-truth repeated-sampling experiment. It
 - Validation frame: 500 objects; nested SRS sizes 100, 300, 500.
 - Replication: 10 independent replicate streams, shared across gamma and validation sizes for paired contrasts.
 - H0 prior/grid: uniform [20, 300], 141 grid points.
+- The 141-point H0 grid has spacing 2 km s^-1 Mpc^-1. The quadrature ladder tests inclusion-coefficient integration stability only; this pilot does not independently establish H0-grid resolution convergence. Posterior quantiles and coverage therefore retain a grid-discretization limitation.
 - Inclusion-coefficient quadrature: orders 3, 5, 7, 9; convergence required before a cell is counted SUCCESS.
 
 The inference coefficient prior is independent Normal with mean zero and standard deviations (5.0, 2.5) for intercept and slope. The fixed generating coefficients are not drawn from this prior (at gamma=0 the generating slope is -3.9). Consequently, the fixed-truth coverage arm is a conditional repeated-sampling diagnostic for this modular procedure, not prior-predictive or joint SBC.
