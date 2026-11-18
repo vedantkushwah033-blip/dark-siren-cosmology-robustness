@@ -76,8 +76,14 @@ def test_validation_observations_must_match_across_curvature(tmp_path):
     ledger = pd.DataFrame(rows)
     assert _assert_validation_samples_paired(ledger, dirs) == 1
 
+    # Retention is the outcome being varied by gamma and must not be
+    # compared as part of the shared SRS design.
     changed = pd.read_csv(dirs["g1.0"] / "observable/validation_observed.csv")
     changed.loc[0,"retained"] = 0
+    changed.to_csv(dirs["g1.0"] / "observable/validation_observed.csv",index=False)
+    assert _assert_validation_samples_paired(ledger, dirs) == 1
+
+    changed.loc[0,"validation_id"] = 999
     changed.to_csv(dirs["g1.0"] / "observable/validation_observed.csv",index=False)
     with pytest.raises(AssertionError):
         _assert_validation_samples_paired(ledger, dirs)
