@@ -39,7 +39,7 @@ def _verify_manifest(root: Path, manifest_path: Path) -> int:
     actual = {
         str(path.relative_to(root))
         for path in root.rglob("*")
-        if path.is_file() and path != manifest_path
+        if path.is_file() and path.name != "manifest.json"
     }
     if actual != set(manifest):
         _fail(f"manifest inventory mismatch under {root}")
