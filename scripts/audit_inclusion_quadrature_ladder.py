@@ -13,10 +13,12 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.special import expit
 
 from dark_siren_robustness.inclusion_posterior import (
     build_node_specific_host_weights,
     fit_inclusion_posterior_quadrature_ladder,
+    posterior_predictive_inclusion,
 )
 
 Z_MIN, Z_MAX = 0.01, 0.40
@@ -136,6 +138,10 @@ def audit(
                     mixture = _mixture_host_weights(fit, catalogue)
                     mixtures.append(mixture)
                     outside_mass = _outside_validation_mass(fit, catalogue, vz)
+                    x_full = (full_grid - fit.center) / fit.scale
+                    full_design = np.column_stack((np.ones(full_grid.size), x_full))
+                    node_probability = expit(fit.nodes @ full_design.T)
+                    posterior_mean_probability = posterior_predictive_inclusion(fit, full_grid)
                     rows.append({
                         "replicate": replicate_id,
                         "validation_size": n,
@@ -148,8 +154,10 @@ def audit(
                         "posterior_sd_intercept": float(np.sqrt(fit.posterior_covariance[0, 0])),
                         "posterior_sd_slope": float(np.sqrt(fit.posterior_covariance[1, 1])),
                         "log_evidence_unnormalized": fit.log_evidence_unnormalized,
-                        "full_support_min_inclusion": fit.min_predicted_probability,
-                        "full_support_max_inclusion": fit.max_predicted_probability,
+                        "full_support_min_node_inclusion": float(np.min(node_probability)),
+                        "full_support_max_node_inclusion": float(np.max(node_probability)),
+                        "full_support_min_posterior_mean_inclusion": float(np.min(posterior_mean_probability)),
+                        "full_support_max_posterior_mean_inclusion": float(np.max(posterior_mean_probability)),
                         "catalogue_fraction_outside_validation_range": float(
                             np.mean((catalogue < vz.min()) | (catalogue > vz.max()))
                         ),
