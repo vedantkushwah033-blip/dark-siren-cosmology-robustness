@@ -10,6 +10,16 @@ def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _completion_status(ledger: pd.DataFrame, planned_count: int,
+                       summary_available: bool) -> str:
+    """Distinguish complete artifacts from interrupted, fully planned ledgers."""
+    terminal = {"SUCCESS", "NON_EVALUABLE", "FAILED"}
+    complete = len(ledger) == planned_count and set(ledger.status).issubset(terminal)
+    if complete and not summary_available:
+        raise AssertionError("complete pilot is missing calibration_summary.csv")
+    return "PASS" if complete and summary_available else "INCOMPLETE"
+
+
 
 def _assert_summary_matches_ledger(ledger: pd.DataFrame, summary: pd.DataFrame) -> None:
     """Recompute all reported cell counts and metrics from the replicate ledger."""
@@ -213,15 +223,12 @@ def audit(root: Path) -> dict:
                 pd.testing.assert_frame_equal(frame,reference[2])
     paired_validation_blocks = _assert_validation_samples_paired(ledger, dirs)
     counts=ledger.status.value_counts().to_dict()
-    terminal={"SUCCESS","NON_EVALUABLE","FAILED"}
-    complete=bool(set(ledger.status).issubset(terminal)) and len(ledger)==len(planned)
     summary_checked=False
     if summary is not None:
         _assert_summary_matches_ledger(ledger, summary)
         summary_checked=True
-    if complete and not summary_checked:
-        raise AssertionError("complete pilot is missing calibration_summary.csv")
-    return {"status":"PASS" if complete and summary_checked else "INCOMPLETE",
+    completion=_completion_status(ledger,len(planned),summary_checked)
+    return {"status":completion,
             "planned_cells":len(planned),"ledger_cells":len(ledger),
             "status_counts":counts,"unattempted_cells":int((ledger.status=="NOT_RUN").sum()),
             "interrupted_cells":int((ledger.status=="RUNNING").sum()),
