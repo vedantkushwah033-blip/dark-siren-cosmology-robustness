@@ -109,7 +109,7 @@ def run(args) -> dict:
         if int(cfg["replicates"]) != expected_reps:
             raise AssertionError(f"gamma={gamma}: expected {expected_reps} replicates")
         center, scale = 0.205, 0.195
-        for rid in range(expected_reps):
+        for rid in range(args.replicates_to_audit):
             child = cell / "replicates" / f"replicate_{rid:04d}"
             parent = pd.read_csv(child / "truth" / "parent_truth.csv")
             catalogue = pd.read_csv(child / "observable" / "catalogue_observed.csv")
@@ -178,7 +178,7 @@ def run(args) -> dict:
         "gammas": list(gammas), "replicates_per_gamma": expected_reps,
         "validation_sizes": list(sizes), "absolute_bandwidths": list(widths),
         "orders": list(orders), "grid_points": args.grid_points,
-        "case_count": int(expected_reps * len(gammas) * len(sizes) * len(widths)),
+        "replicates_audited_per_gamma": args.replicates_to_audit,\n        "case_count": int(args.replicates_to_audit * len(gammas) * len(sizes) * len(widths)),
         "comparison_rows": int(len(frame)),
         "scope": "Arm-E posterior-mean KDE density convergence only; synthetic low-z density stage; no H0 likelihood, posterior calibration, PIT, or coverage.",
         "reference_order": orders[-1],
@@ -196,7 +196,7 @@ def main():
     p.add_argument("--orders", default="5,7,9,11,13")
     p.add_argument("--validation-sizes", default="100,300,1000")
     p.add_argument("--widths", default="0.016,0.024,0.032")
-    p.add_argument("--expected-replicates", type=int, default=20)
+    p.add_argument("--expected-replicates", type=int, default=20)\n    p.add_argument("--replicates-to-audit", type=int, default=5)
     p.add_argument("--grid-points", type=int, default=401)
     args = p.parse_args()
     run(args)
