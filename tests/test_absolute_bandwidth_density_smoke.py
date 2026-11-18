@@ -315,3 +315,22 @@ def test_density_smoke_applies_host_merger_factor_only_once(tmp_path):
                           np.ones_like(archive["weights_A_catalogue_only_n160"]))
     assert np.array_equal(archive["weights_B_parent_oracle_n160"],
                           np.ones_like(archive["weights_B_parent_oracle_n160"]))
+
+
+def test_multi_replicate_child_config_describes_its_orchestration_role(tmp_path):
+    import json
+
+    runner=_load("replicate_metadata_runner","run_absolute_bandwidth_density_smoke.py")
+    output=tmp_path/"replicate_metadata"
+    args=SimpleNamespace(
+        output_dir=output, seed=2026111801, validation_seed=2026111802,
+        n_parent=500, validation_frame=120, validation_sizes=(40,80),
+        gamma=0.5, beta=-3.9, scott_multiplier=0.7,
+        quadrature_order=3, grid_points=101, absolute_widths=(0.012,0.024),
+    )
+    result=runner.run(args)
+    assert result["status"]=="PASS"
+    cfg=json.loads((output/"config.json").read_text())
+    assert "one replicate per child artifact" in cfg["limitations"]
+    assert "outer orchestration defines the multi-replicate pilot" in cfg["limitations"]
+    assert "one engineering replicate only" not in cfg["limitations"]
