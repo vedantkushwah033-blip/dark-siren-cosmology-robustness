@@ -132,5 +132,6 @@ def test_legacy_summary_without_not_run_is_accepted_only_when_zero():
     _assert_summary_matches_ledger(ledger, legacy)
 
     ledger.loc[2, "status"] = "NOT_RUN"
+    summary.loc[0, "non_evaluable"] = 0
     with pytest.raises(AssertionError, match="missing required count column: not_run"):
         _assert_summary_matches_ledger(ledger, legacy)
