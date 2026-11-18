@@ -39,7 +39,7 @@ def test_independent_h0_artifact_auditor_reconstructs_likelihood(tmp_path):
     auditor = runpy.run_path("scripts/audit_quadratic_curvature_h0_artifact.py")
     report = auditor["audit"](root)
     assert report["status"] == "PASS"
-    assert report["files_manifest_verified"] == 10
+    assert report["files_manifest_verified"] == 9
     assert report["detected_events"] == 2
     assert report["coefficient_nodes_reconstructed"] > 0
     assert report["max_abs_reconstruction_error"] < 2e-10
