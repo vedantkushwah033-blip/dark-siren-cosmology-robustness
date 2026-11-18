@@ -86,11 +86,72 @@ jobs:
               "interpretation": "single-dataset numerical smoke only; not SBC or fixed-truth coverage",
           }, indent=2))
           PY
+      - name: Run the identical realization on a finer H0 grid
+        run: |
+          python scripts/run_independent_validation_inclusion_h0_smoke.py \
+            --seed 2026111901 \
+            --validation-seed 2026111902 \
+            --n-parent 1200 \
+            --n-detected 4 \
+            --n-validation-frame 1500 \
+            --n-validation 200 \
+            --orders 5,7,9,11 \
+            --h0-points 81 \
+            --output-dir artifacts/independent_validation_inclusion_h0_smoke_h0grid81
+      - name: Independently reconstruct finer-grid H0 artifacts
+        run: |
+          python scripts/audit_independent_validation_inclusion_h0_smoke.py \
+            artifacts/independent_validation_inclusion_h0_smoke_h0grid81 \
+            --output artifacts/independent_validation_inclusion_h0_smoke_h0grid81/audit_report.json
+      - name: Compare H0-grid refinement on identical observable data
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          import pandas as pd
+          coarse = Path("artifacts/independent_validation_inclusion_h0_smoke")
+          fine = Path("artifacts/independent_validation_inclusion_h0_smoke_h0grid81")
+          ca = json.loads((coarse / "audit_report.json").read_text())
+          fa = json.loads((fine / "audit_report.json").read_text())
+          cc = json.loads((coarse / "quadrature_convergence.json").read_text())
+          fc = json.loads((fine / "quadrature_convergence.json").read_text())
+          assert ca["status"] == fa["status"] == "PASS"
+          assert cc["status"] == fc["status"] == "CONVERGED"
+          assert cc["orders_evaluated"][-1] == fc["orders_evaluated"][-1] == 9
+          cdf = pd.read_csv(coarse / "h0_posterior_density_by_order.csv")
+          fdf = pd.read_csv(fine / "h0_posterior_density_by_order.csv")
+          qkeys = ("h0_q025", "h0_q05", "h0_q16", "h0_median", "h0_q84", "h0_q95", "h0_q975")
+          cr = next(x for x in cc["posterior_by_order"] if x["order"] == 9)
+          fr = next(x for x in fc["posterior_by_order"] if x["order"] == 9)
+          qdiff = {k: abs(float(cr[k]) - float(fr[k])) for k in qkeys}
+          hcoarse = cdf["H0"].to_numpy(float)
+          hfine = fdf["H0"].to_numpy(float)
+          dc = cdf["density_order_9"].to_numpy(float)
+          dfine = fdf["density_order_9"].to_numpy(float)
+          fine_on_coarse = np.interp(hcoarse, hfine, dfine)
+          l1 = float(np.trapezoid(np.abs(dc - fine_on_coarse), hcoarse))
+          assert len(cdf) == 41 and len(fdf) == 81
+          assert qdiff["h0_median"] < 0.5, qdiff
+          assert max(qdiff.values()) < 0.5, qdiff
+          assert l1 < 0.01, l1
+          report = {
+              "coarse_grid_points": len(cdf), "fine_grid_points": len(fdf),
+              "quadrature_order": 9, "absolute_quantile_differences": qdiff,
+              "coarse_grid_L1_density_difference": l1,
+              "status": "PASS",
+              "interpretation": "H0-grid refinement only for one fixed synthetic realization; not calibration or SBC"
+          }
+          (fine / "h0_grid_refinement_comparison.json").write_text(json.dumps(report, indent=2) + "\\n")
+          print(json.dumps(report, indent=2))
+          PY
       - name: Preserve complete raw and audited artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: independent-validation-h0-smoke-py3.12
-          path: artifacts/independent_validation_inclusion_h0_smoke/
+          path: |
+            artifacts/independent_validation_inclusion_h0_smoke/
+            artifacts/independent_validation_inclusion_h0_smoke_h0grid81/
           if-no-files-found: warn
           retention-days: 90
