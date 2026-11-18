@@ -1,0 +1,63 @@
+name: curvature-cross-gamma-audit-replay
+
+on:
+  push:
+    branches:
+      - research/execute-curvature-pilot-20261118
+    paths:
+      - .github/workflows/curvature-cross-gamma-audit-replay.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: curvature-cross-gamma-audit-replay
+  cancel-in-progress: false
+
+jobs:
+  cross-gamma-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Download all seven archived gamma-cell artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: curvature-gamma-*
+          path: artifacts
+          merge-multiple: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44367512399
+      - name: Independently audit all gamma cells and paired summaries
+        run: |
+          python scripts/audit_quadratic_logit_curvature_pilot.py \
+            artifacts \
+            --output-dir curvature_summary
+      - name: Require complete seven-gamma audit
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("curvature_summary/audit.json").read_text())
+          assert report["status"] == "PASS", report
+          assert report["gammas"] == [-2.0, -1.0, -0.5, 0.0, 0.5, 1.0, 2.0], report
+          assert report["replicates_per_gamma"] == 20, report
+          assert report["paired_seed_schedule_verified"] is True, report
+          print(json.dumps(report, indent=2))
+          PY
+      - name: Upload independently audited cross-gamma summaries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quadratic-logit-curvature-cross-gamma-summary-replay
+          path: curvature_summary/
+          if-no-files-found: warn
+          retention-days: 90
