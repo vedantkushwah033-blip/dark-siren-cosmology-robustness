@@ -183,3 +183,44 @@ A stronger statistical-journal case would likely require at least one of:
 4. a generalizable design result for allocating a limited validation budget across redshift/support regions.
 
 These are candidate directions, not recommendations to add all four. Choose one only after the baseline experiment establishes a concrete failure mode.
+
+
+## 10. Additional statistical-computation audit: validation posterior quadrature
+
+The degree-one logistic posterior implementation uses a proper independent Gaussian prior, a trust-region exact-Hessian mode fit with Newton refinement, and corrected tensor Gauss-Hermite importance weights. The Laplace Gaussian is a proposal, not the posterior itself; the code correctly reweights quadrature nodes against the declared logistic likelihood times prior. This is materially stronger than treating a Laplace approximation as the final posterior.
+
+However, the curvature workflow currently calls the fitter with `--quadrature-order 5`. For a two-coefficient degree-one model, this is only (5^2=25) tensor nodes. Correct importance weights do not guarantee that a low-order quadrature resolves a skewed or heavy-tailed posterior, particularly when the finite validation sample has near-separation or the catalogue extrapolates beyond the observed validation redshift range.
+
+The repository includes a quadrature-ladder utility that compares coefficient posterior means/covariances, posterior-mean inclusion probabilities, and log evidence over increasing orders. Its default predictive grid spans only the minimum to maximum observed validation redshift. For the scientific application, this default is insufficient by itself: catalogue redshifts outside that observed interval can receive the most influential extrapolated inverse weights. The ladder should be called with an explicit fixed prediction grid spanning the full analysis support [0.01, 0.40], and the downstream integrated H0 likelihood itself must also be checked for order stability. The current density workflow does not use the ladder as a precondition for the order-5 run.
+
+**Required gate before confirmatory claims:** on each validation replicate, compare at least a prespecified ladder such as orders 5, 7, 9, 11 (and extend if needed) using the full catalogue support. Record posterior coefficient moments, posterior predictive inclusion curves, node-weight ESS, and the final density risk. For H0 work, compare the marginalized log-likelihood/posterior across quadrature orders, not only coefficient moments. Define tolerances before examining estimator rankings. If order 5 fails, the pilot output remains useful as a low-cost screen but cannot be used as the final uncertainty-integrated result.
+
+A further diagnostic should report the validation redshift support versus the observed catalogue support for every replicate. A random validation sample from the same parent distribution can legitimately omit tails at small n; that makes the fitted logistic model extrapolate into regions that may dominate IPW. Report the fraction of catalogue objects outside the validation range, their total estimated inverse-weight mass, and posterior uncertainty in predicted inclusion probability there. Do not label this alone as a validation-design failure: it is a finite-sample support diagnostic.
+
+## 11. Curvature geometry is not monotone in gamma
+
+For the specified linear predictor,
+[
+\eta_\gamma(x)=\alpha_\gamma-3.9x+\gamma(x^2-c_g),
+qquad
+\frac{d\eta_\gamma}{dx}=-3.9+2\gamma x.
+]
+Since (x\in[-1,1]), at (gamma=+2) the derivative ranges from (-7.9) to (+0.1), so the high-redshift end can turn very slightly upward; at (gamma=-2), the derivative ranges from (-0.1) to (-7.9). Thus gamma sign changes not only curvature direction but also where the steepest decline and minimum inclusion probability occur. Intercept calibration fixes the parent-average retention rate, but it does not fix the inclusion curve's monotonicity, local slope, or overlap profile.
+
+The primary seven-cell study should retain its frozen design and report the actual (pi(z)), derivative, minimum/maximum inclusion probability, parent-average rate, and population weight moments for each gamma. If a severity-matched comparison is later useful, treat it as a separate, explicitly exploratory design rather than retuning the existing gamma grid after observing results.
+
+## 12. Further statistical prior art and implications
+
+The first-pass statistical search also identified:
+- Kim & Riddles (2012), “Some theory for propensity-score-adjustment estimators in survey sampling,” *Survey Methodology* 38(2), 157–165. It develops asymptotic properties and variance considerations for response-propensity adjustment in survey sampling. https://www150.statcan.gc.ca/n1/en/pub/12-001-x/2012002/article/11754-eng.pdf
+- Chen & Kim (2014), “Two-phase sampling experiment for propensity score estimation in self-selected samples,” *Annals of Applied Statistics* 8(3), 1492–1515, DOI 10.1214/14-AOAS746. It uses a two-phase validation design to estimate response propensity parameters consistently. https://doi.org/10.1214/14-AOAS746
+- Katsumata (2025), “How should we estimate inverse probability weights with possibly misspecified propensity score models?”, *Political Science Research and Methods* 13(2), 315–336, DOI 10.1017/psrm.2024.23. It directly studies the consequences of misspecified propensity models and methods targeting weight error rather than propensity-score error. https://doi.org/10.1017/psrm.2024.23
+- “Uncertainty in the design stage of two-stage Bayesian propensity score analysis,” *Statistics in Medicine* 39 (2020), 2265–2290, DOI 10.1002/sim.8486. It explicitly marginalizes design-stage uncertainty in Bayesian propensity-score analysis. https://doi.org/10.1002/sim.8486
+
+This makes it especially important that our primary estimand is not merely coefficient uncertainty or propensity prediction error. The relevant object is the downstream **host-redshift density functional and selection-conditioned cosmological likelihood**. A statistically meaningful comparison should therefore report:
+1. calibration of inclusion probabilities under the known simulation truth;
+2. error in the induced weighted host-density functional;
+3. posterior uncertainty in that density functional;
+4. downstream selected-likelihood and H0 calibration consequences.
+
+A method may estimate coefficients poorly but still recover the relevant weighted density well; conversely, good average probability calibration may coexist with harmful tail-weight concentration. These should not be collapsed into one score.
