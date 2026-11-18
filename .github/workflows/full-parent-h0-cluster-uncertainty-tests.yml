@@ -1,5 +1,9 @@
 name: full-parent-h0-cluster-uncertainty-tests
 
+permissions:
+  contents: read
+  actions: read
+
 on:
   push:
     branches:
@@ -24,3 +28,23 @@ jobs:
         run: python -m py_compile scripts/analyze_full_parent_h0_cluster_uncertainty.py
       - name: Test parent-cluster uncertainty
         run: pytest tests/test_full_parent_h0_cluster_uncertainty.py -q
+      - name: Download full-parent 2,000-event baseline artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: full-parent-fixed-count-h0-baseline-2000
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44417807075
+          path: artifacts/full_parent_baseline
+      - name: Compute parent-cluster uncertainty
+        run: |
+          python scripts/analyze_full_parent_h0_cluster_uncertainty.py \
+            artifacts/full_parent_baseline \
+            --output-dir artifacts/full_parent_cluster_uncertainty
+      - name: Upload cluster-aware readout
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-parent-h0-cluster-uncertainty
+          path: artifacts/full_parent_cluster_uncertainty/
+          if-no-files-found: error
+          retention-days: 90
