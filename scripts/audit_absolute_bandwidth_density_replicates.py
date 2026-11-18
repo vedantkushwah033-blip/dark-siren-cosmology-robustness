@@ -45,8 +45,8 @@ def audit(root:Path):
     planned=int(cfg["replicates"])
     if planned<2: raise AssertionError("not a multi-replicate experiment")
     ledger=pd.read_csv(root/"replicate_ledger.csv")
- if "error" in ledger:
-  ledger["error"]=ledger["error"].fillna("").astype(str)
+    if "error" in ledger:
+        ledger["error"]=ledger["error"].fillna("").astype(str)
     if len(ledger)!=planned or ledger.replicate_id.tolist()!=list(range(planned)):
         raise AssertionError("replicate ledger does not enumerate the complete planned design")
     if set(ledger.status)-{"SUCCESS","FAILED"}:
