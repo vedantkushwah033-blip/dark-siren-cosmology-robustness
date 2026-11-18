@@ -216,3 +216,25 @@ Workflow run `44417364702`, artifact `14480782008`, repeated the same 27 fixed-t
 Combined with stage 1 (281→561 passed 27/27; maximum density difference 0.0002352 and maximum quantile difference 0.03813), this supports adjacent-grid stability at 281→561 and 561→1,121 on the selected 27 cells. The original 141-point grid fails the predeclared quantile tolerance in every cell. The 1,121-point grid adds little relative to 561 in this subset.
 
 For this pilot subset, **561 points is a conservative numerically stable reference**, and 281 points also passed against 561. This is not a proof for every one of the 90 calibration cells or for all possible event realizations. The 100-replicate follow-up uses 281 points; a subset-specific grid check on its own event realizations remains desirable before treating the entire follow-up as grid-validated. No coverage or SBC claim follows from this numerical experiment.
+
+
+## Second-stage H0 grid refinement: 561 vs 1,121 points
+
+Workflow run `44417364702`, artifact `14480782008`, completed 54 refined inference runs across the same 27 paired fixed-truth cells at 561 and 1,121 H0 grid points.
+
+Independent post-download checks:
+- All 1,273 entries in the stage-2 artifact manifest passed SHA-256 verification.
+- All 2,110 entries in the archived 90-cell baseline manifest were verified by the workflow.
+- All 54 refined runs are marked SUCCESS and all 54 child raw-data audits report PASS.
+- The seven observable/truth CSV inputs are byte-identical between 561- and 1,121-point runs in each of the 27 cells.
+- Coefficient quadrature converged at order 7 in 40 runs and order 9 in 14 runs.
+
+| Comparison | Cells | Within predeclared tolerances | Maximum posterior-density difference | Maximum quantile difference |
+|---|---:|---:|---:|---:|
+| 141 → 561 | 27 | 0/27 | 0.0009345 | 0.18872 |
+| 141 → 1,121 | 27 | 0/27 | 0.0009344 | 0.19647 |
+| 561 → 1,121 | 27 | **27/27** | **0.00005931** | **0.010715** |
+
+The predeclared limits remain 0.001 for posterior-density differences and 0.05 km s^-1 Mpc^-1 for the maximum absolute change in reported quantiles. The maximum 561→1,121 quantile difference is 0.01072, and the maximum posterior-density difference is 5.93×10^-5. Thus the 561-point grid is stable against this finer 1,121-point check on all 27 selected cells. The 141-point grid fails the quantile tolerance in every cell.
+
+This strengthens the numerical-grid result but does not establish calibration, validate all 90 original pilot cells, or replace an SBC/PIT study. The 27 cells use only the first three paired replicates. A final numerical-grid recommendation should be based on a wider paired subset or all pilot cells if computationally feasible.
