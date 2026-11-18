@@ -10,6 +10,54 @@ def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+
+def _assert_summary_matches_ledger(ledger: pd.DataFrame, summary: pd.DataFrame) -> None:
+    """Recompute all reported cell counts and metrics from the replicate ledger."""
+    keys = ["gamma", "n_validation"]
+    if summary.duplicated(keys).any():
+        raise AssertionError("duplicate calibration-summary cell")
+    expected = ledger[keys].drop_duplicates()
+    observed = summary[keys].drop_duplicates()
+    paired = expected.merge(observed, on=keys, how="outer", indicator=True)
+    if not (paired["_merge"] == "both").all():
+        raise AssertionError("calibration summary cell keys do not match ledger")
+    count_columns = {"planned": None, "success": "SUCCESS",
+                     "non_evaluable": "NON_EVALUABLE", "failed": "FAILED",
+                     "not_run": "NOT_RUN"}
+    metric_columns = {
+        "bias": ("median_bias", "mean"), "rmse": ("median_bias", "rmse"),
+        "coverage68": ("covered68", "mean"), "coverage90": ("covered90", "mean"),
+        "coverage95": ("covered95", "mean"), "mean_width68": ("width68", "mean"),
+        "median_min_kish_ess": ("min_catalogue_kish_ess", "median"),
+        "median_max_normalized_weight": ("max_normalized_weight", "median"),
+    }
+    for row in summary.itertuples(index=False):
+        group = ledger[(ledger.gamma.astype(float) == float(row.gamma)) &
+                       (ledger.n_validation.astype(int) == int(row.n_validation))]
+        for column, status in count_columns.items():
+            actual = len(group) if status is None else int((group.status == status).sum())
+            if int(getattr(row, column)) != actual:
+                raise AssertionError(f"summary {column} mismatch for gamma={row.gamma}, n={row.n_validation}")
+        successful = group[group.status == "SUCCESS"]
+        for output, (source, operation) in metric_columns.items():
+            stored = getattr(row, output)
+            if successful.empty:
+                if pd.notna(stored):
+                    raise AssertionError(f"summary {output} must be null with no successful cells")
+                continue
+            values = successful[source].to_numpy(dtype=float)
+            if not np.isfinite(values).all():
+                raise AssertionError(f"non-finite ledger values in {source}")
+            if operation == "mean":
+                actual = float(np.mean(values))
+            elif operation == "median":
+                actual = float(np.median(values))
+            else:
+                actual = float(np.sqrt(np.mean(values ** 2)))
+            if not np.isfinite(float(stored)) or not np.isclose(float(stored), actual, rtol=1e-10, atol=1e-12):
+                raise AssertionError(f"summary {output} mismatch for gamma={row.gamma}, n={row.n_validation}: stored={stored}, recomputed={actual}")
+
+
 def audit(root: Path) -> dict:
     root=root.resolve()
     planned=pd.read_csv(root/"planned_cells.csv")
@@ -100,21 +148,11 @@ def audit(root: Path) -> dict:
                 pd.testing.assert_frame_equal(events,reference[1])
                 pd.testing.assert_frame_equal(frame,reference[2])
     counts=ledger.status.value_counts().to_dict()
-    for row in summary.itertuples(index=False):
-        group=ledger[(ledger.gamma==row.gamma)&(ledger.n_validation==row.n_validation)]
-        observed={
-            "success":int((group.status=="SUCCESS").sum()),
-            "non_evaluable":int((group.status=="NON_EVALUABLE").sum()),
-            "failed":int((group.status=="FAILED").sum()),
-            "not_run":int((group.status=="NOT_RUN").sum()),
-        }
-        if len(group)!=row.planned or any(
-            observed[key]!=int(getattr(row,key)) for key in observed
-        ):
-            raise AssertionError("summary status counts do not reconcile with replicate ledger")
+    _assert_summary_matches_ledger(ledger, summary)
     return {"status":"PASS","planned_cells":len(planned),"status_counts":counts,
             "child_audits_verified":audited,"paired_nested_blocks_checked":paired,
             "aggregate_manifest_entries_verified":len(manifest),
+            "summary_metrics_recomputed":True,
             "interpretation":"Arithmetic, pairing, nested design and artifact integrity only; not calibration evidence."}
 
 
