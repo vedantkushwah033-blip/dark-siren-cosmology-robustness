@@ -10,6 +10,16 @@ def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _completion_status(ledger: pd.DataFrame, planned_count: int,
+                       summary_available: bool) -> str:
+    """Distinguish complete artifacts from interrupted, fully planned ledgers."""
+    terminal = {"SUCCESS", "NON_EVALUABLE", "FAILED"}
+    complete = len(ledger) == planned_count and set(ledger.status).issubset(terminal)
+    if complete and not summary_available:
+        raise AssertionError("complete pilot is missing calibration_summary.csv")
+    return "PASS" if complete and summary_available else "INCOMPLETE"
+
+
 
 def _assert_summary_matches_ledger(ledger: pd.DataFrame, summary: pd.DataFrame) -> None:
     """Recompute all reported cell counts and metrics from the replicate ledger."""
@@ -146,7 +156,8 @@ def audit(root: Path) -> dict:
     root=root.resolve()
     planned=pd.read_csv(root/"planned_cells.csv")
     ledger=pd.read_csv(root/"replicate_ledger.csv")
-    summary=pd.read_csv(root/"calibration_summary.csv")
+    summary_path=root/"calibration_summary.csv"
+    summary=pd.read_csv(summary_path) if summary_path.is_file() else None
     manifest=json.loads((root/"manifest.json").read_text())
     bad=[name for name,digest in manifest.items()
          if not (root/name).is_file() or sha(root/name)!=digest]
@@ -164,11 +175,9 @@ def audit(root: Path) -> dict:
         right=joined[f"{name}_ledger"].to_numpy()
         if not np.allclose(left.astype(float),right.astype(float),rtol=0,atol=0):
             raise AssertionError(f"planned/ledger provenance mismatch: {name}")
-    allowed={"SUCCESS","NON_EVALUABLE","FAILED","NOT_RUN"}
+    allowed={"SUCCESS","NON_EVALUABLE","FAILED","RUNNING","NOT_RUN"}
     if not set(ledger.status).issubset(allowed):
         raise AssertionError("unknown failure-ledger status")
-    if (ledger.status=="NOT_RUN").any():
-        raise AssertionError("pilot ended with cells not attempted")
     audited=0
     dirs={}
     for row in ledger.itertuples(index=False):
@@ -214,13 +223,20 @@ def audit(root: Path) -> dict:
                 pd.testing.assert_frame_equal(frame,reference[2])
     paired_validation_blocks = _assert_validation_samples_paired(ledger, dirs)
     counts=ledger.status.value_counts().to_dict()
-    _assert_summary_matches_ledger(ledger, summary)
-    return {"status":"PASS","planned_cells":len(planned),"status_counts":counts,
+    summary_checked=False
+    if summary is not None:
+        _assert_summary_matches_ledger(ledger, summary)
+        summary_checked=True
+    completion=_completion_status(ledger,len(planned),summary_checked)
+    return {"status":completion,
+            "planned_cells":len(planned),"ledger_cells":len(ledger),
+            "status_counts":counts,"unattempted_cells":int((ledger.status=="NOT_RUN").sum()),
+            "interrupted_cells":int((ledger.status=="RUNNING").sum()),
             "child_audits_verified":audited,"paired_nested_blocks_checked":paired,
             "paired_validation_blocks_checked":paired_validation_blocks,
             "aggregate_manifest_entries_verified":len(manifest),
-            "summary_metrics_recomputed":True,
-            "interpretation":"Arithmetic, pairing, nested design and artifact integrity only; not calibration evidence."}
+            "summary_metrics_recomputed":summary_checked,
+            "interpretation":"Integrity and pairing checks only; INCOMPLETE preserves planned cells and is not calibration evidence."}
 
 
 def main():
