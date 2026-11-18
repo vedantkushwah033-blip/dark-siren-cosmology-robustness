@@ -101,3 +101,73 @@ def test_kde_propagates_complete_base_and_inverse_probability_weights():
         scott_multiplier=factor,
     )
     np.testing.assert_allclose(result.arm_e_node_density[0], expected_e0)
+
+
+
+def test_kde_likelihood_rate_factor_can_be_applied_in_raw_weights_or_merger_multiplier():
+    parent = np.linspace(0.0101, 0.3999, 600)
+    catalogue = parent[::2]
+    validation = np.linspace(0.0101, 0.3999, 180)
+    retained = (np.arange(validation.size) % 3 != 0).astype(int)
+    parent_rate = 1.0 + 1.5 * (parent - 0.01) / 0.39
+    catalogue_rate = 1.0 + 1.5 * (catalogue - 0.01) / 0.39
+
+    # Convention 1: b(z) is carried by FiveArmWeights; merger_weight is one.
+    weighted_arms = build_five_arm_weights(
+        parent, catalogue, validation, retained,
+        catalogue_floor=0.1, quadrature_order=5,
+        parent_base_weights=parent_rate,
+        catalogue_base_weights=catalogue_rate,
+    )
+    # Convention 2: FiveArmWeights carries inclusion correction only; b(z)
+    # is multiplied once after the KDE through merger_weight.
+    inclusion_only_arms = build_five_arm_weights(
+        parent, catalogue, validation, retained,
+        catalogue_floor=0.1, quadrature_order=5,
+    )
+
+    z = np.linspace(0.01, 0.40, 501)
+    rate = 1.0 + 1.5 * (z - 0.01) / 0.39
+    h0 = np.linspace(55, 85, 31)
+    events = [
+        {"gw_distance": 275.0, "gw_sigma": 140.0},
+        {"gw_distance": 340.0, "gw_sigma": 140.0},
+    ]
+    common = dict(
+        detection_threshold_mpc=250,
+        redshift_grid=z,
+        absolute_bandwidth_sd=0.02,
+    )
+    result_raw_rate = matched_five_arm_kde_selected_log_likelihood(
+        h0, weighted_arms, events, merger_weight=np.ones_like(z), **common,
+    )
+    result_external_rate = matched_five_arm_kde_selected_log_likelihood(
+        h0, inclusion_only_arms, events, merger_weight=rate, **common,
+    )
+
+    for arm in result_raw_rate.arm_density:
+        np.testing.assert_allclose(
+            result_raw_rate.arm_density[arm],
+            result_external_rate.arm_density[arm],
+            rtol=2e-10, atol=2e-12,
+        )
+    np.testing.assert_allclose(
+        result_raw_rate.arm_e_node_density,
+        result_external_rate.arm_e_node_density,
+        rtol=2e-10, atol=2e-12,
+    )
+    for field in (
+        "arm_a_log_likelihood", "arm_b_log_likelihood",
+        "arm_c_log_likelihood", "arm_d_log_likelihood",
+        "arm_e_marginal_log_likelihood",
+    ):
+        np.testing.assert_allclose(
+            getattr(result_raw_rate, field),
+            getattr(result_external_rate, field),
+            rtol=2e-10, atol=2e-12,
+        )
+    np.testing.assert_allclose(
+        result_raw_rate.arm_e_node_log_likelihood,
+        result_external_rate.arm_e_node_log_likelihood,
+        rtol=2e-10, atol=2e-12,
+    )
