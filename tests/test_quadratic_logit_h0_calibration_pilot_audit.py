@@ -11,6 +11,7 @@ from audit_quadratic_logit_h0_calibration_pilot import (
     _assert_summary_matches_ledger,
     _assert_validation_samples_paired,
     _assert_nested_validation_frames,
+    _completion_status,
 )
 
 
@@ -182,3 +183,32 @@ def test_nested_validation_audit_rejects_catalogue_changed_with_sample_size(tmp_
 def test_summary_accepts_schema_without_not_run_column():
     ledger, summary = fixtures()
     _assert_summary_matches_ledger(ledger, summary.drop(columns=["not_run"]))
+
+
+
+def test_interrupted_ledger_preserves_planned_denominator_and_is_incomplete():
+    ledger = pd.DataFrame([
+        {"cell_id":"a","status":"SUCCESS"},
+        {"cell_id":"b","status":"RUNNING"},
+        {"cell_id":"c","status":"NOT_RUN"},
+    ])
+    assert _completion_status(ledger, planned_count=3, summary_available=False) == "INCOMPLETE"
+
+
+def test_complete_ledger_requires_summary_and_reports_pass():
+    ledger = pd.DataFrame([
+        {"cell_id":"a","status":"SUCCESS"},
+        {"cell_id":"b","status":"NON_EVALUABLE"},
+        {"cell_id":"c","status":"FAILED"},
+    ])
+    assert _completion_status(ledger, planned_count=3, summary_available=True) == "PASS"
+    with pytest.raises(AssertionError, match="missing calibration_summary"):
+        _completion_status(ledger, planned_count=3, summary_available=False)
+
+
+def test_missing_planned_rows_are_incomplete_even_if_attempts_are_terminal():
+    ledger = pd.DataFrame([
+        {"cell_id":"a","status":"SUCCESS"},
+        {"cell_id":"b","status":"FAILED"},
+    ])
+    assert _completion_status(ledger, planned_count=3, summary_available=True) == "INCOMPLETE"
