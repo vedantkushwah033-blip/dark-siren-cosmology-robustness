@@ -49,14 +49,42 @@ jobs:
           path: artifacts/gamma_p2
           github-token: ${{ github.token }}
           run-id: 44369630799
+      - name: Download gamma m1 raw inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: corrected-curvature-gamma-m1
+          path: artifacts/gamma_m1
+          github-token: ${{ github.token }}
+          run-id: 44369630799
+      - name: Download gamma m05 raw inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: corrected-curvature-gamma-m05
+          path: artifacts/gamma_m05
+          github-token: ${{ github.token }}
+          run-id: 44369630799
+      - name: Download gamma p05 raw inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: corrected-curvature-gamma-p05
+          path: artifacts/gamma_p05
+          github-token: ${{ github.token }}
+          run-id: 44369630799
+      - name: Download gamma p1 raw inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: corrected-curvature-gamma-p1
+          path: artifacts/gamma_p1
+          github-token: ${{ github.token }}
+          run-id: 44369630799
       - name: Run Arm E density-level quadrature convergence audit
         run: |
           python scripts/audit_density_kde_quadrature_convergence.py artifacts \
             --output-dir density_quadrature_audit \
-            --gammas=-2,0,2 \
+            --gammas=-2,-1,-0.5,0,0.5,1,2 \
             --orders=5,9,11 \
             --validation-sizes=100,300,1000 \
-            --widths=0.024 \
+            --widths=0.012,0.024,0.040 \
             --expected-replicates=20 \
             --replicates-to-audit=5 \
             --grid-points=401
