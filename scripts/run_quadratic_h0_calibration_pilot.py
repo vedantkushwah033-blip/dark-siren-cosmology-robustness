@@ -16,7 +16,7 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 
-from run_quadratic_curvature_h0_smoke import run as run_single
+from scripts.run_quadratic_curvature_h0_smoke import run as run_single
 
 
 ARMS = {
