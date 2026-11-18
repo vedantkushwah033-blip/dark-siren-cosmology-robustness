@@ -128,3 +128,20 @@ by this implementation. The project test suite has not been executed locally
 because this environment cannot resolve GitHub to obtain a repository checkout.
 Any CI result must be checked against the exact current head commit before the
 implementation is considered tested.
+
+## Curved-DGP H0 quadrature regression added after initial protocol
+
+A separate regression, `tests/test_curved_dgp_h0_quadrature_convergence.py`,
+now constructs a quadratic-logit catalogue-inclusion DGP with
+`gamma=1.2`, draws a finite validation sample, fits the deliberately
+degree-one working logistic model, and compares the complete Arm-E
+selected-likelihood H0 posterior at coefficient quadrature orders 9 and 11
+(with order 7 retained as an additional ladder point).
+
+This is a numerical regression only. It checks whether the shared-coefficient
+node integration is stable for one deterministic curved-DGP realization. It
+does **not** test repeated-sampling H0 bias, coverage, PIT/SBC calibration,
+validation-size sensitivity, the seven-gamma design, or correction of the
+working-model misspecification. It is now included in the project CI workflow;
+its result must be checked against the exact commit that contains it.
+
