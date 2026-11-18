@@ -84,6 +84,20 @@ Known-π IPW minus full-parent median contrasts are -1.13 (95% paired-t interval
 
 This is a useful diagnostic decomposition, not an additive causal decomposition: the full-parent oracle shows that the four-event finite realization already produces positive median error before catalogue incompleteness is introduced; known-π versus full-parent isolates catalogue-realization effects; estimated-π versus known-π isolates the additional effect of learning the inclusion function. The 10-replicate evidence is too small to identify a systematic likelihood defect. The 100-replicate follow-up in PR #89 is intended to improve precision.
 
+## Preliminary H0-grid refinement
+
+The first 27-cell refinement attempt produced all 54 child posteriors (281- and 561-point grids) and all child raw-data audits passed, but the outer workflow marked the cells failed because its exact CSV comparison rejected machine-precision differences between regenerated and archived inputs. I independently checked all 378 generated-data tables: IDs, flags, row counts and schemas match exactly; the largest floating-point difference was 6.82e-13. The comparator has since been tightened to require exact IDs/flags and allow only rtol=1e-12, atol=2e-12 for floating columns; the corrected workflow now reuses the audited archived inputs byte-for-byte.
+
+Before that corrected workflow completes, I reconstructed all 81 posterior-grid comparisons from the audited child outputs using each run's final converged quadrature order:
+
+| Grid comparison | Within both predeclared tolerances |
+|---|---:|
+| 141 → 281 points | 1/27 |
+| 141 → 561 points | 0/27 |
+| 281 → 561 points | 27/27 |
+
+All maximum absolute density differences were below 9.35e-4 (density tolerance 1e-3). The failures were due to posterior-quantile shifts: maximum 0.189 km s^-1 Mpc^-1 against the 0.05 tolerance. This preliminary result indicates that the original 141-point grid is too coarse for the declared quantile tolerance, while 281 points is stable relative to 561 points on these 27 cells. The exact-input rerun remains pending, so treat this as a manually reconstructed numerical diagnostic rather than a completed workflow result.
+
 ## Interpretation
 
 1. Posterior-median bias is positive in all nine cells. Mean bias ranges from +3.46 to +13.62 km s^-1 Mpc^-1.
