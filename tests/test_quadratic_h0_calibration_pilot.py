@@ -61,7 +61,7 @@ def test_partial_arm_failure_records_one_failed_row_per_planned_arm(tmp_path, mo
             "density_catalogue_only": [0.01, 0.08, 0.01],
             "density_oracle_true_inclusion": [0.01, 0.08, 0.01],
         })
-        curves.to_csv(args.output_dir / "h0_posterior_curves.csv", index=False)
+        curves.to_csv(str(args.output_dir) + "/h0_posterior_curves.csv", index=False)
         diagnostics = {
             "quadrature_ess": 10.0,
             "maximum_node_mass": 0.2,
