@@ -139,6 +139,7 @@ def main() -> None:
         summary.append({"gamma":gamma,"n_validation":nval,"planned":len(g),
           "success":len(ok),"non_evaluable":int((g.status=="NON_EVALUABLE").sum()),
           "failed":int((g.status=="FAILED").sum()),
+          "not_run":int((g.status=="NOT_RUN").sum()),
           "bias":float(ok.median_bias.mean()) if len(ok) else None,
           "rmse":float(np.sqrt(np.mean((ok.h0_median-a.h0_true)**2))) if len(ok) else None,
           "coverage68":float(ok.covered68.mean()) if len(ok) else None,
