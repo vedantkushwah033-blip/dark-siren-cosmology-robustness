@@ -229,8 +229,13 @@ A separate correction branch and draft PR #59 now:
 - remove the duplicate sample-level base weights from the density runner;
 - update the independent raw-input auditor to expect inclusion-only sample weights;
 - add a regression test that checks the runner's A/B sample weights are unit weights and independently audits the corrected artifact;
-- document the correct mutually exclusive conventions for applying b(z).
+- document the two possible placements of b(z), including their distinct finite-bandwidth smoothing behavior, and add an H0 regression test for the selected post-KDE convention.
 
-The old five-arm density metrics and any bandwidth conclusions derived from the affected pipeline must be treated as superseded for the stated g(z)b(z) target until rerun. The correction is source-reviewed but **not yet test-verified**: no workflow run or combined commit status was returned for the latest PR #59 head. PR #59 remains draft and unmerged. The seven-gamma experiment remains not run, and H0 propagation remains blocked.
+The old five-arm density metrics and any bandwidth conclusions derived from the affected pipeline must be treated as superseded for the stated g(z)b(z) target until rerun. The correction and the additional H0 convention test are source-reviewed but **not yet test-verified**. GitHub Actions has created a PR-triggered `tests` run for the then-current PR #59 head; the run was pending and exposed no jobs or completed check results at the last poll. Subsequent commits updated the H0 test and clarified the finite-bandwidth convention, so a fresh exact-head run is required. PR #59 remains draft and unmerged. The seven-gamma experiment remains not run, and H0 propagation remains blocked.
 
 A deterministic integration of the declared parent intensity shows the practical size of the target mismatch: mean redshift is 0.2251875 under g(z)b(z), versus 0.2469061 under g(z)b(z)^2; the total-variation distance is about 0.09231. These are deterministic population integrals, not Monte Carlo or experiment results.
+
+
+### Finite-bandwidth host-rate convention clarification
+
+The two ways of placing the common host-rate factor b(z) are not numerically interchangeable once a finite KDE bandwidth is used. Weighting observations by b(z) before smoothing estimates a smoothed version of g(z)b(z); multiplying a KDE of g(z) by b(z) afterward estimates b(z) times a smoothed g(z). Both are aimed at the same unsmoothed population measure as bandwidth tends to zero, but they generally have different finite-bandwidth bias. The corrected density pilot adopts the post-KDE convention. The H0 KDE interface has been clarified, and PR #59 adds a regression test for that selected call pattern. Exact-head CI is still pending.
