@@ -1,0 +1,182 @@
+name: corrected-curvature-density-quadrature-q2
+
+on:
+  push:
+    branches:
+      - research/curvature-density-quadrature-gate-20261119
+    paths:
+      - .github/workflows/corrected-curvature-density-quadrature-q2.yml
+      - scripts/audit_curvature_density_quadrature.py
+      - tests/test_curvature_density_quadrature.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: corrected-curvature-density-quadrature-q2
+  cancel-in-progress: false
+
+jobs:
+  test-q2:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Test density-level quadrature diagnostics
+        run: |
+          python -m pytest tests/test_curvature_density_quadrature.py -q
+          python -m py_compile scripts/audit_curvature_density_quadrature.py
+
+  density-q2:
+    needs: test-q2
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 7
+      matrix:
+        include:
+          - gamma: -2.0
+            key: m2
+          - gamma: -1.0
+            key: m1
+          - gamma: -0.5
+            key: m05
+          - gamma: 0.0
+            key: zero
+          - gamma: 0.5
+            key: p05
+          - gamma: 1.0
+            key: p1
+          - gamma: 2.0
+            key: p2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and audit dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Download corrected gamma-cell artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: corrected-curvature-gamma-${{ matrix.key }}
+          run-id: 44369630799
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/gamma_${{ matrix.key }}
+      - name: Independently verify source artifact manifest
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root = Path("artifacts/gamma_${{ matrix.key }}")
+          manifest = json.loads((root / "manifest.json").read_text())
+          for rel, meta in manifest["files"].items():
+              path = root / rel
+              assert path.is_file(), rel
+              assert path.stat().st_size == int(meta["bytes"]), rel
+              assert hashlib.sha256(path.read_bytes()).hexdigest() == meta["sha256"], rel
+          print(f"Verified {manifest['file_count']} source files.")
+          PY
+      - name: Compare posterior-mean densities across quadrature orders
+        run: |
+          python scripts/audit_curvature_density_quadrature.py \
+            "artifacts/gamma_${{ matrix.key }}" \
+            --output-dir q2_output \
+            --replicate-ids 0,5,10,15,19 \
+            --widths 0.012,0.024,0.040 \
+            --orders 5,9,11 \
+            --tv-tolerance 0.01
+      - name: Preserve per-gamma density quadrature audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: curvature-density-q2-gamma-${{ matrix.key }}
+          path: q2_output
+          if-no-files-found: warn
+          retention-days: 30
+
+  summarize-q2:
+    needs: density-q2
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install summary dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy pandas
+      - name: Download per-gamma Q2 reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: curvature-density-q2-gamma-*
+          path: q2_artifacts
+          merge-multiple: false
+      - name: Combine and validate all density quadrature cases
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          root = Path("q2_artifacts")
+          reports = []
+          frames = []
+          for path in root.iterdir():
+              if not path.is_dir() or not (path / "audit.json").is_file():
+                  continue
+              reports.append(json.loads((path / "audit.json").read_text()))
+              csv = path / "density_quadrature.csv"
+              if csv.is_file():
+                  frames.append(pd.read_csv(csv))
+          expected = [-2.0, -1.0, -0.5, 0.0, 0.5, 1.0, 2.0]
+          observed = sorted(float(x["gamma"]) for x in reports)
+          assert observed == expected, f"gamma cells mismatch: {observed}"
+          assert all(x["status"] == "PASS" for x in reports), "a gamma cell failed Q2"
+          data = pd.concat(frames, ignore_index=True)
+          assert len(data) == 315, f"expected 315 cases, got {len(data)}"
+          assert (data.status == "PASS").all(), "one or more density comparisons failed"
+          out = Path("q2_summary")
+          out.mkdir(exist_ok=True)
+          data.to_csv(out / "all_density_quadrature_cases.csv", index=False)
+          summary = (data.groupby(["gamma", "validation_size", "absolute_bandwidth_sd"], as_index=False)
+              .agg(cases=("replicate", "count"),
+                   mean_tv_5_vs_11=("tv_production_vs_refined", "mean"),
+                   max_tv_5_vs_11=("tv_production_vs_refined", "max"),
+                   mean_tv_9_vs_11=("tv_previous_refined_vs_refined", "mean"),
+                   max_tv_9_vs_11=("tv_previous_refined_vs_refined", "max"),
+                   mean_abs_iae_change=("iae_change_production_vs_refined", lambda x: abs(x).mean())))
+          summary.to_csv(out / "density_quadrature_summary.csv", index=False)
+          report = {
+              "status": "PASS", "gammas": expected,
+              "replicate_ids_per_gamma": [0, 5, 10, 15, 19],
+              "validation_sizes": [100, 300, 1000],
+              "absolute_bandwidths": [0.012, 0.024, 0.040],
+              "orders": [5, 9, 11], "density_cases": len(data),
+              "max_tv_5_vs_11": float(data.tv_production_vs_refined.max()),
+              "max_tv_9_vs_11": float(data.tv_previous_refined_vs_refined.max()),
+              "scope": "subset density-level numerical stability only; no H0 calibration"
+          }
+          (out / "audit.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\\n")
+          print(json.dumps(report, indent=2, sort_keys=True))
+          PY
+      - name: Preserve global Q2 summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: corrected-curvature-density-q2-global-summary
+          path: q2_summary
+          if-no-files-found: warn
+          retention-days: 30
