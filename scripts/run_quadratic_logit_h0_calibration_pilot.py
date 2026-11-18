@@ -157,7 +157,7 @@ def main() -> None:
           "median_max_normalized_weight":float(ok.max_normalized_weight.median()) if len(ok) else None})
     pd.DataFrame(summary).to_csv(out/"calibration_summary.csv",index=False)
     status=ledger.status.value_counts().to_dict()
-    report={"status":"PILOT_COMPLETE" if len(ledger)==a.replicates*len(gammas)*len(sizes) else "INCOMPLETE",
+    report={"status":"PILOT_COMPLETE" if ledger.status.isin(["SUCCESS","NON_EVALUABLE","FAILED"]).all() else "INCOMPLETE",
       "planned_cells":len(ledger),"status_counts":status,"interpretation":
       "Fixed-truth repeated-sampling pilot only; not joint SBC or confirmatory calibration."}
     (out/"pilot_summary.json").write_text(json.dumps(report,indent=2)+"\n")
