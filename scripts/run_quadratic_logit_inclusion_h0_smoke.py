@@ -159,6 +159,18 @@ def main() -> None:
         }
         analysis["config"]["catalogue_selection"] = selection
         analysis["config"]["catalogue_selection_model"] = "quadratic_logit"
+        # Keep archived provenance paths synchronized with the files emitted here.
+        analysis["config"]["observable_files"] = [
+            "observable/analysis_catalogue.csv",
+            "observable/gw_events_observed.csv",
+            "observable/validation_observed.csv",
+        ]
+        analysis["config"]["truth_only_files"] = [
+            "truth/analysis_parent_truth.csv",
+            "truth/gw_event_truth.csv",
+            "truth/gw_generation_trace_truth.csv",
+            "truth/validation_frame_truth.csv",
+        ]
         validation = {
             "config": {
                 "seed": int(args.validation_seed),
