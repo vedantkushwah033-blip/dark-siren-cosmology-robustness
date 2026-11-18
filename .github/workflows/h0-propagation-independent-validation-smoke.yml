@@ -142,7 +142,7 @@ jobs:
               "status": "PASS",
               "interpretation": "H0-grid refinement only for one fixed synthetic realization; not calibration or SBC"
           }
-          (fine / "h0_grid_refinement_comparison.json").write_text(json.dumps(report, indent=2) + "\\n")
+          (fine / "h0_grid_refinement_comparison.json").write_text(json.dumps(report, indent=2) + chr(10))
           print(json.dumps(report, indent=2))
           PY
       - name: Preserve complete raw and audited artifacts
