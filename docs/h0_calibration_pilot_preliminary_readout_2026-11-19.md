@@ -72,6 +72,18 @@ By contrast, changing validation size while holding replicate and curvature fixe
 
 Across all 90 prior-sensitivity records, changing the slope-prior SD multiplier from 1 to 0.5 shifts the H0 posterior median downward by a median 1.21 km s^-1 Mpc^-1 (range -6.61 to -0.24); changing it to 2 shifts the median upward by a median 0.34 (range 0.07 to 2.48) km s^-1 Mpc^-1. This confirms non-negligible prior sensitivity in some realizations, but does not by itself explain the full positive-bias pattern.
 
+## Oracle decomposition of the positive H0 bias
+
+A separate independent post-hoc calculation on the corrected 90-cell artifact (documented in PR #89) compared estimated-inclusion IPW with two simulation-only references:
+
+- **Full-parent oracle:** use every parent galaxy with the declared merger weight. Its mean posterior-median bias is +7.58 km s^-1 Mpc^-1 across the 10 unique paired event realizations (Monte Carlo SE 3.15; paired-t 95% interval [+0.46, +14.70]); its 68% interval covered 6/10 truths.
+- **Known-π IPW:** use the observed catalogue but weight each galaxy by the exact generating inclusion probability. Its mean median biases are +6.45, +7.43, and +8.84 at γ=-1, 0, and +1, respectively.
+- **Estimated-π IPW:** the results in the main table above. Relative to known-π IPW, its mean bias contrast is -2.50 to -2.99 at γ=-1, +0.79 to +0.07 at γ=0, and +4.45 to +4.02 at γ=+1 (n=100 to 500).
+
+Known-π IPW minus full-parent median contrasts are -1.13 (95% paired-t interval [-5.30, +3.03]) at γ=-1, -0.16 ([-2.97, +2.66]) at γ=0, and +1.25 ([-0.16, +2.67]) at γ=+1. These intervals are wide and do not establish that finite-catalogue noise is negligible.
+
+This is a useful diagnostic decomposition, not an additive causal decomposition: the full-parent oracle shows that the four-event finite realization already produces positive median error before catalogue incompleteness is introduced; known-π versus full-parent isolates catalogue-realization effects; estimated-π versus known-π isolates the additional effect of learning the inclusion function. The 10-replicate evidence is too small to identify a systematic likelihood defect. The 100-replicate follow-up in PR #89 is intended to improve precision.
+
 ## Interpretation
 
 1. Posterior-median bias is positive in all nine cells. Mean bias ranges from +3.46 to +13.62 km s^-1 Mpc^-1.
