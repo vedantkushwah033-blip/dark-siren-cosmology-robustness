@@ -38,6 +38,22 @@ def _validate_event_truth_against_parent(
         raise AssertionError("event latent mean distances do not match parent redshifts and generating H0")
 
 
+def _validate_population_counts(
+    analysis_cfg: dict[str, object],
+    parent: pd.DataFrame,
+    catalogue: pd.DataFrame,
+) -> None:
+    """Reject stale generator counts after a catalogue-selection model swap."""
+    if int(analysis_cfg["n_parent"]) != len(parent):
+        raise AssertionError(
+            "analysis generator n_parent does not match archived parent truth"
+        )
+    if int(analysis_cfg["n_catalogue_observed"]) != len(catalogue):
+        raise AssertionError(
+            "analysis generator n_catalogue_observed does not match observable catalogue"
+        )
+
+
 def audit(artifact_dir: Path) -> dict[str, object]:
     root = artifact_dir.resolve()
     config = json.loads((root / "config.json").read_text(encoding="utf-8"))
@@ -101,6 +117,8 @@ def audit(artifact_dir: Path) -> dict[str, object]:
     event_truth = pd.read_csv(root / "truth" / "gw_event_truth.csv")
     trace = pd.read_csv(root / "truth" / "gw_generation_trace_truth.csv")
     validation_truth = pd.read_csv(root / "truth" / "validation_frame_truth.csv")
+
+    _validate_population_counts(analysis_cfg, parent, catalogue)
 
     if model == "floor_logistic":
         floor = float(analysis_selection["floor"])
