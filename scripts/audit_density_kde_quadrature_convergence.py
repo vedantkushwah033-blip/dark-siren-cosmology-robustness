@@ -111,7 +111,6 @@ def run(args) -> dict:
         center, scale = 0.205, 0.195
         for rid in range(args.replicates_to_audit):
             child = cell / "replicates" / f"replicate_{rid:04d}"
-            parent = pd.read_csv(child / "truth" / "parent_truth.csv")
             catalogue = pd.read_csv(child / "observable" / "catalogue_observed.csv")
             catalogue_z = catalogue.redshift.to_numpy(float)
             if len(catalogue_z) < 5:
