@@ -1,0 +1,97 @@
+name: full-parent-fixed-count-h0-baseline
+
+on:
+  push:
+    branches:
+      - research/full-parent-h0-baseline-20261119
+    paths:
+      - .github/workflows/full-parent-fixed-count-h0-baseline.yml
+      - scripts/run_full_parent_h0_fixed_count_baseline.py
+      - tests/test_full_parent_h0_fixed_count_baseline.py
+  workflow_dispatch:
+
+concurrency:
+  group: full-parent-fixed-count-h0-baseline
+  cancel-in-progress: false
+
+jobs:
+  full-parent-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Test and compile independent full-parent baseline
+        run: |
+          python -m py_compile scripts/run_full_parent_h0_fixed_count_baseline.py
+          python -m pytest -q tests/test_full_parent_h0_fixed_count_baseline.py
+      - name: Download independently audited 90-cell input artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: quadratic-logit-h0-calibration-pilot-py3.12
+          run-id: 44408479569
+          repository: ${{ github.repository }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/input_90cell
+      - name: Verify source artifact and run 2,000 full-parent event realizations
+        run: |
+          python scripts/run_full_parent_h0_fixed_count_baseline.py \
+            artifacts/input_90cell \
+            --output-dir artifacts/full_parent_h0_fixed_count_baseline \
+            --replicates-per-parent 200 \
+            --seed 990000 \
+            --h0-points 281
+      - name: Independently verify baseline ledger, summaries and manifest
+        run: |
+          python - <<'PY'
+          import hashlib, json, math
+          from pathlib import Path
+          import numpy as np
+          import pandas as pd
+          from scipy.stats import t
+          root=Path("artifacts/full_parent_h0_fixed_count_baseline")
+          ledger=pd.read_csv(root/"replicates.csv")
+          summary=json.loads((root/"summary.json").read_text())
+          manifest=json.loads((root/"manifest.json").read_text())
+          actual={str(p.relative_to(root)) for p in root.rglob("*")
+                  if p.is_file() and p.name!="manifest.json"}
+          assert actual==set(manifest), (sorted(actual-set(manifest)),sorted(set(manifest)-actual))
+          for name,digest in manifest.items():
+              assert hashlib.sha256((root/name).read_bytes()).hexdigest()==digest, name
+          assert len(ledger)==2000, len(ledger)
+          assert ledger.parent_replicate.nunique()==10
+          assert (ledger.groupby("parent_replicate").size()==200).all()
+          assert set(ledger.n_events)=={4}
+          assert set(ledger.h0_true)=={70.0}
+          assert np.isfinite(ledger.select_dtypes(include=[np.number]).to_numpy()).all()
+          for _,row in ledger.iterrows():
+              qs=[row.q025,row.q05,row.q16,row['median'],row.q84,row.q95,row.q975]
+              assert np.all(np.diff(qs)>0), qs
+          bias=ledger.median_bias.to_numpy(float)
+          n=len(bias); mean=float(bias.mean()); sd=float(bias.std(ddof=1)); se=sd/math.sqrt(n)
+          crit=float(t.ppf(.975,n-1))
+          assert np.isclose(summary["mean_median_bias"],mean,atol=1e-12)
+          assert np.isclose(summary["median_bias_sd"],sd,atol=1e-12)
+          assert np.isclose(summary["median_bias_mcse"],se,atol=1e-12)
+          assert np.isclose(summary["median_bias_t95_low"],mean-crit*se,atol=1e-10)
+          assert np.isclose(summary["median_bias_t95_high"],mean+crit*se,atol=1e-10)
+          for col in ("covered68","covered90","covered95"):
+              k=int(ledger[col].sum())
+              assert np.isclose(summary[col],k/n,atol=1e-12)
+          print(json.dumps(summary,indent=2,sort_keys=True))
+          print("Independent audit PASS: 2,000 event sets, 10 parent populations, output manifest verified.")
+          PY
+      - name: Upload full-parent baseline and audit trail
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-parent-fixed-count-h0-baseline-2000
+          path: artifacts/full_parent_h0_fixed_count_baseline/
+          if-no-files-found: warn
+          retention-days: 90
