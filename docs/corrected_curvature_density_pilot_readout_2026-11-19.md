@@ -147,3 +147,69 @@ The work should not claim:
 - or that density-stage improvements imply H0 calibration.
 
 A more complete literature review is still required before any novelty claim. In particular, compare the exact estimand, selection likelihood, use of validation data, treatment of uncertainty in the inclusion model, and downstream target between our setup and each cited framework. A possible next research question is whether diagnostics available before cosmological inference can identify when fitted inclusion weights will degrade the recovered host-redshift density relative to the known-probability benchmark. This remains a hypothesis to test, not an established result.
+
+
+## Posthoc posterior-mean versus MAP audit (completed 2026-11-19)
+
+The separate posthoc workflow run `44395771659` completed successfully. Its artifact
+`corrected-curvature-posterior-vs-map-audit` (ID `14474192424`) reports
+`status=PASS` for all seven gamma cells. Each cell has 20 planned, 20
+successful, zero failed replicates, and 20 passing child raw-input audits.
+The auditor reconstructed 91,140 metric rows and 2,940 paired contrast rows.
+The paired E-D contrasts use identical replicate IDs at each gamma, validation
+size, and absolute bandwidth; every contrast has 20 paired replicates.
+
+### Primary E-D endpoint: IAE of the posterior-mean density
+
+The contrast is posterior-mean density minus MAP plug-in density. Negative
+values favour the posterior-mean density on this density-IAE endpoint; positive
+values favour MAP. The following are equally weighted averages of the seven
+predeclared bandwidth-specific paired mean differences, not a bandwidth
+selected from the data:
+
+| gamma | validation n=100 | n=300 | n=1000 | bandwidth-specific 95% paired intervals |
+|---:|---:|---:|---:|---|
+| -2.0 | -0.01988 | -0.00807 | -0.00257 | all 7 below zero at each n |
+| -1.0 | -0.01570 | -0.00548 | -0.00189 | all 7 below zero at each n |
+| -0.5 | -0.00576 | -0.00065 | -0.00070 | all 7 include zero at each n |
+| 0.0 | +0.00203 | +0.00395 | +0.00101 | 7/7, 5/7, and 6/7 include zero |
+| +0.5 | +0.01306 | +0.00902 | +0.00308 | 3/7 include zero at n=100; 0/7 at n=300 and 1000 |
+| +1.0 | +0.01972 | +0.01270 | +0.00412 | all 7 above zero at each n |
+| +2.0 | +0.03106 | +0.01420 | +0.00467 | all 7 above zero at each n |
+
+This is a clear curvature-dependent pattern in this particular synthetic
+design: posterior averaging improves the IAE relative to MAP under the two
+negative-curvature settings, is indistinguishable at the tested bandwidth
+resolution for gamma=-0.5 and mostly so at gamma=0, and has higher IAE than
+MAP for positive curvature, with the penalty generally shrinking as validation
+size increases. The result does **not** establish that posterior integration
+is generally better or worse. In particular, integrating coefficient
+uncertainty within the fitted degree-one model does not represent uncertainty
+about the omitted quadratic functional form.
+
+### Secondary endpoint: posterior-weighted node-wise IAE
+
+The separately reported posterior-weighted node metric is not the IAE of the
+posterior-mean density. Its average E-D contrast is positive in all 21
+gamma-by-validation-size cells (about +0.0008 to +0.0609 across the seven
+bandwidths). At gamma=-2, several bandwidth-specific intervals include zero;
+for the other six gamma values, all seven intervals are above zero at each
+validation size. This distinction is expected: averaging density curves and
+averaging node-specific losses are different operations and answer different
+questions. They must not be conflated.
+
+### Interpretation
+
+The two E endpoints move differently. The posterior-mean density can have
+lower IAE than MAP even when the posterior-weighted node-wise IAE is higher,
+because the former evaluates the averaged density curve while the latter
+averages losses before density curves are averaged. This is a useful
+demonstration of why the estimand must be specified before interpreting
+uncertainty propagation.
+
+The E-D results remain exploratory: 20 paired replicates per cell, seven
+fixed bandwidth sensitivity points, and paired t intervals. They do not
+validate H0 posterior calibration, coverage, SBC, observational inference, or
+a universal uncertainty-integration benefit. The expanded 11-bandwidth
+workflow remains separate and is not considered complete until its own
+cross-gamma audit uploads a passing artifact.
