@@ -123,3 +123,14 @@ def test_nested_validation_audit_ignores_size_dependent_frame_indicator(tmp_path
     bad_ids.to_csv(dirs["n4"] / "observable/validation_observed.csv",index=False)
     with pytest.raises(AssertionError,match="not nested prefixes"):
         _assert_nested_validation_samples(ledger, dirs)
+
+
+
+def test_legacy_summary_without_not_run_is_accepted_only_when_zero():
+    ledger, summary = fixtures()
+    legacy = summary.drop(columns=["not_run"])
+    _assert_summary_matches_ledger(ledger, legacy)
+
+    ledger.loc[2, "status"] = "NOT_RUN"
+    with pytest.raises(AssertionError, match="missing required count column: not_run"):
+        _assert_summary_matches_ledger(ledger, legacy)
