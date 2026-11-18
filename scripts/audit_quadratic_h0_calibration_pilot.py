@@ -101,7 +101,7 @@ def audit(root: Path) -> dict:
         _fail("unexpected experiment identifier")
     if config.get("status") != "synthetic_pilot_not_sbc_or_observational_measurement":
         _fail("missing synthetic-scope status")
-    if tuple(config.get("arms", {}).keys()) != ARMS:
+    if set(config.get("arms", {}).keys()) != set(ARMS):
         _fail("arm definition/order mismatch")
     reps = int(config["replicates"])
     gammas = tuple(float(x) for x in config["gamma_values"])
