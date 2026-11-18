@@ -99,6 +99,34 @@ def assert_cross_gamma_pairing(parent_reference, parent_candidate,
         raise AssertionError("validation IDs/redshifts differ across gamma")
 
 
+def assert_complete_planned_ledger(planned: pd.DataFrame, ledger: pd.DataFrame) -> None:
+    """Require the result ledger to contain every preregistered cell exactly once.
+
+    A ledger containing only successful rows is not sufficient evidence of a
+    complete experiment: a missing replicate could otherwise disappear from
+    every denominator and paired contrast.
+    """
+    keys = ["cell_id", "replicate", "gamma", "n_validation",
+            "analysis_seed", "validation_seed", "h0_true"]
+    for label, frame in (("planned", planned), ("result", ledger)):
+        missing = set(keys) - set(frame.columns)
+        if missing:
+            raise AssertionError(f"{label} ledger missing design columns: {sorted(missing)}")
+        if frame.duplicated(["cell_id"]).any() or frame.duplicated(
+            ["replicate", "gamma", "n_validation"]
+        ).any():
+            raise AssertionError(f"{label} ledger contains duplicate planned-cell keys")
+    left = planned[keys].sort_values(keys[:4]).reset_index(drop=True)
+    right = ledger[keys].sort_values(keys[:4]).reset_index(drop=True)
+    try:
+        pd.testing.assert_frame_equal(left, right, check_dtype=False, check_exact=True)
+    except AssertionError as exc:
+        raise AssertionError(
+            "result ledger does not exactly match the preregistered planned-cell "
+            "inventory, seeds, and H0 truth"
+        ) from exc
+
+
 def audit(root: Path, h0_points: int | None = None):
     root = root.resolve()
     manifest = json.loads((root / "manifest.json").read_text())
@@ -110,9 +138,14 @@ def audit(root: Path, h0_points: int | None = None):
             bad.append(name)
     if bad:
         raise AssertionError(f"aggregate manifest mismatch: {bad[:10]}")
+    planned_path = root / "planned_cells.csv"
+    if not planned_path.is_file():
+        raise AssertionError("preregistered planned_cells.csv is missing")
+    planned = pd.read_csv(planned_path)
     ledger = pd.read_csv(root / "replicate_ledger.csv")
     if ledger.empty or set(ledger.status) != {"SUCCESS"}:
         raise AssertionError("input pilot must contain only successful cells")
+    assert_complete_planned_ledger(planned, ledger)
 
     rows = []
     paired_inputs = {}
