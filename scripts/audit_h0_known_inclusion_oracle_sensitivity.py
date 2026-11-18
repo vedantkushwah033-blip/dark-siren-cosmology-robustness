@@ -72,7 +72,14 @@ def _paired(values):
             "ci95_high": mean + crit*se if n > 1 else float("nan")}
 
 
-def audit(root: Path):
+def make_h0_grid(prior_min: float, prior_max: float, configured_points: int, requested_points: int | None = None):
+    points = int(configured_points if requested_points is None else requested_points)
+    if points < 2 or not np.isfinite([prior_min, prior_max]).all() or prior_min >= prior_max:
+        raise ValueError("invalid H0 grid specification")
+    return np.linspace(float(prior_min), float(prior_max), points)
+
+
+def audit(root: Path, h0_points: int | None = None):
     root = root.resolve()
     manifest = json.loads((root / "manifest.json").read_text())
     bad = []
@@ -94,7 +101,7 @@ def audit(root: Path):
         directory = root / "replicates" / first.cell_id
         cfg = json.loads((directory / "config.json").read_text())
         h0_min, h0_max = cfg["inference"]["uniform_h0_prior"]
-        h0 = np.linspace(h0_min, h0_max, cfg["inference"]["h0_grid_points"])
+        h0 = make_h0_grid(h0_min, h0_max, cfg["inference"]["h0_grid_points"], h0_points)
         z_min, z_max = cfg["analysis_generator_config"]["redshift_domain"]
         sigma = float(cfg["analysis_generator_config"]["sigma_mpc"])
         threshold = float(cfg["analysis_generator_config"]["detection_threshold_mpc"])
@@ -124,6 +131,7 @@ def audit(root: Path):
         for cell in block.itertuples(index=False):
             rows.append({
                 "replicate": int(rep), "gamma": float(gamma),
+                "h0_grid_points": int(h0.size),
                 "n_validation": int(cell.n_validation), "cell_id": cell.cell_id,
                 "estimated_median": float(cell.h0_median),
                 "estimated_bias": float(cell.h0_median-70.0),
@@ -148,7 +156,8 @@ def audit(root: Path):
     summaries = []
     contrasts = []
     for (gamma, nval), group in cells.groupby(["gamma", "n_validation"]):
-        row = {"gamma": gamma, "n_validation": nval, "replicates": len(group)}
+        row = {"gamma": gamma, "n_validation": nval, "replicates": len(group),
+               "h0_grid_points": int(group.h0_grid_points.iloc[0])}
         for col in ("estimated_bias", "known_pi_bias", "full_parent_bias",
                     "estimated_minus_known_pi", "known_pi_minus_full_parent"):
             row[col] = float(group[col].mean())
@@ -171,12 +180,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("artifact_root", type=Path)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--h0-points", type=int, default=1121,
+                        help="H0 posterior grid size for the independent oracle reconstruction (default: 1121)")
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    cells, summary, contrasts = audit(args.artifact_root)
+    cells, summary, contrasts = audit(args.artifact_root, h0_points=args.h0_points)
     cells.to_csv(args.output_dir/"oracle_cell_readout.csv", index=False)
     summary.to_csv(args.output_dir/"oracle_summary.csv", index=False)
     contrasts.to_csv(args.output_dir/"oracle_paired_contrasts.csv", index=False)
+    (args.output_dir/"oracle_grid_config.json").write_text(json.dumps({
+        "h0_grid_points": int(args.h0_points),
+        "prior_bounds": [20.0, 300.0],
+        "interpretation": "independent oracle posterior reconstruction on a refined grid; not an observational result"
+    }, indent=2, sort_keys=True))
     print(summary.to_string(index=False))
     print(contrasts.to_string(index=False))
 
