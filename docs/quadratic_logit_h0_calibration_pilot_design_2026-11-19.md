@@ -95,11 +95,31 @@ The saved within-cell sensitivity analysis changes the slope-prior standard devi
 
 
 
-### Oracle decomposition on the same raw realizations (separate predecessor-grid audit)
+### Same-realization oracle decomposition on the 281-point grid
 
-A later independent diagnostic in PR #89 (`docs/h0_known_inclusion_oracle_sensitivity_readout_2026-11-19.md`) decomposed the same 90 replicate/gamma/validation cells into estimated-IPW, known-inclusion-probability IPW, and full-parent-oracle posteriors. That diagnostic used the predecessor 141-point H0 grid, so its posterior summaries are not silently substituted for this 281-point run. I compared the two downloaded artifacts directly: all 630 per-cell observable and truth CSVs (analysis catalogue, observed GW events, validation observations, parent/event/validation truth tables) are byte-identical. In the predecessor-grid decomposition, the full-parent oracle already had +7.58 mean posterior-median bias, while known-probability IPW had +7.43 at gamma=0; estimated IPW had +8.21/+8.22/+7.50 at validation n=100/300/500. This indicates that most of the gamma=0 positive bias was already present before estimating catalogue inclusion probabilities. It is therefore not appropriate to explain the baseline bias mainly as a fitted inclusion-prior problem. The likely next diagnostic target is the finite four-event realization and the selected-H0 likelihood/selection convention, with a same-281-grid oracle reconstruction still needed for exact numerical comparability. The oracle decomposition itself is based on only 10 paired realizations and remains exploratory.
+I independently recomputed the known-inclusion-probability and full-parent oracle posteriors directly from the current 281-point artifact, using the saved observable event distances, catalogue, parent truth, true inclusion probabilities, and the same selected-event likelihood with the one-sided detection-efficiency normalization. The calculation does not call the production shared-inclusion likelihood or the PR #89 post-hoc script. As a cross-check, the 141-point predecessor artifact and this 281-point artifact have byte-identical per-cell observable and truth CSVs (630 files compared, zero mismatches). The oracle posterior was recomputed on the current 281-point H0 grid, so the following table is on the same numerical grid as the fitted-IPW pilot.
+
+Mean posterior-median bias in km s^-1 Mpc^-1; 10 paired replicates per cell:
+
+| gamma | validation n | estimated IPW | known-pi IPW | full-parent oracle | estimated minus known-pi |
+|---:|---:|---:|---:|---:|---:|
+| -1 | 100 | +3.95 | +6.45 | +7.58 | -2.50 |
+| -1 | 300 | +3.95 | +6.45 | +7.58 | -2.50 |
+| -1 | 500 | +3.46 | +6.45 | +7.58 | -2.99 |
+| 0 | 100 | +8.21 | +7.43 | +7.58 | +0.79 |
+| 0 | 300 | +8.22 | +7.43 | +7.58 | +0.79 |
+| 0 | 500 | +7.50 | +7.43 | +7.58 | +0.07 |
+| +1 | 100 | +13.30 | +8.84 | +7.58 | +4.46 |
+| +1 | 300 | +13.63 | +8.84 | +7.58 | +4.79 |
+| +1 | 500 | +12.87 | +8.84 | +7.58 | +4.03 |
+
+The full-parent oracle has mean median bias +7.58, Monte Carlo SE 3.15, and paired-t 95% interval [+0.46,+14.71] across the 10 shared event realizations; its 68% interval covers truth in 6/10 replicates. This directly shows that the large positive baseline bias is already present before catalogue thinning or estimated inclusion correction. At gamma=0, known-pi IPW bias is +7.43 and estimated-IPW bias ranges from +8.21 to +7.50; estimated-minus-known-pi shifts are small and their paired 95% intervals include zero. Thus the baseline bias should not be attributed mainly to the fitted inclusion prior or inclusion-model estimation.
+
+Known-pi IPW minus full-parent median contrasts are -1.13 (paired 95% t interval [-5.30,+3.03]) at gamma=-1, -0.16 ([-2.98,+2.66]) at gamma=0, and +1.25 ([-0.16,+2.67]) at gamma=+1. These are uncertain finite-catalogue contrasts. Estimated-minus-known-pi contrasts show a clear curvature-dependent pattern in this small pilot: at gamma=-1 they are -2.50 at n=100 and -2.99 at n=500 (paired intervals [-4.27,-0.72] and [-4.74,-1.24]); at gamma=0 they are +0.79 and +0.07 (both intervals include zero); at gamma=+1 they are +4.46 and +4.03 (intervals [+2.38,+6.53] and [+2.66,+5.39]). The direction is consistent with curvature-dependent degree-one misspecification, but 10 replicates are not enough for a definitive conclusion.
+
+This changes the next scientific priority: investigate the finite four-event realization and the selected-H0 likelihood/selection convention, then quantify how the estimated inclusion model adds to that baseline. The 100-replicate follow-up improves precision for the fitted-IPW arm but does not itself include oracle arms; an independent full-parent and known-pi decomposition on its 281-point raw artifact is still needed. This remains a synthetic fixed-truth diagnostic, not SBC or observational inference.
 
 ## Go/no-go
 
-The artifact-integrity and execution gate is PASS. The scientific gate remains exploratory only. Before a confirmatory interpretation, the project still needs (i) completion of the full 281-to-561 H0-grid audit beyond the first three paired replicates, (ii) a larger event-count sensitivity, (iii) a same-281-grid full-parent/known-inclusion oracle reconstruction to isolate the gamma=0 baseline bias, and (iv) the matched five-arm A–E repeated-sampling comparison. This single-arm pilot cannot establish whether estimated inclusion correction improves H0 inference relative to catalogue-only, oracle, or known-probability controls.
+The artifact-integrity and execution gate is PASS. The scientific gate remains exploratory only. Before a confirmatory interpretation, the project still needs (i) completion of the full 281-to-561 H0-grid audit beyond the first three paired replicates, (ii) a larger event-count sensitivity, (iii) a larger-replicate full-parent/known-inclusion oracle reconstruction to quantify uncertainty in the gamma=0 baseline decomposition, and (iv) the matched five-arm A–E repeated-sampling comparison. This single-arm pilot cannot establish whether estimated inclusion correction improves H0 inference relative to catalogue-only, oracle, or known-probability controls.
 
