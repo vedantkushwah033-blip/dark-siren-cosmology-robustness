@@ -170,6 +170,12 @@ def audit(
                     case_rows.append(row)
 
                 for j in range(1, len(mixtures)):
+                    case_rows[j].update({
+                        "posterior_mean_max_abs_change_from_previous_order": ladder.mean_max_abs_change[j - 1],
+                        "posterior_covariance_max_abs_change_from_previous_order": ladder.covariance_max_abs_change[j - 1],
+                        "full_support_predictive_max_abs_change_from_previous_order": ladder.predictive_max_abs_change[j - 1],
+                        "log_evidence_abs_change_from_previous_order": ladder.log_evidence_abs_change[j - 1],
+                    })
                     delta = np.abs(mixtures[j] - mixtures[j - 1])
                     max_abs = float(np.max(delta))
                     total_variation = float(0.5 * np.sum(delta))
@@ -189,14 +195,14 @@ def audit(
                 first_to_last_max = float(np.max(first_to_last))
                 first_to_last_tv = float(0.5 * np.sum(first_to_last))
                 case_rows[-1].update({
-                    "mixture_max_abs_change_from_order5": first_to_last_max,
-                    "mixture_total_variation_from_order5": first_to_last_tv,
+                    "mixture_max_abs_change_from_first_order": first_to_last_max,
+                    "mixture_total_variation_from_first_order": first_to_last_tv,
                 })
                 if (first_to_last_max > mixture_max_abs_tolerance
                         or first_to_last_tv > mixture_total_variation_tolerance):
                     failures.append(
                         f"replicate {replicate_id}, n={n}: host-weight mixture changed "
-                        f"beyond tolerance from order {ladder.fits[0].order} to "
+                        f"beyond tolerance from first order {ladder.fits[0].order} to "
                         f"{ladder.fits[-1].order} (max_abs={first_to_last_max:.6g}, "
                         f"TV={first_to_last_tv:.6g})"
                     )
