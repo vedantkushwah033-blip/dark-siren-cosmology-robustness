@@ -217,7 +217,7 @@ def run(args):
       "boundary_regions":[[Z_MIN,BOUNDARY_LOWER],[BOUNDARY_UPPER,Z_MAX]],
       "analytic_target":"normalized latent_galaxy_intensity(z) * (1+1.5*(z-z_min)/(z_max-z_min))",
       "arm_E_metric":"posterior-mean density loss is primary; posterior expected node loss is secondary; node rows retained",
-      "limitations":["one engineering replicate only","posterior quadrature is independently reconstructed from observable validation records by the raw-input auditor",
+      "limitations":["one replicate per child artifact; the outer orchestration defines the multi-replicate pilot","posterior quadrature is independently reconstructed from observable validation records by the raw-input auditor",
         "no training/holdout bandwidth selection","no H0 likelihood or calibration","synthetic low-z Euclidean methodology only"]}
     (out/"config.json").write_text(json.dumps(config,indent=2,sort_keys=True)+"\n")
     files=sorted(p for p in out.rglob("*") if p.is_file() and p.name!="manifest.json")
