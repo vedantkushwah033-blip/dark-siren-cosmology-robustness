@@ -148,3 +148,38 @@ The code multiplies the normalized host-redshift density by the event-distance l
 **Limitations of this static review:** I did not execute the likelihood or independently recompute a complete H0 artifact in this session. The smoke auditor explicitly uses the persisted inclusion-posterior nodes; it reconstructs the KDE and selected likelihood independently but does not itself rebuild the logistic posterior quadrature from the validation records. Separate direct-integration/quadrature tests exist and passed in the PR #44 workflow run noted above, but that is not the same as an artifact-level posterior refit for every H0 replicate. The current H0 smoke uses small engineering settings and is not confirmatory evidence. The Euclidean distance relation, fixed Gaussian noise, simple threshold detector, fixed host-rate function and absence of real event-level likelihood data remain major toy-model assumptions.
 
 **Decision:** the selected-likelihood algebra and shared-node marginalization look structurally coherent under the stated fixed-N toy assumptions, but the H0 stage remains NOT CLEARED for scientific claims. It requires exact integrated-head tests, independent artifact-level validation of posterior nodes, numerical grid/normalization checks, and a repeated-sampling calibration experiment under the same curvature DGP.
+
+
+## 9. Statistical-methods prior art: important boundary conditions
+
+The dark-siren papers above are only half of the novelty review. The statistical structure is also closely related to missing-data, nonresponse adjustment, propensity-score estimation, and two-phase sampling. A statistical-methodology contribution cannot treat estimated inclusion probabilities or Bayesian uncertainty propagation as new concepts.
+
+Relevant foundations and adjacent work identified in an initial search:
+
+- **Saegusa & Wellner (2013), “Weighted likelihood estimation under two-phase sampling,” Annals of Statistics 41, 269–295, DOI 10.1214/12-AOS1073.** Develops asymptotic theory for weighted likelihood under two-phase sampling, including estimated weights and calibration. It is directly relevant to the sampling/weighting framework and should inform the estimand and asymptotic discussion: https://doi.org/10.1214/12-AOS1073
+- **Hasler (2024), “Inference from sampling with response probabilities estimated via calibration,” Survey Methodology 50(2), 235–259.** Studies estimated response probabilities under logistic response models and discusses asymptotic behaviour, efficiency, misspecification, existence/convergence problems and extreme weights. This is especially relevant to the distinction between maximum-likelihood propensity fitting and calibration-based weighting: https://publications.gc.ca/collections/collection_2024/statcan/12-001-x/12-001-x2024002-eng.pdf
+- **An (2010), “Bayesian Propensity Score Estimators: Incorporating Uncertainties in Propensity Scores into Causal Inference,” Sociological Methodology 40(1).** Bayesian treatment of propensity-score uncertainty predates this project. It is not the same dark-siren estimand, but it rules out novelty claims for Bayesian propensity uncertainty integration in general: https://doi.org/10.1111/j.1467-9531.2010.01226.x
+- **“Uncertainty in the design stage of two-stage Bayesian propensity score analysis” (Statistical Medicine, 2020).** Develops posterior inference that marginalizes over design-stage uncertainty in a two-stage propensity-score analysis: https://doi.org/10.1002/sim.8486
+- **“Model misspecification and bias for inverse probability weighting estimators of average causal effects” (Biometrical Journal, 2022).** Analyses large-sample bias under propensity-score and outcome-model misspecification and compares normalized and unnormalized IPW: https://doi.org/10.1002/bimj.202100118
+- **Katsumata (2025), “How should we estimate inverse probability weights with possibly misspecified propensity score models?”, Political Science Research and Methods 13(2), 315–336.** Proposes a weight-estimation strategy for possibly misspecified propensity models and evaluates finite-sample performance: https://doi.org/10.1017/psrm.2024.23
+- **“A Tutorial for Propensity Score Weighting Methods Under Violations of the Positivity Assumption” (Statistics in Medicine, first published 27 November 2025).** Provides a current review of positivity violations and alternative target estimands/weighting methods: https://doi.org/10.1002/sim.70329
+- **“Two-Phase Sampling Designs for Data Validation in Settings with Covariate Measurement Error and Continuous Outcome” (JRSS Series A, 2021).** Shows that validation-sample design itself can materially affect efficiency and that SRS is not necessarily optimal: https://doi.org/10.1111/rssa.12689
+
+### Consequence for our statistical contribution
+
+The project should not frame these as novel in themselves:
+- estimating inclusion/response probabilities from validation data;
+- using inverse estimated probabilities as weights;
+- Bayesian integration over propensity/inclusion coefficients;
+- studying positivity, extreme weights, or propensity-model misspecification;
+- conducting a finite-sample simulation comparing IPW variants.
+
+The possible contribution is narrower and must be demonstrated rather than asserted: a carefully designed, dark-siren-relevant operating-characteristic analysis that connects finite validation, misspecified inclusion functions, weight concentration, reconstructed host-redshift density, and a selection-conditioned cosmological likelihood. The added value must come from the way these pieces interact, the diagnostics/decision insight obtained, and a validated H0 calibration analysis—not simply from placing established IPW tools in an astrophysics setting.
+
+A stronger statistical-journal case would likely require at least one of:
+1. a new diagnostic with a defined target and independently evaluated ability to predict density or posterior-calibration failure;
+2. a theoretical result for the specific weighted density or selected-likelihood functional under estimated/misspecified inclusion probabilities;
+3. a principled estimator or uncertainty procedure that improves a clearly defined risk criterion and survives independent stress testing;
+4. a generalizable design result for allocating a limited validation budget across redshift/support regions.
+
+These are candidate directions, not recommendations to add all four. Choose one only after the baseline experiment establishes a concrete failure mode.
