@@ -400,3 +400,18 @@ For selected extreme and reference cells (gamma = -2, 0, +2; n = 100 and 1,000),
 - H0 inference/calibration: **NOT RUN**.
 
 The pre-fix density artifacts, if any, must not be reused as evidence for the corrected estimand. After exact-head CI is verified, the engineering smoke must be regenerated and independently audited, followed by the full density-only pilot. No H0 work is authorized by this correction alone.
+
+
+### Independent finite-sample sanity experiment after the weighting correction
+
+I also ran a separate 50-replicate synthetic check for gamma = -2, 0, +2. Each replicate used N_parent=4,000, the same parent redshifts and retention uniforms across the three gamma cells, the calibrated parent-average inclusion rate, reflected Gaussian KDE, a fixed physical width of 0.016, and a 401-point redshift grid. The intended target was normalized g(z)h(z). The corrected construction used unit galaxy-level base weights (or 1/pi for Arm C) and applied h(z) once on the output grid. The pre-fix construction was reconstructed separately using h(z) in the galaxy-level weights and h(z) again on the output grid.
+
+Mean IAE across the 50 replicates:
+
+| gamma | mean catalogue size | Parent oracle B, corrected | Parent oracle B, duplicated h | Known-probability C, corrected | Known-probability C, duplicated h |
+|---:|---:|---:|---:|---:|---:|
+| -2 | 2043.46 | 0.0550 | 0.1813 | 0.1459 | 0.2544 |
+| 0 | 2040.74 | 0.0550 | 0.1813 | 0.1006 | 0.2043 |
+| +2 | 2041.46 | 0.0550 | 0.1813 | 0.0834 | 0.1957 |
+
+This is a stand-alone Monte Carlo sanity check, not an execution of the patched repository runner or its tests. It shows that the corrected oracle constructions move toward the declared target under this finite design, while the duplicated-host-weight construction has substantially larger IAE. The known-probability IPW arm remains noisier than the parent oracle because it uses the thinned catalogue and can have unstable weights, especially at gamma=-2. These results are diagnostic only and must not be used as confirmatory evidence or as a claim about D/E.
