@@ -46,7 +46,9 @@ The practical IPW stress is asymmetric despite the symmetric gamma grid. The min
 | Five-arm density runner and raw-input audit | Implemented | Source inspection; no full execution in this audit |
 | Multi-replicate lifecycle and outer audit | Implemented | Source/tests inspected; no full execution in this audit |
 | Seven-gamma workflow | Configured, NOT RUN / NOT VERIFIED | Manual dispatch only; no run observed |
-| Exact-head CI for commit 95e8164 | NOT VERIFIED | No associated PR workflow runs or status checks returned |
+| Focused curvature regressions on commit afb2b647 | PASS (earlier commit only) | Workflow run 43622509283 completed successfully on Python 3.10/3.11/3.12; all focused regression steps passed |
+| Repository numerical-diagnostics workflow on commit afb2b647 | PASS (earlier commit only) | Workflow run 43622509311 completed successfully on Python 3.10/3.11/3.12; Python-3.12-only heavy experiments ran on 3.12 and were skipped on 3.10/3.11 |
+| Exact-head CI for commit 95e8164 | NOT VERIFIED | No associated PR workflow runs or status checks returned; subsequent gamma-vs-zero helper and documentation changes are not covered by the earlier afb2 run |
 | Curvature density results | NOT AVAILABLE | No seven-cell artifacts |
 | Bandwidth selection | NOT AUTHORIZED | Current curvature run sweeps candidate widths; no train/holdout selection |
 | H0 likelihood/posterior/calibration | NOT RUN in this curvature line | Workflow is explicitly density-only |
@@ -54,6 +56,18 @@ The practical IPW stress is asymmetric despite the symmetric gamma grid. The min
 | Real galaxy survey / LVK/GWTC validation | OUT OF SCOPE | Synthetic low-z methodology only |
 
 PR #55 remains open/draft in the inspected search results. PR #56 is a serialization fix with CI requested but no run evidence in its description. PR #57 is a design-only bandwidth holdout protocol. PR #54 records earlier density-pilot problems and explicitly says the earlier incomplete pilot cannot authorize a bandwidth or H0 stage.
+
+## Additional CI and artifact inspection
+
+A follow-up inspection found two successful Actions runs associated with earlier commit `afb2b647fae28c46f06c18f554019f007b4f8b1b`:
+- Run `43622509283` (`curvature-known-probability-fix`) passed the focused curvature regressions on Python 3.10, 3.11, and 3.12. The job logs show all focused test steps, including the cross-gamma completeness tests, completed successfully.
+- Run `43622509311` (`tests`) passed its numerical-diagnostics matrix on Python 3.10, 3.11, and 3.12. The Python 3.12 job executed the Python-3.12-only full experiments and artifact audits; those steps were skipped on Python 3.10 and 3.11 by design. This is meaningful validation of the earlier commit, but it does not establish exact-head CI for `95e8164` or the intervening `6a7b79b` changes.
+
+Artifact `five-arm-kde-bandwidth-pilot` from run `43622509311` was downloaded and inspected (artifact digest `sha256:916ee7112ee6b9c598d523fc2e273c39e941e13c7c733f516fed29a15368f383`). It contains:
+- A 100-replicate **parent-density-only** bandwidth experiment with 70 training and 30 holdout replicates. Its independent raw audit reconstructed all 1,700 bandwidth attempts over 400,000 parent units with maximum IAE reconstruction difference (7.5\times10^{-16}); the selection audit passed and selected Scott multiplier 0.5.
+- The holdout mean IAE at multiplier 0.5 was 0.0439975 (MCSE 0.0016767), versus 0.0441885 (MCSE 0.0017014) at 0.6. This difference is tiny relative to Monte Carlo uncertainty; it does not justify claiming a clearly superior multiplier.
+- A one-replicate five-arm absolute-bandwidth smoke with independent raw-input audit PASS (651 metric rows reconstructed), and a two-replicate orchestration smoke with both child audits and aggregate reconstruction PASS.
+- No seven-gamma curvature artifacts. The 100-replicate parent-only bandwidth selection is not a five-arm IPW bandwidth selection and must not be transferred to the curvature study.
 
 ## Scientific interpretation and risks
 
