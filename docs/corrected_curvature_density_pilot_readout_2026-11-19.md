@@ -121,3 +121,29 @@ density estimate.
 
 No claim of observational validation, universal estimator superiority, or
 new estimator novelty is supported by this pilot.
+
+
+## Literature positioning check (2026-11-19)
+
+A targeted literature check reinforces that the project must be framed narrowly. Galaxy-catalog incompleteness and its cosmological consequences are already active, rapidly developing topics; the present benchmark is not a new general incompleteness correction.
+
+1. **Borghi et al. (2026), A&A 706, A199, “Echoes from the dark: Galaxy catalog incompleteness in standard siren cosmology.”** This work implements a self-consistent incompleteness and host-weighting framework in CHIMERA, studying 100 O5-like BBH events, multiple completeness cuts, and host-mass weighting. It reports H0 forecasts and robustness to host-weight misspecification. This is close prior art for end-to-end incompleteness/host-weight sensitivity, but its central design is not the same as our finite-validation estimation of an object-level inclusion function followed by IPW density recovery. DOI: 10.1051/0004-6361/202557354.
+
+2. **Leyde, Baker & Enzi (2026), JCAP 01 (2026) 013, “Cosmic cartography. Part II. Completing galaxy catalogs for gravitational-wave cosmology.”** This work reconstructs the underlying three-dimensional galaxy field and magnitude distribution while accounting for catalogue selection, using spatial correlations and mock validation based on the Millennium simulation. It establishes that catalogue completion can require structure-aware reconstruction rather than a simple homogeneous missing-host component. DOI: 10.1088/1475-7516/2026/01/013.
+
+3. **Tagliazucchi et al. (2026), PRD 114, 083523, “Enhancing dark siren cosmology via Gaussian process reconstruction of incomplete galaxy catalogs.”** This is especially relevant because it explicitly fits an underlying galaxy-redshift distribution to an incomplete catalogue through a hierarchical likelihood that accounts for the survey selection function, then propagates the reconstructed distribution into H0 inference. It reports improved H0 precision over homogeneous completion in its mock configurations. DOI: 10.1103/vmzf-1wxq; arXiv:2608.24992. The paper's approach is GP reconstruction of the latent redshift field, not our parametric logistic inclusion-probability estimation plus inverse-probability weighting.
+
+4. **Katsumata (online 2024; journal 2025), “How should we estimate inverse probability weights with possibly misspecified propensity score models?”** This statistical-methodology paper directly studies the gap between fitting propensity probabilities by likelihood and estimating the inverse weights needed by an IPW target. It discusses nonlinear misspecification and finite-sample weight error, and proposes a different weight-targeted approach. This is close general statistical prior art for the probability-model/weight-instability component; it is not specific to galaxy catalogues or dark-siren density recovery. DOI: 10.1017/psrm.2024.23.
+
+### Consequence for our contribution claim
+
+The defensible contribution, if supported by full results, is a **controlled synthetic sensitivity benchmark of finite-validation estimation of a catalogue inclusion mechanism and its downstream IPW density-recovery consequences**, with paired oracle/estimated arms, curvature misspecification, validation-size variation, coefficient-uncertainty integration, and pre-posterior weight/support diagnostics.
+
+The work should not claim:
+- a new general galaxy-catalogue completeness correction;
+- a new GP/latent-field reconstruction method;
+- that IPW is preferable to hierarchical missing-host or field-reconstruction methods;
+- that statistical propensity-score results alone establish novelty in cosmology;
+- or that density-stage improvements imply H0 calibration.
+
+A more complete literature review is still required before any novelty claim. In particular, compare the exact estimand, selection likelihood, use of validation data, treatment of uncertainty in the inclusion model, and downstream target between our setup and each cited framework. A possible next research question is whether diagnostics available before cosmological inference can identify when fitted inclusion weights will degrade the recovered host-redshift density relative to the known-probability benchmark. This remains a hypothesis to test, not an established result.
