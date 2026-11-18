@@ -162,8 +162,11 @@ def audit(root: Path) -> dict:
             d=dirs[row.cell_id]
             parent=pd.read_csv(d/"truth/analysis_parent_truth.csv")[["object_id","redshift"]]
             events=pd.read_csv(d/"observable/gw_events_observed.csv")
+            # The underlying validation frame is shared across gamma and
+            # validation sizes. The selected_for_validation indicator changes
+            # with n_validation, so nestedness is audited in the SRS tables above.
             frame=pd.read_csv(d/"truth/validation_frame_truth.csv")
-            frame=frame[["frame_id","redshift","selected_for_validation"]]
+            frame=frame[["frame_id","redshift"]]
             current=(parent,events,frame)
             if reference is None: reference=current
             else:
