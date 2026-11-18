@@ -60,16 +60,13 @@ def main() -> None:
                     "n_validation":nval,"analysis_seed":analysis_seed,
                     "validation_seed":validation_seed,"h0_true":a.h0_true})
     pd.DataFrame(planned_rows).to_csv(out/"planned_cells.csv",index=False)
+    # Initialize a complete checkpoint ledger before the first expensive child.
+    # If the workflow is cancelled or the process is interrupted, every planned
+    # cell remains visible as NOT_RUN rather than disappearing from the ledger.
     rows=[]
-    for rep in range(a.replicates):
-        analysis_seed=seed(a.seed,rep,0); validation_seed=seed(a.seed,rep,1)
-        for gamma in gammas:
-            for nval in sizes:
-                cell=f"g{gamma:+g}_n{nval}_r{rep:03d}".replace("+","p").replace("-","m")
-                dest=out/"replicates"/cell
-                row={"cell_id":cell,"replicate":rep,"gamma":gamma,"n_validation":nval,
-                     "analysis_seed":analysis_seed,"validation_seed":validation_seed,
-                     "h0_true":a.h0_true,"artifact_dir":str(dest),"status":"NOT_RUN",
+    for planned in planned_rows:
+        dest=out/"replicates"/planned["cell_id"]
+        rows.append({**planned,"artifact_dir":str(dest),"status":"NOT_RUN",
                      "audit_status":"","error":"","quadrature_status":"",
                      "orders_evaluated":"","converged_at_order":None,
                      "n_catalogue":None,"min_catalogue_kish_ess":float("nan"),
@@ -79,9 +76,19 @@ def main() -> None:
                      "h0_q95":float("nan"),"h0_q975":float("nan"),
                      "width68":float("nan"),"covered68":float("nan"),
                      "covered90":float("nan"),"covered95":float("nan"),
-                     "median_bias":float("nan") }
-                rows.append(row)
+                     "median_bias":float("nan")})
+    row_by_cell={row["cell_id"]:row for row in rows}
+    pd.DataFrame(rows).to_csv(out/"replicate_ledger.csv",index=False)
+    for rep in range(a.replicates):
+        analysis_seed=seed(a.seed,rep,0); validation_seed=seed(a.seed,rep,1)
+        for gamma in gammas:
+            for nval in sizes:
+                cell=f"g{gamma:+g}_n{nval}_r{rep:03d}".replace("+","p").replace("-","m")
+                dest=out/"replicates"/cell
+                row=row_by_cell[cell]
                 dest.parent.mkdir(parents=True,exist_ok=True)
+                row["status"]="RUNNING"
+                pd.DataFrame(rows).to_csv(out/"replicate_ledger.csv",index=False)
                 cmd=[sys.executable,str(runner),"--seed",str(analysis_seed),
                      "--validation-seed",str(validation_seed),"--n-parent",str(a.n_parent),
                      "--n-detected",str(a.n_detected),"--h0-true",str(a.h0_true),
