@@ -22,8 +22,12 @@ def _assert_summary_matches_ledger(ledger: pd.DataFrame, summary: pd.DataFrame) 
     if not (paired["_merge"] == "both").all():
         raise AssertionError("calibration summary cell keys do not match ledger")
     count_columns = {"planned": None, "success": "SUCCESS",
-                     "non_evaluable": "NON_EVALUABLE", "failed": "FAILED",
-                     "not_run": "NOT_RUN"}
+                     "non_evaluable": "NON_EVALUABLE", "failed": "FAILED"}
+    # Older pilot summary files omit a NOT_RUN column; the top-level audit
+    # already rejects NOT_RUN ledger rows. If a future summary includes it,
+    # reconcile it explicitly.
+    if "not_run" in summary.columns:
+        count_columns["not_run"] = "NOT_RUN"
     metric_columns = {
         "bias": ("median_bias", "mean"), "rmse": ("median_bias", "rmse"),
         "coverage68": ("covered68", "mean"), "coverage90": ("covered90", "mean"),
@@ -36,6 +40,16 @@ def _assert_summary_matches_ledger(ledger: pd.DataFrame, summary: pd.DataFrame) 
                        (ledger.n_validation.astype(int) == int(row.n_validation))]
         for column, status in count_columns.items():
             actual = len(group) if status is None else int((group.status == status).sum())
+            if column not in summary.columns:
+                # Legacy complete-pilot summaries predate an explicit NOT_RUN
+                # field. They are safe to audit only when the ledger proves
+                # that no attempts were left unrun.
+                if column == "not_run" and actual == 0:
+                    continue
+                raise AssertionError(
+                    f"summary is missing required count column {column}; "
+                    f"ledger count is {actual}"
+                )
             if int(getattr(row, column)) != actual:
                 raise AssertionError(f"summary {column} mismatch for gamma={row.gamma}, n={row.n_validation}")
         successful = group[group.status == "SUCCESS"]
@@ -59,40 +73,51 @@ def _assert_summary_matches_ledger(ledger: pd.DataFrame, summary: pd.DataFrame) 
 
 
 
-def _assert_nested_validation_samples(ledger: pd.DataFrame, dirs: dict[str, Path]) -> int:
-    """Check shared parent/catalogue/event/frame data and nested SRS prefixes."""
-    paired = 0
+def _assert_nested_validation_frames(ledger: pd.DataFrame, dirs: dict[str, Path]) -> int:
+    """Check invariant validation frames and nested SRS prefixes within gamma.
+
+    The frame's redshifts, inclusion probabilities, and retention outcomes are
+    fixed for a replicate/gamma. The selected_for_validation flag is expected
+    to change with n_validation and must therefore not be compared across
+    sample sizes.
+    """
+    checked = 0
+    invariant_columns = ["frame_id", "redshift", "inclusion_probability", "retained"]
     for (_, _), block in ledger.groupby(["replicate", "gamma"]):
-        usable = block[block.cell_id.isin(dirs)]
+        usable = block[block.cell_id.isin(dirs)].sort_values("n_validation")
         if len(usable) < 2:
             continue
-        usable = usable.sort_values("n_validation")
-        first = dirs[usable.iloc[0].cell_id]
-        ref_frame = pd.read_csv(first / "truth/validation_frame_truth.csv")
-        ref_catalogue = pd.read_csv(first / "observable/analysis_catalogue.csv")
-        ref_events = pd.read_csv(first / "observable/gw_events_observed.csv")
-        prior_ids = None
+        first_dir = dirs[usable.iloc[0].cell_id]
+        reference_frame = pd.read_csv(first_dir / "truth/validation_frame_truth.csv")
+        reference_core = reference_frame[invariant_columns]
+        reference_catalogue = pd.read_csv(first_dir / "observable/analysis_catalogue.csv")
+        reference_parent = pd.read_csv(first_dir / "truth/analysis_parent_truth.csv")
+        reference_events = pd.read_csv(first_dir / "observable/gw_events_observed.csv")
+        previous_ids = None
         for row in usable.itertuples(index=False):
-            d = dirs[row.cell_id]
-            pd.testing.assert_frame_equal(
-                pd.read_csv(d / "observable/analysis_catalogue.csv"), ref_catalogue
-            )
-            pd.testing.assert_frame_equal(
-                pd.read_csv(d / "observable/gw_events_observed.csv"), ref_events
-            )
-            frame = pd.read_csv(d / "truth/validation_frame_truth.csv")
-            # selected_for_validation varies with n_validation; compare only
-            # the fixed frame identity and redshift, not its sample indicator.
-            pd.testing.assert_frame_equal(
-                frame[["frame_id", "redshift"]],
-                ref_frame[["frame_id", "redshift"]],
-            )
-            ids = pd.read_csv(d / "observable/validation_observed.csv").validation_id.to_numpy()
-            if prior_ids is not None and not np.array_equal(prior_ids, ids[:len(prior_ids)]):
+            directory = dirs[row.cell_id]
+            frame = pd.read_csv(directory / "truth/validation_frame_truth.csv")
+            pd.testing.assert_frame_equal(frame[invariant_columns], reference_core)
+            catalogue = pd.read_csv(directory / "observable/analysis_catalogue.csv")
+            pd.testing.assert_frame_equal(catalogue, reference_catalogue)
+            parent = pd.read_csv(directory / "truth/analysis_parent_truth.csv")
+            pd.testing.assert_frame_equal(parent, reference_parent)
+            events = pd.read_csv(directory / "observable/gw_events_observed.csv")
+            pd.testing.assert_frame_equal(events, reference_events)
+            observed = pd.read_csv(directory / "observable/validation_observed.csv")
+            ids = observed["validation_id"].to_numpy(dtype=int)
+            if len(ids) != int(row.n_validation):
+                raise AssertionError(f"validation sample count mismatch: {row.cell_id}")
+            selected_truth_ids = frame.loc[
+                frame["selected_for_validation"] == 1, "frame_id"
+            ].to_numpy(dtype=int)
+            if not np.array_equal(np.sort(ids), np.sort(selected_truth_ids)):
+                raise AssertionError(f"validation IDs disagree with truth selection flags: {row.cell_id}")
+            if previous_ids is not None and not np.array_equal(previous_ids, ids[:len(previous_ids)]):
                 raise AssertionError("validation SRS samples are not nested prefixes")
-            prior_ids = ids
-        paired += 1
-    return paired
+            previous_ids = ids
+        checked += 1
+    return checked
 
 
 def _assert_validation_samples_paired(ledger: pd.DataFrame, dirs: dict[str, Path]) -> int:
@@ -166,7 +191,7 @@ def audit(root: Path) -> dict:
         elif row.status=="FAILED":
             # Failed attempts are retained in the ledger; partial raw files remain available.
             if not row.error: raise AssertionError(f"failed cell has no error: {row.cell_id}")
-    paired = _assert_nested_validation_samples(ledger, dirs)
+    paired = _assert_nested_validation_frames(ledger, dirs)
     # Parent, GW events, and validation-frame sampling must be invariant across gamma.
     # Retention labels/probabilities are intentionally excluded because gamma changes them.
     for rep,block in ledger.groupby("replicate"):
@@ -177,10 +202,9 @@ def audit(root: Path) -> dict:
             d=dirs[row.cell_id]
             parent=pd.read_csv(d/"truth/analysis_parent_truth.csv")[["object_id","redshift"]]
             events=pd.read_csv(d/"observable/gw_events_observed.csv")
-            # The underlying validation frame is shared across gamma and
-            # validation sizes. The selected_for_validation indicator changes
-            # with n_validation, so nestedness is audited in the SRS tables above.
             frame=pd.read_csv(d/"truth/validation_frame_truth.csv")
+            # Selection flags vary with n_validation; only the frame itself
+            # must be invariant across gamma.
             frame=frame[["frame_id","redshift"]]
             current=(parent,events,frame)
             if reference is None: reference=current
