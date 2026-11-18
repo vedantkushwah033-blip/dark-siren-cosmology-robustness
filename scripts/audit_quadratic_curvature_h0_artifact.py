@@ -78,7 +78,7 @@ def audit(root: Path):
     expected_paths = set(manifest)
     actual_paths = {
         str(p.relative_to(root)) for p in root.rglob("*")
-        if p.is_file() and p.name != "manifest.json"
+        if p.is_file() and p.name not in {"manifest.json", "independent_audit.json"}
     }
     if expected_paths != actual_paths:
         raise AssertionError(
