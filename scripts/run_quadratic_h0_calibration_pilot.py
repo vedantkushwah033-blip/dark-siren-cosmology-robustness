@@ -169,6 +169,13 @@ def run_pilot(args) -> dict:
                     orders=(5, 7),
                     output_dir=str(cell_dir),
                 )
+                # Buffer each four-arm cell atomically. If any arm or
+                # posterior audit fails, discard partial successes and record
+                # all four arms as FAILED; this keeps the planned-cell ledger
+                # unique and prevents mixed partial rows from being counted.
+                cell_metric_rows = []
+                cell_curve_rows = []
+                cell_convergence_rows = []
                 try:
                     summary = run_single(cell_args)
                     curves = pd.read_csv(cell_dir / "h0_posterior_curves.csv")
@@ -196,16 +203,16 @@ def run_pilot(args) -> dict:
                             grid, curves[column].to_numpy(float), args.h0_true
                         )
                         row.update(posterior)
-                        metric_rows.append(row)
+                        cell_metric_rows.append(row)
                         for h0, density in zip(grid, curves[column].to_numpy(float)):
-                            curve_rows.append({
+                            cell_curve_rows.append({
                                 "replicate": replicate, "gamma": gamma,
                                 "n_validation": n_validation, "arm": arm,
                                 "H0": float(h0), "density": float(density),
                             })
                     for degree in (1, 2):
                         d = summary["results"][f"degree_{degree}"]
-                        convergence_rows.append({
+                        cell_convergence_rows.append({
                             "replicate": replicate, "gamma": gamma,
                             "n_validation": n_validation, "degree": degree,
                             "from_order": 5, "to_order": 7,
@@ -214,6 +221,9 @@ def run_pilot(args) -> dict:
                             "quadrature_ess": d["quadrature_ess"],
                             "maximum_node_mass": d["maximum_node_mass"],
                         })
+                    metric_rows.extend(cell_metric_rows)
+                    curve_rows.extend(cell_curve_rows)
+                    convergence_rows.extend(cell_convergence_rows)
                 except Exception as exc:
                     message = f"{type(exc).__name__}: {exc}"
                     failure_rows.append({
