@@ -132,9 +132,9 @@ jobs:
           fine_on_coarse = np.interp(hcoarse, hfine, dfine)
           l1 = float(np.trapezoid(np.abs(dc - fine_on_coarse), hcoarse))
           assert len(cdf) == 41 and len(fdf) == 81
-          assert qdiff["h0_median"] < 0.5, qdiff
-          assert max(qdiff.values()) < 0.5, qdiff
-          assert l1 < 0.01, l1
+          assert qdiff["h0_median"] < 0.05, qdiff
+          assert max(qdiff.values()) < 0.05, qdiff
+          assert l1 < 0.001, l1
           report = {
               "coarse_grid_points": len(cdf), "fine_grid_points": len(fdf),
               "quadrature_order": 9, "absolute_quantile_differences": qdiff,
