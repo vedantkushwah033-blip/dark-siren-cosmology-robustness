@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import sys
 
 import numpy as np
 import pandas as pd
 
-from scripts.audit_inclusion_quadrature_ladder import audit
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+from audit_inclusion_quadrature_ladder import audit
 
 
 def test_full_support_quadrature_gate_records_validation_extrapolation(tmp_path: Path):
