@@ -1,5 +1,7 @@
 from __future__ import annotations
 import importlib.util
+import hashlib
+import json
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -10,6 +12,14 @@ SPEC=importlib.util.spec_from_file_location("full_parent_cluster_uncertainty",MO
 MODULE=importlib.util.module_from_spec(SPEC)
 assert SPEC and SPEC.loader
 SPEC.loader.exec_module(MODULE)
+
+
+
+def write_manifest(root: Path):
+    manifest = {
+        "replicates.csv": hashlib.sha256((root / "replicates.csv").read_bytes()).hexdigest()
+    }
+    (root / "manifest.json").write_text(json.dumps(manifest))
 
 
 def test_cluster_analysis_uses_parent_populations_as_independent_units(tmp_path):
@@ -24,6 +34,7 @@ def test_cluster_analysis_uses_parent_populations_as_independent_units(tmp_path)
                 "median_bias":bias+0.1*event,"covered68":int(event<3),
                 "covered90":1,"covered95":1,"width68":20.0+parent})
     pd.DataFrame(rows).to_csv(root/"replicates.csv",index=False)
+    write_manifest(root)
     out=tmp_path/"readout"
     report=MODULE.analyze(root,out,seed=11)
     cluster=report["uncertainty"]["parent_mean_median_bias"]
@@ -50,5 +61,6 @@ def test_duplicate_parent_event_keys_are_rejected(tmp_path):
     row={"parent_replicate":0,"event_replicate":0,"median_bias":1.0,
          "covered68":1,"covered90":1,"covered95":1,"width68":20.0}
     pd.DataFrame([row,row]).to_csv(root/"replicates.csv",index=False)
+    write_manifest(root)
     with pytest.raises(ValueError,match="duplicate"):
         MODULE.analyze(root,tmp_path/"out")
