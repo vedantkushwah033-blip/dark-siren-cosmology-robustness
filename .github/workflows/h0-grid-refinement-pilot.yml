@@ -9,6 +9,7 @@ on:
       - scripts/run_h0_grid_refinement_pilot.py
       - scripts/run_quadratic_logit_inclusion_h0_smoke.py
       - scripts/audit_quadratic_logit_inclusion_h0_smoke.py
+      - tests/test_h0_grid_refinement_pilot.py
       - src/dark_siren_robustness/**
   workflow_dispatch:
 
