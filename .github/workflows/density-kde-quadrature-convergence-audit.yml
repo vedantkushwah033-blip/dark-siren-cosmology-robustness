@@ -1,0 +1,98 @@
+name: density-kde-quadrature-convergence-audit
+
+on:
+  push:
+    branches:
+      - research/density-kde-quadrature-audit-20261119
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: density-kde-quadrature-convergence-audit-bounded-v2
+  cancel-in-progress: false
+
+jobs:
+  density-quadrature:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Download gamma -2 raw inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: corrected-curvature-gamma-m2
+          path: artifacts/gamma_m2
+          github-token: ${{ github.token }}
+          run-id: 44369630799
+      - name: Download gamma 0 raw inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: corrected-curvature-gamma-zero
+          path: artifacts/gamma_zero
+          github-token: ${{ github.token }}
+          run-id: 44369630799
+      - name: Download gamma +2 raw inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: corrected-curvature-gamma-p2
+          path: artifacts/gamma_p2
+          github-token: ${{ github.token }}
+          run-id: 44369630799
+      - name: Download gamma m1 raw inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: corrected-curvature-gamma-m1
+          path: artifacts/gamma_m1
+          github-token: ${{ github.token }}
+          run-id: 44369630799
+      - name: Download gamma m05 raw inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: corrected-curvature-gamma-m05
+          path: artifacts/gamma_m05
+          github-token: ${{ github.token }}
+          run-id: 44369630799
+      - name: Download gamma p05 raw inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: corrected-curvature-gamma-p05
+          path: artifacts/gamma_p05
+          github-token: ${{ github.token }}
+          run-id: 44369630799
+      - name: Download gamma p1 raw inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: corrected-curvature-gamma-p1
+          path: artifacts/gamma_p1
+          github-token: ${{ github.token }}
+          run-id: 44369630799
+      - name: Run Arm E density-level quadrature convergence audit
+        run: |
+          python scripts/audit_density_kde_quadrature_convergence.py artifacts \
+            --output-dir density_quadrature_audit \
+            --gammas=-2,-1,-0.5,0,0.5,1,2 \
+            --orders=5,9,11 \
+            --validation-sizes=100,300,1000 \
+            --widths=0.012,0.024,0.040 \
+            --expected-replicates=20 \
+            --replicates-to-audit=5 \
+            --grid-points=401
+      - name: Upload density-level convergence evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: density-kde-quadrature-convergence-audit
+          path: density_quadrature_audit
+          if-no-files-found: warn
+          retention-days: 30
