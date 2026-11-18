@@ -368,6 +368,8 @@ def audit(root: Path):
         )
         reconstructed_curves[curve_name] = density
 
+    validation_errors = [value for name, value in errors.items() if "_validation_" in name]
+    likelihood_errors = [value for name, value in errors.items() if "_validation_" not in name]
     report = {
         "status": "PASS",
         "files_manifest_verified": len(manifest),
@@ -376,7 +378,8 @@ def audit(root: Path):
         "validation_rows": len(validation),
         "detected_events": len(events),
         "coefficient_nodes_reconstructed": int(sum(arrays[f"degree{d}_order{o}_nodes"].shape[0] for d in (1, 2) for o in summary["orders"])),
-        "max_abs_reconstruction_error": max(errors.values()) if errors else 0.0,
+        "max_abs_reconstruction_error": max(likelihood_errors) if likelihood_errors else 0.0,
+        "max_validation_quadrature_difference": max(validation_errors) if validation_errors else 0.0,
         "checks": list(errors),
         "limitations": [
             "auditor independently refits the validation-only coefficient posterior and reconstructs likelihood and H0 normalization; it does not independently regenerate the parent and validation redshift samples",
