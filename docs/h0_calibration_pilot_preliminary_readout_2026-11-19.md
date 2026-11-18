@@ -69,3 +69,15 @@ Bias is in km s^-1 Mpc^-1; interval width is in the same units.
 - The raw child audits and summary arithmetic are verified, but the corrected GitHub aggregate replay must still finish successfully.
 
 Next: (i) finish the corrected replay and regression workflows; (ii) run paired H0-grid refinement on the same seeds at finer grids; (iii) diagnose the positive bias in the γ=0 reference using prior, event-count, and likelihood-component sensitivity; and only then (iv) enlarge repeated-sampling calibration and plan joint SBC.
+
+
+## Paired curvature contrasts in posterior-median bias
+
+Because the parent population, GW event realizations, and validation samples are paired across curvature, I also computed replicate-paired differences in posterior-median error relative to the correctly specified gamma=0 reference. The table reports mean paired differences and ordinary 95% paired-t intervals over 10 replicate seeds.
+
+| Contrast | n_validation=100 | n_validation=300 | n_validation=500 |
+|---|---:|---:|---:|
+| gamma=-1 minus gamma=0 | -4.26 [-7.20, -1.32] | -4.27 [-6.67, -1.87] | -4.04 [-6.33, -1.75] |
+| gamma=+1 minus gamma=0 | +5.08 [+2.32, +7.84] | +5.40 [+2.38, +8.42] | +5.36 [+2.38, +8.34] |
+
+These are exploratory paired contrasts with no multiplicity adjustment. They suggest a curvature-associated shift that is asymmetric in sign: negative curvature shifts median error downward relative to gamma=0, while positive curvature shifts it upward. However, gamma=0 itself has a substantial positive baseline bias, and the pilot has only 10 replicates per cell. The contrasts therefore do not establish that the entire bias is caused by catalogue-inclusion misspecification.
