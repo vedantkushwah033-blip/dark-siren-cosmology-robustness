@@ -97,11 +97,11 @@ Known-π IPW minus full-parent median contrasts are -1.13 (95% paired-t interval
 
 This is a useful diagnostic decomposition, not an additive causal decomposition: the full-parent oracle shows that the four-event finite realization already produces positive median error before catalogue incompleteness is introduced; known-π versus full-parent isolates catalogue-realization effects; estimated-π versus known-π isolates the additional effect of learning the inclusion function. The 10-replicate evidence is too small to identify a systematic likelihood defect. The 100-replicate follow-up in PR #89 is intended to improve precision.
 
-## Preliminary H0-grid refinement
+## H0-grid refinement — corrected workflow completed
 
-The first 27-cell refinement attempt produced all 54 child posteriors (281- and 561-point grids) and all child raw-data audits passed, but the outer workflow marked the cells failed because its exact CSV comparison rejected machine-precision differences between regenerated and archived inputs. I independently checked all 378 generated-data tables: IDs, flags, row counts and schemas match exactly; the largest floating-point difference was 6.82e-13. The comparator has since been tightened to require exact IDs/flags and allow only rtol=1e-12, atol=2e-12 for floating columns; the corrected workflow now reuses the audited archived inputs byte-for-byte.
+The corrected paired grid-refinement workflow completed SUCCESS in run 44411660552. It used the audited 90-cell baseline artifact, preserved the archived observable/truth inputs byte-for-byte, and evaluated 27 fixed-truth cells (three replicates per γ∈{-1,0,+1} and n∈{100,300,500}) on 281- and 561-point H0 grids. All 54 refined runs succeeded, all 54 independent child audits passed, and all 998 child-manifest entries verified. The baseline's 2,110 aggregate manifest entries were also verified. Artifact 14478766488 (ZIP SHA-256 e1f926d666fcf9b9bc6769f282e23aa1728005264f99d6f283a1a1829c710d12) was downloaded and independently checked.
 
-Before that corrected workflow completes, I reconstructed all 81 posterior-grid comparisons from the audited child outputs using each run's final converged quadrature order:
+The final 81 posterior-grid comparisons are:
 
 | Grid comparison | Within both predeclared tolerances |
 |---|---:|
@@ -109,7 +109,9 @@ Before that corrected workflow completes, I reconstructed all 81 posterior-grid 
 | 141 → 561 points | 0/27 |
 | 281 → 561 points | 27/27 |
 
-All maximum absolute density differences were below 9.35e-4 (density tolerance 1e-3). The failures were due to posterior-quantile shifts: maximum 0.189 km s^-1 Mpc^-1 against the 0.05 tolerance. This preliminary result indicates that the original 141-point grid is too coarse for the declared quantile tolerance, while 281 points is stable relative to 561 points on these 27 cells. The exact-input rerun remains pending, so treat this as a manually reconstructed numerical diagnostic rather than a completed workflow result.
+All maximum absolute density differences were below 9.35e-4 (density tolerance 1e-3). The failures were due to posterior-quantile shifts: maximum 0.189 km s^-1 Mpc^-1 against the 0.05 tolerance. Therefore the original 141-point grid is too coarse for the declared quantile tolerance, while 281 points is stable relative to 561 points on these 27 cells.
+
+Important status distinction: the workflow report says PASS because all 54 reruns, audits and artifact checks completed. It separately reports all_comparisons_within_tolerance=false (28/81 comparisons pass both tolerances, 53/81 fail). This is a completed numerical-sensitivity study, not evidence that every grid pair converged, and not a calibration study or SBC. The 100-replicate follow-up uses the 281-point grid, which is supported by the 281→561 comparison on this subset.
 
 ## Interpretation
 
