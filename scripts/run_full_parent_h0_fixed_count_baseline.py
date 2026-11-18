@@ -154,10 +154,10 @@ def run(artifact_root, output_dir, replicates_per_parent=200, seed=990000, h0_po
         coverage68=("covered68","mean"),coverage90=("covered90","mean"),
         coverage95=("covered95","mean")).reset_index().to_csv(
             output/"parent_summary.csv",index=False)
-    (output/"summary.json").write_text(json.dumps(summary,indent=2,sort_keys=True)+"\\n")
+    (output/"summary.json").write_text(json.dumps(summary,indent=2,sort_keys=True))
     output_manifest={str(p.relative_to(output)):hashlib.sha256(p.read_bytes()).hexdigest()
         for p in sorted(output.rglob("*")) if p.is_file() and p.name!="manifest.json"}
-    (output/"manifest.json").write_text(json.dumps(output_manifest,indent=2,sort_keys=True)+"\\n")
+    (output/"manifest.json").write_text(json.dumps(output_manifest,indent=2,sort_keys=True))
     print(json.dumps(summary,indent=2))
     return frame,summary
 
