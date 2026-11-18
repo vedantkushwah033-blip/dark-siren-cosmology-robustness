@@ -79,6 +79,26 @@ def make_h0_grid(prior_min: float, prior_max: float, configured_points: int, req
     return np.linspace(float(prior_min), float(prior_max), points)
 
 
+def assert_cross_gamma_pairing(parent_reference, parent_candidate,
+                               events_reference, events_candidate,
+                               validation_reference, validation_candidate):
+    """Check common parent/event and validation ID-redshift streams across gamma.
+
+    Inclusion probabilities and validation retention labels are intentionally
+    allowed to differ across curvature conditions.
+    """
+    parent_columns = ["object_id", "redshift"]
+    validation_columns = ["validation_id", "redshift"]
+    if not parent_reference[parent_columns].equals(parent_candidate[parent_columns]):
+        raise AssertionError("parent IDs/redshifts differ across gamma")
+    if not events_reference.equals(events_candidate):
+        raise AssertionError("observed GW events differ across gamma")
+    if not validation_reference[validation_columns].equals(
+        validation_candidate[validation_columns]
+    ):
+        raise AssertionError("validation IDs/redshifts differ across gamma")
+
+
 def audit(root: Path, h0_points: int | None = None):
     root = root.resolve()
     manifest = json.loads((root / "manifest.json").read_text())
@@ -95,6 +115,7 @@ def audit(root: Path, h0_points: int | None = None):
         raise AssertionError("input pilot must contain only successful cells")
 
     rows = []
+    paired_inputs = {}
     for (rep, gamma), block in ledger.groupby(["replicate", "gamma"]):
         block = block.sort_values("n_validation")
         first = block.iloc[0]
@@ -110,6 +131,8 @@ def audit(root: Path, h0_points: int | None = None):
         parent = pd.read_csv(directory / "truth/analysis_parent_truth.csv")
         catalogue = pd.read_csv(directory / "observable/analysis_catalogue.csv")
         events = pd.read_csv(directory / "observable/gw_events_observed.csv")
+        validation = pd.read_csv(directory / "observable/validation_observed.csv")
+        paired_inputs[(int(rep), float(gamma))] = (parent, events, validation)
         if parent.object_id.duplicated().any() or catalogue.object_id.duplicated().any():
             raise AssertionError("duplicate object IDs")
         indexed = parent.set_index("object_id")
@@ -151,6 +174,23 @@ def audit(root: Path, h0_points: int | None = None):
                 pd.read_csv(d/"observable/gw_events_observed.csv"), events)
             pd.testing.assert_frame_equal(
                 pd.read_csv(d/"truth/analysis_parent_truth.csv"), parent)
+            larger_validation = pd.read_csv(d/"observable/validation_observed.csv")
+            prefix_columns = ["validation_id", "redshift", "retained"]
+            if not validation[prefix_columns].equals(
+                larger_validation.iloc[:len(validation)][prefix_columns].reset_index(drop=True)
+            ):
+                raise AssertionError("validation sample is not a nested prefix across sizes")
+
+    gammas = sorted(float(x) for x in ledger.gamma.unique())
+    for rep in sorted(int(x) for x in ledger.replicate.unique()):
+        reference_parent, reference_events, reference_validation = paired_inputs[(rep, gammas[0])]
+        for gamma in gammas[1:]:
+            parent_candidate, events_candidate, validation_candidate = paired_inputs[(rep, gamma)]
+            assert_cross_gamma_pairing(
+                reference_parent, parent_candidate,
+                reference_events, events_candidate,
+                reference_validation, validation_candidate,
+            )
 
     cells = pd.DataFrame(rows)
     summaries = []
