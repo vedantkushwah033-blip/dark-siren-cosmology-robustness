@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - research/quadratic-h0-calibration-pilot-implementation-20261119
+      - research/quadratic-h0-pilot-fail-closed-audit-20261119
   workflow_dispatch:
 
 permissions:
