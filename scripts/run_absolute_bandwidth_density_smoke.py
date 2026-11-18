@@ -98,8 +98,11 @@ def run(args):
     val["validation_frame_truth"].to_csv(out/"truth"/"validation_frame_truth.csv",index=False)
     val["validation_observed"].to_csv(out/"observable"/"validation_max.csv",index=False)
     pz=parent.redshift.to_numpy(float); cz=catalogue.redshift.to_numpy(float)
-    base_p=1.0+1.5*(pz-Z_MIN)/(Z_MAX-Z_MIN)
-    base_c=1.0+1.5*(cz-Z_MIN)/(Z_MAX-Z_MIN)
+    # Keep galaxy-level weights dedicated to catalogue inclusion. The host/merger
+    # factor h(z) is applied exactly once on the output grid below; putting h(z)
+    # into these sample weights as well would estimate a target proportional to g(z) h(z)^2.
+    base_p=np.ones_like(pz)
+    base_c=np.ones_like(cz)
     grid=np.linspace(Z_MIN,Z_MAX,args.grid_points)
     merger=1.0+1.5*(grid-Z_MIN)/(Z_MAX-Z_MIN)
     truth_raw=latent_galaxy_intensity(grid)*merger
