@@ -42,6 +42,9 @@ def _validate_population_counts(
     analysis_cfg: dict[str, object],
     parent: pd.DataFrame,
     catalogue: pd.DataFrame,
+    validation_cfg: dict[str, object],
+    validation_truth: pd.DataFrame,
+    validation: pd.DataFrame,
 ) -> None:
     """Reject stale generator counts after a catalogue-selection model swap."""
     if int(analysis_cfg["n_parent"]) != len(parent):
@@ -51,6 +54,14 @@ def _validate_population_counts(
     if int(analysis_cfg["n_catalogue_observed"]) != len(catalogue):
         raise AssertionError(
             "analysis generator n_catalogue_observed does not match observable catalogue"
+        )
+    if int(validation_cfg["n_validation_frame"]) != len(validation_truth):
+        raise AssertionError(
+            "validation generator n_validation_frame does not match archived validation frame"
+        )
+    if int(validation_cfg["n_validation"]) != len(validation):
+        raise AssertionError(
+            "validation generator n_validation does not match observable validation sample"
         )
 
 
@@ -118,7 +129,10 @@ def audit(artifact_dir: Path) -> dict[str, object]:
     trace = pd.read_csv(root / "truth" / "gw_generation_trace_truth.csv")
     validation_truth = pd.read_csv(root / "truth" / "validation_frame_truth.csv")
 
-    _validate_population_counts(analysis_cfg, parent, catalogue)
+    _validate_population_counts(
+        analysis_cfg, parent, catalogue,
+        validation_cfg, validation_truth, validation,
+    )
 
     if model == "floor_logistic":
         floor = float(analysis_selection["floor"])
