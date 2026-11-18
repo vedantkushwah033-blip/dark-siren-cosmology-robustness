@@ -39,7 +39,14 @@ def _kde(grid,sample,prob,h,merger):
  w=w/w.max();neff=w.sum()**2/(w@w)
  aug=np.r_[sample,2*grid[0]-sample,2*grid[-1]-sample]
  aw=np.tile(w/3,3)
- factor=h*neff**(-.2)
+ # Independently reconstruct the production physical-bandwidth convention:
+ # h * n_eff^(-1/5) times the original weighted sample SD. Correct for
+ # gaussian_kde's covariance being estimated on the reflected sample.
+ p=w/w.sum(); mu=float(p@sample); den=1.0-float(p@p)
+ var=float(np.sum(p*(sample-mu)**2)/den)
+ ap=aw/aw.sum(); amu=float(ap@aug); aden=1.0-float(ap@ap)
+ avar=float(np.sum(ap*(aug-amu)**2)/aden)
+ factor=h*neff**(-.2)*np.sqrt(var/avar)
  raw=gaussian_kde(aug,weights=aw,bw_method=lambda k:factor)(grid)*merger
  return raw/trapezoid(raw,grid)
 def audit_fixed_catalogue_artifact(path):
