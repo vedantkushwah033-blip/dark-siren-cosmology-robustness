@@ -44,10 +44,58 @@ def summarize(root: Path, points: int) -> dict:
         "q975":record["h0_q975"],"h0":h0.tolist(),"density":density.tolist()}
 
 
+def compare_observable_inputs(left_root: Path, right_root: Path, *, atol: float = 1e-12) -> dict:
+    """Compare the same generated observations, allowing only machine-roundoff noise."""
+    key_columns = {
+        "observable/analysis_catalogue.csv": "object_id",
+        "observable/gw_events_observed.csv": "event_id",
+        "observable/validation_observed.csv": "validation_id",
+    }
+    diagnostics = {}
+    for relative, key in key_columns.items():
+        left = pd.read_csv(left_root / relative)
+        right = pd.read_csv(right_root / relative)
+        if list(left.columns) != list(right.columns) or len(left) != len(right):
+            raise AssertionError(f"observable schema/row-count differs for {relative}")
+        if key not in left.columns:
+            raise AssertionError(f"observable key {key} missing from {relative}")
+        left = left.sort_values(key).reset_index(drop=True)
+        right = right.sort_values(key).reset_index(drop=True)
+        if not np.array_equal(left[key].to_numpy(), right[key].to_numpy()):
+            raise AssertionError(f"observable identifiers differ for {relative}")
+        max_abs_difference = 0.0
+        for column in left.columns:
+            if column == key:
+                continue
+            a = left[column].to_numpy()
+            b = right[column].to_numpy()
+            if pd.api.types.is_float_dtype(left[column].dtype):
+                difference = np.abs(a.astype(float) - b.astype(float))
+                max_abs_difference = max(max_abs_difference, float(difference.max(initial=0.0)))
+                if not np.allclose(a, b, rtol=0.0, atol=atol, equal_nan=True):
+                    raise AssertionError(
+                        f"observable float values differ beyond atol={atol:g} for {relative}:{column}"
+                    )
+            elif not np.array_equal(a, b):
+                raise AssertionError(f"observable values differ for {relative}:{column}")
+        diagnostics[relative] = {
+            "rows": len(left),
+            "key_column": key,
+            "max_abs_float_difference": max_abs_difference,
+            "absolute_tolerance": atol,
+            "non_float_columns_exact": True,
+        }
+    return diagnostics
+
+
 def compare(records: list[dict], out: Path) -> dict:
     reference=max(records,key=lambda x:x["points"])
-    if any(r["observable_hashes"]!=reference["observable_hashes"] for r in records):
-        raise AssertionError("observable inputs differ across H0 grids; comparison is not paired")
+    observable_diagnostics = {}
+    reference_root = Path(reference["root"])
+    for r in records:
+        observable_diagnostics[str(r["points"])] = compare_observable_inputs(
+            reference_root, Path(r["root"]), atol=1e-12
+        )
     if any(r["model_config_hash"]!=reference["model_config_hash"] for r in records):
         raise AssertionError("inference or generator configuration differs across H0 grids")
     if any(r["prior_bounds"]!=reference["prior_bounds"] for r in records):
@@ -74,6 +122,9 @@ def compare(records: list[dict], out: Path) -> dict:
             "quantiles":{str(k):v for k,v in quantiles.items()}})
     result={"status":"PASS","reference_grid_points":reference["points"],
         "common_comparison_grid_points":len(common),"same_observable_inputs":True,
+        "observable_comparison_atol":1e-12,
+        "observable_comparison_diagnostics":observable_diagnostics,
+        "raw_observable_hashes_may_differ_at_machine_roundoff":True,
         "grid_summaries":rows,
         "reference_quantiles":{str(k):v for k,v in ref_quantiles.items()},
         "interpretation":"Numerical H0-grid sensitivity only for one fixed synthetic realization. This does not establish calibration, SBC, coverage, or estimator performance."}

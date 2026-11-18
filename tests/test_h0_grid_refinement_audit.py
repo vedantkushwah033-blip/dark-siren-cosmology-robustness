@@ -31,16 +31,40 @@ def make_grid(root: Path, points: int, shift: float=0.0):
           "h0_q16":80+shift,"h0_q84":120+shift,"h0_q025":60+shift,
           "h0_q975":140+shift}]}))
     (root/"observable").mkdir()
-    for name in ("analysis_catalogue.csv","gw_events_observed.csv","validation_observed.csv"):
-        (root/"observable"/name).write_text("same inputs\n")
+    pd.DataFrame({"object_id":[1,2],"redshift":[.1,.2]}).to_csv(
+        root/"observable/analysis_catalogue.csv",index=False)
+    pd.DataFrame({"event_id":[1],"distance_mpc":[100.0],"detected":[1]}).to_csv(
+        root/"observable/gw_events_observed.csv",index=False)
+    pd.DataFrame({"validation_id":[1,2,3],"redshift":[.1,.2,.3],
+                  "retained":[1,0,1]}).to_csv(
+        root/"observable/validation_observed.csv",index=False)
 
 
-def test_refinement_requires_identical_observables(tmp_path):
+def test_refinement_rejects_material_observable_difference(tmp_path):
     for n in (141,281,561):
-        make_grid(tmp_path/f"grid_{n}",n,shift=(1 if n==141 else 0))
+        make_grid(tmp_path/f"grid_{n}",n)
+    path=tmp_path/"grid_141"/"observable/validation_observed.csv"
+    frame=pd.read_csv(path)
+    frame.loc[0,"redshift"] += 1e-6
+    frame.to_csv(path,index=False)
     records=[MODULE.summarize(tmp_path/f"grid_{n}",n) for n in (141,281,561)]
-    with pytest.raises(AssertionError,match="observable inputs differ"):
+    with pytest.raises(AssertionError,match="beyond atol"):
         MODULE.compare(records,tmp_path/"summary.json")
+
+
+def test_refinement_tolerates_machine_roundoff_and_row_order(tmp_path):
+    for n in (141,281,561):
+        make_grid(tmp_path/f"grid_{n}",n)
+    path=tmp_path/"grid_281"/"observable/validation_observed.csv"
+    frame=pd.read_csv(path)
+    frame.loc[0,"redshift"] += 1e-16
+    frame=frame.iloc[::-1]
+    frame.to_csv(path,index=False)
+    records=[MODULE.summarize(tmp_path/f"grid_{n}",n) for n in (141,281,561)]
+    report=MODULE.compare(records,tmp_path/"summary.json")
+    assert report["same_observable_inputs"] is True
+    assert report["observable_comparison_atol"]==1e-12
+    assert report["observable_comparison_diagnostics"]["281"]["observable/validation_observed.csv"]["max_abs_float_difference"]<1e-12
 
 
 def test_refinement_compares_coarse_and_fine_grids(tmp_path):
