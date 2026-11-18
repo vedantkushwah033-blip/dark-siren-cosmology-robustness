@@ -32,9 +32,11 @@ def audit(root: Path) -> dict:
         right=joined[f"{name}_ledger"].to_numpy()
         if not np.allclose(left.astype(float),right.astype(float),rtol=0,atol=0):
             raise AssertionError(f"planned/ledger provenance mismatch: {name}")
-    allowed={"SUCCESS","NON_EVALUABLE","FAILED","NOT_RUN"}
+    allowed={"SUCCESS","NON_EVALUABLE","FAILED","RUNNING","NOT_RUN"}
     if not set(ledger.status).issubset(allowed):
         raise AssertionError("unknown failure-ledger status")
+    if (ledger.status=="RUNNING").any():
+        raise AssertionError("pilot checkpoint contains an interrupted RUNNING cell")
     if (ledger.status=="NOT_RUN").any():
         raise AssertionError("pilot ended with cells not attempted")
     audited=0
