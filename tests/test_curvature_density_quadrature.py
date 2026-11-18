@@ -1,6 +1,13 @@
 """Unit tests for density-level quadrature diagnostics."""
+import sys
+from pathlib import Path
+
 import numpy as np
 import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+
 from audit_curvature_density_quadrature import density_total_variation
 
 def test_density_total_variation_is_zero_for_identical_curves():
