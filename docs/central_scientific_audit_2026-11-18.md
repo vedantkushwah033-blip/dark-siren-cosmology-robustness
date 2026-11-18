@@ -166,3 +166,39 @@ The novelty review must also include the mature survey-sampling and propensity-s
 - **Leedy & Kim (2026), "Data integration using propensity score weighting under missing at random," arXiv:2611.03353.** Very recent work on non-probability sample inclusion, IPW, model misspecification and doubly robust adjustment. It should be screened in the full review because it is close to the validation-plus-target-population structure.
 
 Implication: the defensible contribution, if supported by results, is likely an application-specific controlled benchmark and diagnostic study that connects these established statistical phenomena to a clearly defined host-weighted redshift reconstruction and (only in a later stage) dark-siren likelihood calibration. The novelty is not "Bayesian IPW" by itself, nor the fact that IPW weights can be unstable.
+
+
+## Additional artifact-level inspection: existing finite-validation probability pilot
+
+I downloaded and inspected the numerical-diagnostics artifact attached to workflow run 43634451023 (artifact `numerical-diagnostics-py3.12`). Its finite-validation probability pilot is a separate, earlier experiment, not the new seven-gamma curvature-density experiment.
+
+Artifact provenance recorded in its own run manifest:
+
+- Git ref: `refs/pull/57/merge`
+- Git SHA: `b45a540b54f49a5fd50a4c9e7597f6fc5d458d24`
+- Python 3.12.16, NumPy 2.5.4, SciPy 1.18.1, pandas 3.1.1
+- 4,000 parent units; five replicates; gamma `{-2,-1.2,0,1.2,2}`; retention targets `{0.1,0.25,0.5}`; validation sizes `{100,300,1000}`; logistic model degrees 1 and 2.
+- 450 model-fit rows and 1,800,000 raw unit records.
+- Independent artifact audit: **PASS**, reconstructing all 450 experiments and all 1.8 million raw unit records at tolerance 1e-10.
+
+This pilot uses an earlier DGP specification and is not interchangeable with the current planned seven-gamma design. Its curvature-centering constant is 0.3114962521, its linear coefficient is -1, and its parent/validation design differs from the new density pilot. It evaluates held-out inclusion-probability prediction and weight diagnostics, not five-arm host-density recovery or H0 inference.
+
+### Exploratory bias-variance signal in the earlier pilot
+
+The degree-two model is correctly specified for the quadratic-logit DGP, while degree one is deliberately misspecified when gamma is nonzero. Pairing the degree-one and degree-two held-out probability RMSE within each replicate gives:
+
+| Validation size | Mean RMSE difference (degree 1 minus degree 2), all gamma | SD of paired differences | Paired cells |
+|---:|---:|---:|---:|
+| 100 | -0.01267 | 0.02395 | 75 |
+| 300 | -0.00906 | 0.01125 | 75 |
+| 1000 | +0.00229 | 0.00667 | 75 |
+
+Restricting to nonzero gamma (thus excluding the correctly specified linear gamma=0 case), the mean paired differences are -0.01123, -0.00776, and +0.00357 at validation sizes 100, 300, and 1000 respectively (60 paired cells at each size). Negative means indicate lower held-out RMSE for the simpler degree-one fit in this small pilot; the sign reversal at n=1000 is consistent with a finite-sample bias-variance trade-off. This is an exploratory signal only: there are five replicates per design cell, and no inferential claim or estimator recommendation follows.
+
+Across all 450 fits, 340 (75.6%) report ordinary MLE convergence and 110 (24.4%) are accepted by the implementation's score-tolerance rule despite the optimizer message "Desired error not necessarily achieved due to precision loss." All are labelled SUCCESS in the artifact. This deserves explicit convergence-sensitivity analysis in the confirmatory design: report these separately, test alternative optimizers/tolerances, and do not equate the SUCCESS label with identical numerical convergence quality.
+
+The probability-stage results are useful for designing the larger study because they show why a correctly specified but more flexible quadratic model may not dominate at small validation sizes. They do not answer whether estimated IPW improves host-density reconstruction; prediction-score improvements and weighted-density performance are distinct targets.
+
+### Workflow status clarification
+
+The focused PR #57 curvature-density test workflow run 43634450957 failed on all three Python versions during collection of the replicate test module; its earlier smoke and single-replicate pilot test groups passed. A separate broad numerical-diagnostics workflow run 43634451023 completed successfully and produced artifacts on the PR #57 merge ref. Its 3.12 job log contains successful tests for the baseline estimated-inclusion, five-arm, KDE, selected-likelihood, and other existing modules. This broad run is useful regression evidence for the merge ref but does **not** retroactively turn the focused curvature workflow into a pass, nor does it establish exact-head PR #55 CI. The current PR #55 head SHA still has no associated PR workflow runs returned by the inspected endpoint.
