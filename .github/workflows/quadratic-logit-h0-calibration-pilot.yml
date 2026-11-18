@@ -21,7 +21,7 @@ on:
 
 concurrency:
   group: quadratic-logit-h0-calibration-pilot-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   paired-fixed-truth-pilot:
