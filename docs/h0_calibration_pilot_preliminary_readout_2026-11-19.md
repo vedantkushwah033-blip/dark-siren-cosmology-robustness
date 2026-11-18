@@ -105,3 +105,41 @@ Because the parent population, GW event realizations, and validation samples are
 | gamma=+1 minus gamma=0 | +5.08 [+2.32, +7.84] | +5.40 [+2.38, +8.42] | +5.36 [+2.38, +8.34] |
 
 These are exploratory paired contrasts with no multiplicity adjustment. They suggest a curvature-associated shift that is asymmetric in sign: negative curvature shifts median error downward relative to gamma=0, while positive curvature shifts it upward. However, gamma=0 itself has a substantial positive baseline bias, and the pilot has only 10 replicates per cell. The contrasts therefore do not establish that the entire bias is caused by catalogue-inclusion misspecification.
+
+
+## Exploratory finite-parent oracle decomposition
+
+I independently re-evaluated the latest audited 90-cell artifact (run `44410603590`, artifact `14477511669`) using a direct implementation of the same one-sided selected-event likelihood, but with the complete simulated parent population and its known merger weights. This is a diagnostic oracle, not an available-data estimator and not a superpopulation truth calculation.
+
+For parent galaxy redshifts `z_j`, define
+`a_j = 1 + 1.5 (z_j-z_min)/(z_max-z_min)` and normalize `w_j ∝ a_j` over the complete finite parent. The oracle likelihood used was
+
+`L(H0) = product_i [sum_j w_j Normal(d_i; c z_j/H0, sigma^2)] / beta(H0)^N`,
+
+where
+
+`beta(H0) = sum_j w_j Phi((c z_j/H0 - d_threshold)/sigma)`.
+
+This matches the generator's host-weight and one-sided distance-threshold convention. The oracle uses truth-only parent redshifts solely for this diagnostic. Parent IDs/redshifts and observed GW events were checked invariant across the three curvature settings for each replicate; validation-frame IDs/redshifts were also invariant across curvature. The 90 child audits in artifact `14477511669` all report PASS, and I independently rechecked all 2,114 aggregate-manifest SHA-256 entries.
+
+Across the 10 paired event realizations, the finite-parent oracle posterior-median bias has mean **+7.58 km s^-1 Mpc^-1**, replicate SD **9.96**, and RMSE **12.11**. Thus a substantial positive bias is already present when catalogue-inclusion estimation is bypassed and the exact finite parent host mixture is supplied. This is consistent with the very small four-event sample being highly variable; it does not establish the cause of the bias.
+
+The table compares the production validation-posterior result with that same-replicate oracle. Intervals are ordinary paired-t 95% intervals over the 10 replicate seeds, without multiplicity adjustment.
+
+| Curvature γ | Validation n | Mean production median bias | Mean oracle median bias | Production − oracle median (95% paired CI) |
+|---:|---:|---:|---:|---:|
+| -1 | 100 | +3.95 | +7.58 | -3.63 [-7.06, -0.20] |
+| -1 | 300 | +3.95 | +7.58 | -3.63 [-7.18, -0.09] |
+| -1 | 500 | +3.46 | +7.58 | -4.12 [-7.62, -0.62] |
+| 0 | 100 | +8.21 | +7.58 | +0.63 [-1.99, +3.25] |
+| 0 | 300 | +8.22 | +7.58 | +0.64 [-2.60, +3.88] |
+| 0 | 500 | +7.50 | +7.58 | -0.08 [-3.33, +3.17] |
+| +1 | 100 | +13.30 | +7.58 | +5.72 [+3.45, +7.97] |
+| +1 | 300 | +13.63 | +7.58 | +6.05 [+3.95, +8.13] |
+| +1 | 500 | +12.87 | +7.58 | +5.29 [+3.34, +7.21] |
+
+Interpretation:
+1. The correctly specified γ=0 production result is close to the finite-parent oracle in this paired diagnostic; its positive bias is not primarily explained by estimating inclusion probabilities in this pilot.
+2. Negative and positive curvature shift the production posterior median below and above the oracle, respectively. The shift changes little between validation n=100 and n=500 in this 10-replicate pilot.
+3. This is an exploratory post-hoc diagnostic, not a preregistered endpoint. The direct oracle implementation has not yet been packaged as a repository audit script or CI test. It should be independently reviewed and made reproducible before being used as a manuscript result.
+4. The oracle uses a finite parent population, so it is a matched simulation benchmark rather than an exact superpopulation posterior. The 141-point H0 grid is still unverified for convergence, and no coverage or SBC conclusion follows from this decomposition.
