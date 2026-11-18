@@ -112,6 +112,7 @@ def run(args):
     results = {}
     curves = {"H0": h0_grid}
     fits = {}
+    final_likelihoods = {}
     for degree in (1, 2):
         previous = None
         max_density_difference = None
@@ -135,13 +136,14 @@ def run(args):
                 ))
             previous = posterior
             fits[(degree, order)] = fit
+            final_likelihoods[degree] = likelihood
         results[f"degree_{degree}"] = {
             "last_order": args.orders[-1],
             "posterior_mean_coefficients": fits[(degree, args.orders[-1])].posterior_mean.tolist(),
             "quadrature_ess": float(fits[(degree, args.orders[-1])].quadrature_ess),
             "maximum_node_mass": float(fits[(degree, args.orders[-1])].maximum_normalized_weight),
             "minimum_log_inclusion_probability": float(np.min(
-                likelihood.node_minimum_log_inclusion_probability
+                final_likelihoods[degree].node_minimum_log_inclusion_probability
             )),
             "h0_q05": float(previous.quantile(0.05)),
             "h0_median": float(previous.quantile(0.5)),
