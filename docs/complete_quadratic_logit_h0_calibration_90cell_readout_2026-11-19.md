@@ -120,6 +120,24 @@ The direction of the median-bias shift is consistent across validation sizes: ne
 
 For gamma=+1, the paired increase in absolute median error relative to gamma=0 was approximately +3.98, +4.13, and +3.97 at validation sizes 100, 300, and 500. The corresponding 95% paired t intervals were [0.49, 7.47], [0.14, 8.13], and [-0.06, 8.00]. Thus the absolute-error evidence is weaker than the signed-bias contrast, especially at n=500.
 
+### Prior-scale sensitivity
+
+The child artifacts also evaluate slope-prior SD multipliers 0.5, 1, and 2, with multiplier 1 as the reference. The table gives the mean posterior-median shift from that reference across the 10 replicates in each cell (km s⁻¹ Mpc⁻¹):
+
+| γ | Validation n | Multiplier 0.5 shift | Multiplier 2 shift |
+|---:|---:|---:|---:|
+| -1 | 100 | -2.62 | +0.96 |
+| -1 | 300 | -1.10 | +0.32 |
+| -1 | 500 | -0.63 | +0.17 |
+| 0 | 100 | -3.06 | +1.11 |
+| 0 | 300 | -1.26 | +0.37 |
+| 0 | 500 | -0.72 | +0.20 |
+| +1 | 100 | -3.04 | +1.00 |
+| +1 | 300 | -1.26 | +0.36 |
+| +1 | 500 | -0.75 | +0.20 |
+
+The prior-scale shifts are smaller than the mean curvature-associated signed-bias differences, and they diminish as the validation sample grows. They do not explain the entire gamma=0 baseline offset or the gamma=+1 contrast. This is a limited sensitivity analysis over one coefficient-prior scale family, not a proof of prior robustness.
+
 ### Validation-size contrast
 
 The paired change from validation n=100 to n=500 in signed median bias was:
