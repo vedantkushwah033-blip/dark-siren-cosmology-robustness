@@ -141,6 +141,12 @@ def main() -> None:
             raise RuntimeError("quadratic and GW generators did not share the same parent realization")
         analysis["parent_truth"] = quadratic["parent_truth"]
         analysis["catalogue_observed"] = quadratic["catalogue_observed"]
+        # The initial GW-population helper generated a disposable floor-logistic
+        # catalogue. The quadratic catalogue replaces it, so refresh its count
+        # metadata rather than retaining the discarded catalogue's size.
+        analysis["config"]["n_catalogue_observed"] = int(
+            len(quadratic["catalogue_observed"])
+        )
         selection = {
             "model": "quadratic_logit",
             "gamma": float(args.curvature_gamma),
