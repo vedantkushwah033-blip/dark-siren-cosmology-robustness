@@ -44,8 +44,9 @@ For each persisted replicate and validation size, the audit:
 
 The posterior-averaged host-weight vector is a pre-KDE diagnostic. It is not
 algebraically identical to the posterior-mean density, because each node KDE
-is normalized separately before posterior averaging. A separate density-curve
-stability check is still required for full Q2.
+is normalized separately before posterior averaging. A separate curved-DGP regression now also checks the posterior-mean Arm-E
+density curve after node-wise KDE normalization; this remains a single-seed
+numerical regression, not repeated-sampling density validation.
 
 The audit writes JSON and CSV diagnostics outside the raw replicate artifact
 directories. This avoids changing the original replicate manifests.
@@ -145,3 +146,21 @@ validation-size sensitivity, the seven-gamma design, or correction of the
 working-model misspecification. It is now included in the project CI workflow;
 its result must be checked against the exact commit that contains it.
 
+
+
+## Posterior-mean density convergence regression
+
+The curved-DGP regression now retains the Arm-E node-specific KDE densities
+at coefficient quadrature orders 7, 9, and 11. At each order it forms the
+posterior-mean density by averaging the separately normalized node densities
+with their posterior quadrature weights, verifies unit integral on the
+redshift grid, and compares the order-9 and order-11 curves using total
+variation distance. The provisional numerical acceptance threshold is
+TV <= 0.01 for this deterministic test fixture.
+
+This closes the specific algebraic gap between convergence of posterior-
+averaged raw host weights and convergence of a posterior mean of normalized
+node-wise KDE curves. It does not establish density-reconstruction accuracy,
+statistical uncertainty, or performance across repeated samples. The
+threshold is an engineering regression tolerance and should be checked
+against finer redshift grids and repeated seeds before confirmatory use.
