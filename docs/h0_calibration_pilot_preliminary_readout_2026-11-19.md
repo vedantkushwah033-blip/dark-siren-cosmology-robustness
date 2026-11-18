@@ -184,3 +184,20 @@ Interpretation:
 2. Negative and positive curvature shift the production posterior median below and above the oracle, respectively. The shift changes little between validation n=100 and n=500 in this 10-replicate pilot.
 3. This is an exploratory post-hoc diagnostic, not a preregistered endpoint. The direct oracle implementation has not yet been packaged as a repository audit script or CI test. It should be independently reviewed and made reproducible before being used as a manuscript result.
 4. The oracle uses a finite parent population, so it is a matched simulation benchmark rather than an exact superpopulation posterior. The 141-point H0 grid is still unverified for convergence, and no coverage or SBC conclusion follows from this decomposition.
+
+
+## H0 grid-refinement stage 1: 141 vs 281 vs 561 points
+
+Workflow run `44411660552`, artifact `14478766488`, re-ran the first three paired fixed-truth replicates across all nine curvature × validation-size cells at 281 and 561 H0 grid points. The archived 90-cell baseline manifest contained 2,110 entries; all were verified. The resulting ZIP manifest contained 1,271 entries, and an independent SHA-256 pass found **zero mismatches**. All 54 refined child runs succeeded, all 54 child raw-data audits passed, and the seven observable/truth input tables were byte-identical between the 281- and 561-point runs in every cell.
+
+The numerical comparisons use the predeclared thresholds: maximum posterior-density difference ≤ 0.001 and maximum absolute change in the reported posterior quantiles ≤ 0.05 km s^-1 Mpc^-1.
+
+| Comparison | Cells | Passed | Maximum density difference | Maximum quantile difference |
+|---|---:|---:|---:|---:|
+| 141 → 281 | 27 | 1/27 | 0.0009346 | 0.15857 |
+| 141 → 561 | 27 | 0/27 | 0.0009345 | 0.18872 |
+| 281 → 561 | 27 | **27/27** | **0.0002352** | **0.03813** |
+
+Thus the original 141-point grid is too coarse under the predeclared quantile tolerance for these cells. The 281-point grid agrees with 561 points in all 27 tested cells, while the maximum 281→561 quantile change is 0.0382 km s^-1 Mpc^-1, below the 0.05 threshold. The maximum posterior-density difference is also below 0.001 in every adjacent comparison.
+
+This is evidence for local numerical stability between 281 and 561 points on these 27 selected cells, not proof of global convergence or calibration. It does not validate all 90 pilot cells, and the selection of only three replicates limits the scope. A second stage now runs the same archived inputs at 561 and 1,121 points to check whether the apparent 281→561 stability persists at a finer resolution. No final H0 grid is declared until that stage is independently audited.
