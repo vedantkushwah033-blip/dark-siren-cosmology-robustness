@@ -317,7 +317,9 @@ def audit(root: Path) -> dict:
         "successful_arm_rows": int(len(success)),
         "failed_arm_rows": int(len(failed)),
         "posterior_curve_groups_reconstructed": len(grouped_curves),
-        "raw_cell_manifests_verified": raw_cells + failed_raw_cells,\n        "successful_raw_cells_reconstructed": raw_cells,\n        "failed_raw_cells_accounted_for": failed_raw_cells,
+        "raw_cell_manifests_verified": raw_cells + failed_raw_cells,
+        "successful_raw_cells_reconstructed": raw_cells,
+        "failed_raw_cells_accounted_for": failed_raw_cells,
         "outer_manifest_entries_verified": manifest_entries,
     }
 
