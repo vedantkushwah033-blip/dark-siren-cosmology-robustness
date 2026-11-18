@@ -90,3 +90,19 @@ def test_quadratic_logit_generator_is_reproducible_nested_and_truth_separated() 
     assert "inclusion_probability" in small["validation_frame_truth"]
     assert "inclusion_probability" not in small["validation_observed"]
     assert "inclusion_probability" not in small["catalogue_observed"]
+
+
+
+def test_h0_auditor_rejects_stale_catalogue_count_metadata():
+    from scripts.audit_quadratic_logit_inclusion_h0_smoke import (
+        _validate_population_counts,
+    )
+
+    parent = pd.DataFrame({"object_id": [0, 1, 2]})
+    catalogue = pd.DataFrame({"object_id": [0, 2]})
+    config = {"n_parent": 3, "n_catalogue_observed": 2}
+    _validate_population_counts(config, parent, catalogue)
+
+    config["n_catalogue_observed"] = 3
+    with pytest.raises(AssertionError, match="n_catalogue_observed"):
+        _validate_population_counts(config, parent, catalogue)
