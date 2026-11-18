@@ -42,7 +42,8 @@ jobs:
             --n-parent 1200 --n-detected 4 \
             --n-validation-frame 500 --n-validation 150 \
             --catalogue-model quadratic_logit --curvature-gamma 1.0 \
-            --degree 1 --orders 3,5,7,9 --h0-points 41 \
+            --degree 1 --orders 3,5,7,9 \
+            --prior-min 20 --prior-max 160 --h0-points 141 \
             --density-tolerance 0.01 --quantile-tolerance 0.5 \
             --consecutive-passes 1 \
             --output-dir artifacts/quadratic_logit_h0_smoke
