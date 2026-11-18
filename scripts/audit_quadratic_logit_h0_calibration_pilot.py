@@ -22,8 +22,12 @@ def _assert_summary_matches_ledger(ledger: pd.DataFrame, summary: pd.DataFrame) 
     if not (paired["_merge"] == "both").all():
         raise AssertionError("calibration summary cell keys do not match ledger")
     count_columns = {"planned": None, "success": "SUCCESS",
-                     "non_evaluable": "NON_EVALUABLE", "failed": "FAILED",
-                     "not_run": "NOT_RUN"}
+                     "non_evaluable": "NON_EVALUABLE", "failed": "FAILED"}
+    # Older pilot summary files omit a NOT_RUN column; the top-level audit
+    # already rejects NOT_RUN ledger rows. If a future summary includes it,
+    # reconcile it explicitly.
+    if "not_run" in summary.columns:
+        count_columns["not_run"] = "NOT_RUN"
     metric_columns = {
         "bias": ("median_bias", "mean"), "rmse": ("median_bias", "rmse"),
         "coverage68": ("covered68", "mean"), "coverage90": ("covered90", "mean"),
