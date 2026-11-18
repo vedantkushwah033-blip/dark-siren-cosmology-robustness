@@ -176,6 +176,10 @@ def run_pilot(args) -> dict:
                 cell_metric_rows = []
                 cell_curve_rows = []
                 cell_convergence_rows = []
+                # Create the cell directory before invoking the runner. Besides
+                # making the orchestration contract explicit, this lets test
+                # doubles and alternative runners write their outputs safely.
+                cell_dir.mkdir(parents=True, exist_ok=True)
                 try:
                     summary = run_single(cell_args)
                     curves = pd.read_csv(cell_dir / "h0_posterior_curves.csv")
