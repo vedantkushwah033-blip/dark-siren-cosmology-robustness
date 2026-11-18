@@ -1,0 +1,98 @@
+name: full-curvature-quadrature-gate-audit
+
+on:
+  push:
+    branches:
+      - research/full-curvature-quadrature-gate-audit-20261118
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: full-curvature-quadrature-gate-audit
+  cancel-in-progress: false
+
+jobs:
+  quadrature-gate:
+    name: quadrature gate gamma ${{ matrix.gamma }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 7
+      matrix:
+        include:
+          - gamma: -2.0
+            key: m2
+          - gamma: -1.0
+            key: m1
+          - gamma: -0.5
+            key: m05
+          - gamma: 0.0
+            key: zero
+          - gamma: 0.5
+            key: p05
+          - gamma: 1.0
+            key: p1
+          - gamma: 2.0
+            key: p2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Download corrected density artifact from the seven-gamma run
+        uses: actions/download-artifact@v4
+        with:
+          name: corrected-curvature-gamma-${{ matrix.key }}
+          run-id: 44369630799
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/gamma_${{ matrix.key }}
+      - name: Verify source artifact manifest
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root = Path("artifacts/gamma_${{ matrix.key }}")
+          manifest = json.loads((root / "manifest.json").read_text())
+          checked = 0
+          for rel, meta in manifest["files"].items():
+              path = root / rel
+              assert path.is_file(), rel
+              assert path.stat().st_size == int(meta["bytes"]), rel
+              assert hashlib.sha256(path.read_bytes()).hexdigest() == meta["sha256"], rel
+              checked += 1
+          assert checked == int(manifest["file_count"])
+          print(f"Verified {checked} files for gamma ${{ matrix.gamma }}.")
+          PY
+      - name: Run full-support quadrature and host-weight stability gate
+        run: |
+          python scripts/audit_inclusion_quadrature_ladder.py \
+            "artifacts/gamma_${{ matrix.key }}" \
+            --output "gate_reports/gamma_${{ matrix.key }}.json" \
+            --orders 5,7,9,11,13 \
+            --full-support-points 401 \
+            --mean-tolerance 0.001 \
+            --covariance-tolerance 0.001 \
+            --predictive-tolerance 0.001 \
+            --log-evidence-tolerance 0.001 \
+            --mixture-max-abs-tolerance 0.001 \
+            --mixture-total-variation-tolerance 0.005 \
+            --consecutive-passes 2 \
+            --require-convergence
+      - name: Preserve gate report even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-curvature-quadrature-gate-${{ matrix.key }}
+          path: |
+            gate_reports/gamma_${{ matrix.key }}.json
+            gate_reports/gamma_${{ matrix.key }}.csv
+          if-no-files-found: warn
+          retention-days: 30
