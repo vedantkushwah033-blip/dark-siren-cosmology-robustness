@@ -224,3 +224,33 @@ This makes it especially important that our primary estimand is not merely coeff
 4. downstream selected-likelihood and H0 calibration consequences.
 
 A method may estimate coefficients poorly but still recover the relevant weighted density well; conversely, good average probability calibration may coexist with harmful tail-weight concentration. These should not be collapsed into one score.
+
+
+## 13. Asymptotic target under a misspecified inclusion model
+
+This is a central theoretical point that should guide the paper.
+
+Let the parent redshift density be (g(z)), the true catalogue inclusion probability be (pi_0(z)), and the validation-fitted working model converge to a pseudo-true probability (pi_*(z)). Let (b(z)>0) be the declared galaxy-to-merger-rate factor. Ignoring finite-sample KDE smoothing for the moment, the observed catalogue has density proportional to (g(z)\pi_0(z)). Applying working-model inverse weights (1/\pi_*(z)) and the common rate factor (b(z)) yields the limiting normalized host density
+[
+p_*(z)=
+\frac{g(z)\,\pi_0(z)\,b(z)/\pi_*(z)}
+{\int g(u)\,\pi_0(u)\,b(u)/\pi_*(u)\,du}.
+]
+The target is
+[
+p_0(z)=
+\frac{g(z)b(z)}{\int g(u)b(u)\,du}.
+]
+Therefore, consistency of the IPW density requires the ratio (\pi_0(z)/\pi_*(z)) to be constant over the target support (the constant cancels on normalization); exact inclusion-model correctness is sufficient, while a proportional misspecification can also cancel after normalization. In general, a degree-one logistic model fitted to a nonzero-curvature logistic truth will have a nonconstant ratio and hence a nonvanishing asymptotic density distortion.
+
+This gives a clean separation:
+- Increasing validation size reduces estimation uncertainty around the pseudo-true working model.
+- It does not remove the pseudo-true functional-form bias.
+- Consequently, the posterior over coefficients can become very concentrated while the IPW density remains biased.
+- Arm E's coefficient integration can improve finite-validation uncertainty propagation, but cannot asymptotically repair omitted quadratic structure if the fitted model remains degree one.
+
+The relevant validation target for the logistic fit is the Bernoulli log-score/KL projection under the validation sampling distribution. That projection is not generally the same as minimizing density IAE, H0 bias, or posterior miscalibration. This is why coefficient bias, probability calibration, density risk, and cosmological calibration must be reported as separate outcomes.
+
+For the five-arm comparison, Arm C (known π) isolates finite-parent/KDE error under correct selection weights; Arm D exposes the combined finite-validation and model-projection error; Arm E adds posterior uncertainty propagation conditional on the same working model. Arm B remains a finite-parent oracle density reference rather than a noise-free analytic truth. Comparisons should include the analytic target density as well as Arm B, so that finite-parent oracle KDE error is not mistaken for irreducible truth.
+
+This derivation is a theoretical consequence of the stated sampling model, not an empirical result from the unrun seven-gamma pilot. It should be independently checked and expanded into a formal proposition if the manuscript is to make an asymptotic claim.
