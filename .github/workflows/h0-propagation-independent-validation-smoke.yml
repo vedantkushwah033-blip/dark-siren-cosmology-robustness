@@ -139,6 +139,8 @@ jobs:
               "coarse_grid_points": len(cdf), "fine_grid_points": len(fdf),
               "quadrature_order": 9, "absolute_quantile_differences": qdiff,
               "coarse_grid_L1_density_difference": l1,
+              "max_abs_quantile_shift_tolerance": 0.05,
+              "L1_density_difference_tolerance": 0.001,
               "status": "PASS",
               "interpretation": "H0-grid refinement only for one fixed synthetic realization; not calibration or SBC"
           }
