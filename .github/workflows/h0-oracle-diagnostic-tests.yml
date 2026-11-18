@@ -1,5 +1,9 @@
 name: h0-oracle-diagnostic-tests
 
+concurrency:
+  group: h0-oracle-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   actions: read
