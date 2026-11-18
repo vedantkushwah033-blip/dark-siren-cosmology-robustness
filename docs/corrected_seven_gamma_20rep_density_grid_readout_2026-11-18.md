@@ -157,3 +157,33 @@ The workflow run `44369630799` finished with conclusion `success`. The `Cross-ga
 
 The archive contains the audit JSON and three CSV summaries. The paired contrast CSV is at the individual absolute-bandwidth level (not merely the seven-bandwidth average used in the main text). These results complete the computational density-grid gate only. They do not establish H0 posterior performance, coefficient-posterior calibration, SBC, PIT, or fixed-truth coverage.
 
+
+## 8. Bandwidth-specific paired-contrast robustness (exploratory)
+
+The cross-gamma artifact also stores paired D−C and E−C contrasts separately for each of the seven fixed bandwidth candidates. I counted, for each gamma × validation-size cell, how many of the seven ordinary 95% paired-t intervals had a strictly positive lower endpoint. This is a descriptive sign-stability diagnostic only: the seven intervals are correlated, n=20, and no multiplicity adjustment is applied.
+
+| gamma | n_val | D−C intervals with lower endpoint > 0 | E−C intervals with lower endpoint > 0 |
+|---:|---:|---:|---:|
+| -2 | 100 | 7/7 | 7/7 |
+| -2 | 300 | 7/7 | 7/7 |
+| -2 | 1000 | 7/7 | 7/7 |
+| -1 | 100 | 7/7 | 6/7 |
+| -1 | 300 | 2/7 | 0/7 |
+| -1 | 1000 | 0/7 | 0/7 |
+| -0.5 | 100 | 7/7 | 7/7 |
+| -0.5 | 300 | 1/7 | 2/7 |
+| -0.5 | 1000 | 0/7 | 0/7 |
+| 0 | 100 | 7/7 | 7/7 |
+| 0 | 300 | 7/7 | 7/7 |
+| 0 | 1000 | 7/7 | 7/7 |
+| 0.5 | 100 | 7/7 | 7/7 |
+| 0.5 | 300 | 7/7 | 7/7 |
+| 0.5 | 1000 | 7/7 | 7/7 |
+| 1 | 100 | 7/7 | 7/7 |
+| 1 | 300 | 7/7 | 7/7 |
+| 1 | 1000 | 7/7 | 7/7 |
+| 2 | 100 | 7/7 | 7/7 |
+| 2 | 300 | 7/7 | 7/7 |
+| 2 | 1000 | 7/7 | 7/7 |
+
+The estimated-IPW density penalty relative to known-probability IPW is therefore not merely an artifact of averaging over the seven bandwidth candidates in the positive-curvature cells: all seven bandwidth-specific paired intervals have positive lower endpoints for gamma 0 through +2 at every validation size. At gamma=-0.5 and -1, the evidence weakens as validation size increases, with all seven intervals including zero at n=1000. At gamma=-2, the penalty remains across all widths, consistent with a different difficulty regime involving highly concentrated oracle weights. These intervals are not a confirmatory familywise test and should not be interpreted as one.
