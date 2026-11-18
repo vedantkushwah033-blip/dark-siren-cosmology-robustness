@@ -124,3 +124,27 @@ Files inspected on PR #55 head include:
 - `tests/test_curvature_cross_gamma_completeness.py`
 
 This note was added on a separate research branch based on PR #55 head. No changes were made to `main`, no pull request was merged, and no simulation workflow was dispatched by this audit.
+
+
+## 8. Static review of the five-arm H0 likelihood
+
+I inspected `src/dark_siren_robustness/five_arm_kde_likelihood.py`, the five-arm smoke runner, the independent smoke auditor, and the likelihood/convergence tests on the PR #55 branch.
+
+The implemented per-event selected likelihood has the form
+[
+\mathcal L_i(H_0\mid d_i,\mathrm{det})
+=
+\frac{\int p_k(z)\,\mathcal N(d_i;cz/H_0,\sigma_i^2)\,dz}
+{\int p_k(z)\,\Phi((cz/H_0-d_{\rm th})/\sigma_i)\,dz},
+]
+and the dataset likelihood is the product over events (equivalently, the sum of event log-ratios). This is the appropriate conditional-on-detection form for a fixed number of independently detected events under the code's Gaussian distance-error model and threshold rule. A manuscript must state explicitly that the analysis conditions on the detected event count; a model for the event count/rate would require additional terms.
+
+For Arm E, the implementation evaluates the full selected dataset log likelihood at each shared coefficient-posterior node and then computes a single `logsumexp(log L(theta_k) + log q_k)`. This is the correct order for integrating a shared nuisance parameter. It avoids the invalid alternatives of averaging host weights first or multiplying separately marginalized per-event likelihoods.
+
+The likelihood accepts either one common absolute redshift bandwidth or a common Scott multiplier. The absolute-bandwidth option applies the same physical kernel SD to A-D and every E node; a common Scott multiplier does not generally imply a common realized physical bandwidth across differently weighted arms. Confirmatory comparisons should therefore use the absolute-bandwidth option or explicitly treat the Scott rule as a different estimand.
+
+The code multiplies the normalized host-redshift density by the event-distance likelihood in the numerator and by the Gaussian-tail detection probability in the denominator. This is internally consistent with the documented threshold-on-measured-distance generator. The host/merger base factor is carried in the raw arm weights in the smoke and the grid-level multiplier is set to one, avoiding a second application of the same base factor.
+
+**Limitations of this static review:** I did not execute the likelihood or independently recompute a complete H0 artifact in this session. The smoke auditor explicitly uses the persisted inclusion-posterior nodes; it reconstructs the KDE and selected likelihood independently but does not itself rebuild the logistic posterior quadrature from the validation records. Separate direct-integration/quadrature tests exist and passed in the PR #44 workflow run noted above, but that is not the same as an artifact-level posterior refit for every H0 replicate. The current H0 smoke uses small engineering settings and is not confirmatory evidence. The Euclidean distance relation, fixed Gaussian noise, simple threshold detector, fixed host-rate function and absence of real event-level likelihood data remain major toy-model assumptions.
+
+**Decision:** the selected-likelihood algebra and shared-node marginalization look structurally coherent under the stated fixed-N toy assumptions, but the H0 stage remains NOT CLEARED for scientific claims. It requires exact integrated-head tests, independent artifact-level validation of posterior nodes, numerical grid/normalization checks, and a repeated-sampling calibration experiment under the same curvature DGP.
