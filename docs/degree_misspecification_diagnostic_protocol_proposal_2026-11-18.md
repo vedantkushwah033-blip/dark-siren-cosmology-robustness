@@ -126,6 +126,12 @@ Treat the 11-width grid as a sensitivity surface until a separate disjoint-repli
 - The oracle arms B/C remain unavailable in practice and are used only as simulation diagnostics.
 - A degree-two fit matching the true DGP does not establish that real catalogue selection is quadratic. The result is conditional on this controlled synthetic design.
 
+## Upstream prerequisite: host-rate weighting correction
+
+A separate source-level audit found that the current five-arm density runner had applied the common host/merger factor (b(z)) twice: once in sample-level base weights and again after the KDE. This made the old density target proportional to (g(z)b(z)^2), not the declared (g(z)b(z)). PR #59 proposes the correction, but remains draft/unmerged and has no exact-head CI or corrected artifact audit yet.
+
+Accordingly, **no degree-two extension should be implemented or run until PR #59's correction is independently validated and incorporated into the research branch**. The seven-arm proposal must use the corrected convention: A/B unit sample weights; C/D/E inclusion-only weights; common (b(z)) applied once after the KDE. All pre-correction five-arm density artifacts are superseded for the declared target and must not be used to choose bandwidths or plan H0 propagation.
+
 ## Stop/go gates
 
 **GO to engineering implementation only if:**
