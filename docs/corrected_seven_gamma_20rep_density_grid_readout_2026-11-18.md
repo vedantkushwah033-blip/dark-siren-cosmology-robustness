@@ -1,7 +1,7 @@
 # Corrected seven-gamma 20-replicate density-grid readout
 
 **Date:** 2026-11-18  
-**Status:** All seven gamma cells independently audited; manual cross-cell pairing and calibration checks passed. The workflow's separate cross-gamma raw-reconstruction job is still running at the time of this readout.  
+**Status:** All seven gamma cells and the workflow-level cross-gamma raw-reconstruction audit completed successfully. The final paired-summary artifact was downloaded and independently checksum-verified.  
 **Scope:** Synthetic low-redshift Euclidean catalogue-inclusion density recovery only.
 
 ## 1. Provenance and computational audit
@@ -139,6 +139,21 @@ This pattern supports the research question: finite validation can dominate unde
 - No observational galaxy catalogue or public LVK/GWTC data are used.
 - Oracle C probabilities are simulation-only diagnostics.
 - The child-level config still inherits stale wording that each child is “one engineering replicate only.” PR #62 proposes a metadata-only correction and regression test; do not treat that wording issue as a numerical error, but fix it before publication-ready provenance.
-- The final workflow cross-gamma audit job remains in progress; this readout's manual pair/calibration checks are additional independent checks, not a substitute for the workflow's final audit artifact.
+- The final workflow cross-gamma audit has passed, and its paired-summary artifact checksum was verified. This is still a synthetic density-only pilot, not an H0 inference result.
 
 Next: complete the workflow-level cross-gamma audit, preserve its summary artifact, then move to the separate H0 propagation gate in `docs/finite_validation_h0_marginalization_design_contract_2026-11-08.md`. Density IAE must not be presented as evidence of H0 posterior calibration.
+
+
+## 7. Final workflow-level cross-gamma audit (completed)
+
+The workflow run `44369630799` finished with conclusion `success`. The `Cross-gamma paired audit and summaries` job completed all steps successfully, including full raw-input reconstruction and upload. The final cross-gamma artifact is ID `14462504250`, SHA-256 `c4e86b59dfa37f93b0fd0682b00c440615544fb0f4e10a4989120a7f257b88fc`; the downloaded archive digest matched the GitHub artifact digest. Its `audit.json` reports:
+
+- `status=PASS` across gamma values -2, -1, -0.5, 0, 0.5, 1, 2.
+- 20/20 successful replicates and 20/20 child raw audits for every gamma; zero failed replicates.
+- 244 manifest files verified per gamma; 1,708 total.
+- 91,140 reconstructed metric rows; 4,557 density-summary rows.
+- 2,205 paired IAE contrast rows and 756 paired gamma-versus-zero contrast rows.
+- Paired seed schedule and parent/validation redshifts verified.
+
+The archive contains the audit JSON and three CSV summaries. The paired contrast CSV is at the individual absolute-bandwidth level (not merely the seven-bandwidth average used in the main text). These results complete the computational density-grid gate only. They do not establish H0 posterior performance, coefficient-posterior calibration, SBC, PIT, or fixed-truth coverage.
+
