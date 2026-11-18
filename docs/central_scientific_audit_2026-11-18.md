@@ -322,3 +322,81 @@ Only after this gate should a separate H0 experiment be designed. That experimen
 - Do not generalize from this Euclidean synthetic DGP to real surveys or LVK catalogues.
 
 This protocol is a research recommendation, not a registered or frozen analysis plan. It should be versioned and approved before the confirmatory run.
+
+
+## Critical estimand audit and corrective patch — 2026-11-18
+
+A further source-level audit found a consequential double application of the host/merger weighting function in the absolute-bandwidth density runner.
+
+### Finding
+
+The declared target density is
+
+\[
+f_{\mathrm{host}}(z) \propto g(z)h(z),
+\qquad
+h(z)=1+1.5\frac{z-z_{\min}}{z_{\max}-z_{\min}}.
+\]
+
+Before the correction, `run_absolute_bandwidth_density_smoke.py` constructed
+`parent_base_weights = h(z_parent)` and `catalogue_base_weights = h(z_catalogue)`
+through `build_five_arm_weights`. It then called
+`estimate_host_density(..., sample_weights=weights, merger_weight=h(grid), ...)`.
+The production estimator multiplies the weighted KDE by `merger_weight` after evaluating the KDE. Therefore the sample-level h and grid-level h were both applied.
+
+For the oracle parent arm B, the large-sample target was consequently proportional to
+\[
+g(z)h(z)^2,
+\]
+rather than the declared \(g(z)h(z)\). With correctly specified inclusion probabilities, the same double weighting affected arm C; the intended limiting target for D/E was also wrong whenever their fitted probabilities recovered the true inclusion function. The catalogue-only arm A had the additional catalogue-inclusion factor, but it too received the duplicated host weighting.
+
+The independent smoke auditor reproduced the same construction: it expected h-weighted sample weights and multiplied its independent KDE by h again. Thus its PASS status established implementation/auditor agreement, but did **not** establish agreement with the declared estimand. This is an important distinction: an independent implementation can reproduce the same conceptual error unless the target is audited separately.
+
+### Independent numerical size of the mismatch
+
+On a 200,001-point grid over [0.01, 0.40], I normalized both candidate superpopulation targets:
+- intended: \(g(z)h(z)\);
+- accidentally implemented: \(g(z)h(z)^2\).
+
+The resulting total-variation distance was approximately **0.09231** (equivalently, the L1 distance was **0.18462**). The mean redshift shifted from **0.22519** under the intended target to **0.24691** under the duplicated target, a difference of **0.02172**. This is large enough to invalidate density-recovery comparisons from the pre-fix implementation; it is not a negligible numerical correction.
+
+### Corrective change made on the existing research branch
+
+The correction preserves the explicit target convention that h(z) is applied once on the output grid:
+- The runner now supplies unit parent and catalogue base weights to the five-arm weight builder.
+- The density estimator continues to multiply the output-grid KDE by h(z), exactly once.
+- The independent auditor now independently expects unit base weights and verifies the persisted base-weight arrays are all one.
+- The smoke tests now assert unit base weights for both the legacy floor-logistic and quadratic-logit DGPs.
+
+This choice also makes the weight-concentration diagnostics reflect catalogue-inclusion/IPW weights rather than the product of inclusion weights and h(z). The fixed absolute-bandwidth comparisons remain the primary density sensitivity surface; the ancillary Scott-width diagnostics are now computed from the pure inclusion weights.
+
+Commits on `research/curvature-known-probability-fix-20261114`:
+- `561177087ec894d5058eb9f087d39e1456fcb0d3` — runner uses unit base weights.
+- `c3ce0b500551340ded56095a6df50fbd6a7b3253` — independent auditor checks unit base weights.
+- `ecea98a77cabd5473dbb438f475d55f05ee59d2e` — regression tests for duplicate host-rate weighting.
+
+The live PR #55 head was refreshed to `ecea98a77cabd5473dbb438f475d55f05ee59d2e` at the time of this addendum. No PR was merged and no change was made to `main`.
+
+### Additional posterior-quadrature spot check
+
+I independently reimplemented the degree-one logistic posterior and the corrected Laplace-proposal tensor Gauss-Hermite importance weights, using the declared parent intensity, calibrated gamma values, validation-frame construction, fixed coordinate system, and Gaussian prior. For one fixed validation frame of 1,500 records (seed 20261216), I compared order 5 with order 19 for all seven gamma values and validation sizes 100, 300, and 1,000.
+
+Across these 21 cases, the largest order-5 versus order-19 differences were:
+- posterior coefficient mean, maximum absolute component difference: about **0.00195** at n=100;
+- posterior covariance, maximum absolute component difference: about **0.00391** at n=100;
+- posterior-mean inclusion probability on a 301-point redshift grid: at most **8.3×10⁻⁵** at n=100, **7×10⁻⁶** at n=300, and **1×10⁻⁶** at n=1,000.
+
+For selected extreme and reference cells (gamma = -2, 0, +2; n = 100 and 1,000), increasing quadrature order from 19 to 23 changed posterior predictive probabilities by at most approximately **1.1×10⁻¹⁰**; coefficient means, covariance, and log evidence were also stable to the displayed numerical precision. This is a targeted independent numerical spot check, not a test of every possible validation realization, not an execution of the repository's test suite, and not a validation of the degree-two model or any downstream H0 likelihood.
+
+### Current execution status after the correction
+
+- Double host-rate weighting identified from production and independent-auditor source: **CONFIRMED**.
+- Corrective runner/auditor/test edits committed to PR #55 research branch: **DONE**.
+- Current PR #55 head: `ecea98a77cabd5473dbb438f475d55f05ee59d2e`.
+- Exact-head GitHub Actions CI for this head: **NOT VERIFIED**; the inspected commit-workflow/status endpoints returned no run/status entries.
+- Local execution of the repository test suite: **NOT RUN**; a local checkout was not available in the connected runtime.
+- Seven-gamma density workflow: **NOT DISPATCHED**; the connected GitHub tool set does not expose a workflow-dispatch action.
+- Seven-gamma simulation and cross-gamma raw-artifact audit: **NOT RUN**.
+- H0 inference/calibration: **NOT RUN**.
+
+The pre-fix density artifacts, if any, must not be reused as evidence for the corrected estimand. After exact-head CI is verified, the engineering smoke must be regenerated and independently audited, followed by the full density-only pilot. No H0 work is authorized by this correction alone.
