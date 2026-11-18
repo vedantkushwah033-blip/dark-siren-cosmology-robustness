@@ -166,6 +166,7 @@ def run(args) -> dict:
             dest.mkdir(parents=True, exist_ok=False)
             cmd = [
                 sys.executable, str(runner),
+                "--input-dir", str(baseline_dir),
                 "--seed", str(int(cell.analysis_seed)),
                 "--validation-seed", str(int(cell.validation_seed)),
                 "--n-parent", str(int(analysis_cfg["n_parent"])),
