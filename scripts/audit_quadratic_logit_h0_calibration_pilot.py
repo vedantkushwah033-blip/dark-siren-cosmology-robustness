@@ -60,17 +60,22 @@ def _assert_summary_matches_ledger(ledger: pd.DataFrame, summary: pd.DataFrame) 
 
 
 def _assert_validation_samples_paired(ledger: pd.DataFrame, dirs: dict[str, Path]) -> int:
-    """Require identical validation observations across gamma at fixed replicate/size."""
+    """Require identical sampled validation IDs/redshifts across gamma.
+
+    Retention labels are deliberately excluded: gamma changes the inclusion
+    mechanism, so those observed outcomes should differ across curvature cells.
+    """
     paired_blocks = 0
     for (_, _), block in ledger.groupby(["replicate", "n_validation"]):
         usable = block[block.cell_id.isin(dirs)]
         reference = None
         for row in usable.itertuples(index=False):
             observed = pd.read_csv(dirs[row.cell_id] / "observable/validation_observed.csv")
+            sampled_design = observed[["validation_id", "redshift"]]
             if reference is None:
-                reference = observed
+                reference = sampled_design
             else:
-                pd.testing.assert_frame_equal(observed, reference)
+                pd.testing.assert_frame_equal(sampled_design, reference)
         if len(usable) > 1:
             paired_blocks += 1
     return paired_blocks
