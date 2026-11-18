@@ -10,6 +10,18 @@ The original GitHub Actions run ended with **failure at the aggregate orchestrat
 
 This is a complete computational pilot, but it is still only a 10-replicate, four-event, fixed-truth synthetic calibration study. It is not confirmatory evidence, joint SBC, an observational H0 measurement, or a real GW-catalogue analysis.
 
+## Independent corrected rerun
+
+After fixing the orchestration auditor, the full 90-cell design was rerun on workflow #44408479569 at commit `3509ddcffec9a7807bc3867fe2553f6df90a5e7a`. The rerun completed SUCCESS, including the corrected independent orchestration audit and the complete-pilot assertion.
+
+- Rerun artifact ID: 14476042847
+- Rerun archive SHA-256: `cadf1a8ad7c9d2052a73972338fef493cbbcb2b85b2da89527c7e2fe5e0805ba`
+- Rerun artifact: 90/90 SUCCESS, 90 child audits PASS, 90 quadrature runs CONVERGED.
+- Aggregate audit report: PASS; 2,110 manifest entries verified; 30 nested validation blocks and 30 cross-curvature validation-pairing blocks checked; all summary metrics recomputed.
+- Independent comparison of the original and rerun ledgers found identical cell IDs and all key numerical ledger metrics (H0 posterior medians/quantiles, interval widths, ESS, maximum normalized weights and median biases) within absolute tolerance (10^{-12}). Some raw CSV values differ at machine-roundoff scale (roughly (10^{-13})); this does not change the reported ledger results.
+
+The first complete artifact below is retained as the original result; the successful rerun independently confirms that the corrected audit accepts the same 90-cell design and that the numerical summaries are reproducible.
+
 ## Artifact provenance
 
 - Source workflow run: 44402834830
