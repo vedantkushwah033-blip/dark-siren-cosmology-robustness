@@ -134,6 +134,7 @@ def audit(
                     consecutive_passes=consecutive_passes,
                 )
                 mixtures = []
+                case_rows = []
                 for fit in ladder.fits:
                     mixture = _mixture_host_weights(fit, catalogue)
                     mixtures.append(mixture)
@@ -142,7 +143,7 @@ def audit(
                     full_design = np.column_stack((np.ones(full_grid.size), x_full))
                     node_probability = expit(fit.nodes @ full_design.T)
                     posterior_mean_probability = posterior_predictive_inclusion(fit, full_grid)
-                    rows.append({
+                    row = {
                         "replicate": replicate_id,
                         "validation_size": n,
                         "order": fit.order,
@@ -164,13 +165,15 @@ def audit(
                         "posterior_mean_outside_validation_ipw_mass": outside_mass,
                         **_weight_summary(mixture),
                         "ladder_status": ladder.status,
-                    })
+                    }
+                    rows.append(row)
+                    case_rows.append(row)
 
                 for j in range(1, len(mixtures)):
                     delta = np.abs(mixtures[j] - mixtures[j - 1])
                     max_abs = float(np.max(delta))
                     total_variation = float(0.5 * np.sum(delta))
-                    rows[j + len(rows) - len(mixtures)].update({
+                    case_rows[j].update({
                         "mixture_max_abs_change_from_previous_order": max_abs,
                         "mixture_total_variation_from_previous_order": total_variation,
                     })
@@ -182,6 +185,21 @@ def audit(
                             f"{ladder.fits[j].order} (max_abs={max_abs:.6g}, "
                             f"TV={total_variation:.6g})"
                         )
+                first_to_last = np.abs(mixtures[-1] - mixtures[0])
+                first_to_last_max = float(np.max(first_to_last))
+                first_to_last_tv = float(0.5 * np.sum(first_to_last))
+                case_rows[-1].update({
+                    "mixture_max_abs_change_from_order5": first_to_last_max,
+                    "mixture_total_variation_from_order5": first_to_last_tv,
+                })
+                if (first_to_last_max > mixture_max_abs_tolerance
+                        or first_to_last_tv > mixture_total_variation_tolerance):
+                    failures.append(
+                        f"replicate {replicate_id}, n={n}: host-weight mixture changed "
+                        f"beyond tolerance from order {ladder.fits[0].order} to "
+                        f"{ladder.fits[-1].order} (max_abs={first_to_last_max:.6g}, "
+                        f"TV={first_to_last_tv:.6g})"
+                    )
                 if ladder.status != "CONVERGED":
                     failures.append(
                         f"replicate {replicate_id}, n={n}: quadrature ladder "
