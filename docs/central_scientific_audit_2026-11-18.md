@@ -450,3 +450,48 @@ A second full test workflow was automatically queued for the workflow-trigger co
 ### Interpretation and limits
 
 The successful CI means the corrected density runner, independent auditor, and regression tests execute successfully on all supported Python versions in the configured test workflow. It does not mean the seven-gamma simulation has completed. The 20-replicate design remains a development pilot, not a confirmatory result or a bandwidth-selection dataset. No H0 likelihood, posterior, PIT, SBC, or coverage experiment is included in this workflow.
+
+
+### Outcome of the first corrected seven-gamma pilot execution
+
+The original pilot workflow completed on 2026-11-18:
+- Run: `44366440872`
+- Commit tested: `35da06224585849839f3dc458f73a550f107a0a6`
+- Overall workflow conclusion: **failure**, because one per-gamma independent audit failed; the cross-gamma job was consequently skipped.
+
+All seven gamma-cell runner steps completed and produced their raw artifacts. Each runner reported:
+- 20 planned replicates;
+- 20 successful replicates;
+- 0 failed replicates;
+- 20,460 density metric rows;
+- 1,740 realized-Scott-width rows.
+
+The six per-gamma independent audits that completed successfully were:
+`gamma = -2, -1, -0.5, 0, +0.5, +1`.
+
+The `gamma = +2` runner also completed 20/20 replicates and uploaded its raw artifact, but its independent audit stopped at the posterior-node equivalence check:
+`max abs diff = 1.1178312764315024e-07`, just above the hard-coded `1e-7` absolute tolerance. The runner itself returned PASS with zero failed replicates. No density metric discrepancy was reported before this posterior-node check. The cross-gamma summary was skipped because the +2 cell did not pass its audit.
+
+### Cause and corrective audit change
+
+The independent audit used BFGS followed by Newton polishing, but it stopped polishing when the infinity-norm score reached `1e-6`. It then compared the resulting quadrature nodes to the production trust-exact/Newton fit using a stricter `1e-7` absolute tolerance. These tolerances were internally inconsistent.
+
+I reproduced the numerical issue against the downloaded +2 artifact using a local independent calculation. When the independent Newton polish accepts a step if it satisfies either Armijo decrease or actual score-norm improvement, and refines to `1e-8`, the maximum posterior-node discrepancy against the stored production nodes fell below approximately `5.5e-9` on that local SciPy build. This supports an optimizer-polishing mismatch rather than a density-estimand or simulation-run failure; the exact GitHub-run discrepancy remains recorded above.
+
+Corrective code commits on the PR #55 branch:
+- `51cf2e4755bcc286747a4ac91f8d9e9139a4648f` — independent posterior auditor now polishes to a (10^{-8}) score residual and accepts score-improving Newton steps when objective changes reach floating-point resolution.
+- `3e0d63b3354a2b97162adae75cf1c441a0c797cb` — narrowed the ledger `fillna` operation to its textual error field, avoiding the Pandas 3.1.1 incompatible-fill warning.
+- `ad9f51a4099d409b0c54ea8e37b20ac39fabb501` — parameterized the quadratic-logit smoke regression over gamma (+1) and (+2).
+
+The focused workflow on commit `51cf2e4` completed successfully across Python 3.10, 3.11 and 3.12 (run `44371529413`). The full test workflow for the later smoke-test commit `ad9f51a` was queued at the time of this note.
+
+### Posthoc re-audit without rerunning simulations
+
+All seven raw gamma artifacts were preserved by run `44366440872`. To avoid paying for another 140-replicate simulation, I added a separate posthoc workflow that downloads those exact artifacts and runs the corrected per-cell and cross-gamma auditors:
+- workflow file: `.github/workflows/curvature-density-posthoc-audit.yml`
+- workflow commit: `738551d56c896732cc9235eac83edfeed35fe014`
+- posthoc run: `44372235700` (queued at the latest check).
+
+The original density-pilot workflow has been returned to its manual-only trigger after the initial push-triggered run, so later audit-code commits will not silently launch another full 140-replicate simulation. The posthoc workflow is separately triggered by changes to its own file or relevant audit scripts.
+
+**Current scientific status:** raw runner output exists for all 140 planned replicates, but no cross-gamma summary is yet accepted. The +2 cell's posthoc audit and the full paired cross-gamma audit must pass before any density-performance interpretation. Even after that, the 20-replicate cells remain exploratory pilot evidence, not confirmatory results, and do not authorize H0 inference.
