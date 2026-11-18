@@ -81,11 +81,46 @@ def compare_grid_pair(coarse, fine, *, density_tolerance=1e-3, quantile_toleranc
     }
 
 
-def _assert_same_generated_data(baseline: Path, refined: Path) -> None:
+def _assert_same_generated_data(
+    baseline: Path,
+    refined: Path,
+    *,
+    float_rtol: float = 1e-12,
+    float_atol: float = 2e-12,
+) -> None:
+    """Require identical records, allowing only harmless floating-point roundoff.
+
+    IDs, flags, column order, row order and non-numeric values remain exact.
+    Floating columns may differ only within tight tolerances because the same
+    deterministic generator can vary at machine precision across NumPy/SciPy
+    builds. Material data drift still fails the audit.
+    """
     for relative in DATA_FILES:
         left = pd.read_csv(baseline / relative)
         right = pd.read_csv(refined / relative)
-        pd.testing.assert_frame_equal(left, right, check_exact=True)
+        if left.shape != right.shape or not left.columns.equals(right.columns):
+            raise AssertionError(f"generated-data shape/schema mismatch: {relative}")
+        for column in left.columns:
+            a, b = left[column], right[column]
+            if (
+                pd.api.types.is_bool_dtype(a.dtype)
+                or pd.api.types.is_bool_dtype(b.dtype)
+                or pd.api.types.is_integer_dtype(a.dtype)
+                or pd.api.types.is_integer_dtype(b.dtype)
+            ):
+                if not np.array_equal(a.to_numpy(), b.to_numpy()):
+                    raise AssertionError(f"generated-data exact mismatch: {relative}:{column}")
+            elif pd.api.types.is_numeric_dtype(a.dtype) and pd.api.types.is_numeric_dtype(b.dtype):
+                av = a.to_numpy(dtype=float)
+                bv = b.to_numpy(dtype=float)
+                if not np.allclose(av, bv, rtol=float_rtol, atol=float_atol, equal_nan=True):
+                    error = float(np.nanmax(np.abs(av - bv)))
+                    raise AssertionError(
+                        f"generated-data numeric mismatch: {relative}:{column}; "
+                        f"max_abs_difference={error:.6g}"
+                    )
+            elif not a.equals(b):
+                raise AssertionError(f"generated-data exact mismatch: {relative}:{column}")
 
 
 def run(args) -> dict:
@@ -238,7 +273,13 @@ def run(args) -> dict:
     comp_df = pd.DataFrame(comparisons)
     comp_df.to_csv(output / "grid_refinement_comparisons.csv", index=False)
     results.to_csv(output / "grid_refinement_ledger.csv", index=False)
+    comparison_pass_count = (
+        int(comp_df.passed_predeclared_tolerances.sum()) if len(comp_df) else 0
+    )
+    comparison_fail_count = int(len(comp_df) - comparison_pass_count)
     report = {
+        # PASS means execution, child audits and artifact production completed.
+        # Numerical grid stability is reported separately below.
         "status": "PASS" if (results.status == "SUCCESS").all() else "INCOMPLETE",
         "baseline_manifest_entries_verified": manifest_entries,
         "baseline_cells_selected": int(len(selected)),
@@ -247,9 +288,16 @@ def run(args) -> dict:
         "failed_refined_runs": int((results.status != "SUCCESS").sum()),
         "grid_points": list(grids),
         "comparison_rows": int(len(comp_df)),
+        "comparison_pass_count": comparison_pass_count,
+        "comparison_fail_count": comparison_fail_count,
+        "all_comparisons_within_tolerance": bool(
+            len(comp_df) > 0 and comparison_fail_count == 0
+        ),
         "interpretation": (
-            "Paired numerical H0-grid sensitivity on a subset of fixed-truth pilot seeds. "
-            "Not a new calibration study, not SBC, and not observational inference."
+            "PASS denotes completed paired reruns and child audits, not posterior-grid "
+            "convergence. Per-comparison tolerance outcomes are reported separately. "
+            "This is numerical H0-grid sensitivity on fixed-truth pilot seeds, not a new "
+            "calibration study, not SBC, and not observational inference."
         ),
     }
     (output / "grid_refinement_report.json").write_text(json.dumps(report, indent=2) + "\n")

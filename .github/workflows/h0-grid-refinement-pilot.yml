@@ -42,7 +42,7 @@ jobs:
           name: quadratic-logit-h0-calibration-pilot-py3.12
           github-token: ${{ secrets.GITHUB_TOKEN }}
           repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
-          run-id: 44402834830
+          run-id: 44408479569
           path: artifacts/h0_calibration_baseline
       - name: Run paired H0-grid refinement on first three archived replicates
         run: |
@@ -61,6 +61,8 @@ jobs:
           assert report["planned_refined_runs"] == 54, report
           assert report["successful_refined_runs"] == 54, report
           assert report["failed_refined_runs"] == 0, report
+          assert report["comparison_rows"] == 81, report
+          assert report["comparison_pass_count"] + report["comparison_fail_count"] == 81, report
           print(json.dumps(report, indent=2))
           PY
       - name: Upload raw grid-refinement runs and comparisons
