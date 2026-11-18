@@ -42,6 +42,11 @@ For each persisted replicate and validation size, the audit:
 7. Compares posterior-mixture host weights between adjacent orders and between
    the first and final evaluated orders.
 
+The posterior-averaged host-weight vector is a pre-KDE diagnostic. It is not
+algebraically identical to the posterior-mean density, because each node KDE
+is normalized separately before posterior averaging. A separate density-curve
+stability check is still required for full Q2.
+
 The audit writes JSON and CSV diagnostics outside the raw replicate artifact
 directories. This avoids changing the original replicate manifests.
 
@@ -78,9 +83,10 @@ replicate artifacts remain preserved even when the gate fails.
 - A pass does not show that the validation sample covers the catalogue support;
   extrapolation fraction and extrapolation-region weight mass are reported as
   diagnostics, not acceptance criteria in this first implementation.
-- The gate checks the posterior-mixture normalized host weights used by the
-  fixed-bandwidth density construction. It does not validate all density
-  metrics, bandwidth selection, or statistical uncertainty across replicates.
+- The gate checks posterior-averaged normalized rate-weighted host weights as a
+  pre-KDE diagnostic. It does not establish stability of the posterior-mean
+  density curves (whose node-wise normalization matters), all density metrics,
+  bandwidth selection, or statistical uncertainty across replicates.
 - The original density runner still computes its five-arm density outputs at
   the configured order 5. The gate checks whether that order is numerically
   stable relative to higher orders; it does not silently replace the original
@@ -100,7 +106,9 @@ replicate artifacts remain preserved even when the gate fails.
    weight mass needs a predeclared maximum or remains descriptive.
 4. Run the seven-gamma density pilot only after the gate implementation is
    tested and its runtime is acceptable.
-5. Implement Q3 on the integrated H0 likelihood path before making any H0
+5. Add a density-level Q2 comparison of posterior-mean density curves across
+   quadrature orders and the declared absolute-bandwidth grid.
+6. Implement Q3 on the integrated H0 likelihood path before making any H0
    calibration or astrophysical performance claim.
 
 ## Current execution status
