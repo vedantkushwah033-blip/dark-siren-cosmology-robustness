@@ -157,6 +157,47 @@ def audit(root: Path):
     )
     _assert_close("event IDs", events.event_id.to_numpy(float), event_hosts.event_id.to_numpy(float), atol=0)
 
+    # Replay the event-generation RNG independently from the full parent population.
+    rng = np.random.default_rng(int(summary["event_seed"]))
+    parent_z = parent.redshift.to_numpy(float)
+    merger = 1.0 + 1.5 * (parent_z - float(summary["z_min"])) / (
+        float(summary["z_max"]) - float(summary["z_min"])
+    )
+    host_probability = merger / merger.sum()
+    replayed = []
+    replay_attempts = 0
+    target_events = len(events)
+    max_attempts = max(100_000, target_events * 10_000)
+    while len(replayed) < target_events and replay_attempts < max_attempts:
+        batch = max(256, 2 * (target_events - len(replayed)))
+        indices = rng.choice(len(parent_z), size=batch, replace=True, p=host_probability)
+        distances = rng.normal(
+            C_KM_S * parent_z[indices] / float(summary["truth_h0"]),
+            float(events.sigma_mpc.iloc[0]),
+        )
+        for index, distance in zip(indices, distances):
+            replay_attempts += 1
+            if distance >= threshold:
+                replayed.append((int(index), float(distance)))
+                if len(replayed) == target_events:
+                    break
+            if replay_attempts >= max_attempts:
+                break
+    if replay_attempts != int(summary["event_generation_attempts"]):
+        raise AssertionError("event-generation attempt count does not replay")
+    _assert_close(
+        "replayed event host IDs",
+        event_hosts.host_object_id.to_numpy(float),
+        np.asarray([item[0] for item in replayed], dtype=float),
+        atol=0,
+    )
+    _assert_close(
+        "replayed observed distances",
+        events.distance_mpc.to_numpy(float),
+        np.asarray([item[1] for item in replayed], dtype=float),
+        atol=2e-12,
+    )
+
     z = catalogue.redshift.to_numpy(float)
     base = 1.0 + 1.5 * (z - threshold * 0 + float(summary["z_min"])) / (
         float(summary["z_max"]) - float(summary["z_min"])
