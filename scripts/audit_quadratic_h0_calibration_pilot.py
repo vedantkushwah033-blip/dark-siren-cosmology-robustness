@@ -41,8 +41,14 @@ def _verify_manifest(root: Path, manifest_path: Path) -> int:
         for path in root.rglob("*")
         if path.is_file() and path.name != "manifest.json"
     }
-    if actual != set(manifest):
-        _fail(f"manifest inventory mismatch under {root}")
+    expected = set(manifest)
+    if actual != expected:
+        missing = sorted(expected - actual)
+        unexpected = sorted(actual - expected)
+        _fail(
+            f"manifest inventory mismatch under {root}; "
+            f"missing={missing[:20]}; unexpected={unexpected[:20]}"
+        )
     return len(manifest)
 
 
