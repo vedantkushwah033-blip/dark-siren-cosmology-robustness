@@ -59,6 +59,42 @@ def _assert_summary_matches_ledger(ledger: pd.DataFrame, summary: pd.DataFrame) 
 
 
 
+def _assert_nested_validation_samples(ledger: pd.DataFrame, dirs: dict[str, Path]) -> int:
+    """Check shared parent/catalogue/event/frame data and nested SRS prefixes."""
+    paired = 0
+    for (_, _), block in ledger.groupby(["replicate", "gamma"]):
+        usable = block[block.cell_id.isin(dirs)]
+        if len(usable) < 2:
+            continue
+        usable = usable.sort_values("n_validation")
+        first = dirs[usable.iloc[0].cell_id]
+        ref_frame = pd.read_csv(first / "truth/validation_frame_truth.csv")
+        ref_catalogue = pd.read_csv(first / "observable/analysis_catalogue.csv")
+        ref_events = pd.read_csv(first / "observable/gw_events_observed.csv")
+        prior_ids = None
+        for row in usable.itertuples(index=False):
+            d = dirs[row.cell_id]
+            pd.testing.assert_frame_equal(
+                pd.read_csv(d / "observable/analysis_catalogue.csv"), ref_catalogue
+            )
+            pd.testing.assert_frame_equal(
+                pd.read_csv(d / "observable/gw_events_observed.csv"), ref_events
+            )
+            frame = pd.read_csv(d / "truth/validation_frame_truth.csv")
+            # selected_for_validation varies with n_validation; compare only
+            # the fixed frame identity and redshift, not its sample indicator.
+            pd.testing.assert_frame_equal(
+                frame[["frame_id", "redshift"]],
+                ref_frame[["frame_id", "redshift"]],
+            )
+            ids = pd.read_csv(d / "observable/validation_observed.csv").validation_id.to_numpy()
+            if prior_ids is not None and not np.array_equal(prior_ids, ids[:len(prior_ids)]):
+                raise AssertionError("validation SRS samples are not nested prefixes")
+            prior_ids = ids
+        paired += 1
+    return paired
+
+
 def _assert_validation_samples_paired(ledger: pd.DataFrame, dirs: dict[str, Path]) -> int:
     """Require identical sampled validation IDs/redshifts across gamma.
 
@@ -130,31 +166,7 @@ def audit(root: Path) -> dict:
         elif row.status=="FAILED":
             # Failed attempts are retained in the ledger; partial raw files remain available.
             if not row.error: raise AssertionError(f"failed cell has no error: {row.cell_id}")
-    paired=0
-    for (rep,gamma),block in ledger.groupby(["replicate","gamma"]):
-        usable=block[block.cell_id.isin(dirs)]
-        if len(usable)<2: continue
-        usable=usable.sort_values("n_validation")
-        first=dirs[usable.iloc[0].cell_id]
-        ref_frame=pd.read_csv(first/"truth/validation_frame_truth.csv")
-        ref_catalogue=pd.read_csv(first/"observable/analysis_catalogue.csv")
-        ref_events=pd.read_csv(first/"observable/gw_events_observed.csv")
-        prior_ids=None
-        for row in usable.itertuples(index=False):
-            d=dirs[row.cell_id]
-            pd.testing.assert_frame_equal(pd.read_csv(d/"observable/analysis_catalogue.csv"),ref_catalogue)
-            pd.testing.assert_frame_equal(pd.read_csv(d/"observable/gw_events_observed.csv"),ref_events)
-            frame=pd.read_csv(d/"truth/validation_frame_truth.csv")
-            # The validation frame is fixed, but the selected-for-validation
-            # indicator necessarily changes with n_validation. Nestedness is
-            # checked on the observed validation-ID prefixes immediately below.
-            cols=["frame_id","redshift"]
-            pd.testing.assert_frame_equal(frame[cols],ref_frame[cols])
-            ids=pd.read_csv(d/"observable/validation_observed.csv").validation_id.to_numpy()
-            if prior_ids is not None and not np.array_equal(prior_ids,ids[:len(prior_ids)]):
-                raise AssertionError("validation SRS samples are not nested prefixes")
-            prior_ids=ids
-        paired+=1
+    paired = _assert_nested_validation_samples(ledger, dirs)
     # Parent, GW events, and validation-frame sampling must be invariant across gamma.
     # Retention labels/probabilities are intentionally excluded because gamma changes them.
     for rep,block in ledger.groupby("replicate"):
