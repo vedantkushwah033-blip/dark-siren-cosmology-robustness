@@ -307,6 +307,16 @@ def run_pilot(args) -> dict:
     }
 
 
+def _require_complete(result: dict) -> None:
+    """Fail closed so incomplete experimental output cannot pass CI."""
+    if result.get("status") != "PASS":
+        raise SystemExit(
+            "Quadratic H0 pilot did not complete all planned arm rows: "
+            f"{result.get('success_rows', 0)}/{result.get('planned_metric_rows', 0)} succeeded; "
+            f"{result.get('failed_rows', 0)} failed. Inspect failure_ledger.csv."
+        )
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--replicates", type=int, default=2)
@@ -346,12 +356,7 @@ def main():
         parser.error("H0 grid must contain the generating truth in its interior")
     result = run_pilot(args)
     print(json.dumps(result, indent=2, sort_keys=True))
-    if result["status"] != "PASS":
-        raise SystemExit(
-            "Quadratic H0 pilot did not complete all planned arm rows: "
-            f"{result['success_rows']}/{result['planned_metric_rows']} succeeded; "
-            f"{result['failed_rows']} failed. Inspect failure_ledger.csv."
-        )
+    _require_complete(result)
 
 
 if __name__ == "__main__":
