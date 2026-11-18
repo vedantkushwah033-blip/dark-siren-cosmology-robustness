@@ -1,0 +1,78 @@
+name: h0-calibration-fixed-auditor-replay
+
+on:
+  push:
+    branches:
+      - research/h0-calibration-nested-audit-fix-20261119
+    paths:
+      - .github/workflows/h0-calibration-fixed-auditor-replay.yml
+      - scripts/audit_quadratic_logit_h0_calibration_pilot.py
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  replay-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install audit dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Download exact archived 90-cell pilot artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: quadratic-logit-h0-calibration-pilot-py3.12
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44402834830
+          path: artifacts/quadratic_logit_h0_calibration_pilot_replay
+      - name: Verify original manifest and remap artifact paths for replay
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          import pandas as pd
+          root = Path("artifacts/quadratic_logit_h0_calibration_pilot_replay")
+          manifest_path = root / "manifest.json"
+          manifest = json.loads(manifest_path.read_text())
+          original_bad = [
+              name for name, digest in manifest.items()
+              if not (root / name).is_file()
+              or hashlib.sha256((root / name).read_bytes()).hexdigest() != digest
+          ]
+          assert not original_bad, original_bad[:20]
+          ledger_path = root / "replicate_ledger.csv"
+          ledger = pd.read_csv(ledger_path)
+          ledger["artifact_dir"] = ledger["cell_id"].map(
+              lambda cell: str(root / "replicates" / cell)
+          )
+          ledger.to_csv(ledger_path, index=False)
+          manifest["replicate_ledger.csv"] = hashlib.sha256(ledger_path.read_bytes()).hexdigest()
+          manifest_path.write_text(json.dumps(manifest, indent=2) + "\\n")
+          print(json.dumps({
+              "original_manifest_entries_verified": len(original_bad) + len(manifest) - len(original_bad),
+              "pilot_cells": len(ledger),
+              "statuses": ledger.status.value_counts().to_dict(),
+              "status": "ORIGINAL_ARCHIVE_INTEGRITY_PASS",
+          }, indent=2))
+          PY
+      - name: Re-run corrected independent orchestration audit on archived pilot
+        run: |
+          python scripts/audit_quadratic_logit_h0_calibration_pilot.py \
+            artifacts/quadratic_logit_h0_calibration_pilot_replay \
+            --output artifacts/quadratic_logit_h0_calibration_pilot_replay/independent_orchestration_audit_fixed.json
+      - name: Preserve replay audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quadratic-logit-h0-calibration-pilot-fixed-audit
+          path: artifacts/quadratic_logit_h0_calibration_pilot_replay/independent_orchestration_audit_fixed.json
+          if-no-files-found: warn
+          retention-days: 90
