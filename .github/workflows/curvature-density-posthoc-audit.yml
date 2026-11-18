@@ -1,0 +1,55 @@
+name: curvature-density-posthoc-audit
+
+on:
+  push:
+    branches:
+      - research/curvature-known-probability-fix-20261114
+    paths:
+      - .github/workflows/curvature-density-posthoc-audit.yml
+      - scripts/audit_absolute_bandwidth_density_smoke.py
+      - scripts/audit_absolute_bandwidth_density_replicates.py
+      - scripts/audit_quadratic_logit_curvature_pilot.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: curvature-density-posthoc-audit
+  cancel-in-progress: false
+
+jobs:
+  audit-original-pilot-artifacts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and audit dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Download all seven original gamma-cell artifacts
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 44366440872
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: curvature-gamma-*
+          path: artifacts
+          merge-multiple: false
+      - name: Independently audit all cells and paired cross-gamma contrasts
+        run: |
+          python scripts/audit_quadratic_logit_curvature_pilot.py \
+            artifacts \
+            --output-dir curvature_summary
+      - name: Preserve posthoc audit report and summaries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: corrected-curvature-posthoc-audit
+          path: curvature_summary
+          if-no-files-found: warn
+          retention-days: 30
