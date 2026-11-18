@@ -176,3 +176,9 @@ def test_nested_validation_audit_rejects_catalogue_changed_with_sample_size(tmp_
     changed.to_csv(dirs["n3"] / "observable/analysis_catalogue.csv", index=False)
     with pytest.raises(AssertionError):
         _assert_nested_validation_frames(ledger, dirs)
+
+
+
+def test_summary_accepts_schema_without_not_run_column():
+    ledger, summary = fixtures()
+    _assert_summary_matches_ledger(ledger, summary.drop(columns=["not_run"]))
