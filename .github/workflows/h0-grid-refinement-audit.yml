@@ -1,0 +1,67 @@
+name: h0-grid-refinement-audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/h0-grid-refinement-audit-20261119
+    paths:
+      - .github/workflows/h0-grid-refinement-audit.yml
+      - scripts/audit_h0_grid_refinement.py
+
+concurrency:
+  group: h0-grid-refinement-audit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  fixed-observation-grid-refinement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run identical synthetic realization on three H0 grids
+        run: |
+          set -euo pipefail
+          for points in 141 281 561; do
+            out="artifacts/h0_grid_refinement/grid_${points}"
+            python scripts/run_quadratic_logit_inclusion_h0_smoke.py \
+              --seed 2026111903 \
+              --validation-seed 2026111904 \
+              --n-parent 1200 \
+              --n-detected 4 \
+              --h0-true 70 \
+              --n-validation-frame 500 \
+              --n-validation 150 \
+              --degree 1 \
+              --catalogue-model quadratic_logit \
+              --curvature-gamma 1.0 \
+              --curvature-beta -3.9 \
+              --orders 3,5,7,9 \
+              --h0-points "${points}" \
+              --prior-min 20 \
+              --prior-max 300 \
+              --density-tolerance 0.001 \
+              --quantile-tolerance 0.05 \
+              --consecutive-passes 2 \
+              --output-dir "${out}"
+            python scripts/audit_quadratic_logit_inclusion_h0_smoke.py "${out}" \
+              --output "${out}/independent_audit_report.json"
+          done
+      - name: Compare grid resolution with paired-input integrity checks
+        run: |
+          python scripts/audit_h0_grid_refinement.py \
+            --root artifacts/h0_grid_refinement \
+            --output artifacts/h0_grid_refinement/grid_refinement_summary.json
+      - name: Upload all grid runs and comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h0-grid-refinement-audit-py3.12
+          path: artifacts/h0_grid_refinement/
+          if-no-files-found: warn
+          retention-days: 90
