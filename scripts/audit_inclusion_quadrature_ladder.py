@@ -24,9 +24,19 @@ from dark_siren_robustness.inclusion_posterior import (
 Z_MIN, Z_MAX = 0.01, 0.40
 
 
-def _mixture_host_weights(fit, catalogue_redshift: np.ndarray) -> np.ndarray:
+def _rate_weighted_node_host_weights(fit, catalogue_redshift: np.ndarray) -> np.ndarray:
     host = build_node_specific_host_weights(fit, catalogue_redshift)
-    mixture = fit.weights @ host.normalized_weight
+    base_rate = 1.0 + 1.5 * (catalogue_redshift - Z_MIN) / (Z_MAX - Z_MIN)
+    raw = host.raw_inverse_weight * base_rate[None, :]
+    totals = raw.sum(axis=1, keepdims=True)
+    if not np.all(np.isfinite(raw)) or np.any(raw <= 0) or np.any(totals <= 0):
+        raise ArithmeticError("rate-weighted node host weights are invalid")
+    return raw / totals
+
+
+def _mixture_host_weights(fit, catalogue_redshift: np.ndarray) -> np.ndarray:
+    node_weights = _rate_weighted_node_host_weights(fit, catalogue_redshift)
+    mixture = fit.weights @ node_weights
     if (mixture.ndim != 1 or not np.all(np.isfinite(mixture))
             or np.any(mixture < 0) or not np.isclose(mixture.sum(), 1.0)):
         raise ArithmeticError("posterior-mixture host weights are invalid")
@@ -57,10 +67,10 @@ def _weight_summary(weights: np.ndarray) -> dict[str, float]:
 def _outside_validation_mass(
     fit, catalogue_redshift: np.ndarray, validation_redshift: np.ndarray
 ) -> float:
-    host = build_node_specific_host_weights(fit, catalogue_redshift)
+    node_weights = _rate_weighted_node_host_weights(fit, catalogue_redshift)
     outside = ((catalogue_redshift < np.min(validation_redshift))
                | (catalogue_redshift > np.max(validation_redshift)))
-    node_mass = host.normalized_weight[:, outside].sum(axis=1)
+    node_mass = node_weights[:, outside].sum(axis=1)
     return float(fit.weights @ node_mass)
 
 
