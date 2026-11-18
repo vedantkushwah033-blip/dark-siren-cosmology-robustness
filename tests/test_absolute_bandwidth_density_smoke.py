@@ -45,7 +45,8 @@ def test_absolute_bandwidth_density_smoke_independent_reconstruction_and_corrupt
         auditor.audit(output)
 
 
-def test_quadratic_logit_density_smoke_independently_audits_true_probability_arm(tmp_path):
+@pytest.mark.parametrize("gamma", [1.0, 2.0])
+def test_quadratic_logit_density_smoke_independently_audits_true_probability_arm(tmp_path, gamma):
     import json
 
     runner=_load("quadratic_density_runner","run_absolute_bandwidth_density_smoke.py")
@@ -54,7 +55,7 @@ def test_quadratic_logit_density_smoke_independently_audits_true_probability_arm
     args=SimpleNamespace(
         output_dir=output, seed=20261124, validation_seed=20261125,
         n_parent=700, validation_frame=300, validation_sizes=(80,160),
-        gamma=1.0, beta=-3.9, scott_multiplier=0.7,
+        gamma=gamma, beta=-3.9, scott_multiplier=0.7,
         quadrature_order=3, grid_points=101, absolute_widths=(0.012,0.024),
     )
     result=runner.run(args)
@@ -62,7 +63,7 @@ def test_quadratic_logit_density_smoke_independently_audits_true_probability_arm
     cfg=json.loads((output/"config.json").read_text())
     assert cfg["catalogue_selection_model"]=="quadratic_logit"
     assert cfg["catalogue_floor"] is None
-    assert cfg["quadratic_logit_calibration"]["gamma"]==pytest.approx(1.0)
+    assert cfg["quadratic_logit_calibration"]["gamma"]==pytest.approx(gamma)
 
     with np.load(output/"results"/"density_reconstruction_inputs.npz") as raw:
         assert np.all(raw["parent_base_weights"] == 1.0)
