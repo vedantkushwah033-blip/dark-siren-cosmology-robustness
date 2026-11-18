@@ -39,7 +39,19 @@ def _kde(grid,sample,prob,h,merger):
  w=w/w.max();neff=w.sum()**2/(w@w)
  aug=np.r_[sample,2*grid[0]-sample,2*grid[-1]-sample]
  aw=np.tile(w/3,3)
- factor=h*neff**(-.2)
+ # Match the declared production Scott-multiplier convention without
+ # importing the production estimator: the physical bandwidth is
+ # h * n_eff^(-1/5) * sd(original weighted sample). Reflection changes
+ # gaussian_kde's augmented covariance, so compensate for that covariance.
+ p=w/w.sum();mean=float(p@sample)
+ original_variance=float(np.sum(p*(sample-mean)**2)/(1.0-float(p@p)))
+ ap=aw/aw.sum();amean=float(ap@aug)
+ augmented_variance=float(np.sum(ap*(aug-amean)**2)/(1.0-float(ap@ap)))
+ if (not np.isfinite(original_variance) or original_variance<=0
+     or not np.isfinite(augmented_variance) or augmented_variance<=0):
+  raise AssertionError("Invalid independently reconstructed reflected KDE covariance")
+ covariance_adjustment=np.sqrt(original_variance/augmented_variance)
+ factor=h*neff**(-.2)*covariance_adjustment
  raw=gaussian_kde(aug,weights=aw,bw_method=lambda k:factor)(grid)*merger
  return raw/trapezoid(raw,grid)
 def audit_fixed_catalogue_artifact(path):

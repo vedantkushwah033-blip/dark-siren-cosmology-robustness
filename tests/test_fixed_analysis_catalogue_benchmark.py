@@ -78,3 +78,23 @@ def test_auditor_rejects_changed_analysis_membership(tmp_path):
  mp.write_text(json.dumps(m,indent=2,sort_keys=True)+"\n")
  with pytest.raises(AssertionError,match="Retention label does not follow"):
   audit_fixed_catalogue_artifact(tmp_path)
+
+
+def test_independent_audit_kde_matches_production_reflected_scott_multiplier():
+    from scipy.integrate import trapezoid
+    from dark_siren_robustness.catalogue_density import estimate_host_density
+    from dark_siren_robustness.fixed_analysis_catalogue_audit import _kde
+
+    grid = np.linspace(0.01, 0.40, 201)
+    sample = np.linspace(0.013, 0.397, 80)
+    probability = 0.12 + 0.82 / (1.0 + np.exp((sample - 0.22) / 0.05))
+    merger = 1.0 + 1.5 * (grid - 0.01) / 0.39
+    multiplier = 0.15
+
+    independently_rebuilt = _kde(grid, sample, probability, multiplier, merger)
+    production = estimate_host_density(
+        grid, sample, inclusion_probability=probability,
+        merger_weight=merger, scott_multiplier=multiplier,
+    )
+    np.testing.assert_allclose(independently_rebuilt, production, rtol=2e-12, atol=2e-12)
+    assert trapezoid(independently_rebuilt, grid) == pytest.approx(1.0, abs=1e-10)
