@@ -15,7 +15,7 @@ from dark_siren_robustness.h0_posterior import normalize_h0_posterior
 
 
 def test_identical_smooth_posterior_passes_grid_comparison():
-    coarse_grid = np.linspace(20.0, 300.0, 141)
+    coarse_grid = np.linspace(20.0, 300.0, 281)
     fine_grid = np.linspace(20.0, 300.0, 561)
     coarse = normalize_h0_posterior(
         coarse_grid, -0.5 * ((coarse_grid - 70.0) / 8.0) ** 2,
