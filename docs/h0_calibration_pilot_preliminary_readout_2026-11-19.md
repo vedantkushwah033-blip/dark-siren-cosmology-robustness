@@ -16,10 +16,10 @@ This is a synthetic low-redshift Euclidean benchmark, not an observational H0 me
 
 ## Artifact and pairing checks independently reproduced
 
-The archived ZIP contains 2,201 files. I independently verified:
-- All 2,110 entries in the aggregate manifest match their SHA-256 digests.
+The fresh ZIP contains 2,206 files. I independently verified:
+- All 2,114 entries in the fresh aggregate manifest match their SHA-256 digests.
 - All 90 child audit reports say PASS.
-- All 90 planned cells are present and marked SUCCESS; no failed or non-evaluable cells.
+- All 90 planned cells are present and marked SUCCESS; no failed, non-evaluable, or not-run cells.
 - All 90 inclusion-quadrature runs report CONVERGED: 72 converged at order 7 and 18 at order 9.
 - All 30 replicate × curvature nested-validation blocks were checked.
 - All 60 adjacent validation-size prefix comparisons were verified.
@@ -28,7 +28,7 @@ The archived ZIP contains 2,201 files. I independently verified:
 - The validation ID/redshift samples are paired across curvature for all 30 replicate × validation-size combinations.
 - Every reported aggregate summary field (bias, RMSE, 68/90/95% coverage, interval width, Kish ESS, maximum normalized weight, and status counts present in the archive) was independently recomputed from the replicate ledger and matched.
 
-The original aggregate audit failed because its first implementation compared the size-specific `selected_for_validation` flag across validation sizes. Those flags are supposed to change as the nested sample grows. PR #83 changes the audit to compare invariant frame fields and separately verify each selected prefix. A subsequent replay exposed a legacy summary-schema omission (`not_run` was absent); the replay workflow was updated to reconstruct that count from the preserved ledger. The corrected replay workflow is pending; the independent checks above were performed directly on the archived artifact.
+The historical run `44402834830` failed because its first aggregate auditor compared the size-specific `selected_for_validation` flag across validation sizes. Those flags are supposed to change as the nested sample grows. The corrected replay passed in run `44409048613`; the fresh run `44410603590` then passed the full 90-cell simulation and independent orchestration audit. PR #83 adds stronger invariant-frame checks, including validation-frame inclusion probabilities and retention outcomes; its dedicated workflow remains separate.
 
 ## Fixed-truth pilot results
 
@@ -46,15 +46,15 @@ All nine cells have 10/10 successful replicates.
 
 | Curvature γ | Validation n | Mean median-bias | RMSE | 68% coverage | 90% coverage | 95% coverage | Mean 68% width | Median minimum Kish ESS | Median maximum normalized weight |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| -1 | 100 | 3.95 | 10.29 | 0.70 | 0.90 | 1.00 | 24.78 | 14.49 | 0.221 |
-| -1 | 300 | 3.95 | 10.21 | 0.70 | 0.90 | 1.00 | 24.33 | 37.57 | 0.127 |
-| -1 | 500 | 3.46 | 10.23 | 0.70 | 0.90 | 1.00 | 24.21 | 63.83 | 0.074 |
-| 0 | 100 | 8.21 | 11.51 | 0.70 | 1.00 | 1.00 | 25.22 | 10.04 | 0.255 |
-| 0 | 300 | 8.22 | 11.72 | 0.80 | 0.90 | 1.00 | 24.69 | 20.43 | 0.165 |
-| 0 | 500 | 7.50 | 11.38 | 0.90 | 0.90 | 1.00 | 24.74 | 30.49 | 0.127 |
-| +1 | 100 | 13.29 | 16.40 | 0.50 | 0.90 | 0.90 | 25.48 | 9.67 | 0.229 |
-| +1 | 300 | 13.62 | 16.72 | 0.50 | 0.80 | 1.00 | 24.76 | 16.28 | 0.152 |
-| +1 | 500 | 12.86 | 16.07 | 0.50 | 0.80 | 1.00 | 24.97 | 24.61 | 0.117 |
+| -1 | 100 | 3.95 | 10.29 | 0.70 | 0.90 | 1.00 | 24.69 | 14.49 | 0.221 |
+| -1 | 300 | 3.95 | 10.21 | 0.70 | 0.90 | 1.00 | 24.23 | 37.57 | 0.127 |
+| -1 | 500 | 3.46 | 10.23 | 0.70 | 0.90 | 1.00 | 24.12 | 63.83 | 0.074 |
+| 0 | 100 | 8.21 | 11.51 | 0.70 | 1.00 | 1.00 | 25.15 | 10.04 | 0.255 |
+| 0 | 300 | 8.22 | 11.72 | 0.80 | 0.90 | 1.00 | 24.60 | 20.43 | 0.165 |
+| 0 | 500 | 7.50 | 11.38 | 0.90 | 0.90 | 1.00 | 24.66 | 30.49 | 0.127 |
+| +1 | 100 | 13.30 | 16.40 | 0.50 | 0.90 | 0.90 | 25.39 | 9.67 | 0.229 |
+| +1 | 300 | 13.63 | 16.73 | 0.50 | 0.80 | 1.00 | 24.66 | 16.28 | 0.152 |
+| +1 | 500 | 12.87 | 16.07 | 0.50 | 0.80 | 1.00 | 24.88 | 24.61 | 0.117 |
 
 Bias is in km s^-1 Mpc^-1; interval width is in the same units.
 
@@ -63,14 +63,14 @@ Bias is in km s^-1 Mpc^-1; interval width is in the same units.
 Because the design reuses the same parent/event seeds across curvature and nested validation prefixes within replicate, paired differences are more informative than comparing unrelated cell means. Averaged over the 30 replicate × validation-size pairs:
 
 - γ=0 minus γ=-1 median-bias difference: +4.19 km s^-1 Mpc^-1 (replicate-averaged paired SD 3.50; 95% t interval [1.69, 6.69]).
-- γ=+1 minus γ=0: +5.28 km s^-1 Mpc^-1 (SD 4.03; 95% t interval [2.40, 8.16]).
-- γ=+1 minus γ=-1: +9.47 km s^-1 Mpc^-1 (SD 5.35; 95% t interval [5.64, 13.30]).
+- γ=+1 minus γ=0: +5.29 km s^-1 Mpc^-1 (SD 4.04; 95% t interval [2.40, 8.17]).
+- γ=+1 minus γ=-1: +9.47 km s^-1 Mpc^-1 (SD 5.35; 95% t interval [5.65, 13.30]).
 
 These intervals use the 10 replicate-level averages (each average pools the three validation sizes), not 30 falsely independent replicate×size rows.
 
-By contrast, changing validation size while holding replicate and curvature fixed has much smaller median-bias movement: n=300 minus 100 averages +0.11 (SD 1.55), n=500 minus 300 averages -0.66 (SD 0.99), and n=500 minus 100 averages -0.54 (SD 1.42) km s^-1 Mpc^-1. These are descriptive paired contrasts, not causal decomposition. They suggest that this four-event realization and curvature condition matter more than increasing validation size from 100 to 500 in this particular pilot.
+By contrast, changing validation size while holding replicate and curvature fixed has much smaller median-bias movement: n=300 minus 100 averages +0.11 (SD 1.32; 95% t interval [-0.83, 1.06]), n=500 minus 300 averages -0.66 (SD 0.99; [-1.37, 0.06]), and n=500 minus 100 averages -0.54 (SD 1.21; [-1.41, 0.32]) km s^-1 Mpc^-1. These are descriptive paired contrasts, not causal decomposition. They suggest that this four-event realization and curvature condition matter more than increasing validation size from 100 to 500 in this particular pilot.
 
-Across all 90 prior-sensitivity records, changing the slope-prior SD multiplier from 1 to 0.5 shifts the H0 posterior median downward by a median 1.09–1.28 km s^-1 Mpc^-1 depending on curvature; changing it to 2 shifts the median upward by a median 0.31–0.38. The largest absolute median shifts are 6.62 and 2.48 km s^-1 Mpc^-1, respectively. This confirms non-negligible prior sensitivity in some realizations, but does not by itself explain the full positive-bias pattern.
+Across all 90 prior-sensitivity records, changing the slope-prior SD multiplier from 1 to 0.5 shifts the H0 posterior median downward by a median 1.21 km s^-1 Mpc^-1 (range -6.61 to -0.24); changing it to 2 shifts the median upward by a median 0.34 (range 0.07 to 2.48) km s^-1 Mpc^-1. This confirms non-negligible prior sensitivity in some realizations, but does not by itself explain the full positive-bias pattern.
 
 ## Interpretation
 
@@ -90,7 +90,7 @@ Across all 90 prior-sensitivity records, changing the slope-prior SD multiplier 
 - This is fixed-truth repeated-sampling coverage, not joint SBC.
 - The validation sample sizes and event count are small; no confirmatory or universal method claim is justified.
 - The fitted coefficient prior is independent Normal with SD (5, 2.5), while the generating coefficients are fixed rather than prior-drawn.
-- The historical archive passed a corrected replay using the PR #76 orchestration auditor in workflow run `44409048613` (PR #87). A fresh 90-cell rerun then passed both the simulation workflow and independent orchestration audit in run `44408479569`: 90/90 SUCCESS cells, 90/90 child audits, 30 nested blocks, 30 paired validation blocks, 2,110 manifest entries, and summary arithmetic PASS. The new artifact `14476042847` was downloaded and its ZIP digest and all 2,110 manifest entries independently verified. PR #83's additional checks of invariant validation-frame inclusion probabilities and retention outcomes remain a separate, stronger audit; its own workflow is still pending.
+- The historical archive passed corrected replay in workflow `44409048613` (PR #87). The latest post-hoc 90-cell run `44410603590` passed with 90/90 SUCCESS cells, 90/90 child audits, 30 nested blocks, 30 paired validation blocks, and 2,114 manifest entries; I downloaded artifact `14477511669`, verified its ZIP digest and every manifest entry, and separately verified all 90 child manifests. The post-hoc report adds Wilson coverage intervals, t intervals for bias, bootstrap intervals for RMSE and paired contrasts, and explicit failure accounting. PR #83's additional invariant-frame inclusion-probability and retention checks remain a separate, stronger audit.
 
 Next: (i) finish the corrected replay and regression workflows; (ii) run paired H0-grid refinement on the same seeds at finer grids; (iii) diagnose the positive bias in the γ=0 reference using prior, event-count, and likelihood-component sensitivity; and only then (iv) enlarge repeated-sampling calibration and plan joint SBC.
 
