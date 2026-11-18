@@ -19,7 +19,22 @@ def summarize(root: Path, points: int) -> dict:
     frame=pd.read_csv(root/"h0_posterior_density_by_order.csv")
     h0=frame["H0"].to_numpy(float)
     density=frame[f"density_order_{orders[-1]}"].to_numpy(float)
+    if len(h0) != points or not np.isfinite(h0).all() or not np.isfinite(density).all():
+        raise AssertionError(f"{points}-point H0 grid has invalid length or non-finite values")
+    if np.any(np.diff(h0) <= 0) or np.any(density < 0):
+        raise AssertionError(f"{points}-point H0 grid must be increasing with non-negative density")
+    config=json.loads((root/"config.json").read_text())
+    prior_bounds=config["inference"]["uniform_h0_prior"]
+    if not (np.isclose(h0[0],prior_bounds[0]) and np.isclose(h0[-1],prior_bounds[1])):
+        raise AssertionError(f"{points}-point H0 grid does not span its configured prior bounds")
+    # Grid resolution is the only allowed configuration difference.
+    normalized_config=json.loads(json.dumps(config))
+    normalized_config["inference"].pop("h0_grid_points",None)
+    config_hash=hashlib.sha256(json.dumps(
+        normalized_config,sort_keys=True,separators=(",",":")
+    ).encode()).hexdigest()
     return {"points":points,"step":280.0/(points-1),"root":str(root),
+        "model_config_hash":config_hash,"prior_bounds":prior_bounds,
         "observable_hashes":{name:sha(root/name) for name in [
             "observable/analysis_catalogue.csv","observable/gw_events_observed.csv",
             "observable/validation_observed.csv"]},
@@ -33,6 +48,10 @@ def compare(records: list[dict], out: Path) -> dict:
     reference=max(records,key=lambda x:x["points"])
     if any(r["observable_hashes"]!=reference["observable_hashes"] for r in records):
         raise AssertionError("observable inputs differ across H0 grids; comparison is not paired")
+    if any(r["model_config_hash"]!=reference["model_config_hash"] for r in records):
+        raise AssertionError("inference or generator configuration differs across H0 grids")
+    if any(r["prior_bounds"]!=reference["prior_bounds"] for r in records):
+        raise AssertionError("H0 prior bounds differ across grids")
     common=np.linspace(20.0,300.0,11201)
     ref=np.interp(common,reference["h0"],reference["density"])
     ref/=np.trapezoid(ref,common)
