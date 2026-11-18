@@ -9,11 +9,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
+from itertools import product
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy.special import log_expit, log_ndtr, logsumexp
+from scipy.optimize import minimize
+from scipy.special import expit, log_expit, log_ndtr, logsumexp, roots_hermitenorm
 from scipy.stats import norm
 
 C_KM_S = 299_792.458
@@ -70,6 +73,69 @@ def _normalize(loglike, h0):
     if not np.isfinite(area) or area <= 0:
         raise AssertionError("invalid posterior normalization integral")
     return shifted / area
+
+
+def _independent_validation_quadrature(z, retained, degree, order, center, scale, prior_mean, prior_sd):
+    """Independent BFGS/Newton + tensor-GH reconstruction of validation posterior."""
+    x = (np.asarray(z, dtype=float) - center) / scale
+    y = np.asarray(retained, dtype=float)
+    design = np.column_stack([x ** k for k in range(degree + 1)])
+    mu = np.asarray(prior_mean[:degree + 1], dtype=float)
+    sd = np.asarray(prior_sd[:degree + 1], dtype=float)
+    precision = 1.0 / (sd * sd)
+
+    def objective(theta):
+        eta = design @ theta
+        log_likelihood = np.sum(y * eta - np.logaddexp(0.0, eta))
+        standardized = (theta - mu) / sd
+        return float(-log_likelihood + 0.5 * np.dot(standardized, standardized))
+
+    def gradient(theta):
+        return design.T @ (expit(design @ theta) - y) + (theta - mu) * precision
+
+    def hessian(theta):
+        probability = expit(design @ theta)
+        return design.T @ ((probability * (1.0 - probability))[:, None] * design) + np.diag(precision)
+
+    result = minimize(objective, mu.copy(), jac=gradient, method="BFGS",
+                      options={"gtol": 1e-10, "maxiter": 3000})
+    mode = np.asarray(result.x, dtype=float)
+    for _ in range(100):
+        score = gradient(mode)
+        if np.linalg.norm(score, ord=np.inf) <= 2e-10:
+            break
+        step = np.linalg.solve(hessian(mode), score)
+        mode = mode - step
+    if np.linalg.norm(gradient(mode), ord=np.inf) > 2e-8:
+        raise AssertionError("independent validation posterior mode did not converge")
+    covariance = np.linalg.inv(hessian(mode))
+    chol = np.linalg.cholesky(covariance)
+    dimension = degree + 1
+    gh_nodes, gh_weights = roots_hermitenorm(order)
+    tuples = list(product(range(order), repeat=dimension))
+    standard = np.asarray([[gh_nodes[i] for i in ix] for ix in tuples], dtype=float)
+    base_log_weights = np.asarray([
+        sum(math.log(gh_weights[i]) for i in ix) - 0.5 * dimension * math.log(2.0 * math.pi)
+        for ix in tuples
+    ])
+    nodes = mode[None, :] + standard @ chol.T
+    log_det_chol = float(np.sum(np.log(np.diag(chol))))
+    log_proposal = (
+        -0.5 * dimension * math.log(2.0 * math.pi)
+        -0.5 * np.sum(standard * standard, axis=1)
+        -log_det_chol
+    )
+    eta = design @ nodes.T
+    log_likelihood = np.sum(y[:, None] * eta - np.logaddexp(0.0, eta), axis=0)
+    standardized_prior = (nodes - mu[None, :]) / sd[None, :]
+    log_prior = -0.5 * np.sum(standardized_prior * standardized_prior, axis=1)
+    log_prior -= np.sum(np.log(sd)) + 0.5 * dimension * math.log(2.0 * math.pi)
+    log_target = log_likelihood + log_prior
+    log_importance = base_log_weights + log_target - log_proposal
+    log_evidence = logsumexp(log_importance)
+    weights = np.exp(log_importance - log_evidence)
+    weights /= weights.sum()
+    return nodes, weights
 
 
 def audit(root: Path):
@@ -213,6 +279,20 @@ def audit(root: Path):
             prefix = f"degree{degree}_order{order}"
             nodes = arrays[f"{prefix}_nodes"]
             node_weights = arrays[f"{prefix}_weights"]
+            independent_nodes, independent_weights = _independent_validation_quadrature(
+                validation.redshift.to_numpy(float), validation.retained.to_numpy(float),
+                degree, int(order), float(cfg["coordinate_center"]),
+                float(cfg["coordinate_scale"]), summary["inclusion_prior_mean"],
+                summary["inclusion_prior_sd"],
+            )
+            errors[f"{prefix}_validation_nodes"] = _assert_close(
+                f"{prefix} independently refitted validation nodes", nodes,
+                independent_nodes, atol=2e-7
+            )
+            errors[f"{prefix}_validation_weights"] = _assert_close(
+                f"{prefix} independently refitted validation posterior weights",
+                node_weights, independent_weights, atol=2e-7
+            )
             saved_host_weights = arrays[f"{prefix}_host_weights"]
             saved_beta = arrays[f"{prefix}_node_log_beta"]
             saved_selected = arrays[f"{prefix}_node_log_selected"]
