@@ -147,6 +147,21 @@ def audit(root: Path) -> dict:
                 pd.testing.assert_frame_equal(parent,reference[0])
                 pd.testing.assert_frame_equal(events,reference[1])
                 pd.testing.assert_frame_equal(frame,reference[2])
+    # For a fixed replicate and validation size, all curvature cells must
+    # reuse exactly the same independent validation observations. Nestedness
+    # across sizes is checked above; this closes the cross-gamma pairing check.
+    paired_validation_blocks=0
+    for (rep,nval),block in ledger.groupby(["replicate","n_validation"]):
+        usable=block[block.cell_id.isin(dirs)]
+        reference_validation=None
+        for row in usable.itertuples(index=False):
+            observed=pd.read_csv(dirs[row.cell_id]/"observable/validation_observed.csv")
+            if reference_validation is None:
+                reference_validation=observed
+            else:
+                pd.testing.assert_frame_equal(observed,reference_validation)
+        if len(usable)>1:
+            paired_validation_blocks+=1
     counts=ledger.status.value_counts().to_dict()
     _assert_summary_matches_ledger(ledger, summary)
     return {"status":"PASS","planned_cells":len(planned),"status_counts":counts,
