@@ -107,3 +107,27 @@ def test_partial_arm_failure_records_one_failed_row_per_planned_arm(tmp_path, mo
     assert metrics["error"].str.contains("injected third-arm posterior failure").all()
     assert len(pd.read_csv(args.output_dir / "failure_ledger.csv")) == 4
 
+
+
+def test_incomplete_pilot_status_fails_closed():
+    import pytest
+    from scripts.run_quadratic_h0_calibration_pilot import _require_complete
+
+    with pytest.raises(SystemExit, match="3/4 succeeded"):
+        _require_complete({
+            "status": "INCOMPLETE",
+            "planned_metric_rows": 4,
+            "success_rows": 3,
+            "failed_rows": 1,
+        })
+
+
+def test_complete_pilot_status_is_accepted():
+    from scripts.run_quadratic_h0_calibration_pilot import _require_complete
+
+    _require_complete({
+        "status": "PASS",
+        "planned_metric_rows": 4,
+        "success_rows": 4,
+        "failed_rows": 0,
+    })
