@@ -1,0 +1,54 @@
+name: corrected-curvature-posterior-vs-map-posthoc-audit
+
+on:
+  push:
+    branches:
+      - research/curvature-posthoc-ed-audit-20261119
+    paths:
+      - .github/workflows/corrected-curvature-posterior-vs-map-posthoc-audit.yml
+      - scripts/audit_quadratic_logit_curvature_pilot.py
+      - tests/test_curvature_cross_gamma_completeness.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: corrected-curvature-posterior-vs-map-posthoc-audit
+  cancel-in-progress: false
+
+jobs:
+  audit-corrected-density-artifacts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and audit dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Download all seven corrected gamma-cell artifacts
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 44369630799
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: corrected-curvature-gamma-*
+          path: artifacts
+          merge-multiple: false
+      - name: Independently audit all corrected cells and paired contrasts
+        run: |
+          python scripts/audit_quadratic_logit_curvature_pilot.py \
+            artifacts \
+            --output-dir curvature_summary
+      - name: Preserve corrected posthoc audit and paired summaries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: corrected-curvature-posterior-vs-map-audit
+          path: curvature_summary
+          if-no-files-found: warn
+          retention-days: 30
