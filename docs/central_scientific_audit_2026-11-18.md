@@ -266,3 +266,59 @@ The existing finite-validation probability pilot suggests a potentially importan
 - eventual H0 posterior bias and calibration.
 
 These are related but non-equivalent endpoints.
+
+
+## Proposed confirmatory protocol (draft; not yet frozen)
+
+The existing 20-replicate-per-gamma workflow is appropriately labelled a development pilot. It should not be treated as the final confirmatory study or as enough information to estimate small method differences precisely.
+
+### Primary scientific endpoints
+
+1. **Primary density endpoint:** integrated absolute error of the Arm D MAP plug-in estimated-IPW density against the analytic superpopulation host density, evaluated at a common predeclared absolute bandwidth and on the fixed redshift grid.
+2. **Primary method contrast:** paired `D - A` IAE difference within replicate, validation size, gamma, and bandwidth. Negative values favor estimated-IPW correction over the uncorrected catalogue-only baseline.
+3. **Key diagnostic contrast:** paired `D - C` IAE difference. This quantifies the additional penalty from estimated/misspecified inclusion probabilities relative to the simulation-oracle known-probability IPW arm.
+4. **Uncertainty-propagation contrast:** paired `E - D` IAE difference, with E defined as the posterior-mean density. The posterior expected node-wise loss remains secondary and must be reported separately.
+5. **Oracle reference:** B is compared descriptively with the analytic target and other arms, but is not used as a real-world competitor.
+
+All contrasts should be reported with paired replicate-level uncertainty intervals. A cell with failed/non-evaluable replicates must retain its full planned denominator and be labelled incomplete; never silently drop failed runs.
+
+### Bandwidth handling
+
+The current 11 absolute bandwidths should first be treated as a sensitivity surface, not as 11 opportunities to select whichever value makes a method look best.
+
+A defensible two-stage option is:
+- Generate at least 100 independent replicates per gamma (or enough to support a stable split), with a predeclared 70/30 training/holdout partition by replicate ID.
+- Use training replicates only to select one common absolute bandwidth under a predeclared pooled criterion, shared by all five arms and all gamma values.
+- Lock that bandwidth and report the untouched holdout performance as the confirmatory result.
+- Also publish the full holdout IAE-versus-bandwidth curves and weight diagnostics. Do not reselect on holdout.
+- If the pooled criterion or common-bandwidth policy is not acceptable scientifically, retain the entire sensitivity surface as the primary result and do not name a single winning bandwidth.
+
+The earlier 100-replicate parent-only Scott-multiplier study is not a substitute for this catalogue/IPW-specific selection protocol.
+
+### Replicate count and Monte Carlo precision
+
+Twenty replicates per gamma can expose engineering failures and large effects, but do not justify narrow inferential intervals. A practical next stage is 100 replicates per gamma to provide a first independent train/holdout split; the final replicate count should then be increased if the holdout MCSE of the primary paired contrast exceeds a predeclared precision tolerance. The tolerance must be expressed in IAE units and justified relative to the smallest scientifically meaningful density difference. Estimate it from the pilot's paired contrasts, not from marginal standard deviations alone.
+
+### Pre-inference diagnostic gate
+
+Before any H0 propagation, require:
+- all seven gamma cells complete and every raw child audit passing;
+- independent cross-gamma paired-seed and validation-frame checks passing;
+- no unreported failed/non-evaluable attempts;
+- full weight-tail and positivity summaries by arm, gamma, and validation size;
+- bandwidth selection/holdout audit passing (or no bandwidth selection claim);
+- grid-refinement and KDE numerical stability within declared tolerances;
+- a clear statement of whether the primary result is robust across the full bandwidth sensitivity surface.
+
+Only after this gate should a separate H0 experiment be designed. That experiment must then have its own event-generation design, GW selection normalization audit, posterior-grid convergence, fixed-truth coverage, and SBC/PIT calibration protocol.
+
+### Claims the paper must avoid
+
+- Do not claim degree-one posterior integration repairs omitted quadratic curvature.
+- Do not claim a correct inclusion model is always preferable at small validation sizes; the earlier probability-stage pilot suggests a variance penalty for the flexible model.
+- Do not infer H0 calibration from density IAE alone.
+- Do not interpret equal parent-average inclusion rates as equal positivity or IPW difficulty.
+- Do not call the oracle arm a deployable estimator.
+- Do not generalize from this Euclidean synthetic DGP to real surveys or LVK catalogues.
+
+This protocol is a research recommendation, not a registered or frozen analysis plan. It should be versioned and approved before the confirmatory run.
