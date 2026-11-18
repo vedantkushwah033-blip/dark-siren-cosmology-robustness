@@ -55,7 +55,7 @@ jobs:
           )
           ledger.to_csv(ledger_path, index=False)
           manifest["replicate_ledger.csv"] = hashlib.sha256(ledger_path.read_bytes()).hexdigest()
-          manifest_path.write_text(json.dumps(manifest, indent=2) + chr(10))
+          manifest_path.write_text(json.dumps(manifest, indent=2))
           print(json.dumps({
               "original_manifest_entries_verified": len(manifest) - len(original_bad),
               "pilot_cells": len(ledger),
