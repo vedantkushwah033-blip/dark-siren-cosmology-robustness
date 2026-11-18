@@ -57,7 +57,8 @@ jobs:
             --orders=5,9,11 \
             --validation-sizes=100,300,1000 \
             --widths=0.024 \
-            --expected-replicates=20 \\\n            --replicates-to-audit=5 \
+            --expected-replicates=20 \
+            --replicates-to-audit=5 \
             --grid-points=401
       - name: Upload density-level convergence evidence
         if: always()
