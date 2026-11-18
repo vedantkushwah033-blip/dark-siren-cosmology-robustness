@@ -48,11 +48,19 @@ def test_quadratic_h0_calibration_pilot_writes_paired_auditable_outputs(tmp_path
     assert "posterior_curves.csv" in manifest
     assert "failure_ledger.csv" in manifest
 
+    from scripts.audit_quadratic_h0_calibration_pilot import audit
+    audit_result = audit(args.output_dir)
+    assert audit_result["status"] == "PASS"
+    assert audit_result["planned_arm_rows"] == 4
+    assert audit_result["raw_cell_manifests_verified"] == 1
+
 def test_partial_arm_failure_records_one_failed_row_per_planned_arm(tmp_path, monkeypatch):
     import numpy as np
     import scripts.run_quadratic_h0_calibration_pilot as pilot
 
     def fake_single(args):
+        from pathlib import Path
+        Path(args.output_dir).mkdir(parents=True, exist_ok=True)
         grid = np.array([55.0, 70.0, 85.0])
         curves = pd.DataFrame({
             "H0": grid,
@@ -107,3 +115,27 @@ def test_partial_arm_failure_records_one_failed_row_per_planned_arm(tmp_path, mo
     assert metrics["error"].str.contains("injected third-arm posterior failure").all()
     assert len(pd.read_csv(args.output_dir / "failure_ledger.csv")) == 4
 
+
+
+def test_incomplete_pilot_status_fails_closed():
+    import pytest
+    from scripts.run_quadratic_h0_calibration_pilot import _require_complete
+
+    with pytest.raises(SystemExit, match="3/4 succeeded"):
+        _require_complete({
+            "status": "INCOMPLETE",
+            "planned_metric_rows": 4,
+            "success_rows": 3,
+            "failed_rows": 1,
+        })
+
+
+def test_complete_pilot_status_is_accepted():
+    from scripts.run_quadratic_h0_calibration_pilot import _require_complete
+
+    _require_complete({
+        "status": "PASS",
+        "planned_metric_rows": 4,
+        "success_rows": 4,
+        "failed_rows": 0,
+    })
