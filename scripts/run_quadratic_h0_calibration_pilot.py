@@ -240,7 +240,9 @@ def run_pilot(args) -> dict:
                         })
 
     metrics = pd.DataFrame(metric_rows)
-    curves = pd.DataFrame(curve_rows)
+    curves = pd.DataFrame(curve_rows, columns=[
+        "replicate", "gamma", "n_validation", "arm", "H0", "density"
+    ])
     metrics_path = output / "replicate_metrics.csv"
     curves_path = output / "posterior_curves.csv"
     convergence_path = output / "quadrature_convergence.csv"
