@@ -192,3 +192,30 @@ However, the PR descriptions themselves state that the latest exact-head CI was 
 - Tagliazucchi, M. et al. (2026), Phys. Rev. D 114, 083523, arXiv:2608.24992.
 
 This is an initial targeted scan, not an exhaustive systematic review.
+
+
+## Statistical-methodology prior art added in the second scan
+
+The statistical side also has substantial prior art on the exact failure modes being studied. This means “IPW is unstable under low inclusion probabilities” and “estimated propensity uncertainty matters” are established facts, not novel findings.
+
+- **Lunceford-style finite overlap/misspecification comparison:** a simulation study of propensity-score weighting under limited overlap and model misspecification compares conventional IPW, trimmed IPW, overlap weights, matching weights, and entropy weights. It reports instability and bias/variance/coverage trade-offs under weak overlap. The project must cite this class of work and explain what is distinctive about the catalogue-reconstruction estimand and downstream cosmological likelihood.
+  - DOI: https://doi.org/10.1177/0962280220940334
+  - PubMed: https://pubmed.ncbi.nlm.nih.gov/32693715/
+
+- **Bayesian design-stage uncertainty:** a 2020 Statistics in Medicine paper explicitly considers uncertainty in estimated propensity scores and marginalizing over design-stage outputs in a two-stage Bayesian propensity-score analysis. Therefore Bayesian integration over propensity-model uncertainty is not itself a new statistical contribution.
+  - DOI: https://doi.org/10.1002/sim.8486
+  - Full text: https://pmc.ncbi.nlm.nih.gov/articles/PMC9170228/
+
+- **Variance accounting for estimated weights:** a tutorial on variance estimation for inverse-probability weighting emphasizes that inference must account for the propensity-score estimation step. The project should compare its posterior integration target with established frequentist two-step variance accounting, rather than presenting estimated-weight uncertainty as an unexplored issue.
+  - DOI: https://doi.org/10.1002/sim.10078
+
+- **Positivity diagnostics and alternative estimands:** a 2025 Statistics in Medicine tutorial reviews estimand changes and diagnostics under positivity violations. Any proposed stabilized, truncated, overlap, or entropy-weight sensitivity arm must state whether it changes the target population; such methods cannot be compared as if they all estimate the same full-parent density.
+  - DOI: https://doi.org/10.1002/sim.70329
+  - Full text: https://pmc.ncbi.nlm.nih.gov/articles/PMC12659692/
+
+### Updated statistical novelty conclusion
+
+The plausible contribution is not “Bayesian propensity uncertainty for IPW.” That is established. The defensible research question is whether the combination of (i) an external validation sample for catalogue retention, (ii) a finite validation design, (iii) explicit misspecification of the retention model, and (iv) downstream reconstruction of a host-redshift density used in a selection-conditioned cosmological likelihood creates distinctive calibration behavior that existing generic propensity-score studies do not address. This remains a hypothesis until the full comparative literature review and experiments are complete.
+
+In particular, a strong statistical paper would need at least one result that generalizes beyond this one toy DGP—for example, a clearly defined decomposition or diagnostic with prospective predictive value for density/H0 calibration failure, supported by multiple parent laws, inclusion functions, validation designs, and independently held-out simulation conditions. Merely showing that a linear logistic model fails when the true model contains a quadratic term would be a standard misspecification demonstration.
+
