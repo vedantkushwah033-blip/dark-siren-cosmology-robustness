@@ -85,3 +85,5 @@ jobs:
           path: artifacts/independent_validation_inclusion_h0_smoke/
           if-no-files-found: warn
           retention-days: 90
+
+# Reproducible smoke configuration; the independent auditor is a separate process.
