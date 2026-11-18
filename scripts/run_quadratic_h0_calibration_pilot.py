@@ -232,9 +232,9 @@ def run_pilot(args) -> dict:
     metrics.to_csv(metrics_path, index=False, float_format="%.17g")
     curves.to_csv(curves_path, index=False, float_format="%.17g")
     pd.DataFrame(convergence_rows).to_csv(convergence_path, index=False, float_format="%.17g")
-    pd.DataFrame(failure_rows, columns=[
-        "replicate", "gamma", "n_validation", "status", "error"
-    ]).to_csv(failure_path, index=False)
+    metrics[[
+        "replicate", "gamma", "n_validation", "arm", "status", "error"
+    ]].to_csv(failure_path, index=False)
     aggregate = _aggregate(metrics)
     (output / "aggregate_summary.json").write_text(
         json.dumps(aggregate, indent=2, sort_keys=True) + "\n"
