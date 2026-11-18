@@ -120,6 +120,18 @@ The direction of the median-bias shift is consistent across validation sizes: ne
 
 For gamma=+1, the paired increase in absolute median error relative to gamma=0 was approximately +3.98, +4.13, and +3.97 at validation sizes 100, 300, and 500. The corresponding 95% paired t intervals were [0.49, 7.47], [0.14, 8.13], and [-0.06, 8.00]. Thus the absolute-error evidence is weaker than the signed-bias contrast, especially at n=500.
 
+### Degree-one coefficient projection at validation n=500
+
+As a diagnostic, I also summarized the degree-one inclusion-coefficient posterior means (prior multiplier 1) at the largest validation size. The generator's alpha values are gamma-specific; beta is -3.9 in every condition.
+
+| γ | Generator α | Mean posterior α | Mean α difference from generator | Mean posterior β | Mean β difference from -3.9 |
+|---:|---:|---:|---:|---:|---:|
+| -1 | -0.125 | -0.052 | +0.073 [-0.023, +0.169] | -3.894 | +0.006 [-0.164, +0.177] |
+| 0 | 0.000 | -0.048 | -0.048 [-0.155, +0.059] | -3.946 | -0.046 [-0.229, +0.136] |
+| +1 | +0.125 | -0.050 | -0.176 [-0.293, -0.058] | -3.944 | -0.044 [-0.199, +0.112] |
+
+Brackets are 95% t intervals across the 10 replicate-level posterior-mean coefficient differences. The slope posterior means remain near -3.9, while at gamma=+1 the degree-one model's posterior intercept remains below the generator alpha. This is consistent with the fitted linear form failing to represent the positive quadratic curvature. For gamma ±1, however, the degree-one model is misspecified, so its coefficients target a pseudo-true projection rather than the generator's alpha/beta; these differences are diagnostic only and must not be described as ordinary parameter-estimation bias.
+
 ### Prior-scale sensitivity
 
 The child artifacts also evaluate slope-prior SD multipliers 0.5, 1, and 2, with multiplier 1 as the reference. The table gives the mean posterior-median shift from that reference across the 10 replicates in each cell (km s⁻¹ Mpc⁻¹):
