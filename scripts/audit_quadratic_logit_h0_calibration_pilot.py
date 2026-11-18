@@ -76,11 +76,14 @@ def _assert_nested_validation_frames(ledger: pd.DataFrame, dirs: dict[str, Path]
         first_dir = dirs[usable.iloc[0].cell_id]
         reference_frame = pd.read_csv(first_dir / "truth/validation_frame_truth.csv")
         reference_core = reference_frame[invariant_columns]
+        reference_catalogue = pd.read_csv(first_dir / "observable/analysis_catalogue.csv")
         previous_ids = None
         for row in usable.itertuples(index=False):
             directory = dirs[row.cell_id]
             frame = pd.read_csv(directory / "truth/validation_frame_truth.csv")
             pd.testing.assert_frame_equal(frame[invariant_columns], reference_core)
+            catalogue = pd.read_csv(directory / "observable/analysis_catalogue.csv")
+            pd.testing.assert_frame_equal(catalogue, reference_catalogue)
             observed = pd.read_csv(directory / "observable/validation_observed.csv")
             ids = observed["validation_id"].to_numpy(dtype=int)
             if len(ids) != int(row.n_validation):
