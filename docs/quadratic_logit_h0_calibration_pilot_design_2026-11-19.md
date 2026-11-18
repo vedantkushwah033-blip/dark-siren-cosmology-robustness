@@ -10,7 +10,7 @@ This pilot is a software-validated, fixed-truth repeated-sampling experiment. It
 
 - Generating H0: 70 km s^-1 Mpc^-1, fixed across all cells.
 - Parent population: 1,200 low-redshift synthetic galaxies on [0.01, 0.40].
-- GW process: four detected events per replicate; generated independently of catalogue retention.
+- GW process: four detected events per replicate; generated independently of catalogue retention. The design conditions on this fixed detected-event count; it does not model count-rate information or uncertainty in the number of detections.
 - Catalogue inclusion: parent-measure-calibrated quadratic-logit law, beta=-3.9, gamma in {-1, 0, +1}.
 - Inference: degree-one logistic inclusion model in all cells. Gamma=0 is the correctly specified reference; gamma=-1 and +1 are deliberate functional-form misspecification cases.
 - Validation frame: 500 objects; nested SRS sizes 100, 300, 500.
@@ -53,6 +53,8 @@ The raw auditor regenerates inclusion-coefficient quadrature with the production
 - This is fixed-truth repeated-sampling coverage, not joint SBC.
 - Gamma=0 is the correctly specified degree-one logistic reference; nonzero gamma values test this one quadratic omission pattern, not all misspecification.
 - Ten replicates are insufficient for precise coverage claims or a confirmatory comparison.
+- Results are conditional on four detected events per replicate and do not include information from the GW detection count/rate.
+- The 141-point H0 grid spacing is 2 km s^-1 Mpc^-1; coefficient-quadrature convergence is not an H0-grid refinement test.
 - A converged quadrature ladder establishes numerical order stability only.
 - The experiment does not establish estimator superiority, a universal IPW result, or the value of any method on real survey data.
 - No LVK/GWTC data, real galaxy survey, or observational H0 measurement is used.
