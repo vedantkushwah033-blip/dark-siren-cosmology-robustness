@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-ARMS = ("degree_1", "degree_2", "catalogue_only", "oracle_true_inclusion")
+ARMS = {"degree_1": "density_d1_o7", "degree_2": "density_d2_o7", "catalogue_only": "density_catalogue_only", "oracle_true_inclusion": "density_oracle_true_inclusion"}
 QUANTILES = (0.025, 0.05, 0.16, 0.50, 0.84, 0.95, 0.975)
 
 
@@ -101,8 +101,8 @@ def audit(root: Path) -> dict:
         _fail("unexpected experiment identifier")
     if config.get("status") != "synthetic_pilot_not_sbc_or_observational_measurement":
         _fail("missing synthetic-scope status")
-    if set(config.get("arms", {}).keys()) != set(ARMS):
-        _fail("arm definition/order mismatch")
+    if config.get("arms") != ARMS:
+        _fail("arm-to-posterior-column mapping mismatch")
     reps = int(config["replicates"])
     gammas = tuple(float(x) for x in config["gamma_values"])
     sizes = tuple(int(x) for x in config["validation_sizes"])
@@ -224,6 +224,38 @@ def audit(root: Path) -> dict:
         summary = json.loads((cell / "summary.json").read_text())
         if summary.get("status") != "synthetic_smoke_not_measurement":
             _fail(f"raw cell has unexpected status: {cell}")
+        if float(summary.get("gamma")) != float(g) or int(summary.get("n_validation")) != int(n):
+            _fail(f"raw cell configuration does not match planned key: {cell}")
+        observable_catalogue = pd.read_csv(cell / "observable/catalogue.csv")
+        observable_validation = pd.read_csv(cell / "observable/validation.csv")
+        observable_events = pd.read_csv(cell / "observable/events.csv")
+        parent_truth = pd.read_csv(cell / "truth/parent_truth.csv")
+        validation_truth = pd.read_csv(cell / "truth/validation_frame_truth.csv")
+        event_truth = pd.read_csv(cell / "truth/event_hosts.csv")
+        if list(observable_catalogue.columns) != ["object_id", "redshift"]:
+            _fail(f"catalogue observable/truth leakage or schema drift: {cell}")
+        if list(observable_validation.columns) != ["validation_id", "redshift", "retained"]:
+            _fail(f"validation observable/truth leakage or schema drift: {cell}")
+        if list(observable_events.columns) != ["event_id", "distance_mpc", "sigma_mpc"]:
+            _fail(f"event observable/truth leakage or schema drift: {cell}")
+        if not {"inclusion_probability", "retained"}.issubset(parent_truth.columns):
+            _fail(f"parent truth table missing scoring fields: {cell}")
+        if not {"inclusion_probability", "selected_for_validation"}.issubset(validation_truth.columns):
+            _fail(f"validation truth table missing audit fields: {cell}")
+        if not {"host_object_id", "host_redshift"}.issubset(event_truth.columns):
+            _fail(f"event-host truth table missing scoring fields: {cell}")
+        raw_curve = pd.read_csv(cell / "h0_posterior_curves.csv")
+        for arm, column in ARMS.items():
+            metric = success[
+                (success.replicate == r) & (success.gamma == g)
+                & (success.n_validation == n) & (success.arm == arm)
+            ]
+            if len(metric) != 1:
+                _fail(f"missing unique successful metric for raw cell arm {arm}: {cell}")
+            for field in ("h0_q05", "h0_median", "h0_q95"):
+                _check_close(f"raw summary {arm} {field}", summary["results"][arm][field], float(metric.iloc[0][field]))
+            if column not in raw_curve:
+                _fail(f"raw posterior curve missing {column}: {cell}")
         raw_cells += 1
 
     return {
