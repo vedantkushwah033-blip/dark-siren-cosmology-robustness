@@ -18,6 +18,7 @@ concurrency:
 
 jobs:
   numerical-diagnostics:
+    if: github.ref != 'refs/heads/research/execute-curvature-pilot-20261118'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -382,4 +383,96 @@ jobs:
             artifacts/five_arm_smoke_audit.json
             artifacts/five_arm_replicates_smoke/
           if-no-files-found: error
+
+  curvature-cells:
+    if: github.ref == 'refs/heads/research/execute-curvature-pilot-20261118'
+    name: curvature-density (gamma ${{ matrix.gamma }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 7
+      matrix:
+        include:
+          - gamma: -2.0
+            key: m2
+          - gamma: -1.0
+            key: m1
+          - gamma: -0.5
+            key: m05
+          - gamma: 0.0
+            key: zero
+          - gamma: 0.5
+            key: p05
+          - gamma: 1.0
+            key: p1
+          - gamma: 2.0
+            key: p2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run paired-seed density-only multi-replicate curvature cell
+        run: |
+          python scripts/run_absolute_bandwidth_density_replicates.py \
+            --master-seed 20261215 \
+            --seed-stride 10 \
+            --replicates 20 \
+            --n-parent 4000 \
+            --validation-frame 1500 \
+            --validation-sizes 100,300,1000 \
+            --gamma "${{ matrix.gamma }}" \
+            --beta -3.9 \
+            --quadrature-order 5 \
+            --grid-points 401 \
+            --absolute-widths 0.006,0.008,0.010,0.012,0.016,0.024,0.032,0.040,0.050,0.060,0.080 \
+            --output-dir "artifacts/gamma_${{ matrix.key }}"
+      - name: Independently audit this gamma cell
+        run: |
+          python scripts/audit_absolute_bandwidth_density_replicates.py \
+            "artifacts/gamma_${{ matrix.key }}" \
+            --output "${{ runner.temp }}/gamma_${{ matrix.key }}_audit.json"
+      - name: Preserve raw gamma-cell artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: curvature-gamma-${{ matrix.key }}
+          path: artifacts/gamma_${{ matrix.key }}
+          if-no-files-found: warn
+          retention-days: 30
+
+  cross-gamma-audit:
+    if: ${{ github.ref == 'refs/heads/research/execute-curvature-pilot-20261118' && needs.curvature-cells.result == 'success' }}
+    name: Cross-gamma paired audit and summaries
+    runs-on: ubuntu-latest
+    needs: curvature-cells
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Download all seven gamma-cell artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: curvature-gamma-*
+          path: artifacts
+          merge-multiple: false
+      - name: Verify paired seeds, common parent measure, calibrations, and all raw artifacts
+        run: |
+          python scripts/audit_quadratic_logit_curvature_pilot.py \
+            artifacts \
+            --output-dir curvature_summary
+      - name: Upload cross-gamma audit and paired summaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: quadratic-logit-curvature-cross-gamma-summary
+          path: curvature_summary
+          if-no-files-found: error
+          retention-days: 30
 
