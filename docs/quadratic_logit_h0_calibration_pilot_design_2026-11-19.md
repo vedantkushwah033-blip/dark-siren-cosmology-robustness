@@ -87,6 +87,12 @@ Descriptive pilot readout (10 replicates per cell; not confirmatory):
 
 The gamma=0 reference itself has substantial positive bias. Therefore the increase in bias at gamma=+1 cannot be interpreted as the full effect of quadratic misspecification: baseline modular-prior mismatch, four-event information content, and other features of the toy likelihood may contribute. Validation size improves weight ESS markedly but does not materially remove the observed H0 bias in this pilot. With only 10 replicates, coverage estimates have wide Wilson intervals and are unstable.
 
+
+
+### Coefficient-prior scale sensitivity (same pilot artifact)
+
+The saved within-cell sensitivity analysis changes the slope-prior standard deviation by multipliers 0.5 and 2.0 while holding the observed catalogue, events, selection rule, H0 grid, and base weights fixed. Across the 10 paired replicates in the gamma=0 reference, the mean posterior-median shift relative to multiplier 1.0 was -3.06 km s^-1 Mpc^-1 at validation n=100 and -0.72 at n=500 for multiplier 0.5; the corresponding shifts for multiplier 2.0 were +1.11 and +0.20. Thus this prior-scale perturbation changes the posterior, particularly at the smallest validation size, but does not by itself erase the +7.5 to +8.2 baseline mean median bias. This is a limited sensitivity check, not a complete prior robustness analysis: the prior mean, intercept scale, event count, and likelihood model were not varied, and the 10-replicate uncertainty remains substantial.
+
 ## Go/no-go
 
 The artifact-integrity and execution gate is PASS. The scientific gate remains exploratory only. Before a confirmatory interpretation, the project still needs (i) a finer H0-grid reconstruction, (ii) a larger event-count sensitivity, (iii) a decomposition of the gamma=0 baseline bias including coefficient-prior sensitivity, and (iv) the matched five-arm A–E repeated-sampling comparison. This single-arm pilot cannot establish whether estimated inclusion correction improves H0 inference relative to catalogue-only, oracle, or known-probability controls.
