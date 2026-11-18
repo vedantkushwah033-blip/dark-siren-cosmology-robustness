@@ -5,7 +5,7 @@ event realizations nested within each parent. This script reports both
 conditional event-level summaries and parent-cluster uncertainty.
 """
 from __future__ import annotations
-import argparse, json
+import argparse, hashlib, json
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -41,6 +41,15 @@ def cluster_bootstrap_interval(values: np.ndarray, rng: np.random.Generator,
 
 def analyze(root: Path, output: Path, seed: int=20261119) -> dict:
     root=root.resolve()
+    manifest_path=root/"manifest.json"
+    if not manifest_path.is_file():
+        raise ValueError("baseline artifact manifest is missing")
+    manifest=json.loads(manifest_path.read_text())
+    bad=[name for name,digest in manifest.items()
+         if not (root/name).is_file()
+         or hashlib.sha256((root/name).read_bytes()).hexdigest()!=digest]
+    if bad:
+        raise AssertionError(f"baseline artifact manifest mismatch: {bad[:10]}")
     frame=pd.read_csv(root/"replicates.csv")
     required={"parent_replicate","event_replicate","median_bias",
               "covered68","covered90","covered95","width68"}
@@ -85,6 +94,7 @@ def analyze(root: Path, output: Path, seed: int=20261119) -> dict:
     output.mkdir(parents=True,exist_ok=True)
     report={
         "status":"PASS",
+        "input_manifest_entries_verified":len(manifest),
         "parent_populations":n_parent,
         "total_event_realizations":len(frame),
         "event_draws_per_parent":{str(k):int(v) for k,v in
