@@ -131,6 +131,22 @@ All three intervals include zero. Mean 68% interval width changed by -0.57, -0.4
 
 This suggests that a larger validation sample improves the stability diagnostics of estimated inclusion weights, but does not by itself remove the observed H0 median-bias shift in this four-event setup.
 
+## H0 grid-refinement result
+
+A separate fixed-observation experiment completed three child runs at 141, 281, and 561 H0 grid points. All three child likelihood/artifact audits passed, all used coefficient quadrature order 7, and the observable-input hashes match. The aggregate workflow initially failed because NumPy 2.5 removed `np.trapz`; the grid-audit script and regression fixture have been updated to `np.trapezoid`, and the corrected CI rerun is pending.
+
+An independent local reconstruction of the archived grid artifact gives:
+
+| H0 grid points | Spacing | Max absolute density difference vs 561 | Total variation vs 561 | Max absolute quantile difference vs 561 |
+|---:|---:|---:|---:|---:|
+| 141 | 2.0 | 2.23e-5 | 3.23e-4 | 0.0272 |
+| 281 | 1.0 | 5.58e-6 | 6.47e-5 | 0.0055 |
+| 561 | 0.5 | 0 | 0 | 0 |
+
+The model and generator configurations match across grids after excluding only `h0_grid_points`. The finest-grid posterior median is approximately 130.036, with 95% interval approximately [86.389, 181.062], in this one synthetic realization. The difference between the 141-point and 561-point quantiles is negligible compared with the large posterior uncertainty and the roughly 60 km s⁻¹ Mpc⁻¹ median offset from truth.
+
+This establishes numerical H0-grid stability for one fixed realization only. It does not establish repeated-sampling calibration, SBC, coverage, or estimator superiority.
+
 ## Interpretation
 
 Three findings deserve further investigation:
@@ -143,7 +159,7 @@ The 68% coverage estimates are imprecise at 10 replicates. In particular, 5/10 c
 
 ## Limitations and next gates
 
-- The H0 grid has only 141 points over [20,300], spacing 2 km s⁻¹ Mpc⁻¹. A paired 141/281/561-point grid-refinement experiment remains necessary before treating posterior quantiles as numerically grid-stable.
+- The H0 grid refinement is numerically stable for one fixed realization; the CI rerun of the aggregate comparison is pending, and repeated-sampling grid stability has not been established.
 - Coefficient quadrature convergence (all 90 runs passed) is distinct from H0-grid convergence.
 - Four detected events are fixed in every replicate; event-count/rate calibration is not tested.
 - Ten replicates per cell are inadequate for confirmatory coverage or robust tail diagnostics.
@@ -153,10 +169,9 @@ The 68% coverage estimates are imprecise at 10 replicates. In particular, 5/10 c
 
 ### Next actions
 
-1. Complete the corrected independent orchestration audit against this 90-cell artifact, including the explicit `not_run=0` historical compatibility handling.
-2. Complete the 141/281/561 H0-grid refinement on identical observable inputs.
-3. Diagnose the positive gamma=0 baseline bias using event-level likelihood and selection-normalization checks.
-4. Increase replicates before any calibration claim; report Wilson/binomial uncertainty and preserve failed/non-evaluable cells in planned denominators.
-5. Keep fixed event-count coverage separate from any future rate-informed analysis.
+1. Obtain passing CI replays of the corrected independent orchestration audit and the corrected grid-refinement auditor.
+2. Diagnose the positive gamma=0 baseline bias using event-level likelihood and selection-normalization checks.
+3. Increase replicates before any calibration claim; report Wilson/binomial uncertainty and preserve failed/non-evaluable cells in planned denominators.
+4. Keep fixed event-count coverage separate from any future rate-informed analysis.
 
 **Bottom line:** the full 90-cell simulation completed successfully and its artifacts, child audits, quadrature convergence, paired sampling design, and aggregate metrics have been independently checked. The preliminary result is an asymmetric curvature-related shift in H0 median bias on top of a nonzero gamma=0 baseline offset. This is a strong reason to proceed to grid refinement and larger repeated-sampling diagnostics—not yet a confirmatory scientific conclusion.
