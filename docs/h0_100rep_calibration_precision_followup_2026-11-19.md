@@ -1,6 +1,6 @@
 # 100-replicate fixed-truth H0 calibration precision follow-up
 
-**Status:** preregistered synthetic follow-up; computation is pending the branch-scoped GitHub Actions run.
+**Status:** preregistered synthetic follow-up; the 600-cell GitHub Actions computation is running in workflow 44411667480. No calibration results are available yet.
 
 ## Motivation
 
@@ -14,7 +14,7 @@ The preceding 90-cell pilot used 10 replicates per curvature-by-validation-size 
 - The analysis seed initializes the parent-population, temporary catalogue-thinning, and GW-event generation sequence; this combined analysis sequence is reused across curvature conditions within replicate. The validation frame uses a separate `validation_seed`. This runner does not currently expose a third, independent event seed. Catalogue retention outcomes vary with curvature as intended.
 - The DGP uses the quadratic-logit inclusion model; inference fits a degree-one logistic inclusion model. Thus \(\gamma=0\) is the correctly specified reference within the fitted family, while \(\gamma=\pm1\) are misspecified conditions.
 - The fitted inclusion-coefficient posterior uses the declared independent Gaussian prior, adaptive Laplace-proposal Gauss-Hermite quadrature at orders 3, 5, 7, and 9, and a shared coefficient node across all four events.
-- \(H_0\) prior support is uniform on [20, 300], represented on a 281-point grid (spacing 1 km s\(^{-1}\) Mpc\(^{-1}\)). The previous fixed-realization grid audit found the 281-point result close to the 561-point reference, but that single-realization result is not a substitute for a broader grid audit.
+- \(H_0\) prior support is uniform on [20, 300], represented on a 281-point grid (spacing 1 km s\(^{-1}\) Mpc\(^{-1}\)). A paired grid-refinement audit has now completed on 27 fixed-truth pilot cells: 281→561 passed both predeclared tolerances in 27/27 comparisons, while 141→281 passed only 1/27. Thus 281 points is supported relative to 561 on this subset; this remains a numerical sensitivity audit, not a calibration result.
 - The runner writes a complete planned-cell ledger before executing children. Every cell remains visible as SUCCESS, NON_EVALUABLE, FAILED, or NOT_RUN; failed and non-evaluable cells are not silently dropped.
 
 ## Endpoints and analysis
