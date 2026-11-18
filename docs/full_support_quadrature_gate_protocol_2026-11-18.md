@@ -91,9 +91,17 @@ replicate artifacts remain preserved even when the gate fails.
   the configured order 5. The gate checks whether that order is numerically
   stable relative to higher orders; it does not silently replace the original
   outputs with a different quadrature order.
-- There is no H0 likelihood or posterior calculation in this workflow. A
-  separate Q3 gate must compare the complete shared-coefficient-node selected
-  likelihood and H0 posterior across quadrature orders.
+- There is no H0 likelihood or posterior calculation in this seven-gamma
+  density workflow. The repository does already contain a narrow H0
+  quadrature-regression test: one floor-logistic synthetic case with validation
+  size 300, three toy events, and orders 7/9/11, comparing the order-9 and
+  order-11 Arm-E H0 posteriors. A separate H0-grid test checks 81/161/321-point
+  grids for one fixed synthetic case. These are useful existing tests, but they
+  do not cover the quadratic-curvature DGP, all three validation sizes, the
+  seven-gamma repeated-sampling design, or H0 posterior calibration. A Q3 gate
+  for the curvature project must compare the complete shared-coefficient-node
+  selected likelihood and H0 posterior across quadrature orders under the
+  actual curvature design.
 - Numerical convergence is separate from simulation-based calibration and
   repeated-sampling coverage.
 
@@ -108,8 +116,9 @@ replicate artifacts remain preserved even when the gate fails.
    tested and its runtime is acceptable.
 5. Add a density-level Q2 comparison of posterior-mean density curves across
    quadrature orders and the declared absolute-bandwidth grid.
-6. Implement Q3 on the integrated H0 likelihood path before making any H0
-   calibration or astrophysical performance claim.
+6. Extend the existing H0 quadrature and H0-grid tests to the curvature DGP,
+   then implement Q3 under the actual repeated-sampling design before making
+   any H0 calibration or astrophysical performance claim.
 
 ## Current execution status
 
