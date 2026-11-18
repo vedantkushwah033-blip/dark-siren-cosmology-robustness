@@ -214,10 +214,29 @@ def audit(root: Path) -> dict:
                 coverage = float(valid[f"covered_{level}"].mean())
                 _check_close(f"aggregate coverage {level}", item[f"coverage_{level}"], coverage)
 
-    # Every raw cell must contain observable/truth separation and a valid cell manifest.
+    # Successful cells require complete truth-separated artifacts. Failed cells
+    # retain their ledger and any partial files; the outer manifest protects
+    # every file that was actually written before failure.
     raw_cells = 0
+    failed_raw_cells = 0
     for r, g, n in planned_cells:
         cell = root / "raw" / f"gamma_{g:+.2f}" / f"replicate_{r:04d}" / f"n_validation_{n:04d}"
+        cell_metrics = metrics[
+            (metrics.replicate == r) & (metrics.gamma == g)
+            & (metrics.n_validation == n)
+        ]
+        statuses = set(cell_metrics.status)
+        if statuses == {"FAILED"}:
+            errors = set(cell_metrics.error.fillna("").astype(str))
+            if len(cell_metrics) != len(ARMS) or len(errors) != 1:
+                _fail(f"failed cell does not have four atomic failure rows: {cell}")
+            if (cell / "manifest.json").is_file():
+                _verify_manifest(cell, cell / "manifest.json")
+            failed_raw_cells += 1
+            continue
+        if statuses != {"SUCCESS"} or len(cell_metrics) != len(ARMS):
+            _fail(f"cell has mixed or incomplete arm status: {cell}")
+
         for relative in (
             "summary.json", "manifest.json", "observable/catalogue.csv",
             "observable/validation.csv", "observable/events.csv",
@@ -225,7 +244,7 @@ def audit(root: Path) -> dict:
             "truth/event_hosts.csv", "h0_posterior_curves.csv",
         ):
             if not (cell / relative).is_file():
-                _fail(f"raw cell missing {relative}: {cell}")
+                _fail(f"successful raw cell missing {relative}: {cell}")
         _verify_manifest(cell, cell / "manifest.json")
         summary = json.loads((cell / "summary.json").read_text())
         if summary.get("status") != "synthetic_smoke_not_measurement":
@@ -298,7 +317,7 @@ def audit(root: Path) -> dict:
         "successful_arm_rows": int(len(success)),
         "failed_arm_rows": int(len(failed)),
         "posterior_curve_groups_reconstructed": len(grouped_curves),
-        "raw_cell_manifests_verified": raw_cells,
+        "raw_cell_manifests_verified": raw_cells + failed_raw_cells,\n        "successful_raw_cells_reconstructed": raw_cells,\n        "failed_raw_cells_accounted_for": failed_raw_cells,
         "outer_manifest_entries_verified": manifest_entries,
     }
 
