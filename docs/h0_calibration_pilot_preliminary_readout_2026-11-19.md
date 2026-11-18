@@ -90,7 +90,7 @@ Across all 90 prior-sensitivity records, changing the slope-prior SD multiplier 
 - This is fixed-truth repeated-sampling coverage, not joint SBC.
 - The validation sample sizes and event count are small; no confirmatory or universal method claim is justified.
 - The fitted coefficient prior is independent Normal with SD (5, 2.5), while the generating coefficients are fixed rather than prior-drawn.
-- The raw child audits and summary arithmetic are verified, but the corrected GitHub aggregate replay must still finish successfully.
+- The raw child audits and summary arithmetic are verified. A corrected replay using the PR #76 orchestration auditor passed in workflow run `44409048613` (PR #87), with 90/90 SUCCESS cells, 90/90 child audits, 30 nested blocks, 30 paired validation blocks, 2,110 manifest entries, and summary arithmetic PASS. PR #83's additional checks of invariant validation-frame inclusion probabilities and retention outcomes remain a separate, stronger audit; its own workflow is still pending.
 
 Next: (i) finish the corrected replay and regression workflows; (ii) run paired H0-grid refinement on the same seeds at finer grids; (iii) diagnose the positive bias in the γ=0 reference using prior, event-count, and likelihood-component sensitivity; and only then (iv) enlarge repeated-sampling calibration and plan joint SBC.
 
