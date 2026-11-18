@@ -34,8 +34,7 @@ def test_cluster_analysis_uses_parent_populations_as_independent_units(tmp_path)
     assert report["total_event_realizations"]==12
     assert (out/"parent_cluster_summary.csv").is_file()
     assert (out/"cluster_uncertainty.json").is_file()
-    assert "conditional_on_archived_parents" in report["uncertainty"][
-        "event_weighted_median_bias_conditional_on_archived_parents"] or True
+    assert report["uncertainty"]["event_weighted_median_bias_conditional_on_archived_parents"]["n"]==12
 
 
 def test_cluster_bootstrap_is_deterministic_and_finite():
