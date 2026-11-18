@@ -346,6 +346,12 @@ def main():
         parser.error("H0 grid must contain the generating truth in its interior")
     result = run_pilot(args)
     print(json.dumps(result, indent=2, sort_keys=True))
+    if result["status"] != "PASS":
+        raise SystemExit(
+            "Quadratic H0 pilot did not complete all planned arm rows: "
+            f"{result['success_rows']}/{result['planned_metric_rows']} succeeded; "
+            f"{result['failed_rows']} failed. Inspect failure_ledger.csv."
+        )
 
 
 if __name__ == "__main__":
