@@ -122,6 +122,9 @@ def _nested_frame_fixture(tmp_path, *, tamper_core=False, tamper_prefix=False):
             frame["selected_for_validation"] = np.isin(np.arange(5), ids).astype(int)
         frame.to_csv(root / "truth/validation_frame_truth.csv", index=False)
         pd.DataFrame({
+            "object_id": [10, 11, 12], "redshift": [0.11, 0.22, 0.33],
+        }).to_csv(root / "observable/analysis_catalogue.csv", index=False)
+        pd.DataFrame({
             "validation_id": ids,
             "redshift": redshift[ids],
             "retained": retained[ids],
@@ -148,4 +151,13 @@ def test_nested_validation_audit_rejects_changed_underlying_frame(tmp_path):
 def test_nested_validation_audit_rejects_non_nested_sample_ids(tmp_path):
     ledger, dirs = _nested_frame_fixture(tmp_path, tamper_prefix=True)
     with pytest.raises(AssertionError, match="not nested prefixes"):
+        _assert_nested_validation_frames(ledger, dirs)
+
+
+def test_nested_validation_audit_rejects_catalogue_changed_with_sample_size(tmp_path):
+    ledger, dirs = _nested_frame_fixture(tmp_path)
+    changed = pd.read_csv(dirs["n3"] / "observable/analysis_catalogue.csv")
+    changed.loc[0, "redshift"] = 0.19
+    changed.to_csv(dirs["n3"] / "observable/analysis_catalogue.csv", index=False)
+    with pytest.raises(AssertionError):
         _assert_nested_validation_frames(ledger, dirs)
