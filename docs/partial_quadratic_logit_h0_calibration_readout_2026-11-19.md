@@ -1,5 +1,7 @@
 # Partial quadratic-logit H0 calibration pilot: integrity and exploratory readout
 
+> **Historical-artifact note (2026-11-19):** This document records a separate interrupted rerun (workflow 44403921253; 64/90 ledgered successes). A distinct earlier workflow artifact (44402834830) contains the complete 90/90-cell simulation and is documented in [the complete 90-cell readout](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/pull/85). Use that complete readout for the full-design exploratory results; retain this document only as provenance for the partial rerun.
+
 Date: 2026-11-19
 
 ## Executive status
