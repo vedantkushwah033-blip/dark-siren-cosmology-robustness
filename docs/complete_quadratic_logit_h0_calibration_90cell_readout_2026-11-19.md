@@ -130,6 +130,8 @@ For each validation size, the following are paired differences in replicate-leve
 
 The direction of the median-bias shift is consistent across validation sizes: negative curvature lowers the median bias relative to gamma=0, while positive curvature raises it. These paired contrasts are exploratory and should not be read as a universal effect size.
 
+A replicate-level sign check gives the same directional picture: gamma=+1 minus gamma=0 is positive in 10/10 paired replicates at each validation size; gamma=-1 minus gamma=0 is negative in 8/10 replicates at n=100 and 10/10 at n=300 and n=500. The three validation-size checks reuse the same replicate seeds, so they are correlated and should not be combined as independent tests.
+
 For gamma=+1, the paired increase in absolute median error relative to gamma=0 was approximately +3.98, +4.13, and +3.97 at validation sizes 100, 300, and 500. The corresponding 95% paired t intervals were [0.49, 7.47], [0.14, 8.13], and [-0.06, 8.00]. Thus the absolute-error evidence is weaker than the signed-bias contrast, especially at n=500.
 
 ### Degree-one coefficient projection at validation n=500
