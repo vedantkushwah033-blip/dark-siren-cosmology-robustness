@@ -10,7 +10,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from audit_quadratic_logit_h0_calibration_pilot import (
     _assert_summary_matches_ledger,
     _assert_validation_samples_paired,
-    _assert_nested_validation_samples,
+    _assert_nested_validation_frames,
 )
 
 
@@ -93,33 +93,92 @@ def test_validation_observations_must_match_across_curvature(tmp_path):
         _assert_validation_samples_paired(ledger, dirs)
 
 
+def _nested_frame_fixture(tmp_path, *, tamper_core=False, tamper_prefix=False):
+    import numpy as np
 
-def test_nested_validation_audit_ignores_size_dependent_frame_indicator(tmp_path):
     dirs = {}
     rows = []
-    base_ids = [10, 11, 12, 13, 14]
-    for nval, selected in [(2, [1, 1, 0, 0, 0]), (4, [1, 1, 1, 1, 0]), (5, [1, 1, 1, 1, 1])]:
-        cell = f"n{nval}"
+    base_ids = [0, 2, 1, 4, 3]
+    redshift = np.array([0.05, 0.10, 0.20, 0.30, 0.38])
+    probability = np.array([0.8, 0.7, 0.6, 0.5, 0.4])
+    retained = np.array([1, 0, 1, 1, 0])
+    for n in (2, 3, 5):
+        cell = f"n{n}"
         root = tmp_path / cell
-        (root / "observable").mkdir(parents=True)
-        (root / "truth").mkdir()
-        pd.DataFrame({"object_id":[1,2],"redshift":[.1,.2]}).to_csv(
-            root / "observable/analysis_catalogue.csv",index=False)
-        pd.DataFrame({"event_id":[1],"distance":[100.]}).to_csv(
-            root / "observable/gw_events_observed.csv",index=False)
-        pd.DataFrame({"frame_id":base_ids,"redshift":[.1,.2,.3,.4,.5],
-                      "selected_for_validation":selected}).to_csv(
-            root / "truth/validation_frame_truth.csv",index=False)
-        pd.DataFrame({"validation_id":base_ids[:nval],
-                      "redshift":[.1,.2,.3,.4,.5][:nval]}).to_csv(
-            root / "observable/validation_observed.csv",index=False)
+        (root / "truth").mkdir(parents=True)
+        (root / "observable").mkdir()
+        ids = base_ids[:n]
+        frame = pd.DataFrame({
+            "frame_id": np.arange(5),
+            "redshift": redshift,
+            "inclusion_probability": probability,
+            "retained": retained,
+            "selected_for_validation": np.isin(np.arange(5), ids).astype(int),
+        })
+        if tamper_core and n == 3:
+            frame.loc[0, "retained"] = 0
+        if tamper_prefix and n == 3:
+            ids = [0, 1, 2]
+            frame["selected_for_validation"] = np.isin(np.arange(5), ids).astype(int)
+        frame.to_csv(root / "truth/validation_frame_truth.csv", index=False)
+        pd.DataFrame({
+            "object_id": [10, 11, 12], "redshift": [0.11, 0.22, 0.33],
+        }).to_csv(root / "observable/analysis_catalogue.csv", index=False)
+        pd.DataFrame({
+            "object_id": [10, 11, 12, 13, 14], "redshift": [0.02, 0.08, 0.16, 0.25, 0.39],
+        }).to_csv(root / "truth/analysis_parent_truth.csv", index=False)
+        pd.DataFrame({
+            "event_id": [0, 1], "observed_distance": [120.0, 240.0],
+        }).to_csv(root / "observable/gw_events_observed.csv", index=False)
+        pd.DataFrame({
+            "validation_id": ids,
+            "redshift": redshift[ids],
+            "retained": retained[ids],
+        }).to_csv(root / "observable/validation_observed.csv", index=False)
         dirs[cell] = root
-        rows.append({"cell_id":cell,"replicate":0,"gamma":0.0,"n_validation":nval})
-    ledger = pd.DataFrame(rows)
-    assert _assert_nested_validation_samples(ledger, dirs) == 1
+        rows.append({
+            "cell_id": cell, "replicate": 0, "gamma": 1.0,
+            "n_validation": n,
+        })
+    return pd.DataFrame(rows), dirs
 
-    bad_ids = pd.read_csv(dirs["n4"] / "observable/validation_observed.csv")
-    bad_ids.loc[0,"validation_id"] = 999
-    bad_ids.to_csv(dirs["n4"] / "observable/validation_observed.csv",index=False)
-    with pytest.raises(AssertionError,match="not nested prefixes"):
-        _assert_nested_validation_samples(ledger, dirs)
+
+def test_nested_validation_audit_allows_size_specific_selection_flags(tmp_path):
+    ledger, dirs = _nested_frame_fixture(tmp_path)
+    assert _assert_nested_validation_frames(ledger, dirs) == 1
+
+
+def test_nested_validation_audit_rejects_changed_underlying_frame(tmp_path):
+    ledger, dirs = _nested_frame_fixture(tmp_path, tamper_core=True)
+    with pytest.raises(AssertionError):
+        _assert_nested_validation_frames(ledger, dirs)
+
+
+def test_nested_validation_audit_rejects_non_nested_sample_ids(tmp_path):
+    ledger, dirs = _nested_frame_fixture(tmp_path, tamper_prefix=True)
+    with pytest.raises(AssertionError, match="not nested prefixes"):
+        _assert_nested_validation_frames(ledger, dirs)
+
+
+def test_nested_validation_audit_rejects_event_changed_with_sample_size(tmp_path):
+    ledger, dirs = _nested_frame_fixture(tmp_path)
+    changed = pd.read_csv(dirs["n3"] / "observable/gw_events_observed.csv")
+    changed.loc[0, "observed_distance"] = 121.0
+    changed.to_csv(dirs["n3"] / "observable/gw_events_observed.csv", index=False)
+    with pytest.raises(AssertionError):
+        _assert_nested_validation_frames(ledger, dirs)
+
+
+def test_nested_validation_audit_rejects_catalogue_changed_with_sample_size(tmp_path):
+    ledger, dirs = _nested_frame_fixture(tmp_path)
+    changed = pd.read_csv(dirs["n3"] / "observable/analysis_catalogue.csv")
+    changed.loc[0, "redshift"] = 0.19
+    changed.to_csv(dirs["n3"] / "observable/analysis_catalogue.csv", index=False)
+    with pytest.raises(AssertionError):
+        _assert_nested_validation_frames(ledger, dirs)
+
+
+
+def test_summary_accepts_schema_without_not_run_column():
+    ledger, summary = fixtures()
+    _assert_summary_matches_ledger(ledger, summary.drop(columns=["not_run"]))
