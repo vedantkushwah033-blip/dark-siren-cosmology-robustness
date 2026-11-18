@@ -85,6 +85,21 @@ def audit(artifact_dir: Path) -> dict[str, object]:
 
     analysis_cfg = config["analysis_generator_config"]
     validation_cfg = config["validation_generator_config"]
+    expected_observable_paths = [
+        "observable/analysis_catalogue.csv",
+        "observable/gw_events_observed.csv",
+        "observable/validation_observed.csv",
+    ]
+    expected_truth_paths = [
+        "truth/analysis_parent_truth.csv",
+        "truth/gw_event_truth.csv",
+        "truth/gw_generation_trace_truth.csv",
+        "truth/validation_frame_truth.csv",
+    ]
+    if analysis_cfg.get("observable_files") != expected_observable_paths:
+        raise AssertionError("observable file provenance paths do not match emitted artifacts")
+    if analysis_cfg.get("truth_only_files") != expected_truth_paths:
+        raise AssertionError("truth-only file provenance paths do not match emitted artifacts")
     if analysis_cfg["seed"] == validation_cfg["seed"]:
         raise AssertionError("analysis and validation seeds must be distinct")
     if not validation_cfg.get("independent_frame", False):
