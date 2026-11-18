@@ -1,0 +1,29 @@
+name: h0-calibration-nested-audit-regressions
+
+on:
+  push:
+    branches:
+      - research/h0-calibration-nested-audit-fix-20261119
+    paths:
+      - .github/workflows/h0-calibration-nested-audit-regressions.yml
+      - scripts/audit_quadratic_logit_h0_calibration_pilot.py
+      - tests/test_quadratic_logit_h0_calibration_pilot_audit.py
+
+permissions:
+  contents: read
+
+jobs:
+  nested-audit-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run calibration-summary and nested-validation audit regressions
+        run: python -m pytest -q tests/test_quadratic_logit_h0_calibration_pilot_audit.py
