@@ -7,7 +7,11 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from audit_quadratic_logit_h0_calibration_pilot import (\n    _assert_summary_matches_ledger,\n    _assert_validation_samples_paired,\n    _assert_nested_validation_frames,\n)
+from audit_quadratic_logit_h0_calibration_pilot import (
+    _assert_summary_matches_ledger,
+    _assert_validation_samples_paired,
+    _assert_nested_validation_frames,
+)
 
 
 def fixtures():
