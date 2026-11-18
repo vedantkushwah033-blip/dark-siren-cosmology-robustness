@@ -87,7 +87,7 @@ def test_paired_contrasts_include_posterior_mean_density_against_map_plugin():
     rows = []
     values = {
         "D_map_plugin_ipw": [0.30, 0.40, 0.50],
-        "E_posterior_mean_density": [0.25, 0.35, 0.45],
+        "E_posterior_mean_density": [0.20, 0.35, 0.50],
         "C_known_probability_ipw": [0.10, 0.10, 0.10],
         "A_catalogue_only": [0.70, 0.70, 0.70],
         "B_parent_oracle": [0.08, 0.08, 0.08],
