@@ -35,3 +35,10 @@ The common b(z) factor is applied once by the KDE density estimator after the ga
 3. Run the corrected multi-replicate pilot and independently audit all replicate records.
 4. Reassess the 11-bandwidth grid and only then prepare a fresh-seed holdout.
 5. Keep H0 propagation blocked until density-stage estimands and results are independently validated.
+
+
+## Deterministic size of the target distortion
+
+Using the exact parent intensity form already declared in the synthetic generator and numerically integrating over z in [0.01, 0.40], the intended target proportional to g(z)b(z) has mean redshift 0.2251875. The duplicated target proportional to g(z)b(z)^2 has mean redshift 0.2469061, a shift of +0.0217186. Their total-variation distance is approximately 0.09231 (equivalently, their L1 density distance is approximately 0.18462).
+
+These are deterministic integrals of the declared population functions, not Monte Carlo estimates and not results from the seven-gamma experiment. They show that the duplicate factor is scientifically material rather than a negligible numerical perturbation.
