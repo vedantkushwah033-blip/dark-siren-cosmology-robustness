@@ -32,6 +32,16 @@ The original aggregate audit failed because its first implementation compared th
 
 ## Fixed-truth pilot results
 
+Mean median-bias uncertainty across the 10 independent replicates (95% t intervals, km s^-1 Mpc^-1):
+
+| γ | n=100 | n=300 | n=500 |
+|---:|---:|---:|---:|
+| -1 | 3.95 [-3.21, 11.11] | 3.95 [-3.15, 11.05] | 3.46 [-3.80, 10.72] |
+| 0 | 8.21 [2.13, 14.29] | 8.22 [1.92, 14.52] | 7.50 [1.05, 13.95] |
+| +1 | 13.29 [6.04, 20.54] | 13.62 [6.30, 20.94] | 12.86 [5.60, 20.12] |
+
+These are small-pilot descriptive intervals, not confirmatory uncertainty bounds.
+
 All nine cells have 10/10 successful replicates.
 
 | Curvature γ | Validation n | Mean median-bias | RMSE | 68% coverage | 90% coverage | 95% coverage | Mean 68% width | Median minimum Kish ESS | Median maximum normalized weight |
@@ -52,9 +62,11 @@ Bias is in km s^-1 Mpc^-1; interval width is in the same units.
 
 Because the design reuses the same parent/event seeds across curvature and nested validation prefixes within replicate, paired differences are more informative than comparing unrelated cell means. Averaged over the 30 replicate × validation-size pairs:
 
-- γ=0 minus γ=-1 median-bias difference: +4.19 km s^-1 Mpc^-1 (paired SD 3.45; range -0.54 to +11.92).
-- γ=+1 minus γ=0: +5.28 km s^-1 Mpc^-1 (paired SD 3.94; range +0.67 to +14.09).
-- γ=+1 minus γ=-1: +9.47 km s^-1 Mpc^-1 (paired SD 5.21; range +1.40 to +21.17).
+- γ=0 minus γ=-1 median-bias difference: +4.19 km s^-1 Mpc^-1 (replicate-averaged paired SD 3.50; 95% t interval [1.69, 6.69]).
+- γ=+1 minus γ=0: +5.28 km s^-1 Mpc^-1 (SD 4.03; 95% t interval [2.40, 8.16]).
+- γ=+1 minus γ=-1: +9.47 km s^-1 Mpc^-1 (SD 5.35; 95% t interval [5.64, 13.30]).
+
+These intervals use the 10 replicate-level averages (each average pools the three validation sizes), not 30 falsely independent replicate×size rows.
 
 By contrast, changing validation size while holding replicate and curvature fixed has much smaller median-bias movement: n=300 minus 100 averages +0.11 (SD 1.55), n=500 minus 300 averages -0.66 (SD 0.99), and n=500 minus 100 averages -0.54 (SD 1.42) km s^-1 Mpc^-1. These are descriptive paired contrasts, not causal decomposition. They suggest that this four-event realization and curvature condition matter more than increasing validation size from 100 to 500 in this particular pilot.
 
