@@ -48,6 +48,12 @@ def test_quadratic_h0_calibration_pilot_writes_paired_auditable_outputs(tmp_path
     assert "posterior_curves.csv" in manifest
     assert "failure_ledger.csv" in manifest
 
+    from scripts.audit_quadratic_h0_calibration_pilot import audit
+    audit_result = audit(args.output_dir)
+    assert audit_result["status"] == "PASS"
+    assert audit_result["planned_arm_rows"] == 4
+    assert audit_result["raw_cell_manifests_verified"] == 1
+
 def test_partial_arm_failure_records_one_failed_row_per_planned_arm(tmp_path, monkeypatch):
     import numpy as np
     import scripts.run_quadratic_h0_calibration_pilot as pilot
