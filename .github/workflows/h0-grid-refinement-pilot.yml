@@ -50,7 +50,7 @@ jobs:
             --baseline-dir artifacts/h0_calibration_baseline \
             --output-dir artifacts/h0_grid_refinement_pilot \
             --replicates 3 \
-            --grid-points 281,561
+            --grid-points 561,1121
       - name: Assert all refined child runs and paired comparisons completed
         run: |
           python - <<'PY'
