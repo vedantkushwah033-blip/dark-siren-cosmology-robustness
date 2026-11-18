@@ -21,6 +21,7 @@ def test_posthoc_reports_wilson_and_paired_contrasts(tmp_path):
                 median=70.0 + (rep-1.5)*0.5 + gamma*1.0 - (nval==300)*0.2
                 rows.append({
                     "replicate":rep,"gamma":gamma,"n_validation":nval,
+                    "analysis_seed":1000+rep,"validation_seed":2000+rep,
                     "status":"SUCCESS","h0_true":70.0,"h0_median":median,
                     "h0_q16":median-5.0,"h0_q84":median+5.0,
                     "covered68":int(abs(median-70.0)<=5.0),
@@ -45,3 +46,21 @@ def test_posthoc_reports_wilson_and_paired_contrasts(tmp_path):
 def test_wilson_interval_contains_observed_rate():
     low,high=MODULE.wilson(7,10)
     assert low < 0.7 < high
+
+
+def test_posthoc_rejects_replicate_id_seed_mismatch(tmp_path):
+    rows=[]
+    for gamma in (0.0, 1.0):
+        rows.append({
+            "replicate":0,"gamma":gamma,"n_validation":100,
+            "analysis_seed":1000 + int(gamma),"validation_seed":2000,
+            "status":"SUCCESS","h0_true":70.0,"h0_median":71.0 + gamma,
+            "h0_q16":66.0,"h0_q84":76.0,"covered68":1,"covered90":1,
+            "covered95":1,"min_catalogue_kish_ess":100.0,
+            "max_normalized_weight":0.03,
+        })
+    root=tmp_path/"artifact"; root.mkdir()
+    pd.DataFrame(rows).to_csv(root/"replicate_ledger.csv",index=False)
+    import pytest
+    with pytest.raises(ValueError,match="analysis_seed"):
+        MODULE.analyze(root,tmp_path/"posthoc",seed=12)
