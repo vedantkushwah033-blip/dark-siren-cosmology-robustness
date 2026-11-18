@@ -145,7 +145,10 @@ def audit(root: Path) -> dict:
             pd.testing.assert_frame_equal(pd.read_csv(d/"observable/analysis_catalogue.csv"),ref_catalogue)
             pd.testing.assert_frame_equal(pd.read_csv(d/"observable/gw_events_observed.csv"),ref_events)
             frame=pd.read_csv(d/"truth/validation_frame_truth.csv")
-            cols=["frame_id","redshift","selected_for_validation"]
+            # The validation frame is fixed, but the selected-for-validation
+            # indicator necessarily changes with n_validation. Nestedness is
+            # checked on the observed validation-ID prefixes immediately below.
+            cols=["frame_id","redshift"]
             pd.testing.assert_frame_equal(frame[cols],ref_frame[cols])
             ids=pd.read_csv(d/"observable/validation_observed.csv").validation_id.to_numpy()
             if prior_ids is not None and not np.array_equal(prior_ids,ids[:len(prior_ids)]):
