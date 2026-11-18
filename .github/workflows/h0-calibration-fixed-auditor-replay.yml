@@ -55,6 +55,18 @@ jobs:
           )
           ledger.to_csv(ledger_path, index=False)
           manifest["replicate_ledger.csv"] = hashlib.sha256(ledger_path.read_bytes()).hexdigest()
+          # The archived first-pass summary predates the explicit not_run column.
+          # Reconstruct it from the preserved failure ledger for the corrected audit.
+          summary_path = root / "calibration_summary.csv"
+          summary = pd.read_csv(summary_path)
+          summary["not_run"] = summary.apply(
+              lambda row: int(((ledger.gamma == row.gamma)
+                               & (ledger.n_validation == row.n_validation)
+                               & (ledger.status == "NOT_RUN")).sum()),
+              axis=1,
+          )
+          summary.to_csv(summary_path, index=False)
+          manifest["calibration_summary.csv"] = hashlib.sha256(summary_path.read_bytes()).hexdigest()
           manifest_path.write_text(json.dumps(manifest, indent=2))
           print(json.dumps({
               "original_manifest_entries_verified": len(manifest) - len(original_bad),
