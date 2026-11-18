@@ -58,6 +58,24 @@ def _assert_summary_matches_ledger(ledger: pd.DataFrame, summary: pd.DataFrame) 
                 raise AssertionError(f"summary {output} mismatch for gamma={row.gamma}, n={row.n_validation}: stored={stored}, recomputed={actual}")
 
 
+
+def _assert_validation_samples_paired(ledger: pd.DataFrame, dirs: dict[str, Path]) -> int:
+    """Require identical validation observations across gamma at fixed replicate/size."""
+    paired_blocks = 0
+    for (_, _), block in ledger.groupby(["replicate", "n_validation"]):
+        usable = block[block.cell_id.isin(dirs)]
+        reference = None
+        for row in usable.itertuples(index=False):
+            observed = pd.read_csv(dirs[row.cell_id] / "observable/validation_observed.csv")
+            if reference is None:
+                reference = observed
+            else:
+                pd.testing.assert_frame_equal(observed, reference)
+        if len(usable) > 1:
+            paired_blocks += 1
+    return paired_blocks
+
+
 def audit(root: Path) -> dict:
     root=root.resolve()
     planned=pd.read_csv(root/"planned_cells.csv")
@@ -147,21 +165,7 @@ def audit(root: Path) -> dict:
                 pd.testing.assert_frame_equal(parent,reference[0])
                 pd.testing.assert_frame_equal(events,reference[1])
                 pd.testing.assert_frame_equal(frame,reference[2])
-    # For a fixed replicate and validation size, all curvature cells must
-    # reuse exactly the same independent validation observations. Nestedness
-    # across sizes is checked above; this closes the cross-gamma pairing check.
-    paired_validation_blocks=0
-    for (rep,nval),block in ledger.groupby(["replicate","n_validation"]):
-        usable=block[block.cell_id.isin(dirs)]
-        reference_validation=None
-        for row in usable.itertuples(index=False):
-            observed=pd.read_csv(dirs[row.cell_id]/"observable/validation_observed.csv")
-            if reference_validation is None:
-                reference_validation=observed
-            else:
-                pd.testing.assert_frame_equal(observed,reference_validation)
-        if len(usable)>1:
-            paired_validation_blocks+=1
+    paired_validation_blocks = _assert_validation_samples_paired(ledger, dirs)
     counts=ledger.status.value_counts().to_dict()
     _assert_summary_matches_ledger(ledger, summary)
     return {"status":"PASS","planned_cells":len(planned),"status_counts":counts,
