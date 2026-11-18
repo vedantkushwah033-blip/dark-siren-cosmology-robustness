@@ -116,9 +116,11 @@ def matched_five_arm_kde_selected_log_likelihood(
     """Evaluate all five arms through one shared reflected-KDE bandwidth rule.
 
     Supply either a common Scott multiplier or a common absolute redshift-space
-    kernel SD. FiveArmWeights carries the complete
-    base-population and inverse-inclusion weights. Use a unit merger_weight
-    when those arrays already include the base measure.
+    kernel SD. FiveArmWeights carries whichever base-population and
+    inverse-inclusion weights were supplied when it was constructed. Apply
+    the common host-rate factor exactly once: either include it in the raw
+    arm weights and pass a unit merger_weight, or leave it out of the raw
+    weights and pass it here.
     """
     h0 = np.asarray(H0_grid, dtype=float)
     if h0.ndim != 1 or h0.size < 2 or not np.all(np.isfinite(h0)) or np.any(h0 <= 0) or np.any(np.diff(h0) <= 0):
@@ -144,10 +146,10 @@ def matched_five_arm_kde_selected_log_likelihood(
             or not np.all(np.isfinite(sigmas)) or np.any(sigmas <= 0)):
         raise ValueError("events must have finite detected distances and positive finite uncertainties")
 
-    # FiveArmWeights already contains b(z), b(z)/pi_true(z),
-    # b(z)/pi_MAP(z), and b(z)/pi(z;theta_k). Pass those complete raw
-    # galaxy weights directly; using only 1/pi here would silently drop the
-    # common base-population/merger-rate factor and make the arms incomparable.
+    # The raw arm weights may already contain b(z), or may contain only
+    # inverse-inclusion correction. The caller's construction convention
+    # determines which is correct; merger_weight applies the remaining
+    # common host-rate factor once. Never include the same b(z) in both.
     def density(sample: np.ndarray, raw_weights: np.ndarray) -> np.ndarray:
         return estimate_host_density(
             z_grid, sample, sample_weights=raw_weights,
