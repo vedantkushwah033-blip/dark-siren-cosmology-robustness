@@ -385,7 +385,7 @@ jobs:
           if-no-files-found: error
 
   curvature-cells:
-    if: github.ref == 'refs/heads/research/execute-curvature-pilot-20261118'
+    if: false
     name: curvature-density (gamma ${{ matrix.gamma }})
     runs-on: ubuntu-latest
     timeout-minutes: 240
@@ -445,7 +445,7 @@ jobs:
           retention-days: 30
 
   cross-gamma-audit:
-    if: ${{ github.ref == 'refs/heads/research/execute-curvature-pilot-20261118' && needs.curvature-cells.result == 'success' }}
+    if: false
     name: Cross-gamma paired audit and summaries
     runs-on: ubuntu-latest
     needs: curvature-cells
