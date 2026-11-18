@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -211,17 +212,31 @@ def main() -> None:
     validation_frame = validation["validation_observed"]
 
     # Inference input tables are deliberately stripped of all truth-only columns.
-    analysis_catalogue.to_csv(observable_dir / "analysis_catalogue.csv", index=False, float_format="%.17g")
-    events_frame.to_csv(observable_dir / "gw_events_observed.csv", index=False, float_format="%.17g")
-    validation_frame.to_csv(observable_dir / "validation_observed.csv", index=False, float_format="%.17g")
-    analysis["parent_truth"].to_csv(truth_dir / "analysis_parent_truth.csv", index=False, float_format="%.17g")
-    analysis["gw_event_truth"].to_csv(truth_dir / "gw_event_truth.csv", index=False, float_format="%.17g")
-    analysis["gw_generation_trace_truth"].to_csv(
-        truth_dir / "gw_generation_trace_truth.csv", index=False
-    )
-    validation["validation_frame_truth"].to_csv(
-        truth_dir / "validation_frame_truth.csv", index=False
-    )
+    # In reuse mode preserve the archived CSV bytes exactly: CSV float parsing
+    # and re-serialization can change the last bit even when values are equal.
+    if args.input_dir is not None:
+        for relative in (
+            "observable/analysis_catalogue.csv",
+            "observable/gw_events_observed.csv",
+            "observable/validation_observed.csv",
+            "truth/analysis_parent_truth.csv",
+            "truth/gw_event_truth.csv",
+            "truth/gw_generation_trace_truth.csv",
+            "truth/validation_frame_truth.csv",
+        ):
+            shutil.copyfile(args.input_dir.resolve() / relative, output / relative)
+    else:
+        analysis_catalogue.to_csv(observable_dir / "analysis_catalogue.csv", index=False, float_format="%.17g")
+        events_frame.to_csv(observable_dir / "gw_events_observed.csv", index=False, float_format="%.17g")
+        validation_frame.to_csv(observable_dir / "validation_observed.csv", index=False, float_format="%.17g")
+        analysis["parent_truth"].to_csv(truth_dir / "analysis_parent_truth.csv", index=False, float_format="%.17g")
+        analysis["gw_event_truth"].to_csv(truth_dir / "gw_event_truth.csv", index=False, float_format="%.17g")
+        analysis["gw_generation_trace_truth"].to_csv(
+            truth_dir / "gw_generation_trace_truth.csv", index=False
+        )
+        validation["validation_frame_truth"].to_csv(
+            truth_dir / "validation_frame_truth.csv", index=False
+        )
 
     z_validation = validation_frame["redshift"].to_numpy(dtype=float)
     retained_validation = validation_frame["retained"].to_numpy(dtype=int)
