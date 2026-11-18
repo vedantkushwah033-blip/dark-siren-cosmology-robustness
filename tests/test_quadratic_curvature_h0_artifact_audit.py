@@ -43,6 +43,7 @@ def test_independent_h0_artifact_auditor_reconstructs_likelihood(tmp_path):
     assert report["detected_events"] == 2
     assert report["coefficient_nodes_reconstructed"] > 0
     assert report["max_abs_reconstruction_error"] < 2e-10
+    assert report["max_validation_quadrature_difference"] < 2e-7
 
 
 def test_independent_h0_artifact_auditor_rejects_manifest_tampering(tmp_path):
