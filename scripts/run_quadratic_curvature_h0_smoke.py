@@ -90,6 +90,7 @@ def run(args):
         population_seed=args.seed, validation_seed=args.validation_seed,
         n_parent=args.n_parent, n_validation_frame=args.n_validation_frame,
         n_validation=args.n_validation, gamma=args.gamma, beta=args.beta,
+        z_min=args.z_min, z_max=args.z_max,
     )
     z_min, z_max = args.z_min, args.z_max
     events_observed, events_truth, attempts = simulate_detected_events(
