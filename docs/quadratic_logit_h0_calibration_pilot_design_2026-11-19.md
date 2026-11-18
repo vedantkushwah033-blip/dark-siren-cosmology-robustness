@@ -18,6 +18,8 @@ This pilot is a software-validated, fixed-truth repeated-sampling experiment. It
 - H0 prior/grid: uniform [20, 300], 141 grid points.
 - Inclusion-coefficient quadrature: orders 3, 5, 7, 9; convergence required before a cell is counted SUCCESS.
 
+The inference coefficient prior is independent Normal with mean zero and standard deviations (5.0, 2.5) for intercept and slope. The fixed generating coefficients are not drawn from this prior (at gamma=0 the generating slope is -3.9). Consequently, the fixed-truth coverage arm is a conditional repeated-sampling diagnostic for this modular procedure, not prior-predictive or joint SBC.
+
 The analysis-parent redshift realization and GW events are held fixed across gamma within replicate. The catalogue retention realization changes with gamma, as required by the DGP. Within each gamma/replicate, the catalogue, GW events, validation frame, and validation permutation are held fixed across validation sizes; only the prefix length changes.
 
 ## Primary summaries
