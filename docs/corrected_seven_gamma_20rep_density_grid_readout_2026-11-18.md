@@ -47,7 +47,7 @@ I compared all seven archives directly against the gamma=-2 reference for every 
 
 All 7 x 20 = 140 matched replicate pairs agreed. I also independently checked the child calibration metadata: beta=-3.9, x2_center=0.2845005579191241, and parent-average inclusion target 0.5101919962291073 were common across gamma; achieved rates differed only at floating-point roundoff.
 
-The workflow's own cross-gamma auditor is still performing its full independent raw-input reconstruction and has not yet uploaded its final paired-summary artifact. The checks above are an independent manual cross-cell verification, not a claim that the workflow's final cross-audit job has completed.
+The workflow-level cross-gamma auditor subsequently completed successfully in run `44369630799`; its final raw-reconstruction report and paired-summary artifact are documented in Section 7. The manual paired-design checks above are supplementary and separate from that workflow audit.
 
 ## 2. Density IAE readout
 
@@ -141,7 +141,7 @@ This pattern supports the research question: finite validation can dominate unde
 - The child-level config still inherits stale wording that each child is “one engineering replicate only.” PR #62 proposes a metadata-only correction and regression test; do not treat that wording issue as a numerical error, but fix it before publication-ready provenance.
 - The final workflow cross-gamma audit has passed, and its paired-summary artifact checksum was verified. This is still a synthetic density-only pilot, not an H0 inference result.
 
-Next: complete the workflow-level cross-gamma audit, preserve its summary artifact, then move to the separate H0 propagation gate in `docs/finite_validation_h0_marginalization_design_contract_2026-11-08.md`. Density IAE must not be presented as evidence of H0 posterior calibration.
+Next: finish the independent bandwidth-sensitivity/holdout gate before deciding whether density reconstruction is stable enough to propagate into the H0 likelihood. The H0 propagation design contract is `docs/finite_validation_h0_marginalization_design_contract_2026-11-08.md`. Density IAE must not be presented as evidence of H0 posterior calibration.
 
 
 ## 7. Final workflow-level cross-gamma audit (completed)
