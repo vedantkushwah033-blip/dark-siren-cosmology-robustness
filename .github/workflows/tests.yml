@@ -7,6 +7,7 @@ on:
       - .github/workflows/absolute-width-expanded-grid-pilot.yml
       - .github/workflows/debug-floor025-inclusion-fit.yml
       - .github/workflows/tests.yml
+      - .github/workflows/full-curvature-quadrature-gate-audit.yml
   pull_request:
   workflow_dispatch:
 
