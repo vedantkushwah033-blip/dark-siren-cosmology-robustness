@@ -60,6 +60,7 @@ def analyze(root: Path, output: Path, seed: int=20261119) -> dict:
         coverage95=("covered95","mean"),
         mean_width68=("width68","mean"),
     ).reset_index()
+    output.mkdir(parents=True,exist_ok=True)
     parent.to_csv(output/"parent_cluster_summary.csv",index=False)
     n_parent=len(parent)
     results={}
