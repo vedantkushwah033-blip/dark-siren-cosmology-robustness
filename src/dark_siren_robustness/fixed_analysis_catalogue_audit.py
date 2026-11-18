@@ -33,13 +33,31 @@ def _expected_rng_frames(seed,replicate,n_analysis,n_validation):
  rank=np.empty(n_validation,dtype=np.int64);rank[order]=np.arange(n_validation,dtype=np.int64)
  return az,vz,rank,stream(4).random(n_analysis),stream(5).random(n_validation)
 def _kde(grid,sample,prob,h,merger):
+ """Rebuild the production reflected KDE with an independently derived bandwidth.
+
+ The production estimator defines its Scott bandwidth from the *unreflected*
+ weighted sample. Reflection changes the augmented covariance, so the
+ covariance factor must be adjusted to preserve that physical bandwidth.
+ """
  sample=np.asarray(sample,float)
  if sample.size<2: raise AssertionError("Insufficient sample for successful KDE")
  w=np.ones(sample.size) if prob is None else 1/np.asarray(prob,float)
- w=w/w.max();neff=w.sum()**2/(w@w)
+ w=w/w.max()
+ neff=w.sum()**2/(w@w)
  aug=np.r_[sample,2*grid[0]-sample,2*grid[-1]-sample]
  aw=np.tile(w/3,3)
- factor=h*neff**(-.2)
+ original_p=w/w.sum()
+ original_mean=float(original_p@sample)
+ original_denom=1.0-float(original_p@original_p)
+ original_var=float(np.sum(original_p*(sample-original_mean)**2)/original_denom)
+ augmented_p=aw/aw.sum()
+ augmented_mean=float(augmented_p@aug)
+ augmented_denom=1.0-float(augmented_p@augmented_p)
+ augmented_var=float(np.sum(augmented_p*(aug-augmented_mean)**2)/augmented_denom)
+ if not np.isfinite(original_var) or original_var<=0 or not np.isfinite(augmented_var) or augmented_var<=0:
+  raise AssertionError("Independent weighted KDE covariance is undefined")
+ covariance_adjustment=np.sqrt(original_var/augmented_var)
+ factor=h*neff**(-.2)*covariance_adjustment
  raw=gaussian_kde(aug,weights=aw,bw_method=lambda k:factor)(grid)*merger
  return raw/trapezoid(raw,grid)
 def audit_fixed_catalogue_artifact(path):
