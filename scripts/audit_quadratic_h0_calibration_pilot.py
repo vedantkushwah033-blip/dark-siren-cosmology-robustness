@@ -244,6 +244,27 @@ def audit(root: Path) -> dict:
             _fail(f"validation truth table missing audit fields: {cell}")
         if not {"host_object_id", "host_redshift"}.issubset(event_truth.columns):
             _fail(f"event-host truth table missing scoring fields: {cell}")
+        expected_catalogue = parent_truth.loc[
+            parent_truth.retained.astype(bool), ["object_id", "redshift"]
+        ].reset_index(drop=True)
+        observed_catalogue = observable_catalogue.reset_index(drop=True)
+        if not np.array_equal(expected_catalogue.object_id.to_numpy(), observed_catalogue.object_id.to_numpy()):
+            _fail(f"catalogue rows do not match retained parent truth: {cell}")
+        if not np.allclose(expected_catalogue.redshift, observed_catalogue.redshift, rtol=0, atol=0):
+            _fail(f"catalogue redshifts do not match parent truth: {cell}")
+        selected_truth = validation_truth.loc[
+            validation_truth.selected_for_validation.astype(bool),
+            ["frame_id", "redshift", "retained"],
+        ].rename(columns={"frame_id": "validation_id"}).sort_values("validation_id").reset_index(drop=True)
+        observed_validation = observable_validation.sort_values("validation_id").reset_index(drop=True)
+        if not np.array_equal(selected_truth.validation_id, observed_validation.validation_id):
+            _fail(f"validation IDs do not match selected frame: {cell}")
+        if not np.allclose(selected_truth[["redshift", "retained"]], observed_validation[["redshift", "retained"]], rtol=0, atol=0):
+            _fail(f"validation observables do not match selected truth frame: {cell}")
+        if len(observable_events) != len(event_truth) or not np.array_equal(
+            observable_events.event_id.to_numpy(), event_truth.event_id.to_numpy()
+        ):
+            _fail(f"event observable/truth IDs do not align: {cell}")
         raw_curve = pd.read_csv(cell / "h0_posterior_curves.csv")
         for arm, column in ARMS.items():
             metric = success[
@@ -256,6 +277,12 @@ def audit(root: Path) -> dict:
                 _check_close(f"raw summary {arm} {field}", summary["results"][arm][field], float(metric.iloc[0][field]))
             if column not in raw_curve:
                 _fail(f"raw posterior curve missing {column}: {cell}")
+            outer_group = grouped_curves[(int(r), float(g), int(n), str(arm))]
+            raw_ordered = raw_curve.sort_values("H0")
+            if not np.array_equal(raw_ordered.H0.to_numpy(float), outer_group.H0.to_numpy(float)):
+                _fail(f"raw and aggregate H0 grids differ for {arm}: {cell}")
+            if not np.allclose(raw_ordered[column].to_numpy(float), outer_group.density.to_numpy(float), rtol=0, atol=1e-14):
+                _fail(f"raw and aggregate posterior curves differ for {arm}: {cell}")
         raw_cells += 1
 
     return {
