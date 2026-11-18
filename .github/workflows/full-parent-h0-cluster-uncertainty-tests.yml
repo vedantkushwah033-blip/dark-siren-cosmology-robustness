@@ -1,4 +1,5 @@
 name: full-parent-h0-cluster-uncertainty-tests
+# Replays the archived full-parent baseline with manifest-verified cluster inference
 
 permissions:
   contents: read
