@@ -67,8 +67,15 @@ def analyze(root: Path, output: Path, seed: int=20261119) -> dict:
         mean,lo,hi=mean_t_interval(bias)
         rmse=float(np.sqrt(np.mean(bias*bias))) if n else float("nan")
         rlo,rhi=bootstrap_mean_interval(bias*bias,rng)
-        rlo,rhi=(float(np.sqrt(max(0,rlo))),float(np.sqrt(max(0,rhi))))
-        row={"gamma":gamma,"n_validation":nval,"planned":len(g),"success":n,
+        if n >= 2 and np.isfinite([rlo, rhi]).all():
+            rlo,rhi=(float(np.sqrt(max(0,rlo))),float(np.sqrt(max(0,rhi))))
+        else:
+            # Undefined bootstrap bounds must remain undefined for n < 2.
+            rlo=rhi=float("nan")
+        planned=len(g)
+        unknown=planned-n
+        row={"gamma":gamma,"n_validation":nval,"planned":planned,"success":n,
+             "non_success":unknown,
              "non_evaluable":int((g.status=="NON_EVALUABLE").sum()),
              "failed":int((g.status=="FAILED").sum()),
              "not_run":int((g.status=="NOT_RUN").sum()),
@@ -82,9 +89,13 @@ def analyze(root: Path, output: Path, seed: int=20261119) -> dict:
         for level in (68,90,95):
             col=f"covered{level}"; k=int(ok[col].sum()) if n else 0
             low,high=wilson(k,n)
+            # Wilson intervals describe SUCCESS cells; all-attempt bounds
+            # additionally treat each non-success as uncovered/covered.
             row.update({f"coverage{level}":k/n if n else float("nan"),
                         f"coverage{level}_wilson95_low":low,
-                        f"coverage{level}_wilson95_high":high})
+                        f"coverage{level}_wilson95_high":high,
+                        f"coverage{level}_all_attempt_lower":k/planned if planned else float("nan"),
+                        f"coverage{level}_all_attempt_upper":(k+unknown)/planned if planned else float("nan")})
         rows.append(row)
     cell=pd.DataFrame(rows); cell.to_csv(output/"cell_uncertainty_summary.csv",index=False)
 
@@ -140,7 +151,7 @@ def analyze(root: Path, output: Path, seed: int=20261119) -> dict:
        "cell_summaries":len(cell),"paired_gamma_contrasts":len(paired),
        "paired_validation_size_contrasts":len(size_effects),
        "uncertainty_note":"Coverage uses Wilson binomial intervals. Bias uses t intervals; RMSE and paired contrasts use percentile bootstrap intervals. With 10 replicates these are descriptive and unstable, not confirmatory.",
-       "coverage_note":"Coverage is conditional on SUCCESS cells; failures and non-evaluable cells are reported separately and must be interpreted as part of the procedure's operating characteristics.",
+       "coverage_note":"Wilson intervals describe SUCCESS cells. All-attempt lower/upper bounds count every non-success as uncovered/covered, respectively; failures, non-evaluable and not-run cells remain in the planned denominator.",
        "sbc_note":"This is fixed-truth repeated-sampling coverage, not joint simulation-based calibration."}
     (output/"posthoc_report.json").write_text(json.dumps(report,indent=2)+"\n")
     return report
