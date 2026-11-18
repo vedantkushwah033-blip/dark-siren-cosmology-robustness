@@ -6,7 +6,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from audit_h0_known_inclusion_oracle_sensitivity import make_h0_grid, selected_posterior_quantiles
+from audit_h0_known_inclusion_oracle_sensitivity import (\n    assert_cross_gamma_pairing, make_h0_grid, selected_posterior_quantiles,\n)
 
 
 def inputs():
@@ -52,3 +52,42 @@ def test_oracle_grid_can_be_refined_beyond_archived_config():
 def test_oracle_grid_rejects_invalid_resolution():
     with pytest.raises(ValueError, match="invalid H0 grid"):
         make_h0_grid(20.0, 300.0, configured_points=141, requested_points=1)
+
+
+
+def test_cross_gamma_pairing_allows_only_expected_selection_changes():
+    parent_a = __import__("pandas").DataFrame({
+        "object_id": [1, 2], "redshift": [0.1, 0.2],
+        "inclusion_probability": [0.2, 0.3],
+    })
+    parent_b = parent_a.copy()
+    parent_b["inclusion_probability"] = [0.4, 0.5]
+    events = __import__("pandas").DataFrame({
+        "event_id": [1], "distance_mpc": [500.0],
+    })
+    validation_a = __import__("pandas").DataFrame({
+        "validation_id": [1, 2], "redshift": [0.1, 0.2], "retained": [0, 1],
+    })
+    validation_b = validation_a.copy()
+    validation_b["retained"] = [1, 0]
+    assert_cross_gamma_pairing(
+        parent_a, parent_b, events, events, validation_a, validation_b
+    )
+
+
+def test_cross_gamma_pairing_rejects_changed_event_or_validation_stream():
+    import pandas as pd
+
+    parent = pd.DataFrame({"object_id": [1, 2], "redshift": [0.1, 0.2]})
+    events = pd.DataFrame({"event_id": [1], "distance_mpc": [500.0]})
+    validation = pd.DataFrame({
+        "validation_id": [1, 2], "redshift": [0.1, 0.2], "retained": [0, 1],
+    })
+    changed_events = events.copy()
+    changed_events.loc[0, "distance_mpc"] += 1.0
+    with pytest.raises(AssertionError, match="events differ"):
+        assert_cross_gamma_pairing(parent, parent, events, changed_events, validation, validation)
+    changed_validation = validation.copy()
+    changed_validation.loc[0, "redshift"] += 1e-6
+    with pytest.raises(AssertionError, match="validation IDs/redshifts"):
+        assert_cross_gamma_pairing(parent, parent, events, events, validation, changed_validation)
