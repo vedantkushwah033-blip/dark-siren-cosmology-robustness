@@ -12,6 +12,12 @@ import json
 import math
 from pathlib import Path
 from types import SimpleNamespace
+import sys
+
+# Running this file as `python scripts/...py` puts `scripts/`, not the
+# repository root, at sys.path[0]. Add the root so the sibling `scripts`
+# namespace package resolves consistently in CI and local execution.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import numpy as np
 import pandas as pd
