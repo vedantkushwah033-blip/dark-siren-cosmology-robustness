@@ -305,6 +305,8 @@ def test_density_smoke_applies_host_merger_factor_only_once(tmp_path):
     )
     result=runner.run(args)
     assert result["status"]=="PASS"
+    auditor=_load("density_auditor_single_host_factor","audit_absolute_bandwidth_density_smoke.py")
+    assert auditor.audit(output)["status"]=="PASS"
     archive=np.load(output/"results"/"density_reconstruction_inputs.npz")
     # The common host-rate factor is applied by estimate_host_density after
     # the KDE. Sample-level weights must therefore contain only inclusion
