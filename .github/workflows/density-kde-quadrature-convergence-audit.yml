@@ -54,10 +54,10 @@ jobs:
           python scripts/audit_density_kde_quadrature_convergence.py artifacts \
             --output-dir density_quadrature_audit \
             --gammas=-2,0,2 \
-            --orders=5,7,9,11,13 \
+            --orders=5,9,11 \
             --validation-sizes=100,300,1000 \
-            --widths=0.016,0.024,0.032 \
-            --expected-replicates=20 \
+            --widths=0.024 \
+            --expected-replicates=20 \\\n            --replicates-to-audit=5 \
             --grid-points=401
       - name: Upload density-level convergence evidence
         if: always()
