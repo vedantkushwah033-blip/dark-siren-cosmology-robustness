@@ -292,3 +292,24 @@ def test_quadratic_logit_curvature_dgp_preserves_parent_mean_and_separates_truth
     pd.testing.assert_frame_equal(sample["parent_truth"],repeat["parent_truth"])
     pd.testing.assert_frame_equal(sample["validation_observed"],repeat["validation_observed"])
 
+
+
+def test_density_smoke_applies_host_merger_factor_only_once(tmp_path):
+    runner=_load("density_runner_single_host_factor","run_absolute_bandwidth_density_smoke.py")
+    output=tmp_path/"single_host_factor"
+    args=SimpleNamespace(
+        output_dir=output, seed=2026111801, validation_seed=2026111802,
+        n_parent=700, validation_frame=300, validation_sizes=(80,160),
+        gamma=0.5, beta=-3.9, scott_multiplier=0.7,
+        quadrature_order=3, grid_points=101, absolute_widths=(0.012,0.024),
+    )
+    result=runner.run(args)
+    assert result["status"]=="PASS"
+    archive=np.load(output/"results"/"density_reconstruction_inputs.npz")
+    # The common host-rate factor is applied by estimate_host_density after
+    # the KDE. Sample-level weights must therefore contain only inclusion
+    # correction, not a second copy of the host-rate factor.
+    assert np.array_equal(archive["weights_A_catalogue_only_n160"],
+                          np.ones_like(archive["weights_A_catalogue_only_n160"]))
+    assert np.array_equal(archive["weights_B_parent_oracle_n160"],
+                          np.ones_like(archive["weights_B_parent_oracle_n160"]))
