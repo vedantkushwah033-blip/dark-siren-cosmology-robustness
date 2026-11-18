@@ -3,7 +3,8 @@ name: Quadratic-curvature H0 propagation smoke
 on:
   push:
     branches:
-      - research/quadratic-curvature-h0-smoke-20261119\n      - research/quadratic-h0-audit-bandwidth-fix-20261119
+      - research/quadratic-curvature-h0-smoke-20261119
+      - research/quadratic-h0-audit-bandwidth-fix-20261119
   workflow_dispatch:
 
 permissions:
