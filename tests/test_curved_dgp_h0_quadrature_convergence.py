@@ -1,5 +1,6 @@
 """Curved-logit DGP regression for shared-node selected H0 quadrature."""
 import numpy as np
+from scipy.integrate import trapezoid
 from scipy.special import expit
 
 from dark_siren_robustness.five_arm_comparison import build_five_arm_weights
@@ -49,6 +50,7 @@ def test_curved_inclusion_dgp_arm_e_h0_posterior_stabilizes_with_quadrature_orde
     h0_grid = np.linspace(50.0, 90.0, 121)
     z_grid = np.linspace(0.01, 0.40, 501)
     posteriors = {}
+    posterior_mean_densities = {}
 
     for order in (7, 9, 11):
         arms = build_five_arm_weights(
@@ -73,6 +75,17 @@ def test_curved_inclusion_dgp_arm_e_h0_posterior_stabilizes_with_quadrature_orde
             merger_weight=np.ones_like(z_grid),
             scott_multiplier=0.7,
         )
+        posterior_mean_densities[order] = np.average(
+            result.arm_e_node_density,
+            axis=0,
+            weights=arms.arm_e_quadrature_weights,
+        )
+        assert np.isclose(
+            trapezoid(posterior_mean_densities[order], z_grid),
+            1.0,
+            rtol=1e-8,
+            atol=1e-8,
+        )
         posteriors[order] = normalize_h0_posterior(
             h0_grid,
             result.arm_e_marginal_log_likelihood,
@@ -90,4 +103,13 @@ def test_curved_inclusion_dgp_arm_e_h0_posterior_stabilizes_with_quadrature_orde
         "Curved-DGP Arm E changed under coefficient quadrature refinement: "
         f"density={comparison.max_abs_density_difference:.6g}, "
         f"quantile={comparison.max_abs_quantile_difference:.6g} km/s"
+    )
+
+    density_total_variation = 0.5 * trapezoid(
+        np.abs(posterior_mean_densities[9] - posterior_mean_densities[11]),
+        z_grid,
+    )
+    assert density_total_variation <= 0.01, (
+        "Curved-DGP posterior-mean Arm-E host density changed under "
+        f"quadrature refinement: TV={density_total_variation:.6g}"
     )
