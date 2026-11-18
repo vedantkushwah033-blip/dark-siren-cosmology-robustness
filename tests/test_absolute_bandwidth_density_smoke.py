@@ -29,6 +29,9 @@ def test_absolute_bandwidth_density_smoke_independent_reconstruction_and_corrupt
     )
     result=runner.run(args)
     assert result["status"]=="PASS"
+    with np.load(output/"results"/"density_reconstruction_inputs.npz") as raw:
+        assert np.all(raw["parent_base_weights"] == 1.0)
+        assert np.all(raw["catalogue_base_weights"] == 1.0)
     report=auditor.audit(output)
     assert report["status"]=="PASS"
     assert report["metric_rows_reconstructed"]==len(pd.read_csv(output/"results"/"density_metrics.csv"))
@@ -61,6 +64,9 @@ def test_quadratic_logit_density_smoke_independently_audits_true_probability_arm
     assert cfg["catalogue_floor"] is None
     assert cfg["quadratic_logit_calibration"]["gamma"]==pytest.approx(1.0)
 
+    with np.load(output/"results"/"density_reconstruction_inputs.npz") as raw:
+        assert np.all(raw["parent_base_weights"] == 1.0)
+        assert np.all(raw["catalogue_base_weights"] == 1.0)
     report=auditor.audit(output)
     assert report["status"]=="PASS"
     assert report["metric_rows_reconstructed"]==len(
