@@ -120,3 +120,35 @@ Even this narrower framing is **a candidate gap, not a verified novelty claim**.
 - Novelty: **NOT ESTABLISHED**.
 
 This memo is an audit artifact, not a claim of scientific completion.
+
+
+## Independent high-resolution check of the curvature weight-stress arithmetic
+
+A separate numerical reconstruction was run on 20,001-, 200,001-, and 2,000,001-point redshift grids. The parent-measure centering and reference retention converge to approximately:
+
+- `c_g = 0.2845005570074`
+- `r_0 = 0.5101919962132`
+
+The 20,001-point values already recorded above differ only at approximately the 1e-9 level. This supports the numerical stability of the deterministic calibration constants; it does not validate the stochastic generator or the experiment.
+
+For an iid catalogue draw from `f_cat(z)=g(z) pi(z)/r0`, with ideal unnormalized IPW weight `w(z)=1/pi(z)`, the population large-sample Kish effective-sample-size fraction is
+
+\[
+\frac{ESS}{n}\;\longrightarrow\;
+\frac{\{E_{cat}(w)\}^2}{E_{cat}(w^2)}
+=\frac{1}{r_0 E_g(1/\pi)}.
+\]
+
+This follows because `E_cat(w)=1/r0` and `E_cat(w^2)=E_g(1/pi)/r0`. It is a population asymptotic diagnostic, not the realized ESS of a finite catalogue.
+
+| gamma | min true inclusion | population CV of ideal IPW weights | asymptotic Kish ESS fraction |
+|---:|---:|---:|---:|
+| -2.0 | 0.003790 | 2.3889 | 0.1491 |
+| -1.0 | 0.008661 | 1.8198 | 0.2319 |
+| -0.5 | 0.013116 | 1.6014 | 0.2805 |
+| 0.0 | 0.019840 | 1.4192 | 0.3318 |
+| 0.5 | 0.029912 | 1.2682 | 0.3834 |
+| 1.0 | 0.044822 | 1.1443 | 0.4330 |
+| 2.0 | 0.097281 | 0.9649 | 0.5178 |
+
+The negative-curvature extreme therefore has an asymptotic ideal-IPW ESS fraction of about 15%, compared with about 52% at positive-curvature extreme, despite equal parent-average retention. This is a major design feature, not a small nuisance. It means the gamma comparison jointly stresses misspecification direction and positivity/weight variance. The planned analysis should either (a) explicitly present it as a joint curvature-plus-weight-stress family, or (b) add a separately labelled exploratory severity-matched design; it must not reinterpret the current symmetric gamma grid as severity-matched after seeing outcomes.
