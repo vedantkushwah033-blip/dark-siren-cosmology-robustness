@@ -16,7 +16,7 @@ This pilot is a software-validated, fixed-truth repeated-sampling experiment. It
 - Validation frame: 500 objects; nested SRS sizes 100, 300, 500.
 - Replication: 10 independent replicate streams, shared across gamma and validation sizes for paired contrasts.
 - H0 prior/grid: uniform [20, 300], 281 grid points.
-- The 281-point H0 grid has spacing 1 km s^-1 Mpc^-1. The quadrature ladder tests inclusion-coefficient integration stability only; it does not establish H0-grid resolution convergence. A finer-grid posterior reconstruction remains a separate required check.
+- The 281-point H0 grid has spacing 1 km s^-1 Mpc^-1. The quadrature ladder tests inclusion-coefficient integration stability only; it does not establish H0-grid resolution convergence. A separate 54-child grid-refinement diagnostic subsequently found 281-to-561 posterior-density and quantile tolerances passed in all 27 comparisons from the first three paired replicates; the full grid-refinement workflow is still running, so this is a partial numerical check rather than a full 90-cell grid audit.
 - Inclusion-coefficient quadrature: orders 3, 5, 7, 9; convergence required before a cell is counted SUCCESS.
 
 The inference coefficient prior is independent Normal with mean zero and standard deviations (5.0, 2.5) for intercept and slope. The fixed generating coefficients are not drawn from this prior (at gamma=0 the generating slope is -3.9). Consequently, the fixed-truth coverage arm is a conditional repeated-sampling diagnostic for this modular procedure, not prior-predictive or joint SBC.
@@ -54,7 +54,7 @@ The raw auditor regenerates inclusion-coefficient quadrature with the production
 - Gamma=0 is the correctly specified degree-one logistic reference; nonzero gamma values test this one quadratic omission pattern, not all misspecification.
 - Ten replicates are insufficient for precise coverage claims or a confirmatory comparison.
 - Results are conditional on four detected events per replicate and do not include information from the GW detection count/rate.
-- The 281-point H0 grid spacing is 1 km s^-1 Mpc^-1; coefficient-quadrature convergence is not an H0-grid refinement test.
+- The 281-point H0 grid spacing is 1 km s^-1 Mpc^-1; coefficient-quadrature convergence is not an H0-grid refinement test. A separate first-three-replicate check found 281-to-561 stability in 27/27 comparisons, but full grid-refinement CI remains pending.
 - A converged quadrature ladder establishes numerical order stability only.
 - The experiment does not establish estimator superiority, a universal IPW result, or the value of any method on real survey data.
 - No LVK/GWTC data, real galaxy survey, or observational H0 measurement is used.
@@ -101,5 +101,5 @@ A later independent diagnostic in PR #89 (`docs/h0_known_inclusion_oracle_sensit
 
 ## Go/no-go
 
-The artifact-integrity and execution gate is PASS. The scientific gate remains exploratory only. Before a confirmatory interpretation, the project still needs (i) a finer H0-grid reconstruction, (ii) a larger event-count sensitivity, (iii) a decomposition of the gamma=0 baseline bias including coefficient-prior sensitivity, and (iv) the matched five-arm A–E repeated-sampling comparison. This single-arm pilot cannot establish whether estimated inclusion correction improves H0 inference relative to catalogue-only, oracle, or known-probability controls.
+The artifact-integrity and execution gate is PASS. The scientific gate remains exploratory only. Before a confirmatory interpretation, the project still needs (i) completion of the full 281-to-561 H0-grid audit beyond the first three paired replicates, (ii) a larger event-count sensitivity, (iii) a same-281-grid full-parent/known-inclusion oracle reconstruction to isolate the gamma=0 baseline bias, and (iv) the matched five-arm A–E repeated-sampling comparison. This single-arm pilot cannot establish whether estimated inclusion correction improves H0 inference relative to catalogue-only, oracle, or known-probability controls.
 
