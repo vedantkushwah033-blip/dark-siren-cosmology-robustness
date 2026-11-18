@@ -24,23 +24,50 @@ from dark_siren_robustness.inclusion_posterior import (
 Z_MIN, Z_MAX = 0.01, 0.40
 
 
-def _rate_weighted_node_host_weights(fit, catalogue_redshift: np.ndarray) -> np.ndarray:
+def _rate_weighted_node_host_weights(fit, catalogue_redshift: np.ndarray):
     host = build_node_specific_host_weights(fit, catalogue_redshift)
     base_rate = 1.0 + 1.5 * (catalogue_redshift - Z_MIN) / (Z_MAX - Z_MIN)
     raw = host.raw_inverse_weight * base_rate[None, :]
     totals = raw.sum(axis=1, keepdims=True)
     if not np.all(np.isfinite(raw)) or np.any(raw <= 0) or np.any(totals <= 0):
         raise ArithmeticError("rate-weighted node host weights are invalid")
-    return raw / totals
+    return host, raw / totals
 
 
-def _mixture_host_weights(fit, catalogue_redshift: np.ndarray) -> np.ndarray:
-    node_weights = _rate_weighted_node_host_weights(fit, catalogue_redshift)
-    mixture = fit.weights @ node_weights
+def _mixture_host_weights(posterior_weights: np.ndarray, node_weights: np.ndarray) -> np.ndarray:
+    mixture = posterior_weights @ node_weights
     if (mixture.ndim != 1 or not np.all(np.isfinite(mixture))
             or np.any(mixture < 0) or not np.isclose(mixture.sum(), 1.0)):
         raise ArithmeticError("posterior-mixture host weights are invalid")
     return mixture
+
+
+def _outside_validation_mass(
+    posterior_weights: np.ndarray, node_weights: np.ndarray,
+    catalogue_redshift: np.ndarray, validation_redshift: np.ndarray,
+) -> float:
+    outside = ((catalogue_redshift < np.min(validation_redshift))
+               | (catalogue_redshift > np.max(validation_redshift)))
+    node_mass = node_weights[:, outside].sum(axis=1)
+    return float(posterior_weights @ node_mass)
+
+
+def _node_weight_diagnostics(node_weights: np.ndarray) -> dict[str, float]:
+    p = np.asarray(node_weights, dtype=float)
+    if p.ndim != 2 or not np.all(np.isfinite(p)) or np.any(p <= 0):
+        raise ValueError("node host weights must be a finite positive matrix")
+    kish = 1.0 / np.sum(p * p, axis=1)
+    entropy = np.exp(-np.sum(p * np.log(p), axis=1))
+    ordered = np.sort(p, axis=1)[:, ::-1]
+    n1 = max(1, int(np.ceil(0.01 * p.shape[1])))
+    n5 = max(1, int(np.ceil(0.05 * p.shape[1])))
+    return {
+        "minimum_node_kish_ess": float(np.min(kish)),
+        "minimum_node_entropy_ess": float(np.min(entropy)),
+        "maximum_node_normalized_weight": float(np.max(ordered[:, 0])),
+        "maximum_node_top_1_percent_mass": float(np.max(ordered[:, :n1].sum(axis=1))),
+        "maximum_node_top_5_percent_mass": float(np.max(ordered[:, :n5].sum(axis=1))),
+    }
 
 
 def _weight_summary(weights: np.ndarray) -> dict[str, float]:
