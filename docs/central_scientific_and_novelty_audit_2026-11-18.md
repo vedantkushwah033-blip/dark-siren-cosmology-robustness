@@ -219,3 +219,18 @@ The plausible contribution is not “Bayesian propensity uncertainty for IPW.”
 
 In particular, a strong statistical paper would need at least one result that generalizes beyond this one toy DGP—for example, a clearly defined decomposition or diagnostic with prospective predictive value for density/H0 calibration failure, supported by multiple parent laws, inclusion functions, validation designs, and independently held-out simulation conditions. Merely showing that a linear logistic model fails when the true model contains a quadratic term would be a standard misspecification demonstration.
 
+
+
+## Post-audit source correction discovered on 18 November 2026
+
+A deeper trace of the density smoke runner, five-arm weight builder, and KDE estimator identified a consequential issue not captured in the initial status table: the runner supplied the host/merger-rate factor b(z) as both sample-level base weights and the post-KDE merger multiplier. The large-sample target was therefore g(z)b(z)^2 rather than the declared g(z)b(z).
+
+A separate correction branch and draft PR #59 now:
+- remove the duplicate sample-level base weights from the density runner;
+- update the independent raw-input auditor to expect inclusion-only sample weights;
+- add a regression test that checks the runner's A/B sample weights are unit weights and independently audits the corrected artifact;
+- document the correct mutually exclusive conventions for applying b(z).
+
+The old five-arm density metrics and any bandwidth conclusions derived from the affected pipeline must be treated as superseded for the stated g(z)b(z) target until rerun. The correction is source-reviewed but **not yet test-verified**: no workflow run or combined commit status was returned for the latest PR #59 head. PR #59 remains draft and unmerged. The seven-gamma experiment remains not run, and H0 propagation remains blocked.
+
+A deterministic integration of the declared parent intensity shows the practical size of the target mismatch: mean redshift is 0.2251875 under g(z)b(z), versus 0.2469061 under g(z)b(z)^2; the total-variation distance is about 0.09231. These are deterministic population integrals, not Monte Carlo or experiment results.
