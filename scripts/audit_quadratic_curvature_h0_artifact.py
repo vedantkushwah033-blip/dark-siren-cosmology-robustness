@@ -375,7 +375,7 @@ def audit(root: Path):
         "max_abs_reconstruction_error": max(errors.values()) if errors else 0.0,
         "checks": list(errors),
         "limitations": [
-            "auditor reconstructs likelihood and H0 normalization from persisted coefficient nodes; it does not independently refit the validation posterior",
+            "auditor independently refits the validation-only coefficient posterior and reconstructs likelihood and H0 normalization; it does not independently regenerate the parent and validation redshift samples",
             "single synthetic realization; no SBC, coverage, or estimator superiority claim",
         ],
     }
