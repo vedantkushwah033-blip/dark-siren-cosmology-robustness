@@ -1,6 +1,9 @@
 name: corrected-quadratic-logit-curvature-grid-20rep
 
 on:
+  push:
+    branches:
+      - research/corrected-curvature-grid-20rep-20261118
   workflow_dispatch:
 
 permissions:
