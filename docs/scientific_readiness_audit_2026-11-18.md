@@ -71,7 +71,7 @@ Artifact `five-arm-kde-bandwidth-pilot` from run `43622509311` was downloaded an
 
 ## Critical follow-up: duplicate host-rate weighting found
 
-After the initial audit, open PR #59 (`research/fix-host-weight-double-application-20261118`, head `9918d10a245b9f7ad0eb986ed0f6109e762b6778`) identified a consequential issue in the density runner.
+After the initial audit, open PR #59 (`research/fix-host-weight-double-application-20261118`, current head `4902016d817de66be450d02230ce06acab86b738`) identified a consequential issue in the density runner.
 
 The original runner defined
 [
@@ -89,7 +89,7 @@ PR #59 removes the duplicate sample-level base weights, so A/B use unit weights 
 
 **I also independently quantified the population-level effect on the declared analytic target using 200,001 equally spaced redshift points and trapezoidal normalization. With the repository's (g(z)) and (b(z)=1+1.5(z-z_{\min})/(z_{\max}-z_{\min})), the normalized (g(z)b(z)) and (g(z)b(z)^2) densities have an integrated absolute difference of 0.1846197 (total-variation distance 0.0923099). Their mean redshifts are 0.2251875 and 0.2469061 respectively, a shift of 0.0217186 in redshift. These are deterministic target-discrepancy calculations, not Monte Carlo results; they show the duplicate factor is not a negligible bookkeeping issue.
 
-PR #59 remains draft and unmerged.** Its exact-head combined status is empty and no PR-triggered workflow run was found for head `9918d10a`. The fix has only source-level review and tests added; it has not yet passed CI or an independently audited rerun. Do not treat the fix as validated until exact-head CI, corrected smoke execution, and raw-artifact audit all pass.
+PR #59 remains draft and unmerged.** Its current exact-head PR-triggered `tests` workflow run is `44360570755` (run number 5553), observed as pending; the initial jobs query returned no job records, so no test result can yet be claimed. The combined-status endpoint returned no status entries. The fix has only source-level review and tests added; it has not yet passed CI or an independently audited rerun. Do not treat the fix as validated until exact-head CI, corrected smoke execution, and raw-artifact audit all pass.
 
 The seven-gamma curvature workflow invokes the multi-replicate orchestrator, which calls the single-replicate runner. Therefore the seven-gamma workflow must not be dispatched until the corrected runner/auditor is incorporated into the curvature branch and the corrected end-to-end smoke is independently audited.
 
