@@ -38,12 +38,23 @@ def bootstrap_mean_interval(values: np.ndarray, rng: np.random.Generator,
     return tuple(map(float,np.quantile(means,[.025,.975])))
 
 
+
+def _assert_pairing_keys(paired: pd.DataFrame, suffixes: tuple[str, str]) -> None:
+    """Reject replicate-ID matches that do not share the generating design."""
+    left, right = suffixes
+    for key in ("analysis_seed", "validation_seed", "h0_true"):
+        a = paired[f"{key}_{left}"].to_numpy()
+        b = paired[f"{key}_{right}"].to_numpy()
+        if not np.array_equal(a, b):
+            raise ValueError(f"paired replicate mismatch in {key}")
+
+
 def analyze(root: Path, output: Path, seed: int=20261119) -> dict:
     root=root.resolve(); output.mkdir(parents=True,exist_ok=True)
     ledger=pd.read_csv(root/"replicate_ledger.csv")
     required={"replicate","gamma","n_validation","status","h0_true","h0_median",
               "h0_q16","h0_q84","covered68","covered90","covered95",
-              "min_catalogue_kish_ess","max_normalized_weight"}
+              "min_catalogue_kish_ess","max_normalized_weight","analysis_seed","validation_seed"}
     missing=required-set(ledger.columns)
     if missing: raise ValueError(f"ledger missing columns: {sorted(missing)}")
     if ledger.duplicated(["replicate","gamma","n_validation"]).any():
@@ -88,6 +99,7 @@ def analyze(root: Path, output: Path, seed: int=20261119) -> dict:
                 right=success[(success.gamma==0)&(success.n_validation==nval)]
                 m=left.merge(right,on="replicate",suffixes=("_gamma","_zero"),validate="one_to_one")
                 if m.empty: continue
+                _assert_pairing_keys(m, ("gamma", "zero"))
                 for metric,values in {
                     "signed_median_bias":m.h0_median_gamma-m.h0_median_zero,
                     "absolute_median_error":abs(m.h0_median_gamma-m.h0_true_gamma)-abs(m.h0_median_zero-m.h0_true_zero),
@@ -110,6 +122,7 @@ def analyze(root: Path, output: Path, seed: int=20261119) -> dict:
         high=g[g.n_validation==sizes[-1]]
         m=high.merge(low,on="replicate",suffixes=("_high","_low"),validate="one_to_one")
         if m.empty: continue
+        _assert_pairing_keys(m, ("high", "low"))
         for metric,values in {
             "signed_median_bias":m.h0_median_high-m.h0_median_low,
             "absolute_median_error":abs(m.h0_median_high-m.h0_true_high)-abs(m.h0_median_low-m.h0_true_low),
