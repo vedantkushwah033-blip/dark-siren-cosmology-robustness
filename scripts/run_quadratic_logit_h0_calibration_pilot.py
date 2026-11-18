@@ -60,28 +60,35 @@ def main() -> None:
                     "n_validation":nval,"analysis_seed":analysis_seed,
                     "validation_seed":validation_seed,"h0_true":a.h0_true})
     pd.DataFrame(planned_rows).to_csv(out/"planned_cells.csv",index=False)
+    # Initialize and persist the entire execution ledger before launching any
+    # child. A cancelled workflow therefore retains every planned cell.
     rows=[]
+    for planned in planned_rows:
+        cell=planned["cell_id"]
+        rows.append({**planned,"artifact_dir":str(out/"replicates"/cell),
+            "status":"NOT_RUN","audit_status":"","error":"","quadrature_status":"",
+            "orders_evaluated":"","converged_at_order":None,"n_catalogue":None,
+            "min_catalogue_kish_ess":float("nan"),"max_normalized_weight":float("nan"),
+            "h0_median":float("nan"),"h0_q025":float("nan"),"h0_q05":float("nan"),
+            "h0_q16":float("nan"),"h0_q84":float("nan"),"h0_q95":float("nan"),
+            "h0_q975":float("nan"),"width68":float("nan"),"covered68":float("nan"),
+            "covered90":float("nan"),"covered95":float("nan"),"median_bias":float("nan")})
+    ledger_path=out/"replicate_ledger.csv"
+    pd.DataFrame(rows).to_csv(ledger_path,index=False)
+    row_by_cell={row["cell_id"]:row for row in rows}
     for rep in range(a.replicates):
         analysis_seed=seed(a.seed,rep,0); validation_seed=seed(a.seed,rep,1)
         for gamma in gammas:
             for nval in sizes:
                 cell=f"g{gamma:+g}_n{nval}_r{rep:03d}".replace("+","p").replace("-","m")
                 dest=out/"replicates"/cell
-                row={"cell_id":cell,"replicate":rep,"gamma":gamma,"n_validation":nval,
-                     "analysis_seed":analysis_seed,"validation_seed":validation_seed,
-                     "h0_true":a.h0_true,"artifact_dir":str(dest),"status":"NOT_RUN",
-                     "audit_status":"","error":"","quadrature_status":"",
-                     "orders_evaluated":"","converged_at_order":None,
-                     "n_catalogue":None,"min_catalogue_kish_ess":float("nan"),
-                     "max_normalized_weight":float("nan"),"h0_median":float("nan"),
-                     "h0_q025":float("nan"),"h0_q05":float("nan"),
-                     "h0_q16":float("nan"),"h0_q84":float("nan"),
-                     "h0_q95":float("nan"),"h0_q975":float("nan"),
-                     "width68":float("nan"),"covered68":float("nan"),
-                     "covered90":float("nan"),"covered95":float("nan"),
-                     "median_bias":float("nan") }
-                rows.append(row)
+                row=row_by_cell[cell]
+                dest=Path(row["artifact_dir"])
                 dest.parent.mkdir(parents=True,exist_ok=True)
+                # Persist RUNNING before subprocess launch. If the job is
+                # interrupted, this cell is distinguishable from NOT_RUN.
+                row["status"]="RUNNING"
+                pd.DataFrame(rows).to_csv(ledger_path,index=False)
                 cmd=[sys.executable,str(runner),"--seed",str(analysis_seed),
                      "--validation-seed",str(validation_seed),"--n-parent",str(a.n_parent),
                      "--n-detected",str(a.n_detected),"--h0-true",str(a.h0_true),
@@ -130,9 +137,9 @@ def main() -> None:
                           "median_bias":final["h0_median"]-a.h0_true})
                 except Exception as exc:
                     row["status"]="FAILED"; row["error"]=str(exc)
-                pd.DataFrame(rows).to_csv(out/"replicate_ledger.csv",index=False)
+                pd.DataFrame(rows).to_csv(ledger_path,index=False)
     ledger=pd.DataFrame(rows)
-    ledger.to_csv(out/"replicate_ledger.csv",index=False)
+    ledger.to_csv(ledger_path,index=False)
     summary=[]
     for (gamma,nval),g in ledger.groupby(["gamma","n_validation"]):
         ok=g[g.status=="SUCCESS"]
