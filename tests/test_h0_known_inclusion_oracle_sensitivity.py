@@ -6,7 +6,9 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from audit_h0_known_inclusion_oracle_sensitivity import (\n    assert_cross_gamma_pairing, make_h0_grid, selected_posterior_quantiles,\n)
+from audit_h0_known_inclusion_oracle_sensitivity import (
+    assert_cross_gamma_pairing, make_h0_grid, selected_posterior_quantiles,
+)
 
 
 def inputs():
