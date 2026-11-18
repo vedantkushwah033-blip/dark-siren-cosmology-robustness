@@ -41,11 +41,11 @@ The posterior is independently reconstructed from the finite-parent selected-eve
 | 90% interval coverage | 88.4% (Wilson 95%: 86.9%–89.7%) |
 | 95% interval coverage | 94.3% (Wilson 95%: 93.2%–95.2%) |
 
-Mean posterior-median bias was positive within each of the 10 parent populations (approximately +4.9 to +9.9 km s\(^{-1}\) Mpc\(^{-1}\)). The aggregate 68% and 95% coverage estimates are close to nominal at this Monte Carlo precision; the 90% interval coverage is modestly below nominal.
+Mean posterior-median bias was positive within each of the 10 parent populations (approximately +4.9 to +9.9 km s\(^{-1}\) Mpc\(^{-1}\)). The reported MCSE and t interval quantify event-realization Monte Carlo uncertainty **conditional on these 10 fixed parent populations**. They do not include superpopulation uncertainty from drawing new parent populations; the 2,000 event draws are independent conditional on the ten fixed parents, but share parent-level structure. A population-level uncertainty statement requires more independently generated parent populations or a parent-cluster bootstrap. The aggregate 68% and 95% coverage estimates are close to nominal at this conditional Monte Carlo precision; the 90% interval coverage is modestly below nominal.
 
 ## Interpretation
 
-This establishes an important baseline for the project: positive posterior-median bias is present even with the complete finite parent population and exact host weights. Therefore the positive bias in the 90-cell pilot cannot be assigned wholly to finite-validation inclusion estimation or logistic curvature misspecification.
+This establishes an important conditional baseline for the project: positive posterior-median bias is present across the ten archived finite parent populations even with the complete finite parent population and exact host weights. Therefore the positive bias in the 90-cell pilot cannot be assigned wholly to finite-validation inclusion estimation or logistic curvature misspecification.
 
 The result does **not** establish that the likelihood is wrong. With only four detected events, posterior medians can have finite-sample bias even when the selected-event likelihood is matched to the generator; fixed-truth credible-interval coverage is also not identical to joint SBC. The observed 90% undercoverage is modest and should be rechecked with more parent realizations and a separate calibration design.
 
