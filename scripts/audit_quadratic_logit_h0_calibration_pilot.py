@@ -217,6 +217,7 @@ def audit(root: Path) -> dict:
     _assert_summary_matches_ledger(ledger, summary)
     return {"status":"PASS","planned_cells":len(planned),"status_counts":counts,
             "child_audits_verified":audited,"paired_nested_blocks_checked":paired,
+            "paired_validation_blocks_checked":paired_validation_blocks,
             "aggregate_manifest_entries_verified":len(manifest),
             "summary_metrics_recomputed":True,
             "interpretation":"Arithmetic, pairing, nested design and artifact integrity only; not calibration evidence."}
