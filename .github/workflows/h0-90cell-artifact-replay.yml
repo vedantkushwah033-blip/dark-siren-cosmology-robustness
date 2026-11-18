@@ -1,0 +1,48 @@
+name: h0-90cell-artifact-replay
+
+on:
+  push:
+    branches:
+      - research/h0-90cell-artifact-replay-20261119
+    paths:
+      - .github/workflows/h0-90cell-artifact-replay.yml
+      - scripts/replay_h0_calibration_artifact.py
+      - scripts/audit_quadratic_logit_h0_calibration_pilot.py
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  replay-corrected-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install audit dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Download exact complete 90-cell source artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: quadratic-logit-h0-calibration-pilot-py3.12
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44402834830
+          github-token: ${{ github.token }}
+          path: artifacts/h0_90cell_replay
+      - name: Replay corrected independent audit
+        run: |
+          python scripts/replay_h0_calibration_artifact.py \
+            --root artifacts/h0_90cell_replay \
+            --output artifacts/h0_90cell_replay_report.json
+      - name: Upload corrected replay report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h0-90cell-corrected-audit-replay
+          path: artifacts/h0_90cell_replay_report.json
+          if-no-files-found: warn
+          retention-days: 90
