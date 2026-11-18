@@ -7,7 +7,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from audit_quadratic_logit_h0_calibration_pilot import _assert_summary_matches_ledger
+from audit_quadratic_logit_h0_calibration_pilot import (\n    _assert_summary_matches_ledger, _assert_validation_samples_paired,\n)
 
 
 def fixtures():
@@ -55,3 +55,29 @@ def test_summary_rejects_missing_and_duplicate_cells():
         _assert_summary_matches_ledger(ledger,summary.iloc[0:0])
     with pytest.raises(AssertionError,match="duplicate"):
         _assert_summary_matches_ledger(ledger,pd.concat([summary,summary],ignore_index=True))
+
+
+
+def test_validation_observations_must_match_across_curvature(tmp_path):
+    import numpy as np
+    from pathlib import Path
+
+    dirs = {}
+    rows = []
+    for gamma in (-1.0, 0.0, 1.0):
+        cell = f"g{gamma}"
+        root = tmp_path / cell
+        (root / "observable").mkdir(parents=True)
+        pd.DataFrame({"validation_id":[1,2,3],"redshift":[.1,.2,.3],
+                      "retained":[1,0,1]}).to_csv(
+            root / "observable/validation_observed.csv", index=False)
+        dirs[cell] = root
+        rows.append({"cell_id":cell,"replicate":0,"gamma":gamma,"n_validation":100})
+    ledger = pd.DataFrame(rows)
+    assert _assert_validation_samples_paired(ledger, dirs) == 1
+
+    changed = pd.read_csv(dirs["g1.0"] / "observable/validation_observed.csv")
+    changed.loc[0,"retained"] = 0
+    changed.to_csv(dirs["g1.0"] / "observable/validation_observed.csv",index=False)
+    with pytest.raises(AssertionError):
+        _assert_validation_samples_paired(ledger, dirs)
