@@ -142,9 +142,14 @@ def _independent_logistic_quadrature(validation_redshift, retained, cfg):
  mode=np.asarray(fit.x,float)
  if not np.all(np.isfinite(mode)): raise AssertionError("independent posterior mode is non-finite")
  # Deterministic damped Newton polishing, independent of the production trust-exact optimizer.
+ # Match the production fitter's strict Newton-refinement residual before
+ # comparing quadrature nodes. The previous 1e-6 stopping threshold was looser
+ # than the 1e-7 node-equivalence assertion and could fail on harmless optimizer
+ # precision loss even when both fits represented the same posterior.
  for _ in range(100):
   score=gradient(mode)
-  if np.linalg.norm(score,ord=np.inf)<=1e-6: break
+  score_norm=float(np.linalg.norm(score,ord=np.inf))
+  if score_norm<=1e-8: break
   info=hessian(mode)
   try: direction=np.linalg.solve(info,score)
   except np.linalg.LinAlgError as exc: raise AssertionError("independent posterior Hessian solve failed") from exc
@@ -153,17 +158,18 @@ def _independent_logistic_quadrature(validation_redshift, retained, cfg):
   current=objective(mode); step=1.0; accepted=False
   while step>=2.0**-35:
    candidate=mode-step*direction
-   if objective(candidate)<=current-1e-4*step*decrement:
+   candidate_score=float(np.linalg.norm(gradient(candidate),ord=np.inf))
+   candidate_objective=objective(candidate)
+   armijo=candidate_objective<=current-1e-4*step*decrement
+   score_improved=candidate_score<score_norm
+   if np.isfinite(candidate_score) and (armijo or score_improved):
     mode=candidate; accepted=True; break
    step*=0.5
   if not accepted:
-   # At machine precision the objective can stop decreasing before the score
-   # reaches 1e-11. Accept only the same narrow residual bound as the production
-   # fit; retain the Hessian and positive-definiteness checks below.
-   if np.linalg.norm(gradient(mode),ord=np.inf)<=1e-6: break
+   if score_norm<=1e-8: break
    raise AssertionError("independent posterior Newton polish stalled")
  else:
-  if np.linalg.norm(gradient(mode),ord=np.inf)>1e-6:
+  if np.linalg.norm(gradient(mode),ord=np.inf)>1e-8:
    raise AssertionError("independent posterior mode did not converge")
  information=hessian(mode)
  eigen=np.linalg.eigvalsh(information)
