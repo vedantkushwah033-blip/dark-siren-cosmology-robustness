@@ -48,6 +48,18 @@ All nine cells have 10/10 successful replicates.
 
 Bias is in km s^-1 Mpc^-1; interval width is in the same units.
 
+## Paired diagnostics across curvature and validation size
+
+Because the design reuses the same parent/event seeds across curvature and nested validation prefixes within replicate, paired differences are more informative than comparing unrelated cell means. Averaged over the 30 replicate × validation-size pairs:
+
+- γ=0 minus γ=-1 median-bias difference: +4.19 km s^-1 Mpc^-1 (paired SD 3.45; range -0.54 to +11.92).
+- γ=+1 minus γ=0: +5.28 km s^-1 Mpc^-1 (paired SD 3.94; range +0.67 to +14.09).
+- γ=+1 minus γ=-1: +9.47 km s^-1 Mpc^-1 (paired SD 5.21; range +1.40 to +21.17).
+
+By contrast, changing validation size while holding replicate and curvature fixed has much smaller median-bias movement: n=300 minus 100 averages +0.11 (SD 1.55), n=500 minus 300 averages -0.66 (SD 0.99), and n=500 minus 100 averages -0.54 (SD 1.42) km s^-1 Mpc^-1. These are descriptive paired contrasts, not causal decomposition. They suggest that this four-event realization and curvature condition matter more than increasing validation size from 100 to 500 in this particular pilot.
+
+Across all 90 prior-sensitivity records, changing the slope-prior SD multiplier from 1 to 0.5 shifts the H0 posterior median downward by a median 1.09–1.28 km s^-1 Mpc^-1 depending on curvature; changing it to 2 shifts the median upward by a median 0.31–0.38. The largest absolute median shifts are 6.62 and 2.48 km s^-1 Mpc^-1, respectively. This confirms non-negligible prior sensitivity in some realizations, but does not by itself explain the full positive-bias pattern.
+
 ## Interpretation
 
 1. Posterior-median bias is positive in all nine cells. Mean bias ranges from +3.46 to +13.62 km s^-1 Mpc^-1.
