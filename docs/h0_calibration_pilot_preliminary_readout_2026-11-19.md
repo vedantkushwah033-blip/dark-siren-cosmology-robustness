@@ -55,8 +55,9 @@ Bias is in km s^-1 Mpc^-1; interval width is in the same units.
 3. Increasing validation size improves the weight-concentration diagnostics: median minimum Kish ESS rises and maximum normalized weight falls in every curvature condition.
 4. Those improved weight diagnostics do not translate into a clear H0 calibration improvement in this small pilot. For γ=+1, mean bias remains about +13 km s^-1 Mpc^-1 across validation sizes.
 5. The correctly specified γ=0 reference also has notable positive bias (+7.5 to +8.2). Therefore, the observed bias cannot be attributed solely to quadratic misspecification.
-6. The pilot's 10 replicates per cell are far too few for confirmatory coverage statements. For example, 5/10 coverage has a very wide exact binomial interval; 10/10 does not establish nominal 95% coverage.
-7. The prior-slope sensitivity records show non-negligible posterior movement when the slope-prior scale is changed. This deserves a paired sensitivity audit before attributing bias to the IPW correction itself.
+6. The pilot's 10 replicates per cell are far too few for confirmatory coverage statements. Wilson 95% intervals for observed coverage counts are: 5/10, [0.24, 0.76]; 7/10, [0.40, 0.89]; 8/10, [0.49, 0.94]; 9/10, [0.60, 0.98]; and 10/10, [0.72, 1.00]. Thus even 10/10 observed coverage is compatible with substantially lower repeated-sampling coverage.
+7. The archive does not contain PIT values, so PIT calibration cannot be assessed from this pilot. It should be added to a future preregistered run rather than inferred from interval coverage.
+8. The prior-slope sensitivity records show non-negligible posterior movement when the slope-prior scale is changed. This deserves a paired sensitivity audit before attributing bias to the IPW correction itself.
 
 ## Mandatory limitations and next gates
 
