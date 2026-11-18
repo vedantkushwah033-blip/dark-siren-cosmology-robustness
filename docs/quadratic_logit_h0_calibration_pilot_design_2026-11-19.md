@@ -119,6 +119,20 @@ Known-pi IPW minus full-parent median contrasts are -1.13 (paired 95% t interval
 
 This changes the next scientific priority: investigate the finite four-event realization and the selected-H0 likelihood/selection convention, then quantify how the estimated inclusion model adds to that baseline. The 100-replicate follow-up improves precision for the fitted-IPW arm but does not itself include oracle arms; an independent full-parent and known-pi decomposition on its 281-point raw artifact is still needed. This remains a synthetic fixed-truth diagnostic, not SBC or observational inference.
 
+### Completed 281-to-561 H0-grid refinement audit (workflow #44411660552)
+
+The full refinement workflow completed successfully. I downloaded its 70.9 MB artifact and independently checked every entry in its 1,271-entry refinement manifest: zero missing files and zero SHA-256 mismatches. The baseline 2,110-entry pilot manifest was also verified by the workflow. All 54 refined child runs completed SUCCESS and all 54 child audits passed.
+
+The report contains 81 paired grid comparisons across 27 fixed pilot cells (three gamma values × three validation sizes × three replicates), comparing 141→281, 141→561, and 281→561 points. The overall report status PASS means the planned reruns and audits completed; it does **not** mean every grid comparison met the predeclared tolerances. Only 28/81 comparisons passed all tolerances:
+
+| Grid comparison | Density tolerance | Quantile tolerance | Both tolerances |
+|---|---:|---:|---:|
+| 141 → 281 | 27/27 | 1/27 | 1/27 |
+| 141 → 561 | 27/27 | 0/27 | 0/27 |
+| 281 → 561 | 27/27 | 27/27 | 27/27 |
+
+For 281→561, the maximum absolute posterior-density difference was 0.0002353 (tolerance 0.001); the maximum absolute difference across the reported posterior quantiles was 0.0382 km s^-1 Mpc^-1 (tolerance 0.05). The largest posterior-median shift was 0.00752 km s^-1 Mpc^-1. Thus 281 points are numerically adequate relative to 561 for all 27 tested cells under these declared tolerances, while 141 points are not adequate for quantiles. This is a focused 27-cell numerical sensitivity audit, not a 90-cell grid audit and not a calibration study.
+
 ## Go/no-go
 
 The artifact-integrity and execution gate is PASS. The scientific gate remains exploratory only. Before a confirmatory interpretation, the project still needs (i) completion of the full 281-to-561 H0-grid audit beyond the first three paired replicates, (ii) a larger event-count sensitivity, (iii) a larger-replicate full-parent/known-inclusion oracle reconstruction to quantify uncertainty in the gamma=0 baseline decomposition, and (iv) the matched five-arm A–E repeated-sampling comparison. This single-arm pilot cannot establish whether estimated inclusion correction improves H0 inference relative to catalogue-only, oracle, or known-probability controls.
