@@ -23,6 +23,15 @@ def audit(root: Path) -> dict:
         raise AssertionError("duplicate cell identifiers")
     if set(planned.cell_id)!=set(ledger.cell_id):
         raise AssertionError("planned cells and ledger do not match")
+    identity=["replicate","gamma","n_validation","analysis_seed","validation_seed","h0_true"]
+    joined=planned[["cell_id",*identity]].merge(
+        ledger[["cell_id",*identity]],on="cell_id",how="inner",
+        suffixes=("_planned","_ledger"),validate="one_to_one")
+    for name in identity:
+        left=joined[f"{name}_planned"].to_numpy()
+        right=joined[f"{name}_ledger"].to_numpy()
+        if not np.allclose(left.astype(float),right.astype(float),rtol=0,atol=0):
+            raise AssertionError(f"planned/ledger provenance mismatch: {name}")
     allowed={"SUCCESS","NON_EVALUABLE","FAILED","NOT_RUN"}
     if not set(ledger.status).issubset(allowed):
         raise AssertionError("unknown failure-ledger status")
@@ -38,6 +47,12 @@ def audit(root: Path) -> dict:
             cfg=json.loads((d/"config.json").read_text())
             if not np.isclose(cfg["inference"]["curvature_gamma"],row.gamma):
                 raise AssertionError(f"gamma mismatch: {row.cell_id}")
+            if int(cfg["validation_generator_config"]["n_validation"])!=int(row.n_validation):
+                raise AssertionError(f"validation-size mismatch: {row.cell_id}")
+            if int(cfg["analysis_generator_config"]["seed"])!=int(row.analysis_seed):
+                raise AssertionError(f"analysis-seed mismatch: {row.cell_id}")
+            if int(cfg["validation_generator_config"]["seed"])!=int(row.validation_seed):
+                raise AssertionError(f"validation-seed mismatch: {row.cell_id}")
             if cfg["analysis_generator_config"]["n_catalogue_observed"]!=len(pd.read_csv(d/"observable/analysis_catalogue.csv")):
                 raise AssertionError(f"catalogue count mismatch: {row.cell_id}")
             dirs[row.cell_id]=d; audited+=1
@@ -66,7 +81,8 @@ def audit(root: Path) -> dict:
                 raise AssertionError("validation SRS samples are not nested prefixes")
             prior_ids=ids
         paired+=1
-    # GW events and parent redshift realization must be invariant across gamma
+    # Parent, GW events, and validation-frame sampling must be invariant across gamma.
+    # Retention labels/probabilities are intentionally excluded because gamma changes them.
     for rep,block in ledger.groupby("replicate"):
         usable=block[block.cell_id.isin(dirs)]
         if usable.empty: continue
@@ -75,16 +91,27 @@ def audit(root: Path) -> dict:
             d=dirs[row.cell_id]
             parent=pd.read_csv(d/"truth/analysis_parent_truth.csv")[["object_id","redshift"]]
             events=pd.read_csv(d/"observable/gw_events_observed.csv")
-            current=(parent,events)
+            frame=pd.read_csv(d/"truth/validation_frame_truth.csv")
+            frame=frame[["frame_id","redshift","selected_for_validation"]]
+            current=(parent,events,frame)
             if reference is None: reference=current
             else:
                 pd.testing.assert_frame_equal(parent,reference[0])
                 pd.testing.assert_frame_equal(events,reference[1])
+                pd.testing.assert_frame_equal(frame,reference[2])
     counts=ledger.status.value_counts().to_dict()
     for row in summary.itertuples(index=False):
         group=ledger[(ledger.gamma==row.gamma)&(ledger.n_validation==row.n_validation)]
-        if len(group)!=row.planned or int((group.status=="SUCCESS").sum())!=row.success:
-            raise AssertionError("summary table does not reconcile with replicate ledger")
+        observed={
+            "success":int((group.status=="SUCCESS").sum()),
+            "non_evaluable":int((group.status=="NON_EVALUABLE").sum()),
+            "failed":int((group.status=="FAILED").sum()),
+            "not_run":int((group.status=="NOT_RUN").sum()),
+        }
+        if len(group)!=row.planned or any(
+            observed[key]!=int(getattr(row,key)) for key in observed
+        ):
+            raise AssertionError("summary status counts do not reconcile with replicate ledger")
     return {"status":"PASS","planned_cells":len(planned),"status_counts":counts,
             "child_audits_verified":audited,"paired_nested_blocks_checked":paired,
             "aggregate_manifest_entries_verified":len(manifest),
