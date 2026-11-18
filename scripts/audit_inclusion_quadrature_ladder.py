@@ -27,11 +27,11 @@ Z_MIN, Z_MAX = 0.01, 0.40
 def _rate_weighted_node_host_weights(fit, catalogue_redshift: np.ndarray):
     host = build_node_specific_host_weights(fit, catalogue_redshift)
     base_rate = 1.0 + 1.5 * (catalogue_redshift - Z_MIN) / (Z_MAX - Z_MIN)
-    raw = host.raw_inverse_weight * base_rate[None, :]
-    totals = raw.sum(axis=1, keepdims=True)
-    if not np.all(np.isfinite(raw)) or np.any(raw <= 0) or np.any(totals <= 0):
+    adjusted = host.normalized_weight * base_rate[None, :]
+    totals = adjusted.sum(axis=1, keepdims=True)
+    if not np.all(np.isfinite(adjusted)) or np.any(adjusted <= 0) or np.any(totals <= 0):
         raise ArithmeticError("rate-weighted node host weights are invalid")
-    return host, raw / totals
+    return host, adjusted / totals
 
 
 def _mixture_host_weights(posterior_weights: np.ndarray, node_weights: np.ndarray) -> np.ndarray:
