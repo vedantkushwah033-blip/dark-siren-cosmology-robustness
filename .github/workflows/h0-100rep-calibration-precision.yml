@@ -37,7 +37,7 @@ jobs:
         run: |
           python scripts/run_quadratic_logit_h0_calibration_pilot.py \
             --replicates 100 \
-            --seed 2026111927 \
+            --seed 2026111930 \
             --gammas=-1,0,1 \
             --validation-sizes 100,500 \
             --n-validation-frame 500 \
