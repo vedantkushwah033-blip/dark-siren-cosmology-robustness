@@ -13,7 +13,7 @@ permissions:
 jobs:
   oracle-audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -31,13 +31,15 @@ jobs:
           run-id: 44411667480
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: artifacts/h0_100rep_calibration_precision
-      - name: Independently reconstruct known-inclusion and full-parent oracle posteriors
+      - name: Independently reconstruct oracle posteriors on production and refined grids
         run: |
-          python scripts/audit_h0_known_inclusion_oracle_sensitivity.py \
-            artifacts/h0_100rep_calibration_precision \
-            --output-dir artifacts/h0_100rep_oracle_audit \
-            --h0-points 281
-      - name: Require complete, failure-inclusive six-cell readout
+          for points in 281 561; do
+            python scripts/audit_h0_known_inclusion_oracle_sensitivity.py \
+              artifacts/h0_100rep_calibration_precision \
+              --output-dir "artifacts/h0_100rep_oracle_audit/grid-${points}" \
+              --h0-points "${points}"
+          done
+      - name: Require complete oracle denominator and failure-inclusive six-cell readouts
         run: |
           python - <<'PY'
           import json
@@ -45,23 +47,29 @@ jobs:
           import pandas as pd
 
           root = Path("artifacts/h0_100rep_oracle_audit")
-          cells = pd.read_csv(root / "oracle_cell_readout.csv")
-          summary = pd.read_csv(root / "oracle_summary.csv")
-          cfg = json.loads((root / "oracle_grid_config.json").read_text())
-          assert len(cells) == 599, len(cells)
-          assert len(summary) == 6, len(summary)
-          assert cfg["planned_cells"] == 600, cfg
-          assert cfg["status_counts"]["SUCCESS"] == 599, cfg
-          assert cfg["status_counts"]["NON_EVALUABLE"] == 1, cfg
-          assert (summary["planned"] == 100).all()
-          assert summary["success"].sum() == 599
-          assert summary["non_evaluable"].sum() == 1
-          assert summary["estimated_coverage68_lower_all_attempts"].notna().all()
-          assert summary["estimated_coverage68_upper_all_attempts"].notna().all()
-          assert (summary["estimated_coverage68_lower_all_attempts"] <=
-                  summary["estimated_coverage68_upper_all_attempts"]).all()
-          print(summary.to_string(index=False))
-          print(json.dumps(cfg, indent=2))
+          for points in (281, 561):
+              out = root / f"grid-{points}"
+              cells = pd.read_csv(out / "oracle_cell_readout.csv")
+              summary = pd.read_csv(out / "oracle_summary.csv")
+              cfg = json.loads((out / "oracle_grid_config.json").read_text())
+              assert len(cells) == 600, len(cells)
+              assert len(summary) == 6, len(summary)
+              assert cfg["planned_cells"] == 600, cfg
+              assert cfg["status_counts"]["SUCCESS"] == 599, cfg
+              assert cfg["status_counts"]["NON_EVALUABLE"] == 1, cfg
+              assert (summary["planned"] == 100).all()
+              assert summary["success"].sum() == 599
+              assert summary["non_evaluable"].sum() == 1
+              assert (summary["oracle_replicates"] == 100).all()
+              assert (cells.groupby(["gamma", "n_validation"]).known_pi_bias.count() == 100).all()
+              assert (cells.groupby(["gamma", "n_validation"]).full_parent_bias.count() == 100).all()
+              assert summary["estimated_coverage68_lower_all_attempts"].notna().all()
+              assert summary["estimated_coverage68_upper_all_attempts"].notna().all()
+              assert (summary["estimated_coverage68_lower_all_attempts"] <=
+                      summary["estimated_coverage68_upper_all_attempts"]).all()
+              print(f"ORACLE GRID: {points}")
+              print(summary.to_string(index=False))
+              print(json.dumps(cfg, indent=2))
           PY
       - name: Upload independent oracle readout
         uses: actions/upload-artifact@v4
