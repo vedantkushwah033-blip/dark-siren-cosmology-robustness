@@ -102,4 +102,3 @@ jobs:
           path: artifacts/full_parent_h0_sbc_1000/
           if-no-files-found: warn
           retention-days: 90
-# This workflow is also present on the PR base branch to enable pull_request validation.
