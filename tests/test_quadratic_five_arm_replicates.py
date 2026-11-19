@@ -105,3 +105,24 @@ def test_independent_quadrature_solver_replays_previously_non_evaluable_seed():
         assert nodes.shape==(25,2)
         assert weights.shape==(25,)
         assert np.isclose(weights.sum(),1.0,atol=1e-12)
+
+
+def test_failure_width_bound_tracks_configured_prior_span():
+    summaries = pd.DataFrame([{
+        "replicate": 0, "gamma": 0.0, "validation_size": 100,
+        "arm": "A_catalogue_only", "status": "SUCCESS",
+        "h0_true": 70.0, "median_error": 1.0, "q16": 68.0, "q84": 72.0,
+    }])
+    ledger = pd.DataFrame([
+        {"replicate": 0, "gamma": 0.0, "validation_size": 100,
+         "arm": "A_catalogue_only", "status": "SUCCESS"},
+        {"replicate": 1, "gamma": 0.0, "validation_size": 100,
+         "arm": "A_catalogue_only", "status": "FAILED"},
+    ])
+    result = _aggregate(
+        summaries, ledger, replicates=2, max_abs_error=40.0,
+        max_interval_width=80.0,
+    )
+    row = result.iloc[0]
+    assert row.failure_inclusive_width_lower == 2.0
+    assert row.failure_inclusive_width_upper == 42.0
