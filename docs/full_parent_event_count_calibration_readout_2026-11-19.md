@@ -1,6 +1,6 @@
 # Paired full-parent event-count calibration: preliminary readout
 
-**Status:** 500 paired parent/event realizations completed; independent raw-seed reconstruction audit pending.
+**Status:** 500 paired parent/event realizations completed; independent raw-seed reconstruction audit PASS (workflow #44437893958, artifact #14489479882).
 
 ## Provenance
 
@@ -38,9 +38,9 @@ The difference in coverage is material and should not be hidden or averaged away
 
 This repeated-draw result shows that the original 100 single-event-realization coverage (0.54/0.83/0.91) was unusually low; the same parent populations give 0.6535/0.8794/0.9335 when event-sample variability is averaged over 200 draws per parent. The independent 500-parent experiment gives 0.696/0.910/0.954, somewhat higher but broadly consistent with a modest finite-sample difference. These are distinct designs and must not be pooled or presented as paired estimates. The 20,000-draw result is the primary conditional-on-these-parent-populations baseline; the 500-parent result estimates unconditional performance over a new parent-population sample.
 
-## Independent audit pending
+## Independent audit completed
 
-The companion PR #104 regenerates all 500 parent populations and 30-event sequences from the archived seeds, independently reconstructs all 1,000 selected-event posteriors, and checks every reported quantile, coverage indicator, interval width, aggregate metric, paired contrast, and manifest hash. This readout should be upgraded to independently audited status only after that workflow passes.
+The companion PR #104 regenerated all 500 parent populations and 15,000 detected-event sequences from archived seeds, independently reconstructed all 1,000 selected-event posteriors, and checked every reported quantile, coverage indicator, interval width, aggregate metric, paired contrast, and manifest hash. Workflow #44437893958 completed SUCCESS with audit status PASS; artifact #14489479882 contains the machine-readable report.
 
 ## Scope
 
