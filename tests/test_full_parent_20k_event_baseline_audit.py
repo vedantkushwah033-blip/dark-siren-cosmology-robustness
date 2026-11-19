@@ -1,6 +1,8 @@
 from pathlib import Path
+import sys
 import numpy as np
-from scripts.audit_full_parent_20k_event_baseline import _draw_detected_independent, _posterior_quantiles_independent
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+from audit_full_parent_20k_event_baseline import _draw_detected_independent, _posterior_quantiles_independent
 
 def test_independent_detected_sampler_and_posterior():
     z=np.linspace(.02,.35,300)
