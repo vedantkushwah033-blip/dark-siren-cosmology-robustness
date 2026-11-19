@@ -172,6 +172,10 @@ def audit(root: Path, h0_points: int | None = None):
                 "h0_grid_points": int(h0.size),
                 "n_validation": int(cell.n_validation), "cell_id": cell.cell_id,
                 "status": str(cell.status),
+                "covered68": (
+                    int(cell.covered68) if cell.status == "SUCCESS" and
+                    pd.notna(cell.covered68) else float("nan")
+                ),
                 "estimated_median": estimated_median,
                 "estimated_bias": estimated_median-70.0,
                 "known_pi_median": known["q500"], "known_pi_bias": known["q500"]-70.0,
