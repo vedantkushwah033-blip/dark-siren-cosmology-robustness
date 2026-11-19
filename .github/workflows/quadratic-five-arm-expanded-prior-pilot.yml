@@ -11,7 +11,6 @@ on:
       - scripts/run_quadratic_five_arm_replicates.py
       - scripts/audit_quadratic_five_arm_replicates.py
       - scripts/audit_five_arm_prior_support_sensitivity.py
-      - tests/test_five_arm_prior_support_sensitivity.py
       - tests/test_quadratic_five_arm_smoke.py
       - tests/test_quadratic_five_arm_replicates.py
   workflow_dispatch:
@@ -103,7 +102,7 @@ jobs:
           PY
           python scripts/analyze_quadratic_five_arm_precision.py \
             artifacts/quadratic_five_arm_expanded_prior_20rep \
-            --output-prefix artifacts/quadratic_five_arm_expanded_prior_20rep/precision_readout
+            --output-prefix artifacts/precision_readout/precision_readout
       - name: Upload expanded-prior pilot and independent audit
         if: always()
         uses: actions/upload-artifact@v4
