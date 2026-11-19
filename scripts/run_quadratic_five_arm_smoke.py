@@ -46,9 +46,11 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _posterior_summary(grid: np.ndarray, log_likelihood: np.ndarray) -> dict[str, float]:
+def _posterior_summary(
+    grid: np.ndarray, log_likelihood: np.ndarray, prior_min: float, prior_max: float,
+) -> dict[str, float]:
     posterior = normalize_h0_posterior(
-        grid, log_likelihood, prior_min=50.0, prior_max=90.0
+        grid, log_likelihood, prior_min=prior_min, prior_max=prior_max
     )
     return {
         "posterior_median": posterior.quantile(0.50),
@@ -71,6 +73,12 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         directory.mkdir(parents=True, exist_ok=True)
 
     sizes = args.validation_sizes
+    prior_min = float(getattr(args, "h0_prior_min", 50.0))
+    prior_max = float(getattr(args, "h0_prior_max", 90.0))
+    if not np.isfinite(prior_min) or not np.isfinite(prior_max) or prior_min >= prior_max:
+        raise ValueError("H0 prior bounds must be finite and increasing")
+    if not prior_min <= args.h0_true <= prior_max:
+        raise ValueError("H0 truth must lie within the declared prior support")
     if sizes[-1] > args.validation_frame:
         raise ValueError("largest validation size cannot exceed validation frame size")
 
@@ -128,7 +136,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         {"gw_distance": float(row.distance_mpc), "gw_sigma": float(args.sigma_mpc)}
         for row in events_frame.itertuples(index=False)
     ]
-    h0_grid = np.linspace(50.0, 90.0, args.h0_points)
+    h0_grid = np.linspace(prior_min, prior_max, args.h0_points)
     redshift_grid = np.linspace(0.01, 0.40, 501)
     merger_weight_grid = np.ones_like(redshift_grid)
 
@@ -170,7 +178,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             "E_uncertainty_integrated_ipw": result.arm_e_marginal_log_likelihood,
         }
         for arm, log_likelihood in arm_likelihoods.items():
-            estimates = _posterior_summary(h0_grid, np.asarray(log_likelihood))
+            estimates = _posterior_summary(h0_grid, np.asarray(log_likelihood), prior_min, prior_max)
             summary_rows.append({
                 "validation_size": n_validation,
                 "arm": arm,
@@ -267,6 +275,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "curvature_beta": args.curvature_beta,
         "quadratic_calibration": quadratic["config"],
         "h0_true": args.h0_true,
+        "h0_prior_support": [prior_min, prior_max],
         "h0_grid_points": args.h0_points,
         "redshift_grid_points": len(redshift_grid),
         "scott_multiplier": args.scott_multiplier,
@@ -320,6 +329,8 @@ def main() -> None:
     parser.add_argument("--curvature-gamma", type=float, default=0.0)
     parser.add_argument("--curvature-beta", type=float, default=-3.9)
     parser.add_argument("--h0-true", type=float, default=70.0)
+    parser.add_argument("--h0-prior-min", type=float, default=50.0)
+    parser.add_argument("--h0-prior-max", type=float, default=90.0)
     parser.add_argument("--h0-points", type=int, default=41)
     parser.add_argument("--scott-multiplier", type=float, default=0.7)
     parser.add_argument("--quadrature-order", type=int, default=5)

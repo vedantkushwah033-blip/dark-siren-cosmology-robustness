@@ -265,6 +265,11 @@ def audit(root: Path) -> dict:
     threshold = float(config["detection_threshold_mpc"])
     sigma = float(config["sigma_mpc"])
     h0_true = float(config["h0_true"])
+    prior_min, prior_max = map(float, config.get("h0_prior_support", [50.0, 90.0]))
+    if not np.isfinite(prior_min) or not np.isfinite(prior_max) or prior_min >= prior_max:
+        raise AssertionError("H0 prior support must be finite and increasing")
+    if not prior_min <= h0_true <= prior_max:
+        raise AssertionError("H0 truth lies outside the declared prior support")
 
     parent = pd.read_csv(root / "truth" / "parent_truth.csv")
     catalogue = pd.read_csv(root / "observable" / "catalogue_observed.csv")
@@ -369,7 +374,7 @@ def audit(root: Path) -> dict:
     parent_base = 1.0 + 1.5 * (parent_z - 0.01) / 0.39
     catalogue_base = 1.0 + 1.5 * (catalogue_z - 0.01) / 0.39
     distances = events["distance_mpc"].to_numpy(float)
-    grid = np.linspace(50.0, 90.0, int(config["h0_grid_points"]))
+    grid = np.linspace(prior_min, prior_max, int(config["h0_grid_points"]))
     z_grid = np.linspace(0.01, 0.40, int(config["redshift_grid_points"]))
     rate_grid = np.ones_like(z_grid)
     scott_multiplier = float(config["scott_multiplier"])
