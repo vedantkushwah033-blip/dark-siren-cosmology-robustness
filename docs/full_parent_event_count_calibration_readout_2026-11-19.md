@@ -49,6 +49,20 @@ A 50-replicate subset was independently reconstructed on 561 and 1,121 grids (wo
 - 30 events: maximum quantile shift 0.02754 km s^-1 Mpc^-1; maximum density L1 0.001748 (median 0.001186), exceeding the 0.001 threshold.
 The quantile shifts remained below 0.05 in both arms. The density-L1 failure is not being waived. The updated audit branch now compares 561→1,121→2,241 points and applies the gate to the 1,121→2,241 increment; the newer workflow must complete before resolution is considered settled. This numerical audit is a deterministic 50-replicate subset, not a new calibration experiment.
 
+
+## Completed three-grid H0 resolution audit
+
+Workflow #44447722808 (artifact #14494940733; SHA-256 `940850013f33cba0adcd354fff3600fc50d897caf846a6abccff52e102148841`) independently regenerated 50 of the 500 paired parent/event realizations, reconstructed 100 posterior curves, and verified all four source-manifest entries. The preregistered adjacent-grid gate passed for 1,121→2,241 points in both event-count arms.
+
+| Arm | Comparison | Max quantile shift (km s^-1 Mpc^-1) | Max density L1 |
+|---|---|---:|---:|
+| 4 events | 561→1,121 | 0.01247 | 0.000341 |
+| 4 events | 1,121→2,241 | 0.00320 | 0.0000852 |
+| 30 events | 561→1,121 | 0.02754 | 0.001748 |
+| 30 events | 1,121→2,241 | 0.00677 | 0.000438 |
+
+The 30-event arm fails the density-L1 threshold at 561→1,121 but passes at 1,121→2,241. The 4-event arm passes both comparisons. This supports using at least 1,121 H0 grid points for the 30-event fixed-truth experiment under these diagnostics; it does not establish universal grid adequacy outside the audited 50-realization subset. The audit's 2,241-point result is the fine-grid comparator, not a new calibration estimate.
+
 ## Scope
 
 This is a synthetic low-redshift Euclidean fixed-truth diagnostic with a full parent catalogue. It is not an observational H0 measurement, joint SBC, a catalogue-inclusion result, LVK/GWTC analysis, or validation against real galaxy surveys.
