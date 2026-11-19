@@ -1,0 +1,83 @@
+name: H0 100-replicate failure-inclusive oracle audit
+
+on:
+  push:
+    branches:
+      - research/h0-100rep-oracle-failure-inclusive-audit-20261119
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  oracle-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install audit dependencies
+        run: python -m pip install --upgrade numpy pandas scipy pytest
+      - name: Run focused oracle-audit tests
+        run: pytest -q tests/test_h0_known_inclusion_oracle_sensitivity.py
+      - name: Download completed 600-cell experiment artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: h0-100rep-calibration-precision-py3.12
+          repository: ${{ github.repository }}
+          run-id: 44411667480
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/h0_100rep_calibration_precision
+      - name: Independently reconstruct oracle posteriors on production and refined grids
+        run: |
+          for points in 281 561; do
+            python scripts/audit_h0_known_inclusion_oracle_sensitivity.py \
+              artifacts/h0_100rep_calibration_precision \
+              --output-dir "artifacts/h0_100rep_oracle_audit/grid-${points}" \
+              --h0-points "${points}"
+          done
+      - name: Require complete oracle denominator and failure-inclusive six-cell readouts
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path("artifacts/h0_100rep_oracle_audit")
+          for points in (281, 561):
+              out = root / f"grid-{points}"
+              cells = pd.read_csv(out / "oracle_cell_readout.csv")
+              summary = pd.read_csv(out / "oracle_summary.csv")
+              cfg = json.loads((out / "oracle_grid_config.json").read_text())
+              assert len(cells) == 600, len(cells)
+              assert len(summary) == 6, len(summary)
+              assert cfg["h0_grid_points"] == points, cfg
+              assert cfg["planned_cells"] == 600, cfg
+              assert cfg["status_counts"]["SUCCESS"] == 599, cfg
+              assert cfg["status_counts"]["NON_EVALUABLE"] == 1, cfg
+              assert (cells.status == "SUCCESS").sum() == 599
+              assert (cells.status == "NON_EVALUABLE").sum() == 1
+              assert (summary["planned"] == 100).all()
+              assert summary["success"].sum() == 599
+              assert summary["non_evaluable"].sum() == 1
+              assert (summary["oracle_replicates"] == 100).all()
+              assert (cells.groupby(["gamma", "n_validation"]).known_pi_bias.count() == 100).all()
+              assert (cells.groupby(["gamma", "n_validation"]).full_parent_bias.count() == 100).all()
+              assert summary["estimated_coverage68_lower_all_attempts"].notna().all()
+              assert summary["estimated_coverage68_upper_all_attempts"].notna().all()
+              assert (summary["estimated_coverage68_lower_all_attempts"] <=
+                      summary["estimated_coverage68_upper_all_attempts"]).all()
+              print(f"ORACLE GRID: {points}")
+              print(summary.to_string(index=False))
+              print(json.dumps(cfg, indent=2))
+          PY
+      - name: Upload independent oracle readout
+        uses: actions/upload-artifact@v4
+        with:
+          name: h0-100rep-failure-inclusive-oracle-readout
+          path: artifacts/h0_100rep_oracle_audit/
+          retention-days: 90
+          compression-level: 6

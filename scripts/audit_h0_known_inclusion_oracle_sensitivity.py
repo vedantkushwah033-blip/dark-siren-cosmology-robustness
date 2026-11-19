@@ -93,9 +93,12 @@ def assert_cross_gamma_pairing(parent_reference, parent_candidate,
         raise AssertionError("parent IDs/redshifts differ across gamma")
     if not events_reference.equals(events_candidate):
         raise AssertionError("observed GW events differ across gamma")
-    if not validation_reference[validation_columns].equals(
-        validation_candidate[validation_columns]
-    ):
+    # Validation sizes can differ when one planned cell is non-evaluable.
+    # Compare the shared prefix of the paired validation stream.
+    common_n = min(len(validation_reference), len(validation_candidate))
+    reference_prefix = validation_reference[validation_columns].iloc[:common_n].reset_index(drop=True)
+    candidate_prefix = validation_candidate[validation_columns].iloc[:common_n].reset_index(drop=True)
+    if not reference_prefix.equals(candidate_prefix):
         raise AssertionError("validation IDs/redshifts differ across gamma")
 
 
@@ -127,6 +130,28 @@ def assert_complete_planned_ledger(planned: pd.DataFrame, ledger: pd.DataFrame) 
         ) from exc
 
 
+def terminal_status_counts(ledger: pd.DataFrame) -> dict[str, int]:
+    """Count final ledger states and reject unknown or interrupted states."""
+    allowed = {"SUCCESS", "NON_EVALUABLE", "FAILED", "NOT_RUN"}
+    observed = set(ledger.status.astype(str))
+    unknown = observed - allowed
+    if unknown:
+        raise AssertionError(f"unknown or non-terminal ledger statuses: {sorted(unknown)}")
+    return {status: int((ledger.status == status).sum())
+            for status in sorted(allowed)}
+
+
+def failure_inclusive_coverage_bounds(covered_success: int, successful: int,
+                                      planned: int) -> tuple[float, float]:
+    """Worst/best coverage bounds when every non-success is uncovered/covered."""
+    if planned <= 0 or successful < 0 or successful > planned:
+        raise ValueError("invalid planned/successful denominator")
+    if covered_success < 0 or covered_success > successful:
+        raise ValueError("covered successes must be between zero and successes")
+    non_success = planned - successful
+    return covered_success / planned, (covered_success + non_success) / planned
+
+
 def audit(root: Path, h0_points: int | None = None):
     root = root.resolve()
     manifest = json.loads((root / "manifest.json").read_text())
@@ -143,14 +168,33 @@ def audit(root: Path, h0_points: int | None = None):
         raise AssertionError("preregistered planned_cells.csv is missing")
     planned = pd.read_csv(planned_path)
     ledger = pd.read_csv(root / "replicate_ledger.csv")
-    if ledger.empty or set(ledger.status) != {"SUCCESS"}:
-        raise AssertionError("input pilot must contain only successful cells")
+    if ledger.empty:
+        raise AssertionError("result ledger is empty")
     assert_complete_planned_ledger(planned, ledger)
+    status_counts = terminal_status_counts(ledger)
+    successful_ledger = ledger[ledger.status == "SUCCESS"].copy()
+    if successful_ledger.empty:
+        raise AssertionError("no successful cells are available for oracle reconstruction")
+    # Each replicate/curvature pair must retain at least one successful cell so
+    # the common parent, catalogue and detected-event realization can be audited.
+    planned_pairs = planned[["replicate", "gamma"]].drop_duplicates()
+    successful_pairs = successful_ledger[["replicate", "gamma"]].drop_duplicates()
+    if len(planned_pairs.merge(successful_pairs, how="left", indicator=True).query("_merge == 'left_only'")):
+        raise AssertionError("a replicate/curvature pair has no successful cell for oracle reconstruction")
 
     rows = []
     paired_inputs = {}
-    for (rep, gamma), block in ledger.groupby(["replicate", "gamma"]):
-        block = block.sort_values("n_validation")
+    for (rep, gamma), all_block in ledger.groupby(["replicate", "gamma"]):
+        all_block = all_block.sort_values("n_validation")
+        block = successful_ledger[
+            (successful_ledger.replicate == rep) &
+            (successful_ledger.gamma == gamma)
+        ].sort_values("n_validation")
+        # Oracle posteriors depend on the parent/catalogue/event realization,
+        # not validation n. Use any successful child as the raw-data source,
+        # then carry the oracle result to every planned validation-size cell.
+        # This preserves the oracle denominator even if one fitted cell is
+        # NON_EVALUABLE, FAILED, or NOT_RUN.
         first = block.iloc[0]
         directory = root / "replicates" / first.cell_id
         cfg = json.loads((directory / "config.json").read_text())
@@ -184,18 +228,27 @@ def audit(root: Path, h0_points: int | None = None):
         full = selected_posterior_quantiles(
             parent.redshift, base(parent.redshift), distances, h0, sigma, threshold
         )
-        for cell in block.itertuples(index=False):
+        for cell in all_block.itertuples(index=False):
+            estimated_median = (
+                float(cell.h0_median) if cell.status == "SUCCESS" and
+                pd.notna(cell.h0_median) else float("nan")
+            )
             rows.append({
                 "replicate": int(rep), "gamma": float(gamma),
                 "h0_grid_points": int(h0.size),
                 "n_validation": int(cell.n_validation), "cell_id": cell.cell_id,
-                "estimated_median": float(cell.h0_median),
-                "estimated_bias": float(cell.h0_median-70.0),
-                "known_pi_median": known["q500"], "known_pi_bias": known["q500"]-70.0,
-                "known_pi_coverage68": int(known["q160"] <= 70.0 <= known["q840"]),
-                "full_parent_median": full["q500"], "full_parent_bias": full["q500"]-70.0,
-                "full_parent_coverage68": int(full["q160"] <= 70.0 <= full["q840"]),
-                "estimated_minus_known_pi": float(cell.h0_median-known["q500"]),
+                "status": str(cell.status),
+                "covered68": (
+                    int(cell.covered68) if cell.status == "SUCCESS" and
+                    pd.notna(cell.covered68) else float("nan")
+                ),
+                "estimated_median": estimated_median,
+                "estimated_bias": estimated_median-float(cell.h0_true),
+                "known_pi_median": known["q500"], "known_pi_bias": known["q500"]-cell.h0_true,
+                "known_pi_coverage68": int(known["q160"] <= cell.h0_true <= known["q840"]),
+                "full_parent_median": full["q500"], "full_parent_bias": full["q500"]-cell.h0_true,
+                "full_parent_coverage68": int(full["q160"] <= cell.h0_true <= full["q840"]),
+                "estimated_minus_known_pi": estimated_median-known["q500"],
                 "known_pi_minus_full_parent": float(known["q500"]-full["q500"]),
             })
         # Catalogue, parent and event data are invariant across validation sizes.
@@ -229,16 +282,36 @@ def audit(root: Path, h0_points: int | None = None):
     summaries = []
     contrasts = []
     for (gamma, nval), group in cells.groupby(["gamma", "n_validation"]):
-        row = {"gamma": gamma, "n_validation": nval, "replicates": len(group),
+        planned_group = planned[(planned.gamma == gamma) & (planned.n_validation == nval)]
+        ledger_group = ledger[(ledger.gamma == gamma) & (ledger.n_validation == nval)]
+        successful_group = successful_ledger[
+            (successful_ledger.gamma == gamma) & (successful_ledger.n_validation == nval)
+        ]
+        covered_success = int(successful_group.covered68.fillna(0).sum())
+        coverage_lower, coverage_upper = failure_inclusive_coverage_bounds(
+            covered_success, len(successful_group), len(planned_group)
+        )
+        row = {"gamma": gamma, "n_validation": nval, "planned": len(planned_group),
+               "success": len(successful_group),
+               "non_evaluable": int((ledger_group.status == "NON_EVALUABLE").sum()),
+               "failed": int((ledger_group.status == "FAILED").sum()),
+               "not_run": int((ledger_group.status == "NOT_RUN").sum()),
+               "replicates": len(group),
+               "oracle_replicates": int(group.known_pi_bias.notna().sum()),
                "h0_grid_points": int(group.h0_grid_points.iloc[0])}
         for col in ("estimated_bias", "known_pi_bias", "full_parent_bias",
                     "estimated_minus_known_pi", "known_pi_minus_full_parent"):
-            row[col] = float(group[col].mean())
-            row[col+"_mcse"] = float(group[col].std(ddof=1)/math.sqrt(len(group)))
-        row["estimated_coverage68"] = float(
-            ledger[(ledger.gamma==gamma)&(ledger.n_validation==nval)].covered68.mean())
-        row["known_pi_coverage68"] = float(group.known_pi_coverage68.mean())
-        row["full_parent_coverage68"] = float(group.full_parent_coverage68.mean())
+            values = group[col].dropna().to_numpy(dtype=float)
+            row[col] = float(values.mean()) if len(values) else float("nan")
+            row[col+"_mcse"] = (
+                float(values.std(ddof=1)/math.sqrt(len(values)))
+                if len(values) > 1 else float("nan")
+            )
+        row["estimated_coverage68_success_only"] = float(successful_group.covered68.mean())
+        row["estimated_coverage68_lower_all_attempts"] = coverage_lower
+        row["estimated_coverage68_upper_all_attempts"] = coverage_upper
+        row["known_pi_coverage68_oracle"] = float(group.known_pi_coverage68.mean())
+        row["full_parent_coverage68_oracle"] = float(group.full_parent_coverage68.mean())
         summaries.append(row)
         for label, col in (
             ("estimated minus known-pi IPW median", "estimated_minus_known_pi"),
@@ -261,10 +334,13 @@ def main():
     cells.to_csv(args.output_dir/"oracle_cell_readout.csv", index=False)
     summary.to_csv(args.output_dir/"oracle_summary.csv", index=False)
     contrasts.to_csv(args.output_dir/"oracle_paired_contrasts.csv", index=False)
+    ledger = pd.read_csv(args.artifact_root / "replicate_ledger.csv")
     (args.output_dir/"oracle_grid_config.json").write_text(json.dumps({
         "h0_grid_points": int(args.h0_points),
         "prior_bounds": [20.0, 300.0],
-        "interpretation": "independent oracle posterior reconstruction on a refined grid; not an observational result"
+        "planned_cells": int(len(pd.read_csv(args.artifact_root / "planned_cells.csv"))),
+        "status_counts": terminal_status_counts(ledger),
+        "interpretation": "independent same-grid oracle posterior reconstruction for all planned cells using each replicate/curvature parent-catalogue-event realization; fitted-arm metrics use successful cells only; failure-inclusive estimated-coverage bounds reported separately; synthetic diagnostic, not observational inference"
     }, indent=2, sort_keys=True))
     print(summary.to_string(index=False))
     print(contrasts.to_string(index=False))
