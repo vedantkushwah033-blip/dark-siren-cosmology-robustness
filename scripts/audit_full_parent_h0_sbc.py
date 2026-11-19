@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.integrate import cumulative_trapezoid, trapezoid
-from scipy.stats import norm
+from scipy.stats import norm, kstest, chisquare
 
 from dark_siren_robustness.generative_selection import generate_synthetic_population
 C_KM_S=299792.458
@@ -68,11 +68,36 @@ def audit(root:Path,output:Path|None=None,expected_replicates=200):
             if not np.isclose(float(row[key]),float(value),rtol=0,atol=2e-8):
                 raise AssertionError(f"{key} mismatch at replicate {rep}: archived={row[key]}, rebuilt={value}")
         rows.append({"replicate":rep,"posterior_rank":rank,"median_bias":q[5]-truth})
-    rebuilt=pd.DataFrame(rows)
-    np.testing.assert_allclose(rebuilt.posterior_rank,frame.sort_values("replicate").posterior_rank,rtol=0,atol=2e-8)
+    rebuilt=pd.DataFrame(rows).sort_values("replicate").reset_index(drop=True)
+    archived=frame.sort_values("replicate").reset_index(drop=True)
+    np.testing.assert_allclose(rebuilt.posterior_rank,archived.posterior_rank,rtol=0,atol=2e-8)
+    summary=json.loads((root/"sbc_summary.json").read_text())
+    ranks=rebuilt.posterior_rank.to_numpy(float)
+    bins=np.linspace(0,1,11); counts,_=np.histogram(ranks,bins=bins)
+    chi=chisquare(counts,np.full(10,n/10)); ks=kstest(ranks,"uniform")
+    rebuilt_metrics={
+      "mean_rank":float(ranks.mean()),"rank_sd":float(ranks.std(ddof=1)),
+      "rank_histogram_10_bins":counts.tolist(),
+      "rank_histogram_chi_square":float(chi.statistic),
+      "rank_histogram_chi_square_pvalue":float(chi.pvalue),
+      "rank_ks_statistic":float(ks.statistic),"rank_ks_pvalue":float(ks.pvalue),
+      "mean_median_bias":float(rebuilt.median_bias.mean()),
+      "median_bias_mcse":float(rebuilt.median_bias.std(ddof=1)/np.sqrt(n)),
+      "rmse":float(np.sqrt(np.mean(rebuilt.median_bias.to_numpy()**2)))}
+    for key,value in rebuilt_metrics.items():
+        stored=summary[key]
+        if isinstance(value,list):
+            if list(stored)!=value: raise AssertionError(f"summary {key} mismatch")
+        elif not np.isclose(float(stored),float(value),rtol=0,atol=2e-10):
+            raise AssertionError(f"summary {key} mismatch: archived={stored}, rebuilt={value}")
+    for level in (50,68,80,90,95):
+        coverage=float(archived[f"covered{level}"].mean())
+        if not np.isclose(float(summary[f"coverage{level}"]),coverage,rtol=0,atol=1e-12):
+            raise AssertionError(f"coverage{level} summary mismatch")
     report={"status":"PASS","manifest_entries_verified":len(manifest),"replicates_regenerated":n,
       "parent_populations_regenerated":n,"detected_event_sequences_regenerated":n,
       "posterior_rank_and_quantile_rows_reconstructed":n,
+      "summary_metrics_independently_recomputed":True,
       "scope":"Independent raw-seed reconstruction of a synthetic full-parent prior-predictive SBC experiment; not an inclusion-arm result or observational inference."}
     if output:
         output=Path(output); output.parent.mkdir(parents=True,exist_ok=True)
