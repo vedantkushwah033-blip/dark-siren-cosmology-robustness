@@ -25,7 +25,7 @@ PROBS = np.array([0.025, 0.05, 0.10, 0.16, 0.25, 0.50, 0.75, 0.84, 0.90, 0.95, 0
 
 
 def _seed(master: int, replicate: int, stream: int) -> int:
-    return int(np.random.SeedSequence([int(master), int(replicate), int(stream)]).generate_state(1, dtype=np.uint32))
+    return int(np.random.SeedSequence([int(master), int(replicate), int(stream)]).generate_state(1, dtype=np.uint32)[0])
 
 
 def _log_posterior(h0: float, z: np.ndarray, logw: np.ndarray,
