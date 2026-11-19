@@ -126,3 +126,17 @@ def test_small_full_parent_baseline_accepts_non_evaluable_fitted_cell(tmp_path):
     assert len(frame) == 2
     assert summary["status"] == "DIAGNOSTIC_COMPLETE"
     assert summary["parent_populations"] == 1
+
+
+def test_full_parent_run_can_override_detected_event_count(tmp_path):
+    input_root = tmp_path / "input"
+    input_root.mkdir()
+    _write_input_artifact(input_root)
+    output_root = tmp_path / "output"
+    frame, summary = run(
+        input_root, output_root, replicates_per_parent=2, seed=990000,
+        h0_points=41, n_events_override=7,
+    )
+    assert len(frame) == 2
+    assert set(frame.n_events) == {7}
+    assert summary["n_events"] == 7
