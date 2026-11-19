@@ -216,3 +216,18 @@ Workflow run `44417364702`, artifact `14480782008`, repeated the same 27 fixed-t
 Combined with stage 1 (281→561 passed 27/27; maximum density difference 0.0002352 and maximum quantile difference 0.03813), this supports adjacent-grid stability at 281→561 and 561→1,121 on the selected 27 cells. The original 141-point grid fails the predeclared quantile tolerance in every cell. The 1,121-point grid adds little relative to 561 in this subset.
 
 For this pilot subset, **561 points is a conservative numerically stable reference**, and 281 points also passed against 561. This is not a proof for every one of the 90 calibration cells or for all possible event realizations. The 100-replicate follow-up uses 281 points; a subset-specific grid check on its own event realizations remains desirable before treating the entire follow-up as grid-validated. No coverage or SBC claim follows from this numerical experiment.
+
+
+### Second-stage H0 grid refinement: 561 versus 1,121 points
+
+Workflow run `44417364702` produced artifact `14480782008`. I downloaded and independently checked the 1,273-entry output manifest: **zero SHA-256 mismatches**. The workflow also verified all 2,110 entries in the archived 90-cell baseline artifact. All 54 refined runs (27 paired cells × 2 resolutions) succeeded, with zero failed child audits.
+
+| Comparison | Paired cells | Passes under both predeclared tolerances | Maximum posterior-density difference | Maximum reported-quantile shift |
+|---|---:|---:|---:|---:|
+| 141 → 561 | 27 | 0/27 | 0.0009345 | 0.18872 |
+| 141 → 1,121 | 27 | 0/27 | 0.0009344 | 0.19647 |
+| 561 → 1,121 | 27 | **27/27** | **0.00005931** | **0.01072** |
+
+The tolerances are maximum posterior-density difference ≤ 0.001 and maximum absolute shift among reported quantiles ≤ 0.05 km s^-1 Mpc^-1. Thus 561 and 1,121 agree in all 27 selected cells; the original 141-point grid fails the quantile criterion in every selected cell. The maximum median shift for 561→1,121 is 0.00182 km s^-1 Mpc^-1.
+
+This is a stronger local numerical-stability check than the first stage, but still only 27 of the 90 calibration cells and three paired replicates per gamma × validation-size condition. It does not prove global grid convergence, change the original fixed-truth coverage results, or establish calibration. The pilot should use at least 561 points for subsequent numerical work; 1,121 is a useful reference resolution. Before any confirmatory coverage statement, grid stability must be checked across the full replicate set or shown to be uniform under a prespecified representative design.
