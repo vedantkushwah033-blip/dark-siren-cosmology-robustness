@@ -554,8 +554,9 @@ def audit(root: Path) -> dict:
         "scope": (
             "Independently reconstructs input joins, inclusion probabilities, "
             "A-D/E weights, selected likelihoods, posterior summaries and file hashes. "
-            "Uses stored coefficient posterior nodes; does not independently "
-            "validate the logistic posterior/quadrature construction."
+            "Independently reconstructs the logistic posterior mode, Laplace "
+            "covariance, Gauss-Hermite nodes, and target-corrected quadrature "
+            "weights using a separate damped-Newton implementation."
         ),
     }
 
