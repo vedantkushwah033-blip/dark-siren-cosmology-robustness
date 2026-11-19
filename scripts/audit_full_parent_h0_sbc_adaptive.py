@@ -236,6 +236,13 @@ def audit(artifact_dir: Path, replicates=None, grid_points=2241, lowest_q975=Non
     return {"summary": summary, "replicates": frame.to_dict("records")}
 
 
+def _write_json(path: Path, payload: dict) -> None:
+    """Write standards-compliant JSON with a terminating newline."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("artifact_dir", type=Path)
@@ -248,7 +255,7 @@ def main():
     result = audit(args.artifact_dir, tuple(args.replicates) if args.replicates else None,
                    args.grid_points, args.lowest_q975)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\\n")
+    _write_json(args.output, result)
     print(json.dumps(result, indent=2, sort_keys=True))
 
 
