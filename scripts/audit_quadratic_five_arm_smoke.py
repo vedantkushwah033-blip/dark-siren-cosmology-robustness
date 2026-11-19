@@ -17,6 +17,7 @@ from pathlib import Path
 
 import numpy as np
 from scipy.integrate import trapezoid
+from scipy.optimize import root
 import pandas as pd
 from scipy.special import expit, log_ndtr, logsumexp, roots_hermitenorm
 from scipy.stats import gaussian_kde, norm
@@ -187,8 +188,26 @@ def _independent_inclusion_quadrature(
             step *= 0.5
         else:
             raise AssertionError("independent logistic Newton solver could not descend")
-    if np.linalg.norm(gradient(mode), ord=np.inf) > 1e-8:
-        raise AssertionError("independent logistic Newton solver did not converge")
+    residual = float(np.linalg.norm(gradient(mode), ord=np.inf))
+    if residual > 1e-8:
+        # Rare ill-conditioned validation frames can stall the damped Newton
+        # line search despite a well-defined, strictly convex posterior. Fall
+        # back to an independent score-equation root solve; this is still
+        # separate from the production trust-exact optimizer.
+        solved = root(
+            gradient, mode, jac=information, method="hybr",
+            options={"xtol": 1e-12},
+        )
+        candidate_residual = float(np.linalg.norm(gradient(solved.x), ord=np.inf))
+        if np.all(np.isfinite(solved.x)) and candidate_residual <= 1e-8:
+            mode = np.asarray(solved.x, dtype=float)
+            residual = candidate_residual
+        else:
+            raise AssertionError(
+                "independent logistic Newton/root solver did not converge; "
+                f"Newton residual={residual:.6g}, root residual={candidate_residual:.6g}, "
+                f"root status={solved.message}"
+            )
 
     covariance = np.linalg.inv(information(mode))
     chol = np.linalg.cholesky(covariance)
