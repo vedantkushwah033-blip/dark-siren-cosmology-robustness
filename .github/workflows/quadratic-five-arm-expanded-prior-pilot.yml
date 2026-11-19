@@ -38,7 +38,7 @@ jobs:
             scripts/run_quadratic_five_arm_smoke.py \
             scripts/audit_quadratic_five_arm_smoke.py \
             scripts/run_quadratic_five_arm_replicates.py \
-            scripts/audit_quadratic_five_arm_replicates.py \\
+            scripts/audit_quadratic_five_arm_replicates.py \
             scripts/audit_five_arm_prior_support_sensitivity.py
       - name: Test prior-support parameterization and failure bounds
         run: |
@@ -76,8 +76,8 @@ jobs:
         if: always()
         run: |
           if [ -f artifacts/quadratic_five_arm_expanded_prior_20rep/independent_orchestration_audit.json ]; then
-            python scripts/audit_five_arm_prior_support_sensitivity.py \\
-              artifacts/quadratic_five_arm_expanded_prior_20rep \\
+            python scripts/audit_five_arm_prior_support_sensitivity.py \
+              artifacts/quadratic_five_arm_expanded_prior_20rep \
               --output-dir artifacts/prior_support_sensitivity
           fi
       - name: Assert complete planned denominator and create descriptive readout
@@ -100,6 +100,7 @@ jobs:
           assert report["status_counts"].get("NOT_RUN", 0) == 0
           print(json.dumps(report, indent=2))
           PY
+          mkdir -p artifacts/precision_readout
           python scripts/analyze_quadratic_five_arm_precision.py \
             artifacts/quadratic_five_arm_expanded_prior_20rep \
             --output-prefix artifacts/precision_readout/precision_readout
