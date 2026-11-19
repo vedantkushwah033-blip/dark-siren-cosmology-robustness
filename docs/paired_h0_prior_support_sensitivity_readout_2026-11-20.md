@@ -97,3 +97,41 @@ Additional controls:
 Interpretation: widening the prior materially worsens the catalogue-only arm, while the oracle and known-probability IPW controls are nearly invariant. D/E show much smaller shifts, with some curvature/validation-size cells excluding zero, but the effect is modest and does not show a consistent improvement for posterior integration E over MAP D. The 45 cell-wise intervals are exploratory and unadjusted for multiplicity; do not read isolated exclusions as confirmatory discoveries.
 
 This is still one fixed-truth, one matched 100-replicate seed stream. It is a prior-support sensitivity audit, not an expanded-prior SBC calibration study or evidence about observational H0.
+
+
+## Expanded validation-size readout (n=100, 300, 500)
+
+Workflow 44602206708 reran the complete paired audit after the fail-closed pairing checks were added. Its unit tests, artifact downloads, full reconstruction, and report upload all completed successfully. The output covers every validation size. For estimated-IPW arms D/E, the table gives the change in absolute median error and central 68% interval width (expanded minus narrow prior), each with paired 95% t intervals over 100 matched replicates. Values are km/s/Mpc.
+
+| Curvature | n | Arm | Absolute-error change [95% CI] | 68% width change [95% CI] |
+|---:|---:|---|---:|---:|
+| -1 | 100 | D MAP | +0.0139 [0.0065, 0.0212] | +0.0298 [0.0144, 0.0452] |
+| -1 | 100 | E integrated | +0.0158 [0.0075, 0.0240] | +0.0374 [0.0199, 0.0550] |
+| -1 | 300 | D MAP | +0.0082 [0.0010, 0.0155] | +0.0192 [0.0015, 0.0370] |
+| -1 | 300 | E integrated | +0.0083 [0.0023, 0.0144] | +0.0215 [0.0046, 0.0384] |
+| -1 | 500 | D MAP | +0.0058 [0.0009, 0.0107] | +0.0127 [0.0024, 0.0230] |
+| -1 | 500 | E integrated | +0.0067 [0.0008, 0.0127] | +0.0149 [0.0027, 0.0271] |
+| 0 | 100 | D MAP | +0.0121 [-0.0055, 0.0297] | +0.0226 [-0.0075, 0.0526] |
+| 0 | 100 | E integrated | +0.0130 [-0.0037, 0.0298] | +0.0255 [-0.0026, 0.0537] |
+| 0 | 300 | D MAP | +0.0062 [-0.0022, 0.0146] | +0.0131 [-0.0033, 0.0295] |
+| 0 | 300 | E integrated | +0.0073 [-0.0028, 0.0174] | +0.0151 [-0.0038, 0.0341] |
+| 0 | 500 | D MAP | +0.0074 [-0.0033, 0.0181] | +0.0144 [-0.0056, 0.0343] |
+| 0 | 500 | E integrated | +0.0084 [-0.0035, 0.0202] | +0.0161 [-0.0056, 0.0378] |
+| +1 | 100 | D MAP | +0.0268 [-0.0022, 0.0558] | +0.0461 [-0.0014, 0.0937] |
+| +1 | 100 | E integrated | +0.0252 [-0.0011, 0.0514] | +0.0426 [0.0010, 0.0841] |
+| +1 | 300 | D MAP | +0.0225 [0.0012, 0.0438] | +0.0414 [0.0029, 0.0800] |
+| +1 | 300 | E integrated | +0.0231 [0.0002, 0.0460] | +0.0409 [0.0019, 0.0799] |
+| +1 | 500 | D MAP | +0.0293 [-0.0012, 0.0597] | +0.0499 [-0.0001, 0.1000] |
+| +1 | 500 | E integrated | +0.0287 [-0.0024, 0.0598] | +0.0479 [-0.0012, 0.0971] |
+
+Interpretation remains cautious:
+
+- At negative curvature, widening the prior produces small but consistently positive changes in absolute error and interval width for D/E; the changes shrink as validation size increases.
+- At zero curvature, paired intervals for these D/E changes include zero at every validation size.
+- At positive curvature, changes are larger, particularly at n=300, but many intervals are close to zero. This is not evidence of a robust D-versus-E difference.
+- Catalogue-only A's prior effect is identical across validation sizes because A does not use the validation sample. Its absolute-error increase is +2.281, +2.477, and +2.661 for curvature -1, 0, and +1, respectively; all paired 95% intervals exclude zero.
+- No 68% coverage indicator changed between the two priors in any paired cell. This is a statement about crossing the interval boundary, not about nominal coverage.
+
+The paired-artifact integrity gate again passed: 5,708 manifest entries per artifact, 4,500 lifecycle cells per artifact, 300 child pairs, 2,700 raw-input hashes, 600 weight/bandwidth hashes, 4,500 posterior rows, and maximum common-support log-likelihood discrepancy 2.27e-13. The new pairing-key and truth-consistency unit tests passed before the reconstruction.
+
+Workflow: 44602206708 (success). Separate repository-wide test workflow: 44602206997 (status pending at report time; do not treat the audit's embedded unit-test step as a substitute for the repository-wide matrix).
