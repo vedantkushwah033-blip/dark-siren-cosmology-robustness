@@ -7,6 +7,13 @@ on:
     paths:
       - .github/workflows/expanded-prior-100rep-independent-audit.yml
       - scripts/audit_expanded_prior_100rep_pair.py
+  pull_request:
+    branches:
+      - research/five-arm-expanded-h0-prior-20261119
+    paths:
+      - .github/workflows/expanded-prior-100rep-independent-audit.yml
+      - scripts/audit_expanded_prior_100rep_pair.py
+      - scripts/audit_quadratic_five_arm_replicates.py
   workflow_dispatch:
 
 permissions:
