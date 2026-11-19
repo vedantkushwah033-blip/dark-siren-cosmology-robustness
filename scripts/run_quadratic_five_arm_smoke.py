@@ -275,6 +275,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "sigma_mpc": args.sigma_mpc,
         "detection_threshold_mpc": args.detection_threshold_mpc,
         "truth_used_for_non_oracle_inference": False,
+        "truth_used_for_arm_c_only": True,
         "claim_limit": "One engineering smoke replicate; no calibration, estimator superiority, or real-data claim.",
     }
     (output / "config.json").write_text(
