@@ -185,8 +185,10 @@ def audit(artifact_dir: Path, sample_size: int = 50, fine_points: int = 2241,
         "scope": "Synthetic full-parent fixed-truth numerical grid-stability diagnostic; not SBC or observational H0 inference.",
     }
     if output:
-        Path(output).parent.mkdir(parents=True, exist_ok=True)
-        Path(output).write_text(json.dumps(result, indent=2, sort_keys=True)+"\n")
+        output = Path(output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        table.to_csv(output.with_name("full_parent_event_count_grid_audit_replicates.csv"), index=False, float_format="%.17g")
+        output.write_text(json.dumps(result, indent=2, sort_keys=True)+"\n")
     if result["status"] != "PASS":
         raise AssertionError(json.dumps(result, indent=2))
     return result
