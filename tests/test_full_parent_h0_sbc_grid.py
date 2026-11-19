@@ -9,7 +9,7 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from dark_siren_robustness.generative_selection import generate_synthetic_population
-from audit_full_parent_h0_sbc_grid import _density_l1, _posterior
+from audit_full_parent_h0_sbc_grid import _density_l1, _posterior, _grid_pair_label
 
 
 def test_independent_sbc_posterior_is_normalized_and_monotone():
@@ -48,3 +48,9 @@ def test_density_l1_comparison_on_nested_grids():
     dc /= trapezoid(dc, coarse)
     df /= trapezoid(df, fine)
     assert _density_l1(coarse, dc, fine, df) < 0.001
+
+
+def test_grid_pair_labels_reflect_requested_resolutions():
+    assert _grid_pair_label(561, 2241) == "561_to_2241"
+    assert _grid_pair_label(2241, 4481) == "2241_to_4481"
+    assert _grid_pair_label(4481, 8961) == "4481_to_8961"
