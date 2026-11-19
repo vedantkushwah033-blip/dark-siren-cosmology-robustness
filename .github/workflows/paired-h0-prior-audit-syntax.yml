@@ -1,0 +1,23 @@
+name: paired-h0-prior-audit-syntax
+
+on:
+  push:
+    branches:
+      - research/quadratic-five-arm-30event-multirep-readout-20261119
+    paths:
+      - scripts/analyze_paired_h0_prior_sensitivity.py
+      - .github/workflows/paired-h0-prior-audit-syntax.yml
+  workflow_dispatch:
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install analysis dependencies
+        run: python -m pip install numpy pandas scipy
+      - name: Compile paired prior sensitivity audit
+        run: python -m py_compile scripts/analyze_paired_h0_prior_sensitivity.py
