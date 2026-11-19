@@ -46,9 +46,16 @@ def _posterior(z, host_weights, distances, h0, sigma, threshold):
     return density, quantiles
 
 
-def audit(artifact_dir: Path, sample_size: int = 50, fine_points: int = 1121,
+def _density_l1(grid_a, density_a, grid_b, density_b):
+    target = np.asarray(grid_b, float)
+    interpolated = np.interp(target, np.asarray(grid_a, float), np.asarray(density_a, float))
+    interpolated /= trapezoid(interpolated, target)
+    return float(trapezoid(np.abs(np.asarray(density_b, float)-interpolated), target))
+
+
+def audit(artifact_dir: Path, sample_size: int = 50, fine_points: int = 2241,
           max_quantile_shift: float = 0.05, max_density_l1: float = 0.001,
-          output: Path | None = None) -> dict:
+          output: Path | None = None, intermediate_points: int = 1121) -> dict:
     root = Path(artifact_dir)
     manifest = json.loads((root/"manifest.json").read_text())
     expected_files = {"replicates.csv", "summary.csv", "paired_contrast.csv", "design.json"}
@@ -70,10 +77,11 @@ def audit(artifact_dir: Path, sample_size: int = 50, fine_points: int = 1121,
         raise AssertionError("source replicate IDs do not match the planned range")
     if set(raw.event_count.astype(int)) != {4, 30}:
         raise AssertionError("source artifact contains unexpected event-count arms")
-    if sample_size < 2 or sample_size > nrep or fine_points <= int(design["h0_grid_points"]):
+    if sample_size < 2 or sample_size > nrep or not (int(design["h0_grid_points"]) < intermediate_points < fine_points):
         raise ValueError("invalid sample size or finer grid resolution")
     prior_min, prior_max = map(float, design["uniform_h0_prior"])
     coarse = np.linspace(prior_min, prior_max, int(design["h0_grid_points"]))
+    intermediate = np.linspace(prior_min, prior_max, intermediate_points)
     fine = np.linspace(prior_min, prior_max, fine_points)
     truth = float(design["h0_true"])
     n_parent = int(design["n_parent"])
@@ -99,6 +107,8 @@ def audit(artifact_dir: Path, sample_size: int = 50, fine_points: int = 1121,
                 raise AssertionError(f"missing event-count arm at replicate {rep}, count {count}")
             dc, qc = _posterior(z, weights, distances[:count], coarse,
                                 float(cfg["sigma_mpc"]), float(cfg["detection_threshold_mpc"]))
+            dm, qm = _posterior(z, weights, distances[:count], intermediate,
+                                float(cfg["sigma_mpc"]), float(cfg["detection_threshold_mpc"]))
             df, qf = _posterior(z, weights, distances[:count], fine,
                                 float(cfg["sigma_mpc"]), float(cfg["detection_threshold_mpc"]))
             source = archived.iloc[0]
@@ -117,27 +127,49 @@ def audit(artifact_dir: Path, sample_size: int = 50, fine_points: int = 1121,
                 rtol=0, atol=1e-8
             ):
                 raise AssertionError(f"event-distance prefix mismatch at rep {rep}, count {count}")
-            shifts = {k: abs(qf[k]-qc[k]) for k in qc}
-            coarse_on_fine = np.interp(fine, coarse, dc)
-            coarse_on_fine /= trapezoid(coarse_on_fine, fine)
-            l1 = float(trapezoid(np.abs(df-coarse_on_fine), fine))
-            rows.append({"replicate": int(rep), "event_count": count,
-                         "max_quantile_shift": max(shifts.values()), "density_l1": l1,
-                         **{f"shift_{k}": v for k, v in shifts.items()}})
+            coarse_mid_shifts = {k: abs(qm[k]-qc[k]) for k in qc}
+            mid_fine_shifts = {k: abs(qf[k]-qm[k]) for k in qc}
+            coarse_fine_shifts = {k: abs(qf[k]-qc[k]) for k in qc}
+            rows.append({
+                "replicate": int(rep), "event_count": count,
+                "coarse_mid_max_quantile_shift": max(coarse_mid_shifts.values()),
+                "coarse_mid_density_l1": _density_l1(coarse, dc, intermediate, dm),
+                "mid_fine_max_quantile_shift": max(mid_fine_shifts.values()),
+                "mid_fine_density_l1": _density_l1(intermediate, dm, fine, df),
+                "coarse_fine_max_quantile_shift": max(coarse_fine_shifts.values()),
+                "coarse_fine_density_l1": _density_l1(coarse, dc, fine, df),
+                **{f"coarse_mid_shift_{k}": v for k, v in coarse_mid_shifts.items()},
+                **{f"mid_fine_shift_{k}": v for k, v in mid_fine_shifts.items()},
+            })
     table = pd.DataFrame(rows)
     summary = {}
     for count in (4, 30):
         g = table[table.event_count == count]
         summary[str(count)] = {
             "posterior_curves": int(len(g)),
-            "max_quantile_shift_km_s_Mpc": float(g.max_quantile_shift.max()),
-            "median_quantile_shift_km_s_Mpc": float(g.max_quantile_shift.median()),
-            "max_density_L1": float(g.density_l1.max()),
-            "median_density_L1": float(g.density_l1.median()),
+            "561_to_1121": {
+                "max_quantile_shift_km_s_Mpc": float(g.coarse_mid_max_quantile_shift.max()),
+                "median_quantile_shift_km_s_Mpc": float(g.coarse_mid_max_quantile_shift.median()),
+                "max_density_L1": float(g.coarse_mid_density_l1.max()),
+                "median_density_L1": float(g.coarse_mid_density_l1.median()),
+            },
+            "1121_to_2241": {
+                "max_quantile_shift_km_s_Mpc": float(g.mid_fine_max_quantile_shift.max()),
+                "median_quantile_shift_km_s_Mpc": float(g.mid_fine_max_quantile_shift.median()),
+                "max_density_L1": float(g.mid_fine_density_l1.max()),
+                "median_density_L1": float(g.mid_fine_density_l1.median()),
+            },
+            "561_to_2241": {
+                "max_quantile_shift_km_s_Mpc": float(g.coarse_fine_max_quantile_shift.max()),
+                "median_quantile_shift_km_s_Mpc": float(g.coarse_fine_max_quantile_shift.median()),
+                "max_density_L1": float(g.coarse_fine_density_l1.max()),
+                "median_density_L1": float(g.coarse_fine_density_l1.median()),
+            },
         }
     result = {
         "status": "PASS" if all(
-            v["max_quantile_shift_km_s_Mpc"] <= max_quantile_shift and v["max_density_L1"] <= max_density_l1
+            v["1121_to_2241"]["max_quantile_shift_km_s_Mpc"] <= max_quantile_shift
+            and v["1121_to_2241"]["max_density_L1"] <= max_density_l1
             for v in summary.values()
         ) else "FAIL",
         "source_manifest_entries_verified": len(manifest),
@@ -145,6 +177,7 @@ def audit(artifact_dir: Path, sample_size: int = 50, fine_points: int = 1121,
         "replicates_audited": len(reps),
         "posterior_curves_reconstructed": len(table),
         "coarse_grid_points": len(coarse),
+        "intermediate_grid_points": len(intermediate),
         "fine_grid_points": len(fine),
         "max_quantile_shift_tolerance_km_s_Mpc": max_quantile_shift,
         "max_density_L1_tolerance": max_density_l1,
@@ -163,13 +196,15 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("artifact_dir", type=Path)
     p.add_argument("--sample-size", type=int, default=50)
-    p.add_argument("--fine-points", type=int, default=1121)
+    p.add_argument("--intermediate-points", type=int, default=1121)
+    p.add_argument("--fine-points", type=int, default=2241)
     p.add_argument("--max-quantile-shift", type=float, default=0.05)
     p.add_argument("--max-density-l1", type=float, default=0.001)
     p.add_argument("--output", type=Path, required=True)
     a = p.parse_args()
     print(json.dumps(audit(a.artifact_dir, a.sample_size, a.fine_points,
-                           a.max_quantile_shift, a.max_density_l1, a.output), indent=2))
+                           a.max_quantile_shift, a.max_density_l1, a.output,
+                           a.intermediate_points), indent=2))
 
 
 if __name__ == "__main__":
