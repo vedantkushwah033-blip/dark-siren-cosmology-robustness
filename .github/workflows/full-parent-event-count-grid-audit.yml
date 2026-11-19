@@ -2,6 +2,12 @@ name: Full-parent event-count H0 grid refinement audit
 
 on:
   pull_request:
+    paths:
+      - .github/workflows/full-parent-event-count-grid-audit.yml
+      - scripts/audit_full_parent_event_count_calibration.py
+      - scripts/audit_full_parent_event_count_grid_refinement.py
+      - tests/test_full_parent_event_count_independent_audit.py
+      - tests/test_full_parent_event_count_grid_refinement.py
   workflow_dispatch:
 
 permissions:
