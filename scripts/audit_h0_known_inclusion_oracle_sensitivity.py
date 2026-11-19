@@ -221,8 +221,12 @@ def audit(root: Path, h0_points: int | None = None):
                "h0_grid_points": int(group.h0_grid_points.iloc[0])}
         for col in ("estimated_bias", "known_pi_bias", "full_parent_bias",
                     "estimated_minus_known_pi", "known_pi_minus_full_parent"):
-            row[col] = float(group[col].mean())
-            row[col+"_mcse"] = float(group[col].std(ddof=1)/math.sqrt(len(group)))
+            values = group[col].dropna().to_numpy(dtype=float)
+            row[col] = float(values.mean()) if len(values) else float("nan")
+            row[col+"_mcse"] = (
+                float(values.std(ddof=1)/math.sqrt(len(values)))
+                if len(values) > 1 else float("nan")
+            )
         row["estimated_coverage68"] = (
             float(estimated_group.covered68.mean()) if len(estimated_group) else float("nan")
         )
