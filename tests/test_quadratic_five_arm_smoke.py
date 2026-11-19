@@ -1,10 +1,13 @@
 from pathlib import Path
 from types import SimpleNamespace
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import json
 import pandas as pd
 
-from scripts.run_quadratic_five_arm_smoke import run
-from scripts.audit_quadratic_five_arm_smoke import audit
+from run_quadratic_five_arm_smoke import run
+from audit_quadratic_five_arm_smoke import audit
 
 def test_quadratic_five_arm_smoke_roundtrip(tmp_path: Path):
     root=tmp_path/"quadratic_five_arm"
