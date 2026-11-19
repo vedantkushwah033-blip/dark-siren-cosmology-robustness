@@ -55,8 +55,12 @@ jobs:
           assert len(cells)==600, len(cells)
           assert len(summary)==6, len(summary)
           assert set(cells.status)=={"SUCCESS","NON_EVALUABLE"}
-          assert (cells.groupby(["gamma","n_validation"]).known_pi_bias.count()==100).all()
-          assert (cells.groupby(["gamma","n_validation"]).full_parent_bias.count()==100).all()
+          grouped=cells.groupby(["gamma","n_validation"])
+          assert (grouped.known_pi_bias.count()==100).all()
+          assert (grouped.full_parent_bias.count()==100).all()
+          for col in ("known_pi_coverage68","known_pi_coverage90","known_pi_coverage95",
+                      "full_parent_coverage68","full_parent_coverage90","full_parent_coverage95"):
+              assert (grouped[col].count()==100).all(), col
           expected={(-1.0,100):99,(-1.0,500):100,(0.0,100):100,
                     (0.0,500):100,(1.0,100):100,(1.0,500):100}
           actual={(float(r.gamma),int(r.n_validation)):int(r.successful_estimated_cells)
