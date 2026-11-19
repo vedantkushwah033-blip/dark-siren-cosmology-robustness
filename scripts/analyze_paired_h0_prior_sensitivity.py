@@ -138,5 +138,15 @@ def audit_pair(narrow:Path,wide:Path,out:Path):
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument("narrow_artifact",type=Path);p.add_argument("wide_artifact",type=Path)
     p.add_argument("--output-prefix",type=Path,default=Path("paired_prior_sensitivity"));x=p.parse_args()
-    print(json.dumps(audit_pair(x.narrow_artifact,x.wide_artifact,x.output_prefix),indent=2))
+    result=audit_pair(x.narrow_artifact,x.wide_artifact,x.output_prefix)
+    print(json.dumps(result,indent=2))
+    summary=pd.read_csv(x.output_prefix.with_name(x.output_prefix.stem+"_summary.csv"))
+    print("\\nPAIRED PRIOR-SUPPORT READOUT — n_validation=500")
+    selected=summary[(summary.validation_size==500) & summary.metric.isin([
+        "median_error_difference_wide_minus_narrow",
+        "absolute_median_error_difference_wide_minus_narrow",
+        "width68_difference_wide_minus_narrow",
+        "coverage68_difference_wide_minus_narrow",
+    ])]
+    print(selected.to_string(index=False,float_format=lambda value:f"{value:.6f}"))
 if __name__=="__main__":main()
