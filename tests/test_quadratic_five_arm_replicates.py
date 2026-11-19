@@ -123,3 +123,17 @@ def test_expanded_prior_failure_bounds_use_full_support_width():
     )
     assert (aggregate.failure_inclusive_rmse_upper == 40.0).all()
     assert (aggregate.failure_inclusive_width_upper == 80.0).all()
+
+
+def test_prior_support_sensitivity_quantiles_use_same_likelihood():
+    from audit_five_arm_prior_support_sensitivity import posterior_on_support
+
+    grid = np.linspace(30.0, 110.0, 1121)
+    log_likelihood = -0.5 * ((grid - 44.0) / 3.0) ** 2
+    full = posterior_on_support(grid, log_likelihood, 30.0, 110.0)
+    restricted = posterior_on_support(grid, log_likelihood, 50.0, 90.0)
+    assert full["median"] < 50.0
+    assert restricted["median"] > 50.0
+    assert restricted["q025"] >= 50.0
+    assert np.isclose(full["support_mass"], 1.0, atol=1e-12)
+    assert np.isclose(restricted["support_mass"], 1.0, atol=1e-12)
