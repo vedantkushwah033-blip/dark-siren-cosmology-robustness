@@ -15,7 +15,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: full-parent-event-count-grid-audit
+  group: full-parent-event-count-grid-audit-v2-20261119
   cancel-in-progress: false
 
 jobs:
