@@ -30,7 +30,13 @@ The 4-event arm has a positive mean median bias, but its coverage in this 500-re
 
 The earlier 100-replicate catalogue-inclusion experiment's full-parent oracle showed mean median bias +7.048 (MCSE 1.809) and 68/90/95% coverage 0.54/0.83/0.91 across its 100 fixed parent/event realizations. The new 500-parent event-count experiment's 4-event arm gives +5.060 bias and 0.696/0.910/0.954 coverage.
 
-The difference in coverage is material and should not be hidden or averaged away. A separate 20,000-draw experiment is underway: 200 fresh event realizations per each of the same 100 archived parent populations. That will separate event-level variability conditional on those parent populations from between-parent variation and help determine whether the earlier 100-parent subset is atypical. Until that reconciliation is complete, the two coverage results must be reported as distinct designs.
+The difference in coverage is material and should not be hidden or averaged away. A separate 20,000-draw experiment has now completed: 200 fresh event realizations per each of the same 100 archived parent populations (workflow #44435303396, artifact #14489935029). It found:
+- 68% coverage 0.6535 (event-level Wilson 95% [0.6469, 0.6601]; parent-cluster t 95% [0.6477, 0.6593]);
+- 90% coverage 0.8794 (parent-cluster t 95% [0.8743, 0.8845]);
+- 95% coverage 0.9335 (parent-cluster t 95% [0.9298, 0.9372]);
+- mean median bias +6.4388 (parent-cluster MCSE 0.1408; t 95% [6.1595, 6.7181]).
+
+This repeated-draw result shows that the original 100 single-event-realization coverage (0.54/0.83/0.91) was unusually low; the same parent populations give 0.6535/0.8794/0.9335 when event-sample variability is averaged over 200 draws per parent. The independent 500-parent experiment gives 0.696/0.910/0.954, somewhat higher but broadly consistent with a modest finite-sample difference. These are distinct designs and must not be pooled or presented as paired estimates. The 20,000-draw result is the primary conditional-on-these-parent-populations baseline; the 500-parent result estimates unconditional performance over a new parent-population sample.
 
 ## Independent audit pending
 
