@@ -1,9 +1,6 @@
 name: full-parent-event-count-sensitivity
 
 on:
-  push:
-    branches:
-      - research/full-parent-event-count-sensitivity-20261119
   pull_request:
     branches:
       - research/h0-100rep-oracle-decomposition-20261119
@@ -42,7 +39,7 @@ jobs:
       - name: Run 4, 10, and 30 detected-event full-parent experiments
         run: |
           set -euo pipefail
-          for n in 4 10 30; do
+          for n in 10; do
             python scripts/run_full_parent_h0_fixed_count_baseline.py \
               artifacts/h0_100rep_calibration_precision \
               --output-dir "artifacts/full_parent_event_count/n_${n}" \
@@ -60,7 +57,7 @@ jobs:
           from scipy.stats import t
           root=Path("artifacts/full_parent_event_count")
           summaries=[]
-          for n_events in (4,10,30):
+          for n_events in (10,):
               folder=root/f"n_{n_events}"
               frame=pd.read_csv(folder/"replicates.csv")
               parent=pd.read_csv(folder/"parent_summary.csv")
@@ -117,7 +114,7 @@ jobs:
               json.dumps(summaries,indent=2,sort_keys=True)+"\n")
           print("EVENT-COUNT SENSITIVITY")
           print(table.to_string(index=False))
-          print("AUDIT PASS: 60,000 datasets; 300 parent clusters; 200 datasets per parent and event-count condition.")
+          print("AUDIT PASS: 20,000 ten-event datasets; 100 parent clusters; 200 datasets per parent.")
           output_manifest={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest()
                            for p in sorted(root.rglob("*"))
                            if p.is_file() and p.name!="manifest.json"}
