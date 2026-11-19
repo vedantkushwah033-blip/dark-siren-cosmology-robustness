@@ -36,7 +36,7 @@ def test_gaussian_posterior_quantiles_match_continuous_reference():
 def test_posterior_rejects_support_without_exact_grid_endpoints():
     grid = np.linspace(30.0, 110.0, 561)
     with pytest.raises(AssertionError, match="support endpoints"):
-        posterior(grid, np.zeros_like(grid), 31.0, 90.0)
+        posterior(grid, np.zeros_like(grid), 31.1, 90.0)
 
 
 def test_paired_t_interval_matches_reference():
