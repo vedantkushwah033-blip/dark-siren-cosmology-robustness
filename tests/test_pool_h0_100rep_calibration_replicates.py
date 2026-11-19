@@ -50,7 +50,11 @@ def write_replication(root: Path, label: str, seed_base: int, non_success=False)
         "status_counts": {str(k): int(v) for k,v in ledger.status.value_counts().items()},
     }
     (root/"independent_orchestration_audit.json").write_text(json.dumps(audit))
-    representative = ledger[ledger.status == "SUCCESS"].iloc[0]
+    representative = ledger[
+        (ledger.status == "SUCCESS")
+        & (ledger.gamma == -1.0)
+        & (ledger.n_validation == 100)
+    ].sort_values("replicate").iloc[0]
     child = root/"replicates"/str(representative.cell_id)
     child.mkdir(parents=True)
     config = {
