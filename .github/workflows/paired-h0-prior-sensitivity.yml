@@ -85,4 +85,6 @@ jobs:
             artifacts/paired_prior_sensitivity.csv
             artifacts/paired_prior_sensitivity_summary.csv
             artifacts/paired_prior_sensitivity.json
+            artifacts/weight_error_association.csv
+            artifacts/weight_error_association.json
           if-no-files-found: warn
