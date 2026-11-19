@@ -11,12 +11,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
+from itertools import product
 from pathlib import Path
 
 import numpy as np
 from scipy.integrate import trapezoid
 import pandas as pd
-from scipy.special import expit, log_ndtr, logsumexp
+from scipy.special import expit, log_ndtr, logsumexp, roots_hermitenorm
 from scipy.stats import gaussian_kde, norm
 
 C_KM_S = 299_792.458
@@ -131,6 +133,90 @@ def _posterior_quantile(grid: np.ndarray, log_likelihood: np.ndarray, q: float) 
     cdf = np.concatenate(([0.0], np.cumsum(increments)))
     cdf /= cdf[-1]
     return float(np.interp(q, cdf, grid))
+
+
+
+def _independent_inclusion_quadrature(
+    validation_z: np.ndarray, retained: np.ndarray, *, order: int,
+    center: float, scale: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Rebuild the proper logistic posterior and corrected GH rule independently.
+
+    Uses a damped Newton optimizer rather than the production trust-exact
+    optimizer, then reconstructs the Laplace proposal and target/proposal
+    importance correction from the Bernoulli likelihood and Gaussian prior.
+    """
+    z = np.asarray(validation_z, dtype=float)
+    y = np.asarray(retained, dtype=float)
+    x = (z - center) / scale
+    design = np.column_stack((np.ones(z.size), x))
+    prior_mean = np.zeros(2)
+    prior_sd = np.array([5.0, 2.5])
+    precision = 1.0 / prior_sd**2
+
+    def objective(theta):
+        eta = design @ theta
+        return float(
+            np.sum(np.logaddexp(0.0, eta) - y * eta)
+            + 0.5 * np.sum(((theta - prior_mean) / prior_sd) ** 2)
+        )
+
+    def gradient(theta):
+        p = expit(design @ theta)
+        return design.T @ (p - y) + (theta - prior_mean) * precision
+
+    def information(theta):
+        p = expit(design @ theta)
+        return design.T @ ((p * (1.0 - p))[:, None] * design) + np.diag(precision)
+
+    mode = np.zeros(2)
+    for _ in range(100):
+        score = gradient(mode)
+        if np.linalg.norm(score, ord=np.inf) < 2e-11:
+            break
+        hessian = information(mode)
+        direction = np.linalg.solve(hessian, score)
+        decrement = float(score @ direction)
+        old_value = objective(mode)
+        step = 1.0
+        while step > 2.0**-35:
+            candidate = mode - step * direction
+            if objective(candidate) <= old_value - 1e-4 * step * decrement:
+                mode = candidate
+                break
+            step *= 0.5
+        else:
+            raise AssertionError("independent logistic Newton solver could not descend")
+    if np.linalg.norm(gradient(mode), ord=np.inf) > 1e-8:
+        raise AssertionError("independent logistic Newton solver did not converge")
+
+    covariance = np.linalg.inv(information(mode))
+    chol = np.linalg.cholesky(covariance)
+    gh_nodes, gh_weights = roots_hermitenorm(order)
+    indices = list(product(range(order), repeat=2))
+    standard = np.asarray([[gh_nodes[i] for i in pair] for pair in indices], dtype=float)
+    base_log_weights = np.asarray([
+        sum(math.log(gh_weights[i]) for i in pair) - math.log(2.0 * math.pi)
+        for pair in indices
+    ])
+    nodes = mode[None, :] + standard @ chol.T
+    log_proposal = (
+        -math.log(2.0 * math.pi)
+        -0.5 * np.sum(standard**2, axis=1)
+        -float(np.sum(np.log(np.diag(chol))))
+    )
+    eta = design @ nodes.T
+    log_likelihood = np.sum(y[:, None] * eta - np.logaddexp(0.0, eta), axis=0)
+    log_prior = (
+        -0.5 * np.sum(((nodes - prior_mean) / prior_sd) ** 2, axis=1)
+        -float(np.sum(np.log(prior_sd)))
+        -math.log(2.0 * math.pi)
+    )
+    log_importance = base_log_weights + log_likelihood + log_prior - log_proposal
+    weights = np.exp(log_importance - logsumexp(log_importance))
+    if not np.all(np.isfinite(weights)) or not np.isclose(weights.sum(), 1.0, atol=1e-12):
+        raise AssertionError("independent logistic quadrature weights are invalid")
+    return mode, covariance, nodes, weights
 
 
 def audit(root: Path) -> dict:
@@ -323,6 +409,22 @@ def audit(root: Path) -> dict:
             raise AssertionError(f"invalid coefficient quadrature weights at n={n}")
         if not np.all(np.isfinite(design_validation @ mode)):
             raise AssertionError(f"non-finite validation MAP predictor at n={n}")
+
+        rebuilt_mode, rebuilt_covariance, rebuilt_nodes, rebuilt_weights = (
+            _independent_inclusion_quadrature(
+                validation["redshift"].to_numpy(float),
+                validation["retained"].to_numpy(int),
+                order=int(config["quadrature_order"]),
+                center=center,
+                scale=scale,
+            )
+        )
+        if not np.allclose(mode, rebuilt_mode, rtol=2e-8, atol=2e-9):
+            raise AssertionError(f"independent inclusion posterior mode mismatch n={n}")
+        if not np.allclose(nodes, rebuilt_nodes, rtol=2e-7, atol=2e-8):
+            raise AssertionError(f"independent inclusion quadrature nodes mismatch n={n}")
+        if not np.allclose(quadrature, rebuilt_weights, rtol=2e-7, atol=2e-9):
+            raise AssertionError(f"independent inclusion quadrature weights mismatch n={n}")
 
         x_catalogue = (catalogue_z - center) / scale
         design_catalogue = np.column_stack([np.ones(len(catalogue_z)), x_catalogue])
