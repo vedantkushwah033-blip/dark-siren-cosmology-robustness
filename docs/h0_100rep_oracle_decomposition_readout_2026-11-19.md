@@ -10,7 +10,7 @@
 - Oracle readout artifact: `14487388966`; SHA-256 `126356fbe80d7ab4363485a8e865d0bda4ee79e606ca59b2acb98448fd199b29`.
 - The independent oracle likelihood was evaluated on the same 281-point (H_0) grid as the fitted degree-one IPW arm, over [20, 300] km s⁻¹ Mpc⁻¹.
 - The preregistered factorial contains 600 cells. The terminal ledger records 599 SUCCESS, 1 NON_EVALUABLE, 0 FAILED, and 0 NOT_RUN.
-- The oracle audit independently verifies the complete planned-cell inventory and retains the non-evaluable cell in the planned denominator. Oracle posterior reconstruction is based on the 599 successful cells; the one non-evaluable cell is not silently relabelled as an oracle success.
+- The oracle audit independently verifies the complete planned-cell inventory and retains the non-evaluable cell in the planned denominator. Because the oracle posterior depends on the paired parent/catalogue/event realization rather than validation size, the known-π and full-parent oracle values are reconstructed for all 100 replicates in every gamma/validation-size cell. Fitted-arm metrics remain success-only (99 in γ=−1,n=100).
 
 The three arms are:
 1. **Estimated degree-one IPW:** the fitted procedure in the fixed-truth pilot.
@@ -58,7 +58,7 @@ The (gamma=-1,n=100) estimated-arm contrast uses 99 paired successful replicates
 | +1 | 100 | 0.560 | [0.56, 0.56] | 0.510 | 0.540 |
 | +1 | 500 | 0.540 | [0.54, 0.54] | 0.510 | 0.540 |
 
-The worst–best interval treats the single non-evaluable attempt as uncovered or covered, respectively. This keeps the full planned denominator visible. The oracle coverage columns use the successful-cell denominators shown above.
+The worst–best interval treats the single non-evaluable attempt as uncovered or covered, respectively. This keeps the full planned denominator visible. The oracle coverage columns use all 100 paired parent/event realizations in every cell.
 
 ## Interpretation
 
@@ -73,3 +73,23 @@ The worst–best interval treats the single non-evaluable attempt as uncovered o
 This is a synthetic low-redshift, fixed-truth benchmark with four detected events per realization. It is not a joint SBC study, an observational H₀ measurement, a public LVK/GWTC analysis, or validation against a real galaxy survey. The oracle arms are simulation-only. Posterior-median contrasts are diagnostic and should not be interpreted as an additive causal decomposition.
 
 The next scientific step is to investigate the positive full-parent baseline bias separately (selected-event likelihood and finite four-event realization effects), then design a joint SBC study with enough events and prior-generated truths. The present study is best reported as a controlled synthetic sensitivity benchmark.
+
+
+## Refined-grid robustness check (561 points)
+
+A separate independent reconstruction on a 561-point H₀ grid completed successfully (workflow 44433653290, artifact 14488165421, ZIP SHA-256 `84475df957aec989b73241a5555ade669fd2d60e693d2cc7d8091d01ffc540d5`). It reconstructed all 600 oracle rows, including the non-evaluable fitted cell by reusing that replicate/curvature's paired parent/catalogue/event realization from its successful validation-size cell.
+
+The 561-point oracle mean median biases were:
+
+| γ | n | Known-π IPW bias | Full-parent bias | Estimated − known-π |
+|---:|---:|---:|---:|---:|
+| −1 | 100 | +5.770 | +7.048 | −3.594 |
+| −1 | 500 | +5.770 | +7.048 | −3.516 |
+| 0 | 100 | +6.474 | +7.048 | −0.046 |
+| 0 | 500 | +6.474 | +7.048 | +0.294 |
+| +1 | 100 | +6.851 | +7.048 | +3.545 |
+| +1 | 500 | +6.851 | +7.048 | +4.263 |
+
+At 281 points, the known-π biases were +5.613, +5.769, +6.474, +6.474, +6.851, and +6.851 in the same row order, while the full-parent biases were +6.924 for the one 99-replicate oracle cell and +7.048 for the other cells. The 561-point analysis correctly retains all 100 oracle realizations in each cell; the 281-point success-only readout's γ=−1,n=100 mean differs because the non-evaluable fitted-arm replicate was omitted from that oracle average. The all-planned-cell 281-point rerun in the updated workflow resolves this denominator mismatch.
+
+The estimated-minus-known-π paired contrasts are nearly unchanged between grids: 281-point values −3.593, −3.514, −0.046, +0.294, +3.545, +4.263; 561-point values −3.594, −3.516, −0.046, +0.294, +3.545, +4.263. This shows the curvature-dependent contrast is not a coarse-grid artifact. The updated workflow now audits both 281 and 561 points while preserving all 600 planned oracle rows.
