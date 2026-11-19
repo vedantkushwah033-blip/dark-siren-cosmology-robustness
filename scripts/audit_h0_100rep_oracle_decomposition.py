@@ -135,6 +135,15 @@ def audit(root: Path, h0_points: int = 1121):
                 raise AssertionError(f"gamma mismatch: {cell.cell_id}")
             if int(child_cfg["validation_generator_config"]["n_validation"]) != int(cell.n_validation):
                 raise AssertionError(f"validation size mismatch: {cell.cell_id}")
+            if int(child_cfg["analysis_generator_config"]["seed"]) != int(cell.analysis_seed):
+                raise AssertionError(f"analysis seed mismatch: {cell.cell_id}")
+            if int(child_cfg["validation_generator_config"]["seed"]) != int(cell.validation_seed):
+                raise AssertionError(f"validation seed mismatch: {cell.cell_id}")
+            if not np.isclose(
+                float(child_cfg["analysis_generator_config"]["h0_true_km_s_mpc"]),
+                float(cell.h0_true), rtol=0, atol=0,
+            ):
+                raise AssertionError(f"H0 truth mismatch: {cell.cell_id}")
             candidate_catalogue = pd.read_csv(d / "observable/analysis_catalogue.csv")
             candidate_parent = pd.read_csv(d / "truth/analysis_parent_truth.csv")
             candidate_events = pd.read_csv(d / "observable/gw_events_observed.csv")
