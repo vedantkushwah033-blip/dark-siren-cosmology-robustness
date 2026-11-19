@@ -100,7 +100,7 @@ Artifact: workflow 44411667480, artifact 14485703115, ZIP SHA-256 `0d6141e8efda4
 The independent oracle workflow (run 44433623231, commit `871d120bf3c68ed5e8d2d893de1117edcff00685`) downloaded the immutable 600-cell artifact, verified its SHA-256, re-hashed all 14,106 aggregate manifest entries through the orchestration audit, and reconstructed known-inclusion-probability IPW and full-parent posteriors independently from the raw parent, catalogue, event, and validation records. The oracle reconstruction used a 561-point H₀ grid. All 600 oracle cells were evaluated, including the archived raw inputs for the one NON_EVALUABLE fitted cell.
 
 | γ | Validation n | Estimated-IPW mean bias | Known-π IPW mean bias | Full-parent mean bias | Estimated 68% coverage | Known-π 68% coverage | Full-parent 68% coverage | Known-π 90% | Full-parent 90% | Known-π 95% | Full-parent 95% |
-|---:|---:|---:|---:|---:|---:|---:|---:|
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | -1 | 100 | +2.020 (99 fitted) | +5.770 | +7.048 | 0.545 | 0.49 | 0.54 | 0.74 | 0.83 | 0.79 | 0.91 |
 | -1 | 500 | +2.255 | +5.770 | +7.048 | 0.510 | 0.49 | 0.54 | 0.74 | 0.83 | 0.79 | 0.91 |
 | 0 | 100 | +6.428 | +6.474 | +7.048 | 0.510 | 0.50 | 0.54 | 0.78 | 0.83 | 0.86 | 0.91 |
