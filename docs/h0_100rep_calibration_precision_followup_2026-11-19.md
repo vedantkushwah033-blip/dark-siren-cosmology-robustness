@@ -69,7 +69,7 @@ The second-stage paired grid experiment has now also completed on 27 fixed-truth
 The 600-cell run completed with 599 SUCCESS and one NON_EVALUABLE cell; there were no FAILED or NOT_RUN cells. The non-evaluable cell was retained in the ledger and excluded only from fitted-arm posterior summaries. The independent orchestration audit passed all 600 child audits, 300 within-curvature nested-validation blocks, 200 paired-validation blocks, and 14,106 aggregate manifest entries; all summary metrics were recomputed from the ledger.
 
 | Curvature γ | Validation n | Successful / planned | 68% coverage | 90% coverage | 95% coverage | Mean median bias | RMSE | Mean 68% width | Median min Kish ESS | Median max normalized weight |
-|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | -1 | 100 | 99 / 100 | 0.545 | 0.727 | 0.798 | +2.020 | 17.455 | 23.389 | 19.70 | 0.1552 |
 | -1 | 500 | 100 / 100 | 0.510 | 0.740 | 0.780 | +2.255 | 17.215 | 22.725 | 60.89 | 0.0776 |
 | 0 | 100 | 100 / 100 | 0.510 | 0.790 | 0.860 | +6.428 | 19.930 | 24.376 | 13.91 | 0.1976 |
@@ -125,6 +125,6 @@ The estimated-minus-known-π contrast is strongly curvature-dependent: negative 
 
 Known-π versus full-parent median differences are much smaller: −1.278 (MCSE 0.502) at γ=−1, −0.574 (0.354) at γ=0, and −0.197 (0.252) at γ=+1. In this 100-replicate artifact, finite-catalogue realization under the true inclusion probabilities is not the dominant source of the curvature-dependent fitted-arm contrast.
 
-Crucially, the full-parent oracle itself has mean posterior-median bias +7.048 (MCSE 1.809) and 68% coverage 0.54 on these exact 100 event realizations. Known-π coverage is 0.49–0.51 and estimated-arm coverage is 0.51–0.56. Thus the low 68% coverage is also present without catalogue incompleteness or estimated inclusion. The baseline undercoverage cannot be assigned solely to the inclusion model; it points to a separate finite-event/selected-likelihood calibration issue that requires its own investigation. The oracle result is conditional on this fixed-truth, four-event-per-replicate synthetic experiment and does not establish joint SBC.
+Crucially, the full-parent oracle itself has mean posterior-median bias +7.048 (MCSE 1.809) and coverage 0.54/0.83/0.91 at 68/90/95% on these exact 100 event realizations. Known-π coverage is 0.49–0.51 at 68%, 0.74–0.82 at 90%, and 0.79–0.89 at 95%; estimated-arm coverage is 0.51–0.56, 0.72–0.82, and 0.78–0.88 respectively. Thus undercoverage is also present without catalogue incompleteness or estimated inclusion at all three interval levels. The baseline undercoverage cannot be assigned solely to the inclusion model; it points to a separate finite-event/selected-likelihood calibration issue that requires its own investigation. The oracle result is conditional on this fixed-truth, four-event-per-replicate synthetic experiment and does not establish joint SBC.
 
 The oracle artifact is workflow 44433623231, artifact 14488270129, SHA-256 `3bd8aeaf57e604b200d6da646f9ba0430f1e8995f9bdcecb3c1869c8c3b139fa`. Its audit status is PASS; it contains the six-cell oracle summary, paired contrasts, 600-row cell readout, grid configuration, and audit status.
