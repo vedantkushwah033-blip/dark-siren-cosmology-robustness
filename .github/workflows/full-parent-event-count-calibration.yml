@@ -22,7 +22,7 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
       - name: Run nested-design and paired-summary tests
         run: pytest -q tests/test_full_parent_event_count_calibration.py
-      - name: Run 100-replicate paired full-parent event-count experiment
+      - name: Run 500-replicate paired full-parent event-count experiment
         run: |
           python scripts/run_full_parent_event_count_calibration.py \
             --replicates 500 \
@@ -48,13 +48,13 @@ jobs:
           raw = pd.read_csv(root / "replicates.csv")
           summary = pd.read_csv(root / "summary.csv")
           paired = pd.read_csv(root / "paired_contrast.csv")
-          assert len(raw) == 200, len(raw)
+          assert len(raw) == 1000, len(raw)
           assert raw.groupby("event_count").size().to_dict() == {4: 500, 30: 500}
           assert raw.groupby("replicate").event_count.nunique().eq(2).all()
           assert len(summary) == 2
           assert int(paired.loc[0, "paired_replicates"]) == 500
           assert set(summary.event_count) == {4, 30}
-          assert (summary.success == 100).all()
+          assert (summary.success == 500).all()
           print(summary.to_string(index=False))
           print(paired.to_string(index=False))
           print(json.dumps({"manifest_entries_verified": len(manifest),
