@@ -52,6 +52,13 @@ def _density_l1(grid_a, density_a, grid_b, density_b):
     return float(trapezoid(np.abs(np.asarray(density_b, float)-interpolated), target))
 
 
+def _density_l1(grid_a, density_a, grid_b, density_b):
+    target = np.asarray(grid_b, float)
+    interpolated = np.interp(target, np.asarray(grid_a, float), np.asarray(density_a, float))
+    interpolated /= trapezoid(interpolated, target)
+    return float(trapezoid(np.abs(np.asarray(density_b, float)-interpolated), target))
+
+
 def audit(root: Path, fine_points: int = 2241, max_quantile_shift: float = 0.05,
           max_rank_shift: float = 0.002, max_density_l1: float = 0.001,
           output: Path | None = None, intermediate_points: int = 1121) -> dict:
