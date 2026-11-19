@@ -30,3 +30,11 @@ def test_adaptive_cdf_handles_monotone_boundary_posterior():
     expected = 1.0 - np.exp(-(truth - lower) / 0.3)
     assert abs(result["adaptive_rank"] - expected) < 2e-6
     assert result["adaptive_quantiles"][5] < 21.0
+
+
+def test_seed_helper_returns_deterministic_python_integer():
+    from audit_full_parent_h0_sbc_adaptive import _seed
+    first = _seed(2026111907, 100, 0)
+    assert isinstance(first, int)
+    assert first == _seed(2026111907, 100, 0)
+    assert first != _seed(2026111907, 100, 1)
