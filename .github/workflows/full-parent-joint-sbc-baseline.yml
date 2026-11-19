@@ -2,6 +2,9 @@ name: full-parent-joint-sbc-baseline
 
 on:
   pull_request:
+    paths:
+      - .github/workflows/full-parent-joint-sbc-baseline.yml
+      - scripts/run_full_parent_h0_sbc.py
   workflow_dispatch:
 
 permissions:
