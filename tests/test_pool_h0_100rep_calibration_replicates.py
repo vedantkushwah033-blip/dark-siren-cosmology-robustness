@@ -146,3 +146,34 @@ def test_rejects_manifest_corruption(tmp_path):
         handle.write("\n")
     with pytest.raises(AssertionError, match="manifest mismatch"):
         MODULE.analyze(a, b, tmp_path/"out", expected_cells=600)
+
+
+
+def refresh_manifest(root: Path):
+    ledger = pd.read_csv(root/"replicate_ledger.csv")
+    representative = ledger[
+        (ledger.status == "SUCCESS") & (ledger.gamma == -1.0) & (ledger.n_validation == 100)
+    ].sort_values("replicate").iloc[0]
+    names = [
+        "planned_cells.csv", "replicate_ledger.csv",
+        f"replicates/{representative.cell_id}/config.json",
+    ]
+    manifest = {name: hashlib.sha256((root/name).read_bytes()).hexdigest() for name in names}
+    (root/"manifest.json").write_text(json.dumps(manifest))
+
+
+def test_rejects_mismatched_scientific_configuration(tmp_path):
+    a = tmp_path/"run1"; b = tmp_path/"run2"
+    write_replication(a, "r1", 100000)
+    write_replication(b, "r2", 200000)
+    ledger = pd.read_csv(b/"replicate_ledger.csv")
+    representative = ledger[
+        (ledger.status == "SUCCESS") & (ledger.gamma == -1.0) & (ledger.n_validation == 100)
+    ].sort_values("replicate").iloc[0]
+    config_path = b/"replicates"/str(representative.cell_id)/"config.json"
+    config = json.loads(config_path.read_text())
+    config["inference"]["h0_grid_points"] = 561
+    config_path.write_text(json.dumps(config, sort_keys=True))
+    refresh_manifest(b)
+    with pytest.raises(AssertionError, match="scientific configurations differ"):
+        MODULE.analyze(a, b, tmp_path/"out", expected_cells=600)
