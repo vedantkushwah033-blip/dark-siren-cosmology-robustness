@@ -13,6 +13,10 @@ concurrency:
   group: pooled-five-arm-precision-readout
   cancel-in-progress: false
 
+permissions:
+  actions: read
+  contents: read
+
 jobs:
   pool-audited-batches:
     runs-on: ubuntu-latest
