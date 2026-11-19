@@ -9,7 +9,7 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from dark_siren_robustness.generative_selection import generate_synthetic_population
-from audit_full_parent_h0_sbc_grid import _posterior
+from audit_full_parent_h0_sbc_grid import _density_l1, _posterior
 
 
 def test_independent_sbc_posterior_is_normalized_and_monotone():
@@ -38,3 +38,13 @@ def test_grid_audit_reconstructs_truth_rank():
                            cfg["sigma_mpc"], cfg["detection_threshold_mpc"])
     rank = np.interp(70.0, grid, cdf)
     assert 0.0 <= rank <= 1.0
+
+
+def test_density_l1_comparison_on_nested_grids():
+    coarse = np.linspace(20.0, 300.0, 561)
+    fine = np.linspace(20.0, 300.0, 1121)
+    dc = np.exp(-0.5*((coarse-70.0)/8.0)**2)
+    df = np.exp(-0.5*((fine-70.0)/8.0)**2)
+    dc /= trapezoid(dc, coarse)
+    df /= trapezoid(df, fine)
+    assert _density_l1(coarse, dc, fine, df) < 0.001
