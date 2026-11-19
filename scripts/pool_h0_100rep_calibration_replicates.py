@@ -81,13 +81,37 @@ def _load_replication(root: Path, label: str, expected_cells: int) -> tuple[pd.D
         raise AssertionError(f"{label} validation seed is not shared within replicate")
     if ledger.groupby(["gamma", "n_validation"]).size().ne(100).any():
         raise AssertionError(f"{label} has an incomplete gamma × validation-size cell")
+    first = ledger[ledger.status == "SUCCESS"].sort_values(
+        ["replicate", "gamma", "n_validation"]
+    ).iloc[0]
+    config_path = root / "replicates" / str(first.cell_id) / "config.json"
+    if not config_path.is_file():
+        raise AssertionError(f"{label} representative child config is missing")
+    cfg = json.loads(config_path.read_text())
+    analysis = cfg["analysis_generator_config"]
+    validation = cfg["validation_generator_config"]
+    inference = cfg["inference"]
+    analysis_keys = (
+        "experiment", "n_parent", "n_detected_events", "h0_true_km_s_mpc",
+        "sigma_mpc", "detection_threshold_mpc", "redshift_domain",
+        "catalogue_selection", "merger_weight", "distance_model",
+    )
+    validation_keys = (
+        "independent_frame", "n_validation_frame", "n_validation",
+        "sampling_design", "catalogue_selection",
+    )
+    signature = {
+        "analysis": {key: analysis[key] for key in analysis_keys},
+        "validation": {key: validation[key] for key in validation_keys},
+        "inference": inference,
+    }
     if not np.all(ledger.h0_true.to_numpy(float) == 70.0):
         raise AssertionError(f"{label} has an unexpected H0 truth")
     ledger = ledger.copy()
     ledger["source_run"] = label
     ledger["global_replicate"] = ledger.replicate.astype(int) + (0 if label == "replication_1" else 100)
     ledger["manifest_entries_verified"] = manifest_entries
-    return ledger, audit
+    return ledger, audit, signature
 
 
 def _wilson(k: int, n: int, z: float = 1.959963984540054) -> tuple[float, float]:
@@ -147,8 +171,10 @@ def _paired_contrast(left: pd.DataFrame, right: pd.DataFrame,
 
 def analyze(replication_1: Path, replication_2: Path, output: Path,
             expected_cells: int = 600) -> dict:
-    a, audit_a = _load_replication(replication_1, "replication_1", expected_cells)
-    b, audit_b = _load_replication(replication_2, "replication_2", expected_cells)
+    a, audit_a, signature_a = _load_replication(replication_1, "replication_1", expected_cells)
+    b, audit_b, signature_b = _load_replication(replication_2, "replication_2", expected_cells)
+    if signature_a != signature_b:
+        raise AssertionError("replication scientific configurations differ; pooling is invalid")
     seeds_a = set(a.analysis_seed.astype(int)) | set(a.validation_seed.astype(int))
     seeds_b = set(b.analysis_seed.astype(int)) | set(b.validation_seed.astype(int))
     if seeds_a.intersection(seeds_b):
