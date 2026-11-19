@@ -1,0 +1,48 @@
+name: pooled-five-arm-precision-readout
+
+on:
+  push:
+    branches:
+      - research/quadratic-five-arm-30event-multirep-readout-20261119
+    paths:
+      - .github/workflows/pooled-five-arm-precision-readout.yml
+      - scripts/analyze_pooled_quadratic_five_arm_precision.py
+  workflow_dispatch:
+
+concurrency:
+  group: pooled-five-arm-precision-readout
+  cancel-in-progress: false
+
+jobs:
+  pool-audited-batches:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install analysis dependencies
+        run: python -m pip install numpy pandas scipy
+      - name: Compile pooled analysis utility
+        run: python -m py_compile scripts/analyze_pooled_quadratic_five_arm_precision.py
+      - name: Download immutable master-seed batch A
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 44460222957 --repo ${{ github.repository }} --name quadratic-five-arm-30event-100rep --dir artifacts/batch_a
+      - name: Download immutable master-seed batch B
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 44462487127 --repo ${{ github.repository }} --name quadratic-five-arm-30event-100rep --dir artifacts/batch_b
+      - name: Validate and pool 200 replicate streams
+        run: |
+          python scripts/analyze_pooled_quadratic_five_arm_precision.py \
+            artifacts/batch_a artifacts/batch_b \
+            --out artifacts/pooled_readout
+      - name: Upload pooled metrics and paired contrasts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pooled-quadratic-five-arm-200rep-readout
+          path: artifacts/pooled_readout/
+          if-no-files-found: error
+          retention-days: 90
