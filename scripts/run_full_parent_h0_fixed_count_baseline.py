@@ -3,6 +3,7 @@
 Uses archived parent populations but generates fresh detected-event samples
 from the exact fixed-count selection process. This isolates the event-sample
 baseline before catalogue incompleteness or estimated inclusion probabilities.
+Raw parent inputs remain usable when a fitted-inclusion cell is NON_EVALUABLE.
 """
 from __future__ import annotations
 import argparse
