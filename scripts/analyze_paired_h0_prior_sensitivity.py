@@ -26,9 +26,22 @@ def verify_artifact(root):
             raise AssertionError(f"artifact manifest mismatch: {root.name}/{rel}")
     if len(manifest["files"])!=int(manifest["file_count"]):
         raise AssertionError("artifact manifest count mismatch")
+    cfg=json.loads((root/"config.json").read_text())
     ledger=pd.read_csv(root/"replicate_ledger.csv")
+    planned=pd.read_csv(root/"planned_cells.csv")
+    summaries=pd.read_csv(root/"replicate_posterior_summaries.csv")
+    expected=int(cfg["replicates"])*len(cfg["gammas"])*len(cfg["validation_sizes"])*len(ARMS)
+    if len(ledger)!=expected or len(planned)!=expected or len(summaries)!=expected:
+        raise AssertionError(f"artifact lifecycle denominator mismatch: {root}")
     if not (ledger.status=="SUCCESS").all() or not (ledger.audit_status=="PASS").all():
         raise AssertionError(f"artifact lifecycle is incomplete: {root}")
+    for rep in range(int(cfg["replicates"])):
+        for gamma in cfg["gammas"]:
+            suffix=f"g{float(gamma):+g}".replace("+","p").replace("-","m")
+            child=root/"replicates"/f"rep{rep:03d}_{suffix}"
+            report=json.loads((child/"audit_report.json").read_text())
+            if report.get("status")!="PASS":
+                raise AssertionError(f"child audit not PASS: {child}")
     return len(manifest["files"]),len(ledger)
 def interval(x):
     x=np.asarray(x,float); n=len(x); m=float(x.mean())
