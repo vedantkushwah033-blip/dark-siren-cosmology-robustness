@@ -38,3 +38,11 @@ def test_seed_helper_returns_deterministic_python_integer():
     assert isinstance(first, int)
     assert first == _seed(2026111907, 100, 0)
     assert first != _seed(2026111907, 100, 1)
+
+
+def test_lowest_q975_selection_is_deterministic():
+    import pandas as pd
+    from audit_full_parent_h0_sbc_adaptive import _select_replicates
+    frame = pd.DataFrame({"replicate": [0, 1, 2, 3], "q975": [40.0, 22.0, 30.0, 21.0]})
+    assert _select_replicates(frame, lowest_q975=2) == (3, 1)
+    assert _select_replicates(frame, replicates=[2, 0]) == (2, 0)
