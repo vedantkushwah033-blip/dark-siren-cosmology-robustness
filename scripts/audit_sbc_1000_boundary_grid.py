@@ -70,6 +70,13 @@ def audit(source_dir: Path, output_dir: Path, intermediate_points=2241,
         if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
             raise AssertionError(f"source manifest mismatch: {name}")
     design = json.loads((source_dir / "design.json").read_text())
+    independent_audit_path = source_dir / "independent_audit.json"
+    if independent_audit_path.is_file():
+        independent_audit = json.loads(independent_audit_path.read_text())
+        if independent_audit.get("status") != "PASS" or int(independent_audit.get("replicates_regenerated", -1)) != 1000:
+            raise AssertionError("source independent audit is not a complete 1000-replicate PASS")
+    else:
+        raise AssertionError("source artifact omits the independent 1000-replicate audit")
     raw = pd.read_csv(source_dir / "sbc_replicates.csv")
     if design.get("status") != "COMPLETE" or int(design.get("replicates", -1)) != 1000 or len(raw) != 1000:
         raise AssertionError("expected the complete immutable 1,000-replicate source")
