@@ -105,3 +105,18 @@ With only 10 independent replicates, coverage moves in 10-percentage-point incre
 5. Complete H0-grid and KDE bandwidth holdout/convergence checks before any confirmatory preregistration.
 
 No LVK/GWTC data, real galaxy survey, or observational H0 measurement is used.
+
+
+## Additional raw-posterior boundary diagnostic (10-replicate artifact)
+
+I downloaded and inspected the completed workflow artifact (23 MB) rather than relying only on the printed aggregate table. For each replicate/curvature/arm, I reconstructed the normalized discrete H0 posterior from the archived 281-point log-likelihood array using the same uniform [50,90] prior and trapezoidal normalization.
+
+For the catalogue-only arm A at validation size 500:
+- mean posterior mass in H0 ∈ [50,52] was 18.5% across 30 replicate-curvature combinations (median 16.9%; maximum 49.8%);
+- mean posterior mass in H0 ∈ [50,55] was 48.3% (median 48.3%; maximum 89.4%);
+- by gamma, mean mass in [50,55] was 55.2% at gamma=-1, 49.5% at gamma=0, and 40.1% at gamma=+1;
+- the average 2.5th posterior percentile for A was about 50.4, very close to the lower prior boundary.
+
+The other four arms had essentially no mass in [50,52] on average. This indicates that A's large negative median error is accompanied by substantial posterior pile-up near the lower H0 prior boundary, rather than merely a modest shift of an otherwise interior posterior.
+
+This is an important diagnostic, but it is not a numerical-grid validation. The 281-point H0 grid and [50,90] prior truncate the posterior; the next analysis should repeat the A likelihood on an expanded H0 support and finer grids (for example [30,110] with 561/1121 points) to determine whether the catalogue-only posterior mode/median would move farther below 50. The current A bias and coverage results should therefore be interpreted as prior-boundary-truncated outcomes, not an unconstrained estimate of the full bias.
