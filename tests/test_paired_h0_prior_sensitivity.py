@@ -42,3 +42,43 @@ def test_paired_interval_single_pair_has_undefined_uncertainty():
     assert np.isnan(se)
     assert np.isnan(low)
     assert np.isnan(high)
+
+
+import pandas as pd
+import pytest
+
+from analyze_paired_h0_prior_sensitivity import validate_paired_summary_rows
+
+
+def test_pairing_requires_complete_identical_key_sets():
+    keys = ["replicate", "gamma", "validation_size", "arm"]
+    narrow = pd.DataFrame([
+        [0, -1.0, 100, "A", 70.0],
+        [0, -1.0, 100, "B", 70.0],
+    ], columns=keys + ["h0_true"])
+    wide = narrow.copy()
+    paired = validate_paired_summary_rows(narrow, wide, keys, expected=2)
+    assert len(paired) == 2
+
+
+def test_pairing_rejects_missing_rows():
+    keys = ["replicate", "gamma", "validation_size", "arm"]
+    narrow = pd.DataFrame([[0, -1.0, 100, "A"]], columns=keys)
+    wide = pd.DataFrame([[0, -1.0, 100, "A"], [0, -1.0, 100, "B"]], columns=keys)
+    with pytest.raises(AssertionError, match="row count"):
+        validate_paired_summary_rows(narrow, wide, keys, expected=2)
+
+
+def test_pairing_rejects_duplicate_keys():
+    keys = ["replicate", "gamma", "validation_size", "arm"]
+    narrow = pd.DataFrame([[0, -1.0, 100, "A"], [0, -1.0, 100, "A"]], columns=keys)
+    with pytest.raises(AssertionError, match="duplicate"):
+        validate_paired_summary_rows(narrow, narrow.copy(), keys, expected=2)
+
+
+def test_pairing_rejects_truth_mismatch():
+    keys = ["replicate", "gamma", "validation_size", "arm"]
+    narrow = pd.DataFrame([[0, -1.0, 100, "A", 70.0]], columns=keys + ["h0_true"])
+    wide = pd.DataFrame([[0, -1.0, 100, "A", 71.0]], columns=keys + ["h0_true"])
+    with pytest.raises(AssertionError, match="H0 truth"):
+        validate_paired_summary_rows(narrow, wide, keys, expected=1)
