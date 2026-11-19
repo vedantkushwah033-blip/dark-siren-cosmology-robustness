@@ -61,7 +61,7 @@ def audit_pair(narrow:Path,wide:Path,out:Path):
             xa=np.load(ca/"results"/"log_likelihoods.npz")
             xb=np.load(cb/"results"/"log_likelihoods.npz")
             ga=xa["H0_grid"];gb=xb["H0_grid"]
-            common_idx=np.arange(140,421,2)
+            common_idx=np.arange(140,421,1)
             if not np.allclose(gb[common_idx],ga,rtol=0,atol=1e-12):
                 raise AssertionError("wide grid does not contain the original narrow grid")
             for nval in sizes:
