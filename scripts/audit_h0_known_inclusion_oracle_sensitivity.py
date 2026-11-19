@@ -227,8 +227,13 @@ def audit(root: Path, h0_points: int | None = None):
                 float(values.std(ddof=1)/math.sqrt(len(values)))
                 if len(values) > 1 else float("nan")
             )
+        fitted_ledger = ledger[
+            (ledger.gamma == gamma) & (ledger.n_validation == nval) &
+            (ledger.status == "SUCCESS")
+        ]
         row["estimated_coverage68"] = (
-            float(estimated_group.covered68.mean()) if len(estimated_group) else float("nan")
+            float(fitted_ledger.covered68.mean())
+            if len(fitted_ledger) else float("nan")
         )
         row["known_pi_coverage68"] = float(group.known_pi_coverage68.mean())
         row["full_parent_coverage68"] = float(group.full_parent_coverage68.mean())
