@@ -140,17 +140,14 @@ def summarize(summaries: pd.DataFrame, support: pd.DataFrame, out: Path) -> dict
     summaries["covered95"] = (summaries.q025 <= summaries.h0_true) & (summaries.h0_true <= summaries.q975)
     summaries["squared_error"] = summaries.median_error ** 2
     summaries["absolute_error"] = summaries.median_error.abs()
-    pooled = summaries.groupby(["gamma", "validation_size", "arm"], sort=True).agg(
+    pooled = summaries.assign(width68=summaries.q84-summaries.q16).groupby(
+        ["gamma", "validation_size", "arm"], sort=True
+    ).agg(
         n=("median_error", "size"), bias=("median_error", "mean"),
         rmse=("squared_error", lambda x: float(np.sqrt(np.mean(x)))),
         coverage68=("covered68", "mean"), coverage90=("covered90", "mean"),
-        coverage95=("covered95", "mean"),
-        mean_width68=("q84", lambda x: float("nan")),
+        coverage95=("covered95", "mean"), mean_width68=("width68", "mean"),
     ).reset_index()
-    widths = summaries.assign(width68=summaries.q84-summaries.q16).groupby(
-        ["gamma", "validation_size", "arm"], sort=True
-    ).width68.mean().reset_index(name="mean_width68")
-    pooled = pooled.drop(columns=["mean_width68"]).merge(widths, on=["gamma","validation_size","arm"])
     pooled.to_csv(out / "pooled_metrics_200rep.csv", index=False)
 
     # Paired arm contrasts within each parent/event replicate.
@@ -201,7 +198,16 @@ def summarize(summaries: pd.DataFrame, support: pd.DataFrame, out: Path) -> dict
         "same_likelihood_prior_support_reconstructions":len(support),
         "interpretation":"Synthetic fixed-truth sensitivity only; not observational H0 inference or universal estimator ranking."
     }
-    (out/"audit_summary.json").write_text(json.dumps(report,indent=2)+"\n")
+    (out/"audit_summary.json").write_text(json.dumps(report,indent=2)+"\\n")
+    # Compact numerical tables are printed to the workflow log as well as saved to CSV.
+    print("\\n=== POOLED 200-REPLICATE METRICS (n_validation=500) ===")
+    print(pooled[pooled.validation_size == 500].to_string(index=False))
+    print("\\n=== PAIRED SQUARED-ERROR CONTRASTS (n_validation=500) ===")
+    print(contrasts[contrasts.validation_size == 500].to_string(index=False))
+    print("\\n=== VALIDATION-SIZE CHANGE (n=500 minus n=100; paired squared-error) ===")
+    print(pd.DataFrame(size_rows).to_string(index=False))
+    print("\\n=== PRIOR-SUPPORT SENSITIVITY (n_validation=500) ===")
+    print(supp[supp.validation_size == 500].to_string(index=False))
     return report
 
 
