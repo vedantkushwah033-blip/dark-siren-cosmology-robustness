@@ -1,6 +1,9 @@
 name: full-parent-event-count-sensitivity
 
 on:
+  push:
+    branches:
+      - research/full-parent-event-count-sensitivity-20261119
   pull_request:
     branches:
       - research/h0-100rep-oracle-decomposition-20261119
