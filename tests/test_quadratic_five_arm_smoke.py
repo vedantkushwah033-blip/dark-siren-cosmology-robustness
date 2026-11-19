@@ -61,3 +61,25 @@ def test_auditor_rejects_tampered_inclusion_quadrature_weights(tmp_path: Path):
     manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True))
     with pytest.raises(AssertionError,match="independent inclusion quadrature weights mismatch"):
         audit(root)
+
+
+def test_expanded_common_h0_prior_roundtrip(tmp_path: Path):
+    root = tmp_path / "quadratic_five_arm_expanded_prior"
+    args = SimpleNamespace(
+        seed=8127, validation_seed=8128, n_parent=300, n_detected=4,
+        validation_frame=120, validation_sizes=[50, 100], catalogue_floor=0.10,
+        curvature_gamma=0.5, curvature_beta=-3.9, h0_true=70.0,
+        h0_prior_min=30.0, h0_prior_max=110.0, h0_points=81,
+        scott_multiplier=0.7, quadrature_order=3, sigma_mpc=140.0,
+        detection_threshold_mpc=250.0, output_dir=root,
+    )
+    result = run(args)
+    assert result["status"] == "PASS"
+    config = json.loads((root / "config.json").read_text())
+    assert config["h0_prior_support"] == [30.0, 110.0]
+    with np.load(root / "results" / "log_likelihoods.npz") as archive:
+        assert archive["H0_grid"][0] == 30.0
+        assert archive["H0_grid"][-1] == 110.0
+    report = audit(root)
+    assert report["status"] == "PASS"
+    assert report["posterior_summary_rows_reconstructed"] == 10
