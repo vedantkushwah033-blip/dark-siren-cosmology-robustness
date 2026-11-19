@@ -43,6 +43,27 @@ def verify_artifact(root):
             if report.get("status")!="PASS":
                 raise AssertionError(f"child audit not PASS: {child}")
     return len(manifest["files"]),len(ledger)
+def validate_paired_summary_rows(a, b, join, expected):
+    """Require a complete, unique, identical replicate/arm key set before pairing."""
+    for label, frame in [("narrow", a), ("wide", b)]:
+        if frame.duplicated(join).any():
+            raise AssertionError(f"{label} posterior summaries contain duplicate pairing keys")
+        if len(frame) != expected:
+            raise AssertionError(f"{label} posterior summary row count {len(frame)} != {expected}")
+    ka=set(map(tuple,a[join].itertuples(index=False,name=None)))
+    kb=set(map(tuple,b[join].itertuples(index=False,name=None)))
+    if ka != kb:
+        raise AssertionError(
+            f"posterior summary pairing keys differ: narrow_only={len(ka-kb)}, wide_only={len(kb-ka)}"
+        )
+    if "h0_true" in a.columns and "h0_true" in b.columns:
+        aa=a[join+["h0_true"]].sort_values(join).reset_index(drop=True)
+        bb=b[join+["h0_true"]].sort_values(join).reset_index(drop=True)
+        if not np.array_equal(aa.h0_true.to_numpy(),bb.h0_true.to_numpy()):
+            raise AssertionError("paired posterior summaries disagree on H0 truth")
+    return a.merge(b,on=join,suffixes=("_narrow","_wide"),validate="one_to_one")
+
+
 def interval(x):
     x=np.asarray(x,float); n=len(x); m=float(x.mean())
     if n<2: return m,float("nan"),float("nan"),float("nan")
@@ -99,7 +120,8 @@ def audit_pair(narrow:Path,wide:Path,out:Path):
                     if diff>1e-9: raise AssertionError(f"common-support likelihood mismatch {key}: {diff}")
     keys=["posterior_median","q025","q05","q16","q84","q95","q975","median_error"]
     join=["replicate","gamma","validation_size","arm"]
-    paired=summaries_a.merge(summaries_b,on=join,suffixes=("_narrow","_wide"),validate="one_to_one")
+    expected_rows=reps*len(gammas)*len(sizes)*len(ARMS)
+    paired=validate_paired_summary_rows(summaries_a,summaries_b,join,expected_rows)
     for _,r in paired.iterrows():
         row={k:r[k] for k in join}
         for key in keys: row[key+"_difference_wide_minus_narrow"]=float(r[key+"_wide"]-r[key+"_narrow"])
