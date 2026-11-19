@@ -53,3 +53,16 @@ def test_sbc_auditor_rejects_missing_replicate_even_if_row_count_is_preserved(tm
     _refresh_source_manifest(root)
     with pytest.raises(AssertionError, match="replicate inventory"):
         audit(root, expected_replicates=20)
+
+
+def test_sbc_auditor_rejects_tampered_posterior_quantile_with_refreshed_hash(tmp_path: Path):
+    root = tmp_path / "sbc"
+    run(root, replicates=20, master_seed=91360, n_parent=300,
+        n_detected=5, h0_min=30, h0_max=120, h0_points=101)
+    raw_path = root / "sbc_replicates.csv"
+    frame = pd.read_csv(raw_path)
+    frame.loc[0, "q025"] += 0.5
+    frame.to_csv(raw_path, index=False)
+    _refresh_source_manifest(root)
+    with pytest.raises(AssertionError, match="q025 mismatch"):
+        audit(root, expected_replicates=20)
