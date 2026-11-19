@@ -169,6 +169,12 @@ The event-level MCSE is conditional on the archived parent populations; the pare
 
 The original 100 parent/event realizations had full-parent coverage 0.54/0.83/0.91. Repeatedly resampling detected events on those **same** 100 parents raises it to 0.6535/0.8794/0.9335. Thus the original four-event realization set was not representative of the event-sampling distribution, especially at the 68% level. The +7.048 median-bias estimate from the original 100 event samples is also compatible with the repeated-draw estimate +6.439 once its original MCSE 1.809 is considered.
 
+Two subsequent complete reruns reproduced these 20,000-draw summary values exactly:
+- Workflow 44435303348, artifact 14490785294, ZIP SHA-256 `f44ecb66cd541f4cda376a26534eb31255feeec4493ff4eb133d52ee63caac42`.
+- Workflow 44436218047, artifact 14490011968, ZIP SHA-256 `204f32af9860743e9964745fa5e6f97fcb097bf92f10d6c8fa579343a32e7d1c`.
+
+Both had 100 parent clusters × 200 event draws, and both reproduced mean median bias +6.4388, coverage 0.6535/0.8794/0.9335, and the parent-cluster intervals above. Their archive hashes differ because they are separate workflow artifacts; the reported numerical summaries agree. These reruns are deterministic computational replications of the same script and seed schedule, not an independent reimplementation of the 20,000-event sampler. The workflow's independent checks verify source manifests and recompute parent-cluster aggregates from the saved event-level rows. A separate raw-seed event-level auditor would be needed to independently reconstruct all 20,000 event samples and posterior curves.
+
 The paired 500-new-parent event-count experiment in PR #101 compared nested 4-event and 30-event samples on the same 500 parent/event realizations. Four-event coverage was 0.696/0.910/0.954 with mean median bias +5.060 (MCSE 0.717); the 30-event arm had coverage 0.662/0.860/0.920 and mean median bias +0.866 (MCSE 0.182). The paired 30-minus-4 median-bias contrast was −4.194 (MCSE 0.699; 95% interval [−5.567,−2.820]), and mean 68% interval width fell from 23.44 to 7.35 km s\(^{-1}\) Mpc\(^{-1}\). This supports a strong event-count effect on median bias and precision, while modest undercoverage remains in the 30-event arm. The 500-parent sample is different from the 100 archived parent populations used in the 20,000-draw conditional baseline, so these results should not be pooled or treated as a paired contrast with that baseline.
 
 The main conclusion is now clearer: the full-parent fixed-count likelihood has positive median bias around +6.4 km s^-1 Mpc^-1 in this four-event setup, and conditional repeated-sampling coverage is below nominal (about 65.4%, 87.9%, and 93.4%). The original 54% 68%-coverage estimate overstated the deficit because it used only one four-event realization per parent. This remains fixed-truth coverage, not joint SBC. The paired 30-event experiment separately shows that more detected events greatly reduce median bias and interval width, but does not by itself resolve the remaining coverage behavior.
@@ -187,9 +193,11 @@ The validation-size increase from 100 to 500 improves weight stability (higher K
 ### Active follow-ups
 
 - PR #96: independent second 100-replicate/600-cell calibration replication, seed 2026111930, workflow #44437373259; currently running.
-- PR #104: independent raw-seed reconstruction audit of the 500-replicate event-count experiment; current replay workflow #44437893958.
+- PR #104: independent raw-seed reconstruction audit of the 500-replicate event-count experiment; workflow #44437893958 passed, regenerating all 500 parent populations, 15,000 detected events, and 1,000 posterior curves.
 - PR #107: H0-grid refinement on the first 100-replicate artifact, 17 or 18 successful cells depending on whether the non-evaluable cell falls in the selected first-three-replicate subset; 281/561/1,121 grids, workflow #44438462754.
-- PR #110: planned pooled summary across the two independent 100-replicate calibration artifacts; do not run until the second artifact and both orchestration audits pass.
+- PR #110: pooled summary across two independent 100-replicate calibration replications; wait for the second complete artifact and both orchestration audits before interpreting pooled estimates.
+- PR #111: 1,000-replicate full-parent prior-predictive SBC extension; queued, with a 1,121-point H0 grid.
+- PR #108: quadratic-logit five-arm H0 smoke with 30 detected events and gamma = −1, 0, +1; queued, one paired realization per curvature.
 
 ### Claim boundary
 
