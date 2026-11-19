@@ -50,9 +50,37 @@ def write_replication(root: Path, label: str, seed_base: int, non_success=False)
         "status_counts": {str(k): int(v) for k,v in ledger.status.value_counts().items()},
     }
     (root/"independent_orchestration_audit.json").write_text(json.dumps(audit))
+    representative = ledger[ledger.status == "SUCCESS"].iloc[0]
+    child = root/"replicates"/str(representative.cell_id)
+    child.mkdir(parents=True)
+    config = {
+        "analysis_generator_config": {
+            "experiment": "synthetic_catalogue_and_gw_selection_separated",
+            "n_parent": 1200, "n_detected_events": 4,
+            "h0_true_km_s_mpc": 70.0, "sigma_mpc": 140.0,
+            "detection_threshold_mpc": 250.0, "redshift_domain": [0.01, 0.4],
+            "catalogue_selection": {"floor": 0.1, "midpoint": 0.22, "width": 0.05},
+            "merger_weight": "1 + 1.5*(z-z_min)/(z_max-z_min)",
+            "distance_model": "d_obs ~ Normal(c*z/H0_true, sigma_mpc^2); detected iff d_obs >= threshold",
+        },
+        "validation_generator_config": {
+            "independent_frame": True, "n_validation_frame": 500,
+            "n_validation": 100,
+            "sampling_design": "simple_random_sample_without_replacement_from_independent_parent_frame",
+            "catalogue_selection": {"floor": 0.1, "midpoint": 0.22, "width": 0.05},
+        },
+        "inference": {
+            "degree": 1, "h0_grid_points": 281,
+            "uniform_h0_prior": [20.0, 300.0],
+            "quadrature_orders_requested": [3, 5, 7, 9],
+            "curvature_gamma": -1.0, "curvature_beta": -3.9,
+        },
+    }
+    (child/"config.json").write_text(json.dumps(config, sort_keys=True))
     manifest = {
         name: hashlib.sha256((root/name).read_bytes()).hexdigest()
-        for name in ("planned_cells.csv", "replicate_ledger.csv")
+        for name in ("planned_cells.csv", "replicate_ledger.csv",
+                     f"replicates/{representative.cell_id}/config.json")
     }
     (root/"manifest.json").write_text(json.dumps(manifest))
     return ledger
