@@ -58,9 +58,33 @@ def audit(root: Path, fine_points: int = 1121, max_quantile_shift: float = 0.05,
             raise AssertionError(f"source manifest mismatch: {name}")
     design = json.loads((root / "design.json").read_text())
     raw = pd.read_csv(root / "sbc_replicates.csv")
+    source_summary = json.loads((root / "sbc_summary.json").read_text())
+    independent_audit_path = root / "independent_audit.json"
+    if independent_audit_path.is_file():
+        independent_audit = json.loads(independent_audit_path.read_text())
+        if independent_audit.get("status") != "PASS":
+            raise AssertionError("source SBC independent reconstruction audit did not pass")
+        if int(independent_audit.get("replicates_regenerated", -1)) != 200:
+            raise AssertionError("source SBC independent audit has an incomplete denominator")
     n = int(design["replicates"])
     if design.get("status") != "COMPLETE" or n != 200 or len(raw) != n:
         raise AssertionError("expected the complete 200-replicate SBC source artifact")
+    required_columns = {
+        "replicate", "truth_seed", "simulation_seed", "h0_true", "n_parent",
+        "n_detected", "posterior_rank", "h0_median", "median_bias",
+        "q025", "q05", "q10", "q16", "q25", "q75", "q84", "q90", "q95", "q975",
+        "covered50", "covered68", "covered80", "covered90", "covered95",
+    }
+    if required_columns - set(raw.columns):
+        raise AssertionError("source SBC replicate table omits required rank/quantile/coverage columns")
+    if source_summary.get("status") != "COMPLETE" or int(source_summary.get("replicates", -1)) != n:
+        raise AssertionError("source SBC summary is incomplete or inconsistent")
+    if int(source_summary.get("h0_grid_points", -1)) != int(design["h0_grid_points"]):
+        raise AssertionError("source SBC summary grid metadata mismatch")
+    for level in (50, 68, 80, 90, 95):
+        empirical = float(raw[f"covered{level}"].mean())
+        if not np.isclose(float(source_summary[f"coverage{level}"]), empirical, rtol=0, atol=1e-12):
+            raise AssertionError(f"source SBC coverage{level} summary mismatch")
     if set(raw.replicate.astype(int)) != set(range(n)) or raw.replicate.duplicated().any():
         raise AssertionError("SBC replicate inventory is incomplete or duplicated")
     coarse_points = int(design["h0_grid_points"])
@@ -103,6 +127,13 @@ def audit(root: Path, fine_points: int = 1121, max_quantile_shift: float = 0.05,
             raise AssertionError(f"independent source-grid quantile mismatch at replicate {rep}")
         if not np.isclose(rank_c, float(row.posterior_rank), rtol=0, atol=2e-8):
             raise AssertionError(f"independent source-grid rank mismatch at replicate {rep}")
+        if not np.isclose(float(row.median_bias), float(qc[5]-truth), rtol=0, atol=2e-8):
+            raise AssertionError(f"independent source-grid median-bias mismatch at replicate {rep}")
+        for level, low_idx, high_idx in ((50, 4, 6), (68, 3, 7), (80, 2, 8),
+                                         (90, 1, 9), (95, 0, 10)):
+            expected_coverage = int(qc[low_idx] <= truth <= qc[high_idx])
+            if int(row[f"covered{level}"]) != expected_coverage:
+                raise AssertionError(f"source-grid coverage{level} mismatch at replicate {rep}")
         coarse_on_fine = np.interp(fine, coarse, dc)
         coarse_on_fine /= trapezoid(coarse_on_fine, fine)
         density_l1 = float(trapezoid(np.abs(df-coarse_on_fine), fine))
