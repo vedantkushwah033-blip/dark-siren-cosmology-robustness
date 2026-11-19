@@ -68,3 +68,32 @@ The paired 68% coverage indicator did not change for any arm/curvature cell in t
 - Source artifact hashes are verified by the audit script before any paired summary is calculated.
 
 **Status:** paired prior-support attribution gate PASS. Full repository test matrix and scientific review remain separate gates. Draft/unmerged; no main-branch changes.
+
+
+## Complete validation-size follow-up (n=100, 300, 500)
+
+The updated audit workflow on commit `f61d6affd6fbe53290c0e5561556f815faa5d31e` printed all 180 paired metric rows (3 curvatures × 3 validation sizes × 5 arms × 4 metrics). The audit and its focused regression tests both completed successfully in workflow `44601966016`. The independent full repository test workflow was still pending at the time of this readout.
+
+The main additional result is that the prior-support effect on the estimated-inclusion arms is not a simple monotone function of validation size. The table reports the change in absolute posterior-median error (expanded minus narrow prior), in km/s/Mpc, with paired 95% t intervals over 100 matched replicates:
+
+| Curvature | n_validation | MAP IPW D | Integrated IPW E |
+|---:|---:|---:|---:|
+| -1 | 100 | +0.0139 [0.0065, 0.0212] | +0.0158 [0.0075, 0.0240] |
+| -1 | 300 | +0.0082 [0.0010, 0.0155] | +0.0083 [0.0023, 0.0144] |
+| -1 | 500 | +0.0058 [0.0009, 0.0107] | +0.0067 [0.0008, 0.0127] |
+| 0 | 100 | +0.0121 [-0.0055, 0.0297] | +0.0130 [-0.0037, 0.0298] |
+| 0 | 300 | +0.0062 [-0.0022, 0.0146] | +0.0073 [-0.0028, 0.0174] |
+| 0 | 500 | +0.0074 [-0.0033, 0.0181] | +0.0084 [-0.0035, 0.0202] |
+| +1 | 100 | +0.0268 [-0.0022, 0.0558] | +0.0252 [-0.0011, 0.0514] |
+| +1 | 300 | +0.0225 [0.0012, 0.0438] | +0.0231 [0.0002, 0.0460] |
+| +1 | 500 | +0.0293 [-0.0012, 0.0597] | +0.0287 [-0.0024, 0.0598] |
+
+Additional controls:
+- Catalogue-only A's absolute-error increase is validation-size invariant: +2.281 [1.799, 2.763] at gamma=-1; +2.477 [1.929, 3.026] at gamma=0; +2.661 [1.984, 3.338] at gamma=+1.
+- Known-probability IPW C is also invariant across validation sizes, as expected because its inclusion probabilities are known rather than estimated: +0.0115 [-0.0068, 0.0298], +0.0049 [-0.0029, 0.0127], and +0.0045 [0.0001, 0.0089] for gamma=-1, 0, +1 respectively.
+- Parent-oracle B changes are numerically tiny: +0.0014 [-0.0003, 0.0030] across these paired cells.
+- Coverage-indicator changes are zero in all but one of the 45 arm-curvature-validation cells: E at gamma=0, n=100 changes by -1 percentage point, with paired interval [-2.98, +0.98] percentage points.
+
+Interpretation: widening the prior materially worsens the catalogue-only arm, while the oracle and known-probability IPW controls are nearly invariant. D/E show much smaller shifts, with some curvature/validation-size cells excluding zero, but the effect is modest and does not show a consistent improvement for posterior integration E over MAP D. The 45 cell-wise intervals are exploratory and unadjusted for multiplicity; do not read isolated exclusions as confirmatory discoveries.
+
+This is still one fixed-truth, one matched 100-replicate seed stream. It is a prior-support sensitivity audit, not an expanded-prior SBC calibration study or evidence about observational H0.
