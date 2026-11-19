@@ -141,8 +141,8 @@ def main():
     result=audit_pair(x.narrow_artifact,x.wide_artifact,x.output_prefix)
     print(json.dumps(result,indent=2))
     summary=pd.read_csv(x.output_prefix.with_name(x.output_prefix.stem+"_summary.csv"))
-    print("\\nPAIRED PRIOR-SUPPORT READOUT — n_validation=500")
-    selected=summary[(summary.validation_size==500) & summary.metric.isin([
+    print("\nPAIRED PRIOR-SUPPORT READOUT — all validation sizes")
+    selected=summary[summary.metric.isin([
         "median_error_difference_wide_minus_narrow",
         "absolute_median_error_difference_wide_minus_narrow",
         "width68_difference_wide_minus_narrow",
