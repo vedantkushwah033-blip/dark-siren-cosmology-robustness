@@ -1,13 +1,7 @@
 name: Full-parent SBC H0-grid refinement audit
 
 on:
-  push:
-    branches:
-      - research/full-parent-sbc-grid-audit-20261119
-    paths:
-      - .github/workflows/full-parent-sbc-grid-audit.yml
-      - scripts/audit_full_parent_h0_sbc_grid.py
-      - tests/test_full_parent_h0_sbc_grid.py
+  pull_request:
   workflow_dispatch:
 
 permissions:
