@@ -229,7 +229,7 @@ PR #105 workflow 44439587142 completed 200 prior-predictive replicates with H0 d
 - Coverage at 50/68/80/90/95%: 0.48/0.675/0.80/0.91/0.96.
 - Mean posterior-median bias: -1.475 (MCSE 1.047); RMSE: 14.848.
 
-This is reassuring exploratory evidence for the full-parent 30-event likelihood under prior-predictive simulation, but 200 replicates are not definitive. PR #111 is extending the joint SBC to 1,000 replicates on a 1,121-point H0 grid with independent raw-seed reconstruction; its latest workflow is pending at the time of this update.
+This is reassuring exploratory evidence for the full-parent 30-event likelihood under prior-predictive simulation, but 200 replicates are not definitive. PR #111 is extending the joint SBC to 1,000 replicates on a 1,121-point H0 grid with independent raw-seed reconstruction; its latest 1,000-replicate workflow (run 44442370664, head `df514daaef4040b123074a8fa3bcad2e6e661915`) is currently running the prior-predictive simulation stage; the independent raw-seed audit and summary checks are queued behind it.
 
 ### Combined interpretation
 
