@@ -1,0 +1,51 @@
+name: h0-100rep-oracle-decomposition
+
+on:
+  push:
+    branches:
+      - research/h0-100rep-oracle-audit-20261119
+    paths:
+      - .github/workflows/h0-100rep-oracle-decomposition.yml
+      - scripts/audit_h0_100rep_oracle_decomposition.py
+      - tests/test_h0_100rep_oracle_decomposition.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  oracle-decomposition:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run focused oracle-audit regressions
+        run: pytest tests/test_h0_100rep_oracle_decomposition.py tests/test_h0_known_inclusion_oracle_sensitivity.py -q
+      - name: Download completed 600-cell source artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: h0-100rep-calibration-precision-py3.12
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: 44411667480
+          path: artifacts/h0_100rep_calibration_precision
+      - name: Independently reconstruct known-inclusion and full-parent oracle posteriors
+        run: |
+          python scripts/audit_h0_100rep_oracle_decomposition.py \
+            artifacts/h0_100rep_calibration_precision \
+            --output-dir artifacts/h0_100rep_oracle_decomposition \
+            --h0-points 1121
+      - name: Upload oracle decomposition and audit trail
+        uses: actions/upload-artifact@v4
+        with:
+          name: h0-100rep-oracle-decomposition-py3.12
+          path: artifacts/h0_100rep_oracle_decomposition/
+          if-no-files-found: error
+          retention-days: 90
