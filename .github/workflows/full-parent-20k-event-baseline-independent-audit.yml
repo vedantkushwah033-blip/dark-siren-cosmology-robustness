@@ -1,0 +1,71 @@
+name: full-parent-20k-event-baseline-independent-audit
+
+on:
+  push:
+    branches:
+      - research/full-parent-20k-event-baseline-independent-audit-20261119
+    paths:
+      - .github/workflows/full-parent-20k-event-baseline-independent-audit.yml
+      - scripts/audit_full_parent_20k_event_baseline.py
+      - tests/test_full_parent_20k_event_baseline_audit.py
+  pull_request:
+    branches:
+      - research/h0-100rep-oracle-decomposition-20261119
+    paths:
+      - .github/workflows/full-parent-20k-event-baseline-independent-audit.yml
+      - scripts/audit_full_parent_20k_event_baseline.py
+      - tests/test_full_parent_20k_event_baseline_audit.py
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: full-parent-20k-audit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  independent-20k-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and audit dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Compile auditor and run sampler/posterior regressions
+        run: |
+          python -m py_compile scripts/audit_full_parent_20k_event_baseline.py
+          pytest tests/test_full_parent_20k_event_baseline_audit.py -q
+      - name: Download immutable 600-cell source artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: h0-100rep-calibration-precision-py3.12
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44411667480
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/source_100rep
+      - name: Download completed 20,000-draw baseline artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: h0-100rep-full-parent-baseline
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44436218047
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/baseline_20k
+      - name: Independently regenerate all 20,000 event samples and posterior curves
+        run: |
+          python scripts/audit_full_parent_20k_event_baseline.py \
+            artifacts/source_100rep artifacts/baseline_20k \
+            --expected-parents 100 --draws-per-parent 200 \
+            --output artifacts/independent_20k_audit.json
+      - name: Upload independent 20,000-draw audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-parent-20k-event-independent-audit
+          path: artifacts/independent_20k_audit.json
+          if-no-files-found: error
+          retention-days: 90
