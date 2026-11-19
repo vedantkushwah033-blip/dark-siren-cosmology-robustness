@@ -17,6 +17,11 @@ from dark_siren_robustness.generative_selection import generate_synthetic_popula
 C_KM_S = 299792.458
 
 
+def _grid_pair_label(coarse_points: int, fine_points: int) -> str:
+    """Return an unambiguous label for a pair of H0 grid resolutions."""
+    return f"{int(coarse_points)}_to_{int(fine_points)}"
+
+
 def _seed(master: int, replicate: int, stream: int) -> int:
     return int(np.random.SeedSequence([int(master), int(replicate), int(stream)]).generate_state(1, dtype=np.uint32)[0])
 
