@@ -58,6 +58,6 @@ def test_auditor_rejects_tampered_inclusion_quadrature_weights(tmp_path: Path):
         file_path=root/relative
         metadata["bytes"]=file_path.stat().st_size
         metadata["sha256"]=hashlib.sha256(file_path.read_bytes()).hexdigest()
-    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\\n")
+    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True))
     with pytest.raises(AssertionError,match="independent inclusion quadrature weights mismatch"):
         audit(root)
