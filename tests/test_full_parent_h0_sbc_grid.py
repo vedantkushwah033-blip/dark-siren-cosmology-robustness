@@ -9,7 +9,7 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from dark_siren_robustness.generative_selection import generate_synthetic_population
-from audit_full_parent_h0_sbc_grid import _density_l1, _posterior
+from audit_full_parent_h0_sbc_grid import _density_l1, _posterior, _posterior_shape
 
 
 def test_independent_sbc_posterior_is_normalized_and_monotone():
@@ -48,3 +48,16 @@ def test_density_l1_comparison_on_nested_grids():
     dc /= trapezoid(dc, coarse)
     df /= trapezoid(df, fine)
     assert _density_l1(coarse, dc, fine, df) < 0.001
+
+
+
+def test_posterior_shape_reports_concentration_and_boundary_mass():
+    grid = np.linspace(20.0, 300.0, 2241)
+    density = np.exp(-0.5*((grid-22.0)/2.0)**2)
+    density /= trapezoid(density, grid)
+    shape = _posterior_shape(grid, density)
+    assert shape["posterior_peak_h0"] < 25.0
+    assert shape["posterior_sd"] > 0.0
+    assert shape["posterior_q95_width"] > 0.0
+    assert shape["mass_lower_0.050"] > shape["mass_upper_0.050"]
+    assert 0.0 <= shape["mass_lower_0.010"] <= 1.0
