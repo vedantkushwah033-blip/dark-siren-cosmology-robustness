@@ -19,6 +19,20 @@ def _completion_status(ledger: pd.DataFrame, planned_count: int,
         raise AssertionError("complete pilot is missing calibration_summary.csv")
     return "PASS" if complete and summary_available else "INCOMPLETE"
 
+def _interpretation(status: str, counts: dict[str, int]) -> str:
+    """Describe ledger completeness without mislabelling non-evaluable attempts."""
+    if status != "PASS":
+        return "INCOMPLETE: planned cells remain unattempted or running; do not treat as calibration evidence."
+    non_evaluable = int(counts.get("NON_EVALUABLE", 0))
+    failed = int(counts.get("FAILED", 0))
+    if non_evaluable or failed:
+        return (
+            f"Complete planned attempt ledger; {non_evaluable} NON_EVALUABLE and "
+            f"{failed} FAILED cells retained. Metrics are conditional on SUCCESS "
+            "cells with failure-inclusive bounds reported separately; not joint SBC."
+        )
+    return "Complete planned attempt ledger; all cells evaluable. Fixed-truth repeated-sampling only, not joint SBC."
+
 
 
 def _assert_summary_matches_ledger(ledger: pd.DataFrame, summary: pd.DataFrame) -> None:
@@ -236,7 +250,7 @@ def audit(root: Path) -> dict:
             "paired_validation_blocks_checked":paired_validation_blocks,
             "aggregate_manifest_entries_verified":len(manifest),
             "summary_metrics_recomputed":summary_checked,
-            "interpretation":"Integrity and pairing checks only; INCOMPLETE preserves planned cells and is not calibration evidence."}
+            "interpretation":_interpretation(completion, counts)}
 
 
 def main():
