@@ -21,7 +21,7 @@ The two oracle arms are available only because this is a simulation. They are no
 
 ## Mean posterior-median bias
 
-Units: km s⁻¹ Mpc⁻¹. Each value is the mean across successful paired replicates; MCSE is shown in parentheses.
+Units: km s⁻¹ Mpc⁻¹. Estimated-arm values use successful fitted cells (99 or 100); both oracle-arm values use all 100 planned parent/event realizations per cell. MCSE is shown in parentheses.
 
 | γ | Validation n | Estimated degree-one IPW | Known-(pi) IPW | Full-parent oracle |
 |---:|---:|---:|---:|---:|
