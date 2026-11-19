@@ -35,14 +35,14 @@ jobs:
       - name: Wait for the source 200-replicate SBC workflow to finish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh run watch 44439814500 --repo vedantkushwah033-blip/dark-siren-cosmology-robustness --exit-status
+        run: gh run watch 44440150116 --repo vedantkushwah033-blip/dark-siren-cosmology-robustness --exit-status
       - name: Download immutable 200-replicate SBC source artifact
         uses: actions/download-artifact@v4
         with:
           name: full-parent-h0-sbc
           github-token: ${{ secrets.GITHUB_TOKEN }}
           repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
-          run-id: 44439814500
+          run-id: 44440150116
           path: artifacts/full_parent_h0_sbc
       - name: Reconstruct all 200 SBC posteriors on 561 and 1121 grids
         run: |
