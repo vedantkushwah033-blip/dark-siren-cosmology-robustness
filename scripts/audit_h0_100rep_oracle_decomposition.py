@@ -250,6 +250,10 @@ def audit(root: Path, h0_points: int = 1121):
         "status": "PASS",
         "planned_cells": len(planned),
         "ledger_status_counts": ledger.status.value_counts().to_dict(),
+        "non_success_cells": ledger.loc[ledger.status != "SUCCESS", [
+            "cell_id", "replicate", "gamma", "n_validation", "status",
+            "quadrature_status", "orders_evaluated", "converged_at_order", "error",
+        ]].replace({np.nan: None}).to_dict(orient="records"),
         "child_audits_verified": checked_children,
         "nested_validation_blocks_checked": nested_blocks,
         "cross_gamma_validation_pairing_blocks_checked": validation_pair_blocks,
