@@ -23,7 +23,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: full-parent-joint-sbc-1000rep
+  group: full-parent-joint-sbc-1000rep-v2-20261119
   cancel-in-progress: false
 
 jobs:
