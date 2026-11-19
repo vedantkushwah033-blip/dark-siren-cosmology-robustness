@@ -1,7 +1,9 @@
 name: Full-parent joint prior-predictive SBC 1000 replicates
 
 on:
-  pull_request:
+  push:
+    branches:
+      - research/full-parent-joint-sbc-1000rep-20261119
   workflow_dispatch:
 
 permissions:
