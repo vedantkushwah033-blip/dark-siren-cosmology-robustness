@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - research/full-parent-sbc-grid-audit-20261119
+  pull_request:
+    branches:
+      - research/full-parent-joint-sbc-baseline-20261119
   workflow_dispatch:
 
 permissions:
