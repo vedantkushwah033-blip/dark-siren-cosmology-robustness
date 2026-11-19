@@ -224,7 +224,7 @@ def main():
     result = audit(args.artifact_dir, tuple(args.replicates), args.grid_points)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\\n")
-    print(json.dumps(result["summary"], indent=2, sort_keys=True))
+    print(json.dumps(result, indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":
