@@ -55,7 +55,7 @@ The paired 68% coverage indicator did not change for any arm/curvature cell in t
 ## Limitations
 
 - Fixed-truth synthetic experiment; not prior-predictive SBC under the expanded prior.
-- One matched 100-replicate seed stream, three curvature settings, four events? **Correction: this experiment uses 30 detected events per replicate.**
+- One matched 100-replicate seed stream, three curvature settings, and 30 detected events per replicate.
 - This readout reports n=500; n=100 and n=300 paired outputs remain in the uploaded audit artifact and should be summarized before any pooled paper-level claim.
 - Paired t intervals describe Monte Carlo uncertainty for the mean paired contrasts; they do not certify frequentist coverage or estimator optimality.
 - No observational H0 or real galaxy-catalogue claim follows.
