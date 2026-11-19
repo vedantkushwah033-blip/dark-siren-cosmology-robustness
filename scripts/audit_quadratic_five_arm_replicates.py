@@ -49,7 +49,8 @@ def _expected_contrasts(summaries: pd.DataFrame) -> pd.DataFrame:
 
 
 def _expected_aggregate(summaries: pd.DataFrame, ledger: pd.DataFrame,
-                        replicates: int, max_abs_error: float) -> pd.DataFrame:
+                        replicates: int, max_abs_error: float,
+                        max_interval_width: float = 40.0) -> pd.DataFrame:
     rows=[]
     for (gamma,nval),_ in ledger.groupby(["gamma","validation_size"],sort=True):
         for arm in ARMS:
@@ -72,7 +73,7 @@ def _expected_aggregate(summaries: pd.DataFrame, ledger: pd.DataFrame,
                 "failure_inclusive_coverage_lower":float(np.sum(covered)/replicates),
                 "failure_inclusive_coverage_upper":float((np.sum(covered)+failures)/replicates),
                 "failure_inclusive_width_lower":float(np.sum(widths)/replicates),
-                "failure_inclusive_width_upper":float((np.sum(widths)+failures*40.0)/replicates)})
+                "failure_inclusive_width_upper":float((np.sum(widths)+failures*max_interval_width)/replicates)})
     return pd.DataFrame(rows)
 
 
@@ -143,7 +144,9 @@ def audit(root: Path) -> dict:
                 or int(child_cfg["validation_seed"])!=_seed(int(cfg["master_seed"]),int(rep),1)
                 or float(child_cfg["curvature_gamma"])!=float(gamma)
                 or int(child_cfg["n_detected"])!=int(cfg["n_detected"])
-                or int(child_cfg["n_parent"])!=int(cfg["n_parent"])):
+                or int(child_cfg["n_parent"])!=int(cfg["n_parent"])
+                or list(map(float,child_cfg.get("h0_prior_support",[50.0,90.0])))
+                    !=list(map(float,cfg.get("h0_prior_support",[50.0,90.0])))):
                 raise AssertionError(f"child configuration/seed mismatch: {rel}")
             if list(map(int,child_cfg["validation_sizes"]))!=sizes:
                 raise AssertionError(f"child validation sizes mismatch: {rel}")
@@ -199,7 +202,8 @@ def audit(root: Path) -> dict:
         expected_contrasts.sort_values(list(expected_contrasts.columns)).reset_index(drop=True),
         check_dtype=False,check_exact=False,rtol=1e-10,atol=1e-12)
     max_error=float(cfg["failure_bounds"]["max_abs_median_error"])
-    expected_aggregates=_expected_aggregate(summaries,ledger,reps,max_error)
+    max_width=float(cfg["failure_bounds"].get("max_interval_width",40.0))
+    expected_aggregates=_expected_aggregate(summaries,ledger,reps,max_error,max_width)
     pd.testing.assert_frame_equal(
         aggregates.sort_values(list(aggregates.columns)).reset_index(drop=True),
         expected_aggregates.sort_values(list(expected_aggregates.columns)).reset_index(drop=True),
