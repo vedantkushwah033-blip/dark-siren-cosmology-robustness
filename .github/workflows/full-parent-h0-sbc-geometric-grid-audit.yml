@@ -1,0 +1,68 @@
+name: Full-parent H0 SBC geometric-grid audit
+
+on:
+  push:
+    branches:
+      - research/log-grid-full-sbc-audit-v2-20261119
+  pull_request:
+    paths:
+      - "scripts/audit_full_parent_h0_sbc_log_grid.py"
+      - "tests/test_full_parent_h0_log_grid.py"
+      - ".github/workflows/full-parent-h0-sbc-geometric-grid-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  geometric-grid-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check out audit branch
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run geometric-grid unit tests
+        run: python -m pytest -q tests/test_full_parent_h0_log_grid.py
+      - name: Download immutable 200-replicate source artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: full-parent-h0-sbc
+          path: artifacts/source
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44440150116
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download independent 4481-node baseline audit
+        uses: actions/download-artifact@v4
+        with:
+          name: full-parent-h0-sbc-grid-4481-audit
+          path: artifacts/baseline
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44462233294
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Reconstruct all 200 replicates on geometric H0 grid
+        run: |
+          SOURCE_DIR="$(find artifacts/source -name design.json -printf '%h\\n' | head -1)"
+          BASELINE_CSV="$(find artifacts/baseline -name sbc_grid_audit_replicates.csv -print -quit)"
+          test -n "$SOURCE_DIR"
+          test -n "$BASELINE_CSV"
+          python scripts/audit_full_parent_h0_sbc_log_grid.py \\
+            --source-dir "$SOURCE_DIR" \\
+            --baseline-csv "$BASELINE_CSV" \\
+            --output-dir artifacts/geometric_grid_readout \\
+            --grid-points 2241
+      - name: Upload geometric-grid audit readout
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-parent-h0-sbc-geometric-grid-2241
+          path: artifacts/geometric_grid_readout/
+          if-no-files-found: warn
