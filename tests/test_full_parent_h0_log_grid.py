@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 from scipy.stats import norm
+from scipy.integrate import trapezoid
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -18,7 +19,7 @@ def test_geometric_h0_grid_normalizes_uniform_h0_prior_density():
 
     density, cdf = normalize_posterior_on_h0_grid(grid, log_likelihood)
 
-    assert np.isclose(np.trapz(density, grid), 1.0, atol=1e-12)
+    assert np.isclose(trapezoid(density, grid), 1.0, atol=1e-12)
     assert np.isclose(cdf[0], 0.0)
     assert np.isclose(cdf[-1], 1.0)
     assert np.all(np.diff(cdf) >= 0.0)
