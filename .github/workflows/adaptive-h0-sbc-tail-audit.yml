@@ -50,8 +50,8 @@ jobs:
         run: |
           python scripts/audit_full_parent_h0_sbc_adaptive.py artifacts/full_parent_h0_sbc \
             --replicates 100 174 156 62 \
-            --grid-points 2241 \
-            --output artifacts/full_parent_h0_sbc_adaptive_tail_audit.json
+            --grid-points 4481 \
+            --output artifacts/full_parent_h0_sbc_adaptive_tail_audit_4481.json
       - name: Upload adaptive-CDF diagnostics
         if: always()
         uses: actions/upload-artifact@v4
