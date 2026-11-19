@@ -14,7 +14,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: full-parent-sbc-grid-audit
+  group: full-parent-sbc-grid-audit-v2-20261119
   cancel-in-progress: false
 
 jobs:
