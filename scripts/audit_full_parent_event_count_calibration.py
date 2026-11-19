@@ -76,6 +76,14 @@ def _assert_close(actual, expected, label, atol=2e-9):
 def audit(root: Path, expected_replicates: int | None = None, output: Path | None = None):
     root = root.resolve()
     manifest = json.loads((root/"manifest.json").read_text())
+    expected_manifest_files = {
+        "replicates.csv", "summary.csv", "paired_contrast.csv", "design.json"
+    }
+    if set(manifest) != expected_manifest_files:
+        raise AssertionError(
+            f"manifest file set mismatch: expected {sorted(expected_manifest_files)}, "
+            f"found {sorted(manifest)}"
+        )
     bad = []
     for name, digest in manifest.items():
         path = root/name
@@ -94,6 +102,18 @@ def audit(root: Path, expected_replicates: int | None = None, output: Path | Non
         raise AssertionError(f"expected {expected_replicates} replicates, found {nrep}")
     if design.get("status") != "COMPLETE" or design.get("event_counts") != [4, 30]:
         raise AssertionError("unexpected event-count design metadata")
+    required_columns = {
+        "replicate", "simulation_seed", "n_parent", "event_count", "h0_true",
+        "h0_median", "median_bias", "event_prefix_distance_sum",
+        "covered68", "covered90", "covered95",
+        "q025", "q050", "q160", "q840", "q950", "q975",
+        "width68", "width90", "width95",
+    }
+    missing_columns = required_columns - set(raw.columns)
+    if missing_columns:
+        raise AssertionError(f"raw replicate table missing columns: {sorted(missing_columns)}")
+    if nrep < 2 or int(design["h0_grid_points"]) < 21:
+        raise AssertionError("invalid replicate count or H0 grid resolution")
     if len(raw) != 2*nrep or raw.duplicated(["replicate", "event_count"]).any():
         raise AssertionError("raw replicate/event-count factorial is incomplete or duplicated")
     if raw.groupby("event_count").size().to_dict() != {4: nrep, 30: nrep}:
@@ -102,12 +122,24 @@ def audit(root: Path, expected_replicates: int | None = None, output: Path | Non
         raise AssertionError("replicates do not contain both event-count arms")
     if set(raw.event_count.astype(int)) != {4, 30}:
         raise AssertionError("unexpected event-count values")
+    if set(raw.replicate.astype(int)) != set(range(nrep)):
+        raise AssertionError("replicate IDs do not match the complete planned range")
 
     prior_min, prior_max = map(float, design["uniform_h0_prior"])
     h0 = np.linspace(prior_min, prior_max, int(design["h0_grid_points"]))
     truth = float(design["h0_true"])
     n_parent = int(design["n_parent"])
     master = int(design["master_seed"])
+    if not np.isfinite([prior_min, prior_max, truth]).all() or not prior_min < truth < prior_max:
+        raise AssertionError("invalid H0 prior bounds or generating truth")
+    if not np.isfinite(raw["h0_true"].to_numpy(float)).all() or not np.allclose(
+        raw["h0_true"].to_numpy(float), truth, rtol=0, atol=0
+    ):
+        raise AssertionError("raw H0 truth column disagrees with design metadata")
+    if not np.isfinite(raw["n_parent"].to_numpy(float)).all() or not np.all(
+        raw["n_parent"].to_numpy(int) == n_parent
+    ):
+        raise AssertionError("raw parent counts disagree with design metadata")
     reconstructed = []
     for rep in range(nrep):
         block = raw[raw.replicate == rep].sort_values("event_count")
