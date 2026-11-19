@@ -7,7 +7,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from audit_h0_known_inclusion_oracle_sensitivity import (
-    assert_cross_gamma_pairing, make_h0_grid, selected_posterior_quantiles,
+    _paired, assert_cross_gamma_pairing, make_h0_grid, selected_posterior_quantiles,
 )
 
 
@@ -93,3 +93,11 @@ def test_cross_gamma_pairing_rejects_changed_event_or_validation_stream():
     changed_validation.loc[0, "redshift"] += 1e-6
     with pytest.raises(AssertionError, match="validation IDs/redshifts"):
         assert_cross_gamma_pairing(parent, parent, events, events, validation, changed_validation)
+
+
+def test_paired_oracle_contrast_excludes_non_evaluable_cells():
+    result = _paired([1.0, float("nan"), 3.0])
+    assert result["n"] == 2
+    assert result["mean"] == pytest.approx(2.0)
+    assert result["mcse"] == pytest.approx(1.0)
+    assert result["ci95_low"] < result["mean"] < result["ci95_high"]
