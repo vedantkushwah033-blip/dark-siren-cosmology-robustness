@@ -46,3 +46,37 @@ def test_geometric_grid_integration_is_with_respect_to_h0_not_log_h0():
 
     assert np.allclose(density, 1.0 / 280.0, rtol=0, atol=1e-12)
     assert np.isclose(np.interp(0.5, cdf, grid), 160.0, atol=1e-10)
+
+
+
+def test_vectorized_selected_event_likelihood_matches_scalar_reference():
+    from scipy.special import log_ndtr, logsumexp
+
+    from audit_full_parent_h0_sbc_log_grid import log_posterior_on_grid
+
+    grid = np.array([50.0, 70.0, 90.0])
+    redshift = np.array([0.05, 0.12, 0.25, 0.35])
+    distances = np.array([260.0, 310.0])
+    sigma = 140.0
+    threshold = 250.0
+    z_min, z_max = 0.01, 0.40
+    weights = 1.0 + 1.5 * (redshift - z_min) / (z_max - z_min)
+    log_weights = np.log(weights) - logsumexp(np.log(weights))
+
+    observed = log_posterior_on_grid(
+        grid, redshift, distances, sigma, threshold, (z_min, z_max)
+    )
+    expected = []
+    for h0 in grid:
+        mu = 299_792.458 * redshift / h0
+        log_beta = logsumexp(log_ndtr((mu - threshold) / sigma) + log_weights)
+        log_numerator = 0.0
+        for distance in distances:
+            log_pdf = (
+                -0.5 * ((distance - mu) / sigma) ** 2
+                - np.log(sigma * np.sqrt(2.0 * np.pi))
+            )
+            log_numerator += logsumexp(log_pdf + log_weights)
+        expected.append(log_numerator - len(distances) * log_beta)
+
+    assert np.allclose(observed, expected, rtol=1e-12, atol=1e-12)
