@@ -162,6 +162,7 @@ def run(args: argparse.Namespace) -> dict:
                 (child.parent/(cell+".audit.stdout.txt")).write_text(audit.stdout)
                 (child.parent/(cell+".audit.stderr.txt")).write_text(audit.stderr)
                 if audit.returncode:
+                    audit_status="NOT_PASS"
                     raise RuntimeError("independent child audit failed: "+audit.stderr[-2500:])
                 report=json.loads(audit_path.read_text())
                 if report.get("status")!="PASS":
@@ -202,9 +203,12 @@ def run(args: argparse.Namespace) -> dict:
                         "status":status,"audit_status":audit_status,"error":error})
     planned_df=pd.DataFrame(planned)
     ledger_df=pd.DataFrame(ledger)
-    summaries=pd.concat(summary_parts,ignore_index=True) if summary_parts else pd.DataFrame()
-    diagnostics=pd.concat(diagnostic_parts,ignore_index=True) if diagnostic_parts else pd.DataFrame()
-    contrasts=_paired_contrasts(summaries) if not summaries.empty else pd.DataFrame()
+    summary_columns=["replicate","gamma","analysis_seed","validation_seed","validation_size","arm",
+        "status","h0_true","median_error","posterior_median","q025","q05","q16","q84","q95","q975","audit_status"]
+    diagnostic_columns=["replicate","gamma","validation_size","arm"]
+    summaries=pd.concat(summary_parts,ignore_index=True) if summary_parts else pd.DataFrame(columns=summary_columns)
+    diagnostics=pd.concat(diagnostic_parts,ignore_index=True) if diagnostic_parts else pd.DataFrame(columns=diagnostic_columns)
+    contrasts=_paired_contrasts(summaries)
     aggregates=_aggregate(summaries,ledger_df,args.replicates,max_abs_error)
     planned_df.to_csv(out/"planned_cells.csv",index=False)
     ledger_df.to_csv(out/"replicate_ledger.csv",index=False)
