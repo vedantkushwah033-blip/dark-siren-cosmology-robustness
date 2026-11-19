@@ -17,6 +17,7 @@ jobs:
     env:
       SBC_REPLICATES: "1000"
       SBC_H0_POINTS: "1121"
+      PYTHONHASHSEED: "0"
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
