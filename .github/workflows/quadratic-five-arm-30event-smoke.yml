@@ -14,6 +14,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: quadratic-five-arm-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   paired-curvature-five-arm:
     runs-on: ubuntu-latest
