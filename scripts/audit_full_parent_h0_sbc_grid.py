@@ -169,11 +169,22 @@ def audit(root: Path, fine_points: int = 1121, max_quantile_shift: float = 0.05,
         "median_density_L1_observed": float(frame.density_l1.median()),
         "scope": "Synthetic full-parent prior-predictive numerical grid audit; not catalogue-inclusion SBC or observational inference.",
     }
+    worst_cols = ["replicate", "max_quantile_shift", "absolute_rank_shift", "density_l1"]
+    summary["worst_quantile_shift_replicates"] = (
+        frame.nlargest(10, "max_quantile_shift")[worst_cols].to_dict("records")
+    )
+    summary["worst_rank_shift_replicates"] = (
+        frame.nlargest(10, "absolute_rank_shift")[worst_cols].to_dict("records")
+    )
+    summary["worst_density_l1_replicates"] = (
+        frame.nlargest(10, "density_l1")[worst_cols].to_dict("records")
+    )
     if output:
         output = Path(output)
         output.parent.mkdir(parents=True, exist_ok=True)
         frame.to_csv(output.with_name("sbc_grid_audit_replicates.csv"), index=False)
         output.write_text(json.dumps(summary, indent=2, sort_keys=True)+"\n")
+    print(json.dumps(summary, indent=2, sort_keys=True))
     if summary["status"] != "PASS":
         raise AssertionError(json.dumps(summary, indent=2))
     return summary
