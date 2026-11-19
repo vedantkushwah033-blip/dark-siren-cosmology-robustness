@@ -1,0 +1,32 @@
+import sys
+from pathlib import Path
+
+import numpy as np
+from scipy.stats import norm
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+
+from audit_full_parent_h0_sbc_adaptive import _adaptive_reference
+
+
+def test_adaptive_cdf_matches_truncated_normal_reference():
+    lower, upper, mean, sd, truth = 20.0, 300.0, 22.0, 0.7, 22.4
+    log_density = lambda x: -0.5 * ((x - mean) / sd) ** 2
+    grid = np.linspace(lower, upper, 2241)
+    result = _adaptive_reference(log_density, lower, upper, truth, grid)
+    norm_const = norm.cdf((upper - mean) / sd) - norm.cdf((lower - mean) / sd)
+    expected_rank = (norm.cdf((truth - mean) / sd) - norm.cdf((lower - mean) / sd)) / norm_const
+    assert abs(result["adaptive_rank"] - expected_rank) < 2e-7
+    assert np.all(np.diff(result["adaptive_quantiles"]) > 0)
+    assert result["adaptive_relative_quad_error_bound"] < 1e-7
+
+
+def test_adaptive_cdf_handles_monotone_boundary_posterior():
+    lower, upper, truth = 20.0, 300.0, 20.4
+    log_density = lambda x: -(x - lower) / 0.3
+    grid = np.linspace(lower, upper, 2241)
+    result = _adaptive_reference(log_density, lower, upper, truth, grid)
+    expected = 1.0 - np.exp(-(truth - lower) / 0.3)
+    assert abs(result["adaptive_rank"] - expected) < 2e-6
+    assert result["adaptive_quantiles"][5] < 21.0
