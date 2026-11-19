@@ -180,8 +180,12 @@ def audit(root: Path, h0_points: int | None = None):
                 "estimated_bias": estimated_median-70.0,
                 "known_pi_median": known["q500"], "known_pi_bias": known["q500"]-70.0,
                 "known_pi_coverage68": int(known["q160"] <= 70.0 <= known["q840"]),
+                "known_pi_coverage90": int(known["q050"] <= 70.0 <= known["q950"]),
+                "known_pi_coverage95": int(known["q025"] <= 70.0 <= known["q975"]),
                 "full_parent_median": full["q500"], "full_parent_bias": full["q500"]-70.0,
                 "full_parent_coverage68": int(full["q160"] <= 70.0 <= full["q840"]),
+                "full_parent_coverage90": int(full["q050"] <= 70.0 <= full["q950"]),
+                "full_parent_coverage95": int(full["q025"] <= 70.0 <= full["q975"]),
                 "estimated_minus_known_pi": estimated_median-known["q500"],
                 "known_pi_minus_full_parent": float(known["q500"]-full["q500"]),
             })
@@ -239,8 +243,13 @@ def audit(root: Path, h0_points: int | None = None):
             float(fitted_ledger.covered68.mean())
             if len(fitted_ledger) else float("nan")
         )
-        row["known_pi_coverage68"] = float(group.known_pi_coverage68.mean())
-        row["full_parent_coverage68"] = float(group.full_parent_coverage68.mean())
+        for coverage in (68, 90, 95):
+            row[f"known_pi_coverage{coverage}"] = float(
+                group[f"known_pi_coverage{coverage}"].mean()
+            )
+            row[f"full_parent_coverage{coverage}"] = float(
+                group[f"full_parent_coverage{coverage}"].mean()
+            )
         summaries.append(row)
         for label, col in (
             ("estimated minus known-pi IPW median", "estimated_minus_known_pi"),
