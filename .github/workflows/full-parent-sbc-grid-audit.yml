@@ -32,10 +32,12 @@ jobs:
         run: |
           python -m py_compile scripts/audit_full_parent_h0_sbc_grid.py
           pytest -q tests/test_full_parent_h0_sbc_grid.py
-      - name: Wait for the source 200-replicate SBC workflow to finish
+      - name: Verify completed source 200-replicate SBC workflow
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh run watch 44440150116 --repo vedantkushwah033-blip/dark-siren-cosmology-robustness --exit-status
+        run: |
+          result=$(gh api repos/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/44440150116 --jq '.status + ":" + (.conclusion // "")')
+          test "$result" = "completed:success"
       - name: Download immutable 200-replicate SBC source artifact
         uses: actions/download-artifact@v4
         with:
