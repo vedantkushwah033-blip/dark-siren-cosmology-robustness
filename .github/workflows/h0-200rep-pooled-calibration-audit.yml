@@ -1,6 +1,12 @@
 name: h0-200rep-pooled-calibration-audit
 
 on:
+  push:
+    branches:
+      - research/h0-200rep-pooled-calibration-audit-20261119
+    paths:
+      - .github/workflows/h0-200rep-pooled-calibration-audit.yml
+      - scripts/pool_h0_100rep_calibration_replicates.py
   workflow_dispatch:
 
 permissions:
