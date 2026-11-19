@@ -87,7 +87,7 @@ def analyze(root: Path, output_prefix: Path) -> dict:
             "coverage_wilson95_low": wilson_lo, "coverage_wilson95_high": wilson_hi,
             "success_only_mean_68_width": float(widths.mean()) if n_ok else np.nan,
             "failure_inclusive_rmse_low": float(np.sqrt(np.sum(errors**2)/reps)),
-            "failure_inclusive_rmse_high": float(np.sqrt((np.sum(errors**2)+n_fail*max_error**2)/reps),
+            "failure_inclusive_rmse_high": float(np.sqrt((np.sum(errors**2)+n_fail*max_error**2)/reps)),
             "failure_inclusive_coverage_low": float(covered.sum()/reps),
             "failure_inclusive_coverage_high": float((covered.sum()+n_fail)/reps),
         })
