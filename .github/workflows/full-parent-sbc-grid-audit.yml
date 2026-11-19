@@ -1,0 +1,60 @@
+name: Full-parent SBC H0-grid refinement audit
+
+on:
+  push:
+    branches:
+      - research/full-parent-sbc-grid-audit-20261119
+    paths:
+      - .github/workflows/full-parent-sbc-grid-audit.yml
+      - scripts/audit_full_parent_h0_sbc_grid.py
+      - tests/test_full_parent_h0_sbc_grid.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: full-parent-sbc-grid-audit
+  cancel-in-progress: false
+
+jobs:
+  grid-refinement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Compile and test independent posterior reconstruction
+        run: |
+          python -m py_compile scripts/audit_full_parent_h0_sbc_grid.py
+          pytest -q tests/test_full_parent_h0_sbc_grid.py
+      - name: Download immutable 200-replicate SBC source artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: full-parent-h0-sbc
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44438038445
+          path: artifacts/full_parent_h0_sbc
+      - name: Reconstruct all 200 SBC posteriors on 561 and 1121 grids
+        run: |
+          python scripts/audit_full_parent_h0_sbc_grid.py artifacts/full_parent_h0_sbc \
+            --fine-points 1121 \
+            --max-quantile-shift 0.05 \
+            --max-rank-shift 0.002 \
+            --max-density-l1 0.001 \
+            --output artifacts/full_parent_h0_sbc_grid_audit.json
+      - name: Upload independent grid-refinement readout
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-parent-h0-sbc-grid-audit
+          path: |
+            artifacts/full_parent_h0_sbc_grid_audit.json
+            artifacts/sbc_grid_audit_replicates.csv
+          if-no-files-found: error
+          retention-days: 90
