@@ -9,6 +9,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from run_quadratic_five_arm_replicates import (
     ARMS, _aggregate, _paired_contrasts, _seed,
 )
+from audit_quadratic_five_arm_smoke import _independent_inclusion_quadrature
+from dark_siren_robustness.generative_selection import generate_quadratic_logit_inclusion_samples
 
 
 def test_child_seed_schedule_is_deterministic_and_distinct():
