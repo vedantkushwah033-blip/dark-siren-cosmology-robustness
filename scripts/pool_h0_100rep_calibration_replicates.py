@@ -81,9 +81,11 @@ def _load_replication(root: Path, label: str, expected_cells: int) -> tuple[pd.D
         raise AssertionError(f"{label} validation seed is not shared within replicate")
     if ledger.groupby(["gamma", "n_validation"]).size().ne(100).any():
         raise AssertionError(f"{label} has an incomplete gamma × validation-size cell")
-    first = ledger[ledger.status == "SUCCESS"].sort_values(
-        ["replicate", "gamma", "n_validation"]
-    ).iloc[0]
+    first = ledger[
+        (ledger.status == "SUCCESS")
+        & (ledger.gamma.astype(float) == -1.0)
+        & (ledger.n_validation.astype(int) == 100)
+    ].sort_values("replicate").iloc[0]
     config_path = root / "replicates" / str(first.cell_id) / "config.json"
     if not config_path.is_file():
         raise AssertionError(f"{label} representative child config is missing")
