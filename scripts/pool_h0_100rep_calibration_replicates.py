@@ -65,6 +65,10 @@ def _load_replication(root: Path, label: str, expected_cells: int) -> tuple[pd.D
         raise AssertionError(f"{label} has unknown execution statuses")
     if ledger.status.isin(["RUNNING", "NOT_RUN"]).any():
         raise AssertionError(f"{label} has unfinished planned cells")
+    observed_counts = {str(k): int(v) for k,v in ledger.status.value_counts().items()}
+    audit_counts = {str(k): int(v) for k,v in audit.get("status_counts", {}).items()}
+    if observed_counts != audit_counts:
+        raise AssertionError(f"{label} ledger/audit status counts disagree")
     if not set(ledger.gamma.astype(float)) == {-1.0, 0.0, 1.0}:
         raise AssertionError(f"{label} gamma factorial is incomplete")
     if not set(ledger.n_validation.astype(int)) == {100, 500}:
