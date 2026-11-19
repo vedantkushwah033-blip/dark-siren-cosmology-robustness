@@ -1,0 +1,54 @@
+name: h0-200rep-pooled-calibration-audit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  pooled-calibration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Compile and test pooled calibration audit
+        run: |
+          python -m py_compile scripts/pool_h0_100rep_calibration_replicates.py
+          pytest tests/test_pool_h0_100rep_calibration_replicates.py -q
+      - name: Download first completed 100-replicate artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: h0-100rep-calibration-precision-py3.12
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44411667480
+          path: artifacts/replication_1
+      - name: Download independent second 100-replicate artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: h0-100rep-calibration-precision-py3.12
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44437373259
+          path: artifacts/replication_2
+      - name: Pool only after both independent audits and plans pass
+        run: |
+          python scripts/pool_h0_100rep_calibration_replicates.py \
+            artifacts/replication_1 \
+            artifacts/replication_2 \
+            --output-dir artifacts/h0_200rep_pooled_readout \
+            --expected-cells 600
+      - name: Upload pooled calibration readout
+        uses: actions/upload-artifact@v4
+        with:
+          name: h0-200rep-pooled-calibration-readout
+          path: artifacts/h0_200rep_pooled_readout/
+          if-no-files-found: error
+          retention-days: 90
