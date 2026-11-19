@@ -13,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy.integrate import quad
+from scipy.integrate import quad, trapezoid
 from scipy.optimize import brentq, minimize_scalar
 from scipy.special import log_ndtr, logsumexp
 from scipy.stats import norm
@@ -174,7 +174,7 @@ def audit(artifact_dir: Path, replicates=(100, 174, 156, 62), grid_points=2241) 
         # resolution, so the comparison is tied to the actual archived seed.
         log_grid = np.asarray([logpost(float(h)) for h in grid])
         density = np.exp(log_grid - np.max(log_grid))
-        area = float(np.trapezoid(density, grid))
+        area = float(trapezoid(density, grid))
         density /= area
         cdf = np.concatenate([[0.0], np.cumsum((density[:-1] + density[1:]) *
                                                 np.diff(grid) * 0.5)])
