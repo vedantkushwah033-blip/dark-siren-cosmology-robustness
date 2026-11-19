@@ -172,3 +172,25 @@ The original 100 parent/event realizations had full-parent coverage 0.54/0.83/0.
 The paired 500-new-parent event-count experiment in PR #101 compared nested 4-event and 30-event samples on the same 500 parent/event realizations. Four-event coverage was 0.696/0.910/0.954 with mean median bias +5.060 (MCSE 0.717); the 30-event arm had coverage 0.662/0.860/0.920 and mean median bias +0.866 (MCSE 0.182). The paired 30-minus-4 median-bias contrast was −4.194 (MCSE 0.699; 95% interval [−5.567,−2.820]), and mean 68% interval width fell from 23.44 to 7.35 km s\(^{-1}\) Mpc\(^{-1}\). This supports a strong event-count effect on median bias and precision, while modest undercoverage remains in the 30-event arm. The 500-parent sample is different from the 100 archived parent populations used in the 20,000-draw conditional baseline, so these results should not be pooled or treated as a paired contrast with that baseline.
 
 The main conclusion is now clearer: the full-parent fixed-count likelihood has positive median bias around +6.4 km s^-1 Mpc^-1 in this four-event setup, and conditional repeated-sampling coverage is below nominal (about 65.4%, 87.9%, and 93.4%). The original 54% 68%-coverage estimate overstated the deficit because it used only one four-event realization per parent. This remains fixed-truth coverage, not joint SBC. The paired 30-event experiment separately shows that more detected events greatly reduce median bias and interval width, but does not by itself resolve the remaining coverage behavior.
+
+
+## Cross-experiment synthesis and current scientific position
+
+The completed synthetic evidence now separates three effects that should not be conflated:
+
+1. **Baseline selected-likelihood / finite-event behavior.** The full-parent oracle has mean posterior-median bias about +6.44 km s^-1 Mpc^-1 in 20,000 repeated four-event draws on 100 parent populations, with 68/90/95% coverage 0.6535/0.8794/0.9335. This bias and undercoverage persist without catalogue thinning or estimated inclusion probabilities.
+2. **Finite detected-event count.** In 500 new parent populations, moving from four to thirty nested detected events reduced mean median bias from +5.06 to +0.87, RMSE from 16.79 to 4.16, and mean 68% interval width from 23.44 to 7.35 km s^-1 Mpc^-1. The paired median-bias change was −4.19 (MCSE 0.70; 95% interval [−5.57,−2.82]). This is strong evidence of a finite-event effect in the synthetic full-parent model; 30-event coverage remains somewhat below nominal.
+3. **Catalogue-inclusion model misspecification.** On the first 100-replicate H0 artifact, the estimated-minus-known-π posterior-median contrast is sign-dependent: about −3.5 under γ=−1, near zero under γ=0, and +3.5 to +4.3 under γ=+1. The known-π oracle and full-parent oracle are much closer than the estimated-versus-known-π contrast. This supports a curvature-associated misspecification effect in this synthetic setup, not a general estimator ranking.
+
+The validation-size increase from 100 to 500 improves weight stability (higher Kish ESS, lower maximum normalized weight) but does not clearly improve H0 bias or coverage in the first pilot. Weight diagnostics alone therefore do not guarantee posterior calibration.
+
+### Active follow-ups
+
+- PR #96: independent second 100-replicate/600-cell calibration replication, seed 2026111930, workflow #44437373259; currently running.
+- PR #104: independent raw-seed reconstruction audit of the 500-replicate event-count experiment; current replay workflow #44437893958.
+- PR #107: H0-grid refinement on the first 100-replicate artifact, 17 or 18 successful cells depending on whether the non-evaluable cell falls in the selected first-three-replicate subset; 281/561/1,121 grids, workflow #44438462754.
+- PR #110: planned pooled summary across the two independent 100-replicate calibration artifacts; do not run until the second artifact and both orchestration audits pass.
+
+### Claim boundary
+
+All results are from a synthetic low-redshift Euclidean fixed-truth model with exactly four or thirty detected events and finite simulated parent catalogues. They are not joint SBC, not real galaxy-survey validation, not LVK/GWTC analysis, and not observational H0 measurement. The defensible contribution remains a controlled benchmark of how finite validation, inclusion-model curvature misspecification, IPW weight concentration, and finite detected-event count interact in this specific synthetic likelihood.
