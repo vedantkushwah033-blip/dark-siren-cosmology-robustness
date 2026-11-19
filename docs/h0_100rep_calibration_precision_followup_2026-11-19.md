@@ -128,3 +128,47 @@ Known-π versus full-parent median differences are much smaller: −1.278 (MCSE 
 Crucially, the full-parent oracle itself has mean posterior-median bias +7.048 (MCSE 1.809) and coverage 0.54/0.83/0.91 at 68/90/95% on these exact 100 event realizations. Known-π coverage is 0.49–0.51 at 68%, 0.74–0.82 at 90%, and 0.79–0.89 at 95%; estimated-arm coverage is 0.51–0.56, 0.72–0.82, and 0.78–0.88 respectively. All three full-parent coverage estimates are below nominal, but each uses only 100 parent/event realizations: the 68% deficit (0.54 versus 0.68) is the clearest signal, while the 90% and 95% deficits (0.83 and 0.91) are less precisely resolved at this Monte Carlo size. The 68% undercoverage is also present without catalogue incompleteness or estimated inclusion. The baseline undercoverage cannot be assigned solely to the inclusion model; it points to a separate finite-event/selected-likelihood calibration question that requires the larger repeated-sampling baseline and, ultimately, joint SBC. The oracle result is conditional on this fixed-truth, four-event-per-replicate synthetic experiment and does not establish joint SBC.
 
 The oracle artifact is workflow 44433623231, artifact 14488270129, SHA-256 `3bd8aeaf57e604b200d6da646f9ba0430f1e8995f9bdcecb3c1869c8c3b139fa`. Its audit status is PASS; it contains the six-cell oracle summary, paired contrasts, 600-row cell readout, grid configuration, and audit status.
+
+
+## 20,000-draw full-parent repeated-sampling baseline
+
+A separate workflow reran the full-parent selected-event likelihood on the **same 100 archived parent populations**, generating 200 fresh four-event realizations per parent (20,000 total). This holds the finite parent population fixed within each cluster and isolates event-sample variation conditional on those parent populations.
+
+**Provenance**
+- Workflow: `44435303396`
+- Artifact: `14489935029`
+- Artifact ZIP SHA-256: `c60f5cd64f489a19fc0595a7a394394fed2dfede6fd0a359d1036700d9d38748`
+- 100 parent clusters × 200 fresh event realizations; 20,000 total.
+- H0 truth 70; 561-point H0 grid; four detected events per realization.
+- The workflow independently reconstructed all 100 parent summaries from event-level rows, verified all source manifest entries, and passed.
+
+### Pooled event-level result
+
+| Metric | Estimate | Event-level MCSE / 95% interval |
+|---|---:|---:|
+| Mean posterior-median bias (km s^-1 Mpc^-1) | +6.4388 | MCSE 0.1301; t 95% [6.1838, 6.6937] |
+| 68% coverage | 0.6535 | MCSE 0.00336; Wilson 95% [0.6469, 0.6601] |
+| 90% coverage | 0.8794 | MCSE 0.00230; Wilson 95% [0.8748, 0.8838] |
+| 95% coverage | 0.9335 | MCSE 0.00176; Wilson 95% [0.9300, 0.9369] |
+| Mean 68% interval width (km s^-1 Mpc^-1) | 23.9233 | — |
+
+### Parent-cluster uncertainty
+
+The independent sampling units for unconditional generalization are the 100 parent populations, not the 20,000 event draws.
+
+| Metric | Mean across parent clusters | Parent-cluster MCSE | Parent-cluster t 95% interval |
+|---|---:|---:|---:|
+| Mean posterior-median bias | +6.4388 | 0.1408 | [6.1595, 6.7181] |
+| 68% coverage | 0.6535 | 0.00293 | [0.6477, 0.6593] |
+| 90% coverage | 0.8794 | 0.00255 | [0.8743, 0.8845] |
+| 95% coverage | 0.9335 | 0.00187 | [0.9298, 0.9372] |
+
+The event-level MCSE is conditional on the archived parent populations; the parent-cluster MCSE is the appropriate uncertainty for generalizing over parent-population draws.
+
+### Reconciliation and interpretation
+
+The original 100 parent/event realizations had full-parent coverage 0.54/0.83/0.91. Repeatedly resampling detected events on those **same** 100 parents raises it to 0.6535/0.8794/0.9335. Thus the original four-event realization set was not representative of the event-sampling distribution, especially at the 68% level. The +7.048 median-bias estimate from the original 100 event samples is also compatible with the repeated-draw estimate +6.439 once its original MCSE 1.809 is considered.
+
+The separate 500-new-parent event-count experiment reported four-event coverage 0.696/0.910/0.954 and mean bias +5.060 (MCSE 0.717). Its 68% Wilson interval [0.654,0.735] overlaps the repeated-draw conditional-parent interval only near its lower edge. These are different parent-population samples and should not be pooled or treated as a paired contrast. The remaining difference is compatible with finite Monte Carlo variation but merits a larger independent-parent replication before a definitive unconditional coverage statement.
+
+The main conclusion is now clearer: the full-parent fixed-count likelihood has positive median bias around +6.4 km s^-1 Mpc^-1 in this four-event setup, and conditional repeated-sampling coverage is below nominal (about 65.4%, 87.9%, and 93.4%). The original 54% 68%-coverage estimate overstated the deficit because it used only one four-event realization per parent. This remains fixed-truth coverage, not joint SBC. The paired 30-event experiment separately shows that more detected events greatly reduce median bias and interval width, but does not by itself resolve the remaining coverage behavior.
