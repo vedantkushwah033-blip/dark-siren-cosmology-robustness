@@ -41,12 +41,13 @@ jobs:
           repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
           run-id: 44434616291
           path: artifacts/full_parent_event_count_calibration
-      - name: Independently reconstruct 561-grid and compare with 1121-grid on 50 paired replicates
+      - name: Independently reconstruct 561, 1121, and 2241 grids on 50 paired replicates
         run: |
           python scripts/audit_full_parent_event_count_grid_refinement.py \
             artifacts/full_parent_event_count_calibration \
             --sample-size 50 \
-            --fine-points 1121 \
+            --intermediate-points 1121 \
+            --fine-points 2241 \
             --max-quantile-shift 0.05 \
             --max-density-l1 0.001 \
             --output artifacts/full_parent_event_count_grid_audit.json
