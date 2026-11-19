@@ -25,7 +25,7 @@ jobs:
       - name: Run 100-replicate paired full-parent event-count experiment
         run: |
           python scripts/run_full_parent_event_count_calibration.py \
-            --replicates 100 \
+            --replicates 500 \
             --seed 2026111928 \
             --n-parent 1200 \
             --h0-true 70 \
@@ -49,16 +49,16 @@ jobs:
           summary = pd.read_csv(root / "summary.csv")
           paired = pd.read_csv(root / "paired_contrast.csv")
           assert len(raw) == 200, len(raw)
-          assert raw.groupby("event_count").size().to_dict() == {4: 100, 30: 100}
+          assert raw.groupby("event_count").size().to_dict() == {4: 500, 30: 500}
           assert raw.groupby("replicate").event_count.nunique().eq(2).all()
           assert len(summary) == 2
-          assert int(paired.loc[0, "paired_replicates"]) == 100
+          assert int(paired.loc[0, "paired_replicates"]) == 500
           assert set(summary.event_count) == {4, 30}
           assert (summary.success == 100).all()
           print(summary.to_string(index=False))
           print(paired.to_string(index=False))
           print(json.dumps({"manifest_entries_verified": len(manifest),
-                            "paired_replicates": 100, "raw_rows": len(raw)}, indent=2))
+                            "paired_replicates": 500, "raw_rows": len(raw)}, indent=2))
           PY
       - name: Upload full-parent event-count readout
         uses: actions/upload-artifact@v4
