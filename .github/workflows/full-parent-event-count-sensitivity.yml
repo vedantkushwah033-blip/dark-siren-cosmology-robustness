@@ -1,0 +1,129 @@
+name: full-parent-event-count-sensitivity
+
+on:
+  pull_request:
+    branches:
+      - research/oracle-decomposition-20261119
+    paths:
+      - .github/workflows/full-parent-event-count-sensitivity.yml
+      - scripts/run_full_parent_h0_fixed_count_baseline.py
+      - tests/test_full_parent_h0_fixed_count_baseline.py
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  event-count-sensitivity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run full-parent baseline tests
+        run: |
+          python -m py_compile scripts/run_full_parent_h0_fixed_count_baseline.py
+          pytest tests/test_full_parent_h0_fixed_count_baseline.py -q
+      - name: Download immutable 100-replicate calibration artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: h0-100rep-calibration-precision-py3.12
+          run-id: 44411667480
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/h0_100rep_calibration_precision
+      - name: Run 4, 10, and 30 detected-event full-parent experiments
+        run: |
+          set -euo pipefail
+          for n in 4 10 30; do
+            python scripts/run_full_parent_h0_fixed_count_baseline.py \
+              artifacts/h0_100rep_calibration_precision \
+              --output-dir "artifacts/full_parent_event_count/n_${n}" \
+              --replicates-per-parent 200 \
+              --seed "$((990000 + n * 100000))" \
+              --h0-points 561 \
+              --n-events "${n}"
+          done
+      - name: Independently audit each event-count experiment and parent-cluster uncertainty
+        run: |
+          python - <<'PY'
+          import hashlib, json, math
+          from pathlib import Path
+          import pandas as pd
+          from scipy.stats import t
+          root=Path("artifacts/full_parent_event_count")
+          summaries=[]
+          for n_events in (4,10,30):
+              folder=root/f"n_{n_events}"
+              frame=pd.read_csv(folder/"replicates.csv")
+              parent=pd.read_csv(folder/"parent_summary.csv")
+              summary=json.loads((folder/"summary.json").read_text())
+              assert len(frame)==20000, (n_events,len(frame))
+              assert frame.parent_replicate.nunique()==100
+              assert set(frame.n_events)=={n_events}
+              counts=frame.groupby("parent_replicate").size()
+              assert (counts==200).all(), (n_events,counts.value_counts().to_dict())
+              assert len(parent)==100
+              rebuilt=frame.groupby("parent_replicate").agg(
+                  n=("median_bias","size"),
+                  mean_median_bias=("median_bias","mean"),
+                  coverage68=("covered68","mean"),
+                  coverage90=("covered90","mean"),
+                  coverage95=("covered95","mean")).reset_index()
+              pd.testing.assert_frame_equal(
+                  parent.sort_values("parent_replicate").reset_index(drop=True),
+                  rebuilt.sort_values("parent_replicate").reset_index(drop=True),
+                  check_exact=False,rtol=0,atol=1e-12)
+              cluster={}
+              for col in ("mean_median_bias","coverage68","coverage90","coverage95"):
+                  values=parent[col].to_numpy(float)
+                  se=float(values.std(ddof=1)/math.sqrt(len(values)))
+                  mean=float(values.mean())
+                  critical=float(t.ppf(.975,len(values)-1))
+                  cluster[col]={"mean":mean,"cluster_mcse":se,
+                                "t95_low":mean-critical*se,"t95_high":mean+critical*se}
+              (folder/"cluster_summary.json").write_text(json.dumps(cluster,indent=2,sort_keys=True)+"\n")
+              source_manifest=json.loads((folder/"manifest.json").read_text())
+              bad=[name for name,digest in source_manifest.items()
+                   if not (folder/name).is_file()
+                   or hashlib.sha256((folder/name).read_bytes()).hexdigest()!=digest]
+              assert not bad,(n_events,bad[:10])
+              summaries.append({
+                  "n_events":n_events,
+                  "parent_populations":100,
+                  "event_replicates":len(frame),
+                  "mean_median_bias":float(frame.median_bias.mean()),
+                  "bias_parent_cluster_mcse":cluster["mean_median_bias"]["cluster_mcse"],
+                  "coverage68":float(frame.covered68.mean()),
+                  "coverage68_parent_cluster_mcse":cluster["coverage68"]["cluster_mcse"],
+                  "coverage90":float(frame.covered90.mean()),
+                  "coverage90_parent_cluster_mcse":cluster["coverage90"]["cluster_mcse"],
+                  "coverage95":float(frame.covered95.mean()),
+                  "coverage95_parent_cluster_mcse":cluster["coverage95"]["cluster_mcse"],
+                  "mean_width68":float(frame.width68.mean()),
+                  "mean_width90":float((frame.q95-frame.q05).mean()),
+                  "mean_width95":float((frame.q975-frame.q025).mean()),
+              })
+          table=pd.DataFrame(summaries)
+          table.to_csv(root/"event_count_sensitivity_summary.csv",index=False)
+          (root/"event_count_sensitivity_summary.json").write_text(
+              json.dumps(summaries,indent=2,sort_keys=True)+"\n")
+          print("EVENT-COUNT SENSITIVITY")
+          print(table.to_string(index=False))
+          print("AUDIT PASS: 60,000 datasets; 300 parent clusters; 200 datasets per parent and event-count condition.")
+          output_manifest={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest()
+                           for p in sorted(root.rglob("*"))
+                           if p.is_file() and p.name!="manifest.json"}
+          (root/"manifest.json").write_text(json.dumps(output_manifest,indent=2,sort_keys=True)+"\n")
+          PY
+      - name: Upload event-count sensitivity artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-parent-event-count-sensitivity
+          path: artifacts/full_parent_event_count/
+          if-no-files-found: error
+          retention-days: 90
