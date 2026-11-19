@@ -39,7 +39,22 @@ def _kde(grid,sample,prob,h,merger):
  w=w/w.max();neff=w.sum()**2/(w@w)
  aug=np.r_[sample,2*grid[0]-sample,2*grid[-1]-sample]
  aw=np.tile(w/3,3)
- factor=h*neff**(-.2)
+ # Reconstruct the production physical Scott bandwidth from the original
+ # weighted sample, then account for the covariance change induced by reflection.
+ # Reflection duplicates each point at both boundaries; using the raw Scott
+ # factor directly would spuriously shrink the physical kernel width.
+ p=w/w.sum()
+ original_mean=float(p@sample)
+ original_denominator=1.0-float(p@p)
+ original_variance=float(np.sum(p*(sample-original_mean)**2)/original_denominator)
+ ap=aw/aw.sum()
+ augmented_mean=float(ap@aug)
+ augmented_denominator=1.0-float(ap@ap)
+ augmented_variance=float(np.sum(ap*(aug-augmented_mean)**2)/augmented_denominator)
+ if (not np.isfinite(original_variance) or original_variance<=0
+     or not np.isfinite(augmented_variance) or augmented_variance<=0):
+  raise AssertionError("Weighted reflected KDE covariance is undefined")
+ factor=h*neff**(-.2)*np.sqrt(original_variance/augmented_variance)
  raw=gaussian_kde(aug,weights=aw,bw_method=lambda k:factor)(grid)*merger
  return raw/trapezoid(raw,grid)
 def audit_fixed_catalogue_artifact(path):

@@ -3,7 +3,7 @@ name: h0-100rep-calibration-precision
 on:
   push:
     branches:
-      - research/h0-100rep-calibration-precision-20261119
+      - research/h0-100rep-interruption-safe-run-20261119
     paths:
       - .github/workflows/h0-100rep-calibration-precision.yml
       - scripts/run_quadratic_logit_h0_calibration_pilot.py
@@ -31,11 +31,13 @@ jobs:
         run: |
           python -m py_compile scripts/run_quadratic_logit_h0_calibration_pilot.py scripts/audit_quadratic_logit_h0_calibration_pilot.py
           pytest tests/test_quadratic_logit_h0_calibration_pilot_audit.py -q
+      - name: Verify corrected independent reflected-KDE audit
+        run: pytest tests/test_fixed_analysis_catalogue_benchmark.py -q
       - name: Run 100-replicate paired fixed-truth calibration experiment
         run: |
           python scripts/run_quadratic_logit_h0_calibration_pilot.py \
             --replicates 100 \
-            --seed 2026111927 \
+            --seed 2026111930 \
             --gammas=-1,0,1 \
             --validation-sizes 100,500 \
             --n-validation-frame 500 \
