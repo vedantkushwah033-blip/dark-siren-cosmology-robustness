@@ -1,0 +1,104 @@
+name: Full-parent joint prior-predictive SBC 1000 replicates
+
+on:
+  push:
+    branches:
+      - research/full-parent-joint-sbc-1000rep-20261119
+    paths:
+      - .github/workflows/full-parent-joint-sbc-1000rep.yml
+      - scripts/run_full_parent_h0_sbc.py
+      - tests/test_full_parent_h0_sbc.py
+      - scripts/audit_full_parent_h0_sbc.py
+  pull_request:
+    branches:
+      - research/full-parent-joint-sbc-baseline-20261119
+    paths:
+      - .github/workflows/full-parent-joint-sbc-1000rep.yml
+      - scripts/run_full_parent_h0_sbc.py
+      - tests/test_full_parent_h0_sbc.py
+      - scripts/audit_full_parent_h0_sbc.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: full-parent-joint-sbc-1000rep
+  cancel-in-progress: false
+
+jobs:
+  full-parent-sbc:
+    runs-on: ubuntu-latest
+    env:
+      SBC_REPLICATES: "1000"
+      SBC_H0_POINTS: "1121"
+      PYTHONHASHSEED: "0"
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Compile scripts and run synthetic roundtrip tests
+        run: |
+          python -m py_compile scripts/run_full_parent_h0_sbc.py scripts/audit_full_parent_h0_sbc.py
+          pytest tests/test_full_parent_h0_sbc.py -q
+      - name: Run 1000-replicate full-parent prior-predictive SBC
+        run: |
+          python scripts/run_full_parent_h0_sbc.py \
+            --output-dir artifacts/full_parent_h0_sbc_1000 \
+            --replicates "$SBC_REPLICATES" \
+            --master-seed 2026111919 \
+            --n-parent 1200 \
+            --n-detected 30 \
+            --h0-min 20 \
+            --h0-max 300 \
+            --h0-points "$SBC_H0_POINTS"
+      - name: Independently regenerate all priors, populations, events, and posterior ranks
+        run: |
+          python scripts/audit_full_parent_h0_sbc.py artifacts/full_parent_h0_sbc_1000 \
+            --expected-replicates 1000 \
+            --output artifacts/full_parent_h0_sbc_1000/independent_audit.json
+      - name: Verify full planned denominator, ranks, coverage, and summary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          import pandas as pd
+          root=Path("artifacts/full_parent_h0_sbc_1000")
+          rows=pd.read_csv(root/"sbc_replicates.csv")
+          summary=json.loads((root/"sbc_summary.json").read_text())
+          audit=json.loads((root/"independent_audit.json").read_text())
+          assert len(rows)==1000 and rows.replicate.nunique()==1000
+          assert set(rows.replicate.astype(int))==set(range(1000))
+          assert audit["status"]=="PASS" and audit["replicates_regenerated"]==1000
+          assert rows.posterior_rank.between(0,1).all() and np.isfinite(rows.posterior_rank).all()
+          assert abs(summary["mean_rank"]-rows.posterior_rank.mean())<1e-12
+          for level in (50,68,80,90,95):
+              assert abs(summary[f"coverage{level}"]-rows[f"covered{level}"].mean())<1e-12
+          print(json.dumps(summary,indent=2))
+          print(json.dumps(audit,indent=2))
+          PY
+      - name: Refresh aggregate manifest
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path("artifacts/full_parent_h0_sbc_1000")
+          if root.exists():
+              manifest={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest()
+                for p in sorted(root.rglob("*")) if p.is_file() and p.name!="manifest.json"}
+              (root/"manifest.json").write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
+          PY
+      - name: Upload complete or partial SBC evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-parent-h0-sbc-1000
+          path: artifacts/full_parent_h0_sbc_1000/
+          if-no-files-found: warn
+          retention-days: 90
