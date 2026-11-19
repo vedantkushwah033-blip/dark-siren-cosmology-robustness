@@ -14,6 +14,9 @@ concurrency:
 jobs:
   full-parent-sbc:
     runs-on: ubuntu-latest
+    env:
+      SBC_REPLICATES: "1000"
+      SBC_H0_POINTS: "1121"
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
@@ -30,13 +33,13 @@ jobs:
         run: |
           python scripts/run_full_parent_h0_sbc.py \
             --output-dir artifacts/full_parent_h0_sbc_1000 \
-            --replicates 1000 \
+            --replicates "$SBC_REPLICATES" \
             --master-seed 2026111919 \
             --n-parent 1200 \
             --n-detected 30 \
             --h0-min 20 \
             --h0-max 300 \
-            --h0-points 1121
+            --h0-points "$SBC_H0_POINTS"
       - name: Independently regenerate all priors, populations, events, and posterior ranks
         run: |
           python scripts/audit_full_parent_h0_sbc.py artifacts/full_parent_h0_sbc_1000 \
