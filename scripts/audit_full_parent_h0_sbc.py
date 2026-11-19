@@ -92,8 +92,11 @@ def audit(root:Path,output:Path|None=None,expected_replicates=200):
             raise AssertionError(f"summary {key} mismatch: archived={stored}, rebuilt={value}")
     for level in (50,68,80,90,95):
         coverage=float(archived[f"covered{level}"].mean())
+        mcse=float(np.sqrt(coverage*(1.0-coverage)/n))
         if not np.isclose(float(summary[f"coverage{level}"]),coverage,rtol=0,atol=1e-12):
             raise AssertionError(f"coverage{level} summary mismatch")
+        if not np.isclose(float(summary[f"coverage{level}_mcse"]),mcse,rtol=0,atol=1e-12):
+            raise AssertionError(f"coverage{level} MCSE mismatch")
     report={"status":"PASS","manifest_entries_verified":len(manifest),"replicates_regenerated":n,
       "parent_populations_regenerated":n,"detected_event_sequences_regenerated":n,
       "posterior_rank_and_quantile_rows_reconstructed":n,
