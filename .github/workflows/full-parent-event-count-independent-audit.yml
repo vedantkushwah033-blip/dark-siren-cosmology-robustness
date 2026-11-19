@@ -2,6 +2,10 @@ name: full-parent-event-count-independent-audit
 
 on:
   pull_request:
+    paths:
+      - .github/workflows/full-parent-event-count-independent-audit.yml
+      - scripts/audit_full_parent_event_count_calibration.py
+      - tests/test_full_parent_event_count_independent_audit.py
   workflow_dispatch:
 
 permissions:
