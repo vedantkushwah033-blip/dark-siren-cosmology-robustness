@@ -504,3 +504,44 @@ The first posthoc attempt (`44372235700`) successfully downloaded all seven orig
 I corrected the indentation in commit `9596481733fdd301d3228219285c25830e2b659e` and verified the affected source lines from the live branch. A new posthoc audit run (`44374047661`) downloaded the same seven preserved artifacts and was executing the corrected independent per-cell/cross-gamma audit at the latest status check. The full test workflow for the corrected head (`44374047652`) was also running: Python 3.11 had completed successfully; Python 3.10 and 3.12 were still in progress, with the Python 3.12 job on its configured 100-replicate bandwidth-grid sensitivity check.
 
 No corrected posthoc audit result is claimed until run `44374047661` completes. The original gamma +2 numerical-node discrepancy remains unresolved at the workflow level pending this re-audit. The earlier exact-head CI pass at `ecea98a` remains valid for that older head; it does not override the later failed audit-script commits.
+
+
+## H0 calibration follow-up: results through 19 November 2026
+
+This section supersedes the earlier H0 smoke-only status. All evidence remains synthetic, low-redshift Euclidean, fixed-truth, and conditional on a fixed detected-event count.
+
+### Completed 100-replicate H0 calibration pilot
+
+- Source workflow #44411667480; artifact #14485703115; 600 planned cells, 599 SUCCESS and one NON_EVALUABLE, zero FAILED/NOT_RUN.
+- Independent orchestration audit and same-realization oracle reconstruction passed; all 600 raw cells, 300 nested-validation blocks, 200 paired validation blocks, and 14,106 aggregate manifest entries were verified.
+- H0 truth 70 km s^-1 Mpc^-1; 1,200 parent galaxies; four detected events; gamma {-1,0,+1}; validation sizes 100 and 500; H0 grid 281 points.
+- Validation n=500 improved weight concentration diagnostics but did not clearly reduce H0 bias or improve coverage.
+- Estimated-minus-known-π median-bias contrasts are sign-dependent: approximately −3.5 for gamma −1, near zero for gamma 0, and +3.5 to +4.3 for gamma +1. This is evidence of curvature-associated degree-one inclusion-model misspecification in this synthetic design, not universal estimator superiority.
+
+### Full-parent selected-likelihood baseline
+
+A 20,000-event repeated-sampling experiment on the same 100 parent populations (200 fresh four-event realizations per parent) passed its independent parent-cluster audit (workflow #44435303396; artifact #14489935029).
+
+- Mean posterior-median bias: +6.4388 km s^-1 Mpc^-1; parent-cluster MCSE 0.1408; t 95% interval [6.1595,6.7181].
+- Coverage at 68/90/95%: 0.6535/0.8794/0.9335; parent-cluster t intervals [0.6477,0.6593], [0.8743,0.8845], [0.9298,0.9372].
+- This bias and undercoverage persist with the complete finite parent mixture, so they cannot be attributed solely to catalogue thinning or estimated inclusion probabilities.
+
+### Event-count effect
+
+A paired 500-parent experiment compared four detected events with a nested 30-event sample from the same realization (workflow #44434616291; artifact #14487983108). An independent raw-seed reconstruction audit passed (workflow #44437893958; artifact #14489479882): all 500 parent populations, 15,000 detected-event records, 1,000 posterior curves, both summary arms, and the paired contrast were reconstructed.
+
+- Four events: mean median bias +5.060 (MCSE 0.717), RMSE 16.793, coverage 0.696/0.910/0.954, mean 68% interval width 23.436.
+- Thirty events: mean median bias +0.866 (MCSE 0.182), RMSE 4.160, coverage 0.662/0.860/0.920, mean 68% interval width 7.355.
+- Paired 30-minus-4 median-bias difference: −4.194 (MCSE 0.699; 95% interval [−5.567,−2.820]).
+
+More detected events substantially reduce bias, RMSE, and interval width in this toy model, but do not establish nominal fixed-truth coverage at every interval level.
+
+### Active numerical and replication checks
+
+- PR #96 / workflow #44437373259: independent second 100-replicate calibration replication, seed 2026111930; 600-cell run in progress.
+- PR #107 / workflow #44438462754: first 100-replicate artifact grid refinement on a paired subset at 281, 561, and 1,121 H0 points; in progress.
+- PR #110: manifest-verified pooling of the two independent 100-replicate artifacts; prepared but must not run until replication 2 and its independent audit pass.
+
+### Claim boundary
+
+Do not call these experiments joint SBC, observational H0 measurement, real galaxy-survey validation, or LVK/GWTC analysis. The defensible contribution is a controlled synthetic benchmark separating finite-validation weight instability, curvature misspecification, finite-event-count effects, and baseline selected-likelihood behavior.
