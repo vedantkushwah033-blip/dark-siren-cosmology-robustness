@@ -1,0 +1,95 @@
+name: quadratic-five-arm-30event-smoke
+
+on:
+  push:
+    branches:
+      - research/quadratic-five-arm-30event-smoke-20261119
+    paths:
+      - .github/workflows/quadratic-five-arm-30event-smoke.yml
+      - scripts/run_quadratic_five_arm_smoke.py
+      - scripts/audit_quadratic_five_arm_smoke.py
+      - tests/test_quadratic_five_arm_smoke.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paired-curvature-five-arm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Compile scripts and run small independent smoke regression
+        run: |
+          python -m py_compile scripts/run_quadratic_five_arm_smoke.py scripts/audit_quadratic_five_arm_smoke.py
+          pytest tests/test_quadratic_five_arm_smoke.py -q
+      - name: Run gamma -1, 0, +1 five-arm experiments with 30 detected events
+        run: |
+          set -euo pipefail
+          for gamma in -1 0 1; do
+            tag=$(echo "$gamma" | sed 's/-/m/; s/+//')
+            python scripts/run_quadratic_five_arm_smoke.py \
+              --seed 2026111908 \
+              --validation-seed 2026111909 \
+              --n-parent 1200 \
+              --n-detected 30 \
+              --validation-frame 500 \
+              --validation-sizes 100,300,500 \
+              --catalogue-floor 0.10 \
+              --curvature-gamma "$gamma" \
+              --curvature-beta -3.9 \
+              --h0-true 70 \
+              --h0-points 281 \
+              --scott-multiplier 0.7 \
+              --quadrature-order 5 \
+              --sigma-mpc 140 \
+              --detection-threshold-mpc 250 \
+              --output-dir "artifacts/quadratic_five_arm_30event/gamma_$tag"
+            python scripts/audit_quadratic_five_arm_smoke.py \
+              "artifacts/quadratic_five_arm_30event/gamma_$tag" \
+              --output "artifacts/quadratic_five_arm_30event/gamma_$tag/independent_audit.json"
+          done
+      - name: Build paired cross-curvature descriptive table
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd
+          root=Path("artifacts/quadratic_five_arm_30event")
+          frames=[]
+          for gamma,tag in [(-1,"m1"),(0,"0"),(1,"1")]:
+              p=root/f"gamma_{tag}"/"results"/"posterior_summaries.csv"
+              d=pd.read_csv(p); d.insert(0,"gamma",gamma); frames.append(d)
+          combined=pd.concat(frames,ignore_index=True)
+          combined.to_csv(root/"cross_curvature_posterior_summaries.csv",index=False)
+          print(combined[["gamma","validation_size","arm","posterior_median","median_error","q16","q84"]].to_string(index=False))
+          for n,g in combined.groupby("validation_size"):
+              wide=g.pivot(index="gamma",columns="arm",values="median_error")
+              print(f"\nVALIDATION N={n}")
+              print(wide.to_string())
+          PY
+      - name: Refresh aggregate hashes and upload all five-arm artifacts
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path("artifacts/quadratic_five_arm_30event")
+          if root.exists():
+              manifest={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest()
+                for p in sorted(root.rglob("*")) if p.is_file() and p.name!="aggregate_manifest.json"}
+              (root/"aggregate_manifest.json").write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
+          PY
+      - name: Upload quadratic five-arm 30-event smoke
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quadratic-five-arm-30event-smoke
+          path: artifacts/quadratic_five_arm_30event/
+          if-no-files-found: warn
+          retention-days: 90
