@@ -194,3 +194,35 @@ def test_failure_inclusive_coverage_bounds_reject_invalid_counts():
         failure_inclusive_coverage_bounds(covered_success=4, successful=3, planned=5)
     with pytest.raises(ValueError):
         failure_inclusive_coverage_bounds(covered_success=1, successful=6, planned=5)
+
+
+
+def test_cross_gamma_pairing_accepts_different_validation_sizes_with_common_prefix():
+    import pandas as pd
+
+    parent = pd.DataFrame({"object_id": [1, 2], "redshift": [0.1, 0.2]})
+    events = pd.DataFrame({"event_id": [1], "distance_mpc": [500.0]})
+    short = pd.DataFrame({
+        "validation_id": [1, 2], "redshift": [0.1, 0.2], "retained": [0, 1],
+    })
+    long = pd.DataFrame({
+        "validation_id": [1, 2, 3], "redshift": [0.1, 0.2, 0.3],
+        "retained": [1, 0, 1],
+    })
+    assert_cross_gamma_pairing(parent, parent, events, events, short, long)
+
+
+def test_cross_gamma_pairing_rejects_mismatch_inside_common_validation_prefix():
+    import pandas as pd
+
+    parent = pd.DataFrame({"object_id": [1, 2], "redshift": [0.1, 0.2]})
+    events = pd.DataFrame({"event_id": [1], "distance_mpc": [500.0]})
+    short = pd.DataFrame({
+        "validation_id": [1, 2], "redshift": [0.1, 0.2], "retained": [0, 1],
+    })
+    long = pd.DataFrame({
+        "validation_id": [1, 9, 3], "redshift": [0.1, 0.2, 0.3],
+        "retained": [1, 0, 1],
+    })
+    with pytest.raises(AssertionError, match="validation IDs/redshifts"):
+        assert_cross_gamma_pairing(parent, parent, events, events, short, long)
