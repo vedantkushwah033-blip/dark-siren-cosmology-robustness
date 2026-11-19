@@ -71,6 +71,7 @@ def test_complete_artifact_reports_success_metrics_and_paired_contrasts(tmp_path
 def test_failure_inclusive_bounds_preserve_all_planned_attempts(tmp_path):
     statuses = ["SUCCESS", "SUCCESS", "FAILED", "NON_EVALUABLE", "NOT_RUN"]
     rows = [row(rep, 0.0, 100, status) for rep, status in enumerate(statuses)]
+    rows[1]["covered68"] = 0
     root = tmp_path / "artifact"
     write_artifact(root, rows)
     report = MODULE.analyze(root, tmp_path / "out", seed=13)
