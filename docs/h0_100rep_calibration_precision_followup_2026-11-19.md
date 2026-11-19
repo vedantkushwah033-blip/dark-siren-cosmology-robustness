@@ -1,6 +1,6 @@
 # 100-replicate fixed-truth H0 calibration precision follow-up
 
-**Status:** completed fixed-truth precision pilot; workflow 44411667480 succeeded at runner SHA `652021943b31490302d586b5b9c77c7ccdfcc8f7`. The 600-cell artifact passed the independent orchestration audit. Oracle-arm decomposition is being run separately in PR #97.
+**Status:** completed fixed-truth precision pilot; workflow 44411667480 succeeded at runner SHA `652021943b31490302d586b5b9c77c7ccdfcc8f7`. The 600-cell artifact passed the independent orchestration audit. The independent known-π/full-parent oracle decomposition completed successfully in workflow 44433623231 (PR #97).
 
 ## Motivation
 
@@ -15,7 +15,7 @@ The preceding 90-cell pilot used 10 replicates per curvature-by-validation-size 
 - The DGP uses the quadratic-logit inclusion model; inference fits a degree-one logistic inclusion model. Thus \(\gamma=0\) is the correctly specified reference within the fitted family, while \(\gamma=\pm1\) are misspecified conditions.
 - The fitted inclusion-coefficient posterior uses the declared independent Gaussian prior, adaptive Laplace-proposal Gauss-Hermite quadrature at orders 3, 5, 7, and 9, and a shared coefficient node across all four events.
 - \(H_0\) prior support is uniform on [20, 300], represented on a 281-point grid (spacing 1 km s\(^{-1}\) Mpc\(^{-1}\)). A paired grid-refinement audit has now completed on 27 fixed-truth pilot cells: 281→561 passed both predeclared tolerances in 27/27 comparisons, while 141→281 passed only 1/27. Thus 281 points is supported relative to 561 on this subset; this remains a numerical sensitivity audit, not a calibration result.
-- The runner writes a complete planned-cell ledger before executing children. Every cell remains visible as SUCCESS, NON_EVALUABLE, FAILED, or NOT_RUN; failed and non-evaluable cells are not silently dropped.
+- The completed run contains all 600 planned cells in its ledger. A separate code review found that the runner persists the ledger incrementally after attempted children, so an interrupted run could omit later unattempted cells; a pre-populated NOT_RUN/RUNNING ledger is still a follow-up hardening item. In this completed run, all planned cells are accounted for.
 
 ## Endpoints and analysis
 
@@ -93,3 +93,38 @@ The γ=+1 versus γ=−1 paired contrast is large relative to its Monte Carlo SE
 The single NON_EVALUABLE cell is γ=−1, validation n=100; its fitted-arm result is excluded from fitted-arm means and paired fitted-arm contrasts. Oracle posteriors can still be reconstructed from its archived parent/catalogue/event inputs and should retain the full 100-replicate oracle denominator.
 
 Artifact: workflow 44411667480, artifact 14485703115, ZIP SHA-256 `0d6141e8efda49aacba713f1be77548ae61002680461f8585c8d13cb96aad864`. The full raw artifact contains 14,708 files and is retained for 90 days.
+
+
+## Same-realization oracle decomposition
+
+The independent oracle workflow (run 44433623231, commit `871d120bf3c68ed5e8d2d893de1117edcff00685`) downloaded the immutable 600-cell artifact, verified its SHA-256, re-hashed all 14,106 aggregate manifest entries through the orchestration audit, and reconstructed known-inclusion-probability IPW and full-parent posteriors independently from the raw parent, catalogue, event, and validation records. The oracle reconstruction used a 561-point H₀ grid. All 600 oracle cells were evaluated, including the archived raw inputs for the one NON_EVALUABLE fitted cell.
+
+| γ | Validation n | Estimated-IPW mean bias | Known-π IPW mean bias | Full-parent mean bias | Estimated 68% coverage | Known-π 68% coverage | Full-parent 68% coverage |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| -1 | 100 | +2.020 (99 fitted) | +5.770 | +7.048 | 0.545 | 0.49 | 0.54 |
+| -1 | 500 | +2.255 | +5.770 | +7.048 | 0.510 | 0.49 | 0.54 |
+| 0 | 100 | +6.428 | +6.474 | +7.048 | 0.510 | 0.50 | 0.54 |
+| 0 | 500 | +6.768 | +6.474 | +7.048 | 0.510 | 0.50 | 0.54 |
+| +1 | 100 | +10.396 | +6.851 | +7.048 | 0.560 | 0.51 | 0.54 |
+| +1 | 500 | +11.114 | +6.851 | +7.048 | 0.540 | 0.51 | 0.54 |
+
+Bias is in km s\(^{-1}\) Mpc\(^{-1}\). Monte Carlo standard errors for mean bias are approximately 1.7–1.9 in the estimated and known-π arms and 1.81 for the full-parent oracle. Each oracle coverage estimate uses 100 paired event realizations and has binomial MCSE of roughly 0.05.
+
+### Paired oracle contrasts
+
+| γ | Validation n | Estimated − known-π median | MCSE | Known-π − full-parent median | MCSE |
+|---:|---:|---:|---:|---:|---:|
+| -1 | 100 | -3.594 | 0.312 | -1.278 | 0.502 |
+| -1 | 500 | -3.516 | 0.271 | -1.278 | 0.502 |
+| 0 | 100 | -0.046 | 0.295 | -0.574 | 0.354 |
+| 0 | 500 | +0.294 | 0.163 | -0.574 | 0.354 |
+| +1 | 100 | +3.545 | 0.382 | -0.197 | 0.252 |
+| +1 | 500 | +4.263 | 0.260 | -0.197 | 0.252 |
+
+The estimated-minus-known-π contrast is strongly curvature-dependent: negative under γ=−1, close to zero under γ=0, and positive under γ=+1. The positive-curvature misspecified fitted arm therefore has a several-unit median shift relative to the known-π oracle, while the negative-curvature fitted arm shifts in the opposite direction. This is evidence of a sign-dependent degree-one inclusion-model misspecification effect in this synthetic design, not a universal ranking of estimated weights.
+
+Known-π versus full-parent median differences are much smaller: −1.278 (MCSE 0.502) at γ=−1, −0.574 (0.354) at γ=0, and −0.197 (0.252) at γ=+1. In this 100-replicate artifact, finite-catalogue realization under the true inclusion probabilities is not the dominant source of the curvature-dependent fitted-arm contrast.
+
+Crucially, the full-parent oracle itself has mean posterior-median bias +7.048 (MCSE 1.809) and 68% coverage 0.54 on these exact 100 event realizations. Known-π coverage is 0.49–0.51 and estimated-arm coverage is 0.51–0.56. Thus the low 68% coverage is also present without catalogue incompleteness or estimated inclusion. The baseline undercoverage cannot be assigned solely to the inclusion model; it points to a separate finite-event/selected-likelihood calibration issue that requires its own investigation. The oracle result is conditional on this fixed-truth, four-event-per-replicate synthetic experiment and does not establish joint SBC.
+
+The oracle artifact is workflow 44433623231, artifact 14488270129, SHA-256 `3bd8aeaf57e604b200d6da646f9ba0430f1e8995f9bdcecb3c1869c8c3b139fa`. Its audit status is PASS; it contains the six-cell oracle summary, paired contrasts, 600-row cell readout, grid configuration, and audit status.
