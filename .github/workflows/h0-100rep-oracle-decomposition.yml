@@ -42,6 +42,28 @@ jobs:
             artifacts/h0_100rep_calibration_precision \
             --output-dir artifacts/h0_100rep_oracle_decomposition \
             --h0-points 1121
+      - name: Record source provenance and checksum oracle outputs
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root = Path("artifacts/h0_100rep_oracle_decomposition")
+          provenance = {
+              "source_workflow_run_id": 44411667480,
+              "source_artifact_id": 14485703115,
+              "source_artifact_sha256": "0d6141e8efda49aacba713f1be77548ae61002680461f8585c8d13cb96aad864",
+              "source_head_sha": "652021943b31490302d586b5b9c77c7ccdfcc8f7",
+              "source_planned_cells": 600,
+              "source_status_counts": {"SUCCESS": 599, "NON_EVALUABLE": 1},
+          }
+          (root / "source_provenance.json").write_text(json.dumps(provenance, indent=2, sort_keys=True) + "\\n")
+          manifest = {
+              str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
+              for path in sorted(root.rglob("*"))
+              if path.is_file() and path.name != "manifest.json"
+          }
+          (root / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n")
+          PY
       - name: Upload oracle decomposition and audit trail
         uses: actions/upload-artifact@v4
         with:
