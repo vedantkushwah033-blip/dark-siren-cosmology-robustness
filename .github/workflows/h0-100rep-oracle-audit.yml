@@ -54,12 +54,14 @@ jobs:
               cfg = json.loads((out / "oracle_grid_config.json").read_text())
               assert len(cells) == 600, len(cells)
               assert len(summary) == 6, len(summary)
+              assert cfg["h0_grid_points"] == points, cfg
               assert cfg["planned_cells"] == 600, cfg
               assert cfg["status_counts"]["SUCCESS"] == 599, cfg
               assert cfg["status_counts"]["NON_EVALUABLE"] == 1, cfg
+              assert (cells.status == "SUCCESS").sum() == 599
+              assert (cells.status == "NON_EVALUABLE").sum() == 1
               assert (summary["planned"] == 100).all()
               assert summary["success"].sum() == 599
-          assert (summary["oracle_replicates"] == 100).all()
               assert summary["non_evaluable"].sum() == 1
               assert (summary["oracle_replicates"] == 100).all()
               assert (cells.groupby(["gamma", "n_validation"]).known_pi_bias.count() == 100).all()
