@@ -73,3 +73,33 @@ def test_all_failed_cells_remain_in_aggregate_denominator():
     assert (aggregate.successful_replicates==0).all()
     assert (aggregate.failed_or_non_evaluable==2).all()
     assert aggregate.success_only_bias.isna().all()
+
+
+
+def test_independent_quadrature_solver_replays_previously_non_evaluable_seed():
+    generated=generate_quadratic_logit_inclusion_samples(
+        population_seed=1067343507,
+        validation_seed=1671174138,
+        n_parent=1200,
+        n_validation_frame=500,
+        n_validation=500,
+        gamma=-1.0,
+        beta=-3.9,
+        z_min=0.01,
+        z_max=0.40,
+    )
+    validation=generated["validation_observed"]
+    for n in (100,300,500):
+        sample=validation.iloc[:n]
+        mode,covariance,nodes,weights=_independent_inclusion_quadrature(
+            sample.redshift.to_numpy(float),
+            sample.retained.to_numpy(int),
+            order=5,
+            center=0.205,
+            scale=0.195,
+        )
+        assert np.all(np.isfinite(mode))
+        assert np.all(np.isfinite(covariance))
+        assert nodes.shape==(25,2)
+        assert weights.shape==(25,)
+        assert np.isclose(weights.sum(),1.0,atol=1e-12)
