@@ -2,20 +2,21 @@ name: quadratic-five-arm-30event-smoke
 
 on:
   push:
+    branches:
+      - research/quadratic-five-arm-30event-smoke-20261119
+    paths:
+      - .github/workflows/quadratic-five-arm-30event-smoke.yml
+      - scripts/run_quadratic_five_arm_smoke.py
+      - tests/test_quadratic_five_arm_smoke.py
+      - scripts/audit_quadratic_five_arm_smoke.py
   pull_request:
     branches:
       - research/full-parent-event-count-calibration-20261119
     paths:
       - .github/workflows/quadratic-five-arm-30event-smoke.yml
       - scripts/run_quadratic_five_arm_smoke.py
-      - tests/
-    branches:
-      - research/quadratic-five-arm-30event-smoke-20261119
-    paths:
-      - .github/workflows/quadratic-five-arm-30event-smoke.yml
-      - scripts/run_quadratic_five_arm_smoke.py
-      - scripts/audit_quadratic_five_arm_smoke.py
       - tests/test_quadratic_five_arm_smoke.py
+      - scripts/audit_quadratic_five_arm_smoke.py
   workflow_dispatch:
 
 permissions:
