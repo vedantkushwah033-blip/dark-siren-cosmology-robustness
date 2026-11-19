@@ -1,0 +1,103 @@
+name: quadratic-five-arm-expanded-prior-pilot
+
+on:
+  push:
+    branches:
+      - research/five-arm-expanded-h0-prior-20261119
+    paths:
+      - .github/workflows/quadratic-five-arm-expanded-prior-pilot.yml
+      - scripts/run_quadratic_five_arm_smoke.py
+      - scripts/audit_quadratic_five_arm_smoke.py
+      - scripts/run_quadratic_five_arm_replicates.py
+      - scripts/audit_quadratic_five_arm_replicates.py
+      - tests/test_quadratic_five_arm_smoke.py
+      - tests/test_quadratic_five_arm_replicates.py
+  workflow_dispatch:
+
+concurrency:
+  group: quadratic-five-arm-expanded-prior-pilot
+  cancel-in-progress: false
+
+jobs:
+  expanded-prior-20rep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Compile expanded-prior orchestration and audit
+        run: |
+          python -m py_compile \
+            scripts/run_quadratic_five_arm_smoke.py \
+            scripts/audit_quadratic_five_arm_smoke.py \
+            scripts/run_quadratic_five_arm_replicates.py \
+            scripts/audit_quadratic_five_arm_replicates.py
+      - name: Test prior-support parameterization and failure bounds
+        run: |
+          pytest tests/test_quadratic_five_arm_smoke.py \
+            tests/test_quadratic_five_arm_replicates.py -q
+      - name: Run 20-replicate five-arm experiment on expanded common H0 support
+        run: |
+          python scripts/run_quadratic_five_arm_replicates.py \
+            --master-seed 2026111940 \
+            --replicates 20 \
+            --gammas=-1,0,1 \
+            --n-parent 1200 \
+            --n-detected 30 \
+            --validation-frame 500 \
+            --validation-sizes 100,300,500 \
+            --curvature-beta -3.9 \
+            --h0-true 70 \
+            --h0-prior-min 30 \
+            --h0-prior-max 110 \
+            --h0-points 1121 \
+            --scott-multiplier 0.7 \
+            --quadrature-order 5 \
+            --sigma-mpc 140 \
+            --detection-threshold-mpc 250 \
+            --output-dir artifacts/quadratic_five_arm_expanded_prior_20rep
+      - name: Independently audit all expanded-prior child artifacts
+        if: always()
+        run: |
+          if [ -f artifacts/quadratic_five_arm_expanded_prior_20rep/replicate_ledger.csv ]; then
+            python scripts/audit_quadratic_five_arm_replicates.py \
+              artifacts/quadratic_five_arm_expanded_prior_20rep \
+              --output artifacts/quadratic_five_arm_expanded_prior_20rep/independent_orchestration_audit.json
+          fi
+      - name: Assert complete planned denominator and create descriptive readout
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          root=Path("artifacts/quadratic_five_arm_expanded_prior_20rep")
+          ledger=pd.read_csv(root/"replicate_ledger.csv")
+          config=json.loads((root/"config.json").read_text())
+          report=json.loads((root/"independent_orchestration_audit.json").read_text())
+          assert config["h0_prior_support"] == [30.0, 110.0]
+          assert len(ledger) == 900, len(ledger)
+          assert report["status"] == "PASS", report
+          assert report["planned_cells"] == 900
+          assert report["successful_child_runs"] == 60
+          assert report["status_counts"].get("FAILED", 0) == 0
+          assert report["status_counts"].get("NOT_RUN", 0) == 0
+          print(json.dumps(report, indent=2))
+          PY
+          python scripts/analyze_quadratic_five_arm_precision.py \
+            artifacts/quadratic_five_arm_expanded_prior_20rep \
+            --output-prefix artifacts/quadratic_five_arm_expanded_prior_20rep/precision_readout
+      - name: Upload expanded-prior pilot and independent audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quadratic-five-arm-expanded-prior-20rep
+          path: artifacts/quadratic_five_arm_expanded_prior_20rep/
+          if-no-files-found: warn
+          retention-days: 90
