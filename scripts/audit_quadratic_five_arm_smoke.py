@@ -369,7 +369,11 @@ def audit(root: Path) -> dict:
     parent_base = 1.0 + 1.5 * (parent_z - 0.01) / 0.39
     catalogue_base = 1.0 + 1.5 * (catalogue_z - 0.01) / 0.39
     distances = events["distance_mpc"].to_numpy(float)
-    grid = np.linspace(50.0, 90.0, int(config["h0_grid_points"]))
+    prior_min = float(config.get("h0_prior_min", 50.0))
+    prior_max = float(config.get("h0_prior_max", 90.0))
+    if not prior_min <= h0_true <= prior_max:
+        raise AssertionError("H0 truth is outside the declared prior support")
+    grid = np.linspace(prior_min, prior_max, int(config["h0_grid_points"]))
     z_grid = np.linspace(0.01, 0.40, int(config["redshift_grid_points"]))
     rate_grid = np.ones_like(z_grid)
     scott_multiplier = float(config["scott_multiplier"])
