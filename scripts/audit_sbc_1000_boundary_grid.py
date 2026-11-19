@@ -60,7 +60,7 @@ def density_l1(grid_a, density_a, grid_b, density_b):
 
 
 def audit(source_dir: Path, output_dir: Path, intermediate_points=2241,
-          fine_points=4481, extra_points=8961) -> dict:
+          fine_points=4481, extra_points=8961, ultra_points=17921) -> dict:
     source_dir = Path(source_dir).resolve()
     output_dir = Path(output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -81,7 +81,7 @@ def audit(source_dir: Path, output_dir: Path, intermediate_points=2241,
     if design.get("status") != "COMPLETE" or int(design.get("replicates", -1)) != 1000 or len(raw) != 1000:
         raise AssertionError("expected the complete immutable 1,000-replicate source")
     source_points = int(design["h0_grid_points"])
-    if not source_points < intermediate_points < fine_points < extra_points:
+    if not source_points < intermediate_points < fine_points < extra_points < ultra_points:
         raise ValueError("grid points must be strictly increasing")
     lo, hi = map(float, design["h0_prior"])
     grids = {
@@ -150,7 +150,7 @@ def audit(source_dir: Path, output_dir: Path, intermediate_points=2241,
         "source_replicates": 1000,
         "targeted_replicates": list(TARGET_REPLICATES),
         "source_grid_points": source_points,
-        "grid_points": [source_points, intermediate_points, fine_points, extra_points],
+        "grid_points": [source_points, intermediate_points, fine_points, extra_points, ultra_points],
         "source_reconstruction_max_quantile_error": float(frame.source_quantile_max_abs_error.max()),
         "source_reconstruction_max_rank_error": float(frame.source_rank_abs_error.max()),
         "comparisons": {},
