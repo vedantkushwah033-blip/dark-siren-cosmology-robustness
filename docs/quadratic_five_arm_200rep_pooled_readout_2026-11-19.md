@@ -138,3 +138,13 @@ The five-arm runner and both levels of auditors now accept explicit H0 prior bou
 - 100-replicate wide-prior stream, master seed 2026111929: [Actions run 44484212311](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/44484212311). This uses the same replicate seed schedule as the original [50,90] run 44460222957 and is intended for paired prior-sensitivity comparisons.
 
 At the time of writing, the regression tests in the first two workflows have passed, while the full wide-prior simulation and audit stages are still running. No results from these new runs are included in the 200-replicate tables above.
+
+
+## Validation-size pattern
+
+Across n=100, 300, and 500, the known-probability C arm is invariant as expected because its weights use the true inclusion probabilities rather than the validation fit. The estimated arms change with validation size, but more validation does not remove curvature misspecification:
+- At gamma=0, D RMSE decreases 5.092 → 4.676 → 4.610, and E remains near C (4.572 → 4.488 → 4.504).
+- At gamma=-1, D improves from 6.204 to about 5.5, while E ranges 5.496 → 5.271 → 5.370.
+- At gamma=+1, D/E RMSE remain worse than C at all three validation sizes; E moves 5.061 → 5.306 → 5.342.
+
+This is consistent with validation-sample uncertainty and functional-form misspecification being distinct problems: increasing n can reduce estimation noise but cannot make a linear fitted inclusion model represent the quadratic DGP exactly.
