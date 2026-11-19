@@ -1,7 +1,9 @@
 name: Full-parent SBC H0-grid refinement audit
 
 on:
-  pull_request:
+  push:
+    branches:
+      - research/full-parent-sbc-grid-audit-20261119
   workflow_dispatch:
 
 permissions:
@@ -30,14 +32,14 @@ jobs:
       - name: Wait for the source 200-replicate SBC workflow to finish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh run watch 44438038445 --repo vedantkushwah033-blip/dark-siren-cosmology-robustness --exit-status
+        run: gh run watch 44439814500 --repo vedantkushwah033-blip/dark-siren-cosmology-robustness --exit-status
       - name: Download immutable 200-replicate SBC source artifact
         uses: actions/download-artifact@v4
         with:
           name: full-parent-h0-sbc
           github-token: ${{ secrets.GITHUB_TOKEN }}
           repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
-          run-id: 44438038445
+          run-id: 44439814500
           path: artifacts/full_parent_h0_sbc
       - name: Reconstruct all 200 SBC posteriors on 561 and 1121 grids
         run: |
