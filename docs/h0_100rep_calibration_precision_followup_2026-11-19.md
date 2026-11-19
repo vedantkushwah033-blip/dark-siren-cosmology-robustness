@@ -88,3 +88,10 @@ Paired contrasts reinforce the directional curvature effect: gamma=+1 minus gamm
 Weight concentration remains substantial: median minimum catalogue Kish ESS ranges from about 13.3 to 60.9, with median maximum normalized weights from 0.078 to 0.198 across these cells. This is consistent with an unstable-weight regime and should be reported alongside posterior summaries.
 
 This experiment uses exactly four detected events per replicate, a 1,200-galaxy parent, fixed H0=70, and a uniform [20,300] prior. It is not joint SBC, not the 30-event five-arm smoke, and not observational inference. The single NON_EVALUABLE cell is retained in the denominator; the 68% coverage denominator is successful cells only and must always be read with the status count.
+
+
+## Cross-check against the paired full-parent event-count control
+
+A separate, independently completed 500-replicate full-parent experiment (workflow 44447250706; see the event-count calibration readout) isolates the effect of four versus thirty detected events while holding the parent population and selected-event likelihood fixed. Its four-event full-parent arm has mean median bias +5.060 (MCSE 0.717), RMSE 16.793, 68% coverage 69.6%, and mean 68% interval width 23.436. Its paired 30-event arm has bias +0.866 (MCSE 0.182), RMSE 4.160, coverage 66.2%, and width 7.355.
+
+This control shows that a substantial positive median bias is already present with only four events, even under the full-parent likelihood. It does not, however, explain the additional undercoverage in the catalogue-inclusion pilot: at gamma=0, the 100-replicate inclusion run has 68% coverage 51% and mean 68% width about 24.4. The designs differ in their host-density treatment and posterior construction, so this is a warning signal rather than a clean paired estimate of an inclusion-correction effect. The 30-event five-arm repeated-seed experiment now running on PR #108 is intended to separate these contributions more directly.
