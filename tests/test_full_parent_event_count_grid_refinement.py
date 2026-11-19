@@ -9,7 +9,7 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from dark_siren_robustness.generative_selection import generate_synthetic_population
-from audit_full_parent_event_count_grid_refinement import _posterior
+from audit_full_parent_event_count_grid_refinement import _density_l1, _posterior
 
 
 def test_independent_posterior_is_normalized_and_quantiles_ordered():
@@ -45,3 +45,14 @@ def test_finer_grid_quantiles_agree_on_smoke_realization():
     _, qf = _posterior(z, weights, events.distance_mpc.to_numpy(float)[:30], fine,
                        cfg["sigma_mpc"], cfg["detection_threshold_mpc"])
     assert max(abs(qc[k]-qf[k]) for k in qc) < 0.05
+
+
+
+def test_density_l1_is_small_for_identical_smooth_density_on_nested_grids():
+    coarse = np.linspace(20.0, 300.0, 561)
+    fine = np.linspace(20.0, 300.0, 1121)
+    dc = np.exp(-0.5*((coarse-70.0)/8.0)**2)
+    dc /= trapezoid(dc, coarse)
+    df = np.exp(-0.5*((fine-70.0)/8.0)**2)
+    df /= trapezoid(df, fine)
+    assert _density_l1(coarse, dc, fine, df) < 0.001
