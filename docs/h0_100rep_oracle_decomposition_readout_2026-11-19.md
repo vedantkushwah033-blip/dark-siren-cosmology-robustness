@@ -66,13 +66,13 @@ The worst–best interval treats the single non-evaluable attempt as uncovered o
 2. **Known-(pi) versus full-parent differences are smaller than the estimated-versus-known-(pi) contrast in the positive-curvature case.** The known-(pi) minus full-parent contrast ranges from about −1.31 to −0.20. It is a diagnostic of finite-catalogue realization effects, with uncertainty.
 3. **The estimated-inclusion effect changes sign with curvature.** The degree-one fitted arm is about 3.5 km s⁻¹ Mpc⁻¹ less biased than known-(pi) IPW under (gamma=-1), essentially indistinguishable near (gamma=0), and about 3.5–4.3 more biased under (gamma=+1). This is consistent with curvature-dependent misspecification, not universal superiority of the fitted arm.
 4. **Larger validation samples improve weight stability but do not eliminate the (H_0) bias.** The earlier calibration readout shows improved Kish ESS and smaller maximum normalized weights at n=500, while the paired bias differences from n=100 are small and slightly positive.
-5. **Coverage is poor in all arms.** The nominal 68% intervals cover only about 0.49–0.56 of successful realizations. Do not describe these posteriors as calibrated.
+5. **Coverage is low in this 100-replicate inclusion sample, but this is not a general full-parent calibration conclusion.** The nominal 68% intervals cover about 0.49–0.56 of the 100 event/parent realizations in this particular pilot. A separate 500-replicate full-parent event-count experiment (documented below) found near-nominal 68/90/95% coverage for four events. Thus the low full-parent coverage in this pilot should be treated as sample-specific and not generalized; the fitted-versus-known-π curvature contrasts remain the central result.
 
 ## Limits and next steps
 
 This is a synthetic low-redshift, fixed-truth benchmark with four detected events per realization. It is not a joint SBC study, an observational H₀ measurement, a public LVK/GWTC analysis, or validation against a real galaxy survey. The oracle arms are simulation-only. Posterior-median contrasts are diagnostic and should not be interpreted as an additive causal decomposition.
 
-The next scientific step is to investigate the positive full-parent baseline bias separately (selected-event likelihood and finite four-event realization effects), then design a joint SBC study with enough events and prior-generated truths. The present study is best reported as a controlled synthetic sensitivity benchmark.
+The next scientific step is a joint SBC study with prior-generated H₀ truths and a larger event-count/tail-coverage investigation. The present study remains a controlled synthetic sensitivity benchmark, not a universal calibration result.
 
 
 ## Refined-grid robustness check (561 points)
@@ -93,3 +93,20 @@ The 561-point oracle mean median biases were:
 At 281 points, the known-π biases were +5.613, +5.769, +6.474, +6.474, +6.851, and +6.851 in the same row order, while the full-parent biases were +6.924 for the one 99-replicate oracle cell and +7.048 for the other cells. The 561-point analysis correctly retains all 100 oracle realizations in each cell; the 281-point success-only readout's γ=−1,n=100 mean differs because the non-evaluable fitted-arm replicate was omitted from that oracle average. The all-planned-cell 281-point rerun in the updated workflow resolves this denominator mismatch.
 
 The estimated-minus-known-π paired contrasts are nearly unchanged between grids: 281-point values −3.593, −3.514, −0.046, +0.294, +3.545, +4.263; 561-point values −3.594, −3.516, −0.046, +0.294, +3.545, +4.263. This shows the curvature-dependent contrast is not a coarse-grid artifact. The updated workflow now audits both 281 and 561 points while preserving all 600 planned oracle rows.
+
+
+
+## Independent 500-replicate full-parent event-count cross-check
+
+A separate paired experiment (PR #101; workflow 44434616291; artifact 14487983108; archive SHA-256 `306680d5547d3a2c793585334c44d609fdaa577836afa32c17a20887891d754d`) generated 500 independent parent populations and compared the first four detected events with a nested 30-event sample from each same realization. No catalogue thinning or inclusion fitting was used. The full-parent selected-event likelihood and uniform H₀ prior were held fixed on a 561-point grid.
+
+| Detected events | Mean posterior-median bias | MCSE | RMSE | 68% coverage | 90% coverage | 95% coverage |
+|---:|---:|---:|---:|---:|---:|---:|
+| 4 | +5.060 | 0.717 | 16.79 | 69.6% | 91.0% | 95.4% |
+| 30 | +0.866 | 0.182 | 4.16 | 66.2% | 86.0% | 92.0% |
+
+The paired 30-event minus 4-event median-bias difference is −4.194 km s⁻¹ Mpc⁻¹ (MCSE 0.699; 95% paired t interval [−5.567, −2.820]). Mean 68% interval width contracts from 23.44 to 7.35 km s⁻¹ Mpc⁻¹.
+
+This independent cross-check shows that the four-event positive median bias is replicated (about +5 km s⁻¹ Mpc⁻¹), while four-event credible-interval coverage is close to nominal in the larger sample. Consequently, the 0.49–0.56 full-parent coverage observed in the 100-replicate inclusion pilot should be treated as a feature of that particular realization set, not as a general baseline calibration failure. At 30 events, 68% coverage is near nominal, but 90% and 95% coverage are below nominal in this fixed-truth experiment. This motivates a dedicated tail-calibration and joint-SBC study; it does not by itself establish a likelihood defect.
+
+The event-count cross-check is a separate simulation with a different master seed and no catalogue thinning. It contextualizes the inclusion pilot but does not alter its paired curvature contrasts or turn the pilot into a five-arm A–E comparison.
