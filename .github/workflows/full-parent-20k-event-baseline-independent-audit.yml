@@ -14,6 +14,10 @@ permissions:
   actions: read
   contents: read
 
+concurrency:
+  group: full-parent-20k-audit-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   independent-20k-audit:
     runs-on: ubuntu-latest
