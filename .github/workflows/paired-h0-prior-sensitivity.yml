@@ -1,6 +1,9 @@
 name: Paired H0 prior-support sensitivity audit
 
 on:
+  push:
+    branches:
+      - research/quadratic-five-arm-30event-multirep-readout-20261119
   pull_request:
     branches:
       - research/full-parent-event-count-calibration-20261119
