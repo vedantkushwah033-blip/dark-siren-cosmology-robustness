@@ -35,8 +35,11 @@ def test_finer_grid_quantiles_agree_on_smoke_realization():
     z = parent.redshift.to_numpy(float)
     zmin, zmax = cfg["redshift_domain"]
     weights = 1.0 + 1.5*(z-zmin)/(zmax-zmin)
-    coarse = np.linspace(20.0, 300.0, 141)
-    fine = np.linspace(20.0, 300.0, 281)
+    # Match the actual audit's adjacent 561 -> 1121 resolution check.
+    # The old 141 -> 281 comparison was too coarse for this deliberately
+    # broad 20--300 prior and failed by 0.35 km/s/Mpc on this fixed seed.
+    coarse = np.linspace(20.0, 300.0, 561)
+    fine = np.linspace(20.0, 300.0, 1121)
     _, qc = _posterior(z, weights, events.distance_mpc.to_numpy(float)[:30], coarse,
                        cfg["sigma_mpc"], cfg["detection_threshold_mpc"])
     _, qf = _posterior(z, weights, events.distance_mpc.to_numpy(float)[:30], fine,
