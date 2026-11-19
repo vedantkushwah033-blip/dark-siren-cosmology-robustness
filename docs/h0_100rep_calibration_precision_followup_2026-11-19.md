@@ -202,3 +202,35 @@ The validation-size increase from 100 to 500 improves weight stability (higher K
 ### Claim boundary
 
 All results are from a synthetic low-redshift Euclidean fixed-truth model with exactly four or thirty detected events and finite simulated parent catalogues. They are not joint SBC, not real galaxy-survey validation, not LVK/GWTC analysis, and not observational H0 measurement. The defensible contribution remains a controlled benchmark of how finite validation, inclusion-model curvature misspecification, IPW weight concentration, and finite detected-event count interact in this specific synthetic likelihood.
+
+
+## Independent full-parent cross-checks beyond the 100-replicate inclusion study
+
+These experiments are separate full-parent diagnostics. They help distinguish finite-event effects and baseline likelihood calibration from catalogue-inclusion estimation; they do not replace the five-arm inclusion comparison.
+
+### Paired 4-versus-30 detected-event study
+
+PR #101 workflow 44434616291 completed 500 independent parent/event realizations, with a nested 4-event prefix and 30-event sample for each realization. PR #104 independently regenerated all 500 parent populations, 15,000 detected-event sequences, and 1,000 posterior curves from the archived seed schedule using a separate likelihood implementation (workflow 44437893958; audit PASS).
+
+| Detected events | Mean median bias | MCSE | RMSE | Coverage 68/90/95% | Mean 68% width |
+|---:|---:|---:|---:|---:|---:|
+| 4 | +5.060 | 0.717 | 16.793 | 69.6/91.0/95.4% | 23.44 |
+| 30 | +0.866 | 0.182 | 4.160 | 66.2/86.0/92.0% | 7.35 |
+
+The paired 30-minus-4 median-bias difference is -4.194 (MCSE 0.699; paired 95% t interval [-5.567, -2.820]). More events substantially reduce posterior-median bias, RMSE, and interval width. The 30-event fixed-truth coverage estimates are below nominal, so this is not by itself proof of frequentist calibration. The 500-parent four-event coverage (69.6%, MCSE about 0.021) is compatible with the more precise 65.35% estimate conditional on the 100 archived parent populations in the 20,000-draw experiment.
+
+### Prior-predictive joint SBC of the full-parent selected likelihood
+
+PR #105 workflow 44439587142 completed 200 prior-predictive replicates with H0 drawn from the same Uniform(20,300) prior used for inference, 1,200 parent galaxies, and 30 detected events per replicate. An independent raw-seed audit regenerated all 200 prior draws, parent populations, event sequences, and posterior ranks (PASS).
+
+- Mean posterior rank: 0.5063.
+- Ten-bin rank counts: [18, 25, 14, 24, 16, 22, 20, 18, 21, 22].
+- Rank-histogram chi-square p-value: 0.789; rank KS p-value: 0.997.
+- Coverage at 50/68/80/90/95%: 0.48/0.675/0.80/0.91/0.96.
+- Mean posterior-median bias: -1.475 (MCSE 1.047); RMSE: 14.848.
+
+This is reassuring exploratory evidence for the full-parent 30-event likelihood under prior-predictive simulation, but 200 replicates are not definitive. PR #111 is extending the joint SBC to 1,000 replicates on a 1,121-point H0 grid with independent raw-seed reconstruction; its latest workflow is pending at the time of this update.
+
+### Combined interpretation
+
+The 20,000-draw fixed-truth baseline is precise conditional on its 100 archived parent populations, while the 500-parent event-count experiment better samples parent-population variation. The 200-replicate joint SBC addresses a different question by drawing H0 from the inference prior. These estimands must not be conflated: fixed-truth coverage, conditional-on-parent coverage, and prior-predictive SBC are distinct diagnostics. Together they suggest that the pronounced four-event median bias is strongly reduced at 30 events and that the full-parent 30-event likelihood is not obviously miscalibrated under the exploratory prior-predictive SBC. The 1,000-replicate SBC and the five-arm inclusion experiment remain necessary before making stronger claims.
