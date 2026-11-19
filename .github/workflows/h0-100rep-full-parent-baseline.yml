@@ -1,0 +1,104 @@
+name: h0-100rep-full-parent-baseline
+
+on:
+  pull_request:
+    branches:
+      - research/h0-100rep-calibration-precision-20261119
+    paths:
+      - .github/workflows/h0-100rep-full-parent-baseline.yml
+      - scripts/run_full_parent_h0_fixed_count_baseline.py
+      - tests/test_full_parent_h0_fixed_count_baseline.py
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  full-parent-repeated-sampling-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run focused full-parent sampler and baseline tests
+        run: |
+          python -m py_compile scripts/run_full_parent_h0_fixed_count_baseline.py
+          pytest tests/test_full_parent_h0_fixed_count_baseline.py -q
+      - name: Download immutable 100-replicate calibration artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: h0-100rep-calibration-precision-py3.12
+          run-id: 44411667480
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/h0_100rep_calibration_precision
+      - name: Run 20,000-event full-parent fixed-truth baseline
+        run: |
+          python scripts/run_full_parent_h0_fixed_count_baseline.py \
+            artifacts/h0_100rep_calibration_precision \
+            --output-dir artifacts/h0_100rep_full_parent_baseline \
+            --replicates-per-parent 200 \
+            --seed 990000 \
+            --h0-points 561
+      - name: Independently audit event-level and parent-cluster summaries
+        run: |
+          python - <<'PY'
+          import hashlib, json, math
+          from pathlib import Path
+          import numpy as np
+          import pandas as pd
+          from scipy.stats import t
+          root=Path("artifacts/h0_100rep_full_parent_baseline")
+          frame=pd.read_csv(root/"replicates.csv")
+          parent=pd.read_csv(root/"parent_summary.csv")
+          summary=json.loads((root/"summary.json").read_text())
+          assert len(frame)==20000, len(frame)
+          assert frame.parent_replicate.nunique()==100
+          counts=frame.groupby("parent_replicate").size()
+          assert (counts==200).all(), counts.value_counts().to_dict()
+          assert len(parent)==100
+          for col in ("covered68","covered90","covered95"):
+              assert set(frame[col].unique()).issubset({0,1})
+              assert abs(float(frame[col].mean())-float(summary[col]))<1e-12
+          cluster={}
+          for col in ("mean_median_bias","coverage68","coverage90","coverage95"):
+              values=parent[col].to_numpy(float)
+              n=len(values); mean=float(values.mean())
+              se=float(values.std(ddof=1)/math.sqrt(n))
+              critical=float(t.ppf(.975,n-1))
+              cluster[col]={"mean":mean,"cluster_mcse":se,
+                            "t95_low":mean-critical*se,"t95_high":mean+critical*se,
+                            "n_parent_clusters":n}
+          rebuilt=frame.groupby("parent_replicate").agg(
+              n=("median_bias","size"),mean_median_bias=("median_bias","mean"),
+              coverage68=("covered68","mean"),coverage90=("covered90","mean"),
+              coverage95=("covered95","mean")).reset_index()
+          pd.testing.assert_frame_equal(
+              parent.sort_values("parent_replicate").reset_index(drop=True),
+              rebuilt.sort_values("parent_replicate").reset_index(drop=True),
+              check_exact=False,rtol=0,atol=1e-12)
+          (root/"cluster_summary.json").write_text(json.dumps(cluster,indent=2,sort_keys=True)+"\n")
+          input_manifest=json.loads((root/"manifest.json").read_text())
+          bad=[name for name,digest in input_manifest.items()
+               if not (root/name).is_file()
+               or hashlib.sha256((root/name).read_bytes()).hexdigest()!=digest]
+          assert not bad, bad[:10]
+          output_manifest={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest()
+                           for p in sorted(root.rglob("*"))
+                           if p.is_file() and p.name!="manifest.json"}
+          (root/"manifest.json").write_text(json.dumps(output_manifest,indent=2,sort_keys=True)+"\n")
+          print(json.dumps({"status":"PASS","total_event_replicates":len(frame),
+                            "parent_clusters":len(parent),"replicates_per_parent":200,
+                            "pooled_summary":summary,"parent_cluster_summary":cluster},indent=2))
+          PY
+      - name: Upload full-parent baseline and independent audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: h0-100rep-full-parent-baseline
+          path: artifacts/h0_100rep_full_parent_baseline/
+          if-no-files-found: error
+          retention-days: 90
