@@ -120,3 +120,27 @@ For the catalogue-only arm A at validation size 500:
 The other four arms had essentially no mass in [50,52] on average. This indicates that A's large negative median error is accompanied by substantial posterior pile-up near the lower H0 prior boundary, rather than merely a modest shift of an otherwise interior posterior.
 
 This is an important diagnostic, but it is not a numerical-grid validation. The 281-point H0 grid and [50,90] prior truncate the posterior; the next analysis should repeat the A likelihood on an expanded H0 support and finer grids (for example [30,110] with 561/1121 points) to determine whether the catalogue-only posterior mode/median would move farther below 50. The current A bias and coverage results should therefore be interpreted as prior-boundary-truncated outcomes, not an unconstrained estimate of the full bias.
+
+
+## Independent expanded-prior audit of catalogue-only A
+
+The original [50,90] H0 prior causes substantial boundary truncation for catalogue-only A. To quantify it, I downloaded the complete 10-replicate artifact, reconstructed A's selected-event likelihood directly from the saved KDE density and GW event inputs, and verified it against every archived 281-point A likelihood curve. Maximum absolute log-likelihood discrepancy across all 30 replicate × curvature combinations was **1.71 × 10^-13**.
+
+I then recomputed the A posterior using a uniform expanded H0 prior [30,110], at 561 and 1121 grid points. The maximum 561-versus-1121 differences across all 30 cases were:
+- posterior median: **0.000119 km s^-1 Mpc^-1**;
+- 2.5th percentile: **0.001963 km s^-1 Mpc^-1**;
+- posterior mass in [30,50]: **0.0000265**.
+
+Thus the expanded-grid result is numerically stable at these resolutions. Under the expanded [30,110] prior, the catalogue-only arm has:
+
+| gamma | Mean posterior median | Mean q025 | Mean posterior mass in [30,50] | Mean posterior mass in [30,55] |
+|---:|---:|---:|---:|---:|
+| -1 | 53.302 | 43.699 | 26.4% | 64.5% |
+| 0 | 53.657 | 43.223 | 25.7% | 60.0% |
+| +1 | 54.679 | 43.285 | 21.3% | 51.6% |
+
+The expanded-support median is about 1.5–1.6 km s^-1 Mpc^-1 lower than the original [50,90]-truncated median on average. The old q025 values near 50 were therefore boundary artifacts: with a wider support, the 2.5th percentile moves to about 43.2–43.7 and roughly one-fifth to one-quarter of posterior mass lies below H0=50.
+
+This is an independent posterior-boundary diagnostic, not a new inference method. It materially strengthens the interpretation of catalogue-only A: its negative bias is not just a small shift, and the original prior support masked a substantial lower-H0 tail. The five-arm production design should either justify [50,90] as scientifically intended or use a support broad enough to contain the A posterior; any comparison of arms must use the same prior support.
+
+Reproducible implementation: `scripts/audit_catalogue_only_prior_boundary.py`. The dedicated Actions workflow downloads the original 10-replicate artifact and reruns this audit. Its completion is pending at the time this report was written.
