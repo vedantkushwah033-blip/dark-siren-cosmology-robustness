@@ -128,8 +128,6 @@ def audit(root: Path, expected_replicates: int | None = None, output: Path | Non
         distances = events.distance_mpc.to_numpy(float)
         if len(distances) != 30 or not np.isfinite(distances).all():
             raise AssertionError(f"invalid regenerated event vector at replicate {rep}")
-        if not np.array_equal(distances[:4], distances[:4]):
-            raise AssertionError("event prefix is not reproducible")
         for count in (4, 30):
             row = block[block.event_count == count].iloc[0]
             q = _posterior_quantiles_independent(
