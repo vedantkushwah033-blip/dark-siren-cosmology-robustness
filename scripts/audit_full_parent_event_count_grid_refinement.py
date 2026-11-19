@@ -64,6 +64,12 @@ def audit(artifact_dir: Path, sample_size: int = 50, fine_points: int = 1121,
         raise AssertionError("unexpected source design; expected complete 500-replicate 4/30-event study")
     if len(raw) != 2*nrep or raw.duplicated(["replicate", "event_count"]).any():
         raise AssertionError("source replicate table is incomplete or duplicated")
+    if raw.groupby("event_count").size().to_dict() != {4: nrep, 30: nrep}:
+        raise AssertionError("source event-count arms have incomplete denominators")
+    if set(raw.replicate.astype(int)) != set(range(nrep)):
+        raise AssertionError("source replicate IDs do not match the planned range")
+    if set(raw.event_count.astype(int)) != {4, 30}:
+        raise AssertionError("source artifact contains unexpected event-count arms")
     if sample_size < 2 or sample_size > nrep or fine_points <= int(design["h0_grid_points"]):
         raise ValueError("invalid sample size or finer grid resolution")
     prior_min, prior_max = map(float, design["uniform_h0_prior"])
@@ -96,8 +102,21 @@ def audit(artifact_dir: Path, sample_size: int = 50, fine_points: int = 1121,
             df, qf = _posterior(z, weights, distances[:count], fine,
                                 float(cfg["sigma_mpc"]), float(cfg["detection_threshold_mpc"]))
             source = archived.iloc[0]
-            if not np.isclose(source.h0_median, qc["q500"], rtol=0, atol=2e-8):
-                raise AssertionError(f"independent 561-grid reconstruction mismatch at rep {rep}, count {count}")
+            source_quantiles = {
+                "q025": "q025", "q050": "q050", "q160": "q160",
+                "q500": "h0_median", "q840": "q840", "q950": "q950", "q975": "q975",
+            }
+            for quantile, column in source_quantiles.items():
+                if not np.isclose(float(source[column]), qc[quantile], rtol=0, atol=2e-8):
+                    raise AssertionError(
+                        f"independent 561-grid {quantile} reconstruction mismatch "
+                        f"at rep {rep}, count {count}"
+                    )
+            if not np.isclose(
+                float(source.event_prefix_distance_sum), float(distances[:count].sum()),
+                rtol=0, atol=1e-8
+            ):
+                raise AssertionError(f"event-distance prefix mismatch at rep {rep}, count {count}")
             shifts = {k: abs(qf[k]-qc[k]) for k in qc}
             coarse_on_fine = np.interp(fine, coarse, dc)
             coarse_on_fine /= trapezoid(coarse_on_fine, fine)
