@@ -56,7 +56,7 @@ def test_full_parent_selected_posterior_quantiles_are_finite_and_ordered():
     assert 20.0 <= values[0] < values[-1] <= 300.0
 
 
-def _write_input_artifact(root: Path) -> None:
+def _write_input_artifact(root: Path, status: str = "SUCCESS") -> None:
     cell = root / "replicates" / "gm1_n100_r000"
     (cell / "truth").mkdir(parents=True)
     config = {
@@ -76,7 +76,7 @@ def _write_input_artifact(root: Path) -> None:
     parent.to_csv(cell / "truth" / "analysis_parent_truth.csv", index=False)
     ledger = pd.DataFrame([{
         "replicate": 0, "gamma": -1.0, "n_validation": 100,
-        "cell_id": "gm1_n100_r000", "status": "SUCCESS", "h0_true": 70.0,
+        "cell_id": "gm1_n100_r000", "status": status, "h0_true": 70.0,
     }])
     ledger.to_csv(root / "replicate_ledger.csv", index=False)
     manifest = {}
@@ -112,3 +112,17 @@ def test_full_parent_preparation_rejects_nonpositive_weights():
             np.array([0.1, 0.2]), np.array([1.0, 0.0]),
             np.linspace(20.0, 300.0, 41), 140.0, 250.0,
         )
+
+
+
+def test_small_full_parent_baseline_accepts_non_evaluable_fitted_cell(tmp_path):
+    input_root = tmp_path / "input"
+    input_root.mkdir()
+    _write_input_artifact(input_root, status="NON_EVALUABLE")
+    output_root = tmp_path / "output"
+    frame, summary = run(
+        input_root, output_root, replicates_per_parent=2, seed=990000, h0_points=41
+    )
+    assert len(frame) == 2
+    assert summary["status"] == "DIAGNOSTIC_COMPLETE"
+    assert summary["parent_populations"] == 1
