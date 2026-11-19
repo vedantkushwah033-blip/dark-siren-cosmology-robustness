@@ -187,17 +187,17 @@ def audit(root: Path, fine_points: int = 2241, max_quantile_shift: float = 0.05,
             "max_rank_shift": max_rank_shift,
             "max_density_L1": max_density_l1,
         },
-        "561_to_1121": {
+        _grid_pair_label(coarse_points, intermediate_points): {
             "max_quantile_shift": float(frame.source_to_intermediate_quantile_shift.max()),
             "max_rank_shift": float(frame.source_to_intermediate_rank_shift.max()),
             "max_density_L1": float(frame.source_to_intermediate_density_l1.max()),
         },
-        "1121_to_2241": {
+        _grid_pair_label(intermediate_points, fine_points): {
             "max_quantile_shift": float(frame.intermediate_to_fine_quantile_shift.max()),
             "max_rank_shift": float(frame.intermediate_to_fine_rank_shift.max()),
             "max_density_L1": float(frame.intermediate_to_fine_density_l1.max()),
         },
-        "561_to_2241": {
+        _grid_pair_label(coarse_points, fine_points): {
             "max_quantile_shift": float(frame.source_to_fine_quantile_shift.max()),
             "max_rank_shift": float(frame.source_to_fine_rank_shift.max()),
             "max_density_L1": float(frame.source_to_fine_density_l1.max()),
