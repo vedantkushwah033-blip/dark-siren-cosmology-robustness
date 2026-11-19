@@ -52,11 +52,34 @@ def _density_l1(grid_a, density_a, grid_b, density_b):
     return float(trapezoid(np.abs(np.asarray(density_b, float)-interpolated), target))
 
 
-def _density_l1(grid_a, density_a, grid_b, density_b):
-    target = np.asarray(grid_b, float)
-    interpolated = np.interp(target, np.asarray(grid_a, float), np.asarray(density_a, float))
-    interpolated /= trapezoid(interpolated, target)
-    return float(trapezoid(np.abs(np.asarray(density_b, float)-interpolated), target))
+def _posterior_shape(grid, density):
+    """Summarize concentration and prior-boundary mass without changing inference."""
+    h = np.asarray(grid, float)
+    p = np.asarray(density, float)
+    p = p / trapezoid(p, h)
+    mean = float(trapezoid(h*p, h))
+    variance = float(trapezoid((h-mean)**2*p, h))
+    peak_idx = int(np.argmax(p))
+    span = float(h[-1]-h[0])
+    out = {
+        "posterior_mean": mean,
+        "posterior_sd": float(np.sqrt(max(variance, 0.0))),
+        "posterior_peak_h0": float(h[peak_idx]),
+        "posterior_peak_density": float(p[peak_idx]),
+        "posterior_q95_width": None,
+    }
+    cdf = np.r_[0.0, cumulative_trapezoid(p, h)]
+    cdf /= cdf[-1]
+    q = np.interp([0.025, 0.975], cdf, h)
+    out["posterior_q95_width"] = float(q[1]-q[0])
+    for fraction in (0.01, 0.025, 0.05):
+        edge = h[0] + span*fraction
+        right = h[-1] - span*fraction
+        left_mask = h <= edge
+        right_mask = h >= right
+        out[f"mass_lower_{fraction:.3f}"] = float(trapezoid(p[left_mask], h[left_mask])) if left_mask.sum() > 1 else 0.0
+        out[f"mass_upper_{fraction:.3f}"] = float(trapezoid(p[right_mask], h[right_mask])) if right_mask.sum() > 1 else 0.0
+    return out
 
 
 def audit(root: Path, fine_points: int = 2241, max_quantile_shift: float = 0.05,
@@ -169,6 +192,7 @@ def audit(root: Path, fine_points: int = 2241, max_quantile_shift: float = 0.05,
             "source_grid_median": float(qc[5]),
             "intermediate_grid_median": float(qm[5]),
             "fine_grid_median": float(qf[5]),
+            **{f"fine_{key}": value for key, value in _posterior_shape(fine, df).items()},
         })
     frame = pd.DataFrame(rows)
     summary = {
@@ -214,6 +238,22 @@ def audit(root: Path, fine_points: int = 2241, max_quantile_shift: float = 0.05,
     )
     summary["worst_density_l1_replicates"] = (
         frame.nlargest(10, "intermediate_to_fine_density_l1")[worst_cols].to_dict("records")
+    )
+    shape_cols = [
+        "replicate", "fine_posterior_sd", "fine_posterior_q95_width",
+        "fine_posterior_peak_h0", "fine_posterior_peak_density",
+        "fine_mass_lower_0.010", "fine_mass_upper_0.010",
+        "fine_mass_lower_0.025", "fine_mass_upper_0.025",
+        "fine_mass_lower_0.050", "fine_mass_upper_0.050",
+        "intermediate_to_fine_rank_shift",
+        "intermediate_to_fine_quantile_shift",
+        "intermediate_to_fine_density_l1",
+    ]
+    summary["worst_rank_shift_shape_diagnostics"] = (
+        frame.nlargest(10, "intermediate_to_fine_rank_shift")[shape_cols].to_dict("records")
+    )
+    summary["largest_boundary_mass_diagnostics"] = (
+        frame.nlargest(10, "fine_mass_lower_0.050")[shape_cols].to_dict("records")
     )
     if output:
         output = Path(output)
