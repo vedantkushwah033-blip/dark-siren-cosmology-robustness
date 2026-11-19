@@ -8,7 +8,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from audit_h0_known_inclusion_oracle_sensitivity import (
     assert_complete_planned_ledger, assert_cross_gamma_pairing,
-    make_h0_grid, selected_posterior_quantiles,
+    failure_inclusive_coverage_bounds, make_h0_grid,
+    selected_posterior_quantiles, terminal_status_counts,
 )
 
 
@@ -158,3 +159,38 @@ def test_complete_planned_ledger_rejects_duplicate_rows():
     }])
     with pytest.raises(AssertionError, match="duplicate"):
         assert_complete_planned_ledger(planned, pd.concat([planned, planned]))
+
+
+
+def test_terminal_status_counts_accepts_complete_failure_inclusive_ledger():
+    import pandas as pd
+
+    ledger = pd.DataFrame({"status": ["SUCCESS"] * 9 + ["NON_EVALUABLE"]})
+    counts = terminal_status_counts(ledger)
+    assert counts["SUCCESS"] == 9
+    assert counts["NON_EVALUABLE"] == 1
+    assert counts["FAILED"] == counts["NOT_RUN"] == 0
+
+
+def test_terminal_status_counts_rejects_running_or_unknown_states():
+    import pandas as pd
+
+    with pytest.raises(AssertionError, match="non-terminal"):
+        terminal_status_counts(pd.DataFrame({"status": ["SUCCESS", "RUNNING"]}))
+    with pytest.raises(AssertionError, match="non-terminal"):
+        terminal_status_counts(pd.DataFrame({"status": ["SUCCESS", "MYSTERY"]}))
+
+
+def test_failure_inclusive_coverage_bounds_include_non_success_denominator():
+    lower, upper = failure_inclusive_coverage_bounds(
+        covered_success=50, successful=99, planned=100
+    )
+    assert lower == pytest.approx(0.50)
+    assert upper == pytest.approx(0.51)
+
+
+def test_failure_inclusive_coverage_bounds_reject_invalid_counts():
+    with pytest.raises(ValueError):
+        failure_inclusive_coverage_bounds(covered_success=4, successful=3, planned=5)
+    with pytest.raises(ValueError):
+        failure_inclusive_coverage_bounds(covered_success=1, successful=6, planned=5)
