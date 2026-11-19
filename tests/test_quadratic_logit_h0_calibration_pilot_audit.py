@@ -215,7 +215,7 @@ def test_missing_planned_rows_are_incomplete_even_if_attempts_are_terminal():
 
 
 def test_interpretation_complete_with_non_evaluable_cells_is_not_called_incomplete():
-    from scripts.audit_quadratic_logit_h0_calibration_pilot import _interpretation
+    from audit_quadratic_logit_h0_calibration_pilot import _interpretation
     message = _interpretation("PASS", {"SUCCESS": 595, "NON_EVALUABLE": 5})
     assert "Complete planned attempt ledger" in message
     assert "5 NON_EVALUABLE" in message
@@ -224,7 +224,7 @@ def test_interpretation_complete_with_non_evaluable_cells_is_not_called_incomple
 
 
 def test_interpretation_incomplete_ledger_is_explicit():
-    from scripts.audit_quadratic_logit_h0_calibration_pilot import _interpretation
+    from audit_quadratic_logit_h0_calibration_pilot import _interpretation
     message = _interpretation("INCOMPLETE", {"SUCCESS": 10, "NOT_RUN": 2})
     assert message.startswith("INCOMPLETE:")
     assert "unattempted or running" in message
