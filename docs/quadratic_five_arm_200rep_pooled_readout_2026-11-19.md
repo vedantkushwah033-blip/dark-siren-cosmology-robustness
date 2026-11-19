@@ -117,3 +117,13 @@ The catalogue-only expanded-prior calculation was repeated for all 200 replicate
 The archived [50,90] likelihood reconstruction remained within 2.3e-13 maximum absolute log-likelihood error. The 561/1121-grid group means also agree to better than 0.00005 in posterior median. The expanded-prior catalogue-only diagnostic is therefore numerically stable at these two resolutions for the reported summaries. A wrapper, `scripts/audit_pooled_catalogue_boundary.py`, runs the committed single-artifact boundary auditor on both immutable artifacts, verifies design/seed separation, and pools the results.
 
 For completeness, at gamma=+1 and n=500, the paired E-C squared-error difference is +9.576 with 95% paired t interval [+5.927, +13.226], consistent with E's higher RMSE in that setting.
+
+
+## Exploratory weight-diagnostic association (unadjusted)
+
+Across the 200 pooled replicates, Spearman correlations between absolute posterior-median error and weight concentration change sign with curvature for D and E. At n=500:
+- D: rho(top-5% mass, absolute error) = -0.440 at gamma=-1, +0.021 at gamma=0, and +0.203 at gamma=+1.
+- E: rho(max node top-5% mass, absolute error) = -0.417 at gamma=-1, +0.033 at gamma=0, and +0.188 at gamma=+1.
+- C's corresponding correlations are close to zero (-0.089, -0.030, +0.012).
+
+This sign change is consistent with the broader result that weight concentration is not a universal monotone predictor of posterior error across curvature regimes. These are unadjusted exploratory correlations over multiple arm/size/curvature combinations, not a validated diagnostic rule; no causal interpretation or threshold is claimed.
