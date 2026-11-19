@@ -130,7 +130,17 @@ def _adaptive_reference(log_density, lower: float, upper: float, truth: float,
     }
 
 
-def audit(artifact_dir: Path, replicates=(100, 174, 156, 62), grid_points=2241) -> dict:
+def _select_replicates(raw: pd.DataFrame, replicates=None, lowest_q975=None) -> tuple[int, ...]:
+    if lowest_q975 is not None:
+        if lowest_q975 < 1 or "q975" not in raw.columns:
+            raise ValueError("lowest_q975 requires a positive count and a q975 column")
+        selected = raw.nsmallest(int(lowest_q975), "q975").replicate.astype(int).tolist()
+        return tuple(selected)
+    selected = (100, 174, 156, 62) if replicates is None else tuple(map(int, replicates))
+    return tuple(selected)
+
+
+def audit(artifact_dir: Path, replicates=None, grid_points=2241, lowest_q975=None) -> dict:
     root = Path(artifact_dir).resolve()
     manifest = json.loads((root / "manifest.json").read_text())
     required = {"sbc_replicates.csv", "sbc_summary.json", "design.json"}
@@ -143,8 +153,12 @@ def audit(artifact_dir: Path, replicates=(100, 174, 156, 62), grid_points=2241) 
     design = json.loads((root / "design.json").read_text())
     raw = pd.read_csv(root / "sbc_replicates.csv")
     n = int(design["replicates"])
-    if design.get("status") != "COMPLETE" or not set(replicates).issubset(set(raw.replicate.astype(int))):
-        raise AssertionError("source artifact is incomplete or omits a requested replicate")
+    if design.get("status") != "COMPLETE":
+        raise AssertionError("source artifact is incomplete")
+    replicates = _select_replicates(raw, replicates, lowest_q975)
+    if not set(replicates).issubset(set(raw.replicate.astype(int))):
+        raise AssertionError("source artifact omits a requested replicate")
+    source_grid_points = int(design["h0_grid_points"])
     lower, upper = map(float, design["h0_prior"])
     master = int(design["master_seed"])
     n_parent, n_detected = int(design["n_parent"]), int(design["n_detected"])
@@ -187,6 +201,11 @@ def audit(artifact_dir: Path, replicates=(100, 174, 156, 62), grid_points=2241) 
         grid_quantiles = np.interp(PROBS, cdf, grid)
         row = {
             "replicate": int(rep), "truth_h0": truth,
+            "source_grid_points": source_grid_points,
+            "source_grid_rank": float(archived.posterior_rank),
+            "source_grid_median": float(archived.h0_median),
+            "source_grid_abs_rank_difference": abs(float(archived.posterior_rank) - reference["adaptive_rank"]),
+            "source_grid_abs_median_difference": abs(float(archived.h0_median) - reference["adaptive_quantiles"][5]),
             "grid_rank": grid_rank, "adaptive_rank": reference["adaptive_rank"],
             "absolute_rank_difference": abs(grid_rank - reference["adaptive_rank"]),
             "max_quantile_difference": float(np.max(np.abs(grid_quantiles - reference["adaptive_quantiles"]))),
@@ -205,7 +224,10 @@ def audit(artifact_dir: Path, replicates=(100, 174, 156, 62), grid_points=2241) 
         "source_replicates": n,
         "selected_replicates": list(map(int, replicates)),
         "source_manifest_entries_verified": len(manifest),
+        "source_grid_points": source_grid_points,
         "grid_points": int(grid_points),
+        "max_source_grid_rank_difference": float(frame.source_grid_abs_rank_difference.max()),
+        "max_source_grid_median_difference_km_s_Mpc": float(frame.source_grid_abs_median_difference.max()),
         "max_absolute_rank_difference": float(frame.absolute_rank_difference.max()),
         "max_quantile_difference_km_s_Mpc": float(frame.max_quantile_difference.max()),
         "maximum_adaptive_relative_quad_error_bound": float(frame.adaptive_relative_quad_error_bound.max()),
@@ -217,11 +239,14 @@ def audit(artifact_dir: Path, replicates=(100, 174, 156, 62), grid_points=2241) 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("artifact_dir", type=Path)
-    parser.add_argument("--replicates", type=int, nargs="+", default=[100, 174, 156, 62])
-    parser.add_argument("--grid-points", type=int, default=2241)
+    parser.add_argument("--replicates", type=int, nargs="+", default=None)
+    parser.add_argument("--lowest-q975", type=int, default=None,
+                        help="adaptively audit the N replicates with the lowest archived 97.5% quantile")
+    parser.add_argument("--grid-points", type=int, default=4481)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    result = audit(args.artifact_dir, tuple(args.replicates), args.grid_points)
+    result = audit(args.artifact_dir, tuple(args.replicates) if args.replicates else None,
+                   args.grid_points, args.lowest_q975)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\\n")
     print(json.dumps(result, indent=2, sort_keys=True))
