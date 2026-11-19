@@ -7,6 +7,7 @@ import hashlib
 import json
 import numpy as np
 import pandas as pd
+import pytest
 
 from run_quadratic_five_arm_smoke import run
 from audit_quadratic_five_arm_smoke import audit
