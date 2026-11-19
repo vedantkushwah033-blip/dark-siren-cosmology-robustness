@@ -61,6 +61,23 @@ def validate_paired_summary_rows(a, b, join, expected):
         bb=b[join+["h0_true"]].sort_values(join).reset_index(drop=True)
         if not np.array_equal(aa.h0_true.to_numpy(),bb.h0_true.to_numpy()):
             raise AssertionError("paired posterior summaries disagree on H0 truth")
+    # Validate each source summary internally before computing paired contrasts.
+    required = {"posterior_median", "q025", "q05", "q16", "q84", "q95", "q975"}
+    for label, frame in [("narrow", a), ("wide", b)]:
+        present = required.intersection(frame.columns)
+        if present != required:
+            raise AssertionError(f"{label} posterior summaries are missing quantile columns: {sorted(required-present)}")
+        values = frame[sorted(required)].to_numpy(dtype=float)
+        if not np.isfinite(values).all():
+            raise AssertionError(f"{label} posterior summaries contain non-finite quantiles")
+        ordered = frame[["q025", "q05", "q16", "posterior_median", "q84", "q95", "q975"]].to_numpy(dtype=float)
+        if np.any(np.diff(ordered, axis=1) < -1e-10):
+            raise AssertionError(f"{label} posterior quantiles are not monotonically ordered")
+        if "h0_true" in frame.columns and "median_error" in frame.columns:
+            expected_error = frame["posterior_median"].to_numpy(dtype=float) - frame["h0_true"].to_numpy(dtype=float)
+            observed_error = frame["median_error"].to_numpy(dtype=float)
+            if not np.allclose(observed_error, expected_error, rtol=0, atol=1e-8):
+                raise AssertionError(f"{label} median_error does not equal posterior_median minus h0_true")
     return a.merge(b,on=join,suffixes=("_narrow","_wide"),validate="one_to_one")
 
 
