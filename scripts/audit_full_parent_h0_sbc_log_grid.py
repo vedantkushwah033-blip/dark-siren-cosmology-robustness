@@ -168,9 +168,9 @@ def audit(
         raise AssertionError("baseline and source replicate counts differ")
 
     lower, upper = map(float, design["h0_prior"])
-    grid = np.geomspace(lower, upper, int(grid_points))
     if grid_points < 101:
         raise ValueError("grid_points must be at least 101")
+    grid = np.geomspace(lower, upper, int(grid_points))
     rows = []
     for row in raw.itertuples(index=False):
         replicate = int(row.replicate)
