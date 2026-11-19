@@ -1,6 +1,10 @@
 name: full-parent-h0-cluster-uncertainty-tests
 # Replays the archived full-parent baseline with manifest-verified cluster inference
 
+concurrency:
+  group: full-parent-h0-cluster-uncertainty-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   actions: read
@@ -42,6 +46,19 @@ jobs:
           python scripts/analyze_full_parent_h0_cluster_uncertainty.py \
             artifacts/full_parent_baseline \
             --output-dir artifacts/full_parent_cluster_uncertainty
+      - name: Assert complete parent-cluster decomposition
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path("artifacts/full_parent_cluster_uncertainty/cluster_uncertainty.json").read_text())
+          assert report["status"] == "PASS", report
+          assert report["parent_populations"] == 10, report
+          assert report["total_event_realizations"] == 2000, report
+          assert set(report["event_draws_per_parent"].values()) == {200}, report
+          assert report["input_manifest_entries_verified"] == 3, report
+          print(json.dumps(report, indent=2))
+          PY
       - name: Upload cluster-aware readout
         uses: actions/upload-artifact@v4
         with:
