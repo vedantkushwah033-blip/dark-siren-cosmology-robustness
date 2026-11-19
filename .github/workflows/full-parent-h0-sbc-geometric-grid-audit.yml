@@ -50,15 +50,11 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Reconstruct all 200 replicates on geometric H0 grid
         run: |
-          SOURCE_DIR="$(find artifacts/source -name design.json -printf '%h\\n' | head -1)"
+          SOURCE_DIR="$(find artifacts/source -name design.json -print -quit | xargs dirname)"
           BASELINE_CSV="$(find artifacts/baseline -name sbc_grid_audit_replicates.csv -print -quit)"
           test -n "$SOURCE_DIR"
           test -n "$BASELINE_CSV"
-          python scripts/audit_full_parent_h0_sbc_log_grid.py \\
-            --source-dir "$SOURCE_DIR" \\
-            --baseline-csv "$BASELINE_CSV" \\
-            --output-dir artifacts/geometric_grid_readout \\
-            --grid-points 2241
+          python scripts/audit_full_parent_h0_sbc_log_grid.py --source-dir "$SOURCE_DIR" --baseline-csv "$BASELINE_CSV" --output-dir artifacts/geometric_grid_readout --grid-points 2241
       - name: Upload geometric-grid audit readout
         if: always()
         uses: actions/upload-artifact@v4
