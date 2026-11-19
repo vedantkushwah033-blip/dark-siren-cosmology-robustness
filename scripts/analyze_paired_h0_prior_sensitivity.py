@@ -18,6 +18,18 @@ RAW_FILES=["truth/parent_truth.csv","truth/gw_event_truth.csv",
            "truth/gw_generation_trace_truth.csv","truth/validation_frame_truth.csv",
            "observable/catalogue_observed.csv","observable/gw_events_observed.csv"]
 def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def verify_artifact(root):
+    manifest=json.loads((root/"manifest.json").read_text())
+    for rel,meta in manifest["files"].items():
+        path=root/rel
+        if not path.is_file() or path.stat().st_size!=int(meta["bytes"]) or sha(path)!=meta["sha256"]:
+            raise AssertionError(f"artifact manifest mismatch: {root.name}/{rel}")
+    if len(manifest["files"])!=int(manifest["file_count"]):
+        raise AssertionError("artifact manifest count mismatch")
+    ledger=pd.read_csv(root/"replicate_ledger.csv")
+    if not (ledger.status=="SUCCESS").all() or not (ledger.audit_status=="PASS").all():
+        raise AssertionError(f"artifact lifecycle is incomplete: {root}")
+    return len(manifest["files"]),len(ledger)
 def interval(x):
     x=np.asarray(x,float); n=len(x); m=float(x.mean())
     if n<2: return m,float("nan"),float("nan"),float("nan")
@@ -26,6 +38,8 @@ def interval(x):
 
 def audit_pair(narrow:Path,wide:Path,out:Path):
     narrow=narrow.resolve();wide=wide.resolve()
+    manifest_a,ledger_a=verify_artifact(narrow)
+    manifest_b,ledger_b=verify_artifact(wide)
     a=json.loads((narrow/"config.json").read_text());b=json.loads((wide/"config.json").read_text())
     for key in ["master_seed","replicates","gammas","validation_sizes","n_parent","n_detected",
                 "validation_frame","curvature_beta","h0_true","scott_multiplier",
@@ -98,7 +112,9 @@ def audit_pair(narrow:Path,wide:Path,out:Path):
             "metric":"coverage68_difference_wide_minus_narrow","n":len(g),
             "mean_difference":mean,"paired_se":se,"t95_low":lo,"t95_high":hi})
     pd.DataFrame(summaries).to_csv(out.with_name(out.stem+"_summary.csv"),index=False)
-    result={"status":"PASS","paired_replicate_gamma_children":reps*len(gammas),
+    result={"status":"PASS","artifact_manifest_entries_verified":[manifest_a,manifest_b],
+        "lifecycle_cells_verified":[ledger_a,ledger_b],
+        "paired_replicate_gamma_children":reps*len(gammas),
         "paired_posterior_rows":len(diff),"raw_input_file_checks":raw_checks,
         "weight_and_bandwidth_file_checks":weight_checks,
         "maximum_common_support_log_likelihood_difference":max_ll,
