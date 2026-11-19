@@ -184,8 +184,17 @@ def audit(root: Path, h0_points: int | None = None):
 
     rows = []
     paired_inputs = {}
-    for (rep, gamma), block in successful_ledger.groupby(["replicate", "gamma"]):
-        block = block.sort_values("n_validation")
+    for (rep, gamma), all_block in ledger.groupby(["replicate", "gamma"]):
+        all_block = all_block.sort_values("n_validation")
+        block = successful_ledger[
+            (successful_ledger.replicate == rep) &
+            (successful_ledger.gamma == gamma)
+        ].sort_values("n_validation")
+        # Oracle posteriors depend on the parent/catalogue/event realization,
+        # not validation n. Use any successful child as the raw-data source,
+        # then carry the oracle result to every planned validation-size cell.
+        # This preserves the oracle denominator even if one fitted cell is
+        # NON_EVALUABLE, FAILED, or NOT_RUN.
         first = block.iloc[0]
         directory = root / "replicates" / first.cell_id
         cfg = json.loads((directory / "config.json").read_text())
@@ -219,18 +228,27 @@ def audit(root: Path, h0_points: int | None = None):
         full = selected_posterior_quantiles(
             parent.redshift, base(parent.redshift), distances, h0, sigma, threshold
         )
-        for cell in block.itertuples(index=False):
+        for cell in all_block.itertuples(index=False):
+            estimated_median = (
+                float(cell.h0_median) if cell.status == "SUCCESS" and
+                pd.notna(cell.h0_median) else float("nan")
+            )
             rows.append({
                 "replicate": int(rep), "gamma": float(gamma),
                 "h0_grid_points": int(h0.size),
                 "n_validation": int(cell.n_validation), "cell_id": cell.cell_id,
-                "estimated_median": float(cell.h0_median),
-                "estimated_bias": float(cell.h0_median-cell.h0_true),
+                "status": str(cell.status),
+                "covered68": (
+                    int(cell.covered68) if cell.status == "SUCCESS" and
+                    pd.notna(cell.covered68) else float("nan")
+                ),
+                "estimated_median": estimated_median,
+                "estimated_bias": estimated_median-float(cell.h0_true),
                 "known_pi_median": known["q500"], "known_pi_bias": known["q500"]-cell.h0_true,
                 "known_pi_coverage68": int(known["q160"] <= cell.h0_true <= known["q840"]),
                 "full_parent_median": full["q500"], "full_parent_bias": full["q500"]-cell.h0_true,
                 "full_parent_coverage68": int(full["q160"] <= cell.h0_true <= full["q840"]),
-                "estimated_minus_known_pi": float(cell.h0_median-known["q500"]),
+                "estimated_minus_known_pi": estimated_median-known["q500"],
                 "known_pi_minus_full_parent": float(known["q500"]-full["q500"]),
             })
         # Catalogue, parent and event data are invariant across validation sizes.
@@ -279,11 +297,16 @@ def audit(root: Path, h0_points: int | None = None):
                "failed": int((ledger_group.status == "FAILED").sum()),
                "not_run": int((ledger_group.status == "NOT_RUN").sum()),
                "replicates": len(group),
+               "oracle_replicates": int(group.known_pi_bias.notna().sum()),
                "h0_grid_points": int(group.h0_grid_points.iloc[0])}
         for col in ("estimated_bias", "known_pi_bias", "full_parent_bias",
                     "estimated_minus_known_pi", "known_pi_minus_full_parent"):
-            row[col] = float(group[col].mean())
-            row[col+"_mcse"] = float(group[col].std(ddof=1)/math.sqrt(len(group)))
+            values = group[col].dropna().to_numpy(dtype=float)
+            row[col] = float(values.mean()) if len(values) else float("nan")
+            row[col+"_mcse"] = (
+                float(values.std(ddof=1)/math.sqrt(len(values)))
+                if len(values) > 1 else float("nan")
+            )
         row["estimated_coverage68_success_only"] = float(successful_group.covered68.mean())
         row["estimated_coverage68_lower_all_attempts"] = coverage_lower
         row["estimated_coverage68_upper_all_attempts"] = coverage_upper
