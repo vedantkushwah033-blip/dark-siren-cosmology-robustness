@@ -6,11 +6,17 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from run_h0_grid_refinement_pilot import (\n    compare_grid_pair, verify_manifest, _assert_same_generated_data, DATA_FILES,\n)
+from run_h0_grid_refinement_pilot import (
+    compare_grid_pair,
+    verify_manifest,
+    _assert_same_generated_data,
+    DATA_FILES,
+)
 from dark_siren_robustness.h0_posterior import normalize_h0_posterior
 
 
