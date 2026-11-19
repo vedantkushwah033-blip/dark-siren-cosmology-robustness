@@ -1,13 +1,7 @@
 name: full-parent-event-count-independent-audit
 
 on:
-  push:
-    branches:
-      - research/full-parent-event-count-independent-audit-20261119
-    paths:
-      - .github/workflows/full-parent-event-count-independent-audit.yml
-      - scripts/audit_full_parent_event_count_calibration.py
-      - tests/test_full_parent_event_count_independent_audit.py
+  pull_request:
   workflow_dispatch:
 
 permissions:
