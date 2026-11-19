@@ -25,7 +25,7 @@ Units: km s⁻¹ Mpc⁻¹. Each value is the mean across successful paired repli
 
 | γ | Validation n | Estimated degree-one IPW | Known-(pi) IPW | Full-parent oracle |
 |---:|---:|---:|---:|---:|
-| −1 | 100 | +2.020 (1.751) | +5.613 (1.805) | +6.924 (1.823) |
+| −1 | 100 | +2.020 (1.751) | +5.769 (1.794) | +7.048 (1.809) |
 | −1 | 500 | +2.255 (1.715) | +5.769 (1.794) | +7.048 (1.809) |
 | 0 | 100 | +6.428 (1.896) | +6.474 (1.852) | +7.048 (1.809) |
 | 0 | 500 | +6.768 (1.875) | +6.474 (1.852) | +7.048 (1.809) |
@@ -38,20 +38,20 @@ The paired contrast is computed replicate-by-replicate. Values below are mean di
 
 | γ | n | Estimated − known-(pi) | Known-(pi) − full parent |
 |---:|---:|---:|---:|
-| −1 | 100 | −3.593 (0.312; [−4.213, −2.973]) | −1.311 (0.506; [−2.315, −0.308]) |
+| −1 | 100 | −3.593 (0.312; [−4.213, −2.974]) | −1.278 (0.502; [−2.274, −0.282]) |
 | −1 | 500 | −3.514 (0.271; [−4.052, −2.977]) | −1.279 (0.502; [−2.274, −0.283]) |
 | 0 | 100 | −0.046 (0.295; [−0.632, +0.540]) | −0.574 (0.354; [−1.277, +0.129]) |
 | 0 | 500 | +0.294 (0.163; [−0.030, +0.618]) | −0.574 (0.354; [−1.277, +0.129]) |
 | +1 | 100 | +3.545 (0.382; [+2.787, +4.304]) | −0.197 (0.252; [−0.696, +0.303]) |
 | +1 | 500 | +4.263 (0.260; [+3.748, +4.778]) | −0.197 (0.252; [−0.696, +0.303]) |
 
-The (gamma=-1,n=100) estimated-arm contrast uses 99 paired successful replicates; all other fitted-arm contrasts use 100. Oracle contrast denominators are 99 for that same cell and 100 otherwise.
+The (gamma=-1,n=100) estimated-arm contrast uses 99 paired successful replicates. The oracle arms are reconstructed for all 100 planned parent/event realizations in every gamma/validation-size cell, including the one cell whose fitted arm is NON_EVALUABLE.
 
 ## 68% interval coverage
 
 | γ | n | Estimated arm, success-only | Estimated arm, worst–best over all 100 attempts | Known-(pi) oracle | Full-parent oracle |
 |---:|---:|---:|---:|---:|---:|
-| −1 | 100 | 0.545 | [0.54, 0.55] | 0.495 | 0.545 |
+| −1 | 100 | 0.545 | [0.54, 0.55] | 0.490 | 0.540 |
 | −1 | 500 | 0.510 | [0.51, 0.51] | 0.490 | 0.540 |
 | 0 | 100 | 0.510 | [0.51, 0.51] | 0.500 | 0.540 |
 | 0 | 500 | 0.510 | [0.51, 0.51] | 0.500 | 0.540 |
@@ -90,7 +90,7 @@ The 561-point oracle mean median biases were:
 | +1 | 100 | +6.851 | +7.048 | +3.545 |
 | +1 | 500 | +6.851 | +7.048 | +4.263 |
 
-At 281 points, the known-π biases were +5.613, +5.769, +6.474, +6.474, +6.851, and +6.851 in the same row order, while the full-parent biases were +6.924 for the one 99-replicate oracle cell and +7.048 for the other cells. The 561-point analysis correctly retains all 100 oracle realizations in each cell; the 281-point success-only readout's γ=−1,n=100 mean differs because the non-evaluable fitted-arm replicate was omitted from that oracle average. The all-planned-cell 281-point rerun in the updated workflow resolves this denominator mismatch.
+At both 281 and 561 points, the known-π biases are +5.769, +5.769, +6.474, +6.474, +6.851, and +6.851 in the same row order; the full-parent biases are +7.048 in all six cells. The updated 281-point workflow and the 561-point reconstruction both retain all 100 oracle realizations per cell, including the non-evaluable fitted-arm replicate.
 
 The estimated-minus-known-π paired contrasts are nearly unchanged between grids: 281-point values −3.593, −3.514, −0.046, +0.294, +3.545, +4.263; 561-point values −3.594, −3.516, −0.046, +0.294, +3.545, +4.263. This shows the curvature-dependent contrast is not a coarse-grid artifact. The updated workflow now audits both 281 and 561 points while preserving all 600 planned oracle rows.
 
