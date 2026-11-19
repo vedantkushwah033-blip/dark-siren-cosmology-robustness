@@ -67,7 +67,7 @@ def _paired_contrasts(summaries: pd.DataFrame) -> pd.DataFrame:
 
 
 def _aggregate(summaries: pd.DataFrame, ledger: pd.DataFrame, replicates: int,
-               max_abs_error: float) -> pd.DataFrame:
+               max_abs_error: float, max_interval_width: float = 40.0) -> pd.DataFrame:
     rows = []
     for (gamma, nval), planned in ledger.groupby(["gamma","validation_size"], sort=True):
         for arm in ARMS:
@@ -93,7 +93,7 @@ def _aggregate(summaries: pd.DataFrame, ledger: pd.DataFrame, replicates: int,
                 "failure_inclusive_coverage_lower":float(np.sum(covered)/replicates),
                 "failure_inclusive_coverage_upper":float((np.sum(covered)+failures)/replicates),
                 "failure_inclusive_width_lower":float(np.sum(widths)/replicates),
-                "failure_inclusive_width_upper":float((np.sum(widths)+failures*40.0)/replicates),
+                "failure_inclusive_width_upper":float((np.sum(widths)+failures*max_interval_width)/replicates),
             })
     return pd.DataFrame(rows)
 
@@ -113,9 +113,14 @@ def run(args: argparse.Namespace) -> dict:
         raise ValueError("validation sizes must be unique and increasing")
     if args.validation_sizes[0] < 5 or args.validation_sizes[-1] > args.validation_frame:
         raise ValueError("validation sizes must be >=5 and no larger than validation frame")
-    if args.h0_true < 50 or args.h0_true > 90:
-        raise ValueError("failure bounds require H0 truth within [50,90]")
-    max_abs_error=max(abs(args.h0_true-50),abs(90-args.h0_true))
+    prior_min=float(getattr(args,"h0_prior_min",50.0))
+    prior_max=float(getattr(args,"h0_prior_max",90.0))
+    if not np.isfinite(prior_min) or not np.isfinite(prior_max) or prior_min >= prior_max:
+        raise ValueError("H0 prior bounds must be finite and strictly increasing")
+    if not prior_min <= args.h0_true <= prior_max:
+        raise ValueError("H0 truth must lie inside the declared prior support")
+    max_abs_error=max(abs(args.h0_true-prior_min),abs(prior_max-args.h0_true))
+    max_interval_width=prior_max-prior_min
     runner=Path(__file__).with_name("run_quadratic_five_arm_smoke.py")
     auditor=Path(__file__).with_name("audit_quadratic_five_arm_smoke.py")
     planned=[]
@@ -144,7 +149,8 @@ def run(args: argparse.Namespace) -> dict:
                     "--validation-frame",str(args.validation_frame),
                     "--validation-sizes",",".join(map(str,args.validation_sizes)),
                     "--curvature-gamma",str(gamma),"--curvature-beta",str(args.curvature_beta),
-                    "--h0-true",str(args.h0_true),"--h0-points",str(args.h0_points),
+                    "--h0-true",str(args.h0_true),"--h0-prior-min",str(prior_min),
+                    "--h0-prior-max",str(prior_max),"--h0-points",str(args.h0_points),
                     "--scott-multiplier",str(args.scott_multiplier),
                     "--quadrature-order",str(args.quadrature_order),
                     "--sigma-mpc",str(args.sigma_mpc),
@@ -209,7 +215,7 @@ def run(args: argparse.Namespace) -> dict:
     summaries=pd.concat(summary_parts,ignore_index=True) if summary_parts else pd.DataFrame(columns=summary_columns)
     diagnostics=pd.concat(diagnostic_parts,ignore_index=True) if diagnostic_parts else pd.DataFrame(columns=diagnostic_columns)
     contrasts=_paired_contrasts(summaries)
-    aggregates=_aggregate(summaries,ledger_df,args.replicates,max_abs_error)
+    aggregates=_aggregate(summaries,ledger_df,args.replicates,max_abs_error,max_interval_width)
     planned_df.to_csv(out/"planned_cells.csv",index=False)
     ledger_df.to_csv(out/"replicate_ledger.csv",index=False)
     summaries.to_csv(out/"replicate_posterior_summaries.csv",index=False)
@@ -222,13 +228,14 @@ def run(args: argparse.Namespace) -> dict:
         "master_seed":args.master_seed,"replicates":args.replicates,
         "gammas":args.gammas,"n_parent":args.n_parent,"n_detected":args.n_detected,
         "validation_frame":args.validation_frame,"validation_sizes":args.validation_sizes,
-        "curvature_beta":args.curvature_beta,"h0_true":args.h0_true,"h0_prior_support":[50.0,90.0],
+        "curvature_beta":args.curvature_beta,"h0_true":args.h0_true,
+        "h0_prior_min":prior_min,"h0_prior_max":prior_max,"h0_prior_support":[prior_min,prior_max],
         "h0_points":args.h0_points,"scott_multiplier":args.scott_multiplier,
         "quadrature_order":args.quadrature_order,"sigma_mpc":args.sigma_mpc,
         "detection_threshold_mpc":args.detection_threshold_mpc,
         "seed_schedule":[{"replicate":r,"analysis_seed":_seed(args.master_seed,r,0),
             "validation_seed":_seed(args.master_seed,r,1)} for r in range(args.replicates)],
-        "failure_bounds":{"max_abs_median_error":max_abs_error,"max_interval_width":40.0},
+        "failure_bounds":{"max_abs_median_error":max_abs_error,"max_interval_width":max_interval_width},
         "claim_limit":"Paired engineering pilot only; no estimator ranking, calibration, or observational inference."}
     (out/"config.json").write_text(json.dumps(config,indent=2,sort_keys=True)+"\n")
     files=sorted(p for p in out.rglob("*") if p.is_file() and p.name!="manifest.json")
@@ -253,6 +260,8 @@ def main():
     p.add_argument("--validation-sizes",type=lambda x:[int(v) for v in x.split(",")],default=[100,300,500])
     p.add_argument("--curvature-beta",type=float,default=-3.9)
     p.add_argument("--h0-true",type=float,default=70.0)
+    p.add_argument("--h0-prior-min",type=float,default=50.0)
+    p.add_argument("--h0-prior-max",type=float,default=90.0)
     p.add_argument("--h0-points",type=int,default=281)
     p.add_argument("--scott-multiplier",type=float,default=0.7)
     p.add_argument("--quadrature-order",type=int,default=5)
