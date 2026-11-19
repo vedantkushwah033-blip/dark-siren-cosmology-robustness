@@ -86,3 +86,22 @@ The 801-point expanded-grid analysis is a reproducible diagnostic, but this 200-
 4. Next, complete the expanded-grid refinement audit; run a fully matched wider-prior five-arm experiment; inspect weight-tail and ESS diagnostics by curvature/validation size; and only then decide whether further coefficient-posterior integration work is justified.
 5. No estimator ranking or real-data claim is warranted from this experiment.
 
+
+
+## Weight concentration and effective sample size diagnostics (n=500)
+
+The paired weight diagnostics reinforce the instability concern. C and D Kish ESS values are out of the 1,200-parent population; E uses node-specific diagnostics, so its minimum node Kish ESS is not directly interchangeable with a single global Kish ESS.
+
+| gamma | Arm | Mean Kish ESS (C/D) or mean minimum-node Kish ESS (E) | 10th percentile | Mean top-5% mass (or max node top-5% mass for E) |
+|---:|---|---:|---:|---:|
+| -1 | C known-probability IPW | 106.9 | 51.5 | 0.378 |
+| -1 | D MAP plug-in IPW | 182.1 | 110.4 | 0.310 |
+| -1 | E uncertainty-integrated IPW | 84.3 | 40.2 | 0.455 |
+| 0 | C known-probability IPW | 136.8 | 102.9 | 0.359 |
+| 0 | D MAP plug-in IPW | 144.7 | 85.2 | 0.355 |
+| 0 | E uncertainty-integrated IPW | 63.3 | 32.0 | 0.518 |
+| +1 | C known-probability IPW | 178.1 | 158.3 | 0.332 |
+| +1 | D MAP plug-in IPW | 117.4 | 71.6 | 0.405 |
+| +1 | E uncertainty-integrated IPW | 51.4 | 28.5 | 0.580 |
+
+For E, the 25-node quadrature ESS averaged about 6.85/25 at n=500. Its node-wise maximum top-5%-weight mass averaged 45.5%, 51.8%, and 58.0% at gamma=-1, 0, +1, respectively. This is a material warning: integrating over inclusion-model uncertainty does not automatically make the weighted redshift representation stable. It also explains why E's posterior can be broader without being better calibrated. These diagnostics are descriptive; they are not by themselves proof that any single cell's posterior is invalid.
