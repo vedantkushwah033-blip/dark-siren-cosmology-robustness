@@ -4,8 +4,8 @@ import sys
 from pathlib import Path
 
 import numpy as np
-from scipy.stats import norm
 from scipy.integrate import trapezoid
+from scipy.stats import norm
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -36,7 +36,7 @@ def test_geometric_h0_grid_quantiles_match_truncated_gaussian_reference():
     expected = 70.0 + 8.0 * norm.ppf(probabilities)
 
     assert np.max(np.abs(observed - expected)) < 1e-3
-    assert np.isclose(np.trapz(density, grid), 1.0, atol=1e-12)
+    assert np.isclose(trapezoid(density, grid), 1.0, atol=1e-12)
 
 
 def test_geometric_grid_integration_is_with_respect_to_h0_not_log_h0():
