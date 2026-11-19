@@ -45,6 +45,13 @@ def wilson_interval(k: int, n: int, z: float = 1.959963984540054):
     return center-half, center+half
 
 
+def assert_oracle_eligible_statuses(ledger: pd.DataFrame) -> None:
+    allowed = {"SUCCESS", "NON_EVALUABLE"}
+    observed = set(ledger.status.astype(str))
+    if not observed.issubset(allowed):
+        raise AssertionError(f"unsupported statuses for oracle audit: {ledger.status.value_counts().to_dict()}")
+
+
 def _verify_manifest(root: Path) -> int:
     manifest = json.loads((root / "manifest.json").read_text())
     bad = []
@@ -64,9 +71,7 @@ def audit(root: Path, h0_points: int = 1121):
     planned = pd.read_csv(root / "planned_cells.csv")
     ledger = pd.read_csv(root / "replicate_ledger.csv")
     assert_complete_planned_ledger(planned, ledger)
-    allowed = {"SUCCESS", "NON_EVALUABLE"}
-    if not set(ledger.status).issubset(allowed):
-        raise AssertionError(f"unsupported statuses for oracle audit: {ledger.status.value_counts().to_dict()}")
+    assert_oracle_eligible_statuses(ledger)
     if len(planned) != 600:
         raise AssertionError(f"expected 600 planned cells, found {len(planned)}")
 
@@ -117,6 +122,9 @@ def audit(root: Path, h0_points: int = 1121):
         )
 
         previous_ids = None
+        reference_catalogue = catalogue.copy()
+        reference_parent = parent.copy()
+        reference_events = events.copy()
         for cell in block.itertuples(index=False):
             d = root / "replicates" / cell.cell_id
             report = json.loads((d / "audit_report.json").read_text())
@@ -127,6 +135,12 @@ def audit(root: Path, h0_points: int = 1121):
                 raise AssertionError(f"gamma mismatch: {cell.cell_id}")
             if int(child_cfg["validation_generator_config"]["n_validation"]) != int(cell.n_validation):
                 raise AssertionError(f"validation size mismatch: {cell.cell_id}")
+            candidate_catalogue = pd.read_csv(d / "observable/analysis_catalogue.csv")
+            candidate_parent = pd.read_csv(d / "truth/analysis_parent_truth.csv")
+            candidate_events = pd.read_csv(d / "observable/gw_events_observed.csv")
+            pd.testing.assert_frame_equal(candidate_catalogue, reference_catalogue)
+            pd.testing.assert_frame_equal(candidate_parent, reference_parent)
+            pd.testing.assert_frame_equal(candidate_events, reference_events)
             observed = pd.read_csv(d / "observable/validation_observed.csv")
             ids = observed.validation_id.to_numpy(dtype=int)
             if len(ids) != int(cell.n_validation):
@@ -232,7 +246,8 @@ def audit(root: Path, h0_points: int = 1121):
         "cross_gamma_validation_pairing_blocks_checked": validation_pair_blocks,
         "aggregate_manifest_entries_verified": manifest_count,
         "oracle_grid_points": h0_points,
-        "oracle_unique_parent_event_realizations": int(cells[["replicate", "gamma"]].drop_duplicates().shape[0]),
+        "paired_replicate_blocks": int(cells.replicate.nunique()),
+        "replicate_gamma_blocks": int(cells[["replicate", "gamma"]].drop_duplicates().shape[0]),
         "interpretation": "Oracle decomposition is synthetic diagnostic evidence, not a practical estimator or observational H0 result."
     }
     return cells, pd.DataFrame(summaries), pd.DataFrame(contrasts), report
