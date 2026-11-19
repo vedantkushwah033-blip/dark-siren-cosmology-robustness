@@ -340,7 +340,7 @@ def main():
         "prior_bounds": [20.0, 300.0],
         "planned_cells": int(len(pd.read_csv(args.artifact_root / "planned_cells.csv"))),
         "status_counts": terminal_status_counts(ledger),
-        "interpretation": "independent same-grid oracle posterior reconstruction; successful cells only; failure-inclusive estimated-coverage bounds reported separately; synthetic diagnostic, not observational inference"
+        "interpretation": "independent same-grid oracle posterior reconstruction for all planned cells using each replicate/curvature parent-catalogue-event realization; fitted-arm metrics use successful cells only; failure-inclusive estimated-coverage bounds reported separately; synthetic diagnostic, not observational inference"
     }, indent=2, sort_keys=True))
     print(summary.to_string(index=False))
     print(contrasts.to_string(index=False))
