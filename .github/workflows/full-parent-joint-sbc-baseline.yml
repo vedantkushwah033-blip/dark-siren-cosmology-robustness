@@ -1,10 +1,22 @@
 name: full-parent-joint-sbc-baseline
 
 on:
-  pull_request:
+  push:
+    branches:
+      - research/full-parent-joint-sbc-baseline-20261119
     paths:
       - .github/workflows/full-parent-joint-sbc-baseline.yml
       - scripts/run_full_parent_h0_sbc.py
+      - tests/test_full_parent_h0_sbc.py
+      - scripts/audit_full_parent_h0_sbc.py
+  pull_request:
+    branches:
+      - research/full-parent-event-count-calibration-20261119
+    paths:
+      - .github/workflows/full-parent-joint-sbc-baseline.yml
+      - scripts/run_full_parent_h0_sbc.py
+      - tests/test_full_parent_h0_sbc.py
+      - scripts/audit_full_parent_h0_sbc.py
   workflow_dispatch:
 
 permissions:
