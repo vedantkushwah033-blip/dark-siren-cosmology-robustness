@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/h0-100rep-grid-refinement.yml
       - scripts/run_h0_100rep_grid_refinement.py
+      - scripts/run_quadratic_logit_inclusion_h0_smoke.py
       - tests/test_h0_100rep_grid_refinement.py
   workflow_dispatch:
 
