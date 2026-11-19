@@ -1,0 +1,29 @@
+name: five-arm-precision-readout-check
+
+on:
+  push:
+    branches:
+      - research/quadratic-five-arm-30event-multirep-readout-20261119
+    paths:
+      - scripts/analyze_quadratic_five_arm_precision.py
+      - scripts/audit_and_analyze_pooled_five_arm.py
+      - scripts/audit_pooled_catalogue_boundary.py
+      - scripts/audit_catalogue_only_prior_boundary.py
+  workflow_dispatch:
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install analysis dependencies
+        run: python -m pip install numpy pandas scipy
+      - name: Compile precision and pooled audit scripts
+        run: |
+          python -m py_compile scripts/analyze_quadratic_five_arm_precision.py
+          python -m py_compile scripts/audit_and_analyze_pooled_five_arm.py
+          python -m py_compile scripts/audit_catalogue_only_prior_boundary.py
+          python -m py_compile scripts/audit_pooled_catalogue_boundary.py

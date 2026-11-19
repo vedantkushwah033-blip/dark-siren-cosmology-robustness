@@ -1,0 +1,56 @@
+name: catalogue-only-prior-boundary-audit
+
+on:
+  push:
+    branches:
+      - research/quadratic-five-arm-30event-multirep-readout-20261119
+    paths:
+      - .github/workflows/catalogue-only-prior-boundary-audit.yml
+      - scripts/audit_catalogue_only_prior_boundary.py
+  workflow_dispatch:
+
+jobs:
+  expanded-prior-reconstruction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install numeric dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy pandas scipy
+      - name: Download completed 10-replicate five-arm artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: quadratic-five-arm-30event-multireplicate
+          path: artifacts/five_arm_10rep
+          run-id: 44458318640
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Reconstruct catalogue-only likelihood and expand H0 support
+        run: |
+          python -m py_compile scripts/audit_catalogue_only_prior_boundary.py
+          python scripts/audit_catalogue_only_prior_boundary.py \
+            artifacts/five_arm_10rep \
+            --output artifacts/catalogue_only_prior_boundary.csv
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("artifacts/catalogue_only_prior_boundary.json")
+          report=json.loads(p.read_text())
+          assert report["status"]=="PASS", report
+          assert report["replicate_gamma_rows"]==30
+          assert report["max_original_grid_loglike_abs_diff"]<1e-9
+          assert report["max_median_grid_abs_diff"]<0.001
+          assert report["max_q025_grid_abs_diff"]<0.01
+          print(json.dumps(report,indent=2))
+          PY
+      - name: Upload expanded-prior audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalogue-only-prior-boundary-audit
+          path: artifacts/catalogue_only_prior_boundary.*
+          if-no-files-found: error
+          retention-days: 90
