@@ -57,12 +57,15 @@ jobs:
           report=json.loads(Path("artifacts/h0_100rep_grid_refinement/grid_refinement_report.json").read_text())
           assert report["status"] == "PASS", report
           assert report["baseline_planned_cells_in_subset"] == 18, report
-          assert report["baseline_non_evaluable_cells_in_subset"] == 1, report
-          assert report["baseline_successful_cells_selected"] == 17, report
-          assert report["planned_refined_runs"] == 51, report
-          assert report["successful_refined_runs"] == 51, report
+          assert report["baseline_non_evaluable_cells_in_subset"] == 0, report
+          assert report["baseline_successful_cells_selected"] == 18, report
+          assert report["planned_refined_runs"] == 54, report
+          assert report["successful_refined_runs"] == 54, report
           assert report["failed_refined_runs"] == 0, report
-          assert report["comparison_rows"] == 85, report
+          assert report["comparison_rows"] == 90, report
+          # Completion is distinct from numerical convergence. Preserve and
+          # publish per-comparison tolerance failures for scientific review.
+          assert report["comparison_pass_count"] + report["comparison_fail_count"] == 90, report
           print(json.dumps(report, indent=2))
           PY
       - name: Upload paired grid-refinement artifact
