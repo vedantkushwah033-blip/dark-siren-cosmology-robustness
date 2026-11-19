@@ -3,7 +3,7 @@ name: full-parent-event-count-sensitivity
 on:
   pull_request:
     branches:
-      - research/oracle-decomposition-20261119
+      - research/h0-100rep-oracle-decomposition-20261119
     paths:
       - .github/workflows/full-parent-event-count-sensitivity.yml
       - scripts/run_full_parent_h0_fixed_count_baseline.py
