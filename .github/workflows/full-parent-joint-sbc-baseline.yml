@@ -7,6 +7,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: full-parent-joint-sbc-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   full-parent-sbc:
     runs-on: ubuntu-latest
