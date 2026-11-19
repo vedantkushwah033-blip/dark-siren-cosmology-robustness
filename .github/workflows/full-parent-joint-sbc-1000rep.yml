@@ -2,15 +2,21 @@ name: Full-parent joint prior-predictive SBC 1000 replicates
 
 on:
   push:
+    branches:
+      - research/full-parent-joint-sbc-1000rep-20261119
+    paths:
+      - .github/workflows/full-parent-joint-sbc-1000rep.yml
+      - scripts/run_full_parent_h0_sbc.py
+      - tests/test_full_parent_h0_sbc.py
+      - scripts/audit_full_parent_h0_sbc.py
   pull_request:
     branches:
       - research/full-parent-joint-sbc-baseline-20261119
     paths:
       - .github/workflows/full-parent-joint-sbc-1000rep.yml
       - scripts/run_full_parent_h0_sbc.py
-      - tests/
-    branches:
-      - research/full-parent-joint-sbc-1000rep-20261119
+      - tests/test_full_parent_h0_sbc.py
+      - scripts/audit_full_parent_h0_sbc.py
   workflow_dispatch:
 
 permissions:
