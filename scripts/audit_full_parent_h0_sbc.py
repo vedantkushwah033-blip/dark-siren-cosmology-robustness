@@ -84,7 +84,7 @@ def audit(root:Path,output:Path|None=None,expected_replicates=200):
         rank=float(np.interp(truth,h,cdf))
         q=np.interp([.025,.05,.10,.16,.25,.50,.75,.84,.90,.95,.975],cdf,h)
         expected={"posterior_rank":rank,"h0_median":q[5],"median_bias":q[5]-truth,
-          "covered50":int(q[4]<=truth<=q[6]),"covered68":int(q[3]<=truth<=q[7]),
+          "q025":q[0],"q05":q[1],"q10":q[2],"q16":q[3],"q25":q[4],\n          "q75":q[6],"q84":q[7],"q90":q[8],"q95":q[9],"q975":q[10],\n          "covered50":int(q[4]<=truth<=q[6]),"covered68":int(q[3]<=truth<=q[7]),
           "covered80":int(q[2]<=truth<=q[8]),"covered90":int(q[1]<=truth<=q[9]),
           "covered95":int(q[0]<=truth<=q[10]),"n_parent":len(z),"n_detected":len(d),
           "n_catalogue":len(sim["catalogue_observed"])}
