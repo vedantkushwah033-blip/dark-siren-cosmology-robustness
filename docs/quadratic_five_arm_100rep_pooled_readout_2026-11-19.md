@@ -109,3 +109,24 @@ A separate expanded-support reconstruction of the earlier 10-replicate smoke fou
 ## Reproducibility
 
 The source artifacts are Actions artifacts 14504568415 and 14506526731. The pooling utility is `scripts/analyze_pooled_quadratic_five_arm_precision.py`; it checks the frozen configuration, source audit status, planned denominators, and disjoint seed pairs before producing pooled cell and paired-contrast CSVs.
+
+
+## Exploratory diagnostic-to-error association
+
+I also joined the archived replicate-level weight diagnostics to the pooled posterior summaries and computed within-curvature Spearman correlations between top-5% normalized weight mass and absolute posterior-median error. These are exploratory, unadjusted associations at the replicate level, not a validated prediction model.
+
+| gamma | Validation n | D MAP IPW: rho(top-5% mass, |error|) | E integrated IPW: rho(top-5% mass, |error|) |
+|---:|---:|---:|---:|
+| -1 | 100 | -0.46 | -0.37 |
+| -1 | 300 | -0.44 | -0.40 |
+| -1 | 500 | -0.44 | -0.42 |
+| 0 | 100 | -0.16 | -0.10 |
+| 0 | 300 | -0.01 | +0.03 |
+| 0 | 500 | +0.02 | +0.03 |
+| +1 | 100 | +0.24 | +0.15 |
+| +1 | 300 | +0.27 | +0.22 |
+| +1 | 500 | +0.20 | +0.19 |
+
+The sign reverses between gamma = -1 and gamma = +1: stronger top-weight concentration is associated with *smaller* absolute error in the negative-curvature cells, but with *larger* absolute error in the positive-curvature cells. At gamma = 0 the association is weak or absent. This is a warning against treating ESS or top-weight mass as a universal monotone failure score. Curvature-dependent bias and the direction of misspecification matter.
+
+The p-values were not multiplicity-adjusted and are not evidence of causal effects. The next useful test is to predefine diagnostic thresholds on a training set and evaluate whether they identify posterior error/coverage failures on independent held-out replicate seeds. Until then, these diagnostics are descriptive only.
