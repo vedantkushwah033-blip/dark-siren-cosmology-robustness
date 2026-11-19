@@ -371,6 +371,10 @@ def audit(root: Path) -> dict:
     distances = events["distance_mpc"].to_numpy(float)
     prior_min = float(config.get("h0_prior_min", 50.0))
     prior_max = float(config.get("h0_prior_max", 90.0))
+    if list(map(float, config.get("h0_prior_support", [prior_min, prior_max]))) != [prior_min, prior_max]:
+        raise AssertionError("H0 prior support metadata is inconsistent")
+    if not prior_min < prior_max:
+        raise AssertionError("H0 prior support must be strictly increasing")
     if not prior_min <= h0_true <= prior_max:
         raise AssertionError("H0 truth is outside the declared prior support")
     grid = np.linspace(prior_min, prior_max, int(config["h0_grid_points"]))
