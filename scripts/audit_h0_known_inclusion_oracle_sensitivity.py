@@ -310,8 +310,8 @@ def audit(root: Path, h0_points: int | None = None):
         row["estimated_coverage68_success_only"] = float(successful_group.covered68.mean())
         row["estimated_coverage68_lower_all_attempts"] = coverage_lower
         row["estimated_coverage68_upper_all_attempts"] = coverage_upper
-        row["known_pi_coverage68_success_only"] = float(group.known_pi_coverage68.mean())
-        row["full_parent_coverage68_success_only"] = float(group.full_parent_coverage68.mean())
+        row["known_pi_coverage68_oracle"] = float(group.known_pi_coverage68.mean())
+        row["full_parent_coverage68_oracle"] = float(group.full_parent_coverage68.mean())
         summaries.append(row)
         for label, col in (
             ("estimated minus known-pi IPW median", "estimated_minus_known_pi"),
