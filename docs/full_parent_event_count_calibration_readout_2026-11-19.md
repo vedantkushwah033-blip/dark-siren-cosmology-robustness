@@ -38,9 +38,16 @@ The difference in coverage is material and should not be hidden or averaged away
 
 This repeated-draw result shows that the original 100 single-event-realization coverage (0.54/0.83/0.91) was unusually low; the same parent populations give 0.6535/0.8794/0.9335 when event-sample variability is averaged over 200 draws per parent. The independent 500-parent experiment gives 0.696/0.910/0.954, somewhat higher but broadly consistent with a modest finite-sample difference. These are distinct designs and must not be pooled or presented as paired estimates. The 20,000-draw result is the primary conditional-on-these-parent-populations baseline; the 500-parent result estimates unconditional performance over a new parent-population sample.
 
-## Independent audit pending
+## Independent event-count reconstruction audit
 
-The companion PR #104 regenerates all 500 parent populations and 30-event sequences from the archived seeds, independently reconstructs all 1,000 selected-event posteriors, and checks every reported quantile, coverage indicator, interval width, aggregate metric, paired contrast, and manifest hash. This readout should be upgraded to independently audited status only after that workflow passes.
+Companion PR #104 / workflow #44441848104 independently regenerated all 500 parent populations and 15,000 detected-event sequences, reconstructed 1,000 posterior curves, rebuilt both summary arms and the paired contrast, and verified all four source-manifest entries. Audit status: PASS.
+
+## H0-grid refinement: unresolved numerical accuracy
+
+A 50-replicate subset was independently reconstructed on 561 and 1,121 grids (workflow #44442662917). Source manifest verification and all 100 posterior reconstructions completed, but the predeclared maximum-density-L1 gate failed for the 30-event arm:
+- 4 events: maximum quantile shift 0.01247 km s^-1 Mpc^-1; maximum density L1 0.000341.
+- 30 events: maximum quantile shift 0.02754 km s^-1 Mpc^-1; maximum density L1 0.001748 (median 0.001186), exceeding the 0.001 threshold.
+The quantile shifts remained below 0.05 in both arms. The density-L1 failure is not being waived. The updated audit branch now compares 561→1,121→2,241 points and applies the gate to the 1,121→2,241 increment; the newer workflow must complete before resolution is considered settled. This numerical audit is a deterministic 50-replicate subset, not a new calibration experiment.
 
 ## Scope
 
