@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from audit_sbc_1000_boundary_grid import density_l1, posterior, seed
+from audit_sbc_1000_boundary_grid import density_l1, grid_pairs, posterior, seed
 from dark_siren_robustness.generative_selection import generate_synthetic_population
 
 
@@ -42,3 +42,9 @@ def test_density_l1_is_small_for_same_smooth_density():
 def test_seed_stream_is_deterministic_and_separated():
     assert seed(2026111919, 208, 0) == seed(2026111919, 208, 0)
     assert seed(2026111919, 208, 0) != seed(2026111919, 208, 1)
+
+
+def test_audit_includes_all_requested_grid_pairs():
+    assert grid_pairs([1121, 2241, 4481, 8961, 17921]) == [
+        (1121, 2241), (2241, 4481), (4481, 8961), (8961, 17921)
+    ]
