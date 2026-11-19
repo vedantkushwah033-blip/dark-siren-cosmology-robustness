@@ -7,6 +7,8 @@ on:
       - "scripts/analyze_paired_h0_prior_sensitivity.py"
       - "scripts/run_quadratic_five_arm_replicates.py"
       - "scripts/audit_quadratic_five_arm_replicates.py"
+      - "scripts/analyze_five_arm_weight_error_association.py"
+      - "tests/test_five_arm_weight_error_association.py"
   workflow_dispatch:
 
 permissions:
@@ -58,6 +60,22 @@ jobs:
           pd.set_option("display.width", 220)
           print(d.to_string(index=False, float_format=lambda x: f"{x:.6f}"))
           PY
+      - name: Test weight-error association statistics
+        run: python -m pytest tests/test_five_arm_weight_error_association.py -q
+      - name: Download independent wide-prior seed-2026111940 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: quadratic-five-arm-30event-wide-prior-independent-seed-100rep
+          path: artifacts/wide_independent
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44483923518
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run pooled wide-prior weight-error association screen
+        run: |
+          python scripts/analyze_five_arm_weight_error_association.py \
+            artifacts/wide artifacts/wide_independent \
+            --output-prefix artifacts/weight_error_association \
+            --bootstrap-resamples 3000
       - name: Upload paired sensitivity report
         if: always()
         uses: actions/upload-artifact@v4
