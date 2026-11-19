@@ -68,10 +68,14 @@ def audit(source_root:Path,baseline_root:Path,output:Path|None=None,
     baseline=pd.read_csv(baseline_root/"replicates.csv")
     if len(ledger)!=600 or ledger.cell_id.duplicated().any():
         raise AssertionError("source 600-cell planned ledger is incomplete or duplicated")
+    if set(ledger.status)!={"SUCCESS","NON_EVALUABLE"}:
+        raise AssertionError(f"unexpected source ledger statuses: {set(ledger.status)}")
     if len(baseline)!=expected_parents*draws_per_parent:
         raise AssertionError("20,000-draw baseline denominator mismatch")
     if baseline.duplicated(["parent_replicate","event_replicate"]).any():
         raise AssertionError("duplicate parent/event replicate keys")
+    if set(baseline.n_events.astype(int))!={4} or set(baseline.h0_true.astype(float))!={70.0}:
+        raise AssertionError("baseline event-count or fixed-truth metadata mismatch")
     if baseline.groupby("parent_replicate").size().to_dict()!={i:draws_per_parent for i in range(expected_parents)}:
         raise AssertionError("per-parent event-draw counts are incomplete")
     design=json.loads((baseline_root/"summary.json").read_text())
@@ -95,12 +99,13 @@ def audit(source_root:Path,baseline_root:Path,output:Path|None=None,
         n_events=int(cfg["analysis_generator_config"]["n_detected_events"])
         if n_events!=4 or truth!=70.0: raise AssertionError("unexpected fixed-truth/event-count source design")
         base=1.0+1.5*(z-zmin)/(zmax-zmin)
+        host_probability=base/base.sum()
         rng=np.random.default_rng(990000+rep)
         block=baseline[baseline.parent_replicate==rep].sort_values("event_replicate")
         if not np.array_equal(block.event_replicate.to_numpy(int),np.arange(draws_per_parent)):
             raise AssertionError(f"event replicate indices incomplete for parent {rep}")
         for row in block.itertuples(index=False):
-            distances=_draw_detected_independent(rng,z,base,truth,sigma,threshold,n_events)
+            distances=_draw_detected_independent(rng,z,host_probability,truth,sigma,threshold,n_events)
             q=_posterior_quantiles_independent(z,base,distances,h,sigma,threshold)
             expected={**q,"median_bias":q["median"]-truth,
               "covered68":int(q["q16"]<=truth<=q["q84"]),
