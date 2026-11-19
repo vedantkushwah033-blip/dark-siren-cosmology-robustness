@@ -56,5 +56,5 @@ def test_json_writer_emits_parseable_json_with_real_newline(tmp_path):
     payload = {"status": "DIAGNOSTIC_COMPLETE", "replicates": [1, 2, 3]}
     _write_json(output, payload)
     raw = output.read_text(encoding="utf-8")
-    assert raw.endswith("\\n")
+    assert raw.endswith("\n")
     assert json.loads(raw) == payload
