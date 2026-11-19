@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/expanded-prior-100rep-independent-audit.yml
       - scripts/audit_expanded_prior_100rep_pair.py
+      - tests/test_expanded_prior_100rep_audit.py
   pull_request:
     branches:
       - research/five-arm-expanded-h0-prior-20261119
@@ -14,6 +15,7 @@ on:
       - .github/workflows/expanded-prior-100rep-independent-audit.yml
       - scripts/audit_expanded_prior_100rep_pair.py
       - scripts/audit_quadratic_five_arm_replicates.py
+      - tests/test_expanded_prior_100rep_audit.py
   workflow_dispatch:
 
 permissions:
@@ -43,6 +45,8 @@ jobs:
           python -m py_compile \
             scripts/audit_expanded_prior_100rep_pair.py \
             scripts/audit_quadratic_five_arm_replicates.py
+      - name: Run focused audit regression tests
+        run: pytest tests/test_expanded_prior_100rep_audit.py -q
       - name: Download first independent 100-replicate stream
         uses: actions/download-artifact@v4
         with:
