@@ -10,6 +10,8 @@ on:
       - scripts/audit_quadratic_five_arm_smoke.py
       - scripts/run_quadratic_five_arm_replicates.py
       - scripts/audit_quadratic_five_arm_replicates.py
+      - scripts/audit_five_arm_prior_support_sensitivity.py
+      - tests/test_five_arm_prior_support_sensitivity.py
       - tests/test_quadratic_five_arm_smoke.py
       - tests/test_quadratic_five_arm_replicates.py
   workflow_dispatch:
@@ -37,7 +39,8 @@ jobs:
             scripts/run_quadratic_five_arm_smoke.py \
             scripts/audit_quadratic_five_arm_smoke.py \
             scripts/run_quadratic_five_arm_replicates.py \
-            scripts/audit_quadratic_five_arm_replicates.py
+            scripts/audit_quadratic_five_arm_replicates.py \\
+            scripts/audit_five_arm_prior_support_sensitivity.py
       - name: Test prior-support parameterization and failure bounds
         run: |
           pytest tests/test_quadratic_five_arm_smoke.py \
@@ -70,6 +73,14 @@ jobs:
               artifacts/quadratic_five_arm_expanded_prior_20rep \
               --output artifacts/quadratic_five_arm_expanded_prior_20rep/independent_orchestration_audit.json
           fi
+      - name: Audit same-likelihood posterior sensitivity to prior truncation
+        if: always()
+        run: |
+          if [ -f artifacts/quadratic_five_arm_expanded_prior_20rep/independent_orchestration_audit.json ]; then
+            python scripts/audit_five_arm_prior_support_sensitivity.py \\
+              artifacts/quadratic_five_arm_expanded_prior_20rep \\
+              --output-dir artifacts/prior_support_sensitivity
+          fi
       - name: Assert complete planned denominator and create descriptive readout
         if: always()
         run: |
@@ -98,6 +109,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: quadratic-five-arm-expanded-prior-20rep
-          path: artifacts/quadratic_five_arm_expanded_prior_20rep/
+          path: |
+            artifacts/quadratic_five_arm_expanded_prior_20rep/
+            artifacts/prior_support_sensitivity/
+            artifacts/precision_readout/
           if-no-files-found: warn
           retention-days: 90
