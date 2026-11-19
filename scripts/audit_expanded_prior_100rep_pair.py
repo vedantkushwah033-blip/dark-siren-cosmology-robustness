@@ -61,9 +61,9 @@ def t_interval(x: np.ndarray) -> tuple[float, float, float, float]:
 
 def audit_one(root: Path, expected_seed: int, auditor: Path, out: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     root = root.resolve()
-    audit_path = root / "independent_orchestration_audit.json"
-    if not audit_path.exists():
-        subprocess.run([sys.executable, str(auditor), str(root), "--output", str(audit_path)], check=True)
+    # Always rerun the auditor; never trust a report embedded in the source ZIP.
+    audit_path = out / f"independent_orchestration_audit_seed_{expected_seed}.json"
+    subprocess.run([sys.executable, str(auditor), str(root), "--output", str(audit_path)], check=True)
     audit = json.loads(audit_path.read_text())
     cfg = json.loads((root / "config.json").read_text())
     if cfg.get("master_seed") != expected_seed or cfg.get("replicates") != 100:
