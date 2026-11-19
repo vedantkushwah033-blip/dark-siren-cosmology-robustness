@@ -1,8 +1,10 @@
 from pathlib import Path
 import json
+import sys
 import pandas as pd
-from scripts.run_full_parent_h0_sbc import run
-from scripts.audit_full_parent_h0_sbc import audit
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+from run_full_parent_h0_sbc import run
+from audit_full_parent_h0_sbc import audit
 
 def test_small_full_parent_sbc_roundtrip(tmp_path: Path):
     root=tmp_path/"sbc"
