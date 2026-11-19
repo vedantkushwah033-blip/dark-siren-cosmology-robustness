@@ -51,6 +51,14 @@ def audit(root:Path,output:Path|None=None,expected_replicates=200):
         raise AssertionError("unexpected SBC design metadata")
     if int(design["truth_seed_stream"])!=0 or int(design["population_seed_stream"])!=1:
         raise AssertionError("unexpected independent seed-stream design")
+    if int(design["n_parent"])!=1200 or int(design["n_detected"])!=30:
+        raise AssertionError("unexpected preregistered parent/event dimensions")
+    if list(map(float,design["h0_prior"]))!=[20.0,300.0] or int(design["h0_grid_points"])!=1121:
+        raise AssertionError("unexpected preregistered H0 prior or grid")
+    if design.get("catalogue")!="catalogue outcomes generated but excluded from full-parent baseline inference":
+        raise AssertionError("catalogue outcomes must remain excluded from the full-parent baseline")
+    if design.get("inference")!="full finite-parent discrete-host likelihood with one-sided detection-efficiency normalization and matching uniform H0 prior":
+        raise AssertionError("unexpected full-parent inference specification")
     lo,hi=map(float,design["h0_prior"]); points=int(design["h0_grid_points"])
     if not np.isfinite([lo,hi]).all() or not lo < hi or points<101:
         raise AssertionError("invalid SBC prior support or H0 grid")
