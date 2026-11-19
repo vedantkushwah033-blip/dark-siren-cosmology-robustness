@@ -240,7 +240,7 @@ def _write_json(path: Path, payload: dict) -> None:
     """Write standards-compliant JSON with a terminating newline."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def main():
