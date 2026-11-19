@@ -57,3 +57,8 @@ A 100-replicate cell still has non-negligible Monte Carlo uncertainty (for examp
 ## Reproducibility
 
 The branch-scoped workflow is `.github/workflows/h0-100rep-calibration-precision.yml`. It uses seed 2026111927, uploads the raw 600-cell artifact, and runs the independent orchestration auditor. No production likelihood code or `main` branch is changed by this follow-up.
+
+
+## Updated numerical-grid evidence
+
+The second-stage paired grid experiment has now also completed on 27 fixed-truth pilot cells (run 44417364702). All 54 child runs at 561 and 1,121 points passed their independent raw-data audits; the seven observable/truth input tables were byte-identical within each pair. The 561→1,121 comparison passed both predeclared tolerances in all 27 cells (maximum posterior-density difference 5.93×10^-5; maximum reported-quantile change 0.01072 km s^-1 Mpc^-1). The 141-point baseline failed the quantile tolerance in all 27 cells. This supports the 281-point grid used in the planned 600-cell follow-up relative to finer grids on this 27-cell subset; it is not a calibration result and does not establish global convergence.
