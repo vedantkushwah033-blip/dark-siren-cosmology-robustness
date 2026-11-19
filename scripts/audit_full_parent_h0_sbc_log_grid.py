@@ -75,6 +75,7 @@ def log_posterior_on_grid(
     distances: np.ndarray,
     sigma_mpc: float,
     detection_threshold_mpc: float,
+    redshift_domain: tuple[float, float] = (0.01, 0.40),
 ) -> np.ndarray:
     """Vectorized full-parent selected-event log posterior on arbitrary H0 nodes."""
     grid = np.asarray(h0_grid, dtype=float)
@@ -88,7 +89,10 @@ def log_posterior_on_grid(
         raise ValueError("all supplied events must satisfy the detection threshold")
     if not np.isfinite(sigma_mpc) or sigma_mpc <= 0:
         raise ValueError("sigma_mpc must be positive and finite")
-    host_weight = 1.0 + 1.5 * (z - 0.01) / (0.40 - 0.01)
+    z_min, z_max = map(float, redshift_domain)
+    if not 0 < z_min < z_max:
+        raise ValueError("invalid redshift domain")
+    host_weight = 1.0 + 1.5 * (z - z_min) / (z_max - z_min)
     log_weight = np.log(host_weight) - logsumexp(np.log(host_weight))
     mu = C_KM_S * z[None, :] / grid[:, None]
     log_beta = logsumexp(
@@ -110,9 +114,11 @@ def summarize_grid(
     truth: float,
     sigma_mpc: float,
     detection_threshold_mpc: float,
+    redshift_domain: tuple[float, float] = (0.01, 0.40),
 ) -> dict[str, object]:
     log_post = log_posterior_on_grid(
-        h0_grid, redshift, distances, sigma_mpc, detection_threshold_mpc
+        h0_grid, redshift, distances, sigma_mpc, detection_threshold_mpc,
+        redshift_domain=redshift_domain,
     )
     density, cdf = normalize_posterior_on_h0_grid(h0_grid, log_post)
     quantiles = np.interp(QUANTILE_PROBABILITIES, cdf, h0_grid)
@@ -199,6 +205,7 @@ def audit(
             truth,
             float(config["sigma_mpc"]),
             float(config["detection_threshold_mpc"]),
+            tuple(config["redshift_domain"]),
         )
         base = baseline.iloc[replicate]
         rows.append({
