@@ -82,7 +82,7 @@ def wilson(k, n, z=1.959963984540054):
     return center-half,center+half
 
 
-def run(artifact_root, output_dir, replicates_per_parent=200, seed=990000, h0_points=281):
+def run(artifact_root, output_dir, replicates_per_parent=200, seed=990000, h0_points=281, n_events_override=None):
     root=Path(artifact_root).resolve()
     manifest=json.loads((root/"manifest.json").read_text())
     bad=[name for name,digest in manifest.items()
@@ -116,7 +116,10 @@ def run(artifact_root, output_dir, replicates_per_parent=200, seed=990000, h0_po
         sigma=float(cfg["analysis_generator_config"]["sigma_mpc"])
         threshold=float(cfg["analysis_generator_config"]["detection_threshold_mpc"])
         h0_true=float(cell.h0_true)
-        n_events=int(cfg["analysis_generator_config"]["n_detected_events"])
+        n_events=(int(n_events_override) if n_events_override is not None
+                  else int(cfg["analysis_generator_config"]["n_detected_events"]))
+        if n_events < 1:
+            raise ValueError("n_events_override must be a positive integer")
         base=1.0+1.5*(z-z_min)/(z_max-z_min)
         host_probability=base/base.sum()
         h0_min,h0_max=cfg["inference"]["uniform_h0_prior"]
@@ -176,8 +179,10 @@ def main():
     parser.add_argument("--replicates-per-parent",type=int,default=200)
     parser.add_argument("--seed",type=int,default=990000)
     parser.add_argument("--h0-points",type=int,default=281)
+    parser.add_argument("--n-events",type=int,default=None,
+                        help="Override the archived event count for event-count sensitivity runs")
     args=parser.parse_args()
-    run(args.artifact_root,args.output_dir,args.replicates_per_parent,args.seed,args.h0_points)
+    run(args.artifact_root,args.output_dir,args.replicates_per_parent,args.seed,args.h0_points,args.n_events)
 
 
 if __name__=="__main__":
