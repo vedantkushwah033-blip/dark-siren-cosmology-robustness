@@ -111,13 +111,24 @@ def audit(root: Path, h0_points: int | None = None):
     if bad:
         raise AssertionError(f"aggregate manifest mismatch: {bad[:10]}")
     ledger = pd.read_csv(root / "replicate_ledger.csv")
-    if ledger.empty or set(ledger.status) != {"SUCCESS"}:
-        raise AssertionError("input pilot must contain only successful cells")
+    allowed_statuses = {"SUCCESS", "NON_EVALUABLE"}
+    if ledger.empty or not set(ledger.status).issubset(allowed_statuses):
+        raise AssertionError(
+            "oracle audit accepts only SUCCESS/NON_EVALUABLE cells; "
+            f"observed statuses={sorted(set(ledger.status))}"
+        )
+    if ledger.cell_id.duplicated().any():
+        raise AssertionError("duplicate cell IDs in replicate ledger")
+    if not {"SUCCESS", "NON_EVALUABLE"}.intersection(set(ledger.status)):
+        raise AssertionError("no child artifacts are eligible for oracle reconstruction")
 
     rows = []
     paired_inputs = {}
     for (rep, gamma), block in ledger.groupby(["replicate", "gamma"]):
         block = block.sort_values("n_validation")
+        # A NON_EVALUABLE cell still has a child artifact and can support the
+        # simulation-only oracle reconstruction; its fitted-arm median is
+        # intentionally excluded from estimated-IPW contrasts.
         first = block.iloc[0]
         directory = root / "replicates" / first.cell_id
         cfg = json.loads((directory / "config.json").read_text())
@@ -152,17 +163,22 @@ def audit(root: Path, h0_points: int | None = None):
             parent.redshift, base(parent.redshift), distances, h0, sigma, threshold
         )
         for cell in block.itertuples(index=False):
+            estimated_median = (
+                float(cell.h0_median) if cell.status == "SUCCESS" and
+                np.isfinite(float(cell.h0_median)) else float("nan")
+            )
             rows.append({
                 "replicate": int(rep), "gamma": float(gamma),
                 "h0_grid_points": int(h0.size),
                 "n_validation": int(cell.n_validation), "cell_id": cell.cell_id,
-                "estimated_median": float(cell.h0_median),
-                "estimated_bias": float(cell.h0_median-70.0),
+                "status": str(cell.status),
+                "estimated_median": estimated_median,
+                "estimated_bias": estimated_median-70.0,
                 "known_pi_median": known["q500"], "known_pi_bias": known["q500"]-70.0,
                 "known_pi_coverage68": int(known["q160"] <= 70.0 <= known["q840"]),
                 "full_parent_median": full["q500"], "full_parent_bias": full["q500"]-70.0,
                 "full_parent_coverage68": int(full["q160"] <= 70.0 <= full["q840"]),
-                "estimated_minus_known_pi": float(cell.h0_median-known["q500"]),
+                "estimated_minus_known_pi": estimated_median-known["q500"],
                 "known_pi_minus_full_parent": float(known["q500"]-full["q500"]),
             })
         # Catalogue, parent and event data are invariant across validation sizes.
@@ -196,14 +212,20 @@ def audit(root: Path, h0_points: int | None = None):
     summaries = []
     contrasts = []
     for (gamma, nval), group in cells.groupby(["gamma", "n_validation"]):
-        row = {"gamma": gamma, "n_validation": nval, "replicates": len(group),
+        estimated_group = group[group.status == "SUCCESS"]
+        row = {"gamma": gamma, "n_validation": nval,
+               "planned_cells": len(group),
+               "successful_estimated_cells": len(estimated_group),
+               "non_evaluable_cells": int((group.status == "NON_EVALUABLE").sum()),
+               "oracle_replicates": int(group.full_parent_bias.notna().sum()),
                "h0_grid_points": int(group.h0_grid_points.iloc[0])}
         for col in ("estimated_bias", "known_pi_bias", "full_parent_bias",
                     "estimated_minus_known_pi", "known_pi_minus_full_parent"):
             row[col] = float(group[col].mean())
             row[col+"_mcse"] = float(group[col].std(ddof=1)/math.sqrt(len(group)))
-        row["estimated_coverage68"] = float(
-            ledger[(ledger.gamma==gamma)&(ledger.n_validation==nval)].covered68.mean())
+        row["estimated_coverage68"] = (
+            float(estimated_group.covered68.mean()) if len(estimated_group) else float("nan")
+        )
         row["known_pi_coverage68"] = float(group.known_pi_coverage68.mean())
         row["full_parent_coverage68"] = float(group.full_parent_coverage68.mean())
         summaries.append(row)
