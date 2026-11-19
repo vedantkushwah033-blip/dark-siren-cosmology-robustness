@@ -45,9 +45,16 @@ def _posterior(z, weights, distances, grid, sigma, threshold):
     return density, cdf, quantiles
 
 
-def audit(root: Path, fine_points: int = 1121, max_quantile_shift: float = 0.05,
+def _density_l1(grid_a, density_a, grid_b, density_b):
+    target = np.asarray(grid_b, float)
+    interpolated = np.interp(target, np.asarray(grid_a, float), np.asarray(density_a, float))
+    interpolated /= trapezoid(interpolated, target)
+    return float(trapezoid(np.abs(np.asarray(density_b, float)-interpolated), target))
+
+
+def audit(root: Path, fine_points: int = 2241, max_quantile_shift: float = 0.05,
           max_rank_shift: float = 0.002, max_density_l1: float = 0.001,
-          output: Path | None = None) -> dict:
+          output: Path | None = None, intermediate_points: int = 1121) -> dict:
     root = Path(root).resolve()
     manifest = json.loads((root / "manifest.json").read_text())
     if not {"sbc_replicates.csv", "sbc_summary.json", "design.json"}.issubset(manifest):
@@ -88,10 +95,11 @@ def audit(root: Path, fine_points: int = 1121, max_quantile_shift: float = 0.05,
     if set(raw.replicate.astype(int)) != set(range(n)) or raw.replicate.duplicated().any():
         raise AssertionError("SBC replicate inventory is incomplete or duplicated")
     coarse_points = int(design["h0_grid_points"])
-    if fine_points <= coarse_points:
-        raise ValueError("fine grid must have more points than the source grid")
+    if not (coarse_points < intermediate_points < fine_points):
+        raise ValueError("require source < intermediate < fine H0 grid resolutions")
     lo, hi = map(float, design["h0_prior"])
     coarse = np.linspace(lo, hi, coarse_points)
+    intermediate = np.linspace(lo, hi, intermediate_points)
     fine = np.linspace(lo, hi, fine_points)
     master = int(design["master_seed"])
     n_parent = int(design["n_parent"])
@@ -117,9 +125,12 @@ def audit(root: Path, fine_points: int = 1121, max_quantile_shift: float = 0.05,
         distances = events.distance_mpc.to_numpy(float)
         dc, cc, qc = _posterior(z, weights, distances, coarse,
                                 float(cfg["sigma_mpc"]), float(cfg["detection_threshold_mpc"]))
+        dm, cm, qm = _posterior(z, weights, distances, intermediate,
+                                float(cfg["sigma_mpc"]), float(cfg["detection_threshold_mpc"]))
         df, cf, qf = _posterior(z, weights, distances, fine,
                                 float(cfg["sigma_mpc"]), float(cfg["detection_threshold_mpc"]))
         rank_c = float(np.interp(truth, coarse, cc))
+        rank_m = float(np.interp(truth, intermediate, cm))
         rank_f = float(np.interp(truth, fine, cf))
         stored_q = np.array([row.q025, row.q05, row.q10, row.q16, row.q25,
                              row.h0_median, row.q75, row.q84, row.q90, row.q95, row.q975], float)
@@ -134,50 +145,68 @@ def audit(root: Path, fine_points: int = 1121, max_quantile_shift: float = 0.05,
             expected_coverage = int(qc[low_idx] <= truth <= qc[high_idx])
             if int(row[f"covered{level}"]) != expected_coverage:
                 raise AssertionError(f"source-grid coverage{level} mismatch at replicate {rep}")
-        coarse_on_fine = np.interp(fine, coarse, dc)
-        coarse_on_fine /= trapezoid(coarse_on_fine, fine)
-        density_l1 = float(trapezoid(np.abs(df-coarse_on_fine), fine))
         rows.append({
             "replicate": rep,
             "source_grid_rank": rank_c,
+            "intermediate_grid_rank": rank_m,
             "fine_grid_rank": rank_f,
-            "absolute_rank_shift": abs(rank_f-rank_c),
-            "max_quantile_shift": float(np.max(np.abs(qf-qc))),
-            "density_l1": density_l1,
+            "source_to_intermediate_rank_shift": abs(rank_m-rank_c),
+            "intermediate_to_fine_rank_shift": abs(rank_f-rank_m),
+            "source_to_fine_rank_shift": abs(rank_f-rank_c),
+            "source_to_intermediate_quantile_shift": float(np.max(np.abs(qm-qc))),
+            "intermediate_to_fine_quantile_shift": float(np.max(np.abs(qf-qm))),
+            "source_to_fine_quantile_shift": float(np.max(np.abs(qf-qc))),
+            "source_to_intermediate_density_l1": _density_l1(coarse, dc, intermediate, dm),
+            "intermediate_to_fine_density_l1": _density_l1(intermediate, dm, fine, df),
+            "source_to_fine_density_l1": _density_l1(coarse, dc, fine, df),
             "source_grid_median": float(qc[5]),
+            "intermediate_grid_median": float(qm[5]),
             "fine_grid_median": float(qf[5]),
         })
     frame = pd.DataFrame(rows)
     summary = {
         "status": "PASS" if (
-            frame.max_quantile_shift.max() <= max_quantile_shift
-            and frame.absolute_rank_shift.max() <= max_rank_shift
-            and frame.density_l1.max() <= max_density_l1
+            frame.intermediate_to_fine_quantile_shift.max() <= max_quantile_shift
+            and frame.intermediate_to_fine_rank_shift.max() <= max_rank_shift
+            and frame.intermediate_to_fine_density_l1.max() <= max_density_l1
         ) else "FAIL",
         "source_manifest_entries_verified": len(manifest),
         "replicates_reconstructed": len(frame),
         "source_grid_points": coarse_points,
+        "intermediate_grid_points": intermediate_points,
         "fine_grid_points": fine_points,
-        "max_quantile_shift_tolerance_km_s_Mpc": max_quantile_shift,
-        "max_rank_shift_tolerance": max_rank_shift,
-        "max_density_L1_tolerance": max_density_l1,
-        "max_quantile_shift_observed": float(frame.max_quantile_shift.max()),
-        "median_quantile_shift_observed": float(frame.max_quantile_shift.median()),
-        "max_absolute_rank_shift_observed": float(frame.absolute_rank_shift.max()),
-        "median_absolute_rank_shift_observed": float(frame.absolute_rank_shift.median()),
-        "max_density_L1_observed": float(frame.density_l1.max()),
-        "median_density_L1_observed": float(frame.density_l1.median()),
+        "comparison_tolerances": {
+            "max_quantile_shift_km_s_Mpc": max_quantile_shift,
+            "max_rank_shift": max_rank_shift,
+            "max_density_L1": max_density_l1,
+        },
+        "561_to_1121": {
+            "max_quantile_shift": float(frame.source_to_intermediate_quantile_shift.max()),
+            "max_rank_shift": float(frame.source_to_intermediate_rank_shift.max()),
+            "max_density_L1": float(frame.source_to_intermediate_density_l1.max()),
+        },
+        "1121_to_2241": {
+            "max_quantile_shift": float(frame.intermediate_to_fine_quantile_shift.max()),
+            "max_rank_shift": float(frame.intermediate_to_fine_rank_shift.max()),
+            "max_density_L1": float(frame.intermediate_to_fine_density_l1.max()),
+        },
+        "561_to_2241": {
+            "max_quantile_shift": float(frame.source_to_fine_quantile_shift.max()),
+            "max_rank_shift": float(frame.source_to_fine_rank_shift.max()),
+            "max_density_L1": float(frame.source_to_fine_density_l1.max()),
+        },
         "scope": "Synthetic full-parent prior-predictive numerical grid audit; not catalogue-inclusion SBC or observational inference.",
     }
-    worst_cols = ["replicate", "max_quantile_shift", "absolute_rank_shift", "density_l1"]
+    worst_cols = ["replicate", "intermediate_to_fine_quantile_shift",
+                  "intermediate_to_fine_rank_shift", "intermediate_to_fine_density_l1"]
     summary["worst_quantile_shift_replicates"] = (
-        frame.nlargest(10, "max_quantile_shift")[worst_cols].to_dict("records")
+        frame.nlargest(10, "intermediate_to_fine_quantile_shift")[worst_cols].to_dict("records")
     )
     summary["worst_rank_shift_replicates"] = (
-        frame.nlargest(10, "absolute_rank_shift")[worst_cols].to_dict("records")
+        frame.nlargest(10, "intermediate_to_fine_rank_shift")[worst_cols].to_dict("records")
     )
     summary["worst_density_l1_replicates"] = (
-        frame.nlargest(10, "density_l1")[worst_cols].to_dict("records")
+        frame.nlargest(10, "intermediate_to_fine_density_l1")[worst_cols].to_dict("records")
     )
     if output:
         output = Path(output)
@@ -193,14 +222,16 @@ def audit(root: Path, fine_points: int = 1121, max_quantile_shift: float = 0.05,
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("artifact_dir", type=Path)
-    p.add_argument("--fine-points", type=int, default=1121)
+    p.add_argument("--intermediate-points", type=int, default=1121)
+    p.add_argument("--fine-points", type=int, default=2241)
     p.add_argument("--max-quantile-shift", type=float, default=0.05)
     p.add_argument("--max-rank-shift", type=float, default=0.002)
     p.add_argument("--max-density-l1", type=float, default=0.001)
     p.add_argument("--output", type=Path, required=True)
     a = p.parse_args()
     print(json.dumps(audit(a.artifact_dir, a.fine_points, a.max_quantile_shift,
-                           a.max_rank_shift, a.max_density_l1, a.output), indent=2))
+                           a.max_rank_shift, a.max_density_l1, a.output,
+                           a.intermediate_points), indent=2))
 
 
 if __name__ == "__main__":
