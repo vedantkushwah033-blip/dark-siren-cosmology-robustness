@@ -127,3 +127,14 @@ Across the 200 pooled replicates, Spearman correlations between absolute posteri
 - C's corresponding correlations are close to zero (-0.089, -0.030, +0.012).
 
 This sign change is consistent with the broader result that weight concentration is not a universal monotone predictor of posterior error across curvature regimes. These are unadjusted exploratory correlations over multiple arm/size/curvature combinations, not a validated diagnostic rule; no causal interpretation or threshold is claimed.
+
+
+## Matched wider-prior all-arm follow-up (running)
+
+The five-arm runner and both levels of auditors now accept explicit H0 prior bounds; the default remains [50,90] for backwards compatibility. The failure-inclusive RMSE and interval-width bounds are parameterized by the declared prior support. A regression test exercises the [30,110] path and its audit roundtrip, and another checks the wider failure-bound width.
+
+- Five-replicate wide-prior smoke: [Actions run 44483782186](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/44483782186).
+- 100-replicate wide-prior stream, master seed 2026111940: [Actions run 44483923518](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/44483923518). Its first five replicate seeds overlap the five-replicate smoke; do not pool the smoke separately.
+- 100-replicate wide-prior stream, master seed 2026111929: [Actions run 44484212311](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/44484212311). This uses the same replicate seed schedule as the original [50,90] run 44460222957 and is intended for paired prior-sensitivity comparisons.
+
+At the time of writing, the regression tests in the first two workflows have passed, while the full wide-prior simulation and audit stages are still running. No results from these new runs are included in the 200-replicate tables above.
