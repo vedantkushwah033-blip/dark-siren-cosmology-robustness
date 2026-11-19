@@ -90,8 +90,14 @@ def run(artifact_root, output_dir, replicates_per_parent=200, seed=990000, h0_po
     if bad:
         raise AssertionError(f"input aggregate manifest mismatch: {bad[:10]}")
     ledger=pd.read_csv(root/"replicate_ledger.csv")
-    if set(ledger.status)!={"SUCCESS"}:
-        raise AssertionError("input pilot must contain only successful cells")
+    allowed_statuses={"SUCCESS","NON_EVALUABLE"}
+    if ledger.empty or not set(ledger.status).issubset(allowed_statuses):
+        raise AssertionError(
+            "input pilot must contain only SUCCESS/NON_EVALUABLE cells; "
+            f"observed statuses={sorted(set(ledger.status))}"
+        )
+    if ledger.cell_id.duplicated().any():
+        raise AssertionError("duplicate cell IDs in input ledger")
     output=Path(output_dir).resolve()
     output.mkdir(parents=True,exist_ok=True)
     rows=[]
