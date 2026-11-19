@@ -56,8 +56,10 @@ def posterior_on_support(
     }
 
 
-def audit(root: Path, restricted_support=(50.0, 90.0)) -> dict:
+def audit(root: Path, output_dir: Path, restricted_support=(50.0, 90.0)) -> dict:
     root = Path(root)
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
     config = json.loads((root / "config.json").read_text(encoding="utf-8"))
     orchestration = json.loads(
         (root / "independent_orchestration_audit.json").read_text(encoding="utf-8")
@@ -138,8 +140,8 @@ def audit(root: Path, restricted_support=(50.0, 90.0)) -> dict:
         mean_mass_below_50=("full_mass_below_50", "mean"),
         fraction_mass_below_50_gt_0p10=("full_mass_below_50", lambda x: float((x > 0.10).mean())),
     ).reset_index()
-    frame.to_csv(root / "prior_support_sensitivity_cells.csv", index=False)
-    aggregate.to_csv(root / "prior_support_sensitivity_summary.csv", index=False)
+    frame.to_csv(output_dir / "prior_support_sensitivity_cells.csv", index=False)
+    aggregate.to_csv(output_dir / "prior_support_sensitivity_summary.csv", index=False)
     result = {
         "status": "PASS",
         "source_prior_support": [full_lower, full_upper],
@@ -152,7 +154,7 @@ def audit(root: Path, restricted_support=(50.0, 90.0)) -> dict:
             "or a calibration/estimator-superiority result."
         ),
     }
-    (root / "prior_support_sensitivity_audit.json").write_text(
+    (output_dir / "prior_support_sensitivity_audit.json").write_text(
         json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     print(json.dumps(result, indent=2, sort_keys=True))
@@ -162,10 +164,11 @@ def audit(root: Path, restricted_support=(50.0, 90.0)) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("artifact_dir", type=Path)
+    parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--restricted-min", type=float, default=50.0)
     parser.add_argument("--restricted-max", type=float, default=90.0)
     args = parser.parse_args()
-    audit(args.artifact_dir, (args.restricted_min, args.restricted_max))
+    audit(args.artifact_dir, args.output_dir, (args.restricted_min, args.restricted_max))
 
 
 if __name__ == "__main__":
