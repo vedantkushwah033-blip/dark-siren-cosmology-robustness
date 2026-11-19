@@ -3,7 +3,7 @@ name: Full-parent SBC H0-grid refinement audit
 on:
   push:
     branches:
-      - research/full-parent-sbc-grid-audit-20261119
+      - research/full-parent-sbc-grid-4481-audit-20261119
   pull_request:
     branches:
       - research/full-parent-joint-sbc-baseline-20261119
@@ -14,7 +14,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: full-parent-sbc-grid-audit-v2-20261119
+  group: full-parent-sbc-grid-audit-v3-4481-20261119
   cancel-in-progress: false
 
 jobs:
@@ -46,11 +46,11 @@ jobs:
           repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
           run-id: 44440150116
           path: artifacts/full_parent_h0_sbc
-      - name: Reconstruct all 200 SBC posteriors on 561, 1121, and 2241 grids
+      - name: Reconstruct all 200 SBC posteriors on 561, 2241, and 4481 grids
         run: |
           python scripts/audit_full_parent_h0_sbc_grid.py artifacts/full_parent_h0_sbc \
-            --intermediate-points 1121 \
-            --fine-points 2241 \
+            --intermediate-points 2241 \
+            --fine-points 4481 \
             --max-quantile-shift 0.05 \
             --max-rank-shift 0.002 \
             --max-density-l1 0.001 \
@@ -59,7 +59,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: full-parent-h0-sbc-grid-audit
+          name: full-parent-h0-sbc-grid-4481-audit
           path: |
             artifacts/full_parent_h0_sbc_grid_audit.json
             artifacts/sbc_grid_audit_replicates.csv
