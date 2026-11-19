@@ -34,3 +34,10 @@ For comparison only, treating all 2,000 event realizations as independent condit
 5. This is a baseline diagnostic for the fixed-count toy likelihood, not a universal claim about dark-siren inference or a causal decomposition of all sources of bias.
 
 The next scientifically useful step is to diagnose why the full-parent oracle itself has positive bias (distance likelihood, one-sided detection conditioning, fixed event count, prior measure, and finite H0 grid) before interpreting the catalogue-inclusion arms.
+
+
+## Subsequent larger parent-cluster replication
+
+A later 20,000-event full-parent experiment (workflow #44435303396, artifact #14489935029) used 100 parent populations with 200 fresh four-event draws per parent. It gives mean median bias +6.4388 (parent-cluster MCSE 0.1408; t 95% [6.1595,6.7181]) and coverage 0.6535/0.8794/0.9335 at 68/90/95%. This is more precise than the 10-parent/2,000-event pilot above and should be used as the primary repeated-event full-parent baseline. The 10-parent result remains a small preliminary check, not the definitive cluster-level uncertainty estimate.
+
+The 20,000-draw experiment also shows that the original one-event-realization-per-parent coverage 0.54/0.83/0.91 was unusually low; repeated event draws on the same 100 parents yield 0.6535/0.8794/0.9335. See the 100-parent follow-up readout in PR #97 for the full provenance and paired event-count comparison.
