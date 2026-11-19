@@ -54,12 +54,13 @@ jobs:
             --max-rank-shift 0.002 \
             --max-density-l1 0.001 \
             --output artifacts/full_parent_h0_sbc_grid_audit.json
-      - name: Upload independent grid-refinement readout
+      - name: Upload independent grid-refinement readout, including failed diagnostics
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: full-parent-h0-sbc-grid-audit
           path: |
             artifacts/full_parent_h0_sbc_grid_audit.json
             artifacts/sbc_grid_audit_replicates.csv
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 90
