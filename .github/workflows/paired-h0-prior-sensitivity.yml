@@ -65,7 +65,7 @@ jobs:
       - name: Download independent wide-prior seed-2026111940 artifact
         uses: actions/download-artifact@v4
         with:
-          name: quadratic-five-arm-30event-wide-prior-independent-seed-100rep
+          name: quadratic-five-arm-30event-wide-prior-100rep
           path: artifacts/wide_independent
           repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
           run-id: 44483923518
