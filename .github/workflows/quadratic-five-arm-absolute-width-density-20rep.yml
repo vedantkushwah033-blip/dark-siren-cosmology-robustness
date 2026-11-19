@@ -1,0 +1,101 @@
+name: quadratic-five-arm-absolute-width-density-20rep
+
+on:
+  push:
+    branches:
+      - research/quadratic-five-arm-30event-smoke-20261119
+    paths:
+      - .github/workflows/quadratic-five-arm-absolute-width-density-20rep.yml
+      - scripts/run_absolute_bandwidth_density_replicates.py
+      - scripts/audit_absolute_bandwidth_density_replicates.py
+      - scripts/run_absolute_bandwidth_density_smoke.py
+      - scripts/audit_absolute_bandwidth_density_smoke.py
+      - tests/test_absolute_bandwidth_density_smoke.py
+      - tests/test_absolute_bandwidth_density_replicates.py
+      - src/dark_siren_robustness/**
+  workflow_dispatch:
+
+concurrency:
+  group: quadratic-five-arm-absolute-width-density-20rep-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  density-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - gamma_label: minus1
+            gamma: "-1.0"
+          - gamma_label: zero
+            gamma: "0.0"
+          - gamma_label: plus1
+            gamma: "1.0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run absolute-width child and orchestration tests
+        run: |
+          pytest tests/test_absolute_bandwidth_density_smoke.py \
+            tests/test_absolute_bandwidth_density_replicates.py -q
+      - name: Run 20-replicate quadratic-logit density-only common-width pilot
+        env:
+          PILOT_DIR: artifacts/quadratic_absolute_width_${{ matrix.gamma_label }}
+          GAMMA: ${{ matrix.gamma }}
+        run: |
+          python scripts/run_absolute_bandwidth_density_replicates.py \
+            --master-seed 2026111940 --seed-stride 10 --replicates 20 \
+            --n-parent 4000 --validation-frame 1500 --validation-sizes 100,300,1000 \
+            --catalogue-floor 0.10 --gamma "${GAMMA}" --beta -3.9 \
+            --scott-multiplier 0.7 --quadrature-order 5 --grid-points 401 \
+            --absolute-widths 0.006,0.008,0.010,0.012,0.016,0.024,0.032,0.040,0.050,0.060,0.080 \
+            --output-dir "${PILOT_DIR}"
+      - name: Independently audit raw density and width artifacts
+        env:
+          PILOT_DIR: artifacts/quadratic_absolute_width_${{ matrix.gamma_label }}
+          AUDIT_PATH: artifacts/quadratic_absolute_width_${{ matrix.gamma_label }}_audit.json
+        run: |
+          python scripts/audit_absolute_bandwidth_density_replicates.py \
+            "${PILOT_DIR}" --output "${AUDIT_PATH}"
+      - name: Summarize physical Scott widths and absolute-width IAE
+        env:
+          PILOT_DIR: artifacts/quadratic_absolute_width_${{ matrix.gamma_label }}
+          GAMMA_LABEL: ${{ matrix.gamma_label }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import pandas as pd
+          root=Path(os.environ["PILOT_DIR"])
+          label=os.environ["GAMMA_LABEL"]
+          widths=pd.read_csv(root/"scott_widths_all_replicates.csv")
+          width_summary=(widths.groupby(["validation_size","arm","node"])["realized_bandwidth_redshift"]
+            .agg(count="count",mean="mean",sd="std",minimum="min",
+                 q05=lambda x:x.quantile(.05),median="median",
+                 q95=lambda x:x.quantile(.95),maximum="max").reset_index())
+          width_summary.to_csv(root.parent/f"quadratic_absolute_width_{label}_scott_summary.csv",index=False)
+          metrics=pd.read_csv(root/"density_metrics_all_replicates.csv")
+          metric_summary=(metrics.groupby(["validation_size","absolute_bandwidth_sd","arm","node"])["iae"]
+            .agg(count="count",mean="mean",sd="std",median="median").reset_index())
+          metric_summary.to_csv(root.parent/f"quadratic_absolute_width_{label}_iae_summary.csv",index=False)
+          print(f"wrote {len(width_summary)} Scott-width and {len(metric_summary)} IAE summary rows")
+          PY
+      - name: Upload raw density pilot, audits and summaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: quadratic-absolute-width-density-${{ matrix.gamma_label }}
+          path: |
+            artifacts/quadratic_absolute_width_${{ matrix.gamma_label }}/
+            artifacts/quadratic_absolute_width_${{ matrix.gamma_label }}_audit.json
+            artifacts/quadratic_absolute_width_${{ matrix.gamma_label }}_scott_summary.csv
+            artifacts/quadratic_absolute_width_${{ matrix.gamma_label }}_iae_summary.csv
+          if-no-files-found: error
+          retention-days: 90
