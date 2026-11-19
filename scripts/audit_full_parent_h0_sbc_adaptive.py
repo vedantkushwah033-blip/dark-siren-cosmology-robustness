@@ -34,9 +34,9 @@ def _log_posterior(h0: float, z: np.ndarray, logw: np.ndarray,
         return -np.inf
     mu = C_KM_S * z / h0
     log_beta = logsumexp(log_ndtr((mu - threshold) / sigma) + logw)
-    log_num = 0.0
-    for distance in distances:
-        log_num += logsumexp(norm.logpdf(distance, loc=mu, scale=sigma) + logw)
+    residual = (distances[:, None] - mu[None, :]) / sigma
+    log_pdf = -0.5 * residual**2 - np.log(sigma * np.sqrt(2.0 * np.pi))
+    log_num = float(np.sum(logsumexp(log_pdf + logw[None, :], axis=1)))
     return float(log_num - len(distances) * log_beta)
 
 
@@ -161,6 +161,10 @@ def audit(artifact_dir: Path, replicates=(100, 174, 156, 62), grid_points=2241) 
         sim = generate_synthetic_population(seed=sim_seed, n_parent=n_parent,
                                              n_detected=n_detected, h0_true=truth)
         parent, events, cfg = sim["parent_truth"], sim["gw_events_observed"], sim["config"]
+        if len(parent) != n_parent or len(events) != n_detected:
+            raise AssertionError(f"regenerated dimensions mismatch for replicate {rep}")
+        if int(archived.n_parent) != len(parent) or int(archived.n_detected) != len(events):
+            raise AssertionError(f"archived dimensions mismatch for replicate {rep}")
         z = parent.redshift.to_numpy(float)
         zmin, zmax = map(float, cfg["redshift_domain"])
         weights = 1.0 + 1.5 * (z - zmin) / (zmax - zmin)
