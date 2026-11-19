@@ -46,7 +46,7 @@ jobs:
           repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
           run-id: 44440102723
           path: artifacts/full_parent_h0_sbc_1000
-      - name: Reconstruct targeted boundary replicates on 1121, 2241, 4481, and 8961 grids
+      - name: Reconstruct targeted boundary replicates on 1121, 2241, 4481, and 17921 grids
         run: |
           python scripts/audit_sbc_1000_boundary_grid.py artifacts/full_parent_h0_sbc_1000 \
             --intermediate-points 2241 \
