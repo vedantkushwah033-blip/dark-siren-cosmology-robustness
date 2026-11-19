@@ -90,7 +90,7 @@ The 801-point expanded-grid analysis is a reproducible diagnostic, but this 200-
 
 ## Weight concentration and effective sample size diagnostics (n=500)
 
-The paired weight diagnostics reinforce the instability concern. C and D Kish ESS values are out of the 1,200-parent population; E uses node-specific diagnostics, so its minimum node Kish ESS is not directly interchangeable with a single global Kish ESS.
+The paired weight diagnostics reinforce the instability concern. C and D Kish ESS values are bounded by the observed catalogue size (566–660 across the 600 child runs; mean about 611), whereas B's oracle ESS is bounded by the full 1,200-parent population. E uses node-specific diagnostics over the observed catalogue, so its minimum node Kish ESS is not directly interchangeable with a single global Kish ESS.
 
 | gamma | Arm | Mean Kish ESS (C/D) or mean minimum-node Kish ESS (E) | 10th percentile | Mean top-5% mass (or max node top-5% mass for E) |
 |---:|---|---:|---:|---:|
