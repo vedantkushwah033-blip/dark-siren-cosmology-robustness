@@ -1,0 +1,53 @@
+name: h0-100rep-posthoc-replay
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  failure-inclusive-readout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install analysis dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Download 600-cell calibration artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: h0-100rep-calibration-precision-py3.12
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44437373259
+          path: artifacts/h0_100rep_calibration
+      - name: Require complete independent orchestration audit
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("artifacts/h0_100rep_calibration")
+          report=json.loads((root/"independent_orchestration_audit.json").read_text())
+          assert report["status"] == "PASS", report
+          assert report["planned_cells"] == 600, report
+          assert report["status_counts"].get("RUNNING", 0) == 0, report
+          assert report["status_counts"].get("NOT_RUN", 0) == 0, report
+          print(json.dumps(report, indent=2))
+          PY
+      - name: Run manifest- and plan-verified failure-inclusive analysis
+        run: |
+          python scripts/analyze_h0_100rep_calibration_uncertainty.py \
+            artifacts/h0_100rep_calibration \
+            --output-dir artifacts/h0_100rep_posthoc
+      - name: Upload post-hoc uncertainty readout
+        uses: actions/upload-artifact@v4
+        with:
+          name: h0-100rep-failure-inclusive-readout
+          path: artifacts/h0_100rep_posthoc/
+          if-no-files-found: error
+          retention-days: 90

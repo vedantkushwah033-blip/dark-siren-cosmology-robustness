@@ -1,0 +1,33 @@
+name: h0-100rep-failure-bounds-tests
+
+on:
+  push:
+    branches:
+      - research/h0-100rep-failure-bounds-20261119
+    paths:
+      - .github/workflows/h0-100rep-failure-bounds-tests.yml
+      - scripts/analyze_h0_100rep_calibration_uncertainty.py
+      - tests/test_h0_100rep_calibration_uncertainty.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: h0-100rep-failure-bounds-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  posthoc-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Compile post-hoc analysis
+        run: python -m py_compile scripts/analyze_h0_100rep_calibration_uncertainty.py
+      - name: Test plan, manifest, pairing and failure-inclusive bounds
+        run: pytest tests/test_h0_100rep_calibration_uncertainty.py -q
