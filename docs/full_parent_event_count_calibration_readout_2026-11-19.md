@@ -1,6 +1,6 @@
 # Paired full-parent event-count calibration: preliminary readout
 
-**Status:** 500 paired parent/event realizations completed; independent raw-seed reconstruction audit pending.
+**Status:** 500 paired parent/event realizations completed; independent raw-seed reconstruction PASS; three-grid 50-replicate resolution audit PASS for the 1,121→2,241 increment.
 
 ## Provenance
 
