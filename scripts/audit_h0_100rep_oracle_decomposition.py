@@ -52,6 +52,28 @@ def assert_oracle_eligible_statuses(ledger: pd.DataFrame) -> None:
         raise AssertionError(f"unsupported statuses for oracle audit: {ledger.status.value_counts().to_dict()}")
 
 
+def assert_planned_design(planned: pd.DataFrame, expected_replicates: int = 100) -> None:
+    required = {"replicate", "gamma", "n_validation", "analysis_seed", "validation_seed", "h0_true"}
+    if not required.issubset(planned.columns):
+        raise AssertionError(f"planned design missing columns: {sorted(required-set(planned.columns))}")
+    expected_gammas = {-1.0, 0.0, 1.0}
+    expected_sizes = {100, 500}
+    if set(planned.gamma.astype(float)) != expected_gammas:
+        raise AssertionError("planned curvature values differ from {-1,0,+1}")
+    if set(planned.n_validation.astype(int)) != expected_sizes:
+        raise AssertionError("planned validation sizes differ from {100,500}")
+    if set(planned.replicate.astype(int)) != set(range(expected_replicates)):
+        raise AssertionError("planned replicate IDs are incomplete or unexpected")
+    if not np.array_equal(planned.groupby(["gamma", "n_validation"]).size().to_numpy(),
+                          np.full(6, expected_replicates)):
+        raise AssertionError("planned factorial does not contain 100 cells per gamma × validation-size")
+    if set(planned.h0_true.astype(float)) != {70.0}:
+        raise AssertionError("planned H0 truth differs from 70")
+    for _, group in planned.groupby("replicate"):
+        if group.analysis_seed.nunique() != 1 or group.validation_seed.nunique() != 1:
+            raise AssertionError("analysis/validation seeds are not paired across gamma and size")
+
+
 def _verify_manifest(root: Path) -> int:
     manifest = json.loads((root / "manifest.json").read_text())
     bad = []
@@ -71,6 +93,7 @@ def audit(root: Path, h0_points: int = 1121):
     planned = pd.read_csv(root / "planned_cells.csv")
     ledger = pd.read_csv(root / "replicate_ledger.csv")
     assert_complete_planned_ledger(planned, ledger)
+    assert_planned_design(planned, expected_replicates=100)
     assert_oracle_eligible_statuses(ledger)
     if len(planned) != 600:
         raise AssertionError(f"expected 600 planned cells, found {len(planned)}")
@@ -249,14 +272,16 @@ def audit(root: Path, h0_points: int = 1121):
                 contrasts.append({"gamma": float("nan"), "n_validation": int(nval),
                                   "contrast": f"estimated gamma {right:g} minus {left:g}",
                                   **_paired(d.to_numpy(float))})
+    non_success = ledger.loc[ledger.status != "SUCCESS", [
+        "cell_id", "replicate", "gamma", "n_validation", "status",
+        "quadrature_status", "orders_evaluated", "converged_at_order", "error",
+    ]].astype(object)
+    non_success = non_success.where(pd.notna(non_success), None)
     report = {
         "status": "PASS",
         "planned_cells": len(planned),
         "ledger_status_counts": ledger.status.value_counts().to_dict(),
-        "non_success_cells": ledger.loc[ledger.status != "SUCCESS", [
-            "cell_id", "replicate", "gamma", "n_validation", "status",
-            "quadrature_status", "orders_evaluated", "converged_at_order", "error",
-        ]].replace({np.nan: None}).to_dict(orient="records"),
+        "non_success_cells": non_success.to_dict(orient="records"),
         "child_audits_verified": checked_children,
         "nested_validation_blocks_checked": nested_blocks,
         "cross_gamma_validation_pairing_blocks_checked": validation_pair_blocks,
