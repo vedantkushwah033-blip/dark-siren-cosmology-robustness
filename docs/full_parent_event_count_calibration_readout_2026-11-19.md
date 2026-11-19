@@ -45,3 +45,16 @@ The companion PR #104 regenerated all 500 parent populations and 15,000 detected
 ## Scope
 
 This is a synthetic low-redshift Euclidean fixed-truth diagnostic with a full parent catalogue. It is not an observational H0 measurement, joint SBC, a catalogue-inclusion result, LVK/GWTC analysis, or validation against real galaxy surveys.
+
+## Additional strict independent reconstruction (2026-11-19)
+
+A second audit workflow, `44439263538`, completed successfully after adding stricter inventory and source-integrity checks. It independently regenerated all 500 parent populations and 15,000 detected-event sequences, reconstructed 1,000 posterior curves (4- and 30-event arms for each replicate), and rechecked both aggregate arms and the paired contrast. It verified all 4 source manifest entries and returned `PASS`.
+
+- Independent audit artifact: `14491008591`
+- Audit ZIP SHA-256: `177300a47723a74d2ea2dd4a31e343d93a739c02a480bc2b2f30ba69cb63aaef`
+- Raw posterior rows reconstructed: 1,000
+- Parent populations regenerated: 500
+- Detected events regenerated: 15,000
+- Paired contrasts reconstructed: 1
+
+This is a second, stricter verification of the existing fixed-truth event-count experiment; it is not a new simulation and does not change the numerical estimates above.
