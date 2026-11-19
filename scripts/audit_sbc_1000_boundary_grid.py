@@ -53,6 +53,11 @@ def posterior(z, host_weights, distances, grid, sigma, threshold, chunk_size=128
     return density, cdf, quantiles
 
 
+def grid_pairs(points):
+    ordered = sorted(int(point) for point in points)
+    return list(zip(ordered[:-1], ordered[1:]))
+
+
 def density_l1(grid_a, density_a, grid_b, density_b):
     interp = np.interp(grid_b, grid_a, density_a)
     interp /= trapezoid(interp, grid_b)
@@ -89,6 +94,7 @@ def audit(source_dir: Path, output_dir: Path, intermediate_points=2241,
         intermediate_points: np.linspace(lo, hi, intermediate_points),
         fine_points: np.linspace(lo, hi, fine_points),
         extra_points: np.linspace(lo, hi, extra_points),
+        ultra_points: np.linspace(lo, hi, ultra_points),
     }
     rows = []
     for rep in TARGET_REPLICATES:
@@ -134,8 +140,7 @@ def audit(source_dir: Path, output_dir: Path, intermediate_points=2241,
             "source_rank_abs_error": abs(source_rank - float(row.posterior_rank)),
             "source_q95_width": float(row.q975 - row.q025),
         }
-        ordered = sorted(results)
-        for a, b in zip(ordered[:-1], ordered[1:]):
+        for a, b in grid_pairs(results):
             ga, da, ca, qa = results[a]
             gb, db, cb, qb = results[b]
             record[f"{a}_to_{b}_density_l1"] = density_l1(ga, da, gb, db)
@@ -155,8 +160,7 @@ def audit(source_dir: Path, output_dir: Path, intermediate_points=2241,
         "source_reconstruction_max_rank_error": float(frame.source_rank_abs_error.max()),
         "comparisons": {},
     }
-    ordered = sorted(grids)
-    for a, b in zip(ordered[:-1], ordered[1:]):
+    for a, b in grid_pairs(grids):
         key = f"{a}_to_{b}"
         summary["comparisons"][key] = {
             "max_density_l1": float(frame[f"{key}_density_l1"].max()),
