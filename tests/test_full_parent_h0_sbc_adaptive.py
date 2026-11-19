@@ -46,3 +46,15 @@ def test_lowest_q975_selection_is_deterministic():
     frame = pd.DataFrame({"replicate": [0, 1, 2, 3], "q975": [40.0, 22.0, 30.0, 21.0]})
     assert _select_replicates(frame, lowest_q975=2) == (3, 1)
     assert _select_replicates(frame, replicates=[2, 0]) == (2, 0)
+
+
+def test_json_writer_emits_parseable_json_with_real_newline(tmp_path):
+    import json
+    from audit_full_parent_h0_sbc_adaptive import _write_json
+
+    output = tmp_path / "nested" / "audit.json"
+    payload = {"status": "DIAGNOSTIC_COMPLETE", "replicates": [1, 2, 3]}
+    _write_json(output, payload)
+    raw = output.read_text(encoding="utf-8")
+    assert raw.endswith("\\n")
+    assert json.loads(raw) == payload
