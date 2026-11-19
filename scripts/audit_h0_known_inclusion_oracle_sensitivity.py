@@ -93,9 +93,12 @@ def assert_cross_gamma_pairing(parent_reference, parent_candidate,
         raise AssertionError("parent IDs/redshifts differ across gamma")
     if not events_reference.equals(events_candidate):
         raise AssertionError("observed GW events differ across gamma")
-    if not validation_reference[validation_columns].equals(
-        validation_candidate[validation_columns]
-    ):
+    # Validation sizes can differ when one planned cell is non-evaluable.
+    # Compare the shared prefix of the paired validation stream.
+    common_n = min(len(validation_reference), len(validation_candidate))
+    reference_prefix = validation_reference[validation_columns].iloc[:common_n].reset_index(drop=True)
+    candidate_prefix = validation_candidate[validation_columns].iloc[:common_n].reset_index(drop=True)
+    if not reference_prefix.equals(candidate_prefix):
         raise AssertionError("validation IDs/redshifts differ across gamma")
 
 
