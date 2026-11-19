@@ -223,6 +223,22 @@ def audit(root: Path) -> dict:
         beta = float(quadratic_calibration["beta"])
         gamma = float(quadratic_calibration["gamma"])
         x2_center = float(quadratic_calibration["x2_center"])
+        # Independently reconstruct the parent-intensity centering and the
+        # calibrated parent-average retention rate used by the quadratic DGP.
+        z_cal = np.linspace(0.01, 0.40, 20001)
+        intensity = (1.0 + 2.2*np.exp(-0.5*((z_cal-0.105)/0.025)**2)
+                     + 1.6*np.exp(-0.5*((z_cal-0.275)/0.040)**2))
+        x_cal = (z_cal-center)/scale
+        intensity_norm = float(trapezoid(intensity,z_cal))
+        rebuilt_x2 = float(trapezoid(intensity*x_cal**2,z_cal)/intensity_norm)
+        _assert_close(x2_center, rebuilt_x2, "quadratic parent-law x2 centering")
+        rebuilt_rate = float(trapezoid(
+            intensity*expit(alpha+beta*x_cal+gamma*(x_cal**2-x2_center)),z_cal
+        )/intensity_norm)
+        _assert_close(rebuilt_rate,float(quadratic_calibration["target_rate"]),
+                      "quadratic parent-average retention calibration")
+        _assert_close(rebuilt_rate,float(quadratic_calibration["achieved_rate"]),
+                      "quadratic achieved retention rate")
         x_catalogue = (catalogue_z-center)/scale
         true_probability = expit(alpha+beta*x_catalogue+gamma*(x_catalogue**2-x2_center))
         x_parent = (parent["redshift"].to_numpy(float)-center)/scale
