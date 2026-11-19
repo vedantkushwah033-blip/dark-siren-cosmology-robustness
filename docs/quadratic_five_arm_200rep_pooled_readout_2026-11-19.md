@@ -148,3 +148,12 @@ Across n=100, 300, and 500, the known-probability C arm is invariant as expected
 - At gamma=+1, D/E RMSE remain worse than C at all three validation sizes; E moves 5.061 → 5.306 → 5.342.
 
 This is consistent with validation-sample uncertainty and functional-form misspecification being distinct problems: increasing n can reduce estimation noise but cannot make a linear fitted inclusion model represent the quadratic DGP exactly.
+
+
+### Wide-prior five-replicate engineering smoke completed
+
+The [wide-prior smoke workflow 44483782186](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/44483782186) completed SUCCESS on [30,110] with 561 H0 grid points. Its artifact was downloaded and independently rechecked locally: 225/225 lifecycle cells SUCCESS, 225/225 child audit attestations PASS, 15/15 child audit reports PASS, 293 manifest entries verified, and all 45 aggregate metric rows reconstructed. This confirms the new prior-bound parameterization and audit path execute end-to-end. Five replicates are only an engineering smoke and are not used for estimator ranking or coverage claims.
+
+The subsequent 100-replicate wide-prior streams remain in progress:
+- seed 2026111940: [run 44483923518](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/44483923518); its first five seeds overlap the smoke.
+- seed 2026111929: [run 44484212311](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/44484212311); paired to the original narrow-prior run with the same seed schedule.
