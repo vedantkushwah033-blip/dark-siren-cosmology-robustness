@@ -1,0 +1,70 @@
+name: Full-parent paired event-count calibration
+
+on:
+  push:
+    branches:
+      - research/full-parent-event-count-calibration-20261119
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  event-count-calibration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run nested-design and paired-summary tests
+        run: pytest -q tests/test_full_parent_event_count_calibration.py
+      - name: Run 500-replicate paired full-parent event-count experiment
+        run: |
+          python scripts/run_full_parent_event_count_calibration.py \
+            --replicates 500 \
+            --seed 2026111928 \
+            --n-parent 1200 \
+            --h0-true 70 \
+            --prior-min 20 \
+            --prior-max 300 \
+            --h0-points 561 \
+            --output-dir artifacts/full_parent_event_count_calibration
+      - name: Independently verify complete paired denominator and artifact manifest
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path("artifacts/full_parent_event_count_calibration")
+          manifest = json.loads((root / "manifest.json").read_text())
+          for name, expected in manifest.items():
+              actual = hashlib.sha256((root / name).read_bytes()).hexdigest()
+              assert actual == expected, name
+          raw = pd.read_csv(root / "replicates.csv")
+          summary = pd.read_csv(root / "summary.csv")
+          paired = pd.read_csv(root / "paired_contrast.csv")
+          assert len(raw) == 1000, len(raw)
+          assert raw.groupby("event_count").size().to_dict() == {4: 500, 30: 500}
+          assert raw.groupby("replicate").event_count.nunique().eq(2).all()
+          assert len(summary) == 2
+          assert int(paired.loc[0, "paired_replicates"]) == 500
+          assert set(summary.event_count) == {4, 30}
+          assert (summary.success == 500).all()
+          print(summary.to_string(index=False))
+          print(paired.to_string(index=False))
+          print(json.dumps({"manifest_entries_verified": len(manifest),
+                            "paired_replicates": 500, "raw_rows": len(raw)}, indent=2))
+          PY
+      - name: Upload full-parent event-count readout
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-parent-event-count-calibration
+          path: artifacts/full_parent_event_count_calibration/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 6
