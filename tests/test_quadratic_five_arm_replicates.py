@@ -105,3 +105,21 @@ def test_independent_quadrature_solver_replays_previously_non_evaluable_seed():
         assert nodes.shape==(25,2)
         assert weights.shape==(25,)
         assert np.isclose(weights.sum(),1.0,atol=1e-12)
+
+
+def test_expanded_prior_failure_bounds_use_full_support_width():
+    summaries = pd.DataFrame(columns=[
+        "replicate", "gamma", "validation_size", "arm", "status",
+        "h0_true", "median_error", "q16", "q84",
+    ])
+    ledger = pd.DataFrame([
+        {"replicate": r, "gamma": 0.0, "validation_size": 100,
+         "arm": arm, "status": "FAILED"}
+        for r in (0, 1) for arm in ARMS
+    ])
+    aggregate = _aggregate(
+        summaries, ledger, replicates=2, max_abs_error=40.0,
+        max_interval_width=80.0,
+    )
+    assert (aggregate.failure_inclusive_rmse_upper == 40.0).all()
+    assert (aggregate.failure_inclusive_width_upper == 80.0).all()
