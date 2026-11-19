@@ -46,10 +46,11 @@ jobs:
           repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
           run-id: 44440150116
           path: artifacts/full_parent_h0_sbc
-      - name: Reconstruct all 200 SBC posteriors on 561 and 1121 grids
+      - name: Reconstruct all 200 SBC posteriors on 561, 1121, and 2241 grids
         run: |
           python scripts/audit_full_parent_h0_sbc_grid.py artifacts/full_parent_h0_sbc \
-            --fine-points 1121 \
+            --intermediate-points 1121 \
+            --fine-points 2241 \
             --max-quantile-shift 0.05 \
             --max-rank-shift 0.002 \
             --max-density-l1 0.001 \
