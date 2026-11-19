@@ -16,7 +16,7 @@ on:
 
 concurrency:
   group: quadratic-five-arm-multireplicate-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   paired-30-event-pilot:
