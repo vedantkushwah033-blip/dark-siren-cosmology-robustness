@@ -68,5 +68,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: five-arm-prior-predictive-smoke
-          path: artifacts/five_arm_prior_predictive_smoke/\n                artifacts/five_arm_prior_predictive_sbc_summary/
+          path: |
+            artifacts/five_arm_prior_predictive_smoke/
+            artifacts/five_arm_prior_predictive_sbc_summary/
           if-no-files-found: warn
