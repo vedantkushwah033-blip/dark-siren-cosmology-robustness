@@ -25,7 +25,7 @@ All values below are posterior medians for this one fixed realization. The repor
 | Degree-specific MAP IPW D | 85.735 | 84.446 | 84.841 | 83.282 |
 | Degree-specific integrated IPW E | 85.661 | 84.680 | 84.854 | 83.420 |
 
-The degree-two fitted inclusion model is correctly specified for this quadratic-logit synthetic DGP, unlike degree one. In this one realization D2 moves the D/E posterior medians closer to truth, particularly at n=300. This is not evidence of average improvement: the sample contains only four events, one parent/catalogue realization, one curvature, and one truth.
+The degree-two fitted inclusion model is correctly specified for this quadratic-logit synthetic DGP, unlike degree one. As an additional paired-input invariance check, I compared the stored likelihood arrays directly: H0/redshift grids and all A/B/C likelihood and density arrays are bitwise identical between D1 and D2 at both validation sizes. Only the degree-specific D/E arms differ. In this one realization D2 moves the D/E posterior medians closer to truth, particularly at n=300. This is not evidence of average improvement: the sample contains only four events, one parent/catalogue realization, one curvature, and one truth.
 
 The oracle arm is also far from truth in this realization (median 91.47). This reinforces that an oracle inclusion probability does not remove event-sampling and finite-catalogue variability. It should not be interpreted as an estimator failure on its own.
 
