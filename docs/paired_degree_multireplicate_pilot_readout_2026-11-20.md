@@ -54,7 +54,7 @@ The D2 basis is now centered as `[1,x,x^2-c_g]`. With independent Gaussian coeff
 
 The PR #133 workflow was expanded to 20 paired replicates with master seed `2026112020`, gamma {-1,0,+1}, N_parent=1200, 30 events, validation sizes {100,500}, fixed H0=70, prior [30,110], 281-point grid and quadrature order 5.
 
-At the time of this readout, the paired workflow and Python test matrix had not yet started; they were pending in GitHub Actions. No 20-replicate result is claimed here.
+Workflow 44723868722 has started: the centered-prior covariance audit and paired-orchestrator regression tests passed, and the 20-replicate simulation step is still in progress. The Python 3.10/3.11/3.12 test matrix (run 44724793170) is also in progress. No 20-replicate result is claimed here until the simulation and independent outer audit both finish.
 
 ## Conclusion
 
