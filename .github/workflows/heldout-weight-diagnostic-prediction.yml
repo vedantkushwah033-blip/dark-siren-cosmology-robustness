@@ -16,7 +16,7 @@ permissions:
 
 concurrency:
   group: heldout-weight-diagnostic-prediction
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   heldout-prediction:
