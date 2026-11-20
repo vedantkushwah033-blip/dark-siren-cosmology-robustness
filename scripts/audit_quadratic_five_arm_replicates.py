@@ -136,7 +136,7 @@ def audit(root: Path) -> dict:
         if int(entry["h0_truth_seed"])!=expected_seed or float(entry["h0_true"])!=expected_truth:
             raise AssertionError(f"H0 truth schedule reconstruction mismatch at replicate {rep}")
     identity=["replicate","gamma","validation_size","arm","analysis_seed","event_seed",
-        "validation_seed","h0_truth_seed","h0_true"]
+        "validation_seed","validation_sample_seed","h0_truth_seed","h0_true"]
     joined=planned[["cell_id",*identity]].merge(ledger[["cell_id",*identity]],on="cell_id",
         how="inner",suffixes=("_planned","_ledger"),validate="one_to_one")
     for name in identity:
@@ -165,6 +165,9 @@ def audit(root: Path) -> dict:
             child_cfg=json.loads((d/"config.json").read_text())
             if (int(child_cfg["seed"])!=_seed(int(cfg["master_seed"]),int(rep),0)
                 or int(child_cfg["validation_seed"])!=_seed(int(cfg["master_seed"]),int(rep),1)
+                or int(child_cfg.get("validation_sample_seed",-1))!=_seed(int(cfg["master_seed"]),int(rep),4)
+                or int(child_cfg.get("quadratic_calibration",{}).get("validation_sample_seed",-1))
+                    !=_seed(int(cfg["master_seed"]),int(rep),4)
                 or float(child_cfg["curvature_gamma"])!=float(gamma)
                 or int(child_cfg["n_detected"])!=int(cfg["n_detected"])
                 or int(child_cfg["n_parent"])!=int(cfg["n_parent"])
@@ -215,7 +218,7 @@ def audit(root: Path) -> dict:
             pairing_blocks+=1
 
     # Independently reconstruct the top-level seed schedule.
-    for row in planned[["replicate","analysis_seed","event_seed","validation_seed","h0_truth_seed","h0_true"]].drop_duplicates().itertuples(index=False):
+    for row in planned[["replicate","analysis_seed","event_seed","validation_seed","validation_sample_seed","h0_truth_seed","h0_true"]].drop_duplicates().itertuples(index=False):
         rep=int(row.replicate)
         if int(row.analysis_seed)!=_seed(int(cfg["master_seed"]),rep,0):
             raise AssertionError("analysis seed schedule mismatch")
@@ -223,6 +226,8 @@ def audit(root: Path) -> dict:
             raise AssertionError("validation seed schedule mismatch")
         if int(row.event_seed)!=_seed(int(cfg["master_seed"]),rep,3):
             raise AssertionError("event seed schedule mismatch")
+        if int(row.validation_sample_seed)!=_seed(int(cfg["master_seed"]),rep,4):
+            raise AssertionError("validation sample seed schedule mismatch")
         expected_seed=int(truth_schedule[rep]["h0_truth_seed"])
         expected_truth=float(truth_schedule[rep]["h0_true"])
         if int(row.h0_truth_seed)!=expected_seed or float(row.h0_true)!=expected_truth:
