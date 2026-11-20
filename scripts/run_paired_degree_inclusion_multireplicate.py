@@ -114,7 +114,7 @@ def run(args: argparse.Namespace) -> dict:
             sys.executable, str(runner),
             "--master-seed", str(args.master_seed),
             "--replicates", str(args.replicates),
-            "--gammas", ",".join(map(str, args.gammas)),
+            "--gammas=" + ",".join(map(str, args.gammas)),
             "--n-parent", str(args.n_parent),
             "--n-detected", str(args.n_detected),
             "--validation-frame", str(args.validation_frame),
