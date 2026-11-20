@@ -1,0 +1,111 @@
+name: 30-replicate geometric-grid prior-predictive five-arm extension
+
+on:
+  push:
+    branches:
+      - research/prior-predictive-30rep-geometric-20261120
+    paths:
+      - .github/workflows/geometric-h0-prior-predictive-30rep.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  prior-predictive-30rep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Check out isolated research branch
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Test five-arm orchestration, geometric grid, audits, and readouts
+        run: |
+          python -m pytest -q \
+            tests/test_quadratic_five_arm_smoke.py \
+            tests/test_quadratic_five_arm_replicates.py \
+            tests/test_prior_predictive_sbc_summary.py \
+            tests/test_analyze_prior_predictive_sbc.py \
+            tests/test_audit_geometric_prior_predictive_h0_grid.py
+      - name: Run 30 independently seeded prior-predictive truths
+        run: |
+          python scripts/run_quadratic_five_arm_replicates.py \
+            --master-seed 2026112030 \
+            --replicates 30 \
+            --truth-mode prior_predictive \
+            --gammas=-1,0,1 \
+            --n-parent 1200 \
+            --n-detected 30 \
+            --validation-frame 500 \
+            --validation-sizes 100,300,500 \
+            --h0-prior-min 30 \
+            --h0-prior-max 110 \
+            --h0-points 1121 \
+            --h0-grid-type geometric \
+            --quadrature-order 5 \
+            --output-dir artifacts/geometric_prior_predictive_30rep
+      - name: Independently audit all 90 child runs and aggregate outputs
+        run: |
+          python scripts/audit_quadratic_five_arm_replicates.py \
+            artifacts/geometric_prior_predictive_30rep \
+            --output artifacts/geometric_prior_predictive_30rep/independent_audit.json
+      - name: Summarize prior-predictive ranks and interval coverage
+        run: |
+          python scripts/summarize_prior_predictive_sbc.py \
+            artifacts/geometric_prior_predictive_30rep \
+            --output-dir artifacts/geometric_prior_predictive_30rep_sbc
+      - name: Produce paired detailed Monte Carlo readout
+        run: |
+          python scripts/analyze_prior_predictive_sbc.py \
+            artifacts/geometric_prior_predictive_30rep \
+            --output-dir artifacts/geometric_prior_predictive_30rep_readout
+      - name: Package frozen source tree for exact grid replay
+        run: |
+          zip -qr geometric-prior-predictive-30rep-source.zip artifacts/geometric_prior_predictive_30rep
+      - name: Recompute selected likelihoods on 2,241-point geometric H0 grid
+        run: |
+          python scripts/audit_geometric_prior_predictive_h0_grid.py \
+            --artifact-zip geometric-prior-predictive-30rep-source.zip \
+            --replicates 30 \
+            --source-points 1121 \
+            --fine-points 2241 \
+            --output-dir artifacts/geometric_prior_predictive_30rep_grid_audit
+      - name: Fail closed on lifecycle, readout, and grid audit
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("artifacts/geometric_prior_predictive_30rep")
+          cfg = json.loads((root / "config.json").read_text())
+          audit = json.loads((root / "independent_audit.json").read_text())
+          sbc = json.loads(Path("artifacts/geometric_prior_predictive_30rep_sbc/summary_report.json").read_text())
+          readout = json.loads(Path("artifacts/geometric_prior_predictive_30rep_readout/detailed_readout_report.json").read_text())
+          grid = json.loads(Path("artifacts/geometric_prior_predictive_30rep_grid_audit/geometric_h0_grid_refinement_summary.json").read_text())
+          assert cfg["replicates"] == 30 and cfg["h0_grid_type"] == "geometric" and cfg["h0_points"] == 1121
+          assert audit["status"] == "PASS" and audit["planned_cells"] == 1350
+          assert audit["successful_child_runs"] == 90
+          assert sbc["status"] == "PASS" and sbc["successful_cells"] == 1350
+          assert readout["status"] == "PASS" and readout["successful_cells"] == 1350
+          assert grid["status"] == "PASS" and grid["rows"] == 1350
+          assert grid["likelihood_reconstruction_max_abs_error"] <= 1e-8
+          assert grid["max_rank_shift"] <= 0.002
+          assert grid["max_nine_quantile_shift"] <= 0.05
+          assert grid["max_posterior_density_l1"] <= 0.001
+          PY
+      - name: Upload complete 30-replicate and grid-audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geometric-h0-prior-predictive-30rep
+          path: |
+            artifacts/
+            geometric-prior-predictive-30rep-source.zip
+          if-no-files-found: error
