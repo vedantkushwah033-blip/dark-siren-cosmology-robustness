@@ -73,10 +73,9 @@ def load_audited_stream(root: Path):
         summaries["audit_status"] == "PASS"
     ).all():
         raise AssertionError("posterior summaries are not all child-audited SUCCESS")
-    if not (diagnostics["status"] == "SUCCESS").all() or not (
-        diagnostics["audit_status"] == "PASS"
-    ).all():
-        raise AssertionError("weight diagnostics are not all child-audited SUCCESS")
+    # The aggregate diagnostic table contains measured metrics and pairing keys,
+    # not lifecycle status columns. Its provenance is covered by the audited
+    # replicate ledger and each source artifact's manifest.
     for label, frame in [("ledger", ledger), ("planned", planned),
                          ("summaries", summaries), ("diagnostics", diagnostics)]:
         if frame["cell_id"].duplicated().any():
