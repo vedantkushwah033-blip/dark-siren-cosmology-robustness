@@ -41,6 +41,21 @@ def test_degree_contrasts_are_paired_and_use_d2_minus_d1():
     assert row.median_error_difference_d2_minus_d1_mcse > 0
 
 
+def test_independent_auditor_reconstructs_paired_aggregate_metrics():
+    from audit_paired_degree_multireplicate_pilot import _reconstruct_aggregate
+
+    data = _summaries()
+    d1 = data[data.index % 2 == 0].copy()
+    d2 = data[data.index % 2 == 1].copy()
+    paired = _paired_summary(d1, d2)
+    expected = _aggregate_paired(paired)
+    actual = _reconstruct_aggregate(paired)
+    pd.testing.assert_frame_equal(
+        actual, expected, check_dtype=False, check_exact=False,
+        rtol=1e-12, atol=1e-12,
+    )
+
+
 def test_degree_pair_rejects_changed_observable_inputs(tmp_path: Path):
     left, right = tmp_path / "d1", tmp_path / "d2"
     for root in (left, right):
