@@ -241,10 +241,10 @@ def run(args: argparse.Namespace) -> dict:
         "experiment": "paired_degree1_degree2_quadratic_logit_multireplicate_pilot",
         "status": "PASS" if complete else "INCOMPLETE",
         "claim_limit": "Finite paired synthetic pilot only; no estimator superiority, calibration, or observational inference.",
-        "degree_prior_caveat": (
-            "Degree-one and degree-two coefficient priors are not automatically equivalent: "
-            "the quadratic basis and induced prior must be documented before attributing "
-            "differences solely to functional-form flexibility."
+        "degree_prior_parameterization": (
+            "Degree one uses [1,x] with independent Gaussian priors on (alpha,beta); "
+            "degree two uses the centered basis [1,x,x^2-c_g] with the same marginal "
+            "prior on (alpha,beta) and an independent Gaussian prior on gamma."
         ),
         "master_seed": args.master_seed, "replicates": args.replicates,
         "gammas": args.gammas, "n_parent": args.n_parent, "n_detected": args.n_detected,
