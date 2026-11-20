@@ -161,8 +161,8 @@ def test_independent_pair_auditor_uses_recorded_check_schema(tmp_path: Path):
             "truth/gw_event_truth.csv",
             "truth/validation_frame_truth.csv",
         ):
-            (root / rel).write_text("id,value\\n1,2\\n")
-        (root / "observable/validation_n100.csv").write_text("id,value\\n1,2\\n")
+            (root / rel).write_text("id,value\n1,2\n")
+        (root / "observable/validation_n100.csv").write_text("id,value\n1,2\n")
         np.savez(
             root / "results/log_likelihoods.npz",
             H0_grid=np.array([30.0, 31.0]),
