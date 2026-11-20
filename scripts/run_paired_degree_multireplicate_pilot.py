@@ -119,16 +119,23 @@ def _verify_child_pair(d1: Path, d2: Path) -> dict:
     ) as b:
         if not np.array_equal(a["H0_grid"], b["H0_grid"]):
             raise AssertionError("H0 grids differ across inclusion-model degrees")
+        maximum_common_arm_delta = 0.0
         for nval in sorted(int(x.split("_n")[-1]) for x in a.files
                            if x.startswith("A_catalogue_only_n")):
             for arm in COMMON_ARMS:
                 key = f"{arm}_n{nval}"
-                if not np.array_equal(a[key], b[key]):
-                    delta = float(np.max(np.abs(a[key] - b[key])))
+                delta = float(np.max(np.abs(a[key] - b[key])))
+                maximum_common_arm_delta = max(maximum_common_arm_delta, delta)
+                if not np.allclose(a[key], b[key], rtol=1e-12, atol=1e-12):
                     raise AssertionError(
-                        f"common arm {key} changed across model degrees; max abs delta={delta}"
+                        f"common arm {key} changed beyond floating-point tolerance; "
+                        f"max abs delta={delta}"
                     )
-    return {"input_files_compared": checked, "common_arm_likelihoods_exact": True}
+    return {
+        "input_files_compared": checked,
+        "common_arm_likelihoods_within_tolerance": True,
+        "maximum_common_arm_log_likelihood_difference": maximum_common_arm_delta,
+    }
 
 
 def run(args: argparse.Namespace) -> dict:
