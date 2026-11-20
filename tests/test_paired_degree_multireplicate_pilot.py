@@ -245,8 +245,8 @@ def test_paired_degree_checks_reject_asymmetric_validation_file_sets(tmp_path: P
             "truth/gw_event_truth.csv",
             "truth/validation_frame_truth.csv",
         ):
-            (root / rel).write_text("id,value\\n1,2\\n")
-        (root / "observable/validation_n100.csv").write_text("id,value\\n1,2\\n")
+            (root / rel).write_text("id,value\n1,2\n")
+        (root / "observable/validation_n100.csv").write_text("id,value\n1,2\n")
         np.savez(
             root / "results/log_likelihoods.npz",
             H0_grid=np.array([30.0, 31.0]),
@@ -262,8 +262,8 @@ def test_paired_degree_checks_reject_asymmetric_validation_file_sets(tmp_path: P
     with pytest.raises(AssertionError, match="validation-file sets differ"):
         _verify_child_pair(left, right)
 
-    (right / "observable/validation_n100.csv").write_text("id,value\\n1,2\\n")
-    (right / "observable/validation_n300.csv").write_text("id,value\\n1,2\\n")
+    (right / "observable/validation_n100.csv").write_text("id,value\n1,2\n")
+    (right / "observable/validation_n300.csv").write_text("id,value\n1,2\n")
     with pytest.raises(AssertionError, match="validation-file sets differ"):
         _verify_pair(left, right)
     with pytest.raises(AssertionError, match="validation-file sets differ"):
@@ -275,7 +275,7 @@ def test_outer_manifest_preserves_incomplete_lifecycle_status(tmp_path: Path):
     import json
 
     payload = tmp_path / "partial.csv"
-    payload.write_text("value\\n1\\n")
+    payload.write_text("value\n1\n")
     manifest = _write_manifest(tmp_path, "INCOMPLETE")
     saved = json.loads((tmp_path / "manifest.json").read_text())
     assert manifest["status"] == "INCOMPLETE"
