@@ -72,29 +72,31 @@ These are 12 exploratory comparisons without a familywise multiplicity adjustmen
 
 ## Weight-stability diagnostics
 
-For D (MAP plug-in IPW), the table below gives median Kish ESS and median top-5%-weight mass across the 20 replicates. For E (coefficient-posterior-integrated IPW), it gives the median across replicates of the *minimum over coefficient-quadrature nodes* Kish ESS and the *maximum over nodes* top-5%-weight mass. These are different summaries and should not be compared as if they were the same estimator-level ESS.
+For E (coefficient-posterior-integrated IPW), the original stored diagnostics report the minimum node-wise Kish ESS and maximum node-wise top-5%-weight mass across all quadrature nodes. Those are worst-case summaries. I independently reconstructed the node-specific inverse-inclusion weights from the archived posterior nodes, posterior quadrature weights, catalogue redshifts, and common host-rate base weights. The reconstructed extrema match the stored diagnostics to floating-point precision across all 240 degree × replicate × curvature × validation-size records.
 
-| Curvature | n_validation | D1 D Kish ESS | D2 D Kish ESS | D1 D top-5% mass | D2 D top-5% mass | D1 E minimum-node Kish ESS | D2 E minimum-node Kish ESS | D1 E maximum-node top-5% mass | D2 E maximum-node top-5% mass |
+To avoid treating negligible-posterior-mass tail nodes as representative, the table also reports posterior-mass-weighted quantiles across coefficient nodes. “Weighted q05/q50 ESS” are the 5th percentile and median of node-wise Kish ESS under the validation-posterior quadrature weights. “Weighted q50 top-5%” is the posterior-weighted median node-wise top-5%-weight mass.
+
+| Curvature | n_validation | D1 min ESS | D2 min ESS | D1 weighted q05 / q50 ESS | D2 weighted q05 / q50 ESS | D1 max top-5% | D2 max top-5% | D1 weighted median top-5% | D2 weighted median top-5% |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| -1 | 100 | 223.7 | 170.1 | 27.2% | 32.2% | 46.9 | 2.9 | 56.9% | 96.4% |
-| -1 | 500 | 169.7 | 110.3 | 31.2% | 36.2% | 73.5 | 8.6 | 45.3% | 78.4% |
-| 0 | 100 | 177.7 | 136.0 | 31.6% | 35.1% | 38.2 | 2.9 | 64.1% | 97.6% |
-| 0 | 500 | 146.8 | 149.6 | 35.8% | 35.6% | 65.7 | 12.2 | 52.0% | 77.2% |
-| +1 | 100 | 136.4 | 164.9 | 37.0% | 35.5% | 27.9 | 4.7 | 69.8% | 96.0% |
-| +1 | 500 | 106.1 | 172.1 | 40.0% | 33.8% | 44.0 | 20.7 | 56.6% | 68.3% |
+| -1 | 100 | 46.9 | 2.9 | 103.2 / 223.7 | 21.1 / 170.1 | 56.9% | 96.4% | 27.2% | 32.2% |
+| -1 | 500 | 73.5 | 8.6 | 114.3 / 169.7 | 39.4 / 110.3 | 45.3% | 78.4% | 31.2% | 36.2% |
+| 0 | 100 | 38.2 | 2.9 | 78.3 / 177.7 | 19.1 / 133.3 | 64.1% | 97.6% | 31.6% | 35.1% |
+| 0 | 500 | 65.7 | 12.2 | 99.5 / 146.8 | 59.6 / 149.6 | 52.0% | 77.2% | 35.8% | 35.6% |
+| +1 | 100 | 27.9 | 4.7 | 60.1 / 136.4 | 26.5 / 152.5 | 69.8% | 96.0% | 37.0% | 35.5% |
+| +1 | 500 | 44.0 | 20.7 | 68.2 / 106.1 | 93.3 / 172.1 | 56.6% | 68.3% | 40.0% | 33.8% |
 
-The integrated degree-two arm has particularly severe node-wise IPW concentration in several cells: median minimum-node Kish ESS is about 2.9 at (gamma=-1,n=100) and (gamma=0,n=100), while the median maximum-node top-5% mass is 96–98%. This is a plausible instability mechanism worth investigating; it is not a universal ESS cutoff or proof that degree two is intrinsically inferior. It also explains why coefficient-posterior integration alone should not be assumed to regularize inverse-probability weights.
+The distinction matters. Degree two has much more extreme worst-case nodes, especially at n=100, and a lower posterior-weighted 5th-percentile ESS in every curvature/size cell. But its posterior-weighted median ESS is not uniformly worse, and its weighted-median top-5% mass is broadly comparable to degree one. Therefore the earlier worst-node warning should not be read as saying that most posterior mass has catastrophic ESS. It identifies a low-posterior-mass tail that still deserves scrutiny; it does not establish a universal ESS cutoff or estimator failure.
 
 ## Exploratory weight-diagnostic / error association
 
-Within each of the 12 degree × curvature × validation-size cells (20 replicates each), I computed Spearman rank correlations between E-arm absolute H0 median error and (i) the minimum-node Kish ESS and (ii) the maximum-node top-5%-weight mass. These are post-hoc exploratory checks, not a prespecified diagnostic-prediction test.
+Within each of the 12 degree × curvature × validation-size cells (20 replicates each), I computed Spearman rank correlations between E-arm absolute H0 median error and (i) the posterior-mass-weighted 5th percentile of node-wise Kish ESS and (ii) the posterior-mass-weighted 90th percentile of node-wise top-5%-weight mass. These are post-hoc exploratory checks, not a prespecified diagnostic-prediction test.
 
-The clearest unadjusted associations occurred at positive curvature:
-- Degree one, (gamma=+1,n=100): (ho(mathrm{minESS},|e|)=-0.453), p=0.045; (ho(mathrm{maxTop5},|e|)=+0.529), p=0.016.
-- Degree one, (gamma=+1,n=500): (ho(mathrm{minESS},|e|)=-0.481), p=0.032; top-5 mass correlation +0.408, p=0.075.
-- Degree two, (gamma=+1,n=500): (ho(mathrm{minESS},|e|)=-0.511), p=0.021; top-5 mass correlation +0.442, p=0.051.
+The largest unadjusted associations were:
+- Degree one, \\(\gamma=+1,n=100\\): \\(\rho(q_{05}(ESS),|e|)=-0.430\\), p=0.058; \\(\rho(q_{90}(top5),|e|)=+0.483\\), p=0.031.
+- Degree one, \\(\gamma=+1,n=500\\): \\(\rho(q_{05}(ESS),|e|)=-0.480\\), p=0.032; top-5 mass correlation +0.454, p=0.044.
+- Degree two, \\(\gamma=+1,n=500\\): \\(\rho(q_{05}(ESS),|e|)=-0.531\\), p=0.016; top-5 mass correlation +0.514, p=0.020.
 
-None of the 24 correlation tests survives a Bonferroni threshold of (0.05/24approx0.0021). The remaining cells show mixed directions. Thus this pilot does **not** establish that these pre-posterior diagnostics predict posterior error. It motivates a larger preregistered validation with held-out replicates and a multiplicity-controlled prediction test.
+None of the 24 correlation tests survives a Bonferroni threshold of \\(0.05/24\\approx0.0021\\). Other cells show mixed directions. This pilot therefore does **not** establish that pre-posterior weight diagnostics predict posterior error. A larger preregistered study with held-out replicates and multiplicity-controlled prediction is needed.
 
 ## Interpretation and limits
 
