@@ -142,16 +142,44 @@ def run(args: argparse.Namespace) -> dict:
                 raise AssertionError(f"{label} independent audit did not PASS")
 
             config = json.loads((child / "config.json").read_text())
-            if (int(config["inclusion_model_degree"]) != degree
-                or int(config["quadrature_order"]) != order
-                or int(config["seed"]) != args.seed
-                or int(config["validation_seed"]) != args.validation_seed
-                or float(config["curvature_gamma"]) != args.gamma):
-                raise AssertionError(f"{label} config differs from frozen paired design")
+            expected_config = {
+                "seed": args.seed,
+                "validation_seed": args.validation_seed,
+                "n_parent": args.n_parent,
+                "n_detected": args.n_detected,
+                "validation_frame": args.validation_frame,
+                "validation_sizes": args.validation_sizes,
+                "catalogue_floor": 0.10,
+                "catalogue_model": "quadratic_logit",
+                "inclusion_model_degree": degree,
+                "curvature_gamma": args.gamma,
+                "curvature_beta": args.curvature_beta,
+                "h0_true": args.h0_true,
+                "h0_prior_support": [args.h0_prior_min, args.h0_prior_max],
+                "h0_grid_points": args.h0_points,
+                "scott_multiplier": args.scott_multiplier,
+                "quadrature_order": order,
+                "sigma_mpc": args.sigma_mpc,
+                "detection_threshold_mpc": args.detection_threshold_mpc,
+                "truth_used_for_non_oracle_inference": False,
+                "truth_used_for_arm_c_only": True,
+            }
+            for key, expected in expected_config.items():
+                if config.get(key) != expected:
+                    raise AssertionError(
+                        f"{label} config mismatch for {key}: {config.get(key)!r} != {expected!r}"
+                    )
             if reference is None:
                 reference = child
             else:
                 input_checks += _compare_inputs(reference, child)
+                reference_config = json.loads((reference / "config.json").read_text())
+                for key in (
+                    "n_catalogue_observed", "quadratic_calibration",
+                    "redshift_grid_points", "bandwidth_selection_status",
+                ):
+                    if config.get(key) != reference_config.get(key):
+                        raise AssertionError(f"{label} paired configuration mismatch for {key}")
 
             child_diagnostics = pd.read_csv(child / "results" / "weight_diagnostics.csv")
             child_diagnostics.insert(0, "quadrature_order", order)
