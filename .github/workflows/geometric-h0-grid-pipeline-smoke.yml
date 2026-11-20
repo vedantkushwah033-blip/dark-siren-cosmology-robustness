@@ -1,0 +1,73 @@
+name: geometric-h0-grid-pipeline-smoke
+
+on:
+  push:
+    branches:
+      - research/five-arm-prior-predictive-20rep-20261120
+    paths:
+      - scripts/run_quadratic_five_arm_smoke.py
+      - scripts/run_quadratic_five_arm_replicates.py
+      - scripts/audit_quadratic_five_arm_smoke.py
+      - scripts/audit_quadratic_five_arm_replicates.py
+      - tests/test_quadratic_five_arm_smoke.py
+      - .github/workflows/geometric-h0-grid-pipeline-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  geometric-grid-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Test linear and geometric H0 grid construction and child audit
+        run: python -m pytest -q tests/test_quadratic_five_arm_smoke.py
+      - name: Run two-replicate geometric-grid five-arm pilot
+        run: |
+          python scripts/run_quadratic_five_arm_replicates.py \
+            --master-seed 2026112023 \
+            --replicates 2 \
+            --gammas=0 \
+            --n-parent 300 \
+            --n-detected 4 \
+            --validation-frame 120 \
+            --validation-sizes 50,100 \
+            --truth-mode prior_predictive \
+            --h0-prior-min 30 \
+            --h0-prior-max 110 \
+            --h0-points 1121 \
+            --h0-grid-type geometric \
+            --quadrature-order 3 \
+            --output-dir artifacts/geometric_h0_grid_smoke
+      - name: Independently audit geometric-grid parent and child artifacts
+        run: |
+          python scripts/audit_quadratic_five_arm_replicates.py \
+            artifacts/geometric_h0_grid_smoke \
+            --output artifacts/geometric_h0_grid_smoke/independent_audit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("artifacts/geometric_h0_grid_smoke")
+          report = json.loads((root / "independent_audit.json").read_text())
+          config = json.loads((root / "config.json").read_text())
+          assert report["status"] == "PASS"
+          assert config["h0_grid_type"] == "geometric"
+          assert config["h0_points"] == 1121
+          assert report["successful_replicates"] == 2
+          PY
+      - name: Upload geometric-grid smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geometric-h0-grid-pipeline-smoke
+          path: artifacts/geometric_h0_grid_smoke/
+          if-no-files-found: error
