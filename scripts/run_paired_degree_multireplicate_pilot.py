@@ -145,6 +145,9 @@ def run(args: argparse.Namespace) -> dict:
         raise ValueError("output directory must be empty")
     runner = Path(__file__).with_name("run_quadratic_five_arm_replicates.py")
     auditor = Path(__file__).with_name("audit_quadratic_five_arm_replicates.py")
+    truth_mode = str(getattr(args, "h0_truth_mode", "fixed"))
+    if truth_mode not in ("fixed", "prior_predictive"):
+        raise ValueError("H0 truth mode must be fixed or prior_predictive")
     child_roots = {}
     runs = []
     for degree in (1, 2):
@@ -162,6 +165,7 @@ def run(args: argparse.Namespace) -> dict:
             "--curvature-beta", str(args.curvature_beta),
             "--inclusion-degree", str(degree),
             "--h0-true", str(args.h0_true),
+            "--h0-truth-mode", truth_mode,
             "--h0-prior-min", str(args.h0_prior_min),
             "--h0-prior-max", str(args.h0_prior_max),
             "--h0-points", str(args.h0_points),
@@ -214,7 +218,8 @@ def run(args: argparse.Namespace) -> dict:
         for key in ("master_seed", "replicates", "gammas", "n_parent", "n_detected",
                     "validation_frame", "validation_sizes", "curvature_beta",
                     "h0_true", "h0_prior_support", "h0_points", "scott_multiplier",
-                    "quadrature_order", "sigma_mpc", "detection_threshold_mpc"):
+                    "quadrature_order", "sigma_mpc", "detection_threshold_mpc",
+                    "h0_truth_mode", "seed_schedule"):
             if runs[0]["config"].get(key) != runs[1]["config"].get(key):
                 raise AssertionError(f"degree runs differ in frozen setting {key}")
         for rep in range(args.replicates):
@@ -250,6 +255,7 @@ def run(args: argparse.Namespace) -> dict:
         "gammas": args.gammas, "n_parent": args.n_parent, "n_detected": args.n_detected,
         "validation_frame": args.validation_frame, "validation_sizes": args.validation_sizes,
         "curvature_beta": args.curvature_beta, "h0_true": args.h0_true,
+        "h0_truth_mode": truth_mode,
         "h0_prior_support": [args.h0_prior_min, args.h0_prior_max],
         "h0_points": args.h0_points, "scott_multiplier": args.scott_multiplier,
         "quadrature_order": args.quadrature_order, "sigma_mpc": args.sigma_mpc,
@@ -286,6 +292,7 @@ def main() -> None:
                    default=[100, 300, 500])
     p.add_argument("--curvature-beta", type=float, default=-3.9)
     p.add_argument("--h0-true", type=float, default=70.0)
+    p.add_argument("--h0-truth-mode", choices=("fixed", "prior_predictive"), default="fixed")
     p.add_argument("--h0-prior-min", type=float, default=30.0)
     p.add_argument("--h0-prior-max", type=float, default=110.0)
     p.add_argument("--h0-points", type=int, default=281)
