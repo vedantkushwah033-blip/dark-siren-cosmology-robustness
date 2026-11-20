@@ -150,9 +150,11 @@ def _independent_inclusion_quadrature(
     z = np.asarray(validation_z, dtype=float)
     y = np.asarray(retained, dtype=float)
     x = (z - center) / scale
-    design = np.column_stack((np.ones(z.size), x))
-    prior_mean = np.zeros(2)
-    prior_sd = np.array([5.0, 2.5])
+    degree = int(getattr(_independent_inclusion_quadrature, "_audit_degree", 1))
+    dimension = degree + 1
+    design = np.column_stack([x ** power for power in range(dimension)])
+    prior_mean = np.zeros(dimension)
+    prior_sd = np.asarray([5.0] + [2.5] * (dimension - 1), dtype=float)
     precision = 1.0 / prior_sd**2
 
     def objective(theta):
@@ -212,15 +214,15 @@ def _independent_inclusion_quadrature(
     covariance = np.linalg.inv(information(mode))
     chol = np.linalg.cholesky(covariance)
     gh_nodes, gh_weights = roots_hermitenorm(order)
-    indices = list(product(range(order), repeat=2))
-    standard = np.asarray([[gh_nodes[i] for i in pair] for pair in indices], dtype=float)
+    indices = list(product(range(order), repeat=dimension))
+    standard = np.asarray([[gh_nodes[i] for i in index] for index in indices], dtype=float)
     base_log_weights = np.asarray([
-        sum(math.log(gh_weights[i]) for i in pair) - math.log(2.0 * math.pi)
-        for pair in indices
+        sum(math.log(gh_weights[i]) for i in index) - 0.5 * dimension * math.log(2.0 * math.pi)
+        for index in indices
     ])
     nodes = mode[None, :] + standard @ chol.T
     log_proposal = (
-        -math.log(2.0 * math.pi)
+        -0.5 * dimension * math.log(2.0 * math.pi)
         -0.5 * np.sum(standard**2, axis=1)
         -float(np.sum(np.log(np.diag(chol))))
     )
@@ -229,7 +231,7 @@ def _independent_inclusion_quadrature(
     log_prior = (
         -0.5 * np.sum(((nodes - prior_mean) / prior_sd) ** 2, axis=1)
         -float(np.sum(np.log(prior_sd)))
-        -math.log(2.0 * math.pi)
+        -0.5 * dimension * math.log(2.0 * math.pi)
     )
     log_importance = base_log_weights + log_likelihood + log_prior - log_proposal
     weights = np.exp(log_importance - logsumexp(log_importance))
@@ -257,6 +259,10 @@ def audit(root: Path) -> dict:
     config = json.loads((root / "config.json").read_text(encoding="utf-8"))
     if config["status"] != "engineering_smoke_not_confirmatory_not_observational":
         raise AssertionError("artifact claim-status label is missing or unexpected")
+    inclusion_degree = int(config.get("inclusion_model_degree", 1))
+    if inclusion_degree not in (1, 2):
+        raise AssertionError("inclusion model degree must be 1 or 2")
+    _independent_inclusion_quadrature._audit_degree = inclusion_degree
     floor = float(config["catalogue_floor"])
     midpoint, width = 0.22, 0.05
     center, scale = 0.205, 0.195
@@ -423,11 +429,11 @@ def audit(root: Path) -> dict:
         y = validation["retained"].to_numpy(int)
         z_validation = validation["redshift"].to_numpy(float)
         x_validation = (z_validation - center) / scale
-        design_validation = np.column_stack([np.ones(n), x_validation])
+        design_validation = np.column_stack([x_validation ** power for power in range(inclusion_degree + 1)])
         nodes = archive[f"posterior_nodes_n{n}"]
         mode = archive[f"posterior_mode_n{n}"]
         quadrature = archive[f"posterior_weights_n{n}"]
-        if nodes.shape[1] != 2 or mode.shape != (2,):
+        if nodes.shape[1] != inclusion_degree + 1 or mode.shape != (inclusion_degree + 1,):
             raise AssertionError(f"unexpected inclusion model dimension at n={n}")
         if not np.isclose(np.sum(quadrature), 1.0) or np.any(quadrature < 0):
             raise AssertionError(f"invalid coefficient quadrature weights at n={n}")
@@ -451,7 +457,7 @@ def audit(root: Path) -> dict:
             raise AssertionError(f"independent inclusion quadrature weights mismatch n={n}")
 
         x_catalogue = (catalogue_z - center) / scale
-        design_catalogue = np.column_stack([np.ones(len(catalogue_z)), x_catalogue])
+        design_catalogue = np.column_stack([x_catalogue ** power for power in range(inclusion_degree + 1)])
         p_map = expit(design_catalogue @ mode)
         p_nodes = expit(design_catalogue @ nodes.T).T
         if np.any(p_map <= 0) or np.any(p_nodes <= 0):
@@ -578,7 +584,7 @@ def audit(root: Path) -> dict:
         "scope": (
             "Independently reconstructs input joins, inclusion probabilities, "
             "A-D/E weights, selected likelihoods, posterior summaries and file hashes. "
-            "Independently reconstructs the logistic posterior mode, Laplace "
+            "Independently reconstructs the degree-configured logistic posterior mode, Laplace "
             "covariance, Gauss-Hermite nodes, and target-corrected quadrature "
             "weights using a separate damped-Newton implementation."
         ),
