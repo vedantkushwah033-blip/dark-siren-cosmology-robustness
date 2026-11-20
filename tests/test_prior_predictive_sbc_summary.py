@@ -33,3 +33,16 @@ def test_sbc_summary_rejects_fixed_truth_mode(tmp_path):
     (root/"config.json").write_text(json.dumps({"truth_mode":"fixed"}))
     with pytest.raises(ValueError,match="prior_predictive"):
         summarize(root,tmp_path/"out")
+
+
+def test_sbc_summary_marks_incomplete_lifecycle(tmp_path):
+    root=tmp_path/"artifact";root.mkdir();out=tmp_path/"out"
+    (root/"config.json").write_text(json.dumps({"truth_mode":"prior_predictive"}))
+    pd.DataFrame([{"replicate":0,"gamma":0.0,"validation_size":100,"arm":"A_catalogue_only",
+        "status":"FAILED","audit_status":"NOT_RUN"}]).to_csv(root/"replicate_ledger.csv",index=False)
+    pd.DataFrame(columns=["replicate","gamma","validation_size","arm","posterior_rank","h0_true",
+        "q025","q05","q10","q16","q25","q75","q84","q90","q95","q975"]).to_csv(
+            root/"replicate_posterior_summaries.csv",index=False)
+    result=summarize(root,out,bins=3)
+    assert result["status"]=="INCOMPLETE"
+    assert result["failed_or_non_successful_cells"]==1
