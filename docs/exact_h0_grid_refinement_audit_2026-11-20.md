@@ -40,11 +40,11 @@ All 2,250 curves were recomputed on both 1,121- and 2,241-point geometric grids.
 | Maximum change among all nine reported quantiles (km/s/Mpc) | 0.00809708 | 0.00112940 |
 | Maximum posterior-density L1 difference | 0.00191816 | 0.0001245 |
 
-For the 1,121→2,241 comparison, the maximum quantile change above covers q2.5, q16, q84 and q97.5; the committed audit script computes and reports all nine quantiles.
+The maximum quantile-change figures in both columns are computed across all nine reported quantiles.
 
 ### Interpretation
 
-1. The original 561-point uniform grid has very small rank and quantile changes when refined, but its maximum posterior-density L1 difference from the 1,121-point grid is 0.002035, above the strict 0.001 diagnostic threshold. It should not be described as fully grid-converged under that density-shape criterion.
+1. The original 561-point uniform grid has very small rank and quantile changes when refined, but its maximum posterior-density L1 difference from the 1,121-point grid is 0.00191816, above the strict 0.001 diagnostic threshold. It should not be described as fully grid-converged under that density-shape criterion.
 2. The 1,121-point geometric grid is strongly supported by comparison with the 2,241-point geometric reference: maximum rank change 0.00006873, median change 0.000542 km/s/Mpc, maximum change among all nine reported quantiles 0.00112940 km/s/Mpc, and maximum posterior-density L1 difference 0.000124528.
 3. The geometric mesh is only an evaluation mesh. The prior is still uniform in H0, and all posterior normalization/CDF integration uses dH0. No log-H0 prior or d(log H0) integration is introduced.
 4. This is an exact selected-likelihood recomputation conditional on the frozen KDE densities, not a complete end-to-end regeneration of all density estimates. The distinction is material and must remain in any paper or abstract.
@@ -52,7 +52,7 @@ For the 1,121→2,241 comparison, the maximum quantile change above covers q2.5,
 ## Decision
 
 - **Legacy 561-point grid:** fails the strict posterior-density L1 threshold; rank and quantile summaries are nevertheless stable to the reported precision.
-- **1,121-point geometric grid:** passes the reported comparison against the 2,241-point geometric reference on rank, median, selected quantiles and posterior-density L1 diagnostics.
+- **1,121-point geometric grid:** passes the reported comparison against the 2,241-point geometric reference on rank, median, all nine quantiles and posterior-density L1 diagnostics.
 - **Recommended analysis grid for the next calibrated five-arm runs:** at least 1,121 geometric H0 points over [30,110], retaining integration with respect to dH0.
 - Do not retroactively label the 561-point calibration results fully converged. Re-run the final prior-predictive calibration on the refined grid before making confirmatory calibration claims.
 
