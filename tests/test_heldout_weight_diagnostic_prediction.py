@@ -17,6 +17,7 @@ from evaluate_heldout_weight_diagnostic_prediction import (
     _holm_adjust,
     _one_cell,
     _verify_manifest,
+    _assert_exact_lifecycle_keys,
 )
 
 
@@ -93,3 +94,46 @@ def test_manifest_verifier_rejects_path_traversal(tmp_path: Path):
     }), encoding="utf-8")
     with pytest.raises(AssertionError, match="unsafe manifest path"):
         _verify_manifest(tmp_path)
+
+
+
+def _lifecycle_fixture():
+    rows = []
+    for gamma in (-1.0, 0.0, 1.0):
+        for validation_size in (100, 300, 500):
+            for arm in ("A", "B", "C", "D", "E"):
+                for replicate in range(100):
+                    rows.append({
+                        "replicate": replicate,
+                        "gamma": gamma,
+                        "validation_size": validation_size,
+                        "arm": arm,
+                    })
+    return pd.DataFrame(rows)
+
+
+def test_exact_lifecycle_keys_accept_identical_complete_tables(tmp_path: Path):
+    ledger = _lifecycle_fixture()
+    summaries = ledger.copy()
+    diagnostics = ledger.copy()
+    _assert_exact_lifecycle_keys(ledger, summaries, diagnostics, root=tmp_path)
+
+
+def test_exact_lifecycle_keys_reject_inner_merge_row_loss(tmp_path: Path):
+    ledger = _lifecycle_fixture()
+    summaries = ledger.copy()
+    diagnostics = ledger.drop(index=0).copy()
+    with pytest.raises(AssertionError, match="ledger/diagnostic lifecycle key mismatch"):
+        _assert_exact_lifecycle_keys(ledger, summaries, diagnostics, root=tmp_path)
+
+
+def test_exact_lifecycle_keys_reject_wrong_per_cell_replicate_count(tmp_path: Path):
+    ledger = _lifecycle_fixture()
+    ledger = ledger.loc[~(
+        (ledger.gamma == -1.0)
+        & (ledger.validation_size == 100)
+        & (ledger.arm == "D")
+        & (ledger.replicate == 99)
+    )]
+    with pytest.raises(AssertionError, match="exactly 100 unique replicate IDs"):
+        _assert_exact_lifecycle_keys(ledger, ledger, ledger, root=tmp_path)
