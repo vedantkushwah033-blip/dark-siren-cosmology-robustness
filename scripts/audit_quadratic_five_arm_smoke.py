@@ -111,6 +111,30 @@ def _independent_bandwidth(
     return width
 
 
+
+def _independent_weight_diagnostics(raw_weights: np.ndarray) -> dict[str, float]:
+    """Recompute normalized weight-tail diagnostics without production imports."""
+    weights = np.asarray(raw_weights, dtype=float)
+    if weights.ndim != 1 or weights.size < 1 or not np.all(np.isfinite(weights)) or np.any(weights <= 0):
+        raise AssertionError("independent diagnostic weights must be finite and positive")
+    scaled = weights / np.max(weights)
+    if np.any(scaled == 0.0):
+        raise AssertionError("independent diagnostic weight scaling lost positive mass")
+    normalized = scaled / np.sum(scaled)
+    positive = normalized[normalized > 0.0]
+    entropy = -float(np.sum(positive * np.log(positive)))
+    ordered = np.sort(normalized)[::-1]
+    kish = float(np.sum(scaled) ** 2 / np.sum(scaled ** 2))
+    return {
+        "kish_ess": kish,
+        "kish_ess_fraction": kish / weights.size,
+        "entropy_ess": float(np.exp(entropy)),
+        "maximum_normalized_weight": float(ordered[0]),
+        "top_1_percent_mass": float(np.sum(ordered[:max(1, int(np.ceil(0.01 * weights.size)))])),
+        "top_5_percent_mass": float(np.sum(ordered[:max(1, int(np.ceil(0.05 * weights.size)))])),
+    }
+
+
 def _selected_kde_log_likelihood(
     h0_grid: np.ndarray, z_grid: np.ndarray, density: np.ndarray,
     distances: np.ndarray, sigma: float, threshold: float,
@@ -387,8 +411,14 @@ def audit(root: Path) -> dict:
     _assert_close(archive["merger_weight_grid"], rate_grid, "merger weight grid")
     stored_summary = pd.read_csv(root / "results" / "posterior_summaries.csv")
     stored_bandwidths = pd.read_csv(root / "results" / "realized_bandwidths.csv")
+    stored_diagnostics = pd.read_csv(root / "results" / "weight_diagnostics.csv")
 
     validation_sizes = [int(value) for value in config["validation_sizes"]]
+    if len(stored_diagnostics) != len(validation_sizes) * 5:
+        raise AssertionError("weight diagnostic table has an unexpected row count")
+    if stored_diagnostics.duplicated(["validation_size", "arm"]).any():
+        raise AssertionError("weight diagnostic table contains duplicate arm/size keys")
+    independently_rebuilt_diagnostics = []
     expected_bandwidth_rows = 0
     for n_value in validation_sizes:
         expected_bandwidth_rows += 4 + len(archive[f"posterior_nodes_n{n_value}"])
@@ -468,6 +498,11 @@ def audit(root: Path) -> dict:
         }
         reconstructed = {}
         expected_bandwidths = {}
+        for arm, (_, raw_weights) in arm_inputs.items():
+            independently_rebuilt_diagnostics.append({
+                "validation_size": n, "arm": arm,
+                **_independent_weight_diagnostics(raw_weights),
+            })
         for arm, (z_host, raw_weights) in arm_inputs.items():
             expected_bandwidths[(arm, -1)] = _independent_bandwidth(
                 z_host, raw_weights, 0.01, 0.40, scott_multiplier
@@ -485,8 +520,10 @@ def audit(root: Path) -> dict:
         node_likelihoods = []
         node_efficiencies = []
         node_densities = []
+        node_weight_diagnostics = []
         for node_index, node_probability in enumerate(p_nodes):
             node_raw_weights = catalogue_base / node_probability
+            node_weight_diagnostics.append(_independent_weight_diagnostics(node_raw_weights))
             expected_bandwidths[("E_uncertainty_integrated_ipw", node_index)] = _independent_bandwidth(
                 catalogue_z, node_raw_weights, 0.01, 0.40, scott_multiplier
             )
@@ -503,6 +540,15 @@ def audit(root: Path) -> dict:
             archive[f"density_E_nodes_n{n}"], np.asarray(node_densities),
             f"E node KDEs n={n}",
         )
+        positive_q = rebuilt_weights[rebuilt_weights > 0.0]
+        independently_rebuilt_diagnostics.append({
+            "validation_size": n,
+            "arm": "E_uncertainty_integrated_ipw",
+            "quadrature_ess": float(np.exp(-np.sum(positive_q * np.log(positive_q)))),
+            "minimum_node_kish_ess": float(min(d["kish_ess"] for d in node_weight_diagnostics)),
+            "maximum_node_top_5_percent_mass": float(max(d["top_5_percent_mass"] for d in node_weight_diagnostics)),
+            "quadrature_nodes": len(node_weight_diagnostics),
+        })
         node_likelihoods = np.asarray(node_likelihoods)
         node_efficiencies = np.asarray(node_efficiencies)
         positive = quadrature > 0
@@ -572,8 +618,23 @@ def audit(root: Path) -> dict:
         ):
             raise AssertionError("validation samples are not nested prefixes")
 
+    expected_diagnostics = pd.DataFrame(independently_rebuilt_diagnostics)
+    diagnostic_keys = ["validation_size", "arm"]
+    numeric_columns = [column for column in expected_diagnostics.columns if column not in diagnostic_keys]
+    observed = stored_diagnostics.sort_values(diagnostic_keys).reset_index(drop=True)
+    expected = expected_diagnostics.sort_values(diagnostic_keys).reset_index(drop=True)
+    if not observed[diagnostic_keys].equals(expected[diagnostic_keys]):
+        raise AssertionError("weight diagnostic arm/size keys differ from independent reconstruction")
+    for column in numeric_columns:
+        if column not in observed or not np.allclose(
+            observed[column].to_numpy(float), expected[column].to_numpy(float),
+            rtol=2e-10, atol=2e-12, equal_nan=False,
+        ):
+            raise AssertionError(f"weight diagnostic {column} differs from independent reconstruction")
+
     return {
         "status": "PASS",
+        "weight_diagnostic_rows_reconstructed": len(expected_diagnostics),
         "manifest_files_verified": checked_files,
         "posterior_summary_rows_reconstructed": posterior_rows,
         "maximum_log_likelihood_absolute_difference": max_likelihood_error,
