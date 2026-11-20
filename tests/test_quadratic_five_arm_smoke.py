@@ -83,3 +83,29 @@ def test_expanded_common_h0_prior_roundtrip(tmp_path: Path):
     report = audit(root)
     assert report["status"] == "PASS"
     assert report["posterior_summary_rows_reconstructed"] == 10
+
+
+
+def test_degree_two_inclusion_model_smoke_roundtrip(tmp_path: Path):
+    root = tmp_path / "quadratic_five_arm_degree_two"
+    args = SimpleNamespace(
+        seed=9131, validation_seed=9132, n_parent=350, n_detected=4,
+        validation_frame=140, validation_sizes=[60, 120], catalogue_floor=0.10,
+        curvature_gamma=1.0, curvature_beta=-3.9, inclusion_degree=2,
+        h0_true=70.0, h0_prior_min=30.0, h0_prior_max=110.0,
+        h0_points=81, scott_multiplier=0.7, quadrature_order=3,
+        sigma_mpc=140.0, detection_threshold_mpc=250.0, output_dir=root,
+    )
+    result = run(args)
+    assert result["status"] == "PASS"
+    config = json.loads((root / "config.json").read_text())
+    assert config["inclusion_model_degree"] == 2
+    with np.load(root / "results" / "log_likelihoods.npz") as archive:
+        for n in (60, 120):
+            assert archive[f"posterior_nodes_n{n}"].shape == (27, 3)
+            assert archive[f"posterior_mode_n{n}"].shape == (3,)
+            assert archive[f"posterior_weights_n{n}"].shape == (27,)
+            assert np.isclose(archive[f"posterior_weights_n{n}"].sum(), 1.0)
+    report = audit(root)
+    assert report["status"] == "PASS"
+    assert report["posterior_summary_rows_reconstructed"] == 10
