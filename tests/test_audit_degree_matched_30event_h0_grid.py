@@ -124,3 +124,36 @@ def test_degree_pairing_rejects_changed_raw_input(tmp_path: Path):
     with zipfile.ZipFile(archive_path) as archive:
         with pytest.raises(ValueError, match="degree-paired input mismatch"):
             _verify_degree_pairing(archive, "gamma_0/")
+
+
+def test_selected_loglike_matches_direct_selected_integral():
+    from scipy.integrate import trapezoid
+    from scipy.special import log_ndtr
+    from scipy.stats import norm
+
+    z = np.linspace(0.01, 0.40, 401) ** 1.03
+    density = np.exp(-0.5 * ((z - 0.20) / 0.055) ** 2)
+    density /= trapezoid(density, z)
+    distances = np.array([410.0, 520.0])
+    sigma, threshold, h0 = 135.0, 245.0, 72.0
+    actual = _selected_loglike(
+        np.array([h0]), density[None, :], z, distances, sigma, threshold
+    )[0, 0]
+
+    means = 299792.458 * z / h0
+    efficiency = trapezoid(norm.cdf((means - threshold) / sigma) * density, z)
+    expected = 0.0
+    for distance in distances:
+        numerator = trapezoid(norm.pdf(distance, loc=means, scale=sigma) * density, z)
+        expected += np.log(numerator) - np.log(efficiency)
+    assert actual == pytest.approx(expected, rel=1e-11, abs=1e-11)
+
+
+def test_posterior_normalization_respects_nonuniform_h0_measure():
+    grid = np.geomspace(30.0, 110.0, 1121)
+    loglike = -0.5 * ((grid - 72.0) / 4.0) ** 2
+    density, quantiles, rank = _posterior(grid, loglike, 72.0)
+    from scipy.integrate import trapezoid
+    assert trapezoid(density, grid) == pytest.approx(1.0, abs=1e-12)
+    assert quantiles[2] == pytest.approx(72.0, abs=0.01)
+    assert 0.49 < rank < 0.51
