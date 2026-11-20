@@ -1,0 +1,68 @@
+name: Weight-diagnostic train-holdout validation
+
+on:
+  push:
+    branches:
+      - research/weight-diagnostic-holdout-20261120
+    paths:
+      - ".github/workflows/weight-diagnostic-holdout.yml"
+      - "scripts/validate_weight_diagnostic_holdout.py"
+      - "tests/test_weight_diagnostic_holdout.py"
+  pull_request:
+    paths:
+      - ".github/workflows/weight-diagnostic-holdout.yml"
+      - "scripts/validate_weight_diagnostic_holdout.py"
+      - "tests/test_weight_diagnostic_holdout.py"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  holdout-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out research branch
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install numerical dependencies
+        run: python -m pip install --upgrade numpy pandas scipy pytest
+      - name: Run focused regression tests
+        run: python -m pytest -q tests/test_weight_diagnostic_holdout.py
+      - name: Download frozen training seed stream
+        uses: actions/download-artifact@v4
+        with:
+          name: quadratic-five-arm-30event-wide-prior-paired-seed-100rep
+          path: artifacts/train
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44484212311
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download disjoint holdout seed stream
+        uses: actions/download-artifact@v4
+        with:
+          name: quadratic-five-arm-30event-wide-prior-100rep
+          path: artifacts/holdout
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44483923518
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run frozen train-holdout diagnostic validation
+        run: |
+          python -m py_compile scripts/validate_weight_diagnostic_holdout.py
+          python scripts/validate_weight_diagnostic_holdout.py \
+            artifacts/train artifacts/holdout \
+            --output-prefix artifacts/weight_diagnostic_holdout
+      - name: Upload holdout validation readout
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weight-diagnostic-holdout-validation
+          path: |
+            artifacts/weight_diagnostic_holdout.csv
+            artifacts/weight_diagnostic_holdout.json
+          if-no-files-found: warn
+          retention-days: 90
