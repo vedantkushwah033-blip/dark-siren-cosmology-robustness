@@ -12,7 +12,7 @@ import math
 
 import numpy as np
 from numpy.typing import ArrayLike
-from scipy.optimize import minimize
+from scipy.optimize import minimize, root
 from scipy.special import expit, logsumexp
 from scipy.special import roots_hermitenorm
 
@@ -181,7 +181,27 @@ def fit_inclusion_posterior_quadrature(
             if not accepted:
                 break
     score_norm = float(np.linalg.norm(gradient(mode), ord=np.inf))
-    if score_norm > 1e-6:
+    if score_norm > 1e-10:
+        # A very small number of degree-two validation frames are sufficiently
+        # ill-conditioned that objective/score line-search progress stalls at
+        # floating-point resolution. Solve the strictly convex score equations
+        # directly rather than accepting a loose 1e-6 mode residual; the
+        # independent artifact auditor reconstructs this mode separately.
+        solved = root(
+            gradient, mode, jac=hessian, method="hybr",
+            options={"xtol": 1e-12},
+        )
+        candidate_score = float(np.linalg.norm(gradient(solved.x), ord=np.inf))
+        if np.all(np.isfinite(solved.x)) and candidate_score <= 1e-10:
+            mode = np.asarray(solved.x, dtype=float)
+            score_norm = candidate_score
+        else:
+            raise ArithmeticError(
+                "posterior score-equation root refinement failed: "
+                f"Newton score={score_norm:.6g}, root score={candidate_score:.6g}, "
+                f"root status={solved.message}"
+            )
+    if score_norm > 1e-8:
         raise ArithmeticError(
             f"posterior mode did not converge after {refinement_steps} Newton refinements: "
             f"{result.message}; score={score_norm}"
