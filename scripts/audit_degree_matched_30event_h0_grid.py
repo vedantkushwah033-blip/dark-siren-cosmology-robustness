@@ -78,13 +78,18 @@ def _selected_loglike(grid: np.ndarray, densities: np.ndarray,
         stop = min(start + 128, grid.size)
         means = 299792.458 * zgrid[None, :] / grid[start:stop, None]
         efficiency_kernel = np.exp(log_ndtr((means - threshold) / sigma)) * dz
+        # The selection denominator depends on H0 and the host density, not on
+        # the observed event distance; compute it once per H0 block and reuse it.
+        efficiency = efficiency_kernel @ densities.T
+        if np.any(efficiency <= 0):
+            raise ArithmeticError("non-positive selection-efficiency integral")
+        log_efficiency = np.log(efficiency.T)
         for distance in distances:
             numerator_kernel = norm.pdf(distance, loc=means, scale=sigma) * dz
             numerator = numerator_kernel @ densities.T
-            efficiency = efficiency_kernel @ densities.T
-            if np.any(numerator <= 0) or np.any(efficiency <= 0):
-                raise ArithmeticError("non-positive selected-likelihood integral")
-            out[:, start:stop] += np.log(numerator.T) - np.log(efficiency.T)
+            if np.any(numerator <= 0):
+                raise ArithmeticError("non-positive event-numerator integral")
+            out[:, start:stop] += np.log(numerator.T) - log_efficiency
     if not np.all(np.isfinite(out)):
         raise ArithmeticError("non-finite selected log likelihood")
     return out
