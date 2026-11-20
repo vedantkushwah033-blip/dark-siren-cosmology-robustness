@@ -109,3 +109,17 @@ None of the 24 correlation tests survives a Bonferroni threshold of \(0.05/24\\a
 5. The 20-replicate pilot is too small for definitive rankings; 281 H0 grid points and quadrature order 5 are engineering-pilot settings, not a final convergence guarantee.
 
 **Next validation required:** a pre-registered larger paired study (at least 100 replicates per curvature/validation-size cell), higher-resolution H0-grid and quadrature convergence checks, and explicit calibration/coverage analysis. Do not infer an astrophysical H0 result from this synthetic benchmark.
+
+## Reproduction after the posterior-mode convergence repair
+
+A fresh paired run was completed on the convergence-repair branch after the earlier pilot:
+- Workflow: [44752343250](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/44752343250)
+- Code commit: `8d435a7ff2f1ac0f7e5887aa2e95228806d08a46`
+- Artifact: `14646356614`, SHA-256 `0485475ea62f41ef29c25d495eec63a25a5af882efd208b08f182cbec06ac91a`
+- Workflow job completed SUCCESS; all run steps, including paired orchestration, independent audit, and artifact upload, completed successfully.
+
+The downloaded ZIP was independently checked against its outer, degree-level, and 120 child manifests: 2,190 + 1,088 + 1,088 + 1,560 = **5,926 file entries verified**, with zero missing files, byte-count mismatches, or SHA-256 mismatches. The root audit reports PASS, 60 paired child blocks, 600 paired posterior-summary rows, 30 paired aggregate rows, and common-arm likelihood invariance. Both degree ledgers contain 600/600 SUCCESS cells and all child audit statuses are PASS.
+
+The paired aggregate CSV reproduces the numerical tables above (20 matched replicates per cell). This is a successful rerun of the same frozen seed/design, not an independent Monte Carlo replication and not an increase in effective replicate count. It supports reproducibility of the archived run and successful completion after the numerical repair; it does not strengthen calibration or estimator-ranking claims.
+
+The full repository test-matrix workflow triggered on the subsequent documentation-only branch update was cancelled before jobs were created. Therefore, this paired run's embedded experiment/audit checks passed, but a fresh full Python 3.10–3.12 repository test-matrix result on the current branch head is still outstanding.
