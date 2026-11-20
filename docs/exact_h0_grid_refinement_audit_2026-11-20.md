@@ -29,21 +29,23 @@ The script verifies that its exact 561-point reconstruction reproduces all archi
 
 ## Results from the independent numerical execution
 
+The committed GitHub Actions audit completed successfully: workflow **44728530159**, artifact **14626281870** (`exact-prior-predictive-h0-grid-audit`), artifact SHA-256 `8120a72fb554e7b9ea3f2f1dcb51243d6f71822098c5a551a825de3f2a5fb5ee`. It emitted exactly 2,250 unique curve rows. The maximum exact 561-point likelihood reconstruction error was 0.0.
+
 All 2,250 curves were recomputed on both 1,121- and 2,241-point geometric grids. The 561-point archived curves were independently reconstructed on their original grid and compared with the 1,121-point results.
 
 | Diagnostic | 561 uniform → 1,121 geometric | 1,121 geometric → 2,241 geometric |
 |---|---:|---:|
 | Maximum absolute posterior-rank change | 0.00066485 | 0.00006873 |
 | Maximum posterior-median change (km/s/Mpc) | 0.003064 | 0.000542 |
-| Maximum change among q2.5, q16, q84, q97.5 (km/s/Mpc) | 0.00810 | 0.00113 |
-| Maximum posterior-density L1 difference | 0.002035 | 0.0001245 |
+| Maximum change among all nine reported quantiles (km/s/Mpc) | 0.00809708 | 0.00112940 |
+| Maximum posterior-density L1 difference | 0.00191816 | 0.0001245 |
 
 For the 1,121→2,241 comparison, the maximum quantile change above covers q2.5, q16, q84 and q97.5; the committed audit script computes and reports all nine quantiles.
 
 ### Interpretation
 
 1. The original 561-point uniform grid has very small rank and quantile changes when refined, but its maximum posterior-density L1 difference from the 1,121-point grid is 0.002035, above the strict 0.001 diagnostic threshold. It should not be described as fully grid-converged under that density-shape criterion.
-2. The 1,121-point geometric grid is strongly supported by comparison with the 2,241-point geometric reference: maximum rank change 0.00006873, median change 0.000542 km/s/Mpc, maximum change among the four reported quantiles 0.00113 km/s/Mpc, and maximum posterior-density L1 difference 0.0001245.
+2. The 1,121-point geometric grid is strongly supported by comparison with the 2,241-point geometric reference: maximum rank change 0.00006873, median change 0.000542 km/s/Mpc, maximum change among all nine reported quantiles 0.00112940 km/s/Mpc, and maximum posterior-density L1 difference 0.000124528.
 3. The geometric mesh is only an evaluation mesh. The prior is still uniform in H0, and all posterior normalization/CDF integration uses dH0. No log-H0 prior or d(log H0) integration is introduced.
 4. This is an exact selected-likelihood recomputation conditional on the frozen KDE densities, not a complete end-to-end regeneration of all density estimates. The distinction is material and must remain in any paper or abstract.
 
