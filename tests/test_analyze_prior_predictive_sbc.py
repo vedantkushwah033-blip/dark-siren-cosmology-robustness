@@ -12,7 +12,8 @@ ARMS = [
 ]
 
 def test_mean_ci_handles_one_and_multiple_observations():
-    assert _mean_ci(np.array([2.0])) == (2.0, np.nan, np.nan, np.nan)
+    single = _mean_ci(np.array([2.0]))
+    assert single[0] == 2.0 and all(np.isnan(x) for x in single[1:])
     mean, se, lo, hi = _mean_ci(np.array([1.0, 3.0, 5.0]))
     assert mean == 3.0
     assert se > 0 and lo < mean < hi
