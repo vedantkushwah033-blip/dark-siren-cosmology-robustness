@@ -167,7 +167,7 @@ def audit(root: Path) -> dict:
             child_summary=pd.read_csv(d/"results"/"posterior_summaries.csv")
             expected=summaries[(summaries.replicate==rep)&(summaries.gamma==gamma)]
             cols=["validation_size","arm","status","h0_true","median_error","posterior_rank","posterior_median",
-                "q025","q05","q16","q84","q95","q975"]
+                "q025","q05","q10","q16","q25","q75","q84","q90","q95","q975"]
             left=child_summary[cols].sort_values(["validation_size","arm"]).reset_index(drop=True)
             right=expected[cols].sort_values(["validation_size","arm"]).reset_index(drop=True)
             pd.testing.assert_frame_equal(left,right,check_dtype=False,check_exact=False,
