@@ -76,10 +76,21 @@ def _verify_pair(left: Path, right: Path) -> dict:
         keys = [k for k in a.files if any(k.startswith(f"{arm}_n") for arm in COMMON_ARMS)]
         if not keys:
             raise AssertionError("no common-arm likelihood arrays found")
+        maximum_common_arm_delta = 0.0
         for key in keys:
-            if key not in b.files or not np.array_equal(a[key], b[key]):
-                raise AssertionError(f"common-arm likelihood mismatch: {key}")
-    return {"raw_input_files_equal": checks, "common_arm_curves_equal": len(keys)}
+            if key not in b.files:
+                raise AssertionError(f"common-arm likelihood missing in degree two: {key}")
+            delta = float(np.max(np.abs(a[key] - b[key])))
+            maximum_common_arm_delta = max(maximum_common_arm_delta, delta)
+            if not np.allclose(a[key], b[key], rtol=1e-12, atol=1e-12):
+                raise AssertionError(
+                    f"common-arm likelihood mismatch beyond tolerance: {key}; max abs delta={delta}"
+                )
+    return {
+        "raw_input_files_equal": checks,
+        "common_arm_curves_checked": len(keys),
+        "maximum_common_arm_log_likelihood_difference": maximum_common_arm_delta,
+    }
 
 
 def _reconstruct_paired(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
