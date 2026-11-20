@@ -458,7 +458,7 @@ def test_posterior_mode_refines_small_trust_exact_residual(monkeypatch):
 
     # Simulate trust-exact stopping with a residual below the old 1e-8
     # refinement trigger but large enough to perturb the stored MAP mode.
-    approximate = reference + np.asarray([0.0, 1e-9, 0.0])
+    approximate = reference + np.asarray([0.0, 2e-10, 0.0])
     assert 1e-10 < np.linalg.norm(score(approximate), ord=np.inf) < 1e-8
     monkeypatch.setattr(
         module,
