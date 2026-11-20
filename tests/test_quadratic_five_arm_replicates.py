@@ -126,3 +126,22 @@ def test_failure_width_bound_tracks_configured_prior_span():
     row = result.iloc[0]
     assert row.failure_inclusive_width_lower == 2.0
     assert row.failure_inclusive_width_upper == 42.0
+
+
+def test_prior_predictive_truth_schedule_is_reproducible_and_in_support():
+    master=2026112020
+    truths=[]
+    for rep in range(50):
+        seed=_seed(master,rep,2)
+        truth=float(np.random.default_rng(seed).uniform(30.0,110.0))
+        truths.append(truth)
+        assert 30.0 < truth < 110.0
+        assert truth == float(np.random.default_rng(_seed(master,rep,2)).uniform(30.0,110.0))
+    assert len(set(truths)) == 50
+
+
+def test_prior_predictive_truth_stream_is_separate_from_data_streams():
+    master=2026112020
+    data_seeds={_seed(master,rep,stream) for rep in range(50) for stream in (0,1)}
+    truth_seeds={_seed(master,rep,2) for rep in range(50)}
+    assert data_seeds.isdisjoint(truth_seeds)
