@@ -60,3 +60,5 @@ def test_degree_contrasts_excludes_unpaired_failed_cells():
     one = pd.DataFrame(base)
     two = one.iloc[0:0].copy()
     assert _degree_contrasts(one, two).empty
+
+# This module is included in the degree-two pilot and full test workflows.
