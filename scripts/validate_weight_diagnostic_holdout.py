@@ -121,6 +121,28 @@ def _auc(scores: np.ndarray, labels: np.ndarray) -> float:
     return float((ranks[positive].sum() - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg))
 
 
+def _stratified_auc_bootstrap_ci(
+    scores: np.ndarray, labels: np.ndarray, *, seed: int, replicates: int = 2000
+):
+    """Percentile CI for AUROC, resampling positive and negative classes separately."""
+    scores = np.asarray(scores, float)
+    labels = np.asarray(labels, int)
+    positive = np.flatnonzero(labels == 1)
+    negative = np.flatnonzero(labels == 0)
+    if len(positive) == 0 or len(negative) == 0:
+        return float("nan"), float("nan")
+    rng = np.random.default_rng(seed)
+    estimates = np.empty(replicates, dtype=float)
+    for i in range(replicates):
+        sample = np.concatenate([
+            rng.choice(positive, size=len(positive), replace=True),
+            rng.choice(negative, size=len(negative), replace=True),
+        ])
+        estimates[i] = _auc(scores[sample], labels[sample])
+    low, high = np.quantile(estimates, [0.025, 0.975])
+    return float(low), float(high)
+
+
 def _wilson(successes: int, total: int, z: float = 1.959963984540054):
     if total == 0:
         return float("nan"), float("nan")
@@ -183,6 +205,12 @@ def evaluate_frozen_rule(train_x, train_error, test_x, test_error, *, min_abs_rh
         "holdout_high_error_prevalence": float(test_high_error.mean()),
         "holdout_alert_fraction": float(test_alert.mean()),
         "holdout_auroc": _auc(oriented_test, test_high_error),
+        "holdout_auroc_bootstrap95_low": _stratified_auc_bootstrap_ci(
+            oriented_test, test_high_error, seed=20261120 + int(round(abs(rho) * 1e6))
+        )[0],
+        "holdout_auroc_bootstrap95_high": _stratified_auc_bootstrap_ci(
+            oriented_test, test_high_error, seed=20261120 + int(round(abs(rho) * 1e6))
+        )[1],
         "holdout_sensitivity": sensitivity,
         "holdout_sensitivity_wilson95_low": sens_ci[0],
         "holdout_sensitivity_wilson95_high": sens_ci[1],
