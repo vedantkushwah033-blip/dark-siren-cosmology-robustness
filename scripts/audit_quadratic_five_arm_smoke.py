@@ -126,14 +126,22 @@ def _selected_kde_log_likelihood(
     event_log_beta = np.asarray(event_log_beta)
     return np.sum(event_log_mix - event_log_beta, axis=0), event_log_beta
 
-def _posterior_quantile(grid: np.ndarray, log_likelihood: np.ndarray, q: float) -> float:
+def _posterior_cdf(grid: np.ndarray, log_likelihood: np.ndarray) -> np.ndarray:
     shifted = np.exp(log_likelihood - np.max(log_likelihood))
     area = float(trapezoid(shifted, grid))
     density = shifted / area
     increments = 0.5 * (density[:-1] + density[1:]) * np.diff(grid)
     cdf = np.concatenate(([0.0], np.cumsum(increments)))
     cdf /= cdf[-1]
-    return float(np.interp(q, cdf, grid))
+    return cdf
+
+
+def _posterior_quantile(grid: np.ndarray, log_likelihood: np.ndarray, q: float) -> float:
+    return float(np.interp(q, _posterior_cdf(grid, log_likelihood), grid))
+
+
+def _posterior_rank(grid: np.ndarray, log_likelihood: np.ndarray, truth: float) -> float:
+    return float(np.interp(float(truth), grid, _posterior_cdf(grid, log_likelihood)))
 
 
 
@@ -540,6 +548,7 @@ def audit(root: Path) -> dict:
             if len(row) != 1 or row.iloc[0]["status"] != "SUCCESS":
                 raise AssertionError(f"posterior summary row missing/invalid: {arm}, n={n}")
             expected_quantiles = {
+                "posterior_rank": _posterior_rank(grid, expected, h0_true),
                 "posterior_median": _posterior_quantile(grid, expected, 0.50),
                 "q025": _posterior_quantile(grid, expected, 0.025),
                 "q05": _posterior_quantile(grid, expected, 0.05),
@@ -551,6 +560,8 @@ def audit(root: Path) -> dict:
             for field, value in expected_quantiles.items():
                 if not np.isclose(float(row.iloc[0][field]), value, rtol=2e-9, atol=2e-9):
                     raise AssertionError(f"{arm} n={n}: posterior summary {field} mismatch")
+            if not np.isclose(float(row.iloc[0]["posterior_rank"]), expected_quantiles["posterior_rank"], rtol=2e-9, atol=2e-9):
+                raise AssertionError(f"{arm} n={n}: posterior rank mismatch")
             if not np.isclose(float(row.iloc[0]["median_error"]), expected_quantiles["posterior_median"] - h0_true):
                 raise AssertionError(f"{arm} n={n}: median error mismatch")
             posterior_rows += 1
