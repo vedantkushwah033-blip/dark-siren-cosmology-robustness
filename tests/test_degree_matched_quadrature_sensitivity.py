@@ -8,7 +8,9 @@ import pytest
 from scipy.integrate import trapezoid
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from run_degree_matched_five_arm_quadrature_sensitivity import _posterior, _compare_inputs
+from run_degree_matched_five_arm_quadrature_sensitivity import (
+    _posterior, _compare_inputs, _assert_expected_config,
+)
 
 
 def test_independent_grid_posterior_normalizes_and_recovers_gaussian_quantiles():
@@ -48,3 +50,17 @@ def test_posterior_rejects_nonfinite_likelihood():
     grid = np.linspace(0.0, 1.0, 11)
     with pytest.raises((AssertionError, ValueError)):
         _posterior(grid, np.full_like(grid, np.nan))
+
+
+
+def test_frozen_child_config_gate_rejects_changed_simulation_setting():
+    expected = {
+        "seed": 20261120,
+        "n_parent": 500,
+        "n_detected": 4,
+        "h0_prior_support": [30.0, 110.0],
+    }
+    _assert_expected_config(expected.copy(), expected, "matched")
+    changed = expected | {"n_detected": 30}
+    with pytest.raises(AssertionError, match="n_detected"):
+        _assert_expected_config(changed, expected, "mismatched")
