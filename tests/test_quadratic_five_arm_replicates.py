@@ -7,8 +7,9 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from run_quadratic_five_arm_replicates import (
-    ARMS, _aggregate, _paired_contrasts, _seed,
+    ARMS, _aggregate, _paired_contrasts, _seed, run as run_replicates,
 )
+from audit_quadratic_five_arm_replicates import audit as audit_replicates
 from audit_quadratic_five_arm_smoke import _independent_inclusion_quadrature
 from dark_siren_robustness.generative_selection import generate_quadratic_logit_inclusion_samples
 
@@ -137,3 +138,36 @@ def test_prior_support_sensitivity_quantiles_use_same_likelihood():
     assert restricted["q025"] >= 50.0
     assert np.isclose(full["support_mass"], 1.0, atol=1e-12)
     assert np.isclose(restricted["support_mass"], 1.0, atol=1e-12)
+
+
+def test_degree_two_replicate_orchestrator_roundtrip(tmp_path: Path):
+    root = tmp_path / "degree_two_replicates"
+    args = type("Args", (), {
+        "master_seed": 20261120,
+        "replicates": 2,
+        "gammas": [0.0],
+        "n_parent": 300,
+        "n_detected": 4,
+        "validation_frame": 100,
+        "validation_sizes": [60, 90],
+        "curvature_beta": -3.9,
+        "inclusion_degree": 2,
+        "h0_true": 70.0,
+        "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0,
+        "h0_points": 41,
+        "scott_multiplier": 0.7,
+        "quadrature_order": 3,
+        "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0,
+        "output_dir": root,
+    })()
+    result = run_replicates(args)
+    assert result["status"] == "PASS"
+    assert result["planned_cells"] == 20
+    config = __import__("json").loads((root / "config.json").read_text())
+    assert config["inclusion_model_degree"] == 2
+    report = audit_replicates(root)
+    assert report["status"] == "PASS"
+    assert report["successful_child_runs"] == 2
+    assert report["planned_cells"] == 20
