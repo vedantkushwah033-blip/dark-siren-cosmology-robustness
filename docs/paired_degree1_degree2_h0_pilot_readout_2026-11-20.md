@@ -92,11 +92,11 @@ The distinction matters. Degree two has much more extreme worst-case nodes, espe
 Within each of the 12 degree × curvature × validation-size cells (20 replicates each), I computed Spearman rank correlations between E-arm absolute H0 median error and (i) the posterior-mass-weighted 5th percentile of node-wise Kish ESS and (ii) the posterior-mass-weighted 90th percentile of node-wise top-5%-weight mass. These are post-hoc exploratory checks, not a prespecified diagnostic-prediction test.
 
 The largest unadjusted associations were:
-- Degree one, \\(\gamma=+1,n=100\\): \\(\rho(q_{05}(ESS),|e|)=-0.430\\), p=0.058; \\(\rho(q_{90}(top5),|e|)=+0.483\\), p=0.031.
-- Degree one, \\(\gamma=+1,n=500\\): \\(\rho(q_{05}(ESS),|e|)=-0.480\\), p=0.032; top-5 mass correlation +0.454, p=0.044.
-- Degree two, \\(\gamma=+1,n=500\\): \\(\rho(q_{05}(ESS),|e|)=-0.531\\), p=0.016; top-5 mass correlation +0.514, p=0.020.
+- Degree one, \(\gamma=+1,n=100\): \(\rho(q_{05}(ESS),|e|)=-0.430\), p=0.058; \(\rho(q_{90}(top5),|e|)=+0.483\), p=0.031.
+- Degree one, \(\gamma=+1,n=500\): \(\rho(q_{05}(ESS),|e|)=-0.480\), p=0.032; top-5 mass correlation +0.454, p=0.044.
+- Degree two, \(\gamma=+1,n=500\): \(\rho(q_{05}(ESS),|e|)=-0.531\), p=0.016; top-5 mass correlation +0.514, p=0.020.
 
-None of the 24 correlation tests survives a Bonferroni threshold of \\(0.05/24\\approx0.0021\\). Other cells show mixed directions. This pilot therefore does **not** establish that pre-posterior weight diagnostics predict posterior error. A larger preregistered study with held-out replicates and multiplicity-controlled prediction is needed.
+None of the 24 correlation tests survives a Bonferroni threshold of \(0.05/24\\approx0.0021\). Other cells show mixed directions. This pilot therefore does **not** establish that pre-posterior weight diagnostics predict posterior error. A larger preregistered study with held-out replicates and multiplicity-controlled prediction is needed.
 
 ## Interpretation and limits
 
