@@ -58,8 +58,12 @@ def _posterior_summary(
         "posterior_median": posterior.quantile(0.50),
         "q025": posterior.quantile(0.025),
         "q05": posterior.quantile(0.05),
+        "q10": posterior.quantile(0.10),
         "q16": posterior.quantile(0.16),
+        "q25": posterior.quantile(0.25),
+        "q75": posterior.quantile(0.75),
         "q84": posterior.quantile(0.84),
+        "q90": posterior.quantile(0.90),
         "q95": posterior.quantile(0.95),
         "q975": posterior.quantile(0.975),
     }
