@@ -144,6 +144,18 @@ jobs:
           name: degree-matched-30event-quadrature-sensitivity
           path: artifacts/degree_quadrature/
           if-no-files-found: error
+      - name: Validate exact H0-grid refinement runner CLI
+        run: python scripts/run_exact_h0_grid_refinement.py --help
+      - name: Run exact 30-event H0-grid refinement (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: python scripts/run_exact_h0_grid_refinement.py --output-dir artifacts/exact_h0_grid_refinement
+      - name: Upload exact H0-grid refinement artifacts (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: exact-30event-h0-grid-refinement
+          path: artifacts/exact_h0_grid_refinement/
+          if-no-files-found: error
       - name: Test paired multi-replicate degree comparison and prior mapping
         run: python -m pytest tests/test_paired_degree_multireplicate_pilot.py -q
       - name: Validate paired degree pilot and independent auditor CLIs
