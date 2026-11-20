@@ -70,6 +70,8 @@ The aggregate table reports paired t-based 95% intervals across the 20 matched r
 
 These are 12 exploratory comparisons without a familywise multiplicity adjustment. The one interval excluding zero (integrated IPW, (gamma=-1,n=500)) points toward worse absolute error under degree two. Most comparisons are inconclusive. At positive curvature and n=500, point estimates favor degree two, but paired intervals include zero.
 
+Paired 68% coverage differences (D2 minus D1) were also reconstructed from the 20 matched replicate indicators. The only unadjusted 95% t-interval excluding zero was E at \\(\gamma=+1,n=100\\): +0.25 coverage (14/20 versus 9/20), 95% CI [+0.042,+0.458], unadjusted p=0.021. This does not survive a 12-comparison Bonferroni threshold of 0.0042; the other 11 intervals include zero. Treat this as a hypothesis for follow-up, not evidence of improved calibration.
+
 ## Weight-stability diagnostics
 
 For E (coefficient-posterior-integrated IPW), the original stored diagnostics report the minimum node-wise Kish ESS and maximum node-wise top-5%-weight mass across all quadrature nodes. Those are worst-case summaries. I independently reconstructed the node-specific inverse-inclusion weights from the archived posterior nodes, posterior quadrature weights, catalogue redshifts, and common host-rate base weights. The reconstructed extrema match the stored diagnostics to floating-point precision across all 240 degree × replicate × curvature × validation-size records.
