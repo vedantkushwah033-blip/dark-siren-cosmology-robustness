@@ -1,6 +1,8 @@
 import numpy as np
 
-from scripts.validate_weight_diagnostic_holdout import (\n    _auc, _stratified_auc_bootstrap_ci, evaluate_frozen_rule,\n)
+from scripts.validate_weight_diagnostic_holdout import (
+    _auc, _stratified_auc_bootstrap_ci, evaluate_frozen_rule,
+)
 
 
 def test_auc_matches_perfect_and_reversed_rankings():
