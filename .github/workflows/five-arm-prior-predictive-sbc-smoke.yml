@@ -63,12 +63,16 @@ jobs:
           python scripts/summarize_prior_predictive_sbc.py \
             artifacts/five_arm_prior_predictive_smoke \
             --output-dir artifacts/five_arm_prior_predictive_sbc_summary
+      - name: Verify smoke outputs exist before upload
+        if: always()
+        run: |
+          test -f artifacts/five_arm_prior_predictive_smoke/manifest.json
+          test -f artifacts/five_arm_prior_predictive_smoke/independent_audit.json
+          test -f artifacts/five_arm_prior_predictive_sbc_summary/summary_report.json
       - name: Upload prior-predictive smoke artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: five-arm-prior-predictive-smoke
-          path: |
-            artifacts/five_arm_prior_predictive_smoke/
-            artifacts/five_arm_prior_predictive_sbc_summary/
-          if-no-files-found: warn
+          path: artifacts/
+          if-no-files-found: error
