@@ -131,7 +131,7 @@ def main():
                                 )
                             archived_e = data[f"{ARMS[4]}_n{n}"]
                             reconstruction_max = max(
-                                reconstruction_max, float(np.max(np.abs(marginal_e - archived_e))
+                                reconstruction_max, float(np.max(np.abs(marginal_e - archived_e)))
                             )
                     for arm_index, arm in enumerate(ARMS):
                         old = posteriors[561][arm_index]
@@ -144,7 +144,7 @@ def main():
                             np.abs(np.interp(common, grids[561], old[0]) - np.interp(common, grids[1121], mid[0])),
                             common,
                         ))
-                        l1_1121_2241 = float(trapezoid(np.abs(mid[0] if False else np.interp(common, grids[1121], mid[0]) - fine[0]), common))
+                        l1_1121_2241 = float(trapezoid(np.abs(np.interp(common, grids[1121], mid[0]) - fine[0]), common))
                         rows.append({
                             "replicate": replicate, "gamma": gamma, "validation_size": n, "arm": arm,
                             "rank_561": old[3], "rank_1121": mid[3], "rank_2241": fine[3],
