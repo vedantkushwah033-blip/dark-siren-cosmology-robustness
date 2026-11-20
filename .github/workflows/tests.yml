@@ -78,6 +78,13 @@ jobs:
             --gamma 1.0 --h0-prior-min 30 --h0-prior-max 110 \
             --h0-points 41 --orders 5,7,9 \
             --output-dir artifacts/degree_matched_quadrature_sensitivity
+      - name: Test paired multi-replicate degree comparison and prior mapping
+        run: python -m pytest tests/test_paired_degree_multireplicate_pilot.py -q
+      - name: Validate paired degree pilot and independent auditor CLIs
+        run: |
+          python scripts/run_paired_degree_multireplicate_pilot.py --help
+          python scripts/audit_paired_degree_multireplicate_pilot.py --help
+          python scripts/audit_degree_prior_parameterization.py
       - name: Validate quadratic five-arm replicate runner CLI
         run: python scripts/run_quadratic_five_arm_replicates.py --help
       - name: Test realized reflected-KDE bandwidth reporting
