@@ -160,7 +160,9 @@ def audit(root: Path) -> dict:
                 or float(child_cfg["curvature_gamma"])!=float(gamma)
                 or int(child_cfg["n_detected"])!=int(cfg["n_detected"])
                 or int(child_cfg["n_parent"])!=int(cfg["n_parent"])
-                or list(map(float,child_cfg.get("h0_prior_support",[50.0,90.0])))!=list(map(float,cfg.get("h0_prior_support",[50.0,90.0])))):
+                or list(map(float,child_cfg.get("h0_prior_support",[50.0,90.0])))!=list(map(float,cfg.get("h0_prior_support",[50.0,90.0])))
+                or int(child_cfg["h0_grid_points"])!=int(cfg["h0_points"])
+                or child_cfg.get("h0_grid_type","linear")!=cfg.get("h0_grid_type","linear")):
                 raise AssertionError(f"child configuration/seed mismatch: {rel}")
             if list(map(int,child_cfg["validation_sizes"]))!=sizes:
                 raise AssertionError(f"child validation sizes mismatch: {rel}")
