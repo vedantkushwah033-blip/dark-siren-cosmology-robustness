@@ -206,6 +206,13 @@ def test_prior_predictive_h0_replicate_orchestrator_roundtrip(tmp_path: Path):
     assert len(schedule) == 2
     assert len({row["h0_true"] for row in schedule}) == 2
     assert all(30.0 <= row["h0_true"] < 110.0 for row in schedule)
+    seeds = config["seed_schedule"]
+    assert len(seeds) == 2
+    assert len({row["population_seed"] for row in seeds}) == 2
+    assert len({row["event_seed"] for row in seeds}) == 2
+    assert len({row["validation_frame_seed"] for row in seeds}) == 2
+    assert len({row["validation_sample_seed"] for row in seeds}) == 2
+    assert len({row["h0_truth_seed"] for row in seeds}) == 2
     ledger = pd.read_csv(root / "replicate_ledger.csv")
     for rep in (0, 1):
         values = ledger.loc[ledger.replicate == rep, "h0_true"].unique()
