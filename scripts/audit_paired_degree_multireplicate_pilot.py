@@ -182,6 +182,89 @@ def _verify_aggregate_metrics(paired: pd.DataFrame, observed: pd.DataFrame) -> i
     return len(expected)
 
 
+
+WEIGHT_DIAGNOSTIC_METRICS = [
+    "kish_ess", "kish_ess_fraction", "entropy_ess",
+    "maximum_normalized_weight", "top_1_percent_mass", "top_5_percent_mass",
+    "quadrature_ess", "minimum_node_kish_ess",
+    "maximum_node_top_5_percent_mass", "quadrature_nodes",
+]
+WEIGHT_GROUP_KEYS = ["gamma", "validation_size", "arm", "degree"]
+WEIGHT_SORT_KEYS = ["replicate", "gamma", "validation_size", "arm", "degree"]
+
+
+def _reconstruct_weight_diagnostics(root: Path, cfg: dict) -> pd.DataFrame:
+    """Rebuild paired child weight-diagnostic records without importing the runner."""
+    frames = []
+    arms = [
+        "A_catalogue_only", "B_parent_oracle", "C_known_probability_ipw",
+        "D_map_plugin_ipw", "E_uncertainty_integrated_ipw",
+    ]
+    expected_keys = {(int(n), arm) for n in cfg["validation_sizes"] for arm in arms}
+    for degree in (1, 2):
+        for rep in range(int(cfg["replicates"])):
+            for gamma in cfg["gammas"]:
+                label = "rep{:03d}_g{:+g}".format(rep, float(gamma)).replace("+", "p").replace("-", "m")
+                path = root / ("degree" + str(degree)) / "replicates" / label / "results" / "weight_diagnostics.csv"
+                frame = pd.read_csv(path)
+                required = {"validation_size", "arm", *WEIGHT_DIAGNOSTIC_METRICS}
+                if not required.issubset(frame.columns):
+                    raise AssertionError("child weight diagnostics have an incomplete schema")
+                keys = [(int(row.validation_size), str(row.arm)) for row in frame.itertuples()]
+                if len(keys) != len(expected_keys) or set(keys) != expected_keys:
+                    raise AssertionError("child weight diagnostic cells are incomplete")
+                if frame.duplicated(["validation_size", "arm"]).any():
+                    raise AssertionError("duplicate child weight diagnostic cells")
+                frame = frame.copy()
+                frame["replicate"] = int(rep)
+                frame["gamma"] = float(gamma)
+                frame["degree"] = int(degree)
+                frames.append(frame)
+    combined = pd.concat(frames, ignore_index=True)
+    return combined.sort_values(WEIGHT_SORT_KEYS).reset_index(drop=True)
+
+
+def _reconstruct_weight_diagnostic_aggregate(raw: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for keys, group in raw.groupby(WEIGHT_GROUP_KEYS, sort=True):
+        for metric in WEIGHT_DIAGNOSTIC_METRICS:
+            values = pd.to_numeric(group[metric], errors="coerce").dropna().to_numpy(float)
+            if values.size == 0:
+                continue
+            rows.append({
+                **dict(zip(WEIGHT_GROUP_KEYS, keys)),
+                "metric": metric,
+                "replicate_count": int(values.size),
+                "mean": float(values.mean()),
+                "sd": float(values.std(ddof=1)) if values.size > 1 else np.nan,
+                "median": float(np.median(values)),
+                "minimum": float(values.min()),
+                "maximum": float(values.max()),
+            })
+    return pd.DataFrame(rows)
+
+
+def _verify_weight_diagnostic_outputs(
+    expected_raw: pd.DataFrame, observed_raw: pd.DataFrame, observed_aggregate: pd.DataFrame
+) -> tuple[int, int]:
+    expected_raw = expected_raw.sort_values(WEIGHT_SORT_KEYS).reset_index(drop=True)
+    observed_raw = observed_raw.sort_values(WEIGHT_SORT_KEYS).reset_index(drop=True)
+    pd.testing.assert_frame_equal(
+        observed_raw, expected_raw, check_dtype=False, check_exact=False, rtol=1e-12, atol=1e-12,
+    )
+    expected_aggregate = _reconstruct_weight_diagnostic_aggregate(expected_raw)
+    sort_keys = WEIGHT_GROUP_KEYS + ["metric"]
+    if not set(sort_keys).issubset(observed_aggregate.columns):
+        raise AssertionError("weight diagnostic aggregate is missing grouping keys")
+    pd.testing.assert_frame_equal(
+        observed_aggregate.sort_values(sort_keys).reset_index(drop=True),
+        expected_aggregate.sort_values(sort_keys).reset_index(drop=True),
+        check_dtype=False, check_exact=False, rtol=1e-12, atol=1e-12,
+    )
+    return len(expected_raw), len(expected_aggregate)
+
+
+
 def audit(root: Path) -> dict:
     root = root.resolve()
     cfg = json.loads((root / "config.json").read_text())
@@ -237,12 +320,20 @@ def audit(root: Path) -> dict:
     )
     observed_aggregate = pd.read_csv(root / "paired_degree_aggregate_metrics.csv")
     aggregate_rows = _verify_aggregate_metrics(expected, observed_aggregate)
+    expected_weight_diagnostics = _reconstruct_weight_diagnostics(root, cfg)
+    observed_weight_diagnostics = pd.read_csv(root / "paired_degree_weight_diagnostics.csv")
+    observed_weight_aggregate = pd.read_csv(root / "paired_degree_weight_diagnostic_aggregate.csv")
+    weight_rows, weight_aggregate_rows = _verify_weight_diagnostic_outputs(
+        expected_weight_diagnostics, observed_weight_diagnostics, observed_weight_aggregate
+    )
     return {
         "status": "PASS", "outer_manifest_entries_verified": outer_count,
         "nested_manifest_entries_verified": child_manifest_count,
         "paired_child_blocks_verified": len(paired_checks),
         "paired_summary_rows_reconstructed": len(expected),
         "paired_aggregate_rows_reconstructed": aggregate_rows,
+        "paired_weight_diagnostic_rows_reconstructed": weight_rows,
+        "paired_weight_diagnostic_aggregate_rows_reconstructed": weight_aggregate_rows,
         "common_arm_likelihoods_invariant": True,
         "interpretation": "Artifact integrity and paired arithmetic only; not calibration evidence.",
     }
