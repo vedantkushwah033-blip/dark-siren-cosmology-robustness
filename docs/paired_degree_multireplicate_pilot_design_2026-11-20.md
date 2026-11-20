@@ -24,7 +24,7 @@ The orchestrator runs the independently audited multi-replicate workflow separat
 
 1. Requires both child workflows to report lifecycle PASS and their independent audits to pass.
 2. Compares parent, catalogue, GW events, event truth, validation-frame truth and every nested validation sample exactly across model degrees.
-3. Requires the H0 grid and A/B/C likelihood curves to be bitwise identical across degrees. These arms should not depend on the fitted inclusion-model degree.
+3. Requires the H0 grid to match and A/B/C likelihood curves to agree within strict 1e-12 absolute/relative tolerance across degrees. These arms should not depend on the fitted inclusion-model degree; sub-1e-12 differences from floating-point operation order are allowed and reported.
 4. Reconstructs paired D2-minus-D1 posterior-error contrasts at replicate/gamma/validation-size/arm grain.
 5. Reports paired Monte Carlo standard errors and t-based 95% intervals, alongside bias, RMSE and 68% coverage for each degree.
 6. Hashes every outer artifact file and records all configurations, child audits, and logs.
