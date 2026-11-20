@@ -271,6 +271,10 @@ def audit(root: Path) -> dict:
     quadratic_center = float(config.get("fitted_quadratic_basis_center", 0.0))
     if not np.isfinite(quadratic_center):
         raise AssertionError("fitted quadratic basis center must be finite")
+    expected_quadratic_center = float(quadratic_calibration.get("x2_center", 0.0))
+    expected_fitted_center = expected_quadratic_center if inclusion_degree == 2 else 0.0
+    if not np.isclose(quadratic_center, expected_fitted_center, rtol=0.0, atol=1e-14):
+        raise AssertionError("fitted quadratic basis center does not match the declared DGP parameterization")
     catalogue_model = config.get("catalogue_model", "floor_logistic")
     quadratic_calibration = config.get("quadratic_calibration", {})
     threshold = float(config["detection_threshold_mpc"])
