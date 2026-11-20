@@ -180,7 +180,8 @@ def run(args: argparse.Namespace) -> dict:
                 cfg=json.loads((child/"config.json").read_text())
                 if (int(cfg["seed"])!=analysis_seed or int(cfg["validation_seed"])!=validation_seed
                     or float(cfg["curvature_gamma"])!=float(gamma)
-                    or int(cfg["n_detected"])!=args.n_detected):
+                    or int(cfg["n_detected"])!=args.n_detected
+                    or int(cfg.get("inclusion_model_degree",1))!=inclusion_degree):
                     raise RuntimeError("child configuration differs from frozen replicate design")
                 audit_status="PASS"
                 sm=pd.read_csv(child/"results"/"posterior_summaries.csv")
