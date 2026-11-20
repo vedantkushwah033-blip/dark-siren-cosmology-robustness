@@ -59,6 +59,10 @@ jobs:
         run: python -m pytest tests/test_five_arm_likelihood.py -q
       - name: Test matched five-arm reflected-KDE selected H0 likelihood
         run: python -m pytest tests/test_five_arm_kde_likelihood.py -q
+      - name: Test quadratic-logit five-arm runner, degree-two inclusion, and independent audit
+        run: python -m pytest tests/test_quadratic_five_arm_smoke.py -q
+      - name: Validate quadratic five-arm replicate runner CLI
+        run: python scripts/run_quadratic_five_arm_replicates.py --help
       - name: Test realized reflected-KDE bandwidth reporting
         run: python -m pytest tests/test_reflected_bandwidth_report.py -q
       - name: Test inclusion coefficient quadrature convergence through H0 posterior
