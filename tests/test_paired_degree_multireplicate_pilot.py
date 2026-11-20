@@ -202,3 +202,29 @@ def test_independent_auditor_reconstructs_and_rejects_aggregate_tampering():
     tampered.loc[0, "degree2_rmse"] += 0.25
     with pytest.raises(AssertionError):
         _verify_aggregate_metrics(paired, tampered)
+
+
+def test_independent_auditor_rejects_missing_aggregate_group():
+    from audit_paired_degree_multireplicate_pilot import _verify_aggregate_metrics
+
+    data = _summaries()
+    d1 = data[data.index % 2 == 0].copy()
+    d2 = data[data.index % 2 == 1].copy()
+    paired = _paired_summary(d1, d2)
+    aggregate = _aggregate_paired(paired)
+    with pytest.raises(AssertionError):
+        _verify_aggregate_metrics(paired, aggregate.iloc[0:0])
+
+
+def test_independent_auditor_rejects_tampered_paired_interval():
+    from audit_paired_degree_multireplicate_pilot import _verify_aggregate_metrics
+
+    data = _summaries()
+    d1 = data[data.index % 2 == 0].copy()
+    d2 = data[data.index % 2 == 1].copy()
+    paired = _paired_summary(d1, d2)
+    aggregate = _aggregate_paired(paired)
+    tampered = aggregate.copy()
+    tampered.loc[0, "squared_error_difference_d2_minus_d1_ci95_high"] += 0.1
+    with pytest.raises(AssertionError):
+        _verify_aggregate_metrics(paired, tampered)
