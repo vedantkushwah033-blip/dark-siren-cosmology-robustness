@@ -48,11 +48,13 @@ def _sha256(path: Path) -> str:
 
 def _posterior_summary(
     grid: np.ndarray, log_likelihood: np.ndarray, prior_min: float, prior_max: float,
+    h0_true: float,
 ) -> dict[str, float]:
     posterior = normalize_h0_posterior(
         grid, log_likelihood, prior_min=prior_min, prior_max=prior_max
     )
     return {
+        "posterior_rank": float(np.interp(float(h0_true), posterior.grid, posterior.cdf)),
         "posterior_median": posterior.quantile(0.50),
         "q025": posterior.quantile(0.025),
         "q05": posterior.quantile(0.05),
@@ -178,7 +180,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             "E_uncertainty_integrated_ipw": result.arm_e_marginal_log_likelihood,
         }
         for arm, log_likelihood in arm_likelihoods.items():
-            estimates = _posterior_summary(h0_grid, np.asarray(log_likelihood), h0_prior_min, h0_prior_max)
+            estimates = _posterior_summary(h0_grid, np.asarray(log_likelihood), h0_prior_min, h0_prior_max, float(args.h0_true))
             summary_rows.append({
                 "validation_size": n_validation,
                 "arm": arm,
