@@ -40,12 +40,17 @@ def _mean_ci(values: np.ndarray) -> tuple[float, float, float, float]:
 
 def analyze(root: Path, output: Path) -> dict:
     root = root.resolve()
+    planned = pd.read_csv(root / "planned_cells.csv")
     ledger = pd.read_csv(root / "replicate_ledger.csv")
     summary = pd.read_csv(root / "replicate_posterior_summaries.csv")
     diagnostics = pd.read_csv(root / "replicate_weight_diagnostics.csv")
     key = ["replicate", "gamma", "validation_size", "arm"]
-    if ledger.duplicated(key).any() or summary.duplicated(key).any() or diagnostics.duplicated(key).any():
+    if planned.duplicated(key).any() or ledger.duplicated(key).any() or summary.duplicated(key).any() or diagnostics.duplicated(key).any():
         raise AssertionError("duplicate replicate/gamma/size/arm key")
+    planned_keys = set(map(tuple, planned[key].itertuples(index=False, name=None)))
+    ledger_keys = set(map(tuple, ledger[key].itertuples(index=False, name=None)))
+    if planned_keys != ledger_keys:
+        raise AssertionError("lifecycle ledger does not exactly cover the independently declared planned cells")
     if not (ledger.status == "SUCCESS").all() or not (ledger.audit_status == "PASS").all():
         raise AssertionError("readout requires every planned cell to be successful and audited")
     if set(map(tuple, ledger[key].itertuples(index=False, name=None))) != set(map(tuple, summary[key].itertuples(index=False, name=None))):
