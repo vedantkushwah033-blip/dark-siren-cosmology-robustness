@@ -87,8 +87,9 @@ def _verify_pair(left: Path, right: Path) -> dict:
                     f"common-arm likelihood mismatch beyond tolerance: {key}; max abs delta={delta}"
                 )
     return {
-        "raw_input_files_equal": checks,
-        "common_arm_curves_checked": len(keys),
+        # Match the orchestrator record schema; values are independently recomputed.
+        "input_files_compared": checks,
+        "common_arm_likelihoods_within_tolerance": True,
         "maximum_common_arm_log_likelihood_difference": maximum_common_arm_delta,
     }
 
