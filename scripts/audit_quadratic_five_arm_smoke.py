@@ -1,10 +1,9 @@
 """Independent raw-input and likelihood audit for quadratic-logit five-arm smoke artifacts.
 
 This auditor does not import the five-arm runner, weight builder, likelihood
-implementation, or H0 posterior normalizer. It reconstructs weights and the
-selected likelihood directly from saved observable/truth inputs and persisted
-validation-posterior nodes. It audits likelihood propagation, not the posterior
-quadrature construction itself.
+implementation, or H0 posterior normalizer. It independently reconstructs the
+logistic coefficient posterior mode, Laplace covariance, Gauss-Hermite nodes,
+quadrature weights, host weights, and selected likelihood from saved inputs.
 """
 from __future__ import annotations
 
