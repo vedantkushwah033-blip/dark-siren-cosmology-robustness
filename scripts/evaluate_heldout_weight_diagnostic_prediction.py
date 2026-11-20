@@ -10,6 +10,7 @@ both training and holdout replicate units and refits the model.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -37,8 +38,39 @@ EXPECTED_CONFIG = {
 }
 
 
+def _verify_manifest(root: Path) -> int:
+    """Verify every file and byte count declared by the immutable source manifest."""
+    root = root.resolve()
+    manifest_path = root / "manifest.json"
+    if not manifest_path.is_file():
+        raise AssertionError(f"{root}: missing aggregate manifest")
+    manifest = json.loads(manifest_path.read_text())
+    files = manifest.get("files")
+    if not isinstance(files, dict) or not files:
+        raise AssertionError(f"{root}: aggregate manifest has no file map")
+    checked = 0
+    for relative, metadata in files.items():
+        rel = Path(relative)
+        if rel.is_absolute() or ".." in rel.parts:
+            raise AssertionError(f"{root}: unsafe manifest path: {relative}")
+        path = (root / rel).resolve()
+        if root not in path.parents or not path.is_file():
+            raise AssertionError(f"{root}: manifest file is missing or escapes artifact root: {relative}")
+        digest = hashlib.sha256()
+        with path.open("rb") as stream:
+            for block in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(block)
+        if path.stat().st_size != int(metadata["bytes"]) or digest.hexdigest() != metadata["sha256"]:
+            raise AssertionError(f"{root}: manifest checksum/size mismatch: {relative}")
+        checked += 1
+    if checked != int(manifest.get("file_count", -1)):
+        raise AssertionError(f"{root}: aggregate manifest file count mismatch")
+    return checked
+
+
 def _validate_artifact(root: Path, expected_seed: int) -> pd.DataFrame:
     root = root.resolve()
+    _verify_manifest(root)
     cfg = json.loads((root / "config.json").read_text())
     if int(cfg.get("master_seed", -1)) != expected_seed:
         raise AssertionError(f"{root}: wrong master seed")
