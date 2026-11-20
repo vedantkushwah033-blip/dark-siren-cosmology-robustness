@@ -85,6 +85,17 @@ For D (MAP plug-in IPW), the table below gives median Kish ESS and median top-5%
 
 The integrated degree-two arm has particularly severe node-wise IPW concentration in several cells: median minimum-node Kish ESS is about 2.9 at (gamma=-1,n=100) and (gamma=0,n=100), while the median maximum-node top-5% mass is 96–98%. This is a plausible instability mechanism worth investigating; it is not a universal ESS cutoff or proof that degree two is intrinsically inferior. It also explains why coefficient-posterior integration alone should not be assumed to regularize inverse-probability weights.
 
+## Exploratory weight-diagnostic / error association
+
+Within each of the 12 degree × curvature × validation-size cells (20 replicates each), I computed Spearman rank correlations between E-arm absolute H0 median error and (i) the minimum-node Kish ESS and (ii) the maximum-node top-5%-weight mass. These are post-hoc exploratory checks, not a prespecified diagnostic-prediction test.
+
+The clearest unadjusted associations occurred at positive curvature:
+- Degree one, (gamma=+1,n=100): (ho(mathrm{minESS},|e|)=-0.453), p=0.045; (ho(mathrm{maxTop5},|e|)=+0.529), p=0.016.
+- Degree one, (gamma=+1,n=500): (ho(mathrm{minESS},|e|)=-0.481), p=0.032; top-5 mass correlation +0.408, p=0.075.
+- Degree two, (gamma=+1,n=500): (ho(mathrm{minESS},|e|)=-0.511), p=0.021; top-5 mass correlation +0.442, p=0.051.
+
+None of the 24 correlation tests survives a Bonferroni threshold of (0.05/24approx0.0021). The remaining cells show mixed directions. Thus this pilot does **not** establish that these pre-posterior diagnostics predict posterior error. It motivates a larger preregistered validation with held-out replicates and a multiplicity-controlled prediction test.
+
 ## Interpretation and limits
 
 1. **No general degree-two advantage is demonstrated.** Its effect changes with curvature, validation size, and IPW arm.
