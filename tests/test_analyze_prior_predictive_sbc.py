@@ -135,3 +135,37 @@ def test_detailed_readout_rejects_nonfinite_posterior_error(tmp_path):
     import pytest
     with pytest.raises(AssertionError, match="non-finite posterior summary"):
         analyze(root, tmp_path / "out")
+
+
+def test_detailed_readout_rejects_missing_planned_lifecycle_cell(tmp_path):
+    import pytest
+    root = tmp_path / "input"
+    root.mkdir()
+    ledger, summaries, diagnostics = [], [], []
+    for arm in ARMS:
+        ledger.append({
+            "replicate": 0, "gamma": 0.0, "validation_size": 100,
+            "arm": arm, "status": "SUCCESS", "audit_status": "PASS",
+        })
+        summaries.append({
+            "replicate": 0, "gamma": 0.0, "validation_size": 100,
+            "arm": arm, "status": "SUCCESS", "h0_true": 70.0,
+            "median_error": 0.1, "posterior_rank": 0.5,
+            "q16": 68.0, "q84": 72.0,
+        })
+        diagnostics.append({
+            "replicate": 0, "gamma": 0.0, "validation_size": 100,
+            "arm": arm,
+            "kish_ess": np.nan if arm == ARMS[-1] else 25.0,
+            "minimum_node_kish_ess": 15.0,
+        })
+    pd.DataFrame(ledger)[["replicate", "gamma", "validation_size", "arm"]].to_csv(
+        root / "planned_cells.csv", index=False
+    )
+    # Deliberately drop one lifecycle row while leaving the planned-cell
+    # declaration, posterior summaries, and diagnostics complete.
+    pd.DataFrame(ledger[:-1]).to_csv(root / "replicate_ledger.csv", index=False)
+    pd.DataFrame(summaries).to_csv(root / "replicate_posterior_summaries.csv", index=False)
+    pd.DataFrame(diagnostics).to_csv(root / "replicate_weight_diagnostics.csv", index=False)
+    with pytest.raises(AssertionError, match="planned cells"):
+        analyze(root, tmp_path / "out")
