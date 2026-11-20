@@ -552,8 +552,12 @@ def audit(root: Path) -> dict:
                 "posterior_median": _posterior_quantile(grid, expected, 0.50),
                 "q025": _posterior_quantile(grid, expected, 0.025),
                 "q05": _posterior_quantile(grid, expected, 0.05),
+                "q10": _posterior_quantile(grid, expected, 0.10),
                 "q16": _posterior_quantile(grid, expected, 0.16),
+                "q25": _posterior_quantile(grid, expected, 0.25),
+                "q75": _posterior_quantile(grid, expected, 0.75),
                 "q84": _posterior_quantile(grid, expected, 0.84),
+                "q90": _posterior_quantile(grid, expected, 0.90),
                 "q95": _posterior_quantile(grid, expected, 0.95),
                 "q975": _posterior_quantile(grid, expected, 0.975),
             }
