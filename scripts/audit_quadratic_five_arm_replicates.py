@@ -104,6 +104,9 @@ def audit(root: Path) -> dict:
     diagnostics=pd.read_csv(root/"replicate_weight_diagnostics.csv")
     aggregates=pd.read_csv(root/"aggregate_metrics.csv")
     contrasts=pd.read_csv(root/"paired_contrasts.csv")
+    inclusion_degree=int(cfg.get("inclusion_model_degree",1))
+    if inclusion_degree not in (1,2):
+        raise AssertionError("aggregate inclusion model degree must be 1 or 2")
     reps=int(cfg["replicates"]); gammas=[float(x) for x in cfg["gammas"]]
     sizes=[int(x) for x in cfg["validation_sizes"]]
     expected_n=reps*len(gammas)*len(sizes)*len(ARMS)
@@ -145,6 +148,7 @@ def audit(root: Path) -> dict:
                 or float(child_cfg["curvature_gamma"])!=float(gamma)
                 or int(child_cfg["n_detected"])!=int(cfg["n_detected"])
                 or int(child_cfg["n_parent"])!=int(cfg["n_parent"])
+                or int(child_cfg.get("inclusion_model_degree",1))!=inclusion_degree
                 or list(map(float,child_cfg.get("h0_prior_support",[50.0,90.0])))
                     !=list(map(float,cfg.get("h0_prior_support",[50.0,90.0])))):
                 raise AssertionError(f"child configuration/seed mismatch: {rel}")
