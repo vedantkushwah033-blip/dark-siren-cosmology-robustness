@@ -65,10 +65,11 @@ jobs:
             --validation-sizes 100,300,500 --h0-points 81 --quadrature-order 5 \
             --output-dir artifacts/paired_degree_multireplicate
       - name: Upload paired quadrature sensitivity artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: degree-matched-quadrature-sensitivity
           path: |
             artifacts/degree_matched_quadrature_sensitivity/
             artifacts/paired_degree_multireplicate/
-          if-no-files-found: error
+          if-no-files-found: warn
