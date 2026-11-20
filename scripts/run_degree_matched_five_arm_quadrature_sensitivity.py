@@ -169,8 +169,8 @@ def run(args: argparse.Namespace) -> dict:
                             "posterior_quadrature_ess": float(
                                 1.0 / np.sum(archive[f"posterior_weights_n{nval}"] ** 2)
                             ),
+                            "child_audit_status": "PASS",
                         })
-            records[-1]["child_audit_status"] = "PASS"
 
     posterior_rows = pd.DataFrame(records)
     posterior_rows.to_csv(out / "posterior_summaries.csv", index=False)
