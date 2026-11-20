@@ -144,3 +144,35 @@ def test_raw_and_centered_degree_two_gaussian_priors_are_not_equivalent():
     assert result["kl_nats_raw_induced_vs_independent_centered_prior"] > 0.0
     assert result["raw_prior_induced_beta_sd"] == pytest.approx(2.5)
     assert result["raw_prior_induced_gamma_sd"] == pytest.approx(2.5)
+
+
+def test_independent_pair_auditor_uses_recorded_check_schema(tmp_path: Path):
+    from audit_paired_degree_multireplicate_pilot import _verify_pair
+
+    left, right = tmp_path / "d1", tmp_path / "d2"
+    for root in (left, right):
+        (root / "observable").mkdir(parents=True)
+        (root / "truth").mkdir()
+        (root / "results").mkdir()
+        for rel in (
+            "observable/catalogue_observed.csv",
+            "observable/gw_events_observed.csv",
+            "truth/parent_truth.csv",
+            "truth/gw_event_truth.csv",
+            "truth/validation_frame_truth.csv",
+        ):
+            (root / rel).write_text("id,value\\n1,2\\n")
+        (root / "observable/validation_n100.csv").write_text("id,value\\n1,2\\n")
+        np.savez(
+            root / "results/log_likelihoods.npz",
+            H0_grid=np.array([30.0, 31.0]),
+            A_catalogue_only_n100=np.array([-1.0, -2.0]),
+            B_parent_oracle_n100=np.array([-1.0, -2.0]),
+            C_known_probability_ipw_n100=np.array([-1.0, -2.0]),
+        )
+    result = _verify_pair(left, right)
+    assert result == {
+        "input_files_compared": 6,
+        "common_arm_likelihoods_within_tolerance": True,
+        "maximum_common_arm_log_likelihood_difference": 0.0,
+    }
