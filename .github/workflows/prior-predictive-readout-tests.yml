@@ -1,0 +1,47 @@
+name: prior-predictive-readout-tests
+
+on:
+  push:
+    branches:
+      - research/five-arm-prior-predictive-20rep-20261120
+    paths:
+      - "scripts/analyze_prior_predictive_sbc.py"
+      - "tests/test_analyze_prior_predictive_sbc.py"
+      - "pyproject.toml"
+      - ".github/workflows/prior-predictive-readout-tests.yml"
+  pull_request:
+    paths:
+      - "scripts/analyze_prior_predictive_sbc.py"
+      - "tests/test_analyze_prior_predictive_sbc.py"
+      - "pyproject.toml"
+      - ".github/workflows/prior-predictive-readout-tests.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prior-predictive-readout-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  focused-readout-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Compile SBC readout and tests
+        run: |
+          python -m py_compile scripts/analyze_prior_predictive_sbc.py
+          python -m py_compile tests/test_analyze_prior_predictive_sbc.py
+      - name: Run fail-closed paired SBC readout tests
+        run: python -m pytest tests/test_analyze_prior_predictive_sbc.py -q
