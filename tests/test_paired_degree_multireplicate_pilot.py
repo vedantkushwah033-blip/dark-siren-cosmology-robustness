@@ -7,7 +7,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from run_paired_degree_multireplicate_pilot import (
-    _aggregate_paired, _paired_summary, _verify_child_pair,
+    _aggregate_paired, _paired_summary, _verify_child_pair, _write_manifest,
 )
 
 
@@ -268,3 +268,16 @@ def test_paired_degree_checks_reject_asymmetric_validation_file_sets(tmp_path: P
         _verify_pair(left, right)
     with pytest.raises(AssertionError, match="validation-file sets differ"):
         _verify_child_pair(left, right)
+
+
+
+def test_outer_manifest_preserves_incomplete_lifecycle_status(tmp_path: Path):
+    import json
+
+    payload = tmp_path / "partial.csv"
+    payload.write_text("value\\n1\\n")
+    manifest = _write_manifest(tmp_path, "INCOMPLETE")
+    saved = json.loads((tmp_path / "manifest.json").read_text())
+    assert manifest["status"] == "INCOMPLETE"
+    assert saved["status"] == "INCOMPLETE"
+    assert saved["file_count"] == 1
