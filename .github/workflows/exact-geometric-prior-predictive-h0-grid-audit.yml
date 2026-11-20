@@ -1,6 +1,14 @@
 name: exact-geometric-prior-predictive-h0-grid-audit
 
 on:
+  push:
+    branches:
+      - research/five-arm-prior-predictive-20rep-20261120
+    paths:
+      - ".github/workflows/exact-geometric-prior-predictive-h0-grid-audit.yml"
+      - "docs/geometric_h0_grid_refinement_20rep_audit_2026-11-20.md"
+      - "scripts/audit_geometric_prior_predictive_h0_grid.py"
+      - "tests/test_audit_geometric_prior_predictive_h0_grid.py"
   workflow_dispatch:
     inputs:
       source_run_id:
@@ -37,7 +45,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: geometric-h0-prior-predictive-20rep
-          run-id: ${{ inputs.source_run_id }}
+          run-id: ${{ inputs.source_run_id || '44731915717' }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: source-artifact
       - name: Repack exact frozen source artifact
@@ -58,7 +66,7 @@ jobs:
         run: |
           python scripts/audit_geometric_prior_predictive_h0_grid.py \
             --artifact-zip geometric-prior-predictive-source.zip \
-            --replicates ${{ inputs.replicates }} \
+            --replicates ${{ inputs.replicates || '20' }} \
             --source-points 1121 \
             --fine-points 2241 \
             --output-dir results/geometric-h0-grid-audit
@@ -68,7 +76,7 @@ jobs:
           import json
           from pathlib import Path
           report = json.loads(Path("results/geometric-h0-grid-audit/geometric_h0_grid_refinement_summary.json").read_text())
-          expected = int(${{ inputs.replicates }}) * 3 * 3 * 5
+          expected = int("${{ inputs.replicates || '20' }}") * 3 * 3 * 5
           assert report["status"] == "PASS"
           assert report["rows"] == expected
           assert report["grid_type"] == "geometric"
