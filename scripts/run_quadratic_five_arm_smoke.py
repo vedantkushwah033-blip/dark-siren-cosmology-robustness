@@ -69,6 +69,18 @@ def _posterior_summary(
     }
 
 
+def _make_h0_grid(prior_min: float, prior_max: float, points: int, grid_type: str = "linear") -> np.ndarray:
+    if points < 2:
+        raise ValueError("H0 grid requires at least two points")
+    if not prior_min < prior_max:
+        raise ValueError("H0 prior support must be strictly increasing")
+    if grid_type == "linear":
+        return np.linspace(prior_min, prior_max, points)
+    if grid_type == "geometric":
+        return np.geomspace(prior_min, prior_max, points)
+    raise ValueError(f"unsupported H0 grid type: {grid_type}")
+
+
 def run(args: argparse.Namespace) -> dict[str, object]:
     output = args.output_dir.resolve()
     output.mkdir(parents=True, exist_ok=True)
