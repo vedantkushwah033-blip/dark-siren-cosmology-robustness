@@ -62,7 +62,7 @@ jobs:
       - name: Run paired degree-one/degree-two multi-replicate pilot
         run: |
           python scripts/run_paired_degree_inclusion_multireplicate.py \
-            --master-seed 202611201 --replicates 3 --gammas=-1,0,1 \
+            --master-seed 202611202 --replicates 10 --gammas=-1,0,1 \
             --n-parent 1200 --n-detected 30 --validation-frame 500 \
             --validation-sizes 100,300,500 --h0-points 81 --quadrature-order 5 \
             --output-dir artifacts/paired_degree_multireplicate
