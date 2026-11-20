@@ -73,6 +73,9 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         directory.mkdir(parents=True, exist_ok=True)
 
     sizes = args.validation_sizes
+    inclusion_degree = int(getattr(args, "inclusion_degree", 1))
+    if inclusion_degree not in (1, 2):
+        raise ValueError("inclusion degree must be 1 or 2")
     prior_min = float(getattr(args, "h0_prior_min", 50.0))
     prior_max = float(getattr(args, "h0_prior_max", 90.0))
     if not np.isfinite(prior_min) or not np.isfinite(prior_max) or prior_min >= prior_max:
@@ -153,7 +156,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             validation["redshift"].to_numpy(float),
             validation["retained"].to_numpy(np.int8),
             catalogue_floor=None,
-            degree=1,
+            degree=inclusion_degree,
             coordinate_center=0.205,
             coordinate_scale=0.195,
             quadrature_order=args.quadrature_order,
@@ -271,6 +274,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "validation_sizes": sizes,
         "catalogue_floor": args.catalogue_floor,
         "catalogue_model": "quadratic_logit",
+        "inclusion_model_degree": inclusion_degree,
         "curvature_gamma": args.curvature_gamma,
         "curvature_beta": args.curvature_beta,
         "quadratic_calibration": quadratic["config"],
@@ -328,6 +332,7 @@ def main() -> None:
     parser.add_argument("--catalogue-floor", type=float, default=0.10)
     parser.add_argument("--curvature-gamma", type=float, default=0.0)
     parser.add_argument("--curvature-beta", type=float, default=-3.9)
+    parser.add_argument("--inclusion-degree", type=int, choices=(1, 2), default=1)
     parser.add_argument("--h0-true", type=float, default=70.0)
     parser.add_argument("--h0-prior-min", type=float, default=50.0)
     parser.add_argument("--h0-prior-max", type=float, default=90.0)
