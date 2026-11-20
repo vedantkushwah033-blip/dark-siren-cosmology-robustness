@@ -88,3 +88,46 @@ def test_degree_pair_rejects_common_arm_likelihood_mismatch(tmp_path: Path):
                  C_known_probability_ipw_n100=np.array([-1., -2.]))
     with pytest.raises(AssertionError, match="common arm"):
         _verify_child_pair(left, right)
+
+
+
+def test_independent_auditor_verifies_manifest_and_rejects_tampering(tmp_path: Path):
+    import hashlib
+    import json
+    from audit_paired_degree_multireplicate_pilot import _verify_manifest
+
+    root = tmp_path / "artifact"
+    root.mkdir()
+    payload = root / "payload.txt"
+    payload.write_text("integrity-check")
+    digest = hashlib.sha256(payload.read_bytes()).hexdigest()
+    manifest = {
+        "status": "PASS", "file_count": 1,
+        "files": {"payload.txt": {"bytes": payload.stat().st_size, "sha256": digest}},
+    }
+    (root / "manifest.json").write_text(json.dumps(manifest))
+    assert _verify_manifest(root) == 1
+    payload.write_text("tampered")
+    with pytest.raises(AssertionError, match="hash/size mismatch"):
+        _verify_manifest(root)
+
+
+def test_independent_auditor_rejects_manifest_path_traversal(tmp_path: Path):
+    import hashlib
+    import json
+    from audit_paired_degree_multireplicate_pilot import _verify_manifest
+
+    root = tmp_path / "artifact"
+    root.mkdir()
+    outside = tmp_path / "outside.txt"
+    outside.write_text("not inside artifact")
+    manifest = {
+        "status": "PASS", "file_count": 1,
+        "files": {"../outside.txt": {
+            "bytes": outside.stat().st_size,
+            "sha256": hashlib.sha256(outside.read_bytes()).hexdigest(),
+        }},
+    }
+    (root / "manifest.json").write_text(json.dumps(manifest))
+    with pytest.raises(AssertionError, match="escapes artifact root"):
+        _verify_manifest(root)
