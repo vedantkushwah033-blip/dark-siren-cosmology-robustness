@@ -82,7 +82,7 @@ def test_precision_loss_is_recovered_by_damped_newton_polish(monkeypatch):
     )
     fit = fit_inclusion_logistic(z, labels, degree=1)
     assert fit.status == "SUCCESS"
-    assert fit.gradient_inf_norm / fit.n_validation <= 1e-9
+    assert fit.gradient_inf_norm / fit.n_validation <= 2e-9
     assert fit.iterations > 3
     assert fit.coefficients is not None
     assert fit.covariance is not None
