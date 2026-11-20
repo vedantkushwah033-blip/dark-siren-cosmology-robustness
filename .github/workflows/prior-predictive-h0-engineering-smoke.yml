@@ -1,0 +1,73 @@
+name: prior-predictive-h0-engineering-smoke
+
+on:
+  push:
+    branches:
+      - research/prior-predictive-h0-runner-20261121
+    paths:
+      - ".github/workflows/prior-predictive-h0-engineering-smoke.yml"
+      - "scripts/run_quadratic_five_arm_replicates.py"
+      - "scripts/audit_quadratic_five_arm_replicates.py"
+      - "scripts/run_paired_degree_multireplicate_pilot.py"
+      - "scripts/audit_paired_degree_multireplicate_pilot.py"
+      - "tests/test_quadratic_five_arm_replicates.py"
+      - "tests/test_paired_degree_multireplicate_pilot.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prior-predictive-h0-engineering-smoke
+  cancel-in-progress: false
+
+jobs:
+  prior-predictive-engineering:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Test prior-predictive truth scheduling and paired-degree auditing
+        run: |
+          python -m pytest tests/test_quadratic_five_arm_replicates.py tests/test_paired_degree_multireplicate_pilot.py -q
+      - name: Run 10-replicate prior-predictive five-arm paired-degree engineering smoke
+        run: |
+          python scripts/run_paired_degree_multireplicate_pilot.py \
+            --master-seed 2026112101 --replicates 10 --gammas=-1,0,1 \
+            --n-parent 1200 --n-detected 30 --validation-frame 500 \
+            --validation-sizes 100,300,500 --h0-true 70 \
+            --h0-truth-mode prior_predictive --h0-prior-min 30 --h0-prior-max 110 \
+            --h0-points 281 --quadrature-order 5 \
+            --output-dir artifacts/prior_predictive_h0_engineering_smoke
+      - name: Independently audit prior-predictive paired-degree artifacts
+        run: |
+          python scripts/audit_paired_degree_multireplicate_pilot.py \
+            artifacts/prior_predictive_h0_engineering_smoke \
+            --output artifacts/prior_predictive_h0_engineering_smoke/independent_audit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("artifacts/prior_predictive_h0_engineering_smoke")
+          cfg = json.loads((root / "config.json").read_text())
+          audit = json.loads((root / "independent_audit.json").read_text())
+          assert cfg["status"] == "PASS"
+          assert cfg["h0_truth_mode"] == "prior_predictive"
+          assert cfg["replicates"] == 10
+          assert audit["status"] == "PASS"
+          assert audit["paired_child_blocks_verified"] == 30
+          assert audit["paired_summary_rows_reconstructed"] == 450
+          print(json.dumps(audit, indent=2))
+          PY
+      - name: Upload immutable prior-predictive engineering artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prior-predictive-h0-engineering-smoke-10rep
+          path: artifacts/prior_predictive_h0_engineering_smoke/
+          if-no-files-found: warn
+          retention-days: 30
