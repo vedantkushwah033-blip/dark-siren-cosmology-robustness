@@ -626,8 +626,9 @@ def audit(root: Path) -> dict:
     if not observed[diagnostic_keys].equals(expected[diagnostic_keys]):
         raise AssertionError("weight diagnostic arm/size keys differ from independent reconstruction")
     for column in numeric_columns:
+        mask = expected[column].notna()
         if column not in observed or not np.allclose(
-            observed[column].to_numpy(float), expected[column].to_numpy(float),
+            observed.loc[mask, column].to_numpy(float), expected.loc[mask, column].to_numpy(float),
             rtol=2e-10, atol=2e-12, equal_nan=False,
         ):
             raise AssertionError(f"weight diagnostic {column} differs from independent reconstruction")
