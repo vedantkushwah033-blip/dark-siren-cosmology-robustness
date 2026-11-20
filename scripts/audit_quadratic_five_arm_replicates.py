@@ -166,7 +166,7 @@ def audit(root: Path) -> dict:
                 raise AssertionError(f"child validation sizes mismatch: {rel}")
             child_summary=pd.read_csv(d/"results"/"posterior_summaries.csv")
             expected=summaries[(summaries.replicate==rep)&(summaries.gamma==gamma)]
-            cols=["validation_size","arm","status","h0_true","median_error","posterior_median",
+            cols=["validation_size","arm","status","h0_true","median_error","posterior_rank","posterior_median",
                 "q025","q05","q16","q84","q95","q975"]
             left=child_summary[cols].sort_values(["validation_size","arm"]).reset_index(drop=True)
             right=expected[cols].sort_values(["validation_size","arm"]).reset_index(drop=True)
