@@ -135,8 +135,8 @@ def audit(root: Path) -> dict:
         expected_seed,expected_truth=_h0_truth(int(cfg["master_seed"]),rep,prior_min,prior_max) if prior_predictive else (-1,float(cfg["h0_true"]))
         if int(entry["h0_truth_seed"])!=expected_seed or float(entry["h0_true"])!=expected_truth:
             raise AssertionError(f"H0 truth schedule reconstruction mismatch at replicate {rep}")
-    identity=["replicate","gamma","validation_size","arm","analysis_seed","validation_seed",
-        "h0_truth_seed","h0_true"]
+    identity=["replicate","gamma","validation_size","arm","analysis_seed","event_seed",
+        "validation_seed","h0_truth_seed","h0_true"]
     joined=planned[["cell_id",*identity]].merge(ledger[["cell_id",*identity]],on="cell_id",
         how="inner",suffixes=("_planned","_ledger"),validate="one_to_one")
     for name in identity:
@@ -215,12 +215,14 @@ def audit(root: Path) -> dict:
             pairing_blocks+=1
 
     # Independently reconstruct the top-level seed schedule.
-    for row in planned[["replicate","analysis_seed","validation_seed","h0_truth_seed","h0_true"]].drop_duplicates().itertuples(index=False):
+    for row in planned[["replicate","analysis_seed","event_seed","validation_seed","h0_truth_seed","h0_true"]].drop_duplicates().itertuples(index=False):
         rep=int(row.replicate)
         if int(row.analysis_seed)!=_seed(int(cfg["master_seed"]),rep,0):
             raise AssertionError("analysis seed schedule mismatch")
         if int(row.validation_seed)!=_seed(int(cfg["master_seed"]),rep,1):
             raise AssertionError("validation seed schedule mismatch")
+        if int(row.event_seed)!=_seed(int(cfg["master_seed"]),rep,3):
+            raise AssertionError("event seed schedule mismatch")
         expected_seed=int(truth_schedule[rep]["h0_truth_seed"])
         expected_truth=float(truth_schedule[rep]["h0_true"])
         if int(row.h0_truth_seed)!=expected_seed or float(row.h0_true)!=expected_truth:
