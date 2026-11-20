@@ -38,6 +38,12 @@ def _seed(master: int, replicate: int, stream: int) -> int:
     return int(np.random.SeedSequence([master, replicate, stream]).generate_state(1, dtype=np.uint32)[0])
 
 
+def _h0_truth(master: int, replicate: int, lower: float, upper: float) -> float:
+    """Draw one reproducible prior-predictive truth on a dedicated seed stream."""
+    rng = np.random.default_rng(_seed(master, replicate, 2))
+    return float(rng.uniform(lower, upper))
+
+
 def _paired_contrasts(summaries: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for (rep, gamma, nval), group in summaries.groupby(
@@ -120,9 +126,15 @@ def run(args: argparse.Namespace) -> dict:
     prior_max=float(getattr(args,"h0_prior_max",90.0))
     if not np.isfinite(prior_min) or not np.isfinite(prior_max) or prior_min>=prior_max:
         raise ValueError("H0 prior bounds must be finite and increasing")
-    if not prior_min<=args.h0_true<=prior_max:
+    truth_mode=str(getattr(args,"h0_truth_mode","fixed"))
+    if truth_mode not in ("fixed","prior_predictive"):
+        raise ValueError("H0 truth mode must be fixed or prior_predictive")
+    if truth_mode=="fixed" and not prior_min<=args.h0_true<=prior_max:
         raise ValueError("H0 truth must lie within the declared prior support")
-    max_abs_error=max(abs(args.h0_true-prior_min),abs(prior_max-args.h0_true))
+    # Under prior-predictive sampling the truth is unknown until each replicate;
+    # use the full support width as a conservative failure-error bound.
+    max_abs_error=(prior_max-prior_min if truth_mode=="prior_predictive"
+                   else max(abs(args.h0_true-prior_min),abs(prior_max-args.h0_true)))
     max_interval_width=prior_max-prior_min
     runner=Path(__file__).with_name("run_quadratic_five_arm_smoke.py")
     auditor=Path(__file__).with_name("audit_quadratic_five_arm_smoke.py")
@@ -134,6 +146,9 @@ def run(args: argparse.Namespace) -> dict:
     for rep in range(args.replicates):
         analysis_seed=_seed(args.master_seed,rep,0)
         validation_seed=_seed(args.master_seed,rep,1)
+        h0_truth_seed=_seed(args.master_seed,rep,2)
+        h0_true=(_h0_truth(args.master_seed,rep,prior_min,prior_max)
+                 if truth_mode=="prior_predictive" else float(args.h0_true))
         for gamma in args.gammas:
             cell=f"rep{rep:03d}_g{gamma:+g}".replace("+","p").replace("-","m")
             child=out/"replicates"/cell
@@ -141,7 +156,8 @@ def run(args: argparse.Namespace) -> dict:
                 for arm in ARMS:
                     planned.append({"cell_id":f"{cell}_n{nval}_{arm}","replicate":rep,
                         "gamma":gamma,"validation_size":nval,"arm":arm,
-                        "analysis_seed":analysis_seed,"validation_seed":validation_seed})
+                        "analysis_seed":analysis_seed,"validation_seed":validation_seed,
+                        "h0_truth_seed":h0_truth_seed,"h0_true":h0_true})
             status="SUCCESS"
             audit_status="NOT_RUN"
             error=""
@@ -153,7 +169,7 @@ def run(args: argparse.Namespace) -> dict:
                     "--validation-sizes",",".join(map(str,args.validation_sizes)),
                     "--curvature-gamma",str(gamma),"--curvature-beta",str(args.curvature_beta),
                     "--inclusion-degree",str(inclusion_degree),
-                    "--h0-true",str(args.h0_true),"--h0-prior-min",str(prior_min),
+                    "--h0-true",str(h0_true),"--h0-prior-min",str(prior_min),
                     "--h0-prior-max",str(prior_max),"--h0-points",str(args.h0_points),
                     "--scott-multiplier",str(args.scott_multiplier),
                     "--quadrature-order",str(args.quadrature_order),
@@ -181,7 +197,8 @@ def run(args: argparse.Namespace) -> dict:
                 if (int(cfg["seed"])!=analysis_seed or int(cfg["validation_seed"])!=validation_seed
                     or float(cfg["curvature_gamma"])!=float(gamma)
                     or int(cfg["n_detected"])!=args.n_detected
-                    or int(cfg.get("inclusion_model_degree",1))!=inclusion_degree):
+                    or int(cfg.get("inclusion_model_degree",1))!=inclusion_degree
+                    or not np.isclose(float(cfg["h0_true"]),h0_true,rtol=0,atol=1e-12)):
                     raise RuntimeError("child configuration differs from frozen replicate design")
                 audit_status="PASS"
                 sm=pd.read_csv(child/"results"/"posterior_summaries.csv")
@@ -211,6 +228,7 @@ def run(args: argparse.Namespace) -> dict:
                     ledger.append({"cell_id":f"{cell}_n{nval}_{arm}","replicate":rep,
                         "gamma":gamma,"validation_size":nval,"arm":arm,
                         "analysis_seed":analysis_seed,"validation_seed":validation_seed,
+                        "h0_truth_seed":h0_truth_seed,"h0_true":h0_true,
                         "status":status,"audit_status":audit_status,"error":error})
     planned_df=pd.DataFrame(planned)
     ledger_df=pd.DataFrame(ledger)
@@ -228,8 +246,10 @@ def run(args: argparse.Namespace) -> dict:
     contrasts.to_csv(out/"paired_contrasts.csv",index=False)
     aggregates.to_csv(out/"aggregate_metrics.csv",index=False)
     pd.DataFrame(audit_rows).to_csv(out/"replicate_audits.csv",index=False)
-    config={"experiment":"quadratic_logit_matched_five_arm_30event_multireplicate_engineering_pilot",
-        "status":"engineering_pilot_not_confirmatory_not_observational",
+    config={"experiment":"quadratic_logit_matched_five_arm_30event_multireplicate_pilot",
+        "status":"prior_predictive_engineering_smoke_not_confirmatory_not_observational"
+            if truth_mode=="prior_predictive" else "fixed_truth_engineering_pilot_not_confirmatory_not_observational",
+        "h0_truth_mode":truth_mode,
         "master_seed":args.master_seed,"replicates":args.replicates,
         "gammas":args.gammas,"n_parent":args.n_parent,"n_detected":args.n_detected,
         "validation_frame":args.validation_frame,"validation_sizes":args.validation_sizes,
@@ -238,7 +258,11 @@ def run(args: argparse.Namespace) -> dict:
         "quadrature_order":args.quadrature_order,"sigma_mpc":args.sigma_mpc,
         "detection_threshold_mpc":args.detection_threshold_mpc,
         "seed_schedule":[{"replicate":r,"analysis_seed":_seed(args.master_seed,r,0),
-            "validation_seed":_seed(args.master_seed,r,1)} for r in range(args.replicates)],
+            "validation_seed":_seed(args.master_seed,r,1),
+            "h0_truth_seed":_seed(args.master_seed,r,2),
+            "h0_true":(_h0_truth(args.master_seed,r,prior_min,prior_max)
+                       if truth_mode=="prior_predictive" else float(args.h0_true))}
+            for r in range(args.replicates)],
         "failure_bounds":{"max_abs_median_error":max_abs_error,"max_interval_width":max_interval_width},
         "claim_limit":"Paired engineering pilot only; no estimator ranking, calibration, or observational inference."}
     (out/"config.json").write_text(json.dumps(config,indent=2,sort_keys=True)+"\n")
@@ -265,6 +289,7 @@ def main():
     p.add_argument("--curvature-beta",type=float,default=-3.9)
     p.add_argument("--inclusion-degree",type=int,choices=(1,2),default=1)
     p.add_argument("--h0-true",type=float,default=70.0)
+    p.add_argument("--h0-truth-mode",choices=("fixed","prior_predictive"),default="fixed")
     p.add_argument("--h0-prior-min",type=float,default=50.0)
     p.add_argument("--h0-prior-max",type=float,default=90.0)
     p.add_argument("--h0-points",type=int,default=281)
