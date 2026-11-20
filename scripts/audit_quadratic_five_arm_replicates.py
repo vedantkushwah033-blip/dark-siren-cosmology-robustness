@@ -135,6 +135,18 @@ def audit(root: Path) -> dict:
         expected_seed,expected_truth=_h0_truth(int(cfg["master_seed"]),rep,prior_min,prior_max) if prior_predictive else (-1,float(cfg["h0_true"]))
         if int(entry["h0_truth_seed"])!=expected_seed or float(entry["h0_true"])!=expected_truth:
             raise AssertionError(f"H0 truth schedule reconstruction mismatch at replicate {rep}")
+    seed_schedule={int(x["replicate"]):x for x in cfg.get("seed_schedule",[])}
+    if set(seed_schedule)!=set(range(reps)):
+        raise AssertionError("named seed schedule does not cover every replicate exactly once")
+    for rep,entry in seed_schedule.items():
+        expected={"population_seed":_seed(int(cfg["master_seed"]),rep,0),
+            "validation_frame_seed":_seed(int(cfg["master_seed"]),rep,1),
+            "h0_truth_seed":int(truth_schedule[rep]["h0_truth_seed"]),
+            "event_seed":_seed(int(cfg["master_seed"]),rep,3),
+            "validation_sample_seed":_seed(int(cfg["master_seed"]),rep,4)}
+        for name,value in expected.items():
+            if int(entry[name])!=value:
+                raise AssertionError(f"named seed schedule mismatch for {name} at replicate {rep}")
     identity=["replicate","gamma","validation_size","arm","analysis_seed","event_seed",
         "validation_seed","validation_sample_seed","h0_truth_seed","h0_true"]
     joined=planned[["cell_id",*identity]].merge(ledger[["cell_id",*identity]],on="cell_id",
