@@ -38,7 +38,7 @@ Primary metric: holdout MAE difference = diagnostic-model MAE minus training-mea
 
 ## Uncertainty and multiplicity
 
-For each stratum, use 3,000 deterministic nested bootstrap resamples. Each resample independently resamples the 200 training replicates and 100 holdout replicates, refits the OLS model, and calculates the paired MAE difference. Report percentile 95% intervals and a one-sided bootstrap tail probability for improvement. Apply Holm correction across all 18 prespecified tests.
+For each stratum, use 3,000 deterministic nested bootstrap resamples. Each resample independently resamples the 200 training replicates and 100 holdout replicates, refits the OLS model, and calculates the paired MAE difference. Report percentile 95% intervals and a one-sided null-centered bootstrap-pivot tail probability for improvement (the bootstrap distribution is centered by subtracting the observed MAE difference before evaluating the null value zero). Apply Holm correction across all 18 prespecified tests.
 
 A cell meets the predeclared predictive-value criterion only if:
 - holdout MAE difference is negative;
