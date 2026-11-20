@@ -82,7 +82,7 @@ def test_precision_loss_is_recovered_by_damped_newton_polish(monkeypatch):
     )
     fit = fit_inclusion_logistic(z, labels, degree=1)
     assert fit.status == "SUCCESS"
-    assert fit.gradient_inf_norm <= 1e-10
+    assert fit.gradient_inf_norm / fit.n_validation <= 2e-9
     assert fit.iterations > 3
     assert fit.coefficients is not None
     assert fit.covariance is not None
@@ -103,7 +103,7 @@ def test_unresolved_score_above_strict_tolerance_is_not_reported_as_success(monk
 
     # Return a nearby coefficient vector with a small but unacceptable score.
     # Force the Newton polish to stop so the final status guard is exercised.
-    unresolved_beta = converged.coefficients + np.array([1e-9, 0.0])
+    unresolved_beta = converged.coefficients + np.array([1e-7, 0.0])
     monkeypatch.setattr(
         inclusion_module,
         "minimize",
@@ -119,7 +119,7 @@ def test_unresolved_score_above_strict_tolerance_is_not_reported_as_success(monk
     )
 
     fit = fit_inclusion_logistic(z, labels, degree=1)
-    assert 1e-10 < fit.gradient_inf_norm < 1e-6
+    assert fit.gradient_inf_norm / fit.n_validation > 1e-9
     assert fit.status == "FAILED"
     assert fit.coefficients is None
-    assert "Strict score convergence criterion" in fit.message
+    assert "Mean-score convergence criterion" in fit.message
