@@ -35,7 +35,11 @@ def summarize(artifact_dir:Path,output_dir:Path,bins:int=10)->dict:
     key=["replicate","gamma","validation_size","arm"]
     if ledger.duplicated(key).any() or summaries.duplicated(key).any():
         raise AssertionError("duplicate replicate/gamma/size/arm key")
+    required_ledger={"replicate","gamma","validation_size","arm","status","audit_status"}
+    if not required_ledger.issubset(ledger.columns):
+        raise AssertionError("replicate ledger is missing lifecycle columns")
     successful=ledger[ledger.status=="SUCCESS"]
+    lifecycle_complete=bool((ledger.status=="SUCCESS").all() and (ledger.audit_status=="PASS").all())
     if set(map(tuple,successful[key].itertuples(index=False,name=None))) != set(map(tuple,summaries[key].itertuples(index=False,name=None))):
         raise AssertionError("successful ledger cells and posterior-summary rows differ")
     if not summaries.empty:
