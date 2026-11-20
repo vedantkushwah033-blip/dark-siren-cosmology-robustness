@@ -1,0 +1,128 @@
+name: prospective-heldout-weight-diagnostic-prediction
+
+on:
+  push:
+    branches:
+      - research/heldout-weight-diagnostic-prediction-20261120
+    paths:
+      - ".github/workflows/prospective-heldout-weight-diagnostic-prediction.yml"
+      - "scripts/evaluate_heldout_weight_diagnostic_prediction.py"
+      - "scripts/run_quadratic_five_arm_replicates.py"
+      - "scripts/audit_quadratic_five_arm_replicates.py"
+      - "scripts/run_quadratic_five_arm_smoke.py"
+      - "scripts/audit_quadratic_five_arm_smoke.py"
+      - "tests/test_heldout_weight_diagnostic_prediction.py"
+  pull_request:
+    paths:
+      - ".github/workflows/prospective-heldout-weight-diagnostic-prediction.yml"
+      - "scripts/evaluate_heldout_weight_diagnostic_prediction.py"
+      - "scripts/run_quadratic_five_arm_replicates.py"
+      - "scripts/audit_quadratic_five_arm_replicates.py"
+      - "scripts/run_quadratic_five_arm_smoke.py"
+      - "scripts/audit_quadratic_five_arm_smoke.py"
+      - "tests/test_heldout_weight_diagnostic_prediction.py"
+
+concurrency:
+  group: prospective-heldout-weight-diagnostic-prediction-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  heldout-prediction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install numerical dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Test prospective evaluator and source orchestration
+        run: |
+          python -m pytest tests/test_heldout_weight_diagnostic_prediction.py \
+            tests/test_quadratic_five_arm_replicates.py -q
+          python scripts/evaluate_heldout_weight_diagnostic_prediction.py --help
+      - name: Download frozen training stream seed 2026111929
+        uses: actions/download-artifact@v4
+        with:
+          name: quadratic-five-arm-30event-wide-prior-paired-seed-100rep
+          path: artifacts/train_1929
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44484212311
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download frozen training stream seed 2026111940
+        uses: actions/download-artifact@v4
+        with:
+          name: quadratic-five-arm-30event-wide-prior-100rep
+          path: artifacts/train_1940
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44483923518
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run untouched third 100-replicate holdout stream (seed 2026111950)
+        run: |
+          python scripts/run_quadratic_five_arm_replicates.py \
+            --master-seed 2026111950 \
+            --replicates 100 \
+            --gammas=-1,0,1 \
+            --n-parent 1200 \
+            --n-detected 30 \
+            --validation-frame 500 \
+            --validation-sizes 100,300,500 \
+            --curvature-beta -3.9 \
+            --h0-true 70 \
+            --h0-prior-min 30 \
+            --h0-prior-max 110 \
+            --h0-points 561 \
+            --scott-multiplier 0.7 \
+            --quadrature-order 5 \
+            --sigma-mpc 140 \
+            --detection-threshold-mpc 250 \
+            --output-dir artifacts/holdout_1950
+      - name: Independently audit all holdout lifecycle cells
+        if: always()
+        run: |
+          if [ -f artifacts/holdout_1950/replicate_ledger.csv ]; then
+            python scripts/audit_quadratic_five_arm_replicates.py \
+              artifacts/holdout_1950 \
+              --output artifacts/holdout_1950/independent_orchestration_audit.json
+          fi
+      - name: Require complete holdout lifecycle and run untouched prediction test
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          root=Path("artifacts/holdout_1950")
+          cfg=json.loads((root/"config.json").read_text())
+          audit=json.loads((root/"independent_orchestration_audit.json").read_text())
+          ledger=pd.read_csv(root/"replicate_ledger.csv")
+          assert cfg["master_seed"] == 2026111950
+          assert cfg["h0_prior_support"] == [30.0,110.0]
+          assert len(ledger) == 4500
+          assert audit["status"] == "PASS" and audit["successful_child_runs"] == 300
+          assert (ledger.status == "SUCCESS").all()
+          assert (ledger.audit_status == "PASS").all()
+          print(json.dumps(audit, indent=2))
+          PY
+          python scripts/evaluate_heldout_weight_diagnostic_prediction.py \
+            --train-seed-1929 artifacts/train_1929 \
+            --train-seed-1940 artifacts/train_1940 \
+            --holdout-seed-1950 artifacts/holdout_1950 \
+            --output-prefix artifacts/heldout_weight_diagnostic_prediction \
+            --bootstrap-resamples 3000
+      - name: Upload holdout source and prospective prediction results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prospective-heldout-weight-diagnostic-prediction
+          path: |
+            artifacts/holdout_1950/
+            artifacts/heldout_weight_diagnostic_prediction.csv
+            artifacts/heldout_weight_diagnostic_prediction.json
+          if-no-files-found: warn
+          retention-days: 90
