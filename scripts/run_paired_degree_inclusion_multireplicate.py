@@ -224,10 +224,20 @@ def run(args: argparse.Namespace) -> dict:
         for p in files
     }}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
-    statuses = pd.concat([ledgers[1], ledgers[2]]).status.value_counts().to_dict()
+    combined_ledger = pd.concat([
+        ledgers[1].assign(inclusion_degree=1),
+        ledgers[2].assign(inclusion_degree=2),
+    ], ignore_index=True)
+    statuses = combined_ledger.status.value_counts().to_dict()
+    failure_details = (
+        combined_ledger.loc[combined_ledger.status != "SUCCESS",
+            ["inclusion_degree", "replicate", "gamma", "status", "error"]]
+        .drop_duplicates().head(20).to_dict(orient="records")
+    )
     return {
         "status": "PASS" if all(v == "SUCCESS" for v in statuses) else "INCOMPLETE",
         "degree1_degree2_child_status_counts": statuses,
+        "failure_details": failure_details,
         "cross_degree_pairing_blocks": len(pairing_rows),
         "paired_input_files_checked": config["paired_input_files_checked"],
         "paired_posterior_cells": len(contrasts),
@@ -256,7 +266,10 @@ def main() -> None:
     p.add_argument("--detection-threshold-mpc", type=float, default=250.0)
     p.add_argument("--output-dir", type=Path, required=True)
     args = p.parse_args()
-    print(json.dumps(run(args), indent=2, sort_keys=True))
+    result = run(args)
+    print(json.dumps(result, indent=2, sort_keys=True))
+    if result["status"] != "PASS":
+        raise SystemExit(2)
 
 
 if __name__ == "__main__":
