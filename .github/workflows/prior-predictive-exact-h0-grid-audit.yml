@@ -1,0 +1,62 @@
+name: Prior-predictive exact H0 grid refinement audit
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/prior-predictive-exact-h0-grid-audit.yml"
+      - "scripts/audit_prior_predictive_exact_h0_grid.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: prior-predictive-exact-h0-grid-audit-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  exact-grid-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Check out research branch
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and audit dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Download frozen 50-replicate prior-predictive source artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: five-arm-prior-predictive-50rep
+          path: artifacts/source
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44686899617
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Package frozen source tree for the independent grid auditor
+        run: |
+          test -d artifacts/source/five_arm_prior_predictive_50rep
+          cd artifacts/source
+          zip -qr ../five_arm_prior_predictive_50rep_source.zip five_arm_prior_predictive_50rep
+          cd ../..
+          sha256sum artifacts/five_arm_prior_predictive_50rep_source.zip
+      - name: Recompute selected likelihoods on 561, 1121 and 2241 H0 grids
+        run: |
+          python scripts/audit_prior_predictive_exact_h0_grid.py \
+            --artifact-zip artifacts/five_arm_prior_predictive_50rep_source.zip \
+            --output-dir artifacts/exact_h0_grid_audit
+      - name: Upload exact-grid audit rows and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prior-predictive-exact-h0-grid-audit
+          path: |
+            artifacts/exact_h0_grid_audit/
+            artifacts/five_arm_prior_predictive_50rep_source.zip
+          if-no-files-found: warn
+          retention-days: 90
