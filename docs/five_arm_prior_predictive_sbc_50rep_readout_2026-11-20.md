@@ -4,7 +4,7 @@
 
 Workflow run: `44683807350`; artifact: `14613021797`; ZIP SHA-256: `1d8667e2f7391283237e27b0c6db26cac6e9dfd56d344649b6931ec047745c0c`.
 
-The workflow completed successfully. The independent aggregate audit reports PASS, verifies 2,858 aggregate manifest entries, reconstructs 2,250 lifecycle cells (all SUCCESS), reconstructs 45 aggregate metric rows and 3,600 paired contrast rows, verifies 150 cross-curvature paired-validation blocks, and confirms 50 unique prior-predictive truths. All 150 child runs were audited.
+The workflow completed successfully. The independent aggregate audit reports PASS, verifies 2,858 aggregate manifest entries, reconstructs 2,250 lifecycle cells (all SUCCESS), reconstructs 45 aggregate metric rows and 3,600 paired contrast rows, verifies 150 cross-curvature paired-validation blocks, and confirms 50 unique prior-predictive truths. All 150 child runs were audited. I subsequently downloaded the full artifact and independently rechecked all 2,858 manifest byte counts and SHA-256 digests (zero mismatches); all 150 child audit reports were PASS, with maximum independent log-likelihood reconstruction discrepancy 6.82e-13.
 
 The experiment uses 50 prior-predictive H0 truths, shared across curvature conditions within replicate, 30 detected events, curvature values -1/0/+1, validation sizes 100/300/500, and five arms. This is a finite 50-replicate synthetic SBC exercise, not a high-precision calibration study.
 
