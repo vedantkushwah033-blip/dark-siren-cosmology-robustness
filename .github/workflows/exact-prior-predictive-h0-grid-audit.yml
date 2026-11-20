@@ -1,0 +1,54 @@
+name: exact-prior-predictive-h0-grid-audit
+
+on:
+  push:
+    branches:
+      - research/five-arm-prior-predictive-20rep-20261120
+    paths:
+      - scripts/audit_prior_predictive_exact_h0_grid.py
+      - docs/exact_h0_grid_refinement_audit_2026-11-20.md
+      - .github/workflows/exact-prior-predictive-h0-grid-audit.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  exact-grid-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install numerical dependencies
+        run: python -m pip install --upgrade pip numpy pandas scipy
+      - name: Download frozen 50-replicate source artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: five-arm-prior-predictive-50rep
+          path: artifacts/source
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44683807350
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify source artifact exists
+        run: test -n "$(find artifacts/source -type f -name '*.zip' -print -quit)" || test -n "$(find artifacts/source -type f -name 'manifest.json' -print -quit)"
+      - name: Run exact selected-likelihood grid audit
+        run: |
+          ZIP="$(find artifacts/source -type f -name '*.zip' -print -quit)"
+          if [ -n "$ZIP" ]; then
+            python scripts/audit_prior_predictive_exact_h0_grid.py --artifact-zip "$ZIP" --output-dir artifacts/exact_h0_grid_audit
+          else
+            cd artifacts/source
+            zip -qr ../../source-artifact-repacked.zip .
+            cd ../..
+            python scripts/audit_prior_predictive_exact_h0_grid.py --artifact-zip source-artifact-repacked.zip --output-dir artifacts/exact_h0_grid_audit
+          fi
+      - name: Upload exact grid audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: exact-prior-predictive-h0-grid-audit
+          path: artifacts/exact_h0_grid_audit/
+          if-no-files-found: error

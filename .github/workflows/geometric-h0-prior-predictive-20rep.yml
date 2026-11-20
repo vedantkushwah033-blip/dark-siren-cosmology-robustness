@@ -1,0 +1,83 @@
+name: geometric-h0-prior-predictive-20rep
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  geometric-prior-predictive-20rep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Test geometric H0 grid, prior-predictive runner, and readout
+        run: |
+          python -m pytest -q \
+            tests/test_quadratic_five_arm_smoke.py \
+            tests/test_quadratic_five_arm_replicates.py \
+            tests/test_prior_predictive_sbc_summary.py \
+            tests/test_analyze_prior_predictive_sbc.py
+      - name: Run 20-replicate geometric-grid prior-predictive five-arm experiment
+        run: |
+          python scripts/run_quadratic_five_arm_replicates.py \
+            --master-seed 2026112024 \
+            --replicates 20 \
+            --truth-mode prior_predictive \
+            --gammas=-1,0,1 \
+            --n-parent 1200 \
+            --n-detected 30 \
+            --validation-frame 500 \
+            --validation-sizes 100,300,500 \
+            --h0-prior-min 30 \
+            --h0-prior-max 110 \
+            --h0-points 1121 \
+            --h0-grid-type geometric \
+            --quadrature-order 5 \
+            --output-dir artifacts/geometric_prior_predictive_20rep
+      - name: Independently audit all 60 child runs and aggregate outputs
+        run: |
+          python scripts/audit_quadratic_five_arm_replicates.py \
+            artifacts/geometric_prior_predictive_20rep \
+            --output artifacts/geometric_prior_predictive_20rep/independent_audit.json
+      - name: Summarize prior-predictive posterior ranks and coverage
+        run: |
+          python scripts/summarize_prior_predictive_sbc.py \
+            artifacts/geometric_prior_predictive_20rep \
+            --output-dir artifacts/geometric_prior_predictive_20rep_sbc
+      - name: Produce paired detailed readout
+        run: |
+          python scripts/analyze_prior_predictive_sbc.py \
+            artifacts/geometric_prior_predictive_20rep \
+            --output-dir artifacts/geometric_prior_predictive_20rep_readout
+      - name: Fail closed on incomplete run or audit
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("artifacts/geometric_prior_predictive_20rep")
+          config = json.loads((root / "config.json").read_text())
+          audit = json.loads((root / "independent_audit.json").read_text())
+          sbc = json.loads(Path("artifacts/geometric_prior_predictive_20rep_sbc/summary_report.json").read_text())
+          readout = json.loads(Path("artifacts/geometric_prior_predictive_20rep_readout/detailed_readout_report.json").read_text())
+          assert config["h0_grid_type"] == "geometric" and config["h0_points"] == 1121
+          assert audit["status"] == "PASS" and audit["planned_cells"] == 900
+          assert audit["successful_child_runs"] == 60
+          assert sbc["status"] == "PASS" and sbc["successful_cells"] == 900
+          assert readout["status"] == "PASS" and readout["successful_cells"] == 900
+          PY
+      - name: Upload geometric-grid prior-predictive artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geometric-h0-prior-predictive-20rep
+          path: artifacts/
+          if-no-files-found: error

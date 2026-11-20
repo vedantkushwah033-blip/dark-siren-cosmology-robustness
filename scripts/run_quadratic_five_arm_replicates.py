@@ -132,6 +132,9 @@ def run(args: argparse.Namespace) -> dict:
     prior_max=float(getattr(args,"h0_prior_max",90.0))
     if not np.isfinite(prior_min) or not np.isfinite(prior_max) or prior_min >= prior_max:
         raise ValueError("H0 prior bounds must be finite and strictly increasing")
+    h0_grid_type=str(getattr(args,"h0_grid_type","linear"))
+    if h0_grid_type not in {"linear","geometric"}:
+        raise ValueError("H0 grid type must be linear or geometric")
     truth_mode=str(getattr(args,"truth_mode","fixed"))
     if truth_mode not in {"fixed","prior_predictive"}:
         raise ValueError("truth mode must be fixed or prior_predictive")
@@ -174,6 +177,7 @@ def run(args: argparse.Namespace) -> dict:
                     "--curvature-gamma",str(gamma),"--curvature-beta",str(args.curvature_beta),
                     "--h0-true",str(h0_true),"--h0-prior-min",str(prior_min),
                     "--h0-prior-max",str(prior_max),"--h0-points",str(args.h0_points),
+                    "--h0-grid-type",h0_grid_type,
                     "--scott-multiplier",str(args.scott_multiplier),
                     "--quadrature-order",str(args.quadrature_order),
                     "--sigma-mpc",str(args.sigma_mpc),
@@ -256,7 +260,7 @@ def run(args: argparse.Namespace) -> dict:
         "truth_mode":truth_mode,"h0_true":float(args.h0_true) if truth_mode=="fixed" else None,
         "truth_seed_stream":2,"truth_schedule":truth_schedule,
         "h0_prior_min":prior_min,"h0_prior_max":prior_max,"h0_prior_support":[prior_min,prior_max],
-        "h0_points":args.h0_points,"scott_multiplier":args.scott_multiplier,
+        "h0_points":args.h0_points,"h0_grid_type":h0_grid_type,"scott_multiplier":args.scott_multiplier,
         "quadrature_order":args.quadrature_order,"sigma_mpc":args.sigma_mpc,
         "detection_threshold_mpc":args.detection_threshold_mpc,
         "seed_schedule":[{"replicate":r,"analysis_seed":_seed(args.master_seed,r,0),
@@ -290,6 +294,7 @@ def main():
     p.add_argument("--h0-prior-min",type=float,default=50.0)
     p.add_argument("--h0-prior-max",type=float,default=90.0)
     p.add_argument("--h0-points",type=int,default=281)
+    p.add_argument("--h0-grid-type",choices=["linear","geometric"],default="linear")
     p.add_argument("--scott-multiplier",type=float,default=0.7)
     p.add_argument("--quadrature-order",type=int,default=5)
     p.add_argument("--sigma-mpc",type=float,default=140.0)
