@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 
 from run_quadratic_five_arm_smoke import run
-from audit_quadratic_five_arm_smoke import audit
+from audit_quadratic_five_arm_smoke import audit, _quadrature_ess
 
 def test_quadratic_five_arm_smoke_roundtrip(tmp_path: Path):
     root=tmp_path/"quadratic_five_arm"
@@ -90,3 +90,18 @@ def test_auditor_rejects_tampered_weight_concentration_diagnostics(tmp_path: Pat
     manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True))
     with pytest.raises(AssertionError,match="weight diagnostic top_5_percent_mass differs"):
         audit(root)
+
+
+
+def test_quadrature_ess_uses_exact_archived_normalized_weights():
+    archived = np.array([0.1, 0.2, 0.3, 0.4])
+    independently_reconstructed = archived.copy()
+    independently_reconstructed[0] += 1e-8
+    independently_reconstructed[1] -= 1e-8
+    expected = 1.0 / np.sum(archived ** 2)
+    assert _quadrature_ess(archived) == expected
+    # The independent reconstruction is allowed a separate numerical
+    # tolerance; the stored diagnostic must be reproduced from archived weights.
+    assert _quadrature_ess(archived) != _quadrature_ess(independently_reconstructed)
+    with pytest.raises(ValueError, match="normalized"):
+        _quadrature_ess(np.array([0.1, 0.2]))
