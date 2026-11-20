@@ -39,6 +39,8 @@ The generator uses a centered quadratic logit of the form
 
 A degree-two fit with raw basis [1,x,x^2] can represent this function, but independent Gaussian priors on raw coefficients (theta0, theta1, theta2) are not automatically the same prior as independent Gaussian priors on generator coefficients (alpha,beta,gamma). The degree-one and degree-two fits can therefore differ both in functional flexibility and in induced prior. The present result must be interpreted as a comparison of the complete fitted procedures under their implemented priors, not a clean isolated test of polynomial degree. A centered-basis, prior-matched sensitivity experiment is required before attributing differences solely to model flexibility.
 
+For the current default prior scales (5, 2.5, 2.5) and c_g=0.2845005579, the raw-basis independent prior induces an alpha marginal SD of about 5.0503 and an alpha-gamma correlation of about +0.1408 in centered generator coordinates. The KL divergence from the independent centered-coordinate Gaussian prior is about 0.0101 nats. This is not a huge prior discrepancy, but it is nonzero and it means the current degree comparison is not strictly prior-matched. The companion script `scripts/audit_degree_prior_parameterization.py` calculates the mapping for arbitrary prior scales and c_g.
+
 ## Interpretation limits
 
 - Three replicates are an engineering smoke, not a calibration study. Coverage estimates are extremely noisy at this size.
