@@ -1,0 +1,57 @@
+name: Five-arm prior-predictive SBC smoke
+
+on:
+  push:
+    branches:
+      - research/five-arm-prior-predictive-sbc-20261120
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  prior-predictive-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Check out research branch
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Test prior-predictive truth stream and orchestration
+        run: python -m pytest -q tests/test_quadratic_five_arm_replicates.py
+      - name: Run five-replicate prior-predictive five-arm smoke
+        run: |
+          python scripts/run_quadratic_five_arm_replicates.py \
+            --master-seed 2026112020 \
+            --replicates 5 \
+            --truth-mode prior_predictive \
+            --gammas=-1,0,1 \
+            --n-parent 1200 \
+            --n-detected 30 \
+            --validation-frame 500 \
+            --validation-sizes 100,300,500 \
+            --h0-prior-min 30 \
+            --h0-prior-max 110 \
+            --h0-points 281 \
+            --quadrature-order 5 \
+            --output-dir artifacts/five_arm_prior_predictive_smoke
+      - name: Independently audit prior-predictive smoke artifact
+        run: |
+          python scripts/audit_quadratic_five_arm_replicates.py \
+            artifacts/five_arm_prior_predictive_smoke \
+            --output artifacts/five_arm_prior_predictive_smoke/independent_audit.json
+      - name: Upload prior-predictive smoke artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: five-arm-prior-predictive-smoke
+          path: artifacts/five_arm_prior_predictive_smoke/
+          if-no-files-found: warn
