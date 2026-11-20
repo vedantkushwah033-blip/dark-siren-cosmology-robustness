@@ -102,7 +102,7 @@ def analyze(root: Path, output: Path) -> dict:
                     "arm": arm, "reference_arm": reference, "metric": metric,
                     "mean_paired_difference": mean, "paired_mcse": se,
                     "paired_t95_low": lo, "paired_t95_high": hi,
-                    "fraction_arm_lower": float(np.mean(delta < 0)),
+                    "fraction_negative_difference": float(np.mean(delta < 0)),
                     "replicates": len(delta),
                 })
             # Compare squared median error; positive means arm is worse.
@@ -113,7 +113,7 @@ def analyze(root: Path, output: Path) -> dict:
                 "arm": arm, "reference_arm": reference, "metric": "squared_median_error",
                 "mean_paired_difference": mean, "paired_mcse": se,
                 "paired_t95_low": lo, "paired_t95_high": hi,
-                "fraction_arm_lower": float(np.mean(delta_sq < 0)),
+                "fraction_negative_difference": float(np.mean(delta_sq < 0)),
                 "replicates": len(delta_sq),
             })
     paired = pd.DataFrame(paired_rows)
