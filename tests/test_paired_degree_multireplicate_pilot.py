@@ -60,7 +60,7 @@ def test_degree_pair_rejects_changed_observable_inputs(tmp_path: Path):
                  A_catalogue_only_n100=np.array([-1., -2.]),
                  B_parent_oracle_n100=np.array([-1., -2.]),
                  C_known_probability_ipw_n100=np.array([-1., -2.]))
-    assert _verify_child_pair(left, right)["common_arm_likelihoods_exact"]
+    assert _verify_child_pair(left, right)["common_arm_likelihoods_within_tolerance"]
     (right / "observable/gw_events_observed.csv").write_text("id,value\n1,3\n")
     with pytest.raises(AssertionError):
         _verify_child_pair(left, right)
