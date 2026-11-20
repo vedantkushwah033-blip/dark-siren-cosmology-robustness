@@ -19,6 +19,7 @@ on:
       - ".github/workflows/degree2-inclusion-pilot.yml"
   pull_request:
     paths:
+      - "src/dark_siren_robustness/inclusion_posterior.py"
       - "scripts/run_quadratic_five_arm_smoke.py"
       - "scripts/audit_quadratic_five_arm_smoke.py"
       - "scripts/run_quadratic_five_arm_replicates.py"
