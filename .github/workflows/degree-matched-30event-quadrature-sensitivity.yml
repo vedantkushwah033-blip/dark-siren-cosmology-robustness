@@ -1,0 +1,105 @@
+name: degree-matched-30event-quadrature-sensitivity
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/degree-matched-30event-quadrature-sensitivity.yml"
+      - "scripts/run_degree_matched_five_arm_quadrature_sensitivity.py"
+      - "scripts/run_quadratic_five_arm_smoke.py"
+      - "scripts/audit_quadratic_five_arm_smoke.py"
+      - "src/**"
+      - "tests/**"
+
+concurrency:
+  group: degree-matched-30event-quadrature-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  30-event-quadrature-sensitivity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Validate the existing quadrature-sensitivity runner
+        run: |
+          python -m pytest tests/test_degree_matched_quadrature_sensitivity.py tests/test_quadratic_five_arm_smoke.py -q
+      - name: Run 30-event degree-matched quadrature sensitivity at gamma=-1
+        run: |
+          python scripts/run_degree_matched_five_arm_quadrature_sensitivity.py \
+            --seed 2026112101 --validation-seed 2026112102 \
+            --n-parent 1200 --n-detected 30 --validation-frame 500 \
+            --validation-sizes 100,500 --gamma -1 \
+            --h0-true 70 --h0-prior-min 30 --h0-prior-max 110 \
+            --h0-points 281 --orders 5,7,9 \
+            --output-dir artifacts/degree_quadrature/gamma_m1
+      - name: Run 30-event degree-matched quadrature sensitivity at gamma=0
+        run: |
+          python scripts/run_degree_matched_five_arm_quadrature_sensitivity.py \
+            --seed 2026112101 --validation-seed 2026112102 \
+            --n-parent 1200 --n-detected 30 --validation-frame 500 \
+            --validation-sizes 100,500 --gamma 0 \
+            --h0-true 70 --h0-prior-min 30 --h0-prior-max 110 \
+            --h0-points 281 --orders 5,7,9 \
+            --output-dir artifacts/degree_quadrature/gamma_0
+      - name: Run 30-event degree-matched quadrature sensitivity at gamma=+1
+        run: |
+          python scripts/run_degree_matched_five_arm_quadrature_sensitivity.py \
+            --seed 2026112101 --validation-seed 2026112102 \
+            --n-parent 1200 --n-detected 30 --validation-frame 500 \
+            --validation-sizes 100,500 --gamma 1 \
+            --h0-true 70 --h0-prior-min 30 --h0-prior-max 110 \
+            --h0-points 281 --orders 5,7,9 \
+            --output-dir artifacts/degree_quadrature/gamma_p1
+      - name: Independently verify all three sensitivity bundles
+        if: success()
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+
+          root = Path("artifacts/degree_quadrature")
+          expected = {"gamma_m1": -1.0, "gamma_0": 0.0, "gamma_p1": 1.0}
+          total_files = 0
+          for name, gamma in expected.items():
+              folder = root / name
+              cfg = json.loads((folder / "config.json").read_text())
+              assert cfg["status"] == "engineering_numerical_pilot_not_calibration_not_observational"
+              assert cfg["gamma"] == gamma
+              assert cfg["n_parent"] == 1200 and cfg["n_detected"] == 30
+              assert cfg["validation_sizes"] == [100, 500]
+              assert cfg["quadrature_orders"] == [5, 7, 9]
+              assert cfg["h0_points"] == 281
+              assert cfg["independent_child_audits"] == 6
+              for degree in (1, 2):
+                  for order in (5, 7, 9):
+                      child = folder / f"degree{degree}_order{order}"
+                      audit = json.loads((child / "audit_report.json").read_text())
+                      assert audit["status"] == "PASS", (name, degree, order)
+                      child_cfg = json.loads((child / "config.json").read_text())
+                      assert child_cfg["inclusion_model_degree"] == degree
+                      assert child_cfg["quadrature_order"] == order
+              conv = folder / "integrated_ipw_quadrature_convergence.csv"
+              assert conv.is_file()
+              manifest = json.loads((folder / "manifest.json").read_text())
+              assert manifest["status"] == "PASS"
+              assert manifest["file_count"] == len(manifest["files"])
+              for rel, meta in manifest["files"].items():
+                  path = folder / rel
+                  data = path.read_bytes()
+                  assert len(data) == meta["bytes"], (name, rel, "bytes")
+                  assert hashlib.sha256(data).hexdigest() == meta["sha256"], (name, rel, "sha256")
+                  total_files += 1
+          print(json.dumps({"status":"PASS","curvature_bundles":3,"independently_checked_manifest_files":total_files}, indent=2))
+          PY
+      - name: Upload 30-event quadrature sensitivity artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: degree-matched-30event-quadrature-sensitivity
+          path: artifacts/degree_quadrature/
+          if-no-files-found: warn
