@@ -66,9 +66,13 @@ def _probabilities_for_nodes(
     degree: int,
     center: float,
     scale: float,
+    quadratic_center: float = 0.0,
 ) -> np.ndarray:
     x = (redshift - center) / scale
-    design = np.column_stack([x ** power for power in range(degree + 1)])
+    features = [np.ones_like(x), x]
+    if degree == 2:
+        features.append(x * x - quadratic_center)
+    design = np.column_stack(features)
     probability = expit(design @ nodes.T).T
     if probability.ndim != 2 or probability.shape[1] != redshift.size:
         raise ArithmeticError("node-specific inclusion probabilities have invalid shape")
@@ -89,6 +93,7 @@ def build_five_arm_weights(
     degree: int = 1,
     coordinate_center: float = 0.205,
     coordinate_scale: float = 0.195,
+    quadratic_center: float = 0.0,
     prior_mean: ArrayLike | None = None,
     prior_sd: ArrayLike | None = None,
     quadrature_order: int = 15,
@@ -146,6 +151,7 @@ def build_five_arm_weights(
         prior_sd=prior_sd,
         coordinate_center=coordinate_center,
         coordinate_scale=coordinate_scale,
+        quadratic_center=quadratic_center,
         order=quadrature_order,
     )
 
@@ -177,6 +183,7 @@ def build_five_arm_weights(
         degree=posterior.degree,
         center=posterior.center,
         scale=posterior.scale,
+        quadratic_center=posterior.quadratic_center,
     )[0]
     node_probability = _probabilities_for_nodes(
         catalogue,
@@ -184,6 +191,7 @@ def build_five_arm_weights(
         degree=posterior.degree,
         center=posterior.center,
         scale=posterior.scale,
+        quadratic_center=posterior.quadratic_center,
     )
 
     with np.errstate(over="ignore", divide="ignore"):

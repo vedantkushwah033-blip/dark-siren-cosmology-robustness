@@ -182,8 +182,11 @@ def fit_inclusion_logistic(
             "Possible complete/quasi separation or weak identification; "
             "unpenalized covariance is not reliable.", **common,
         )
-    if not np.all(np.isfinite(beta)) or grad_norm > 1e-6:
-        return failed(f"Score convergence criterion not met: {fit.message}", **common)
+    if not np.all(np.isfinite(beta)) or grad_norm > 1e-10:
+        return failed(
+            "Strict score convergence criterion (1e-10) not met after damped-Newton polish: "
+            f"{fit.message}", **common,
+        )
     if np.min(eigenvalues) <= 0 or not np.all(np.isfinite(eigenvalues)):
         return failed("Observed information matrix is not positive definite.", **common)
 

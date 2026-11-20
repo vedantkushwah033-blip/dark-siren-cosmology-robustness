@@ -79,7 +79,10 @@ def shared_inclusion_selected_log_likelihood(
         raise ValueError("inclusion posterior nodes/weights must be finite with normalized non-negative weights")
 
     x = (z - inclusion_posterior.center) / inclusion_posterior.scale
-    design = np.column_stack([x ** power for power in range(inclusion_posterior.degree + 1)])
+    features = [np.ones_like(x), x]
+    if inclusion_posterior.degree == 2:
+        features.append(x * x - inclusion_posterior.quadratic_center)
+    design = np.column_stack(features)
     eta = design @ nodes.T
     if not np.all(np.isfinite(eta)):
         raise ArithmeticError("inclusion linear predictors are non-finite")

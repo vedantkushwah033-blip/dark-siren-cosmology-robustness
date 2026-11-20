@@ -310,3 +310,28 @@ def test_full_shared_marginalization_differs_from_eventwise_node_marginalization
         result.marginal_log_likelihood - eventwise_marginal_sum
     )) > 1e-8
 
+
+
+def test_degree_two_shared_likelihood_uses_stored_centered_basis():
+    c_g = 0.2845005579191241
+    z_validation = np.linspace(0.01, 0.40, 180)
+    x_validation = (z_validation - 0.205) / 0.195
+    p = expit(-0.2 - 1.1*x_validation + 0.8*(x_validation*x_validation-c_g))
+    retained = (np.arange(z_validation.size) % 4 != 0).astype(int)
+    posterior = fit_inclusion_posterior_quadrature(
+        z_validation, retained, degree=2, coordinate_center=0.205,
+        coordinate_scale=0.195, quadratic_center=c_g, order=5,
+    )
+    catalogue_z = np.linspace(0.02, 0.39, 35)
+    h0 = np.linspace(55.0, 85.0, 21)
+    events = [{"gw_distance": 700.0, "gw_sigma": 120.0}]
+    result = shared_inclusion_selected_log_likelihood(
+        h0, catalogue_z, events, posterior, detection_threshold_mpc=250.0,
+    )
+    x_catalogue = (catalogue_z-posterior.center)/posterior.scale
+    design = np.column_stack([np.ones_like(x_catalogue),x_catalogue,x_catalogue*x_catalogue-c_g])
+    inclusion = expit(design @ posterior.nodes.T)
+    raw = 1.0/inclusion
+    expected = raw/raw.sum(axis=0,keepdims=True)
+    assert posterior.quadratic_center == pytest.approx(c_g)
+    assert np.allclose(result.node_catalogue_weights,expected,rtol=1e-13,atol=1e-13)

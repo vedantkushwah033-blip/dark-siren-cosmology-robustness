@@ -138,7 +138,7 @@ def _posterior_quantile(grid: np.ndarray, log_likelihood: np.ndarray, q: float) 
 
 def _independent_inclusion_quadrature(
     validation_z: np.ndarray, retained: np.ndarray, *, order: int,
-    center: float, scale: float, degree: int = 1,
+    center: float, scale: float, degree: int = 1, quadratic_center: float = 0.0,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Rebuild the proper logistic posterior and corrected GH rule independently.
 
@@ -152,7 +152,10 @@ def _independent_inclusion_quadrature(
     if degree not in (1, 2):
         raise ValueError("independent audit degree must be 1 or 2")
     dimension = degree + 1
-    design = np.column_stack([x ** power for power in range(dimension)])
+    features = [np.ones_like(x), x]
+    if degree == 2:
+        features.append(x * x - quadratic_center)
+    design = np.column_stack(features)
     prior_mean = np.zeros(dimension)
     prior_sd = np.asarray([5.0] + [2.5] * (dimension - 1), dtype=float)
     precision = 1.0 / prior_sd**2
@@ -265,8 +268,15 @@ def audit(root: Path) -> dict:
     floor = float(config["catalogue_floor"])
     midpoint, width = 0.22, 0.05
     center, scale = 0.205, 0.195
-    catalogue_model = config.get("catalogue_model", "floor_logistic")
     quadratic_calibration = config.get("quadratic_calibration", {})
+    quadratic_center = float(config.get("fitted_quadratic_basis_center", 0.0))
+    if not np.isfinite(quadratic_center):
+        raise AssertionError("fitted quadratic basis center must be finite")
+    expected_quadratic_center = float(quadratic_calibration.get("x2_center", 0.0))
+    expected_fitted_center = expected_quadratic_center if inclusion_degree == 2 else 0.0
+    if not np.isclose(quadratic_center, expected_fitted_center, rtol=0.0, atol=1e-14):
+        raise AssertionError("fitted quadratic basis center does not match the declared DGP parameterization")
+    catalogue_model = config.get("catalogue_model", "floor_logistic")
     threshold = float(config["detection_threshold_mpc"])
     sigma = float(config["sigma_mpc"])
     h0_true = float(config["h0_true"])
@@ -428,7 +438,10 @@ def audit(root: Path) -> dict:
         y = validation["retained"].to_numpy(int)
         z_validation = validation["redshift"].to_numpy(float)
         x_validation = (z_validation - center) / scale
-        design_validation = np.column_stack([x_validation ** power for power in range(inclusion_degree + 1)])
+        validation_features = [np.ones_like(x_validation), x_validation]
+        if inclusion_degree == 2:
+            validation_features.append(x_validation * x_validation - quadratic_center)
+        design_validation = np.column_stack(validation_features)
         nodes = archive[f"posterior_nodes_n{n}"]
         mode = archive[f"posterior_mode_n{n}"]
         quadrature = archive[f"posterior_weights_n{n}"]
@@ -447,6 +460,7 @@ def audit(root: Path) -> dict:
                 center=center,
                 scale=scale,
                 degree=inclusion_degree,
+                quadratic_center=quadratic_center,
             )
         )
         if not np.allclose(mode, rebuilt_mode, rtol=2e-8, atol=2e-9):
@@ -457,7 +471,10 @@ def audit(root: Path) -> dict:
             raise AssertionError(f"independent inclusion quadrature weights mismatch n={n}")
 
         x_catalogue = (catalogue_z - center) / scale
-        design_catalogue = np.column_stack([x_catalogue ** power for power in range(inclusion_degree + 1)])
+        catalogue_features = [np.ones_like(x_catalogue), x_catalogue]
+        if inclusion_degree == 2:
+            catalogue_features.append(x_catalogue * x_catalogue - quadratic_center)
+        design_catalogue = np.column_stack(catalogue_features)
         p_map = expit(design_catalogue @ mode)
         p_nodes = expit(design_catalogue @ nodes.T).T
         if np.any(p_map <= 0) or np.any(p_nodes <= 0):

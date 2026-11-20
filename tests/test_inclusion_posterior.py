@@ -387,3 +387,88 @@ def test_quadrature_ladder_propagates_fixed_coefficient_coordinates():
     assert len(ladder.fits) == 2
     assert all(fit.center == 0.205 for fit in ladder.fits)
     assert all(fit.scale == 0.195 for fit in ladder.fits)
+
+
+def test_default_degree_one_prior_matches_degree_two_centered_marginal():
+    from dark_siren_robustness.inclusion_posterior import _prior_vectors
+
+    mean_d1, sd_d1 = _prior_vectors(2, None, None)
+    mean_d2, sd_d2 = _prior_vectors(3, None, None)
+
+    np.testing.assert_array_equal(mean_d1, mean_d2[:2])
+    np.testing.assert_array_equal(sd_d1, sd_d2[:2])
+    np.testing.assert_array_equal(mean_d1, np.zeros(2))
+    np.testing.assert_array_equal(sd_d1, np.asarray([5.0, 2.5]))
+
+
+def test_centered_quadratic_basis_matches_generator_parameterization():
+    from dark_siren_robustness.inclusion_posterior import _validation_inputs
+
+    z = np.linspace(0.01, 0.40, 101)
+    coordinate_center = 0.205
+    coordinate_scale = 0.195
+    c_g = 0.2845005579191241
+    alpha, beta, gamma = -0.4, -3.9, 1.2
+    _, _, design, _, _, returned_center = _validation_inputs(
+        z, np.arange(z.size) % 2, 2,
+        coordinate_center=coordinate_center,
+        coordinate_scale=coordinate_scale,
+        quadratic_center=c_g,
+    )
+    x = (z - coordinate_center) / coordinate_scale
+    expected_eta = alpha + beta * x + gamma * (x * x - c_g)
+    assert returned_center == pytest.approx(c_g)
+    assert np.allclose(design @ np.asarray([alpha, beta, gamma]), expected_eta, rtol=0, atol=1e-14)
+
+
+def test_centered_quadratic_center_is_validated():
+    z = np.linspace(0.01, 0.40, 30)
+    with pytest.raises(ValueError, match="quadratic_center"):
+        fit_inclusion_posterior_quadrature(
+            z, np.arange(z.size) % 2, degree=2, quadratic_center=np.nan, order=5
+        )
+
+
+def test_posterior_mode_refines_small_trust_exact_residual(monkeypatch):
+    """Refine an apparently tiny score before constructing the Laplace rule."""
+    from types import SimpleNamespace
+    from scipy.optimize import root
+    import dark_siren_robustness.inclusion_posterior as module
+
+    rng = np.random.default_rng(90217)
+    z = rng.uniform(0.01, 0.40, 100)
+    x = (z - z.mean()) / z.std()
+    design = np.column_stack([np.ones(z.size), x, x * x])
+    probability = 1.0 / (1.0 + np.exp(-(-0.3 + 0.6 * x - 0.15 * x * x)))
+    retained = rng.binomial(1, probability).astype(float)
+    prior_sd = np.asarray([5.0, 2.5, 2.5])
+    precision = 1.0 / prior_sd**2
+
+    def score(theta):
+        p = 1.0 / (1.0 + np.exp(-(design @ theta)))
+        return design.T @ (p - retained) + theta * precision
+
+    def information(theta):
+        p = 1.0 / (1.0 + np.exp(-(design @ theta)))
+        return design.T @ ((p * (1.0 - p))[:, None] * design) + np.diag(precision)
+
+    reference = root(score, np.zeros(3), jac=information, method="hybr").x
+    assert np.linalg.norm(score(reference), ord=np.inf) < 1e-10
+
+    # Simulate trust-exact stopping with a score above the strict 1e-10
+    # target but below the old 1e-8 refinement trigger.
+    approximate = reference + np.asarray([0.0, 2e-10, 0.0])
+    assert 1e-10 < np.linalg.norm(score(approximate), ord=np.inf) < 1e-8
+    monkeypatch.setattr(
+        module,
+        "minimize",
+        lambda *args, **kwargs: SimpleNamespace(
+            x=approximate, success=True, message="simulated early trust-exact stop"
+        ),
+    )
+
+    posterior = fit_inclusion_posterior_quadrature(
+        z, retained, degree=2, order=5
+    )
+    assert np.linalg.norm(score(posterior.mode), ord=np.inf) <= 1e-10
+    np.testing.assert_allclose(posterior.mode, reference, rtol=1e-9, atol=1e-10)
