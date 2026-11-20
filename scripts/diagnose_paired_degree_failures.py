@@ -13,7 +13,7 @@ def label(rep: int, gamma: float) -> str:
 
 def mode_diagnostics(child: Path, n: int) -> dict:
     config=json.loads((child/"config.json").read_text())
-    validation=pd.read_csv(child/"observables"/f"validation_n{n}.csv")
+    validation=pd.read_csv(child/"observable"/f"validation_n{n}.csv")
     archive=np.load(child/"results"/"log_likelihoods.npz")
     z=validation["redshift"].to_numpy(float)
     y=validation["retained"].to_numpy(float)
