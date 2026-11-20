@@ -2,9 +2,10 @@
 
 ## A. Completed quadrature sensitivity pilot
 
-Workflow `44723868794` completed successfully on the prior-matched PR #133 branch. Artifact `14623002861` (degree-matched-quadrature-sensitivity) was downloaded and independently inspected.
+The initial workflow `44723868794` and latest-head rerun `44726785025` completed successfully on the prior-matched PR #133 branch. The latest artifact `14623863771` (degree-matched-quadrature-sensitivity) was downloaded and independently inspected; it reproduces the same summaries as the initial artifact `14623002861`.
 
-- Artifact SHA-256: `ae13f348a3bd600b1f1f67a998a75e7da3b0a243596545483111139e4c114f0a`.
+- Latest artifact SHA-256: `1f2ffba18438161cea4c7eb44eb7037edc21b006df1039fd078c403a32a629cf`.
+- Initial artifact SHA-256: `ae13f348a3bd600b1f1f67a998a75e7da3b0a243596545483111139e4c114f0a`.
 - Outer manifest status PASS; all 114 listed files matched recorded byte counts and SHA-256 digests.
 - Six nested child manifests (D1/D2 × quadrature orders 5/7/9) independently checked; all nested entries matched byte counts and SHA-256 digests.
 - All six child audit reports PASS; each reconstructed 10 posterior summary rows.
