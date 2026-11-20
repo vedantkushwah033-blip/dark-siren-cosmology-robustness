@@ -106,3 +106,8 @@ For B-E, mean mass below 50 is at most 0.000486, and absolute mean median shifts
 5. **Coverage is not calibrated across all arms.** Several 68% coverage rates are materially below nominal; the fixed-truth experiment is not SBC.
 
 Limitations: synthetic low-redshift Euclidean setup only; fixed truth (H_0=70); 30 events; 561-point H0 grid; fixed KDE bandwidth multiplier 0.7; quadrature order 5. The geometric-grid and grid-refinement audits remain separate numerical gates. Oracle weights are diagnostic only. No LVK/GWTC/public event data, real galaxy catalogue, observational H0 estimate, or universal estimator-superiority claim is involved.
+
+
+## Independent replay on the audit PR branch
+
+The independent reconstruction was repeated on the PR #126 head in workflow [44603264691](https://github.com/vedantkushwah033-blip/dark-siren-cosmology-robustness/actions/runs/44603264691). The job completed successfully after compiling the audit, running its focused regression tests, downloading both immutable source streams, rerunning the orchestration auditor on both archives, reconstructing all posterior summaries, and uploading the independent readout. Replay artifact: `14569681716`; SHA-256 `a0d6b1f097ad7bd1332470b6ca5eb3bb713b4979a109dab1491ce66e277d95f4`. This is a reproducibility replay of the same two source streams, not an additional 100-replicate sample.
