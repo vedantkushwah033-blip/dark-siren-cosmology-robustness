@@ -43,18 +43,18 @@ Run a 10-replicate non-confirmatory engineering smoke. Verify all five arms, bot
 
 ### Stage 1 — confirmatory prior-predictive run
 
-Target **100 independent replicates**, each with a distinct prior draw of H0 truth. This gives 100 independent prior-predictive draws per curvature/validation-size combination through paired reuse of each replicate's underlying streams.
+Target **300 independent replicates**, each with a distinct prior draw of H0 truth. This gives 300 independent prior-predictive draws per curvature/validation-size combination through paired reuse of each replicate's underlying streams. At nominal 68% coverage, 300 replicates give a binomial Monte Carlo standard error of about 2.7 percentage points (roughly ±5.3 points at 95% confidence); 100 replicates would give about 4.7 points (±9.1 points), which is too imprecise for a serious coverage comparison. Treat 100 replicates only as an interim engineering/pilot checkpoint, not the final calibration study.
 
 Planned workload:
-- 100 independent replication units.
+- 300 independent replication units.
 - 3 curvature settings.
 - 3 validation sizes.
 - 5 arms.
 - 2 inclusion-model degrees.
-- 9,000 arm-level lifecycle cells (100 x 3 x 3 x 5 x 2).
-- 600 degree/replicate/curvature child executions (100 x 3 x 2).
+- 27,000 arm-level lifecycle cells (300 x 3 x 3 x 5 x 2).
+- 1,800 degree/replicate/curvature child executions (300 x 3 x 2).
 
-If the engineering gate shows that this workload exceeds the available CI budget, split it into deterministic batches of 10 or 20 replication IDs. Batches must use disjoint replicate IDs and the same frozen master seed schedule; aggregate only after verifying uniqueness and full planned-cell coverage. Do not reduce grid or quadrature tolerances to make the job fit.
+If the engineering gate shows that this workload exceeds the available CI budget, first run a 100-replicate interim checkpoint and then continue with disjoint replicate IDs to reach 300 total. Split execution into deterministic batches of 10 or 20 replication IDs. Batches must use disjoint replicate IDs and the same frozen master seed schedule; aggregate only after verifying uniqueness and full planned-cell coverage. Do not reduce grid or quadrature tolerances to make the job fit.
 
 ## 4. Numerical accuracy gate
 
