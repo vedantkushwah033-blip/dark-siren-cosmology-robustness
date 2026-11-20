@@ -38,7 +38,7 @@ def test_fit_predict_falls_back_to_training_mean_for_constant_diagnostic():
 def test_holm_adjustment_is_monotone_in_sorted_p_values():
     raw = [0.01, 0.04, 0.03, 0.20]
     adjusted = _holm_adjust(raw)
-    assert adjusted == pytest.approx([0.04, 0.06, 0.06, 0.20])
+    assert adjusted == pytest.approx([0.04, 0.09, 0.09, 0.20])
     assert all(0.0 <= value <= 1.0 for value in adjusted)
 
 
