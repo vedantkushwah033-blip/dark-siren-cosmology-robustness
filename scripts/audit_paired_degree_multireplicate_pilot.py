@@ -176,7 +176,7 @@ def audit(root: Path) -> dict:
         child_manifest_count += _verify_manifest(degree_root)
     for key in ("master_seed", "replicates", "gammas", "n_parent", "n_detected",
                 "validation_frame", "validation_sizes", "h0_true", "h0_prior_support",
-                "h0_points", "quadrature_order"):
+                "h0_points", "quadrature_order", "h0_truth_mode", "seed_schedule"):
         if runs[0]["config"].get(key) != runs[1]["config"].get(key):
             raise AssertionError(f"degree config mismatch: {key}")
 
