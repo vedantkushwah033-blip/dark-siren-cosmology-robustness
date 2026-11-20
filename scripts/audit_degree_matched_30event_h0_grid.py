@@ -47,6 +47,36 @@ def _bundle_prefix(zf: zipfile.ZipFile, gamma_dir: str) -> str:
     raise FileNotFoundError(f"no manifest found for {gamma_dir} at expected artifact roots")
 
 
+def _verify_degree_pairing(zf: zipfile.ZipFile, prefix: str) -> int:
+    """Require identical generated inputs for degree-one and degree-two arms."""
+    input_paths = (
+        "observable/catalogue_observed.csv",
+        "observable/gw_events_observed.csv",
+        "observable/validation_n100.csv",
+        "observable/validation_n500.csv",
+        "truth/parent_truth.csv",
+        "truth/gw_event_truth.csv",
+        "truth/validation_frame_truth.csv",
+    )
+    degree1 = prefix + "degree1_order9/"
+    degree2 = prefix + "degree2_order9/"
+    for rel in input_paths:
+        if zf.read(degree1 + rel) != zf.read(degree2 + rel):
+            raise ValueError(f"{prefix}: degree-paired input mismatch in {rel}")
+    cfg1 = json.loads(zf.read(degree1 + "config.json"))
+    cfg2 = json.loads(zf.read(degree2 + "config.json"))
+    invariant_keys = (
+        "seed", "validation_seed", "n_parent", "n_detected", "validation_frame",
+        "validation_sizes", "n_catalogue_observed", "curvature_gamma",
+        "curvature_beta", "quadratic_calibration", "h0_true", "h0_prior_support",
+        "h0_grid_points", "scott_multiplier", "sigma_mpc", "detection_threshold_mpc",
+    )
+    for key in invariant_keys:
+        if cfg1.get(key) != cfg2.get(key):
+            raise ValueError(f"{prefix}: degree-paired config mismatch in {key}")
+    return len(input_paths)
+
+
 def _verify_manifest(zf: zipfile.ZipFile, prefix: str) -> int:
     manifest = json.loads(zf.read(prefix + "manifest.json"))
     if manifest.get("status") != "PASS":
@@ -118,11 +148,13 @@ def run(artifact_zip: Path, output_dir: Path) -> dict:
     }
     rows = []
     manifest_files = 0
+    paired_input_files = 0
     max_reconstruction = 0.0
     with zipfile.ZipFile(artifact_zip) as zf:
         for gamma_dir in GAMMAS:
             prefix = _bundle_prefix(zf, gamma_dir)
             manifest_files += _verify_manifest(zf, prefix)
+            paired_input_files += _verify_degree_pairing(zf, prefix)
             base = prefix + "degree1_order9/"
             cfg = json.loads(zf.read(base + "config.json"))
             if (cfg.get("n_parent") != 1200 or cfg.get("n_detected") != 30
@@ -250,6 +282,7 @@ def run(artifact_zip: Path, output_dir: Path) -> dict:
                   if fine_pass and not legacy_pass else ("PASS" if fine_pass else "FAIL"),
         "source_artifact": "degree-matched-30event-quadrature-sensitivity",
         "source_manifest_payloads_verified": manifest_files,
+        "degree_paired_input_files_verified": paired_input_files,
         "curvature_bundles": len(GAMMAS),
         "unique_posterior_curves": len(result),
         "likelihood_reconstruction_max_abs_error": max_reconstruction,
