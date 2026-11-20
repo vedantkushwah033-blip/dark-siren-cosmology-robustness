@@ -62,3 +62,28 @@ The MAP-minus-known-π differences are +0.1851 (95% interval [+0.1394,+0.2308]) 
 - Mean rank and its t interval are not a complete rank-uniformity/SBC test. A rank histogram and additional independent truths are needed for stronger calibration claims.
 - The parent-oracle arm is a simulation diagnostic, not an available real-world correction.
 - No observational H0, LVK/GWTC, or real galaxy-survey validation claim is made.
+
+
+## Rank-uniformity screen at validation size 500
+
+For completeness, the 50 ranks in each arm/curvature stratum were also screened using a ten-bin Pearson chi-square statistic and a one-sample Kolmogorov–Smirnov statistic against Uniform(0,1). These are **unadjusted exploratory tests**; with only 50 ranks, ten-bin expected counts are five, and multiple comparisons are being made.
+
+| Curvature | Arm | 10-bin chi-square p | KS p |
+|---:|---|---:|---:|
+| -1 | A | <0.0001 | <0.0001 |
+| -1 | B | 0.1917 | 0.8521 |
+| -1 | C | 0.0004 | 0.0204 |
+| -1 | D | <0.0001 | <0.0001 |
+| -1 | E | <0.0001 | <0.0001 |
+| 0 | A | <0.0001 | <0.0001 |
+| 0 | B | 0.1917 | 0.8521 |
+| 0 | C | 0.3838 | 0.5724 |
+| 0 | D | 0.0966 | 0.2611 |
+| 0 | E | 0.6163 | 0.4877 |
+| +1 | A | <0.0001 | <0.0001 |
+| +1 | B | 0.1917 | 0.8521 |
+| +1 | C | 0.9357 | 0.5380 |
+| +1 | D | <0.0001 | <0.0001 |
+| +1 | E | <0.0001 | <0.0001 |
+
+The parent-oracle rank distribution is identical across curvature because the same parent/event realization is used. Known-π IPW has a non-uniformity signal at gamma -1 despite a mean rank near 0.5; this is why mean rank alone is insufficient. At gamma +1, known-π ranks do not show a corresponding signal in these two screens, while both fitted degree-one arms show strong rank distortion. The tests are descriptive diagnostics, not definitive calibration verdicts: rank histogram shape, posterior rank dependence, multiplicity, and the small number of truths all matter.
