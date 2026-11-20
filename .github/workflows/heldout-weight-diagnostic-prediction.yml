@@ -8,13 +8,6 @@ on:
       - .github/workflows/heldout-weight-diagnostic-prediction.yml
       - scripts/evaluate_heldout_weight_diagnostic_prediction.py
       - tests/test_heldout_weight_diagnostic_prediction.py
-  pull_request:
-    branches:
-      - research/quadratic-five-arm-30event-multirep-readout-20261119
-    paths:
-      - .github/workflows/heldout-weight-diagnostic-prediction.yml
-      - scripts/evaluate_heldout_weight_diagnostic_prediction.py
-      - tests/test_heldout_weight_diagnostic_prediction.py
   workflow_dispatch:
 
 permissions:
@@ -23,7 +16,7 @@ permissions:
 
 concurrency:
   group: heldout-weight-diagnostic-prediction
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   heldout-prediction:
