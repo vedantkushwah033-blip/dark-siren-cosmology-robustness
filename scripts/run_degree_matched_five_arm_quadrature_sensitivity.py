@@ -43,6 +43,15 @@ def _posterior(grid: np.ndarray, loglike: np.ndarray) -> tuple[np.ndarray, dict[
     return density, quantiles
 
 
+def _assert_expected_config(config: dict, expected: dict, label: str) -> None:
+    """Fail closed if a paired child changes any frozen simulation setting."""
+    for key, value in expected.items():
+        if config.get(key) != value:
+            raise AssertionError(
+                f"{label} config mismatch for {key}: {config.get(key)!r} != {value!r}"
+            )
+
+
 def _compare_inputs(reference: Path, current: Path) -> int:
     pairs = [
         ("observable/catalogue_observed.csv", "catalogue"),
@@ -164,11 +173,7 @@ def run(args: argparse.Namespace) -> dict:
                 "truth_used_for_non_oracle_inference": False,
                 "truth_used_for_arm_c_only": True,
             }
-            for key, expected in expected_config.items():
-                if config.get(key) != expected:
-                    raise AssertionError(
-                        f"{label} config mismatch for {key}: {config.get(key)!r} != {expected!r}"
-                    )
+            _assert_expected_config(config, expected_config, label)
             if reference is None:
                 reference = child
             else:
