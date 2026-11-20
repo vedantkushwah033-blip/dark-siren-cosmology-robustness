@@ -85,6 +85,7 @@ def run(args: argparse.Namespace) -> dict:
     runner = Path(__file__).with_name("run_quadratic_five_arm_smoke.py")
     auditor = Path(__file__).with_name("audit_quadratic_five_arm_smoke.py")
     records = []
+    diagnostic_parts = []
     reference = None
     input_checks = 0
     posterior_store: dict[tuple[int, int, str], tuple[np.ndarray, dict[str, float]]] = {}
@@ -146,6 +147,11 @@ def run(args: argparse.Namespace) -> dict:
             else:
                 input_checks += _compare_inputs(reference, child)
 
+            child_diagnostics = pd.read_csv(child / "results" / "weight_diagnostics.csv")
+            child_diagnostics.insert(0, "quadrature_order", order)
+            child_diagnostics.insert(0, "degree", degree)
+            diagnostic_parts.append(child_diagnostics)
+
             with np.load(child / "results" / "log_likelihoods.npz") as archive:
                 grid = np.asarray(archive["H0_grid"], float)
                 if h0_grid is None:
@@ -174,6 +180,8 @@ def run(args: argparse.Namespace) -> dict:
 
     posterior_rows = pd.DataFrame(records)
     posterior_rows.to_csv(out / "posterior_summaries.csv", index=False)
+    diagnostics = pd.concat(diagnostic_parts, ignore_index=True)
+    diagnostics.to_csv(out / "weight_diagnostics.csv", index=False)
     convergence = []
     for degree in (1, 2):
         for nval in args.validation_sizes:
@@ -236,7 +244,7 @@ def run(args: argparse.Namespace) -> dict:
         "status":"PASS", "child_runs":len(args.orders)*2,
         "child_audits_passed":len(args.orders)*2,
         "input_pairing_checks":input_checks,
-        "posterior_rows":len(posterior_rows),
+        "posterior_rows":len(posterior_rows), "weight_diagnostic_rows":len(diagnostics),
         "convergence_rows":len(convergence_df),
         "maximum_9_vs_7_density_l1":float(convergence_df.loc[
             (convergence_df.lower_order==7)&(convergence_df.higher_order==9),
