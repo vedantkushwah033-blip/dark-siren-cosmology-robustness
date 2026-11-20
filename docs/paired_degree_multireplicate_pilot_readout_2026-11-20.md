@@ -1,51 +1,61 @@
-# Paired degree-one / degree-two pilot readout — 2026-11-20
+# Prior-matched centered degree-two validation — 2026-11-20
 
-## Execution and independent audit
+## A. Completed quadrature sensitivity pilot
 
-Workflow `44683355394` completed successfully on the corrected PR #131 head. The paired orchestrator reported PASS. Both degree-specific child workflows passed:
+Workflow `44723868794` completed successfully on the prior-matched PR #133 branch. Artifact `14623002861` (degree-matched-quadrature-sensitivity) was downloaded and independently inspected.
 
-- 90/90 lifecycle cells SUCCESS for degree one; 9/9 child runs passed.
-- 90/90 lifecycle cells SUCCESS for degree two; 9/9 child runs passed.
-- Outer independent audit PASS.
-- 354 outer manifest entries and 574 nested manifest entries verified.
-- Nine paired child blocks and 90 paired summary rows reconstructed.
-- A/B/C common-arm likelihoods invariant within tolerance; maximum absolute difference (5.68\times10^{-14}).
-- Artifact ZIP SHA-256: `bc8f5268b27576fd2b01d389f113a05a514ea74abbec4549255df128966bfc7`.
+- Artifact SHA-256: `ae13f348a3bd600b1f1f67a998a75e7da3b0a243596545483111139e4c114f0a`.
+- Outer manifest status PASS; all 114 listed files matched recorded byte counts and SHA-256 digests.
+- Six nested child manifests (D1/D2 × quadrature orders 5/7/9) independently checked; all nested entries matched byte counts and SHA-256 digests.
+- All six child audit reports PASS; each reconstructed 10 posterior summary rows.
+- Maximum independently reconstructed log-likelihood discrepancy across children was at most approximately 1.1e-14.
+- D1/D2 common arms A/B/C agreed within floating-point tolerance.
+- The fitted D2 basis recorded in its child configuration was `[1, x, x^2 - c_g]`, with centre `c_g=0.2845005579191241`.
 
-This establishes successful execution, matched inputs, artifact integrity, and aggregate arithmetic. It does not establish calibration.
+This artifact is **not** the 20-replicate paired experiment. It is a single-realization numerical sensitivity pilot with N_parent=400, four detected events, gamma=+1, validation frame 300, validation sizes 100/300, H0 truth 70, prior [30,110], 41-point H0 grid and quadrature orders 5/7/9.
 
-## Frozen design
+## B. Quadrature convergence
 
-Three paired replicates; gamma (-1,0,+1); parent size 1,200; 30 detected events; validation frame 500; nested validation sizes 100 and 500; fixed (H_0=70), prior [30,110], 281-point grid, quadrature order 5. Both degrees use identical random seeds and synthetic inputs.
+For the integrated-IPW posterior density, order 7 to 9 L1 differences were:
 
-## Selected posterior-error summaries
+| Degree | Validation n | Density L1 (7 vs 9) | Absolute median shift |
+|---:|---:|---:|---:|
+| 1 | 100 | 1.253e-5 | 0.000180 |
+| 1 | 300 | 5.729e-7 | 0.000008 |
+| 2 | 100 | 8.368e-6 | 0.000118 |
+| 2 | 300 | 7.022e-7 | 0.000010 |
 
-RMSE is in km/s/Mpc. Each value is based on only three replicates.
+Thus integrated likelihood quadrature is numerically stable in this particular realization at orders 7/9.
 
-| gamma | validation n | arm | Degree-1 RMSE | Degree-2 RMSE |
-|---:|---:|---|---:|---:|
-| -1 | 100 | D MAP plug-in IPW | 3.170 | 6.113 |
-| -1 | 100 | E integrated IPW | 3.561 | 8.855 |
-| -1 | 500 | D MAP plug-in IPW | 1.847 | 5.100 |
-| -1 | 500 | E integrated IPW | 2.163 | 6.747 |
-| 0 | 100 | D MAP plug-in IPW | 3.392 | 4.873 |
-| 0 | 100 | E integrated IPW | 4.354 | 6.904 |
-| 0 | 500 | D MAP plug-in IPW | 4.565 | 5.081 |
-| 0 | 500 | E integrated IPW | 4.859 | 5.836 |
-| +1 | 100 | D MAP plug-in IPW | 8.097 | 6.483 |
-| +1 | 100 | E integrated IPW | 8.937 | 8.153 |
-| +1 | 500 | D MAP plug-in IPW | 8.630 | 5.416 |
-| +1 | 500 | E integrated IPW | 8.877 | 6.238 |
+## C. Weight instability is the limiting warning
 
-The degree-two procedure is better in some positive-curvature cases but worse in the negative- and zero-curvature examples. This is not evidence of a consistent improvement. Coverage estimates are especially unstable at (n_{rep}=3).
+Order-9 minimum node-level Kish ESS and maximum node top-5%-weight mass:
 
-## Interpretation constraints
+| Degree | Validation n | Minimum node Kish ESS | Maximum node top-5% mass |
+|---:|---:|---:|---:|
+| 1 | 100 | 9.60 | 79.6% |
+| 1 | 300 | 21.87 | 57.4% |
+| 2 | 100 | 3.17 | 92.3% |
+| 2 | 300 | 14.47 | 62.5% |
 
-1. **Prior mismatch:** the degree-one and degree-two coefficient priors are not exactly matched under raw versus centered polynomial coordinates. The current comparison is between complete procedures, not a clean isolation of polynomial degree.
-2. **Quadrature:** order 5 was used. The earlier single-realization 5/7/9 pilot is not a substitute for convergence checks in a larger paired experiment.
-3. **Calibration:** three replicates cannot support meaningful coverage or SBC conclusions.
-4. **Scope:** synthetic low-redshift Euclidean methodology only. No observational (H_0), LVK/GWTC, or real-survey claim.
+The degree-two model is especially unstable at n=100: a small fraction of galaxies dominate the inverse-probability weighted estimate. Increasing quadrature order does not solve this; the minimum node ESS becomes lower as more posterior nodes reveal more extreme inclusion-probability configurations. D1 is also unstable, so this is not exclusively a degree-two problem.
 
-## Next experiment
+**Key distinction:** numerical convergence of the coefficient-posterior integral is not evidence that the IPW estimator has acceptable finite-sample variance or calibrated H0 uncertainty.
 
-Before increasing the replicate count, implement a prior-matched centered quadratic basis ([1,x,x^2-c_g]), with the same declared priors on ((\alpha,\beta,\gamma)) in the degree-two model and corresponding ((\alpha,\beta)) priors in degree one. Add direct tests that the fitted basis matches the generator parameterization. Then run a modest paired pilot with quadrature orders 5/7/9 and inspect weight stability. Only after that should a larger prior-predictive calibration study be scheduled.
+## D. Posterior shifts are descriptive only
+
+At order 9, the D2 integrated-IPW posterior median is about 0.981 km/s/Mpc below D1 for n=100 and 1.434 km/s/Mpc below D1 for n=300. Yet both are materially above the fixed truth 70 in this four-event realization; the parent-oracle median is also high. This one realization cannot establish that D2 improves inference. It mainly demonstrates that model degree changes the weighted likelihood while leaving common arms invariant.
+
+## E. Prior-matching correction
+
+The D2 basis is now centered as `[1,x,x^2-c_g]`. With independent Gaussian coefficient priors, this makes the D1 prior on (alpha,beta) exactly equal to the D2 marginal prior on (alpha,beta), while gamma is independent. The covariance audit is implemented in `scripts/audit_degree_prior_parameterization.py` and its regression test. This removes the earlier raw-versus-centered prior mismatch.
+
+## F. Current 20-replicate paired experiment
+
+The PR #133 workflow was expanded to 20 paired replicates with master seed `2026112020`, gamma {-1,0,+1}, N_parent=1200, 30 events, validation sizes {100,500}, fixed H0=70, prior [30,110], 281-point grid and quadrature order 5.
+
+At the time of this readout, the paired workflow and Python test matrix had not yet started; they were pending in GitHub Actions. No 20-replicate result is claimed here.
+
+## Conclusion
+
+The prior-matched parameterization is now in place and the one-realization quadrature audit passes. The remaining risk is weight instability, especially for degree-two integrated IPW at small validation size. The next experiment must report weight diagnostics alongside bias, RMSE and coverage. No estimator superiority or calibration claim is supported by this quadrature pilot.
