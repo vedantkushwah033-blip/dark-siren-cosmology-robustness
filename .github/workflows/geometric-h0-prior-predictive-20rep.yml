@@ -1,28 +1,6 @@
 name: geometric-h0-prior-predictive-20rep
 
 on:
-  push:
-    branches:
-      - research/five-arm-prior-predictive-20rep-20261120
-    paths:
-      - .github/workflows/geometric-h0-prior-predictive-20rep.yml
-      - scripts/run_quadratic_five_arm_smoke.py
-      - scripts/run_quadratic_five_arm_replicates.py
-      - scripts/audit_quadratic_five_arm_smoke.py
-      - scripts/audit_quadratic_five_arm_replicates.py
-      - scripts/summarize_prior_predictive_sbc.py
-      - scripts/analyze_prior_predictive_sbc.py
-  pull_request:
-    branches:
-      - research/five-arm-prior-predictive-sbc-20261120
-    paths:
-      - .github/workflows/geometric-h0-prior-predictive-20rep.yml
-      - scripts/run_quadratic_five_arm_smoke.py
-      - scripts/run_quadratic_five_arm_replicates.py
-      - scripts/audit_quadratic_five_arm_smoke.py
-      - scripts/audit_quadratic_five_arm_replicates.py
-      - scripts/summarize_prior_predictive_sbc.py
-      - scripts/analyze_prior_predictive_sbc.py
   workflow_dispatch:
 
 permissions:
