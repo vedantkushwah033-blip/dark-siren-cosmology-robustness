@@ -11,6 +11,7 @@ import pytest
 
 from run_quadratic_five_arm_smoke import run
 from audit_quadratic_five_arm_smoke import audit
+from audit_quadratic_five_arm_smoke import _assert_inclusion_mode_agreement
 
 def test_quadratic_five_arm_smoke_roundtrip(tmp_path: Path):
     root=tmp_path/"quadratic_five_arm"
@@ -142,3 +143,25 @@ def test_degree_two_auditor_rejects_tampered_inclusion_quadrature_weights(tmp_pa
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True))
     with pytest.raises(AssertionError, match="independent inclusion quadrature weights mismatch"):
         audit(root)
+
+def test_independent_mode_audit_accepts_optimizer_scale_roundoff_and_rejects_bad_mode():
+    # Balanced binary labels make the likelihood score zero at the origin,
+    # so a 2.5e-9 coordinate perturbation remains within the production
+    # 1e-8 score tolerance while exceeding the former 2e-9 coordinate bound.
+    design = np.ones((4, 1), dtype=float)
+    retained = np.asarray([0.0, 1.0, 0.0, 1.0])
+    rebuilt = np.zeros(1, dtype=float)
+    archived = np.asarray([2.5e-9])
+    _assert_inclusion_mode_agreement(archived, rebuilt, design, retained)
+
+    # A larger coordinate perturbation must still be rejected even when
+    # its score is small; this isolates the coordinate-agreement guard.
+    with pytest.raises(AssertionError, match="mode mismatch"):
+        _assert_inclusion_mode_agreement(
+            np.asarray([2.0e-7]), rebuilt, np.zeros((4, 1)), retained,
+        )
+
+    with pytest.raises(AssertionError, match="fails score tolerance"):
+        _assert_inclusion_mode_agreement(
+            np.asarray([2.0e-7]), rebuilt, design, retained,
+        )

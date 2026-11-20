@@ -281,3 +281,40 @@ def test_outer_manifest_preserves_incomplete_lifecycle_status(tmp_path: Path):
     assert manifest["status"] == "INCOMPLETE"
     assert saved["status"] == "INCOMPLETE"
     assert saved["file_count"] == 1
+
+
+def test_paired_weight_diagnostic_aggregates_are_independently_reconstructed():
+    from run_paired_degree_multireplicate_pilot import (
+        WEIGHT_DIAGNOSTIC_METRICS, _aggregate_weight_diagnostics,
+    )
+    from audit_paired_degree_multireplicate_pilot import (
+        _verify_weight_diagnostic_outputs,
+    )
+
+    rows = []
+    for degree in (1, 2):
+        for replicate, offset in ((0, 0.0), (1, 2.0)):
+            row = {
+                "degree": degree, "replicate": replicate, "gamma": 1.0,
+                "validation_size": 100, "arm": "D_map_plugin_ipw",
+            }
+            for index, metric in enumerate(WEIGHT_DIAGNOSTIC_METRICS):
+                row[metric] = 10.0 * degree + offset + index
+            rows.append(row)
+    raw = pd.DataFrame(rows)
+    aggregate = _aggregate_weight_diagnostics(raw)
+
+    assert _verify_weight_diagnostic_outputs(raw, raw.copy(), aggregate) == (
+        len(raw), len(aggregate)
+    )
+
+    tampered_aggregate = aggregate.copy()
+    tampered_aggregate.loc[0, "mean"] += 0.5
+    with pytest.raises(AssertionError):
+        _verify_weight_diagnostic_outputs(raw, raw.copy(), tampered_aggregate)
+
+    tampered_raw = raw.copy()
+    tampered_raw.loc[0, WEIGHT_DIAGNOSTIC_METRICS[0]] += 0.5
+    with pytest.raises(AssertionError):
+        _verify_weight_diagnostic_outputs(raw, tampered_raw, aggregate)
+
