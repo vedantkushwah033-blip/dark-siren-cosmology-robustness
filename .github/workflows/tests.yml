@@ -398,5 +398,6 @@ jobs:
             artifacts/five_arm_smoke/
             artifacts/five_arm_smoke_audit.json
             artifacts/five_arm_replicates_smoke/
+            artifacts/degree_matched_quadrature_sensitivity/
           if-no-files-found: error
 
