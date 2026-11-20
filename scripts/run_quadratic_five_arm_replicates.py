@@ -154,6 +154,7 @@ def run(args: argparse.Namespace) -> dict:
     for rep in range(args.replicates):
         analysis_seed=_seed(args.master_seed,rep,0)
         validation_seed=_seed(args.master_seed,rep,1)
+        event_seed=_seed(args.master_seed,rep,3)
         h0_truth_seed=int(h0_schedule[rep]["h0_truth_seed"])
         h0_true=float(h0_schedule[rep]["h0_true"])
         for gamma in args.gammas:
@@ -163,14 +164,16 @@ def run(args: argparse.Namespace) -> dict:
                 for arm in ARMS:
                     planned.append({"cell_id":f"{cell}_n{nval}_{arm}","replicate":rep,
                         "gamma":gamma,"validation_size":nval,"arm":arm,
-                        "analysis_seed":analysis_seed,"validation_seed":validation_seed,
+                        "analysis_seed":analysis_seed,"event_seed":event_seed,
+                        "validation_seed":validation_seed,
                         "h0_truth_seed":h0_truth_seed,"h0_true":h0_true})
             status="SUCCESS"
             audit_status="NOT_RUN"
             error=""
             try:
                 cmd=[sys.executable,str(runner),
-                    "--seed",str(analysis_seed),"--validation-seed",str(validation_seed),
+                    "--seed",str(analysis_seed),"--event-seed",str(event_seed),
+                    "--validation-seed",str(validation_seed),
                     "--n-parent",str(args.n_parent),"--n-detected",str(args.n_detected),
                     "--validation-frame",str(args.validation_frame),
                     "--validation-sizes",",".join(map(str,args.validation_sizes)),
@@ -233,7 +236,8 @@ def run(args: argparse.Namespace) -> dict:
                 for arm in ARMS:
                     ledger.append({"cell_id":f"{cell}_n{nval}_{arm}","replicate":rep,
                         "gamma":gamma,"validation_size":nval,"arm":arm,
-                        "analysis_seed":analysis_seed,"validation_seed":validation_seed,
+                        "analysis_seed":analysis_seed,"event_seed":event_seed,
+                        "validation_seed":validation_seed,
                         "h0_truth_seed":h0_truth_seed,"h0_true":h0_true,
                         "status":status,"audit_status":audit_status,"error":error})
     planned_df=pd.DataFrame(planned)
@@ -265,9 +269,10 @@ def run(args: argparse.Namespace) -> dict:
         "h0_points":args.h0_points,"scott_multiplier":args.scott_multiplier,
         "quadrature_order":args.quadrature_order,"sigma_mpc":args.sigma_mpc,
         "detection_threshold_mpc":args.detection_threshold_mpc,
-        "seed_schedule":[{"replicate":r,"analysis_seed":_seed(args.master_seed,r,0),
+        "seed_schedule":[{"replicate":r,"population_seed":_seed(args.master_seed,r,0),
             "validation_seed":_seed(args.master_seed,r,1),
-            "h0_truth_seed":int(h0_schedule[r]["h0_truth_seed"])} for r in range(args.replicates)],
+            "h0_truth_seed":int(h0_schedule[r]["h0_truth_seed"]),
+            "event_seed":_seed(args.master_seed,r,3)} for r in range(args.replicates)],
         "failure_bounds":{"max_abs_median_error":max_abs_error,"max_interval_width":max_interval_width},
         "claim_limit":"Paired engineering pilot only; no estimator ranking, calibration, or observational inference."}
     (out/"config.json").write_text(json.dumps(config,indent=2,sort_keys=True)+"\n")
