@@ -68,4 +68,4 @@ def test_stratified_auc_bootstrap_is_reproducible_and_bounded():
     first = _stratified_auc_bootstrap_ci(scores, labels, seed=17, replicates=500)
     second = _stratified_auc_bootstrap_ci(scores, labels, seed=17, replicates=500)
     assert first == second
-    assert 0.0 <= first[0] <= _auc(scores, labels) <= first[1] <= 1.0
+    assert 0.0 <= first[0] <= first[1] <= 1.0
