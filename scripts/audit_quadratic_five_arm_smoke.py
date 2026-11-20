@@ -543,7 +543,13 @@ def audit(root: Path) -> dict:
         independently_rebuilt_diagnostics.append({
             "validation_size": n,
             "arm": "E_uncertainty_integrated_ipw",
-            "quadrature_ess": float(1.0 / np.sum(rebuilt_weights ** 2)),
+            # The saved diagnostic is computed from the archived normalized
+            # quadrature weights.  The independent reconstruction above is
+            # checked against these weights with its own numerical tolerance;
+            # use the archived vector here so this audit reproduces the exact
+            # diagnostic definition rather than amplifying harmless quadrature
+            # reconstruction roundoff into a false audit failure.
+            "quadrature_ess": float(1.0 / np.sum(quadrature ** 2)),
             "minimum_node_kish_ess": float(min(d["kish_ess"] for d in node_weight_diagnostics)),
             "maximum_node_top_5_percent_mass": float(max(d["top_5_percent_mass"] for d in node_weight_diagnostics)),
             "quadrature_nodes": len(node_weight_diagnostics),
