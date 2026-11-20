@@ -47,6 +47,7 @@ def test_detailed_readout_requires_complete_audited_paired_cells(tmp_path):
                 "arm": arm, "kish_ess": np.nan if arm == ARMS[-1] else 25.0 + rep,
                 "minimum_node_kish_ess": 15.0 + rep,
             })
+    pd.DataFrame(ledger)[["replicate", "gamma", "validation_size", "arm"]].to_csv(root / "planned_cells.csv", index=False)
     pd.DataFrame(ledger).to_csv(root / "replicate_ledger.csv", index=False)
     pd.DataFrame(summaries).to_csv(root / "replicate_posterior_summaries.csv", index=False)
     pd.DataFrame(diagnostics).to_csv(root / "replicate_weight_diagnostics.csv", index=False)
@@ -96,6 +97,7 @@ def test_detailed_readout_rejects_truth_mismatch_within_replicate(tmp_path):
                 "arm": arm, "kish_ess": np.nan if arm == ARMS[-1] else 25.0,
                 "minimum_node_kish_ess": 15.0,
             })
+    pd.DataFrame(ledger)[["replicate", "gamma", "validation_size", "arm"]].to_csv(root / "planned_cells.csv", index=False)
     pd.DataFrame(ledger).to_csv(root / "replicate_ledger.csv", index=False)
     pd.DataFrame(summaries).to_csv(root / "replicate_posterior_summaries.csv", index=False)
     pd.DataFrame(diagnostics).to_csv(root / "replicate_weight_diagnostics.csv", index=False)
@@ -126,6 +128,7 @@ def test_detailed_readout_rejects_nonfinite_posterior_error(tmp_path):
                 "arm": arm, "kish_ess": np.nan if arm == ARMS[-1] else 25.0,
                 "minimum_node_kish_ess": 15.0,
             })
+    pd.DataFrame(ledger)[["replicate", "gamma", "validation_size", "arm"]].to_csv(root / "planned_cells.csv", index=False)
     pd.DataFrame(ledger).to_csv(root / "replicate_ledger.csv", index=False)
     pd.DataFrame(summaries).to_csv(root / "replicate_posterior_summaries.csv", index=False)
     pd.DataFrame(diagnostics).to_csv(root / "replicate_weight_diagnostics.csv", index=False)
