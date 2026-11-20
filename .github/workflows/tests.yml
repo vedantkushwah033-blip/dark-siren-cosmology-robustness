@@ -61,6 +61,17 @@ jobs:
         run: python -m pytest tests/test_five_arm_kde_likelihood.py -q
       - name: Test quadratic-logit five-arm runner, degree-two inclusion, and independent audit
         run: python -m pytest tests/test_quadratic_five_arm_smoke.py tests/test_quadratic_five_arm_replicates.py -q
+      - name: Validate paired degree-one/degree-two quadrature pilot CLI
+        run: python scripts/run_degree_matched_five_arm_quadrature_sensitivity.py --help
+      - name: Run paired degree-one/degree-two quadrature sensitivity pilot (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python scripts/run_degree_matched_five_arm_quadrature_sensitivity.py \\
+            --seed 20261120 --validation-seed 20261121 --n-parent 400 \\
+            --n-detected 4 --validation-frame 300 --validation-sizes 100,300 \\
+            --gamma 1.0 --h0-prior-min 30 --h0-prior-max 110 \\
+            --h0-points 41 --orders 5,7,9 \\
+            --output-dir artifacts/degree_matched_quadrature_sensitivity
       - name: Validate quadratic five-arm replicate runner CLI
         run: python scripts/run_quadratic_five_arm_replicates.py --help
       - name: Test realized reflected-KDE bandwidth reporting
