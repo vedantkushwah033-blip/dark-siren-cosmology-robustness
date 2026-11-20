@@ -153,7 +153,14 @@ def test_independent_mode_audit_accepts_optimizer_scale_roundoff_and_rejects_bad
     archived = np.asarray([2.5e-9])
     _assert_inclusion_mode_agreement(archived, rebuilt, design, retained)
 
-    with pytest.raises(AssertionError, match="fails score tolerance|mode mismatch"):
+    # A larger coordinate perturbation must still be rejected even when
+    # its score is small; this isolates the coordinate-agreement guard.
+    with pytest.raises(AssertionError, match="mode mismatch"):
+        _assert_inclusion_mode_agreement(
+            np.asarray([2.0e-7]), rebuilt, np.zeros((5, 1)), retained,
+        )
+
+    with pytest.raises(AssertionError, match="fails score tolerance"):
         _assert_inclusion_mode_agreement(
             np.asarray([2.0e-7]), rebuilt, design, retained,
         )
