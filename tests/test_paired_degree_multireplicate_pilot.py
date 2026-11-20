@@ -131,3 +131,16 @@ def test_independent_auditor_rejects_manifest_path_traversal(tmp_path: Path):
     (root / "manifest.json").write_text(json.dumps(manifest))
     with pytest.raises(AssertionError, match="escapes artifact root"):
         _verify_manifest(root)
+
+
+
+def test_raw_and_centered_degree_two_gaussian_priors_are_not_equivalent():
+    from audit_degree_prior_parameterization import audit_prior_mapping
+
+    result = audit_prior_mapping()
+    assert result["status"] == "PASS"
+    assert result["raw_prior_induced_alpha_sd"] > 5.0
+    assert result["raw_prior_induced_alpha_gamma_correlation"] > 0.0
+    assert result["kl_nats_raw_induced_vs_independent_centered_prior"] > 0.0
+    assert result["raw_prior_induced_beta_sd"] == pytest.approx(2.5)
+    assert result["raw_prior_induced_gamma_sd"] == pytest.approx(2.5)
