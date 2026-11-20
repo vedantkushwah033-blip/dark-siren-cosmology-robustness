@@ -11,6 +11,7 @@ import pytest
 
 from run_quadratic_five_arm_smoke import run
 from audit_quadratic_five_arm_smoke import audit
+from audit_quadratic_five_arm_smoke import _assert_inclusion_mode_agreement
 
 def test_quadratic_five_arm_smoke_roundtrip(tmp_path: Path):
     root=tmp_path/"quadratic_five_arm"
@@ -142,3 +143,18 @@ def test_degree_two_auditor_rejects_tampered_inclusion_quadrature_weights(tmp_pa
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True))
     with pytest.raises(AssertionError, match="independent inclusion quadrature weights mismatch"):
         audit(root)
+
+def test_independent_mode_audit_accepts_optimizer_scale_roundoff_and_rejects_bad_mode():
+    design = np.ones((5, 1), dtype=float)
+    retained = np.zeros(5, dtype=float)
+    rebuilt = np.zeros(1, dtype=float)
+    # This coordinate difference exceeds the former 2e-9 absolute tolerance,
+    # while both modes satisfy the production 1e-8 score stopping criterion.
+    archived = np.asarray([2.5e-9])
+    _assert_inclusion_mode_agreement(archived, rebuilt, design, retained)
+
+    with pytest.raises(AssertionError, match="fails score tolerance|mode mismatch"):
+        _assert_inclusion_mode_agreement(
+            np.asarray([2.0e-7]), rebuilt, design, retained,
+        )
+
