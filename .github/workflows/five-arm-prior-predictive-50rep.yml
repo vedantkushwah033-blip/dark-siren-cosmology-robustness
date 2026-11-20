@@ -1,17 +1,6 @@
 name: Five-arm prior-predictive SBC 50-replicate pilot
 
 on:
-  push:
-    branches:
-      - research/five-arm-prior-predictive-20rep-20261120
-  pull_request:
-    paths:
-      - "scripts/run_quadratic_five_arm_replicates.py"
-      - "scripts/audit_quadratic_five_arm_replicates.py"
-      - "scripts/summarize_prior_predictive_sbc.py"
-      - "tests/test_quadratic_five_arm_replicates.py"
-      - "tests/test_prior_predictive_sbc_summary.py"
-      - ".github/workflows/five-arm-prior-predictive-50rep.yml"
   workflow_dispatch:
 
 permissions:
