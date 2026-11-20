@@ -95,6 +95,7 @@ def run(args: argparse.Namespace) -> dict:
     reference = None
     input_checks = 0
     posterior_store: dict[tuple[int, int, str], tuple[np.ndarray, dict[str, float]]] = {}
+    likelihood_store: dict[tuple[int, int, str], np.ndarray] = {}
     h0_grid = None
 
     for degree in (1, 2):
@@ -169,6 +170,7 @@ def run(args: argparse.Namespace) -> dict:
                         "D_map_plugin_ipw", "E_uncertainty_integrated_ipw",
                     ):
                         curve = np.asarray(archive[f"{arm}_n{nval}"], float)
+                        likelihood_store[(degree, order, f"{arm}_n{nval}")] = curve
                         density, quantiles = _posterior(grid, curve)
                         posterior_store[(degree, order, f"{arm}_n{nval}")] = (density, quantiles)
                         records.append({
@@ -181,6 +183,51 @@ def run(args: argparse.Namespace) -> dict:
                             ),
                             "child_audit_status": "PASS",
                         })
+
+    invariant_rows = []
+    order_invariant_arms = (
+        "A_catalogue_only", "B_parent_oracle",
+        "C_known_probability_ipw", "D_map_plugin_ipw",
+    )
+    for degree in (1, 2):
+        for nval in args.validation_sizes:
+            for arm in order_invariant_arms:
+                key = f"{arm}_n{nval}"
+                reference_curve = likelihood_store[(degree, 5, key)]
+                for order in (7, 9):
+                    candidate = likelihood_store[(degree, order, key)]
+                    difference = float(np.max(np.abs(candidate-reference_curve)))
+                    if not np.allclose(candidate, reference_curve, rtol=1e-11, atol=1e-11):
+                        raise AssertionError(
+                            f"{key} should be quadrature-order invariant for degree {degree}; "
+                            f"max absolute difference={difference}"
+                        )
+                    invariant_rows.append({
+                        "invariant": "fixed_degree_across_quadrature_order",
+                        "degree": degree, "quadrature_order": order,
+                        "validation_size": nval, "arm": arm,
+                        "max_abs_log_likelihood_difference": difference,
+                    })
+    for order in args.orders:
+        for nval in args.validation_sizes:
+            for arm in (
+                "A_catalogue_only", "B_parent_oracle", "C_known_probability_ipw",
+            ):
+                key = f"{arm}_n{nval}"
+                left = likelihood_store[(1, order, key)]
+                right = likelihood_store[(2, order, key)]
+                difference = float(np.max(np.abs(left-right)))
+                if not np.allclose(left, right, rtol=1e-11, atol=1e-11):
+                    raise AssertionError(
+                        f"{key} must be degree-invariant; max absolute difference={difference}"
+                    )
+                invariant_rows.append({
+                    "invariant": "fixed_arm_across_model_degree",
+                    "degree": 0, "quadrature_order": order,
+                    "validation_size": nval, "arm": arm,
+                    "max_abs_log_likelihood_difference": difference,
+                })
+    pd.DataFrame(invariant_rows).to_csv(out / "likelihood_invariance_checks.csv", index=False)
 
     posterior_rows = pd.DataFrame(records)
     posterior_rows.to_csv(out / "posterior_summaries.csv", index=False)
@@ -249,6 +296,7 @@ def run(args: argparse.Namespace) -> dict:
         "child_audits_passed":len(args.orders)*2,
         "input_pairing_checks":input_checks,
         "posterior_rows":len(posterior_rows), "weight_diagnostic_rows":len(diagnostics),
+        "likelihood_invariance_checks":len(invariant_rows),
         "convergence_rows":len(convergence_df),
         "maximum_9_vs_7_density_l1":float(convergence_df.loc[
             (convergence_df.lower_order==7)&(convergence_df.higher_order==9),
