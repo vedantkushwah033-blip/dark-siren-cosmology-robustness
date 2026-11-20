@@ -41,6 +41,16 @@ def _sha(path: Path) -> str:
     return h.hexdigest()
 
 
+def _write_manifest(out: Path, status: str) -> dict:
+    """Write an integrity manifest whose status matches the run lifecycle."""
+    files = sorted(p for p in out.rglob("*") if p.is_file() and p.name != "manifest.json")
+    manifest = {"status": status, "file_count": len(files), "files": {
+        str(p.relative_to(out)): {"bytes": p.stat().st_size, "sha256": _sha(p)} for p in files
+    }}
+    (out / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    return manifest
+
+
 def _paired_summary(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
     """Summarize degree-2 minus degree-1 replicate-paired posterior errors."""
     keys = ["replicate", "gamma", "validation_size", "arm"]
@@ -108,10 +118,22 @@ def _verify_child_pair(d1: Path, d2: Path) -> dict:
         a, b = pd.read_csv(d1 / rel), pd.read_csv(d2 / rel)
         pd.testing.assert_frame_equal(a, b, check_dtype=False, check_exact=True)
         checked += 1
-    for f in sorted((d1 / "observable").glob("validation_n*.csv")):
-        rel = f.relative_to(d1)
+    left_validation = {
+        p.name for p in (d1 / "observable").glob("validation_n*.csv")
+    }
+    right_validation = {
+        p.name for p in (d2 / "observable").glob("validation_n*.csv")
+    }
+    if left_validation != right_validation:
+        raise AssertionError(
+            "validation-file sets differ across inclusion-model degrees: "
+            f"degree1={sorted(left_validation)}, degree2={sorted(right_validation)}"
+        )
+    for name in sorted(left_validation):
+        rel = Path("observable") / name
         pd.testing.assert_frame_equal(
-            pd.read_csv(f), pd.read_csv(d2 / rel), check_dtype=False, check_exact=True
+            pd.read_csv(d1 / rel), pd.read_csv(d2 / rel),
+            check_dtype=False, check_exact=True,
         )
         checked += 1
     with np.load(d1 / "results" / "log_likelihoods.npz") as a, np.load(
@@ -257,11 +279,7 @@ def run(args: argparse.Namespace) -> dict:
         "degree_runs": runs, "paired_child_checks": len(paired_checks),
     }
     (out / "config.json").write_text(json.dumps(config, indent=2, sort_keys=True) + "\n")
-    files = sorted(p for p in out.rglob("*") if p.is_file() and p.name != "manifest.json")
-    manifest = {"status": "PASS", "file_count": len(files), "files": {
-        str(p.relative_to(out)): {"bytes": p.stat().st_size, "sha256": _sha(p)} for p in files
-    }}
-    (out / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    _write_manifest(out, config["status"])
     return {
         "status": config["status"], "degree_runs": [
             {k: v for k, v in x.items() if k != "config"} for x in runs
