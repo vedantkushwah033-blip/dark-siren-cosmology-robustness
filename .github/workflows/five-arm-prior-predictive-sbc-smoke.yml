@@ -54,10 +54,15 @@ jobs:
           python scripts/audit_quadratic_five_arm_replicates.py \
             artifacts/five_arm_prior_predictive_smoke \
             --output artifacts/five_arm_prior_predictive_smoke/independent_audit.json
+      - name: Summarize posterior ranks and central-interval coverage
+        run: |
+          python scripts/summarize_prior_predictive_sbc.py \
+            artifacts/five_arm_prior_predictive_smoke \
+            --output-dir artifacts/five_arm_prior_predictive_sbc_summary
       - name: Upload prior-predictive smoke artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: five-arm-prior-predictive-smoke
-          path: artifacts/five_arm_prior_predictive_smoke/
+          path: artifacts/five_arm_prior_predictive_smoke/\n                artifacts/five_arm_prior_predictive_sbc_summary/
           if-no-files-found: warn
