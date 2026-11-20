@@ -44,3 +44,33 @@ def test_degree_two_e_nodes_can_be_marginalized():
     marginal = logsumexp(node_loglikes + np.log(weights[:, None]), axis=0)
     assert marginal.shape == (41,)
     assert np.isfinite(marginal).all()
+
+from pathlib import Path
+import zipfile
+
+from scripts.audit_degree_matched_30event_h0_grid import _bundle_prefix
+
+
+def test_bundle_prefix_resolves_downloaded_artifact_root_layout(tmp_path: Path):
+    archive_path = tmp_path / "source.zip"
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        archive.writestr("gamma_0/manifest.json", "{}")
+    with zipfile.ZipFile(archive_path) as archive:
+        assert _bundle_prefix(archive, "gamma_0") == "gamma_0/"
+
+
+def test_bundle_prefix_accepts_nested_artifact_layout(tmp_path: Path):
+    archive_path = tmp_path / "source_nested.zip"
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        archive.writestr("degree_quadrature/gamma_p1/manifest.json", "{}")
+    with zipfile.ZipFile(archive_path) as archive:
+        assert _bundle_prefix(archive, "gamma_p1") == "degree_quadrature/gamma_p1/"
+
+
+def test_bundle_prefix_fails_closed_when_manifest_is_missing(tmp_path: Path):
+    archive_path = tmp_path / "missing.zip"
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        archive.writestr("other/file.txt", "not a bundle")
+    with zipfile.ZipFile(archive_path) as archive:
+        with pytest.raises(FileNotFoundError):
+            _bundle_prefix(archive, "gamma_m1")
