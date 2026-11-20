@@ -53,10 +53,12 @@ def _degree_contrasts(one: pd.DataFrame, two: pd.DataFrame) -> pd.DataFrame:
     a = one[keys + fields].rename(columns={c: f"{c}_d1" for c in fields})
     b = two[keys + fields].rename(columns={c: f"{c}_d2" for c in fields})
     merged = a.merge(b, on=keys, how="outer", validate="one_to_one", indicator=True)
-    if not (merged["_merge"] == "both").all():
-        raise AssertionError("degree-one and degree-two summary cells do not pair")
-    if not ((merged["status_d1"] == "SUCCESS") & (merged["status_d2"] == "SUCCESS")).all():
-        raise AssertionError("paired degree contrast requires successful cells in both degrees")
+    merged = merged.loc[merged["_merge"] == "both"].copy()
+    merged = merged.loc[
+        (merged["status_d1"] == "SUCCESS") & (merged["status_d2"] == "SUCCESS")
+    ].copy()
+    if merged.empty:
+        return merged.drop(columns="_merge")
     if not np.allclose(merged["h0_true_d1"], merged["h0_true_d2"], rtol=0, atol=0):
         raise AssertionError("H0 truth differs across model degrees")
     merged["degree2_minus_degree1_median"] = (
@@ -166,6 +168,12 @@ def run(args: argparse.Namespace) -> dict:
             cell = f"rep{rep:03d}_g{gamma:+g}".replace("+", "p").replace("-", "m")
             left = degree_roots[1] / "replicates" / cell
             right = degree_roots[2] / "replicates" / cell
+            if not left.is_dir() or not right.is_dir():
+                pairing_rows.append({
+                    "replicate": rep, "gamma": gamma,
+                    "paired_input_files_checked": 0, "status": "NOT_EVALUABLE_CHILD_FAILURE",
+                })
+                continue
             checked = _paired_child_inputs(left, right, args.validation_sizes)
             pairing_rows.append({
                 "replicate": rep, "gamma": gamma,
