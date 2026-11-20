@@ -29,8 +29,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev]"
-      - name: Compile exact-grid auditor before downloading large artifact
-        run: python -m py_compile scripts/audit_geometric_prior_predictive_h0_grid.py
+      - name: Test exact-grid auditor primitives before downloading large artifact
+        run: |
+          python -m py_compile scripts/audit_geometric_prior_predictive_h0_grid.py
+          python -m pytest -q tests/test_audit_geometric_prior_predictive_h0_grid.py
       - name: Download frozen prior-predictive experiment artifact
         uses: actions/download-artifact@v4
         with:
