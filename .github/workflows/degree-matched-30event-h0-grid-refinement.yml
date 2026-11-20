@@ -17,6 +17,10 @@ on:
       - .github/workflows/degree-matched-30event-h0-grid-refinement.yml
   workflow_dispatch:
 
+concurrency:
+  group: degree-matched-30event-h0-grid-refinement
+  cancel-in-progress: false
+
 permissions:
   actions: read
   contents: read
