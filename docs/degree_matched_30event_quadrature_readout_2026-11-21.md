@@ -56,3 +56,10 @@ These are diagnostic extremes, not universal thresholds. They show that a large 
 This run is a numerical quadrature and paired-model sensitivity pilot using one fixed synthetic realization. It is not prior-predictive calibration, simulation-based calibration, estimator-superiority evidence, observational H0 inference, or validation on a real galaxy catalogue or public gravitational-wave data.
 
 Next, retain the current run as the numerical convergence check and proceed to an independently seeded, multi-truth prior-predictive design. That design should use at least 100 independent truths per curvature × validation-size cell, preserve paired arms, predeclare posterior-grid and quadrature tolerances, and report lifecycle failures rather than dropping them. Continue to report host-weight concentration alongside posterior outcomes. Do not promote degree 2 or uncertainty integration as a default based on this pilot.
+
+
+## Relationship to the earlier 20-replicate fixed-truth pilot
+
+This quadrature run complements, rather than replaces, the paired fixed-truth multi-replicate pilot recorded in PR #140. That earlier run used 20 paired synthetic replicates, the same 1,200-parent / 30-event scale, gamma {-1,0,+1}, validation sizes 100/500, H0 truth 70, a 281-point [30,110] grid, and quadrature order 5. Its successful current-head workflow was `44773150331` with artifact `14657642461`; the recorded audit reconstructed 600/600 lifecycle cells for each degree and passed its independent artifact checks. Its purpose was repeated-sample fixed-truth comparison, not quadrature convergence or prior-predictive calibration.
+
+Taken together, the two studies now provide (i) a 20-replicate fixed-truth paired comparison at order 5 and (ii) an independently audited order-5/7/9 quadrature sensitivity analysis on a separate fixed realization. Neither is a prior-predictive calibration study. The order-5 multi-replicate result should not be retroactively treated as order-converged merely because the separate realization is stable from order 7 to 9.
