@@ -112,6 +112,16 @@ def _independent_bandwidth(
 
 
 
+def _quadrature_ess(normalized_weights: np.ndarray) -> float:
+    """Effective node count for the exact normalized weights used by the run."""
+    weights = np.asarray(normalized_weights, dtype=float)
+    if weights.ndim != 1 or not len(weights) or not np.all(np.isfinite(weights)):
+        raise ValueError("quadrature weights must be a finite non-empty vector")
+    if np.any(weights < 0) or not np.isclose(weights.sum(), 1.0, rtol=1e-10, atol=1e-12):
+        raise ValueError("quadrature weights must be nonnegative and normalized")
+    return float(1.0 / np.sum(weights ** 2))
+
+
 def _independent_weight_diagnostics(raw_weights: np.ndarray) -> dict[str, float]:
     """Recompute normalized weight-tail diagnostics without production imports."""
     weights = np.asarray(raw_weights, dtype=float)
@@ -549,7 +559,7 @@ def audit(root: Path) -> dict:
             # use the archived vector here so this audit reproduces the exact
             # diagnostic definition rather than amplifying harmless quadrature
             # reconstruction roundoff into a false audit failure.
-            "quadrature_ess": float(1.0 / np.sum(quadrature ** 2)),
+            "quadrature_ess": _quadrature_ess(quadrature),
             "minimum_node_kish_ess": float(min(d["kish_ess"] for d in node_weight_diagnostics)),
             "maximum_node_top_5_percent_mass": float(max(d["top_5_percent_mass"] for d in node_weight_diagnostics)),
             "quadrature_nodes": len(node_weight_diagnostics),
