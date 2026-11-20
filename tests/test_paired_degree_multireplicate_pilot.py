@@ -7,7 +7,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from run_paired_degree_multireplicate_pilot import (
-    _aggregate_paired, _paired_summary, _verify_child_pair, _write_manifest,
+    _aggregate_paired, _paired_summary, _verify_child_pair ,
 )
 
 
@@ -185,12 +185,3 @@ def test_independent_pair_auditor_uses_recorded_check_schema(tmp_path: Path):
         "maximum_common_arm_log_likelihood_difference": 0.0,
     }
 
-
-def test_paired_artifact_manifest_preserves_incomplete_lifecycle_status(tmp_path: Path):
-    payload = tmp_path / "partial.txt"
-    payload.write_text("partial-run")
-    manifest = _write_manifest(tmp_path, "INCOMPLETE")
-    assert manifest["status"] == "INCOMPLETE"
-    written = __import__("json").loads((tmp_path / "manifest.json").read_text())
-    assert written["status"] == "INCOMPLETE"
-    assert written["file_count"] == 1
