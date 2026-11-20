@@ -10,7 +10,7 @@ on:
       - .github/workflows/degree-matched-30event-h0-grid-refinement.yml
   pull_request:
     branches:
-      - research/30event-h0-grid-refinement-20261121
+      - research/30event-degree-quadrature-convergence-20261121
     paths:
       - scripts/audit_degree_matched_30event_h0_grid.py
       - tests/test_audit_degree_matched_30event_h0_grid.py
