@@ -86,8 +86,9 @@ def main():
             return path.read_text(errors="replace")[-12000:] if path.exists() else None
         mode_results=[]
         if child.exists() and (child/"results"/"log_likelihoods.npz").exists():
-            for n in (100,300,500):
-                try: mode_results.append(mode_diagnostics(child,n))
+            child_config=json.loads((child/"config.json").read_text())
+            for n in child_config.get("validation_sizes",[]):
+                try: mode_results.append(mode_diagnostics(child,int(n)))
                 except Exception as exc: mode_results.append({"validation_size":n,"diagnostic_error":f"{type(exc).__name__}: {exc}"})
         children.append({
           "replicate":int(rep),"gamma":float(gamma),"analysis_seed":analysis_seed,
