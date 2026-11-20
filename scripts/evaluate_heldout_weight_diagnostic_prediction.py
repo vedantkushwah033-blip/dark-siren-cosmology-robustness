@@ -68,6 +68,51 @@ def _verify_manifest(root: Path) -> int:
     return checked
 
 
+def _assert_exact_lifecycle_keys(
+    ledger: pd.DataFrame,
+    summaries: pd.DataFrame,
+    diagnostics: pd.DataFrame,
+    *,
+    root: Path,
+) -> None:
+    """Fail closed unless all three artifact tables describe identical cells."""
+    keys = ["replicate", "gamma", "validation_size", "arm"]
+    for label, frame in [
+        ("ledger", ledger), ("summaries", summaries), ("diagnostics", diagnostics)
+    ]:
+        missing = sorted(set(keys) - set(frame.columns))
+        if missing:
+            raise AssertionError(f"{root}: {label} missing lifecycle key columns: {missing}")
+        if frame.duplicated(keys).any():
+            raise AssertionError(f"{root}: duplicate lifecycle keys in {label}")
+
+    def key_set(frame: pd.DataFrame) -> set[tuple]:
+        return set(frame[keys].itertuples(index=False, name=None))
+
+    ledger_keys = key_set(ledger)
+    summary_keys = key_set(summaries)
+    diagnostic_keys = key_set(diagnostics)
+    if ledger_keys != summary_keys:
+        raise AssertionError(
+            f"{root}: ledger/summary lifecycle key mismatch "
+            f"(ledger-only={len(ledger_keys - summary_keys)}, "
+            f"summary-only={len(summary_keys - ledger_keys)})"
+        )
+    if ledger_keys != diagnostic_keys:
+        raise AssertionError(
+            f"{root}: ledger/diagnostic lifecycle key mismatch "
+            f"(ledger-only={len(ledger_keys - diagnostic_keys)}, "
+            f"diagnostic-only={len(diagnostic_keys - ledger_keys)})"
+        )
+
+    expected_per_cell = 100
+    counts = ledger.groupby(["gamma", "validation_size", "arm"], dropna=False).replicate.nunique()
+    if len(counts) != 45 or not (counts == expected_per_cell).all():
+        raise AssertionError(
+            f"{root}: expected exactly 100 unique replicate IDs in each of 45 gamma/size/arm cells"
+        )
+
+
 def _validate_artifact(root: Path, expected_seed: int) -> pd.DataFrame:
     root = root.resolve()
     _verify_manifest(root)
@@ -96,13 +141,14 @@ def _validate_artifact(root: Path, expected_seed: int) -> pd.DataFrame:
         raise AssertionError(f"{root}: invalid planned lifecycle denominator")
     if set(ledger.status) != {"SUCCESS"} or set(ledger.audit_status) != {"PASS"}:
         raise AssertionError(f"{root}: failed or unaudited lifecycle cell")
-    keys = ["replicate", "gamma", "validation_size", "arm"]
     for label, frame in [("summaries", summaries), ("diagnostics", diagnostics)]:
-        if len(frame) != expected_rows or frame.duplicated(keys).any():
-            raise AssertionError(f"{root}: invalid {label} denominator or duplicate keys")
+        if len(frame) != expected_rows:
+            raise AssertionError(f"{root}: invalid {label} denominator")
     if set(summaries.status) != {"SUCCESS"} or set(summaries.audit_status) != {"PASS"}:
         raise AssertionError(f"{root}: posterior summaries are not all audited")
 
+    _assert_exact_lifecycle_keys(ledger, summaries, diagnostics, root=root)
+    keys = ["replicate", "gamma", "validation_size", "arm"]
     joined = summaries.merge(diagnostics, on=keys, validate="one_to_one", suffixes=("", "_diag"))
     joined["master_seed"] = expected_seed
     joined["absolute_median_error"] = joined["median_error"].abs()
