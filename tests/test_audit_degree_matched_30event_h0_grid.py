@@ -74,3 +74,53 @@ def test_bundle_prefix_fails_closed_when_manifest_is_missing(tmp_path: Path):
     with zipfile.ZipFile(archive_path) as archive:
         with pytest.raises(FileNotFoundError):
             _bundle_prefix(archive, "gamma_m1")
+
+from scripts.audit_degree_matched_30event_h0_grid import _verify_degree_pairing
+
+
+def _write_paired_archive(path, *, mismatch=False):
+    paths = (
+        "observable/catalogue_observed.csv",
+        "observable/gw_events_observed.csv",
+        "observable/validation_n100.csv",
+        "observable/validation_n500.csv",
+        "truth/parent_truth.csv",
+        "truth/gw_event_truth.csv",
+        "truth/validation_frame_truth.csv",
+    )
+    with zipfile.ZipFile(path, "w") as archive:
+        for degree in (1, 2):
+            for rel in paths:
+                payload = b"same-input"
+                if mismatch and degree == 2 and rel == paths[0]:
+                    payload = b"changed-input"
+                archive.writestr(f"gamma_0/degree{degree}_order9/{rel}", payload)
+            config = {
+                "seed": 11, "validation_seed": 12, "n_parent": 1200,
+                "n_detected": 30, "validation_frame": 500,
+                "validation_sizes": [100, 500], "n_catalogue_observed": 600,
+                "curvature_gamma": 0.0, "curvature_beta": -3.9,
+                "quadratic_calibration": {"gamma": 0.0}, "h0_true": 70.0,
+                "h0_prior_support": [30.0, 110.0], "h0_grid_points": 281,
+                "scott_multiplier": 0.7, "sigma_mpc": 140.0,
+                "detection_threshold_mpc": 250.0,
+            }
+            archive.writestr(
+                f"gamma_0/degree{degree}_order9/config.json",
+                __import__("json").dumps(config),
+            )
+
+
+def test_degree_pairing_checks_all_shared_inputs(tmp_path: Path):
+    archive_path = tmp_path / "paired.zip"
+    _write_paired_archive(archive_path)
+    with zipfile.ZipFile(archive_path) as archive:
+        assert _verify_degree_pairing(archive, "gamma_0/") == 7
+
+
+def test_degree_pairing_rejects_changed_raw_input(tmp_path: Path):
+    archive_path = tmp_path / "unpaired.zip"
+    _write_paired_archive(archive_path, mismatch=True)
+    with zipfile.ZipFile(archive_path) as archive:
+        with pytest.raises(ValueError, match="degree-paired input mismatch"):
+            _verify_degree_pairing(archive, "gamma_0/")
