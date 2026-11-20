@@ -44,7 +44,7 @@ def test_detailed_readout_requires_complete_audited_paired_cells(tmp_path):
             })
             diagnostics.append({
                 "replicate": rep, "gamma": 0.0, "validation_size": 100,
-                "arm": arm, "kish_ess": 25.0 + rep,
+                "arm": arm, "kish_ess": np.nan if arm == ARMS[-1] else 25.0 + rep,
                 "minimum_node_kish_ess": 15.0 + rep,
             })
     pd.DataFrame(ledger).to_csv(root / "replicate_ledger.csv", index=False)
@@ -93,7 +93,7 @@ def test_detailed_readout_rejects_truth_mismatch_within_replicate(tmp_path):
             })
             diagnostics.append({
                 "replicate": rep, "gamma": 0.0, "validation_size": 100,
-                "arm": arm, "kish_ess": 25.0,
+                "arm": arm, "kish_ess": np.nan if arm == ARMS[-1] else 25.0,
                 "minimum_node_kish_ess": 15.0,
             })
     pd.DataFrame(ledger).to_csv(root / "replicate_ledger.csv", index=False)
@@ -123,7 +123,7 @@ def test_detailed_readout_rejects_nonfinite_posterior_error(tmp_path):
             })
             diagnostics.append({
                 "replicate": rep, "gamma": 0.0, "validation_size": 100,
-                "arm": arm, "kish_ess": 25.0,
+                "arm": arm, "kish_ess": np.nan if arm == ARMS[-1] else 25.0,
                 "minimum_node_kish_ess": 15.0,
             })
     pd.DataFrame(ledger).to_csv(root / "replicate_ledger.csv", index=False)
