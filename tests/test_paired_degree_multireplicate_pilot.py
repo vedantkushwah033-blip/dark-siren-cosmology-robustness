@@ -7,7 +7,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from run_paired_degree_multireplicate_pilot import (
-    _aggregate_paired, _paired_summary, _verify_child_pair ,
+    _aggregate_paired, _paired_summary, _verify_child_pair,
 )
 
 
