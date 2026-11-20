@@ -9,6 +9,10 @@ on:
       - "scripts/run_quadratic_five_arm_replicates.py"
       - "scripts/audit_quadratic_five_arm_replicates.py"
       - "tests/test_quadratic_five_arm_replicates.py"
+      - "scripts/run_quadratic_five_arm_smoke.py"
+      - "scripts/audit_quadratic_five_arm_smoke.py"
+      - "scripts/summarize_prior_predictive_sbc.py"
+      - "tests/test_prior_predictive_sbc_summary.py"
       - ".github/workflows/five-arm-prior-predictive-sbc-smoke.yml"
   workflow_dispatch:
 
