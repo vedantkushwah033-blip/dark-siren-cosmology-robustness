@@ -6,6 +6,8 @@ on:
       - research/paired-degree-multireplicate-20261120
     paths:
       - "scripts/run_paired_degree_multireplicate_pilot.py"
+      - "scripts/audit_paired_degree_multireplicate_pilot.py"
+      - "scripts/audit_paired_degree_multireplicate_pilot.py"
       - "scripts/run_quadratic_five_arm_replicates.py"
       - "scripts/audit_quadratic_five_arm_replicates.py"
       - "scripts/run_quadratic_five_arm_smoke.py"
@@ -48,6 +50,12 @@ jobs:
             --h0-prior-min 30 --h0-prior-max 110 --h0-points 281 \
             --quadrature-order 5 \
             --output-dir artifacts/paired_degree_multireplicate
+      - name: Independently audit paired-degree artifact
+        if: success()
+        run: |
+          python scripts/audit_paired_degree_multireplicate_pilot.py \
+            artifacts/paired_degree_multireplicate \
+            --output artifacts/paired_degree_multireplicate/independent_audit_report.json
       - name: Upload paired-degree pilot artifacts
         if: always()
         uses: actions/upload-artifact@v4
