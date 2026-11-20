@@ -200,3 +200,15 @@ def test_independent_pair_auditor_uses_recorded_check_schema(tmp_path: Path):
         "maximum_common_arm_log_likelihood_difference": 0.0,
     }
 
+def test_prior_predictive_truth_schedule_is_identical_across_degrees():
+    from run_quadratic_five_arm_replicates import _h0_truth, _seed
+
+    master = 20261121
+    truths_degree1 = [_h0_truth(master, rep, 30.0, 110.0) for rep in range(12)]
+    truths_degree2 = [_h0_truth(master, rep, 30.0, 110.0) for rep in range(12)]
+    seeds_degree1 = [_seed(master, rep, 2) for rep in range(12)]
+    seeds_degree2 = [_seed(master, rep, 2) for rep in range(12)]
+    assert truths_degree1 == truths_degree2
+    assert seeds_degree1 == seeds_degree2
+    assert len(set(truths_degree1)) == len(truths_degree1)
+    assert all(30.0 <= value < 110.0 for value in truths_degree1)
