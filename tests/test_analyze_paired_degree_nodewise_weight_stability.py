@@ -60,3 +60,8 @@ def test_nodewise_diagnostics_rejects_invalid_posterior_weights():
             coordinate_center=0.205,
             coordinate_scale=0.195,
         )
+
+
+def test_weighted_quantile_rejects_invalid_probability():
+    with pytest.raises(ValueError, match="q must lie"):
+        weighted_quantile(np.asarray([1.0, 2.0]), np.asarray([0.5, 0.5]), 1.1)
