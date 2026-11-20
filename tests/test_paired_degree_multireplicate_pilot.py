@@ -7,7 +7,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from run_paired_degree_multireplicate_pilot import (
-    _aggregate_paired, _paired_summary, _verify_child_pair,
+    _aggregate_paired, _paired_summary, _verify_child_pair, _write_manifest,
 )
 
 
@@ -39,21 +39,6 @@ def test_degree_contrasts_are_paired_and_use_d2_minus_d1():
     assert row.degree2_bias == pytest.approx(2.0 / 3.0)
     assert row.median_error_difference_d2_minus_d1_mean == pytest.approx(-4.0 / 3.0)
     assert row.median_error_difference_d2_minus_d1_mcse > 0
-
-
-def test_independent_auditor_reconstructs_paired_aggregate_metrics():
-    from audit_paired_degree_multireplicate_pilot import _reconstruct_aggregate
-
-    data = _summaries()
-    d1 = data[data.index % 2 == 0].copy()
-    d2 = data[data.index % 2 == 1].copy()
-    paired = _paired_summary(d1, d2)
-    expected = _aggregate_paired(paired)
-    actual = _reconstruct_aggregate(paired)
-    pd.testing.assert_frame_equal(
-        actual, expected, check_dtype=False, check_exact=False,
-        rtol=1e-12, atol=1e-12,
-    )
 
 
 def test_degree_pair_rejects_changed_observable_inputs(tmp_path: Path):
@@ -200,3 +185,99 @@ def test_independent_pair_auditor_uses_recorded_check_schema(tmp_path: Path):
         "maximum_common_arm_log_likelihood_difference": 0.0,
     }
 
+
+
+def test_independent_auditor_reconstructs_and_rejects_aggregate_tampering():
+    from audit_paired_degree_multireplicate_pilot import _verify_aggregate_metrics
+
+    data = _summaries()
+    d1 = data[data.index % 2 == 0].copy()
+    d2 = data[data.index % 2 == 1].copy()
+    paired = _paired_summary(d1, d2)
+    aggregate = _aggregate_paired(paired)
+
+    assert _verify_aggregate_metrics(paired, aggregate) == 1
+
+    tampered = aggregate.copy()
+    tampered.loc[0, "degree2_rmse"] += 0.25
+    with pytest.raises(AssertionError):
+        _verify_aggregate_metrics(paired, tampered)
+
+
+def test_independent_auditor_rejects_missing_aggregate_group():
+    from audit_paired_degree_multireplicate_pilot import _verify_aggregate_metrics
+
+    data = _summaries()
+    d1 = data[data.index % 2 == 0].copy()
+    d2 = data[data.index % 2 == 1].copy()
+    paired = _paired_summary(d1, d2)
+    aggregate = _aggregate_paired(paired)
+    with pytest.raises(AssertionError):
+        _verify_aggregate_metrics(paired, aggregate.iloc[0:0])
+
+
+def test_independent_auditor_rejects_tampered_paired_interval():
+    from audit_paired_degree_multireplicate_pilot import _verify_aggregate_metrics
+
+    data = _summaries()
+    d1 = data[data.index % 2 == 0].copy()
+    d2 = data[data.index % 2 == 1].copy()
+    paired = _paired_summary(d1, d2)
+    aggregate = _aggregate_paired(paired)
+    tampered = aggregate.copy()
+    tampered.loc[0, "squared_error_difference_d2_minus_d1_ci95_high"] += 0.1
+    with pytest.raises(AssertionError):
+        _verify_aggregate_metrics(paired, tampered)
+
+
+def test_paired_degree_checks_reject_asymmetric_validation_file_sets(tmp_path: Path):
+    from audit_paired_degree_multireplicate_pilot import _verify_pair
+
+    left, right = tmp_path / "d1", tmp_path / "d2"
+    for root in (left, right):
+        (root / "observable").mkdir(parents=True)
+        (root / "truth").mkdir()
+        (root / "results").mkdir()
+        for rel in (
+            "observable/catalogue_observed.csv",
+            "observable/gw_events_observed.csv",
+            "truth/parent_truth.csv",
+            "truth/gw_event_truth.csv",
+            "truth/validation_frame_truth.csv",
+        ):
+            (root / rel).write_text("id,value\\n1,2\\n")
+        (root / "observable/validation_n100.csv").write_text("id,value\\n1,2\\n")
+        np.savez(
+            root / "results/log_likelihoods.npz",
+            H0_grid=np.array([30.0, 31.0]),
+            A_catalogue_only_n100=np.array([-1.0, -2.0]),
+            B_parent_oracle_n100=np.array([-1.0, -2.0]),
+            C_known_probability_ipw_n100=np.array([-1.0, -2.0]),
+        )
+
+    (right / "observable/validation_n100.csv").unlink()
+    with pytest.raises(AssertionError, match="validation-file sets differ"):
+        _verify_pair(left, right)
+    from run_paired_degree_multireplicate_pilot import _verify_child_pair
+    with pytest.raises(AssertionError, match="validation-file sets differ"):
+        _verify_child_pair(left, right)
+
+    (right / "observable/validation_n100.csv").write_text("id,value\\n1,2\\n")
+    (right / "observable/validation_n300.csv").write_text("id,value\\n1,2\\n")
+    with pytest.raises(AssertionError, match="validation-file sets differ"):
+        _verify_pair(left, right)
+    with pytest.raises(AssertionError, match="validation-file sets differ"):
+        _verify_child_pair(left, right)
+
+
+
+def test_outer_manifest_preserves_incomplete_lifecycle_status(tmp_path: Path):
+    import json
+
+    payload = tmp_path / "partial.csv"
+    payload.write_text("value\\n1\\n")
+    manifest = _write_manifest(tmp_path, "INCOMPLETE")
+    saved = json.loads((tmp_path / "manifest.json").read_text())
+    assert manifest["status"] == "INCOMPLETE"
+    assert saved["status"] == "INCOMPLETE"
+    assert saved["file_count"] == 1

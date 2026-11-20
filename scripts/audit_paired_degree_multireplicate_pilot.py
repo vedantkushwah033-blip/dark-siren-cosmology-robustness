@@ -13,7 +13,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy.stats import t
 
 
 INPUT_FILES = [
@@ -67,8 +66,21 @@ def _verify_pair(left: Path, right: Path) -> dict:
     checks = 0
     for rel in INPUT_FILES:
         checks += _compare_frames(left, right, rel)
-    for f in sorted((left / "observable").glob("validation_n*.csv")):
-        checks += _compare_frames(left, right, str(f.relative_to(left)))
+    left_validation = {
+        p.name for p in (left / "observable").glob("validation_n*.csv")
+    }
+    right_validation = {
+        p.name for p in (right / "observable").glob("validation_n*.csv")
+    }
+    if left_validation != right_validation:
+        raise AssertionError(
+            "validation-file sets differ across inclusion-model degrees: "
+            f"degree1={sorted(left_validation)}, degree2={sorted(right_validation)}"
+        )
+    for name in sorted(left_validation):
+        checks += _compare_frames(
+            left, right, str(Path("observable") / name)
+        )
     with np.load(left / "results" / "log_likelihoods.npz") as a, np.load(
         right / "results" / "log_likelihoods.npz"
     ) as b:
@@ -121,7 +133,9 @@ def _reconstruct_paired(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame
 
 
 def _reconstruct_aggregate(paired: pd.DataFrame) -> pd.DataFrame:
-    """Independently rebuild the runner's grouped paired-degree summary."""
+    """Independently rebuild the runner's grouped paired-effect summaries."""
+    from scipy.stats import t
+
     rows = []
     metrics = [
         "median_error_difference_d2_minus_d1",
@@ -132,9 +146,7 @@ def _reconstruct_aggregate(paired: pd.DataFrame) -> pd.DataFrame:
         ["gamma", "validation_size", "arm"], sort=True
     ):
         row = {
-            "gamma": float(gamma),
-            "validation_size": int(nval),
-            "arm": str(arm),
+            "gamma": float(gamma), "validation_size": int(nval), "arm": str(arm),
             "paired_replicates": int(len(group)),
             "degree1_bias": float(group.median_error_d1.mean()),
             "degree2_bias": float(group.median_error_d2.mean()),
@@ -154,6 +166,20 @@ def _reconstruct_aggregate(paired: pd.DataFrame) -> pd.DataFrame:
             row[metric + "_ci95_high"] = mean + critical * se if len(values) > 1 else np.nan
         rows.append(row)
     return pd.DataFrame(rows)
+
+
+def _verify_aggregate_metrics(paired: pd.DataFrame, observed: pd.DataFrame) -> int:
+    """Fail closed if the stored aggregate table differs from paired rows."""
+    expected = _reconstruct_aggregate(paired)
+    sort_keys = ["gamma", "validation_size", "arm"]
+    if not set(sort_keys).issubset(observed.columns):
+        raise AssertionError("paired aggregate table is missing grouping keys")
+    pd.testing.assert_frame_equal(
+        observed.sort_values(sort_keys).reset_index(drop=True),
+        expected.sort_values(sort_keys).reset_index(drop=True),
+        check_dtype=False, check_exact=False, rtol=1e-12, atol=1e-12,
+    )
+    return len(expected)
 
 
 def audit(root: Path) -> dict:
@@ -209,20 +235,14 @@ def audit(root: Path) -> dict:
         expected.sort_values(["replicate", "gamma", "validation_size", "arm"]).reset_index(drop=True),
         check_dtype=False, check_exact=False, rtol=1e-12, atol=1e-12,
     )
-    expected_aggregate = _reconstruct_aggregate(expected)
     observed_aggregate = pd.read_csv(root / "paired_degree_aggregate_metrics.csv")
-    aggregate_keys = ["gamma", "validation_size", "arm"]
-    pd.testing.assert_frame_equal(
-        observed_aggregate.sort_values(aggregate_keys).reset_index(drop=True),
-        expected_aggregate.sort_values(aggregate_keys).reset_index(drop=True),
-        check_dtype=False, check_exact=False, rtol=1e-12, atol=1e-12,
-    )
+    aggregate_rows = _verify_aggregate_metrics(expected, observed_aggregate)
     return {
         "status": "PASS", "outer_manifest_entries_verified": outer_count,
         "nested_manifest_entries_verified": child_manifest_count,
         "paired_child_blocks_verified": len(paired_checks),
         "paired_summary_rows_reconstructed": len(expected),
-        "paired_aggregate_rows_reconstructed": len(expected_aggregate),
+        "paired_aggregate_rows_reconstructed": aggregate_rows,
         "common_arm_likelihoods_invariant": True,
         "interpretation": "Artifact integrity and paired arithmetic only; not calibration evidence.",
     }
