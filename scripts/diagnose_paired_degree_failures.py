@@ -67,9 +67,21 @@ def main():
     ledger=pd.read_csv(d2/"replicate_ledger.csv")
     failed=ledger.loc[ledger.status!="SUCCESS"].copy()
     children=[]
+    candidate_children=[]
+    for cfg_path in d2.rglob("config.json"):
+        try:
+            cfg=json.loads(cfg_path.read_text())
+            candidate_children.append((cfg_path.parent,cfg))
+        except Exception:
+            continue
     for (rep,gamma),g in failed.groupby(["replicate","gamma"],sort=True):
         cell=label(int(rep),float(gamma)); parent=d2/"replicates"
-        child=parent/cell
+        analysis_seed=int(g.analysis_seed.iloc[0])
+        matches=[(path,cfg) for path,cfg in candidate_children
+                 if int(cfg.get("seed",-1))==analysis_seed
+                 and float(cfg.get("curvature_gamma",float("nan")))==float(gamma)
+                 and int(cfg.get("inclusion_model_degree",1))==2]
+        child=matches[0][0] if len(matches)==1 else parent/cell
         def read(path):
             return path.read_text(errors="replace")[-12000:] if path.exists() else None
         mode_results=[]
@@ -78,7 +90,8 @@ def main():
                 try: mode_results.append(mode_diagnostics(child,n))
                 except Exception as exc: mode_results.append({"validation_size":n,"diagnostic_error":f"{type(exc).__name__}: {exc}"})
         children.append({
-          "replicate":int(rep),"gamma":float(gamma),"failed_cells":int(len(g)),
+          "replicate":int(rep),"gamma":float(gamma),"analysis_seed":analysis_seed,
+          "resolved_child_path":str(child),"matching_config_count":len(matches),
           "status_values":sorted(g.status.astype(str).unique().tolist()),
           "audit_status_values":sorted(g.audit_status.astype(str).unique().tolist()),
           "ledger_error":str(g.error.iloc[0])[:5000],
