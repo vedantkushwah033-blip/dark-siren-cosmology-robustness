@@ -144,6 +144,8 @@ jobs:
           name: degree-matched-30event-quadrature-sensitivity
           path: artifacts/degree_quadrature/
           if-no-files-found: error
+      - name: Test independent 30-event H0-grid refinement audit
+        run: python -m pytest tests/test_audit_degree_matched_30event_h0_grid.py -q
       - name: Test paired multi-replicate degree comparison and prior mapping
         run: python -m pytest tests/test_paired_degree_multireplicate_pilot.py -q
       - name: Validate paired degree pilot and independent auditor CLIs
