@@ -117,9 +117,13 @@ def run(args: argparse.Namespace) -> dict:
     prior_max=float(getattr(args,"h0_prior_max",90.0))
     if not np.isfinite(prior_min) or not np.isfinite(prior_max) or prior_min >= prior_max:
         raise ValueError("H0 prior bounds must be finite and strictly increasing")
-    if not prior_min <= args.h0_true <= prior_max:
+    truth_mode=str(getattr(args,"truth_mode","fixed"))
+    if truth_mode not in {"fixed","prior_predictive"}:
+        raise ValueError("truth mode must be fixed or prior_predictive")
+    if truth_mode=="fixed" and not prior_min <= args.h0_true <= prior_max:
         raise ValueError("H0 truth must lie inside the declared prior support")
-    max_abs_error=max(abs(args.h0_true-prior_min),abs(prior_max-args.h0_true))
+    max_abs_error=(max(abs(args.h0_true-prior_min),abs(prior_max-args.h0_true))
+                   if truth_mode=="fixed" else prior_max-prior_min)
     max_interval_width=prior_max-prior_min
     runner=Path(__file__).with_name("run_quadratic_five_arm_smoke.py")
     auditor=Path(__file__).with_name("audit_quadratic_five_arm_smoke.py")
@@ -128,9 +132,14 @@ def run(args: argparse.Namespace) -> dict:
     summary_parts=[]
     diagnostic_parts=[]
     audit_rows=[]
+    truth_schedule=[]
     for rep in range(args.replicates):
         analysis_seed=_seed(args.master_seed,rep,0)
         validation_seed=_seed(args.master_seed,rep,1)
+        truth_seed=_seed(args.master_seed,rep,2)
+        h0_true=(float(args.h0_true) if truth_mode=="fixed" else
+                 float(np.random.default_rng(truth_seed).uniform(prior_min,prior_max)))
+        truth_schedule.append({"replicate":rep,"truth_seed":truth_seed,"h0_true":h0_true})
         for gamma in args.gammas:
             cell=f"rep{rep:03d}_g{gamma:+g}".replace("+","p").replace("-","m")
             child=out/"replicates"/cell
@@ -138,7 +147,8 @@ def run(args: argparse.Namespace) -> dict:
                 for arm in ARMS:
                     planned.append({"cell_id":f"{cell}_n{nval}_{arm}","replicate":rep,
                         "gamma":gamma,"validation_size":nval,"arm":arm,
-                        "analysis_seed":analysis_seed,"validation_seed":validation_seed})
+                        "analysis_seed":analysis_seed,"validation_seed":validation_seed,
+                        "truth_seed":truth_seed,"h0_true":h0_true})
             status="SUCCESS"
             audit_status="NOT_RUN"
             error=""
@@ -149,7 +159,7 @@ def run(args: argparse.Namespace) -> dict:
                     "--validation-frame",str(args.validation_frame),
                     "--validation-sizes",",".join(map(str,args.validation_sizes)),
                     "--curvature-gamma",str(gamma),"--curvature-beta",str(args.curvature_beta),
-                    "--h0-true",str(args.h0_true),"--h0-prior-min",str(prior_min),
+                    "--h0-true",str(h0_true),"--h0-prior-min",str(prior_min),
                     "--h0-prior-max",str(prior_max),"--h0-points",str(args.h0_points),
                     "--scott-multiplier",str(args.scott_multiplier),
                     "--quadrature-order",str(args.quadrature_order),
@@ -206,6 +216,7 @@ def run(args: argparse.Namespace) -> dict:
                     ledger.append({"cell_id":f"{cell}_n{nval}_{arm}","replicate":rep,
                         "gamma":gamma,"validation_size":nval,"arm":arm,
                         "analysis_seed":analysis_seed,"validation_seed":validation_seed,
+                        "truth_seed":truth_seed,"h0_true":h0_true,
                         "status":status,"audit_status":audit_status,"error":error})
     planned_df=pd.DataFrame(planned)
     ledger_df=pd.DataFrame(ledger)
@@ -228,7 +239,9 @@ def run(args: argparse.Namespace) -> dict:
         "master_seed":args.master_seed,"replicates":args.replicates,
         "gammas":args.gammas,"n_parent":args.n_parent,"n_detected":args.n_detected,
         "validation_frame":args.validation_frame,"validation_sizes":args.validation_sizes,
-        "curvature_beta":args.curvature_beta,"h0_true":args.h0_true,
+        "curvature_beta":args.curvature_beta,
+        "truth_mode":truth_mode,"h0_true":float(args.h0_true) if truth_mode=="fixed" else None,
+        "truth_seed_stream":2,"truth_schedule":truth_schedule,
         "h0_prior_min":prior_min,"h0_prior_max":prior_max,"h0_prior_support":[prior_min,prior_max],
         "h0_points":args.h0_points,"scott_multiplier":args.scott_multiplier,
         "quadrature_order":args.quadrature_order,"sigma_mpc":args.sigma_mpc,
@@ -260,6 +273,7 @@ def main():
     p.add_argument("--validation-sizes",type=lambda x:[int(v) for v in x.split(",")],default=[100,300,500])
     p.add_argument("--curvature-beta",type=float,default=-3.9)
     p.add_argument("--h0-true",type=float,default=70.0)
+    p.add_argument("--truth-mode",choices=["fixed","prior_predictive"],default="fixed")
     p.add_argument("--h0-prior-min",type=float,default=50.0)
     p.add_argument("--h0-prior-max",type=float,default=90.0)
     p.add_argument("--h0-points",type=int,default=281)
