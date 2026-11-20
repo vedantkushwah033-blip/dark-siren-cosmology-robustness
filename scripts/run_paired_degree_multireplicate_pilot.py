@@ -41,6 +41,29 @@ def _sha(path: Path) -> str:
     return h.hexdigest()
 
 
+def _write_manifest(out: Path, status: str) -> dict:
+    """Write an integrity manifest carrying the actual experiment lifecycle status."""
+    files = sorted(
+        p for p in out.rglob("*")
+        if p.is_file() and p.name != "manifest.json"
+    )
+    manifest = {
+        "status": status,
+        "file_count": len(files),
+        "files": {
+            str(p.relative_to(out)): {
+                "bytes": p.stat().st_size,
+                "sha256": _sha(p),
+            }
+            for p in files
+        },
+    }
+    (out / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+    )
+    return manifest
+
+
 def _paired_summary(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
     """Summarize degree-2 minus degree-1 replicate-paired posterior errors."""
     keys = ["replicate", "gamma", "validation_size", "arm"]
@@ -257,11 +280,7 @@ def run(args: argparse.Namespace) -> dict:
         "degree_runs": runs, "paired_child_checks": len(paired_checks),
     }
     (out / "config.json").write_text(json.dumps(config, indent=2, sort_keys=True) + "\n")
-    files = sorted(p for p in out.rglob("*") if p.is_file() and p.name != "manifest.json")
-    manifest = {"status": "PASS", "file_count": len(files), "files": {
-        str(p.relative_to(out)): {"bytes": p.stat().st_size, "sha256": _sha(p)} for p in files
-    }}
-    (out / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    _write_manifest(out, config["status"])
     return {
         "status": config["status"], "degree_runs": [
             {k: v for k, v in x.items() if k != "config"} for x in runs
