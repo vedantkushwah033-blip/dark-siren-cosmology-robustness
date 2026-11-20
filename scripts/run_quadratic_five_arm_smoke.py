@@ -142,7 +142,8 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         {"gw_distance": float(row.distance_mpc), "gw_sigma": float(args.sigma_mpc)}
         for row in events_frame.itertuples(index=False)
     ]
-    h0_grid = np.linspace(h0_prior_min, h0_prior_max, args.h0_points)
+    h0_grid_type = getattr(args, "h0_grid_type", "linear")
+    h0_grid = _make_h0_grid(h0_prior_min, h0_prior_max, args.h0_points, h0_grid_type)
     redshift_grid = np.linspace(0.01, 0.40, 501)
     merger_weight_grid = np.ones_like(redshift_grid)
 
@@ -285,6 +286,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "h0_prior_max": h0_prior_max,
         "h0_prior_support": [h0_prior_min, h0_prior_max],
         "h0_grid_points": args.h0_points,
+        "h0_grid_type": h0_grid_type,
         "redshift_grid_points": len(redshift_grid),
         "scott_multiplier": args.scott_multiplier,
         "bandwidth_selection_status": "weighted_scott_smoke_multiplier_only_not_training_holdout_selected",
@@ -340,6 +342,7 @@ def main() -> None:
     parser.add_argument("--h0-prior-min", type=float, default=50.0)
     parser.add_argument("--h0-prior-max", type=float, default=90.0)
     parser.add_argument("--h0-points", type=int, default=41)
+    parser.add_argument("--h0-grid-type", choices=["linear", "geometric"], default="linear")
     parser.add_argument("--scott-multiplier", type=float, default=0.7)
     parser.add_argument("--quadrature-order", type=int, default=5)
     parser.add_argument("--sigma-mpc", type=float, default=140.0)
