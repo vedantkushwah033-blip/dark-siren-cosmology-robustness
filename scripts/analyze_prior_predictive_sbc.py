@@ -26,7 +26,8 @@ COMPARISONS = [
 
 def _mean_ci(values: np.ndarray) -> tuple[float, float, float, float]:
     x = np.asarray(values, dtype=float)
-    x = x[np.isfinite(x)]
+    if x.ndim != 1 or x.size == 0 or not np.isfinite(x).all():
+        raise AssertionError("paired Monte Carlo summaries require a non-empty finite vector")
     n = len(x)
     if not n:
         return (float("nan"),) * 4
@@ -58,6 +59,11 @@ def analyze(root: Path, output: Path) -> dict:
         errors = g.median_error.to_numpy(float)
         if not np.isfinite(ranks).all() or np.any((ranks < 0) | (ranks > 1)):
             raise AssertionError("invalid posterior ranks")
+        required_numeric = ["h0_true", "median_error", "q16", "q84"]
+        if not np.isfinite(g[required_numeric].to_numpy(dtype=float)).all():
+            raise AssertionError("non-finite posterior summary field")
+        if np.any(g.q16.to_numpy(float) > g.q84.to_numpy(float)):
+            raise AssertionError("posterior interval endpoints are reversed")
         rank_mean, rank_se, rank_lo, rank_hi = _mean_ci(ranks)
         bias, bias_se, bias_lo, bias_hi = _mean_ci(errors)
         sq = errors**2
@@ -86,6 +92,25 @@ def analyze(root: Path, output: Path) -> dict:
                 if len(ess) >= 3 and np.std(ess) > 0 and np.std(np.abs(errors)) > 0 else float("nan")
             ),
         })
+    # Each replicate represents one independently drawn truth, shared across
+    # all curvature settings, validation sizes, and inference arms.
+    truth_counts = summary.groupby("replicate").h0_true.nunique()
+    if not (truth_counts == 1).all():
+        raise AssertionError("H0 truth must be identical across arms, curvatures, and validation sizes within replicate")
+
+    cell_counts = ledger.groupby(["replicate", "gamma", "validation_size"]).arm.agg(list)
+    expected_arms = set(ARMS)
+    if not all(len(arms) == len(ARMS) and set(arms) == expected_arms for arms in cell_counts):
+        raise AssertionError("each replicate/gamma/validation-size cell must contain exactly the five distinct arms")
+
+    if not (diagnostics["kish_ess"].to_numpy(float) > 0).all():
+        raise AssertionError("Kish ESS diagnostics must be finite and positive")
+    if not np.isfinite(diagnostics["kish_ess"].to_numpy(float)).all():
+        raise AssertionError("non-finite Kish ESS diagnostic")
+    e_rows = diagnostics[diagnostics.arm == "E_uncertainty_integrated_ipw"]
+    if not np.isfinite(e_rows["minimum_node_kish_ess"].to_numpy(float)).all() or not (e_rows["minimum_node_kish_ess"].to_numpy(float) > 0).all():
+        raise AssertionError("integrated-arm node ESS must be finite and positive")
+
     strata = pd.DataFrame(rows)
 
     paired_rows = []
