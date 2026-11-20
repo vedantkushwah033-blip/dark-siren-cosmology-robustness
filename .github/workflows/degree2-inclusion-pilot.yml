@@ -5,6 +5,7 @@ on:
     branches:
       - research/degree2-inclusion-model-pilot-20261120
     paths:
+      - "src/dark_siren_robustness/inclusion_posterior.py"
       - "scripts/run_quadratic_five_arm_smoke.py"
       - "scripts/audit_quadratic_five_arm_smoke.py"
       - "scripts/run_quadratic_five_arm_replicates.py"
