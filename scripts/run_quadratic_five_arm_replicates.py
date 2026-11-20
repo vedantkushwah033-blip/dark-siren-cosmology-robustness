@@ -38,6 +38,21 @@ def _seed(master: int, replicate: int, stream: int) -> int:
     return int(np.random.SeedSequence([master, replicate, stream]).generate_state(1, dtype=np.uint32)[0])
 
 
+def _replicate_truth(master_seed: int, replicate: int, mode: str,
+                     prior_min: float, prior_max: float, fixed_truth: float) -> tuple[int, float]:
+    """Return an independently seeded per-replicate H0 truth and its seed."""
+    seed=_seed(master_seed,replicate,2)
+    if mode=="fixed":
+        truth=float(fixed_truth)
+    elif mode=="prior_predictive":
+        truth=float(np.random.default_rng(seed).uniform(prior_min,prior_max))
+    else:
+        raise ValueError("truth mode must be fixed or prior_predictive")
+    if not np.isfinite(truth) or not prior_min <= truth <= prior_max:
+        raise ValueError("replicate H0 truth lies outside the prior support")
+    return seed,truth
+
+
 def _paired_contrasts(summaries: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for (rep, gamma, nval), group in summaries.groupby(
@@ -136,9 +151,7 @@ def run(args: argparse.Namespace) -> dict:
     for rep in range(args.replicates):
         analysis_seed=_seed(args.master_seed,rep,0)
         validation_seed=_seed(args.master_seed,rep,1)
-        truth_seed=_seed(args.master_seed,rep,2)
-        h0_true=(float(args.h0_true) if truth_mode=="fixed" else
-                 float(np.random.default_rng(truth_seed).uniform(prior_min,prior_max)))
+        truth_seed,h0_true=_replicate_truth(args.master_seed,rep,truth_mode,prior_min,prior_max,args.h0_true)
         truth_schedule.append({"replicate":rep,"truth_seed":truth_seed,"h0_true":h0_true})
         for gamma in args.gammas:
             cell=f"rep{rep:03d}_g{gamma:+g}".replace("+","p").replace("-","m")
