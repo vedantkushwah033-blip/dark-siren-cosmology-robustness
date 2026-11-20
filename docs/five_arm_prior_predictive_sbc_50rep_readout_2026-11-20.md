@@ -29,6 +29,18 @@ The catalogue-only arm is strongly miscalibrated in all three curvature conditio
 
 For the estimated degree-one arms, ranks are shifted high at gamma=-1 and low at gamma=+1. Integrating over the fitted coefficient posterior does not remove this curvature-dependent rank distortion. At gamma=0, integrated IPW is closer to uniform rank behavior, but coverage remains variable.
 
+## Finite-catalogue IPW gap relative to the parent oracle
+
+The paired contrasts also show that known-probability IPW (C) does not reproduce the full-parent oracle (B) perfectly in this finite synthetic catalogue. At validation n=500, the paired mean squared-error difference (C minus B) was:
+
+| Curvature | Mean squared-error difference | Paired t 95% interval |
+|---:|---:|---:|
+| -1 | +15.86 | [5.18, 26.54] |
+| 0 | +5.94 | [1.27, 10.61] |
+| +1 | +5.49 | [1.28, 9.70] |
+
+The same values occur at n=100 because the known-probability weights and the parent-oracle arm do not depend on the validation sample size in this design. This is an important decomposition point: even oracle inclusion probabilities do not remove finite-catalogue/KDE variability. Therefore, estimated-inclusion arms must be compared both with known-probability IPW and with the full-parent reference; the two benchmarks answer different questions. Intervals are unadjusted descriptive paired intervals across the three curvature strata.
+
 ## Integrated-IPW weight stability
 
 Across the 50 replicate-level weight-diagnostic records, the median of the minimum node-level Kish ESS for the integrated-IPW arm, and the median of its maximum node top-5%-weight mass, were:
