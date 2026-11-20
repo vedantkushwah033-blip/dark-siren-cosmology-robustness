@@ -112,6 +112,68 @@ def _aggregate_paired(paired: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+WEIGHT_DIAGNOSTIC_METRICS = [
+    "kish_ess", "kish_ess_fraction", "entropy_ess",
+    "maximum_normalized_weight", "top_1_percent_mass", "top_5_percent_mass",
+    "quadrature_ess", "minimum_node_kish_ess",
+    "maximum_node_top_5_percent_mass", "quadrature_nodes",
+]
+
+
+def _collect_weight_diagnostics(
+    child_roots: dict[int, Path], replicates: int,
+    gammas: list[float], validation_sizes: list[int],
+) -> pd.DataFrame:
+    """Collect degree-specific raw weight diagnostics from every paired child."""
+    frames = []
+    expected_keys = {(int(nval), arm) for nval in validation_sizes for arm in ARMS}
+    for degree in (1, 2):
+        for rep in range(replicates):
+            for gamma in gammas:
+                label = "rep{:03d}_g{:+g}".format(rep, float(gamma)).replace("+", "p").replace("-", "m")
+                path = child_roots[degree] / "replicates" / label / "results" / "weight_diagnostics.csv"
+                frame = pd.read_csv(path)
+                required = {"validation_size", "arm", *WEIGHT_DIAGNOSTIC_METRICS}
+                if not required.issubset(frame.columns):
+                    raise AssertionError(f"weight diagnostics missing columns: {sorted(required - set(frame.columns))}")
+                keys = [(int(row.validation_size), str(row.arm)) for row in frame.itertuples()]
+                if len(keys) != len(expected_keys) or set(keys) != expected_keys:
+                    raise AssertionError(f"degree-{degree} weight diagnostic cells are incomplete: {path}")
+                if frame.duplicated(["validation_size", "arm"]).any():
+                    raise AssertionError(f"duplicate weight diagnostic cells: {path}")
+                frame = frame.copy()
+                frame["replicate"] = int(rep)
+                frame["gamma"] = float(gamma)
+                frame["degree"] = int(degree)
+                frames.append(frame)
+    combined = pd.concat(frames, ignore_index=True)
+    return combined.sort_values(
+        ["replicate", "gamma", "validation_size", "arm", "degree"]
+    ).reset_index(drop=True)
+
+
+def _aggregate_weight_diagnostics(raw: pd.DataFrame) -> pd.DataFrame:
+    """Summarize each diagnostic by paired design cell and model degree."""
+    rows = []
+    group_keys = ["gamma", "validation_size", "arm", "degree"]
+    for keys, group in raw.groupby(group_keys, sort=True):
+        for metric in WEIGHT_DIAGNOSTIC_METRICS:
+            values = pd.to_numeric(group[metric], errors="coerce").dropna().to_numpy(float)
+            if not len(values):
+                continue
+            rows.append({
+                **dict(zip(group_keys, keys)),
+                "metric": metric,
+                "replicate_count": int(len(values)),
+                "mean": float(values.mean()),
+                "sd": float(values.std(ddof=1)) if len(values) > 1 else np.nan,
+                "median": float(np.median(values)),
+                "minimum": float(values.min()),
+                "maximum": float(values.max()),
+            })
+    return pd.DataFrame(rows)
+
+
 def _verify_child_pair(d1: Path, d2: Path) -> dict:
     checked = 0
     for rel in INPUT_FILES:
@@ -254,6 +316,14 @@ def run(args: argparse.Namespace) -> dict:
         paired.to_csv(out / "paired_degree_contrasts.csv", index=False)
         aggregate = _aggregate_paired(paired)
         aggregate.to_csv(out / "paired_degree_aggregate_metrics.csv", index=False)
+        weight_diagnostics = _collect_weight_diagnostics(
+            child_roots, args.replicates, args.gammas, args.validation_sizes
+        )
+        weight_diagnostics.to_csv(out / "paired_degree_weight_diagnostics.csv", index=False)
+        weight_aggregate = _aggregate_weight_diagnostics(weight_diagnostics)
+        weight_aggregate.to_csv(
+            out / "paired_degree_weight_diagnostic_aggregate.csv", index=False
+        )
         complete = len(paired) == args.replicates * len(args.gammas) * len(args.validation_sizes) * len(ARMS)
         if not complete:
             raise AssertionError("paired summary rows are incomplete")
