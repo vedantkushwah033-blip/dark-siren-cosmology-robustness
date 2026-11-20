@@ -147,9 +147,12 @@ def _one_cell(train: pd.DataFrame, holdout: pd.DataFrame, *, x_column: str,
     if len(boot_delta) < int(0.9 * resamples):
         raise AssertionError("too few successful nested bootstrap resamples")
     lo, hi = np.quantile(boot_delta, [0.025, 0.975])
-    # One-sided bootstrap tail probability for the prespecified improvement
-    # alternative: diagnostic model MAE < training-mean baseline MAE.
-    p_improve = (1 + int(np.sum(np.asarray(boot_delta) >= 0.0))) / (len(boot_delta) + 1)
+    # Center the bootstrap distribution at the null value before computing
+    # the one-sided H1: delta_MAE < 0 tail probability. This is the
+    # bootstrap-pivot test, not the uncentered fraction of bootstrap estimates
+    # that happen to be positive.
+    boot_null = np.asarray(boot_delta) - delta_mae
+    p_improve = (1 + int(np.sum(boot_null <= delta_mae))) / (len(boot_null) + 1)
     return {
         "training_n": len(train), "holdout_n": len(holdout),
         "diagnostic": x_column, "training_slope_per_unit": slope,
