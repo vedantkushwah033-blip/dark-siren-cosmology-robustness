@@ -44,3 +44,11 @@ The five-replicate run is an engineering smoke, not sufficient for coverage or r
 ## Status
 
 Pending CI smoke and independent artifact audit. No calibration conclusion is claimed until a larger run, rank diagnostics, and grid-convergence audits are completed.
+
+## Rank and coverage implementation
+
+The five-arm child runner now records the posterior CDF evaluated at the generating H0 for every arm and validation size. Its independent child auditor reconstructs that rank directly from the archived likelihood curve, separately from the production posterior-normalization helper. The same audit reconstructs central quantiles at 2.5%, 5%, 10%, 16%, 25%, 75%, 84%, 90%, 95%, and 97.5%.
+
+A separate summarizer writes ten-bin rank histograms and coverage summaries for central 50%, 68%, 80%, 90%, and 95% intervals, with Wilson intervals for coverage. Rank-test p-values are explicitly descriptive and are not treated as confirmatory when expected bin counts are small. The rank/coverage summaries use successful runs only while reporting planned and failed counts alongside them; the independent lifecycle auditor retains the complete denominator.
+
+The smoke workflow now runs focused truth-stream, posterior-rank, and summary tests; executes the five-replicate prior-predictive design; independently audits child and aggregate artifacts; and emits rank/coverage tables. These small-run summaries are an implementation check only.
