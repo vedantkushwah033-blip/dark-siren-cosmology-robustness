@@ -10,9 +10,11 @@ on:
       - "scripts/run_quadratic_five_arm_replicates.py"
       - "scripts/audit_quadratic_five_arm_replicates.py"
       - "scripts/run_degree_matched_five_arm_quadrature_sensitivity.py"
+      - "scripts/run_paired_degree_inclusion_multireplicate.py"
       - "tests/test_quadratic_five_arm_smoke.py"
       - "tests/test_quadratic_five_arm_replicates.py"
       - "tests/test_degree_matched_quadrature_sensitivity.py"
+      - "tests/test_paired_degree_inclusion_multireplicate.py"
       - ".github/workflows/degree2-inclusion-pilot.yml"
   pull_request:
     paths:
@@ -51,6 +53,15 @@ jobs:
             --gamma 1.0 --h0-prior-min 30 --h0-prior-max 110 \
             --h0-points 41 --orders 5,7,9 \
             --output-dir artifacts/degree_matched_quadrature_sensitivity
+      - name: Test paired degree-model multi-replicate utilities
+        run: python -m pytest tests/test_paired_degree_inclusion_multireplicate.py -q
+      - name: Run paired degree-one/degree-two multi-replicate pilot
+        run: |
+          python scripts/run_paired_degree_inclusion_multireplicate.py \
+            --master-seed 202611201 --replicates 3 --gammas -1,0,1 \
+            --n-parent 1200 --n-detected 30 --validation-frame 500 \
+            --validation-sizes 100,300,500 --h0-points 81 --quadrature-order 5 \
+            --output-dir artifacts/paired_degree_multireplicate
       - name: Upload paired quadrature sensitivity artifacts
         uses: actions/upload-artifact@v4
         with:
