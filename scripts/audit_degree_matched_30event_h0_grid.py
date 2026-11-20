@@ -38,6 +38,15 @@ def _read_csv(zf: zipfile.ZipFile, path: str) -> pd.DataFrame:
     return pd.read_csv(io.BytesIO(zf.read(path)))
 
 
+def _bundle_prefix(zf: zipfile.ZipFile, gamma_dir: str) -> str:
+    """Resolve the uploaded artifact's root layout without assuming a parent folder."""
+    names = set(zf.namelist())
+    for candidate in (f"{gamma_dir}/", f"degree_quadrature/{gamma_dir}/"):
+        if candidate + "manifest.json" in names:
+            return candidate
+    raise FileNotFoundError(f"no manifest found for {gamma_dir} at expected artifact roots")
+
+
 def _verify_manifest(zf: zipfile.ZipFile, prefix: str) -> int:
     manifest = json.loads(zf.read(prefix + "manifest.json"))
     if manifest.get("status") != "PASS":
@@ -107,7 +116,7 @@ def run(artifact_zip: Path, output_dir: Path) -> dict:
     max_reconstruction = 0.0
     with zipfile.ZipFile(artifact_zip) as zf:
         for gamma_dir in GAMMAS:
-            prefix = f"degree_quadrature/{gamma_dir}/"
+            prefix = _bundle_prefix(zf, gamma_dir)
             manifest_files += _verify_manifest(zf, prefix)
             base = prefix + "degree1_order9/"
             cfg = json.loads(zf.read(base + "config.json"))
