@@ -19,7 +19,6 @@ import numpy as np
 import pandas as pd
 from scipy.integrate import cumulative_trapezoid, trapezoid
 from scipy.special import log_ndtr, logsumexp
-from scipy.stats import norm
 
 ARMS = (
     "A_catalogue_only",
@@ -47,31 +46,51 @@ def _posterior(grid: np.ndarray, log_likelihood: np.ndarray, truth: float):
 
 
 def _evaluate(grid, densities, redshift_grid, distances, sigma, threshold):
+    """Evaluate all event numerators with a batched matrix product.
+
+    This is algebraically identical to summing each event's log numerator and
+    selection denominator separately, but avoids a Python loop over events.
+    """
     delta = np.diff(redshift_grid)
     weights = np.empty_like(redshift_grid)
     weights[0] = delta[0] / 2.0
     weights[-1] = delta[-1] / 2.0
     weights[1:-1] = (delta[:-1] + delta[1:]) / 2.0
     result = np.zeros((densities.shape[0], grid.size), dtype=float)
+    log_normalization = -np.log(sigma * np.sqrt(2.0 * np.pi))
+
     for start in range(0, grid.size, 128):
         stop = min(start + 128, grid.size)
         means = 299792.458 * redshift_grid[None, :] / grid[start:stop, None]
-        efficiency_kernel = np.exp(log_ndtr((means - threshold) / sigma)) * weights
-        efficiency = efficiency_kernel @ densities.T
-        for distance in distances:
-            numerator_kernel = norm.pdf(distance, loc=means, scale=sigma) * weights
-            numerator = numerator_kernel @ densities.T
-            if np.any(numerator <= 0) or np.any(efficiency <= 0):
-                raise ArithmeticError("non-positive selected-likelihood integral")
-            result[:, start:stop] += np.log(numerator.T) - np.log(efficiency.T)
+        efficiency = (
+            np.exp(log_ndtr((means - threshold) / sigma)) * weights
+        ) @ densities.T
+        event_pdf = np.exp(
+            log_normalization
+            - 0.5 * ((distances[:, None, None] - means[None, :, :]) / sigma) ** 2
+        )
+        # (events, H0, z) @ (z, density-node) -> (events, H0, density-node).
+        numerators = (
+            (event_pdf * weights).reshape(len(distances) * (stop - start), redshift_grid.size)
+            @ densities.T
+        ).reshape(len(distances), stop - start, -1).transpose(2, 0, 1)
+        if np.any(numerators <= 0) or np.any(efficiency <= 0):
+            raise ArithmeticError("non-positive selected-likelihood integral")
+        result[:, start:stop] = (
+            np.log(numerators).sum(axis=1)
+            - len(distances) * np.log(efficiency.T)
+        )
+
     if not np.all(np.isfinite(result)):
         raise ArithmeticError("non-finite selected log likelihood")
     return result
 
 
 def _find_root(archive: zipfile.ZipFile) -> str:
-    candidates = [name for name in archive.namelist()
-                  if name.endswith("replicates/rep000_gm1/config.json")]
+    candidates = [
+        name for name in archive.namelist()
+        if name.endswith("replicates/rep000_gm1/config.json")
+    ]
     if len(candidates) != 1:
         raise ValueError(f"expected one rep000_gm1 config, found {len(candidates)}")
     return candidates[0].removesuffix("replicates/rep000_gm1/config.json")
@@ -93,17 +112,20 @@ def main():
     fine_grid = np.geomspace(30.0, 110.0, args.fine_points)
     rows = []
     reconstruction_max = 0.0
+
     with zipfile.ZipFile(args.artifact_zip) as archive:
         root_prefix = _find_root(archive)
         for replicate in range(args.replicates):
             for gamma in GAMMAS:
                 root = f"{root_prefix}replicates/rep{replicate:03d}_{gamma}/"
                 cfg = json.loads(archive.read(root + "config.json"))
-                if (cfg.get("n_detected") != 30
+                if (
+                    cfg.get("n_detected") != 30
                     or cfg.get("h0_prior_min") != 30.0
                     or cfg.get("h0_prior_max") != 110.0
                     or cfg.get("h0_grid_type") != "geometric"
-                    or cfg.get("h0_grid_points") != args.source_points):
+                    or cfg.get("h0_grid_points") != args.source_points
+                ):
                     raise ValueError(f"unexpected frozen design metadata in {root}")
                 events = _read_csv(archive, root + "observable/gw_events_observed.csv")
                 if len(events) != 30 or not np.all(events["detected"].to_numpy() == 1):
@@ -116,6 +138,7 @@ def main():
                 zgrid = data["redshift_grid"]
                 if not np.allclose(data["H0_grid"], source_grid, rtol=0, atol=1e-12):
                     raise ValueError(f"archived geometric H0 grid mismatch in {root}")
+
                 for n in SIZES:
                     density_stack = np.vstack([
                         data[f"density_{name}_n{n}"] for name in ARMS[:4]
@@ -125,24 +148,38 @@ def main():
                     qweights = data[f"posterior_weights_n{n}"]
                     if qweights.shape != (25,) or not np.isclose(qweights.sum(), 1.0):
                         raise ValueError(f"invalid E quadrature weights in {root}, n={n}")
+
                     likelihoods = {}
                     for label, grid in (("source", source_grid), ("fine", fine_grid)):
-                        node_ll = _evaluate(grid, density_stack, zgrid, distances, sigma, threshold)
-                        marginal_e = logsumexp(node_ll[4:] + np.log(qweights[:, None]), axis=0)
+                        node_ll = _evaluate(
+                            grid, density_stack, zgrid, distances, sigma, threshold
+                        )
+                        marginal_e = logsumexp(
+                            node_ll[4:] + np.log(qweights[:, None]), axis=0
+                        )
                         likelihoods[label] = list(node_ll[:4]) + [marginal_e]
                         if label == "source":
                             for arm_index, arm in enumerate(ARMS[:4]):
                                 reconstruction_max = max(
                                     reconstruction_max,
-                                    float(np.max(np.abs(likelihoods[label][arm_index] - data[f"{arm}_n{n}"]))),
+                                    float(np.max(np.abs(
+                                        likelihoods[label][arm_index] - data[f"{arm}_n{n}"]
+                                    ))),
                                 )
                             reconstruction_max = max(
                                 reconstruction_max,
-                                float(np.max(np.abs(marginal_e - data[f"{ARMS[4]}_n{n}"]))),
+                                float(np.max(np.abs(
+                                    marginal_e - data[f"{ARMS[4]}_n{n}"]
+                                ))),
                             )
+
                     for arm_index, arm in enumerate(ARMS):
-                        old_density, old_q, old_rank = _posterior(source_grid, likelihoods["source"][arm_index], truth)
-                        fine_density, fine_q, fine_rank = _posterior(fine_grid, likelihoods["fine"][arm_index], truth)
+                        old_density, old_q, old_rank = _posterior(
+                            source_grid, likelihoods["source"][arm_index], truth
+                        )
+                        fine_density, fine_q, fine_rank = _posterior(
+                            fine_grid, likelihoods["fine"][arm_index], truth
+                        )
                         l1 = float(trapezoid(
                             np.abs(np.interp(fine_grid, source_grid, old_density) - fine_density),
                             fine_grid,
@@ -159,6 +196,7 @@ def main():
                             "max_nine_quantile_shift": float(np.max(np.abs(old_q - fine_q))),
                             "posterior_density_l1": l1,
                         })
+
     result = pd.DataFrame(rows)
     expected = args.replicates * len(GAMMAS) * len(SIZES) * len(ARMS)
     keys = ["replicate", "gamma", "validation_size", "arm"]
