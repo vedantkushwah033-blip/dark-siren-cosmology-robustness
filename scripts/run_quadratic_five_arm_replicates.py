@@ -234,7 +234,7 @@ def run(args: argparse.Namespace) -> dict:
     planned_df=pd.DataFrame(planned)
     ledger_df=pd.DataFrame(ledger)
     summary_columns=["replicate","gamma","analysis_seed","validation_seed","validation_size","arm",
-        "status","h0_true","median_error","posterior_rank","posterior_median","q025","q05","q16","q84","q95","q975","audit_status"]
+        "status","h0_true","median_error","posterior_rank","posterior_median","q025","q05","q10","q16","q25","q75","q84","q90","q95","q975","audit_status"]
     diagnostic_columns=["replicate","gamma","validation_size","arm"]
     summaries=pd.concat(summary_parts,ignore_index=True) if summary_parts else pd.DataFrame(columns=summary_columns)
     diagnostics=pd.concat(diagnostic_parts,ignore_index=True) if diagnostic_parts else pd.DataFrame(columns=diagnostic_columns)
