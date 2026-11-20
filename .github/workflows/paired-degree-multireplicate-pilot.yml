@@ -7,7 +7,6 @@ on:
     paths:
       - "scripts/run_paired_degree_multireplicate_pilot.py"
       - "scripts/audit_paired_degree_multireplicate_pilot.py"
-      - "scripts/audit_paired_degree_multireplicate_pilot.py"
       - "scripts/run_quadratic_five_arm_replicates.py"
       - "scripts/audit_quadratic_five_arm_replicates.py"
       - "scripts/run_quadratic_five_arm_smoke.py"
@@ -17,6 +16,7 @@ on:
   pull_request:
     paths:
       - "scripts/run_paired_degree_multireplicate_pilot.py"
+      - "scripts/audit_paired_degree_multireplicate_pilot.py"
       - "scripts/run_quadratic_five_arm_replicates.py"
       - "scripts/audit_quadratic_five_arm_replicates.py"
       - "scripts/run_quadratic_five_arm_smoke.py"
