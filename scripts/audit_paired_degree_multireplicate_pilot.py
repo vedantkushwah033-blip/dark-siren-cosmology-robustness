@@ -228,7 +228,8 @@ def audit(root: Path) -> dict:
         "status": "PASS", "outer_manifest_entries_verified": outer_count,
         "nested_manifest_entries_verified": child_manifest_count,
         "paired_child_blocks_verified": len(paired_checks),
-        "paired_summary_rows_reconstructed": len(expected),\n        "paired_aggregate_rows_reconstructed": aggregate_rows,
+        "paired_summary_rows_reconstructed": len(expected),
+        "paired_aggregate_rows_reconstructed": aggregate_rows,
         "common_arm_likelihoods_invariant": True,
         "interpretation": "Artifact integrity and paired arithmetic only; not calibration evidence.",
     }
