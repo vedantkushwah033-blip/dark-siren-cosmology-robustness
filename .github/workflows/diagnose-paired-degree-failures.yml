@@ -1,0 +1,43 @@
+name: Diagnose frozen paired-degree pilot failures
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/diagnose-paired-degree-failures.yml"
+      - "scripts/diagnose_paired_degree_failures.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pandas
+      - name: Download frozen incomplete 20-replicate artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: paired-degree-multireplicate-pilot
+          path: artifacts/source
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44723868722
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Inspect degree-two failed children
+        run: |
+          test -f artifacts/source/degree2/replicate_ledger.csv
+          python scripts/diagnose_paired_degree_failures.py artifacts/source --output artifacts/degree2_failure_diagnostics.json
+      - name: Upload compact diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paired-degree-frozen-failure-diagnostics
+          path: artifacts/degree2_failure_diagnostics.json
+          if-no-files-found: warn
+          retention-days: 90

@@ -100,6 +100,8 @@ def test_degree_two_inclusion_model_smoke_roundtrip(tmp_path: Path):
     assert result["status"] == "PASS"
     config = json.loads((root / "config.json").read_text())
     assert config["inclusion_model_degree"] == 2
+    assert config["fitted_coefficient_basis"] == "[1, x, x^2 - c_g]"
+    assert config["fitted_quadratic_basis_center"] == pytest.approx(config["quadratic_calibration"]["x2_center"])
     with np.load(root / "results" / "log_likelihoods.npz") as archive:
         for n in (60, 120):
             assert archive[f"posterior_nodes_n{n}"].shape == (27, 3)

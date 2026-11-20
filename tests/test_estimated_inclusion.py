@@ -86,3 +86,40 @@ def test_precision_loss_is_recovered_by_damped_newton_polish(monkeypatch):
     assert fit.iterations > 3
     assert fit.coefficients is not None
     assert fit.covariance is not None
+
+
+def test_unresolved_score_above_strict_tolerance_is_not_reported_as_success(monkeypatch):
+    from types import SimpleNamespace
+    import dark_siren_robustness.estimated_inclusion as inclusion_module
+
+    rng = np.random.default_rng(731)
+    z = rng.uniform(0.01, 0.40, 600)
+    x = (z - z.mean()) / z.std()
+    labels = rng.binomial(1, expit(-0.3 + 0.65 * x))
+
+    converged = fit_inclusion_logistic(z, labels, degree=1)
+    assert converged.status == "SUCCESS"
+    assert converged.coefficients is not None
+
+    # Return a nearby coefficient vector with a small but unacceptable score.
+    # Force the Newton polish to stop so the final status guard is exercised.
+    unresolved_beta = converged.coefficients + np.array([1e-9, 0.0])
+    monkeypatch.setattr(
+        inclusion_module,
+        "minimize",
+        lambda *args, **kwargs: SimpleNamespace(
+            x=unresolved_beta, success=False,
+            message="simulated precision loss", nit=3,
+        ),
+    )
+    monkeypatch.setattr(
+        inclusion_module.np.linalg,
+        "solve",
+        lambda *args, **kwargs: (_ for _ in ()).throw(np.linalg.LinAlgError("simulated solve failure")),
+    )
+
+    fit = fit_inclusion_logistic(z, labels, degree=1)
+    assert 1e-10 < fit.gradient_inf_norm < 1e-6
+    assert fit.status == "FAILED"
+    assert fit.coefficients is None
+    assert "Strict score convergence criterion" in fit.message

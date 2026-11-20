@@ -229,3 +229,28 @@ def test_five_arm_builder_rejects_invalid_base_population_weights(
             catalogue_base_weights=catalogue_base,
             quadrature_order=5,
         )
+
+
+def test_degree_two_five_arm_builder_uses_explicit_centered_quadratic_basis():
+    sample = generate_quadratic_logit_inclusion_samples(
+        population_seed=20261120, validation_seed=20261121,
+        n_parent=700, n_validation_frame=300, n_validation=240, gamma=1.0,
+    )
+    parent = sample["parent_truth"]
+    catalogue = sample["catalogue_observed"]
+    validation = sample["validation_observed"]
+    c_g = float(sample["config"]["x2_center"])
+    p_true = parent.loc[parent.retained.astype(bool), "inclusion_probability"].to_numpy()
+    result = build_five_arm_weights(
+        parent.redshift.to_numpy(), catalogue.redshift.to_numpy(),
+        validation.redshift.to_numpy(), validation.retained.to_numpy(),
+        true_catalogue_inclusion_probability=p_true, degree=2,
+        coordinate_center=0.205, coordinate_scale=0.195,
+        quadratic_center=c_g, quadrature_order=5,
+    )
+    x = (catalogue.redshift.to_numpy() - 0.205) / 0.195
+    design = np.column_stack([np.ones_like(x), x, x*x-c_g])
+    expected = 1.0 / (1.0 + np.exp(-(design @ result.inclusion_posterior.mode)))
+    assert result.inclusion_posterior.quadratic_center == pytest.approx(c_g)
+    assert np.allclose(result.arm_d_map_inclusion_probability, expected)
+    assert np.allclose(result.arm_d_map_plugin, 1.0 / expected)

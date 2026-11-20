@@ -36,12 +36,14 @@ class InclusionPosteriorQuadrature:
     posterior_covariance: np.ndarray
     min_predicted_probability: float
     max_predicted_probability: float
+    quadratic_center: float = 0.0
 
 
 def _validation_inputs(
     redshift: ArrayLike, retained: ArrayLike, degree: int,
     coordinate_center: float | None = None,
     coordinate_scale: float | None = None,
+    quadratic_center: float = 0.0,
 ):
     z = np.asarray(redshift, dtype=float)
     raw = np.asarray(retained)
@@ -65,11 +67,16 @@ def _validation_inputs(
         scale = float(coordinate_scale)
     if not np.isfinite(center) or not np.isfinite(scale) or scale <= 0:
         raise ValueError("coefficient coordinate center/scale must be finite with positive scale")
+    if not np.isfinite(quadratic_center):
+        raise ValueError("quadratic_center must be finite")
     x = (z - center) / scale
-    design = np.column_stack([x ** power for power in range(degree + 1)])
+    features = [np.ones_like(x), x]
+    if degree == 2:
+        features.append(x * x - float(quadratic_center))
+    design = np.column_stack(features)
     if np.linalg.matrix_rank(design) != degree + 1:
         raise ValueError("validation design matrix is rank deficient")
-    return z, raw.astype(float), design, center, scale
+    return z, raw.astype(float), design, center, scale, float(quadratic_center)
 
 
 def _prior_vectors(dimension: int, prior_mean, prior_sd):
@@ -103,6 +110,7 @@ def fit_inclusion_posterior_quadrature(
     prior_sd: ArrayLike | None = None,
     coordinate_center: float | None = None,
     coordinate_scale: float | None = None,
+    quadratic_center: float = 0.0,
     order: int = 15,
     max_iterations: int = 2000,
 ) -> InclusionPosteriorQuadrature:
@@ -111,10 +119,11 @@ def fit_inclusion_posterior_quadrature(
     Tensor Gauss-Hermite quadrature is used in the standardized coefficient
     space. This is intended for the project's 2- or 3-parameter models.
     """
-    z, y, design, center, scale = _validation_inputs(
+    z, y, design, center, scale, quadratic_center = _validation_inputs(
         validation_redshift, retained, degree,
         coordinate_center=coordinate_center,
         coordinate_scale=coordinate_scale,
+        quadratic_center=quadratic_center,
     )
     if isinstance(order, bool) or not isinstance(order, int) or order < 3:
         raise ValueError("order must be an integer >= 3")
@@ -150,11 +159,11 @@ def fit_inclusion_posterior_quadrature(
     # floating-point resolution. Keep the scientific score tolerance strict:
     # refinement is accepted only if it reduces the actual posterior score.
     refinement_steps = 0
-    if score_norm > 1e-8:
+    if score_norm > 1e-10:
         for refinement_steps in range(1, 51):
             score = gradient(mode)
             score_norm = float(np.linalg.norm(score, ord=np.inf))
-            if score_norm <= 1e-8:
+            if score_norm <= 1e-10:
                 break
             information_step = hessian(mode)
             try:
@@ -181,7 +190,7 @@ def fit_inclusion_posterior_quadrature(
             if not accepted:
                 break
     score_norm = float(np.linalg.norm(gradient(mode), ord=np.inf))
-    if score_norm > 1e-6:
+    if score_norm > 1e-8:
         raise ArithmeticError(
             f"posterior mode did not converge after {refinement_steps} Newton refinements: "
             f"{result.message}; score={score_norm}"
@@ -255,6 +264,7 @@ def fit_inclusion_posterior_quadrature(
         posterior_covariance=posterior_covariance,
         min_predicted_probability=float(np.min(predicted)),
         max_predicted_probability=float(np.max(predicted)),
+        quadratic_center=quadratic_center,
     )
 
 
@@ -266,7 +276,10 @@ def posterior_predictive_inclusion(
     if z.ndim != 1 or not np.all(np.isfinite(z)):
         raise ValueError("redshift must be a finite one-dimensional array")
     x = (z - quadrature.center) / quadrature.scale
-    design = np.column_stack([x ** power for power in range(quadrature.degree + 1)])
+    features = [np.ones_like(x), x]
+    if quadrature.degree == 2:
+        features.append(x * x - quadrature.quadratic_center)
+    design = np.column_stack(features)
     probabilities = expit(design @ quadrature.nodes.T)
     return probabilities @ quadrature.weights
 
@@ -321,6 +334,7 @@ def fit_inclusion_posterior_quadrature_ladder(
     prior_sd: ArrayLike | None = None,
     coordinate_center: float | None = None,
     coordinate_scale: float | None = None,
+    quadratic_center: float = 0.0,
     predictive_redshift: ArrayLike | None = None,
     mean_tolerance: float = 1e-3,
     covariance_tolerance: float = 1e-3,
@@ -370,7 +384,8 @@ def fit_inclusion_posterior_quadrature_ladder(
         fit = fit_inclusion_posterior_quadrature(
             validation_redshift, retained, degree=degree, prior_mean=prior_mean,
             prior_sd=prior_sd, coordinate_center=coordinate_center,
-            coordinate_scale=coordinate_scale, order=order_value,
+            coordinate_scale=coordinate_scale, quadratic_center=quadratic_center,
+            order=order_value,
         )
         fits.append(fit)
         if len(fits) == 1:
@@ -449,7 +464,10 @@ def build_node_specific_host_weights(
         raise ValueError("quadrature weights must be non-negative and sum to one")
 
     x = (z - quadrature.center) / quadrature.scale
-    design = np.column_stack([x ** power for power in range(quadrature.degree + 1)])
+    features = [np.ones_like(x), x]
+    if quadrature.degree == 2:
+        features.append(x * x - quadrature.quadratic_center)
+    design = np.column_stack(features)
     eta = quadrature.nodes @ design.T
     log_probability = -np.logaddexp(0.0, -eta)
     log_raw = -log_probability
