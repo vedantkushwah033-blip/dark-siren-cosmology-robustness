@@ -349,7 +349,8 @@ def quadratic_logit_inclusion_probability(
 
 
 def generate_quadratic_logit_inclusion_samples(
-    *, population_seed: int, validation_seed: int, n_parent: int = 4000,
+    *, population_seed: int, validation_seed: int, validation_sample_seed: int | None = None,
+    n_parent: int = 4000,
     n_validation_frame: int = 1500, n_validation: int = 1000,
     gamma: float = 0.0, beta: float = -3.9,
     z_min: float = 0.01, z_max: float = 0.40,
@@ -360,9 +361,14 @@ def generate_quadratic_logit_inclusion_samples(
     The observable validation table contains only redshift and retention.
     Inclusion probabilities and the unobserved validation frame are truth-only.
     """
-    for name, seed in (("population_seed", population_seed), ("validation_seed", validation_seed)):
-        if not isinstance(seed, (int, np.integer)) or isinstance(seed, (bool, np.bool_)) or seed < 0:
-            raise ValueError(f"{name} must be a non-negative integer")
+    for name, seed in (("population_seed", population_seed), ("validation_seed", validation_seed),
+                       ("validation_sample_seed", validation_sample_seed)):
+        if seed is not None and (
+            not isinstance(seed, (int, np.integer))
+            or isinstance(seed, (bool, np.bool_))
+            or seed < 0
+        ):
+            raise ValueError(f"{name} must be a non-negative integer when supplied")
     if n_parent < 100 or n_validation_frame < 5 or not 5 <= n_validation <= n_validation_frame:
         raise ValueError("invalid parent or validation sample sizes")
     if not (0 < z_min < z_max):
@@ -399,7 +405,9 @@ def generate_quadratic_logit_inclusion_samples(
         coordinate_center=coordinate_center, coordinate_scale=coordinate_scale,
     )
     retained_frame = (rng_validation.random(n_validation_frame) < p_frame).astype(np.int8)
-    selected = rng_validation.permutation(n_validation_frame)[:n_validation]
+    rng_sample = (rng_validation if validation_sample_seed is None
+                  else np.random.default_rng(int(validation_sample_seed)))
+    selected = rng_sample.permutation(n_validation_frame)[:n_validation]
     validation_observed = pd.DataFrame({
         "validation_id": selected.astype(np.int64),
         "redshift": z_frame[selected], "retained": retained_frame[selected],
@@ -414,6 +422,8 @@ def generate_quadratic_logit_inclusion_samples(
     })
     config = {
         "population_seed": int(population_seed), "validation_seed": int(validation_seed),
+        "validation_sample_seed": (None if validation_sample_seed is None
+                                   else int(validation_sample_seed)),
         "n_parent": int(n_parent), "n_validation_frame": int(n_validation_frame),
         "n_validation": int(n_validation), "sampling_design": "independent_parent_frames_with_nested_srs_validation_prefix",
         "catalogue_selection_model": "quadratic_logit",
