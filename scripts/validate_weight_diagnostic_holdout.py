@@ -194,6 +194,10 @@ def evaluate_frozen_rule(train_x, train_error, test_x, test_error, *, min_abs_rh
     specificity = tn / negatives
     sens_ci = _wilson(tp, positives)
     spec_ci = _wilson(tn, negatives)
+    auc_ci = _stratified_auc_bootstrap_ci(
+        oriented_test, test_high_error,
+        seed=20261120 + int(round(abs(rho) * 1e6)),
+    )
     return {
         "status": "PASS",
         "training_rho": rho,
@@ -205,12 +209,8 @@ def evaluate_frozen_rule(train_x, train_error, test_x, test_error, *, min_abs_rh
         "holdout_high_error_prevalence": float(test_high_error.mean()),
         "holdout_alert_fraction": float(test_alert.mean()),
         "holdout_auroc": _auc(oriented_test, test_high_error),
-        "holdout_auroc_bootstrap95_low": _stratified_auc_bootstrap_ci(
-            oriented_test, test_high_error, seed=20261120 + int(round(abs(rho) * 1e6))
-        )[0],
-        "holdout_auroc_bootstrap95_high": _stratified_auc_bootstrap_ci(
-            oriented_test, test_high_error, seed=20261120 + int(round(abs(rho) * 1e6))
-        )[1],
+        "holdout_auroc_bootstrap95_low": auc_ci[0],
+        "holdout_auroc_bootstrap95_high": auc_ci[1],
         "holdout_sensitivity": sensitivity,
         "holdout_sensitivity_wilson95_low": sens_ci[0],
         "holdout_sensitivity_wilson95_high": sens_ci[1],
