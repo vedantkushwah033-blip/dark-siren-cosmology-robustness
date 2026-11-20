@@ -184,3 +184,21 @@ def test_independent_pair_auditor_uses_recorded_check_schema(tmp_path: Path):
         "common_arm_likelihoods_within_tolerance": True,
         "maximum_common_arm_log_likelihood_difference": 0.0,
     }
+
+
+
+def test_independent_auditor_reconstructs_and_rejects_aggregate_tampering():
+    from audit_paired_degree_multireplicate_pilot import _verify_aggregate_metrics
+
+    data = _summaries()
+    d1 = data[data.index % 2 == 0].copy()
+    d2 = data[data.index % 2 == 1].copy()
+    paired = _paired_summary(d1, d2)
+    aggregate = _aggregate_paired(paired)
+
+    assert _verify_aggregate_metrics(paired, aggregate) == 1
+
+    tampered = aggregate.copy()
+    tampered.loc[0, "degree2_rmse"] += 0.25
+    with pytest.raises(AssertionError):
+        _verify_aggregate_metrics(paired, tampered)
