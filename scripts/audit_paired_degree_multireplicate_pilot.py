@@ -66,8 +66,21 @@ def _verify_pair(left: Path, right: Path) -> dict:
     checks = 0
     for rel in INPUT_FILES:
         checks += _compare_frames(left, right, rel)
-    for f in sorted((left / "observable").glob("validation_n*.csv")):
-        checks += _compare_frames(left, right, str(f.relative_to(left)))
+    left_validation = {
+        p.name for p in (left / "observable").glob("validation_n*.csv")
+    }
+    right_validation = {
+        p.name for p in (right / "observable").glob("validation_n*.csv")
+    }
+    if left_validation != right_validation:
+        raise AssertionError(
+            "validation-file sets differ across inclusion-model degrees: "
+            f"degree1={sorted(left_validation)}, degree2={sorted(right_validation)}"
+        )
+    for name in sorted(left_validation):
+        checks += _compare_frames(
+            left, right, str(Path("observable") / name)
+        )
     with np.load(left / "results" / "log_likelihoods.npz") as a, np.load(
         right / "results" / "log_likelihoods.npz"
     ) as b:
