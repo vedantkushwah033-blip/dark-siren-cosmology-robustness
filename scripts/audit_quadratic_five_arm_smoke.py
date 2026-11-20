@@ -173,7 +173,7 @@ def _independent_inclusion_quadrature(
         p = expit(design @ theta)
         return design.T @ ((p * (1.0 - p))[:, None] * design) + np.diag(precision)
 
-    mode = np.zeros(2)
+    mode = np.zeros(dimension)
     for _ in range(100):
         score = gradient(mode)
         if np.linalg.norm(score, ord=np.inf) < 2e-11:
