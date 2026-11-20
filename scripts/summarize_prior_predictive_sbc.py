@@ -79,13 +79,22 @@ def summarize(artifact_dir:Path,output_dir:Path,bins:int=10)->dict:
     out.mkdir(parents=True,exist_ok=True)
     pd.DataFrame(summary_rows).to_csv(out/"prior_predictive_sbc_summary.csv",index=False)
     pd.DataFrame(histogram_rows).to_csv(out/"prior_predictive_rank_histograms.csv",index=False)
-    result={"status":"PASS","truth_mode":"prior_predictive","rank_bins":bins,
+    summary_keys=set(map(tuple,summaries[key].itertuples(index=False,name=None)))
+    successful_keys=set(map(tuple,successful[key].itertuples(index=False,name=None)))
+    complete=(lifecycle_complete and len(summary_keys)==len(successful_keys)
+        and summary_keys==successful_keys and len(successful)>0)
+    result={"status":"PASS" if complete else "INCOMPLETE","truth_mode":"prior_predictive","rank_bins":bins,
+        "planned_cells":len(ledger),"successful_cells":len(successful),
+        "failed_or_non_successful_cells":int(len(ledger)-len(successful)),
         "summary_rows":len(summary_rows),"rank_histogram_rows":len(histogram_rows),
-        "interpretation":"Descriptive prior-predictive SBC summaries; p-values are not confirmatory for small replicate counts."}
+        "interpretation":"Descriptive prior-predictive SBC summaries; p-values are not confirmatory for small replicate counts. INCOMPLETE means lifecycle or summary coverage is not fully audited."}
     (out/"summary_report.json").write_text(json.dumps(result,indent=2,sort_keys=True)+"\n")
     return result
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument("artifact_dir",type=Path);p.add_argument("--output-dir",type=Path,required=True);p.add_argument("--bins",type=int,default=10)
-    a=p.parse_args();print(json.dumps(summarize(a.artifact_dir,a.output_dir,a.bins),indent=2,sort_keys=True))
+    a=p.parse_args();result=summarize(a.artifact_dir,a.output_dir,a.bins)
+    print(json.dumps(result,indent=2,sort_keys=True))
+    if result["status"]!="PASS":
+        raise SystemExit(2)
 if __name__=="__main__":main()
