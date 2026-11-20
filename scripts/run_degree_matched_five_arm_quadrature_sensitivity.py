@@ -17,7 +17,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.integrate import cumulative_trapezoid, trapezoid
-from scipy.special import logsumexp
 
 
 def _sha(path: Path) -> str:
@@ -77,10 +76,17 @@ def run(args: argparse.Namespace) -> dict:
         raise ValueError("output directory must be empty")
     if args.orders != [5, 7, 9]:
         raise ValueError("the preregistered pilot requires quadrature orders exactly 5,7,9")
-    if args.validation_sizes[-1] > args.validation_frame:
-        raise ValueError("largest validation size exceeds validation frame")
+    if (not args.validation_sizes or args.validation_sizes[0] < 5
+        or sorted(set(args.validation_sizes)) != args.validation_sizes
+        or args.validation_sizes[-1] > args.validation_frame):
+        raise ValueError("validation sizes must be unique, increasing, >=5, and within frame")
     if args.n_detected < 1 or args.n_parent < 100:
         raise ValueError("invalid parent/event dimensions")
+    if (not np.isfinite(args.gamma) or not np.isfinite(args.curvature_beta)
+        or not np.isfinite(args.h0_true) or not np.isfinite(args.h0_prior_min)
+        or not np.isfinite(args.h0_prior_max) or args.h0_prior_min >= args.h0_prior_max
+        or not args.h0_prior_min <= args.h0_true <= args.h0_prior_max):
+        raise ValueError("invalid curvature or H0 prior/truth configuration")
 
     runner = Path(__file__).with_name("run_quadratic_five_arm_smoke.py")
     auditor = Path(__file__).with_name("audit_quadratic_five_arm_smoke.py")
@@ -89,7 +95,6 @@ def run(args: argparse.Namespace) -> dict:
     reference = None
     input_checks = 0
     posterior_store: dict[tuple[int, int, str], tuple[np.ndarray, dict[str, float]]] = {}
-    likelihood_store: dict[tuple[int, int, str], np.ndarray] = {}
     h0_grid = None
 
     for degree in (1, 2):
@@ -164,7 +169,6 @@ def run(args: argparse.Namespace) -> dict:
                         "D_map_plugin_ipw", "E_uncertainty_integrated_ipw",
                     ):
                         curve = np.asarray(archive[f"{arm}_n{nval}"], float)
-                        likelihood_store[(degree, order, f"{arm}_n{nval}")] = curve
                         density, quantiles = _posterior(grid, curve)
                         posterior_store[(degree, order, f"{arm}_n{nval}")] = (density, quantiles)
                         records.append({
