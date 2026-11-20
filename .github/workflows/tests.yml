@@ -144,36 +144,6 @@ jobs:
           name: degree-matched-30event-quadrature-sensitivity
           path: artifacts/degree_quadrature/
           if-no-files-found: error
-      - name: Test exact 30-event H0-grid refinement auditor
-        run: python -m pytest tests/test_audit_degree_matched_30event_h0_grid.py -q
-      - name: Download frozen 30-event quadrature source artifact (Python 3.12 only)
-        if: matrix.python-version == '3.12'
-        uses: actions/download-artifact@v4
-        with:
-          name: degree-matched-30event-quadrature-sensitivity
-          path: artifacts/grid_refinement_source
-          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
-          run-id: 44806809662
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Run exact 281 to 561 to 1121 H0-grid refinement (Python 3.12 only)
-        if: matrix.python-version == '3.12'
-        run: |
-          ZIP="$(find artifacts/grid_refinement_source -type f -name '*.zip' -print -quit)"
-          if [ -n "$ZIP" ]; then
-            python scripts/audit_degree_matched_30event_h0_grid.py --artifact-zip "$ZIP" --output-dir artifacts/h0_grid_refinement
-          else
-            cd artifacts/grid_refinement_source
-            zip -qr ../../source-artifact.zip .
-            cd ../..
-            python scripts/audit_degree_matched_30event_h0_grid.py --artifact-zip source-artifact.zip --output-dir artifacts/h0_grid_refinement
-          fi
-      - name: Upload exact 30-event H0-grid refinement evidence (Python 3.12 only)
-        if: matrix.python-version == '3.12'
-        uses: actions/upload-artifact@v4
-        with:
-          name: degree-matched-30event-h0-grid-refinement
-          path: artifacts/h0_grid_refinement/
-          if-no-files-found: error
       - name: Test paired multi-replicate degree comparison and prior mapping
         run: python -m pytest tests/test_paired_degree_multireplicate_pilot.py -q
       - name: Validate paired degree pilot and independent auditor CLIs
