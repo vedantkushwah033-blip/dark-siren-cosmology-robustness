@@ -3,6 +3,7 @@ import sys
 import zipfile
 
 import numpy as np
+from scipy.integrate import trapezoid
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from audit_geometric_prior_predictive_h0_grid import (
@@ -16,7 +17,7 @@ def test_posterior_rank_and_quantiles_are_normalized_on_dh0_grid():
     grid = np.geomspace(30.0, 110.0, 2241)
     log_likelihood = -0.5 * ((grid - 70.0) / 8.0) ** 2
     density, quantiles, rank = _posterior(grid, log_likelihood, 70.0)
-    assert np.isclose(np.trapezoid(density, grid), 1.0, atol=1e-10)
+    assert np.isclose(trapezoid(density, grid), 1.0, atol=1e-10)
     assert quantiles.shape == (9,)
     assert np.all(np.diff(quantiles) > 0)
     assert 0.45 < rank < 0.55
