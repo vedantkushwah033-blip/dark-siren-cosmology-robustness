@@ -1,6 +1,6 @@
 import numpy as np
 
-from scripts.validate_weight_diagnostic_holdout import _auc, evaluate_frozen_rule
+from scripts.validate_weight_diagnostic_holdout import (\n    _auc, _stratified_auc_bootstrap_ci, evaluate_frozen_rule,\n)
 
 
 def test_auc_matches_perfect_and_reversed_rankings():
@@ -59,3 +59,13 @@ def test_frozen_rule_rejects_nonfinite_data():
         assert "non-finite" in str(exc)
     else:
         raise AssertionError("expected non-finite inputs to be rejected")
+
+
+
+def test_stratified_auc_bootstrap_is_reproducible_and_bounded():
+    labels = np.array([0] * 40 + [1] * 30)
+    scores = np.concatenate([np.linspace(0.0, 0.8, 40), np.linspace(0.2, 1.0, 30)])
+    first = _stratified_auc_bootstrap_ci(scores, labels, seed=17, replicates=500)
+    second = _stratified_auc_bootstrap_ci(scores, labels, seed=17, replicates=500)
+    assert first == second
+    assert 0.0 <= first[0] <= _auc(scores, labels) <= first[1] <= 1.0
