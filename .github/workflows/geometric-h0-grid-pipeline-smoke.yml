@@ -11,6 +11,16 @@ on:
       - scripts/audit_quadratic_five_arm_replicates.py
       - tests/test_quadratic_five_arm_smoke.py
       - .github/workflows/geometric-h0-grid-pipeline-smoke.yml
+  pull_request:
+    branches:
+      - research/five-arm-prior-predictive-sbc-20261120
+    paths:
+      - scripts/run_quadratic_five_arm_smoke.py
+      - scripts/run_quadratic_five_arm_replicates.py
+      - scripts/audit_quadratic_five_arm_smoke.py
+      - scripts/audit_quadratic_five_arm_replicates.py
+      - tests/test_quadratic_five_arm_smoke.py
+      - .github/workflows/geometric-h0-grid-pipeline-smoke.yml
   workflow_dispatch:
 
 permissions:
