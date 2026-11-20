@@ -7,7 +7,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from run_quadratic_five_arm_replicates import (
-    ARMS, _aggregate, _paired_contrasts, _seed,
+    ARMS, _aggregate, _paired_contrasts, _seed, _replicate_truth,
 )
 from audit_quadratic_five_arm_smoke import _independent_inclusion_quadrature
 from dark_siren_robustness.generative_selection import generate_quadratic_logit_inclusion_samples
@@ -132,11 +132,10 @@ def test_prior_predictive_truth_schedule_is_reproducible_and_in_support():
     master=2026112020
     truths=[]
     for rep in range(50):
-        seed=_seed(master,rep,2)
-        truth=float(np.random.default_rng(seed).uniform(30.0,110.0))
+        seed,truth=_replicate_truth(master,rep,"prior_predictive",30.0,110.0,70.0)
         truths.append(truth)
         assert 30.0 < truth < 110.0
-        assert truth == float(np.random.default_rng(_seed(master,rep,2)).uniform(30.0,110.0))
+        assert truth == _replicate_truth(master,rep,"prior_predictive",30.0,110.0,70.0)[1]
     assert len(set(truths)) == 50
 
 
@@ -145,3 +144,15 @@ def test_prior_predictive_truth_stream_is_separate_from_data_streams():
     data_seeds={_seed(master,rep,stream) for rep in range(50) for stream in (0,1)}
     truth_seeds={_seed(master,rep,2) for rep in range(50)}
     assert data_seeds.isdisjoint(truth_seeds)
+
+
+def test_fixed_truth_mode_preserves_existing_truth():
+    seed,truth=_replicate_truth(2026112020,4,"fixed",30.0,110.0,70.0)
+    assert seed==_seed(2026112020,4,2)
+    assert truth==70.0
+
+
+def test_invalid_truth_mode_fails_closed():
+    import pytest
+    with pytest.raises(ValueError,match="truth mode"):
+        _replicate_truth(1,0,"unknown",30.0,110.0,70.0)
