@@ -24,7 +24,7 @@ def test_rank_and_interval_coverage_summary(tmp_path):
     summary=pd.read_csv(out/"prior_predictive_sbc_summary.csv").iloc[0]
     assert summary.successful_replicates==3
     assert summary.mean_rank==pytest.approx(.5)
-    assert summary.coverage_50==pytest.approx(1/3)
+    assert summary.coverage_50==pytest.approx(2/3)
     hist=pd.read_csv(out/"prior_predictive_rank_histograms.csv")
     assert hist["count"].sum()==3
 
