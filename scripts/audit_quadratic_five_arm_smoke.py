@@ -385,7 +385,13 @@ def audit(root: Path) -> dict:
         raise AssertionError("H0 prior support must be strictly increasing")
     if not prior_min <= h0_true <= prior_max:
         raise AssertionError("H0 truth is outside the declared prior support")
-    grid = np.linspace(prior_min, prior_max, int(config["h0_grid_points"]))
+    grid_type = config.get("h0_grid_type", "linear")
+    if grid_type == "linear":
+        grid = np.linspace(prior_min, prior_max, int(config["h0_grid_points"]))
+    elif grid_type == "geometric":
+        grid = np.geomspace(prior_min, prior_max, int(config["h0_grid_points"]))
+    else:
+        raise AssertionError(f"unsupported H0 grid type in config: {grid_type}")
     z_grid = np.linspace(0.01, 0.40, int(config["redshift_grid_points"]))
     rate_grid = np.ones_like(z_grid)
     scott_multiplier = float(config["scott_multiplier"])
