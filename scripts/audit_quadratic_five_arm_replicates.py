@@ -207,6 +207,20 @@ def audit(root: Path) -> dict:
     unique_schedule=planned[["replicate","analysis_seed","validation_seed","h0_truth_seed","h0_true"]].drop_duplicates()
     if unique_schedule.replicate.duplicated().any():
         raise AssertionError("replicate has inconsistent seed/truth schedule")
+    recorded_schedule=cfg.get("seed_schedule",[])
+    if len(recorded_schedule)!=reps:
+        raise AssertionError("top-level seed schedule has the wrong number of replicates")
+    expected_by_rep={int(row.replicate):row for row in unique_schedule.itertuples(index=False)}
+    for item in recorded_schedule:
+        rep=int(item["replicate"])
+        if rep not in expected_by_rep:
+            raise AssertionError("top-level seed schedule contains an unknown replicate")
+        row=expected_by_rep[rep]
+        for key in ("analysis_seed","validation_seed","h0_truth_seed"):
+            if int(item[key])!=int(getattr(row,key)):
+                raise AssertionError(f"top-level seed schedule mismatch: {key}")
+        if not np.isclose(float(item["h0_true"]),float(row.h0_true),rtol=0,atol=1e-12):
+            raise AssertionError("top-level H0 truth schedule mismatch")
     for row in unique_schedule.itertuples(index=False):
         rep=int(row.replicate)
         if int(row.analysis_seed)!=_seed(int(cfg["master_seed"]),rep,0):
