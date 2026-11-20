@@ -261,7 +261,7 @@ def run(args: argparse.Namespace) -> dict:
     manifest = {"status": "PASS", "file_count": len(files), "files": {
         str(p.relative_to(out)): {"bytes": p.stat().st_size, "sha256": _sha(p)} for p in files
     }}
-    (out / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n")
+    (out / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     return {
         "status": config["status"], "degree_runs": [
             {k: v for k, v in x.items() if k != "config"} for x in runs
