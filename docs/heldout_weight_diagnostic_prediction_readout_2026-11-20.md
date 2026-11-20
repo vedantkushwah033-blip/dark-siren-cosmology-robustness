@@ -21,3 +21,30 @@ This means the diagnostic has not demonstrated reliable prospective predictive v
 Do not turn this result into a universal ESS or top-weight threshold. The earlier exploratory binary screen's moderate discrimination was not enough to justify an operational rule, and this stricter continuous-outcome holdout does not validate a general-purpose predictor.
 
 The scientifically appropriate conclusion is a negative validation result for the prespecified diagnostic-only prediction procedure in this benchmark. Future diagnostic work should be motivated by a new mechanistic hypothesis and evaluated on a new untouched DGP/seed family, not by tuning thresholds on this holdout.
+
+
+## Independent source-artifact re-audit (2026-11-20)
+
+The completed prospective workflow was run on source commit `c4867f9546e71d17555d3a4f94f425a3e20b7cf1`:
+- Workflow: `44676975586`.
+- Combined source/readout artifact: `14609519527`.
+- Artifact ZIP SHA-256: `0048b1f1cccf8e9b243a6e3f62a5c778c187bd1ed0474ef612804d4dd43d2cb6`.
+
+I independently checked the two frozen training artifacts (`14520551336`, seed 2026111929; `14527343221`, seed 2026111940) and the holdout artifact (`14609519527`, seed 2026111950):
+- Each root manifest declared 5,708 files; every file's byte count and SHA-256 matched, with zero mismatches.
+- Each stream had 4,500/4,500 SUCCESS lifecycle cells, 4,500/4,500 audit-PASS cells, and 300 successful child runs.
+- Ledger, posterior-summary, and weight-diagnostic tables each contained 4,500 rows. Their exact `(replicate, gamma, validation_size, arm)` key sets matched, with no duplicate keys.
+- For every child and validation size, I independently recomputed E-arm quadrature ESS as `1 / sum(q_i**2)` from the archived normalized coefficient weights. There were 900 checks per stream; the maximum absolute difference from the stored diagnostic was `8.88e-16`, with zero discrepancies above `1e-10`. All 300 child audit reports per stream were PASS.
+
+This closes the row-key integrity and archived-weight quadrature-ESS concerns for the exact frozen artifacts. The check was independently reproduced from the archived inputs; the full current-head workflow replay remains pending separately.
+
+## Detailed held-out result
+
+Across the 18 predeclared cells:
+- 12/18 point estimates had lower holdout MAE than the training-mean baseline.
+- 5/18 unadjusted 95% bootstrap intervals excluded zero.
+- 0/18 passed the predeclared criterion after Holm adjustment.
+
+The most favorable unadjusted cell was degree-one MAP IPW at gamma=+1 and validation size 100: holdout MAE difference `-0.301`, 95% bootstrap interval `[-0.552, -0.049]`, Holm-adjusted p-value `0.198`. This does not survive the prespecified familywise procedure.
+
+A same-seed completed replay (workflow `44675034340`, source artifact `14633605475`) produced the same qualitative readout: zero of 18 cells passed the predeclared criterion. It is a reproducibility replay, not an independent holdout.
