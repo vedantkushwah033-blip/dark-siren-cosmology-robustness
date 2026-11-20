@@ -76,10 +76,11 @@ def load_audited_stream(root: Path):
     # The aggregate diagnostic table contains measured metrics and pairing keys,
     # not lifecycle status columns. Its provenance is covered by the audited
     # replicate ledger and each source artifact's manifest.
-    for label, frame in [("ledger", ledger), ("planned", planned),
-                         ("summaries", summaries), ("diagnostics", diagnostics)]:
-        if frame["cell_id"].duplicated().any():
-            raise AssertionError(f"duplicate cell_id in {label}")
+    for label, frame in [("ledger", ledger), ("planned", planned)]:
+        if "cell_id" not in frame.columns or frame["cell_id"].duplicated().any():
+            raise AssertionError(f"missing or duplicate cell_id in {label}")
+    if set(ledger["cell_id"]) != set(planned["cell_id"]):
+        raise AssertionError("planned-cell and terminal-ledger IDs differ")
     for frame, label in [(summaries, "summaries"), (diagnostics, "diagnostics")]:
         if frame.duplicated(KEYS).any():
             raise AssertionError(f"duplicate pairing keys in {label}")
