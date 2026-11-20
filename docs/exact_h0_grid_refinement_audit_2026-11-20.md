@@ -38,7 +38,7 @@ All 2,250 curves were recomputed on both 1,121- and 2,241-point geometric grids.
 | Maximum absolute posterior-rank change | 0.00066485 | 0.00006873 |
 | Maximum posterior-median change (km/s/Mpc) | 0.003064 | 0.000542 |
 | Maximum change among all nine reported quantiles (km/s/Mpc) | 0.00809708 | 0.00112940 |
-| Maximum posterior-density L1 difference | 0.00191816 | 0.0001245 |
+| Maximum posterior-density L1 difference | 0.00191816 | 0.000124528 |
 
 The maximum quantile-change figures in both columns are computed across all nine reported quantiles.
 
