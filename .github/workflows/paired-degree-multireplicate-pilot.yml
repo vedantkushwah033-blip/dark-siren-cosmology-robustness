@@ -6,6 +6,7 @@ on:
       - research/paired-degree-multireplicate-20261120
     paths:
       - "scripts/run_paired_degree_multireplicate_pilot.py"
+      - "scripts/audit_degree_prior_parameterization.py"
       - "scripts/audit_paired_degree_multireplicate_pilot.py"
       - "scripts/run_quadratic_five_arm_replicates.py"
       - "scripts/audit_quadratic_five_arm_replicates.py"
@@ -16,6 +17,7 @@ on:
   pull_request:
     paths:
       - "scripts/run_paired_degree_multireplicate_pilot.py"
+      - "scripts/audit_degree_prior_parameterization.py"
       - "scripts/audit_paired_degree_multireplicate_pilot.py"
       - "scripts/run_quadratic_five_arm_replicates.py"
       - "scripts/audit_quadratic_five_arm_replicates.py"
@@ -39,6 +41,8 @@ jobs:
           python-version: "3.12"
       - name: Install package and test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Audit raw-versus-centered degree-two prior mapping
+        run: python scripts/audit_degree_prior_parameterization.py
       - name: Test paired-degree orchestration and invariance gates
         run: python -m pytest tests/test_paired_degree_multireplicate_pilot.py tests/test_quadratic_five_arm_replicates.py -q
       - name: Run paired degree-one/degree-two multi-replicate pilot
