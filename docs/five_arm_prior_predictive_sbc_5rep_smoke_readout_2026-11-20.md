@@ -41,3 +41,18 @@ Catalogue-only posterior medians are strongly biased in this design, as expected
 - No observational H0 or real-survey inference is involved.
 
 The appropriate next comparison is the prior-matched centered D1/D2 experiment now running on PR #133, with weight-instability diagnostics reported alongside posterior error and coverage.
+
+
+## Same-seed workflow rerun and reproducibility check
+
+A later PR-head rerun, workflow `44726607857`, produced artifact `14624961566` (ZIP SHA-256 `293cb6d2ec5215f87b863fd12f848543e5553dc36c5a29577c413ad3adc7afc8`). It used the **same** master seed, analysis seeds, validation seeds, and five prior-predictive truth draws as workflow `44723390611`; it is therefore a rerun, not an additional independent five-replicate stream.
+
+I independently verified all 293 outer-manifest entries and all 15 nested child manifests (14 files each); zero hash/size mismatches. The independent aggregate audit reports 225/225 SUCCESS lifecycle cells, 15/15 child audits, 45 metric rows and 360 paired contrasts reconstructed. The maximum child likelihood reconstruction discrepancy was (2.27\\times10^{-13}).
+
+Comparing the two same-seed artifacts:
+- Maximum numeric difference in aggregate metrics: (2.49\\times10^{-14}).
+- Maximum numeric difference in replicate posterior summaries: (1.42\\times10^{-13}).
+- Maximum numeric difference in paired contrasts: (3.53\\times10^{-12}).
+- Weight-diagnostic records were identical.
+
+The results are numerically reproducible to floating-point precision under the rerun. They do not increase the effective replicate count beyond five and must not be pooled as ten independent replicates.
