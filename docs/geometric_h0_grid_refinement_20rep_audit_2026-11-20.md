@@ -18,7 +18,7 @@ The source experiment itself passed its independent lifecycle and aggregate audi
 
 For each frozen replicate/curvature/validation-size cell, the audit holds the archived KDE host-density estimates fixed, reconstructs the selected likelihood on the archived 1,121-point grid, and recomputes event numerators and selection-efficiency denominators on the 2,241-point geometric grid. Arm E is re-integrated over its 25 shared coefficient nodes. Posterior integration is with respect to **dH0**.
 
-The batched implementation is algebraically equivalent to summing each event's log numerator and selection denominator separately. A regression test compares the batched result against an eventwise reference calculation.
+The batched implementation is algebraically equivalent to summing each event's log numerator and selection denominator separately, but avoids a Python loop over the 30 events. A regression test compares the batched result against an eventwise reference calculation.
 
 This isolates H0-grid integration error conditional on archived KDE densities. It does **not** regenerate KDEs from raw galaxy weights, validate the KDE bandwidth, or establish posterior calibration.
 
@@ -35,26 +35,29 @@ Independent local execution of the exact-grid audit algorithm covered all 900 ro
 
 All 900 curves satisfy the declared refined-grid tolerances. The 1,121-point geometric grid is therefore adequate against this 2,241-point reference for the frozen KDE densities and this finite design.
 
-### Descriptive rank pattern at the refined grid
+### Prior-predictive ranks at validation size 500
 
-Mean posterior ranks over the 20 independent truths, shown by curvature and arm:
+The following means use the 20 independent prior truths within each curvature stratum. Parent-oracle B is the same across curvature because it uses the full parent population.
 
 | Curvature | Catalogue-only A | Parent oracle B | Known-π IPW C | MAP IPW D | Integrated IPW E |
 |---:|---:|---:|---:|---:|---:|
-| -1 | 0.9761 | 0.4393 | 0.4663 | 0.6515 | 0.6277 |
-| 0 | 0.9692 | 0.4393 | 0.4413 | 0.4546 | 0.4527 |
-| +1 | 0.9568 | 0.4393 | 0.4311 | 0.2942 | 0.3068 |
+| -1 | 0.9761 | 0.4393 | 0.4663 | 0.6520 | 0.6392 |
+| 0 | 0.9692 | 0.4393 | 0.4413 | 0.4614 | 0.4559 |
+| +1 | 0.9568 | 0.4393 | 0.4311 | 0.2982 | 0.3012 |
 
-These are descriptive pilot averages, not formal evidence of rank uniformity. The repeated validation-size rows share the same simulated truth within each replicate/curvature block, so they must not be counted as independent truths. The parent-oracle arm is a simulation diagnostic only.
+Paired E-minus-C mean rank differences (20 paired truths) are +0.1729 at gamma -1 (95% t interval +0.1107 to +0.2351), +0.0145 at gamma 0 (−0.0212 to +0.0503), and −0.1299 at gamma +1 (−0.1779 to −0.0818). This is a curvature-dependent displacement of the fitted degree-one IPW ranks, not a universal ranking of estimators.
+
+These intervals are exploratory and conditional on this synthetic design. The 20 truth draws are the independent units; the three validation sizes share the same truth and are not extra independent replicates. Mean rank near 0.5 alone is not a complete calibration test, and the small number of truths limits inference. The parent-oracle arm is a simulation diagnostic only.
 
 ## Interpretation and limitations
 
 1. The 1,121 → 2,241 geometric-grid comparison is numerically stable under the declared rank, quantile, and density-L1 tolerances.
-2. The catalogue-only rank distribution remains concentrated near one, while the estimated degree-one IPW arms shift strongly with the true inclusion curvature.
-3. This is consistent with the project's misspecification concern, but the 20-truth pilot is not large enough for confirmatory calibration claims.
-4. The audit is conditional on archived KDE densities. It is not an independent re-generation of the KDE pipeline from raw galaxy weights.
-5. No observational H0, LVK/GWTC, or real galaxy-catalogue validation claim is made.
+2. Catalogue-only posterior ranks are concentrated near one in this prior-predictive design.
+3. The degree-one MAP and integrated IPW ranks shift with the true inclusion curvature; integrating over fitted coefficients does not remove the omitted-curvature effect in this pilot.
+4. The 20-truth pilot is not large enough for confirmatory calibration claims.
+5. The audit is conditional on archived KDE densities. It is not an independent re-generation of the KDE pipeline from raw galaxy weights.
+6. No observational H0, LVK/GWTC, or real galaxy-catalogue validation claim is made.
 
 ## Reproducibility
 
-The reusable audit is `scripts/audit_geometric_prior_predictive_h0_grid.py`. Its eventwise-equivalence regression is in `tests/test_audit_geometric_prior_predictive_h0_grid.py`. The manual audit workflow is `.github/workflows/exact-geometric-prior-predictive-h0-grid-audit.yml`.
+The reusable audit is `scripts/audit_geometric_prior_predictive_h0_grid.py`. Its eventwise-equivalence regression is in `tests/test_audit_geometric_prior_predictive_h0_grid.py`. The automated audit workflow is `.github/workflows/exact-geometric-prior-predictive-h0-grid-audit.yml`.
