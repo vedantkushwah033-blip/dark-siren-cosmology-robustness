@@ -63,6 +63,10 @@ jobs:
         run: python -m pytest tests/test_quadratic_five_arm_smoke.py tests/test_quadratic_five_arm_replicates.py -q
       - name: Test paired degree-one/degree-two quadrature sensitivity utilities
         run: python -m pytest tests/test_degree_matched_quadrature_sensitivity.py -q
+      - name: Test paired degree-one/degree-two multi-replicate pilot
+        run: python -m pytest tests/test_paired_degree_inclusion_multireplicate.py -q
+      - name: Validate paired degree-model multi-replicate CLI
+        run: python scripts/run_paired_degree_inclusion_multireplicate.py --help
       - name: Validate paired degree-one/degree-two quadrature pilot CLI
         run: python scripts/run_degree_matched_five_arm_quadrature_sensitivity.py --help
       - name: Run paired degree-one/degree-two quadrature sensitivity pilot (Python 3.12 only)
