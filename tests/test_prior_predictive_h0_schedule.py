@@ -20,9 +20,7 @@ def test_h0_truth_changes_with_master_seed():
     assert _h0_truth(1, 4, 30.0, 110.0) != _h0_truth(2, 4, 30.0, 110.0)
 
 
-@pytest.mark.parametrize("lower,upper", [(30.0, 30.0), (110.0, 30.0)])
+@pytest.mark.parametrize("lower,upper", [(30.0, 30.0), (110.0, 30.0), (float("nan"), 90.0)])
 def test_uniform_truth_schedule_rejects_invalid_bounds(lower, upper):
-    # NumPy rejects invalid bounds; the orchestration runner validates these
-    # bounds before calling this helper.
     with pytest.raises(ValueError):
-        np.random.default_rng(1).uniform(lower, upper)
+        _h0_truth(1, 0, lower, upper)
