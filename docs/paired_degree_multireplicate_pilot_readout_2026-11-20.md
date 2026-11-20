@@ -55,7 +55,14 @@ The D2 basis is now centered as `[1,x,x^2-c_g]`. With independent Gaussian coeff
 
 The PR #133 workflow was expanded to 20 paired replicates with master seed `2026112020`, gamma {-1,0,+1}, N_parent=1200, 30 events, validation sizes {100,500}, fixed H0=70, prior [30,110], 281-point grid and quadrature order 5.
 
-Workflow 44723868722 has started: the centered-prior covariance audit and paired-orchestrator regression tests passed, and the 20-replicate simulation step is still in progress. The Python 3.10/3.11/3.12 test matrix (run 44724793170) is also in progress. No 20-replicate result is claimed here until the simulation and independent outer audit both finish.
+Status checked against the current PR head on 2026-11-20:
+
+- The original 20-replicate workflow `44723868722` remains marked in progress, but its last update is stale and GitHub is not serving its job logs. Its simulation step had started after the centered-prior audit and orchestration tests passed. It is not treated as complete or failed.
+- A newer-head paired workflow `44727614232` was cancelled before a job was allocated; it produced no replicate result. An intermediate queued run `44727139797` was also cancelled before job allocation when the PR head advanced.
+- The latest-head degree-two quadrature/smoke workflow `44727614272` is in progress. The matched quadratic-logit H0 smoke `44727614260` completed successfully with its independent audit and uploaded artifact `14623649498`.
+- The latest-head general Python 3.10–3.12 test run `44727614222` was cancelled before jobs were allocated. The earlier focused quadrature workflow passed 16/16 tests, but this is not a substitute for the full latest-head test matrix.
+
+No 20-replicate result is claimed until a complete current-head simulation and independent outer audit finish. The current blocker is workflow concurrency/queueing and the stale original run, not an observed scientific failure.
 
 ## Conclusion
 
