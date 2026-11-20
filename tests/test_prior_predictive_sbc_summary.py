@@ -13,7 +13,7 @@ def test_rank_and_interval_coverage_summary(tmp_path):
     ledger=[];rows=[]
     for rep,rank,truth in [(0,.2,40.0),(1,.8,80.0),(2,.5,60.0)]:
         for arm in ("A_catalogue_only",):
-            ledger.append({"replicate":rep,"gamma":0.0,"validation_size":100,"arm":arm,"status":"SUCCESS"})
+            ledger.append({"replicate":rep,"gamma":0.0,"validation_size":100,"arm":arm,"status":"SUCCESS","audit_status":"PASS"})
             rows.append({"replicate":rep,"gamma":0.0,"validation_size":100,"arm":arm,
                 "posterior_rank":rank,"h0_true":truth,"q025":20,"q05":25,"q10":30,
                 "q16":35,"q25":40,"q75":70,"q84":75,"q90":80,"q95":85,"q975":90})
