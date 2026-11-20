@@ -155,6 +155,7 @@ def run(args: argparse.Namespace) -> dict:
         analysis_seed=_seed(args.master_seed,rep,0)
         validation_seed=_seed(args.master_seed,rep,1)
         event_seed=_seed(args.master_seed,rep,3)
+        validation_sample_seed=_seed(args.master_seed,rep,4)
         h0_truth_seed=int(h0_schedule[rep]["h0_truth_seed"])
         h0_true=float(h0_schedule[rep]["h0_true"])
         for gamma in args.gammas:
@@ -166,6 +167,7 @@ def run(args: argparse.Namespace) -> dict:
                         "gamma":gamma,"validation_size":nval,"arm":arm,
                         "analysis_seed":analysis_seed,"event_seed":event_seed,
                         "validation_seed":validation_seed,
+                        "validation_sample_seed":validation_sample_seed,
                         "h0_truth_seed":h0_truth_seed,"h0_true":h0_true})
             status="SUCCESS"
             audit_status="NOT_RUN"
@@ -174,6 +176,7 @@ def run(args: argparse.Namespace) -> dict:
                 cmd=[sys.executable,str(runner),
                     "--seed",str(analysis_seed),"--event-seed",str(event_seed),
                     "--validation-seed",str(validation_seed),
+                    "--validation-sample-seed",str(validation_sample_seed),
                     "--n-parent",str(args.n_parent),"--n-detected",str(args.n_detected),
                     "--validation-frame",str(args.validation_frame),
                     "--validation-sizes",",".join(map(str,args.validation_sizes)),
@@ -270,9 +273,10 @@ def run(args: argparse.Namespace) -> dict:
         "quadrature_order":args.quadrature_order,"sigma_mpc":args.sigma_mpc,
         "detection_threshold_mpc":args.detection_threshold_mpc,
         "seed_schedule":[{"replicate":r,"population_seed":_seed(args.master_seed,r,0),
-            "validation_seed":_seed(args.master_seed,r,1),
+            "validation_frame_seed":_seed(args.master_seed,r,1),
             "h0_truth_seed":int(h0_schedule[r]["h0_truth_seed"]),
-            "event_seed":_seed(args.master_seed,r,3)} for r in range(args.replicates)],
+            "event_seed":_seed(args.master_seed,r,3),
+            "validation_sample_seed":_seed(args.master_seed,r,4)} for r in range(args.replicates)],
         "failure_bounds":{"max_abs_median_error":max_abs_error,"max_interval_width":max_interval_width},
         "claim_limit":"Paired engineering pilot only; no estimator ranking, calibration, or observational inference."}
     (out/"config.json").write_text(json.dumps(config,indent=2,sort_keys=True)+"\n")
