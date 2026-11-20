@@ -389,6 +389,18 @@ def test_quadrature_ladder_propagates_fixed_coefficient_coordinates():
     assert all(fit.scale == 0.195 for fit in ladder.fits)
 
 
+def test_default_degree_one_prior_matches_degree_two_centered_marginal():
+    from dark_siren_robustness.inclusion_posterior import _prior_vectors
+
+    mean_d1, sd_d1 = _prior_vectors(2, None, None)
+    mean_d2, sd_d2 = _prior_vectors(3, None, None)
+
+    np.testing.assert_array_equal(mean_d1, mean_d2[:2])
+    np.testing.assert_array_equal(sd_d1, sd_d2[:2])
+    np.testing.assert_array_equal(mean_d1, np.zeros(2))
+    np.testing.assert_array_equal(sd_d1, np.asarray([5.0, 2.5]))
+
+
 def test_centered_quadratic_basis_matches_generator_parameterization():
     from dark_siren_robustness.inclusion_posterior import _validation_inputs
 
