@@ -72,7 +72,7 @@ jobs:
           assert report["status"] == "PASS"
           assert config["h0_grid_type"] == "geometric"
           assert config["h0_points"] == 1121
-          assert report["successful_replicates"] == 2
+          assert report["successful_child_runs"] == 2
           PY
       - name: Upload geometric-grid smoke artifacts
         if: always()
