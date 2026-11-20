@@ -134,16 +134,24 @@ def test_independent_auditor_rejects_manifest_path_traversal(tmp_path: Path):
 
 
 
-def test_raw_and_centered_degree_two_gaussian_priors_are_not_equivalent():
-    from audit_degree_prior_parameterization import audit_prior_mapping
+def test_degree_one_prior_matches_degree_two_centered_basis_marginal():
+    from audit_degree_prior_parameterization import audit_centered_prior_match
 
-    result = audit_prior_mapping()
+    result = audit_centered_prior_match()
     assert result["status"] == "PASS"
-    assert result["raw_prior_induced_alpha_sd"] > 5.0
-    assert result["raw_prior_induced_alpha_gamma_correlation"] > 0.0
-    assert result["kl_nats_raw_induced_vs_independent_centered_prior"] > 0.0
-    assert result["raw_prior_induced_beta_sd"] == pytest.approx(2.5)
-    assert result["raw_prior_induced_gamma_sd"] == pytest.approx(2.5)
+    assert result["marginal_prior_match"] is True
+    assert result["degree1_prior_covariance_alpha_beta"] == [
+        [25.0, 0.0], [0.0, 6.25]
+    ]
+    assert result["degree2_marginal_prior_covariance_alpha_beta"] == [
+        [25.0, 0.0], [0.0, 6.25]
+    ]
+    assert result["degree2_alpha_beta_gamma_cross_covariance"] == [
+        [0.0], [0.0]
+    ]
+    with pytest.raises(ValueError, match="finite and positive"):
+        audit_centered_prior_match(prior_sd_curvature=0.0)
+
 
 
 def test_independent_pair_auditor_uses_recorded_check_schema(tmp_path: Path):
