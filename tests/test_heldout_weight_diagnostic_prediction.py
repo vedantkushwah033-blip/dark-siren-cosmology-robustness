@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import sys
 from pathlib import Path
 
@@ -14,6 +16,7 @@ from evaluate_heldout_weight_diagnostic_prediction import (
     _fit_predict,
     _holm_adjust,
     _one_cell,
+    _verify_manifest,
 )
 
 
@@ -62,3 +65,31 @@ def test_one_cell_rejects_wrong_training_denominator():
     holdout = pd.DataFrame({"x": np.arange(100), "absolute_median_error": np.arange(100)})
     with pytest.raises(AssertionError, match="expected 200 training"):
         _one_cell(train, holdout, x_column="x", resamples=1000, seed=1)
+
+
+
+def test_manifest_verifier_checks_declared_file_hash_and_size(tmp_path: Path):
+    payload = tmp_path / "replicate_ledger.csv"
+    payload.write_text("cell_id,status\\n1,SUCCESS\\n", encoding="utf-8")
+    digest = hashlib.sha256(payload.read_bytes()).hexdigest()
+    (tmp_path / "manifest.json").write_text(json.dumps({
+        "file_count": 1,
+        "files": {"replicate_ledger.csv": {
+            "bytes": payload.stat().st_size,
+            "sha256": digest,
+        }},
+    }), encoding="utf-8")
+    assert _verify_manifest(tmp_path) == 1
+
+    payload.write_text("cell_id,status\\n1,FAILED\\n", encoding="utf-8")
+    with pytest.raises(AssertionError, match="manifest checksum/size mismatch"):
+        _verify_manifest(tmp_path)
+
+
+def test_manifest_verifier_rejects_path_traversal(tmp_path: Path):
+    (tmp_path / "manifest.json").write_text(json.dumps({
+        "file_count": 1,
+        "files": {"../outside.csv": {"bytes": 0, "sha256": "0" * 64}},
+    }), encoding="utf-8")
+    with pytest.raises(AssertionError, match="unsafe manifest path"):
+        _verify_manifest(tmp_path)
