@@ -2,11 +2,15 @@
 from pathlib import Path
 import sys
 
+import numpy as np
 import pandas as pd
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from run_paired_degree_inclusion_multireplicate import _degree_contrasts, _paired_child_inputs
+from dark_siren_robustness.generative_selection import generate_quadratic_logit_inclusion_samples
+from dark_siren_robustness.inclusion_posterior import fit_inclusion_posterior_quadrature
+from audit_quadratic_five_arm_smoke import _independent_inclusion_quadrature
 
 
 def test_cross_degree_input_pairing_accepts_exact_match_and_rejects_mismatch(tmp_path):
@@ -62,3 +66,43 @@ def test_degree_contrasts_excludes_unpaired_failed_cells():
     assert _degree_contrasts(one, two).empty
 
 # This module is included in the degree-two pilot and full test workflows.
+
+
+
+def test_degree_two_mode_matches_independent_audit_for_previously_failing_seed():
+    master_seed = 202611201
+    analysis_seed = int(
+        np.random.SeedSequence([master_seed, 0, 0]).generate_state(1, dtype=np.uint32)[0]
+    )
+    validation_seed = int(
+        np.random.SeedSequence([master_seed, 0, 1]).generate_state(1, dtype=np.uint32)[0]
+    )
+    sample = generate_quadratic_logit_inclusion_samples(
+        population_seed=analysis_seed,
+        validation_seed=validation_seed,
+        n_parent=1200,
+        n_validation_frame=500,
+        n_validation=500,
+        gamma=0.0,
+        beta=-3.9,
+        z_min=0.01,
+        z_max=0.40,
+    )
+    validation = sample["validation_observed"].iloc[:100]
+    fitted = fit_inclusion_posterior_quadrature(
+        validation["redshift"].to_numpy(float),
+        validation["retained"].to_numpy(np.int8),
+        degree=2,
+        coordinate_center=0.205,
+        coordinate_scale=0.195,
+        order=5,
+    )
+    audited_mode, _, _, _ = _independent_inclusion_quadrature(
+        validation["redshift"].to_numpy(float),
+        validation["retained"].to_numpy(np.int8),
+        order=5,
+        center=0.205,
+        scale=0.195,
+        degree=2,
+    )
+    np.testing.assert_allclose(fitted.mode, audited_mode, rtol=2e-8, atol=2e-9)
