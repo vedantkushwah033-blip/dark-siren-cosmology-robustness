@@ -34,7 +34,7 @@ The oracle arm is also far from truth in this realization (median 91.47). This r
 
 ## Quadrature and weight stability
 
-Integrated-IPW posterior summaries are effectively unchanged between quadrature orders 7 and 9 (maximum reported median change below 0.001 H0 units). The independent likelihood reconstruction discrepancies are at floating-point scale.
+Integrated-IPW posterior summaries are effectively unchanged between quadrature orders 7 and 9 (maximum reported median change below 0.001 H0 units). Reconstructing normalized H0 posterior densities from the stored likelihood arrays, order-5-to-order-9 L1 differences are 8.09e-5 (D1,n=100), 1.38e-5 (D1,n=300), 3.87e-5 (D2,n=100), and 1.23e-5 (D2,n=300). The independent likelihood reconstruction discrepancies are at floating-point scale. This supports order 5 as a numerically adequate choice for this one smoke realization, not a guarantee across all future replicates.
 
 However, the integrated weights are highly concentrated:
 
