@@ -85,6 +85,8 @@ def summarize(artifact_dir:Path,output_dir:Path,bins:int=10)->dict:
     pd.DataFrame(histogram_rows).to_csv(out/"prior_predictive_rank_histograms.csv",index=False)
     summary_keys=set(map(tuple,summaries[key].itertuples(index=False,name=None)))
     successful_keys=set(map(tuple,successful[key].itertuples(index=False,name=None)))
+    lifecycle_complete = bool((ledger.status == "SUCCESS").all()
+        and (ledger.audit_status == "PASS").all())
     complete=(lifecycle_complete and len(summary_keys)==len(successful_keys)
         and summary_keys==successful_keys and len(successful)>0)
     result={"status":"PASS" if complete else "INCOMPLETE","truth_mode":"prior_predictive","rank_bins":bins,
