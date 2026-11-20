@@ -29,6 +29,21 @@ The catalogue-only arm is strongly miscalibrated in all three curvature conditio
 
 For the estimated degree-one arms, ranks are shifted high at gamma=-1 and low at gamma=+1. Integrating over the fitted coefficient posterior does not remove this curvature-dependent rank distortion. At gamma=0, integrated IPW is closer to uniform rank behavior, but coverage remains variable.
 
+## Integrated-IPW weight stability
+
+Across the 50 replicate-level weight-diagnostic records, the median of the minimum node-level Kish ESS for the integrated-IPW arm, and the median of its maximum node top-5%-weight mass, were:
+
+| Curvature | Validation n | Median minimum node Kish ESS | Median maximum node top-5% mass |
+|---:|---:|---:|---:|
+| -1 | 100 | 46.4 | 57.5% |
+| 0 | 100 | 33.9 | 64.7% |
+| +1 | 100 | 26.3 | 71.3% |
+| -1 | 500 | 87.5 | 43.8% |
+| 0 | 500 | 57.5 | 50.9% |
+| +1 | 500 | 48.5 | 57.9% |
+
+The node-level effective sample size generally improves with validation size, but the integrated weights remain concentrated, especially at positive curvature. These are descriptive summaries of this synthetic run, not universal thresholds.
+
 ## Limits
 
 - 50 replicates gives only coarse rank/coverage resolution; Wilson intervals are wide.
