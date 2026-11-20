@@ -387,3 +387,31 @@ def test_quadrature_ladder_propagates_fixed_coefficient_coordinates():
     assert len(ladder.fits) == 2
     assert all(fit.center == 0.205 for fit in ladder.fits)
     assert all(fit.scale == 0.195 for fit in ladder.fits)
+
+
+def test_centered_quadratic_basis_matches_generator_parameterization():
+    from dark_siren_robustness.inclusion_posterior import _validation_inputs
+
+    z = np.linspace(0.01, 0.40, 101)
+    coordinate_center = 0.205
+    coordinate_scale = 0.195
+    c_g = 0.2845005579191241
+    alpha, beta, gamma = -0.4, -3.9, 1.2
+    _, _, design, _, _, returned_center = _validation_inputs(
+        z, np.arange(z.size) % 2, 2,
+        coordinate_center=coordinate_center,
+        coordinate_scale=coordinate_scale,
+        quadratic_center=c_g,
+    )
+    x = (z - coordinate_center) / coordinate_scale
+    expected_eta = alpha + beta * x + gamma * (x * x - c_g)
+    assert returned_center == pytest.approx(c_g)
+    assert np.allclose(design @ np.asarray([alpha, beta, gamma]), expected_eta, rtol=0, atol=1e-14)
+
+
+def test_centered_quadratic_center_is_validated():
+    z = np.linspace(0.01, 0.40, 30)
+    with pytest.raises(ValueError, match="quadratic_center"):
+        fit_inclusion_posterior_quadrature(
+            z, np.arange(z.size) % 2, degree=2, quadratic_center=np.nan, order=5
+        )
