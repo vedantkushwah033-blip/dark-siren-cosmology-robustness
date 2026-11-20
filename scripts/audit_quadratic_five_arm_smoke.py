@@ -139,7 +139,7 @@ def _posterior_quantile(grid: np.ndarray, log_likelihood: np.ndarray, q: float) 
 
 def _independent_inclusion_quadrature(
     validation_z: np.ndarray, retained: np.ndarray, *, order: int,
-    center: float, scale: float,
+    center: float, scale: float, degree: int = 1,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Rebuild the proper logistic posterior and corrected GH rule independently.
 
@@ -150,7 +150,8 @@ def _independent_inclusion_quadrature(
     z = np.asarray(validation_z, dtype=float)
     y = np.asarray(retained, dtype=float)
     x = (z - center) / scale
-    degree = int(getattr(_independent_inclusion_quadrature, "_audit_degree", 1))
+    if degree not in (1, 2):
+        raise ValueError("independent audit degree must be 1 or 2")
     dimension = degree + 1
     design = np.column_stack([x ** power for power in range(dimension)])
     prior_mean = np.zeros(dimension)
@@ -262,7 +263,6 @@ def audit(root: Path) -> dict:
     inclusion_degree = int(config.get("inclusion_model_degree", 1))
     if inclusion_degree not in (1, 2):
         raise AssertionError("inclusion model degree must be 1 or 2")
-    _independent_inclusion_quadrature._audit_degree = inclusion_degree
     floor = float(config["catalogue_floor"])
     midpoint, width = 0.22, 0.05
     center, scale = 0.205, 0.195
@@ -447,6 +447,7 @@ def audit(root: Path) -> dict:
                 order=int(config["quadrature_order"]),
                 center=center,
                 scale=scale,
+                degree=inclusion_degree,
             )
         )
         if not np.allclose(mode, rebuilt_mode, rtol=2e-8, atol=2e-9):
