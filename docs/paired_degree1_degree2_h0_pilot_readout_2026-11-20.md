@@ -123,3 +123,7 @@ The downloaded ZIP was independently checked against its outer, degree-level, an
 The paired aggregate CSV reproduces the numerical tables above (20 matched replicates per cell). This is a successful rerun of the same frozen seed/design, not an independent Monte Carlo replication and not an increase in effective replicate count. It supports reproducibility of the archived run and successful completion after the numerical repair; it does not strengthen calibration or estimator-ranking claims.
 
 The full repository test-matrix workflow triggered on the subsequent documentation-only branch update was cancelled before jobs were created. Therefore, this paired run's embedded experiment/audit checks passed, but a fresh full Python 3.10–3.12 repository test-matrix result on the current branch head is still outstanding.
+
+## Clarification of nested manifest counts
+
+The post-repair artifact contains 2,314 ZIP members. Its outer manifest covers 2,190 payload paths; the degree-level manifests each cover 1,088 paths; and 120 child manifests cover 1,560 child-level entries. These scopes are nested and overlap, so their counts must **not** be added and described as a unique-file total. Independent verification found all 2,190 outer-manifest payloads present with matching byte counts and SHA-256 hashes; all 1,088 entries in each degree manifest also matched; all 120 child manifests reported PASS and all 1,560 child-manifest entries matched. The archive's additional members are the nested manifest files and the independent root audit report.
