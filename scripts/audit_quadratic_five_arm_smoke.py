@@ -540,11 +540,10 @@ def audit(root: Path) -> dict:
             archive[f"density_E_nodes_n{n}"], np.asarray(node_densities),
             f"E node KDEs n={n}",
         )
-        positive_q = rebuilt_weights[rebuilt_weights > 0.0]
         independently_rebuilt_diagnostics.append({
             "validation_size": n,
             "arm": "E_uncertainty_integrated_ipw",
-            "quadrature_ess": float(np.exp(-np.sum(positive_q * np.log(positive_q)))),
+            "quadrature_ess": float(1.0 / np.sum(rebuilt_weights ** 2)),
             "minimum_node_kish_ess": float(min(d["kish_ess"] for d in node_weight_diagnostics)),
             "maximum_node_top_5_percent_mass": float(max(d["top_5_percent_mass"] for d in node_weight_diagnostics)),
             "quadrature_nodes": len(node_weight_diagnostics),
