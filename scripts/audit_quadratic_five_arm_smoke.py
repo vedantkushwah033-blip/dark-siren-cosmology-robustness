@@ -136,6 +136,58 @@ def _posterior_quantile(grid: np.ndarray, log_likelihood: np.ndarray, q: float) 
 
 
 
+
+def _assert_inclusion_mode_agreement(
+    archived_mode: np.ndarray,
+    rebuilt_mode: np.ndarray,
+    design: np.ndarray,
+    retained: np.ndarray,
+    *,
+    mode_atol: float = 1e-8,
+    score_tolerance: float = 1e-8,
+) -> None:
+    """Compare independent MAP solutions at the production optimizer's score tolerance.
+
+    The production trust-exact/Newton fitter accepts a score infinity norm of
+    at most 1e-8. A stricter coordinate-wise comparison can reject a valid
+    archived mode when the optimizer reaches floating-point resolution. Both
+    modes must satisfy the same score criterion, and their coordinates must
+    agree within a tolerance commensurate with that criterion.
+    """
+    archived = np.asarray(archived_mode, dtype=float)
+    rebuilt = np.asarray(rebuilt_mode, dtype=float)
+    matrix = np.asarray(design, dtype=float)
+    labels = np.asarray(retained, dtype=float)
+    if archived.shape != rebuilt.shape or matrix.ndim != 2 or matrix.shape[1] != archived.size:
+        raise AssertionError("inclusion posterior modes/design have inconsistent shapes")
+    if labels.shape != (matrix.shape[0],):
+        raise AssertionError("inclusion posterior retained labels have inconsistent shape")
+    prior_sd = np.asarray([5.0] + [2.5] * (archived.size - 1), dtype=float)
+    precision = 1.0 / prior_sd**2
+
+    def score(theta: np.ndarray) -> np.ndarray:
+        return matrix.T @ (expit(matrix @ theta) - labels) + theta * precision
+
+    archived_score = float(np.linalg.norm(score(archived), ord=np.inf))
+    rebuilt_score = float(np.linalg.norm(score(rebuilt), ord=np.inf))
+    if not np.isfinite(archived_score) or archived_score > score_tolerance:
+        raise AssertionError(
+            "archived inclusion posterior mode fails score tolerance; "
+            f"score={archived_score:.6g}, tolerance={score_tolerance:.6g}"
+        )
+    if not np.isfinite(rebuilt_score) or rebuilt_score > score_tolerance:
+        raise AssertionError(
+            "independently rebuilt inclusion posterior mode fails score tolerance; "
+            f"score={rebuilt_score:.6g}, tolerance={score_tolerance:.6g}"
+        )
+    if not np.allclose(archived, rebuilt, rtol=2e-8, atol=mode_atol):
+        difference = float(np.max(np.abs(archived - rebuilt)))
+        raise AssertionError(
+            "independent inclusion posterior mode mismatch; "
+            f"maximum absolute difference={difference:.6g}"
+        )
+
+
 def _independent_inclusion_quadrature(
     validation_z: np.ndarray, retained: np.ndarray, *, order: int,
     center: float, scale: float, degree: int = 1, quadratic_center: float = 0.0,
@@ -463,8 +515,12 @@ def audit(root: Path) -> dict:
                 quadratic_center=quadratic_center,
             )
         )
-        if not np.allclose(mode, rebuilt_mode, rtol=2e-8, atol=2e-9):
-            raise AssertionError(f"independent inclusion posterior mode mismatch n={n}")
+        try:
+            _assert_inclusion_mode_agreement(
+                mode, rebuilt_mode, design_validation, y,
+            )
+        except AssertionError as exc:
+            raise AssertionError(f"{exc} at n={n}") from exc
         if not np.allclose(nodes, rebuilt_nodes, rtol=2e-7, atol=2e-8):
             raise AssertionError(f"independent inclusion quadrature nodes mismatch n={n}")
         if not np.allclose(quadrature, rebuilt_weights, rtol=2e-7, atol=2e-9):
