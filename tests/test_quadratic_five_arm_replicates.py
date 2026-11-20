@@ -164,3 +164,11 @@ def test_posterior_rank_is_prior_cdf_for_uniform_likelihood():
     truth=73.25
     result=_posterior_summary(grid,np.zeros_like(grid),30.0,110.0,truth)
     assert abs(result["posterior_rank"]-(truth-30.0)/80.0)<2e-4
+
+
+def test_independent_auditor_reconstructs_uniform_posterior_rank():
+    from audit_quadratic_five_arm_smoke import _posterior_rank
+    grid=np.linspace(30.0,110.0,801)
+    truth=73.25
+    rank=_posterior_rank(grid,np.zeros_like(grid),truth)
+    assert rank==pytest.approx((truth-30.0)/80.0,abs=2e-4)
