@@ -64,3 +64,5 @@ def test_frozen_child_config_gate_rejects_changed_simulation_setting():
     changed = expected | {"n_detected": 30}
     with pytest.raises(AssertionError, match="n_detected"):
         _assert_expected_config(changed, expected, "mismatched")
+
+# Keep this focused test module in the dedicated paired-pilot CI path.
