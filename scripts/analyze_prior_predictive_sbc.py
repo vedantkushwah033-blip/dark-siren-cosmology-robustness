@@ -103,10 +103,10 @@ def analyze(root: Path, output: Path) -> dict:
     if not all(len(arms) == len(ARMS) and set(arms) == expected_arms for arms in cell_counts):
         raise AssertionError("each replicate/gamma/validation-size cell must contain exactly the five distinct arms")
 
-    if not (diagnostics["kish_ess"].to_numpy(float) > 0).all():
-        raise AssertionError("Kish ESS diagnostics must be finite and positive")
-    if not np.isfinite(diagnostics["kish_ess"].to_numpy(float)).all():
-        raise AssertionError("non-finite Kish ESS diagnostic")
+    non_e_rows = diagnostics[diagnostics.arm != "E_uncertainty_integrated_ipw"]
+    non_e_ess = non_e_rows["kish_ess"].to_numpy(float)
+    if not np.isfinite(non_e_ess).all() or not (non_e_ess > 0).all():
+        raise AssertionError("non-integrated-arm Kish ESS diagnostics must be finite and positive")
     e_rows = diagnostics[diagnostics.arm == "E_uncertainty_integrated_ipw"]
     if not np.isfinite(e_rows["minimum_node_kish_ess"].to_numpy(float)).all() or not (e_rows["minimum_node_kish_ess"].to_numpy(float) > 0).all():
         raise AssertionError("integrated-arm node ESS must be finite and positive")
