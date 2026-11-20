@@ -130,7 +130,11 @@ def fit_inclusion_logistic(
     if np.all(np.isfinite(beta)) and (not fit.success or grad_norm > 1e-10):
         for _ in range(50):
             score = gradient(beta)
-            if not np.all(np.isfinite(score)) or np.linalg.norm(score, ord=np.inf) <= 1e-10:
+            # The score is a sum over validation objects.  Use the mean
+            # score for a sample-size-invariant convergence criterion.
+            if not np.all(np.isfinite(score)) or (
+                np.linalg.norm(score, ord=np.inf) / y.size <= 1e-9
+            ):
                 break
             probability = expit(xmat @ beta)
             information = xmat.T @ (
@@ -182,9 +186,11 @@ def fit_inclusion_logistic(
             "Possible complete/quasi separation or weak identification; "
             "unpenalized covariance is not reliable.", **common,
         )
-    if not np.all(np.isfinite(beta)) or grad_norm > 1e-10:
+    mean_score_norm = grad_norm / y.size
+    if not np.all(np.isfinite(beta)) or mean_score_norm > 1e-9:
         return failed(
-            "Strict score convergence criterion (1e-10) not met after damped-Newton polish: "
+            "Mean-score convergence criterion (1e-9 per validation object) "
+            "not met after damped-Newton polish: "
             f"{fit.message}", **common,
         )
     if np.min(eigenvalues) <= 0 or not np.all(np.isfinite(eigenvalues)):
