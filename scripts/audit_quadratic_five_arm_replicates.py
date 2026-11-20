@@ -106,6 +106,19 @@ def audit(root: Path) -> dict:
     contrasts=pd.read_csv(root/"paired_contrasts.csv")
     reps=int(cfg["replicates"]); gammas=[float(x) for x in cfg["gammas"]]
     sizes=[int(x) for x in cfg["validation_sizes"]]
+    truth_mode=str(cfg.get("truth_mode","fixed"))
+    if truth_mode not in {"fixed","prior_predictive"}:
+        raise AssertionError("unknown truth-generation mode")
+    prior_min=float(cfg.get("h0_prior_min",50.0)); prior_max=float(cfg.get("h0_prior_max",90.0))
+    truth_schedule={int(x["replicate"]):x for x in cfg.get("truth_schedule",[])}
+    if set(truth_schedule)!=set(range(reps)):
+        raise AssertionError("truth schedule does not cover every replicate")
+    for rep, item in truth_schedule.items():
+        expected_seed=_seed(int(cfg["master_seed"]),rep,2)
+        expected_truth=(float(cfg["h0_true"]) if truth_mode=="fixed" else
+            float(np.random.default_rng(expected_seed).uniform(prior_min,prior_max)))
+        if int(item["truth_seed"])!=expected_seed or not np.isclose(float(item["h0_true"]),expected_truth,rtol=0,atol=0):
+            raise AssertionError("truth schedule seed or value mismatch")
     expected_n=reps*len(gammas)*len(sizes)*len(ARMS)
     if len(planned)!=expected_n or len(ledger)!=expected_n:
         raise AssertionError("planned or ledger row count does not match frozen design")
@@ -113,7 +126,7 @@ def audit(root: Path) -> dict:
         raise AssertionError("duplicate planned/ledger cell ID")
     if set(planned.cell_id)!=set(ledger.cell_id):
         raise AssertionError("planned cell IDs and ledger cell IDs differ")
-    identity=["replicate","gamma","validation_size","arm","analysis_seed","validation_seed"]
+    identity=["replicate","gamma","validation_size","arm","analysis_seed","validation_seed","truth_seed","h0_true"]
     joined=planned[["cell_id",*identity]].merge(ledger[["cell_id",*identity]],on="cell_id",
         how="inner",suffixes=("_planned","_ledger"),validate="one_to_one")
     for name in identity:
@@ -140,7 +153,9 @@ def audit(root: Path) -> dict:
             if report.get("status")!="PASS":
                 raise AssertionError(f"child audit report is not PASS: {rel}")
             child_cfg=json.loads((d/"config.json").read_text())
-            if (int(child_cfg["seed"])!=_seed(int(cfg["master_seed"]),int(rep),0)
+            expected_truth=float(truth_schedule[int(rep)]["h0_true"])
+            if (not np.isclose(float(child_cfg["h0_true"]),expected_truth,rtol=0,atol=0)
+                or int(child_cfg["seed"])!=_seed(int(cfg["master_seed"]),int(rep),0)
                 or int(child_cfg["validation_seed"])!=_seed(int(cfg["master_seed"]),int(rep),1)
                 or float(child_cfg["curvature_gamma"])!=float(gamma)
                 or int(child_cfg["n_detected"])!=int(cfg["n_detected"])
@@ -189,7 +204,10 @@ def audit(root: Path) -> dict:
             pairing_blocks+=1
 
     # Independently reconstruct the top-level seed schedule.
-    for row in planned[["replicate","analysis_seed","validation_seed"]].drop_duplicates().itertuples(index=False):
+    for row in planned[["replicate","analysis_seed","validation_seed","truth_seed","h0_true"]].drop_duplicates().itertuples(index=False):
+        rep=int(row.replicate)
+        if int(row.truth_seed)!=_seed(int(cfg["master_seed"]),rep,2) or not np.isclose(float(row.h0_true),float(truth_schedule[rep]["h0_true"]),rtol=0,atol=0):
+            raise AssertionError("planned/ledger truth schedule mismatch")
         if int(row.analysis_seed)!=_seed(int(cfg["master_seed"]),int(row.replicate),0):
             raise AssertionError("analysis seed schedule mismatch")
         if int(row.validation_seed)!=_seed(int(cfg["master_seed"]),int(row.replicate),1):
@@ -215,7 +233,9 @@ def audit(root: Path) -> dict:
         "cross_curvature_paired_validation_blocks":pairing_blocks,
         "paired_contrast_rows_reconstructed":len(expected_contrasts),
         "aggregate_metric_rows_reconstructed":len(expected_aggregates),
-        "interpretation":"Lifecycle, pairing, child-audit attestations and aggregate arithmetic only; not calibration evidence."}
+        "truth_mode":truth_mode,
+        "unique_prior_predictive_truths":len(set(float(x["h0_true"]) for x in truth_schedule.values())),
+        "interpretation":"Lifecycle, pairing, child-audit attestations and aggregate arithmetic only; calibration summaries are prior-predictive evidence only when truth_mode=prior_predictive."}
 
 
 def main():
