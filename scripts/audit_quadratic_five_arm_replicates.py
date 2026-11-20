@@ -29,6 +29,12 @@ def _seed(master: int, replicate: int, stream: int) -> int:
     return int(np.random.SeedSequence([master,replicate,stream]).generate_state(1,dtype=np.uint32)[0])
 
 
+def _h0_truth(master: int, replicate: int, prior_min: float, prior_max: float) -> tuple[int, float]:
+    seed=_seed(master,replicate,2)
+    truth=float(np.random.default_rng(seed).uniform(prior_min,prior_max))
+    return seed,truth
+
+
 def _expected_contrasts(summaries: pd.DataFrame) -> pd.DataFrame:
     rows=[]
     for (rep,gamma,nval),group in summaries.groupby(["replicate","gamma","validation_size"],sort=True):
@@ -116,7 +122,19 @@ def audit(root: Path) -> dict:
         raise AssertionError("duplicate planned/ledger cell ID")
     if set(planned.cell_id)!=set(ledger.cell_id):
         raise AssertionError("planned cell IDs and ledger cell IDs differ")
-    identity=["replicate","gamma","validation_size","arm","analysis_seed","validation_seed"]
+    prior_min,prior_max=map(float,cfg["h0_prior_support"])
+    prior_predictive=cfg.get("h0_truth_mode")=="prior_predictive_uniform"
+    if prior_predictive and cfg.get("h0_true") is not None:
+        raise AssertionError("prior-predictive config must not advertise one fixed H0 truth")
+    truth_schedule={int(x["replicate"]):x for x in cfg.get("h0_truth_schedule",[])}
+    if set(truth_schedule)!=set(range(reps)):
+        raise AssertionError("H0 truth schedule does not cover every replicate exactly once")
+    for rep,entry in truth_schedule.items():
+        expected_seed,expected_truth=_h0_truth(int(cfg["master_seed"]),rep,prior_min,prior_max) if prior_predictive else (-1,float(cfg["h0_true"]))
+        if int(entry["h0_truth_seed"])!=expected_seed or float(entry["h0_true"])!=expected_truth:
+            raise AssertionError(f"H0 truth schedule reconstruction mismatch at replicate {rep}")
+    identity=["replicate","gamma","validation_size","arm","analysis_seed","validation_seed",
+        "h0_truth_seed","h0_true"]
     joined=planned[["cell_id",*identity]].merge(ledger[["cell_id",*identity]],on="cell_id",
         how="inner",suffixes=("_planned","_ledger"),validate="one_to_one")
     for name in identity:
@@ -148,6 +166,7 @@ def audit(root: Path) -> dict:
                 or float(child_cfg["curvature_gamma"])!=float(gamma)
                 or int(child_cfg["n_detected"])!=int(cfg["n_detected"])
                 or int(child_cfg["n_parent"])!=int(cfg["n_parent"])
+                or float(child_cfg["h0_true"])!=float(truth_schedule[int(rep)]["h0_true"])
                 or int(child_cfg.get("inclusion_model_degree",1))!=inclusion_degree
                 or list(map(float,child_cfg.get("h0_prior_support",[50.0,90.0])))
                     !=list(map(float,cfg.get("h0_prior_support",[50.0,90.0])))):
@@ -194,11 +213,16 @@ def audit(root: Path) -> dict:
             pairing_blocks+=1
 
     # Independently reconstruct the top-level seed schedule.
-    for row in planned[["replicate","analysis_seed","validation_seed"]].drop_duplicates().itertuples(index=False):
-        if int(row.analysis_seed)!=_seed(int(cfg["master_seed"]),int(row.replicate),0):
+    for row in planned[["replicate","analysis_seed","validation_seed","h0_truth_seed","h0_true"]].drop_duplicates().itertuples(index=False):
+        rep=int(row.replicate)
+        if int(row.analysis_seed)!=_seed(int(cfg["master_seed"]),rep,0):
             raise AssertionError("analysis seed schedule mismatch")
-        if int(row.validation_seed)!=_seed(int(cfg["master_seed"]),int(row.replicate),1):
+        if int(row.validation_seed)!=_seed(int(cfg["master_seed"]),rep,1):
             raise AssertionError("validation seed schedule mismatch")
+        expected_seed=int(truth_schedule[rep]["h0_truth_seed"])
+        expected_truth=float(truth_schedule[rep]["h0_true"])
+        if int(row.h0_truth_seed)!=expected_seed or float(row.h0_true)!=expected_truth:
+            raise AssertionError("planned/ledger H0 truth differs from independently reconstructed schedule")
 
     expected_contrasts=_expected_contrasts(summaries)
     pd.testing.assert_frame_equal(
