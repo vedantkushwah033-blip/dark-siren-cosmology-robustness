@@ -157,6 +157,13 @@ def audit(root: Path) -> dict:
             right=expected[cols].sort_values(["validation_size","arm"]).reset_index(drop=True)
             pd.testing.assert_frame_equal(left,right,check_dtype=False,check_exact=False,
                 rtol=2e-10,atol=2e-10)
+            child_diagnostics=pd.read_csv(d/"results"/"weight_diagnostics.csv")
+            expected_diagnostics=diagnostics[(diagnostics.replicate==rep)&(diagnostics.gamma==gamma)]
+            diagnostic_cols=[c for c in child_diagnostics.columns if c not in ("replicate","gamma")]
+            left_d=child_diagnostics[diagnostic_cols].sort_values(["validation_size","arm"]).reset_index(drop=True)
+            right_d=expected_diagnostics[diagnostic_cols].sort_values(["validation_size","arm"]).reset_index(drop=True)
+            pd.testing.assert_frame_equal(left_d,right_d,check_dtype=False,check_exact=False,
+                rtol=2e-10,atol=2e-12)
             child_dirs[(int(rep),float(gamma))]=d
             child_audits+=1
         else:

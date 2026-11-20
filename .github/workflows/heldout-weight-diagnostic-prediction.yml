@@ -1,0 +1,126 @@
+name: heldout-weight-diagnostic-prediction
+
+on:
+  push:
+    branches:
+      - research/heldout-weight-diagnostic-prediction-20261120
+    paths:
+      - .github/workflows/heldout-weight-diagnostic-prediction.yml
+      - scripts/evaluate_heldout_weight_diagnostic_prediction.py
+      - tests/test_heldout_weight_diagnostic_prediction.py
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: heldout-weight-diagnostic-prediction
+  cancel-in-progress: false
+
+jobs:
+  heldout-prediction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install analysis dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Compile evaluator and run focused regression tests
+        run: |
+          python -m py_compile scripts/evaluate_heldout_weight_diagnostic_prediction.py
+          pytest tests/test_heldout_weight_diagnostic_prediction.py -q
+      - name: Run untouched 100-replicate holdout stream (master seed 2026111950)
+        run: |
+          python scripts/run_quadratic_five_arm_replicates.py \
+            --master-seed 2026111950 \
+            --replicates 100 \
+            --gammas=-1,0,1 \
+            --n-parent 1200 \
+            --n-detected 30 \
+            --validation-frame 500 \
+            --validation-sizes 100,300,500 \
+            --curvature-beta -3.9 \
+            --h0-true 70 \
+            --h0-prior-min 30 \
+            --h0-prior-max 110 \
+            --h0-points 561 \
+            --scott-multiplier 0.7 \
+            --quadrature-order 5 \
+            --sigma-mpc 140 \
+            --detection-threshold-mpc 250 \
+            --output-dir artifacts/holdout_seed_2026111950
+      - name: Independently audit all 4500 holdout cells
+        if: always()
+        run: |
+          if [ -f artifacts/holdout_seed_2026111950/replicate_ledger.csv ]; then
+            python scripts/audit_quadratic_five_arm_replicates.py \
+              artifacts/holdout_seed_2026111950 \
+              --output artifacts/holdout_seed_2026111950/independent_orchestration_audit.json
+          fi
+      - name: Assert holdout completeness and frozen identity
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          root=Path("artifacts/holdout_seed_2026111950")
+          cfg=json.loads((root/"config.json").read_text())
+          audit=json.loads((root/"independent_orchestration_audit.json").read_text())
+          ledger=pd.read_csv(root/"replicate_ledger.csv")
+          assert cfg["master_seed"] == 2026111950
+          assert cfg["h0_prior_support"] == [30.0,110.0]
+          assert len(ledger) == 4500
+          assert audit["status"] == "PASS"
+          assert audit["planned_cells"] == 4500
+          assert audit["successful_child_runs"] == 300
+          assert (ledger.status == "SUCCESS").all()
+          assert (ledger.audit_status == "PASS").all()
+          print(json.dumps(audit,indent=2))
+          PY
+      - name: Upload complete or partial holdout evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quadratic-five-arm-wide-prior-holdout-seed-2026111950
+          path: artifacts/holdout_seed_2026111950/
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Download frozen training stream seed 2026111929
+        uses: actions/download-artifact@v4
+        with:
+          name: quadratic-five-arm-30event-wide-prior-paired-seed-100rep
+          run-id: 44484212311
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/training_seed_2026111929
+      - name: Download frozen training stream seed 2026111940
+        uses: actions/download-artifact@v4
+        with:
+          name: quadratic-five-arm-30event-wide-prior-100rep
+          run-id: 44483923518
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/training_seed_2026111940
+      - name: Evaluate predeclared holdout predictions with nested bootstrap
+        run: |
+          python scripts/evaluate_heldout_weight_diagnostic_prediction.py \
+            --train-seed-1929 artifacts/training_seed_2026111929 \
+            --train-seed-1940 artifacts/training_seed_2026111940 \
+            --holdout-seed-1950 artifacts/holdout_seed_2026111950 \
+            --output-prefix artifacts/heldout_weight_prediction/readout \
+            --bootstrap-resamples 3000
+      - name: Upload holdout prediction evaluation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: heldout-weight-diagnostic-prediction-readout
+          path: artifacts/heldout_weight_prediction/
+          if-no-files-found: warn
+          retention-days: 90

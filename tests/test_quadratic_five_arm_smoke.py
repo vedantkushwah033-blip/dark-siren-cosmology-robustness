@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 
 from run_quadratic_five_arm_smoke import run
-from audit_quadratic_five_arm_smoke import audit
+from audit_quadratic_five_arm_smoke import audit, _quadrature_ess
 
 def test_quadratic_five_arm_smoke_roundtrip(tmp_path: Path):
     root=tmp_path/"quadratic_five_arm"
@@ -65,3 +65,43 @@ def test_auditor_rejects_tampered_inclusion_quadrature_weights(tmp_path: Path):
     manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True))
     with pytest.raises(AssertionError,match="independent inclusion quadrature weights mismatch"):
         audit(root)
+
+
+def test_auditor_rejects_tampered_weight_concentration_diagnostics(tmp_path: Path):
+    root=tmp_path/"quadratic_five_arm"
+    args=SimpleNamespace(seed=8127,validation_seed=8128,n_parent=300,n_detected=4,
+      validation_frame=120,validation_sizes=[50,100],catalogue_floor=0.10,
+      curvature_gamma=0.5,curvature_beta=-3.9,h0_true=70.0,h0_points=41,
+      scott_multiplier=0.7,quadrature_order=3,sigma_mpc=140.0,
+      detection_threshold_mpc=250.0,output_dir=root)
+    run(args)
+    diagnostics_path=root/"results"/"weight_diagnostics.csv"
+    diagnostics=pd.read_csv(diagnostics_path)
+    row=diagnostics.index[diagnostics.arm=="D_map_plugin_ipw"][0]
+    diagnostics.loc[row,"top_5_percent_mass"] *= 0.8
+    diagnostics.to_csv(diagnostics_path,index=False)
+
+    manifest_path=root/"manifest.json"
+    manifest=json.loads(manifest_path.read_text())
+    for relative,metadata in manifest["files"].items():
+        file_path=root/relative
+        metadata["bytes"]=file_path.stat().st_size
+        metadata["sha256"]=hashlib.sha256(file_path.read_bytes()).hexdigest()
+    manifest_path.write_text(json.dumps(manifest,indent=2,sort_keys=True))
+    with pytest.raises(AssertionError,match="weight diagnostic top_5_percent_mass differs"):
+        audit(root)
+
+
+
+def test_quadrature_ess_uses_exact_archived_normalized_weights():
+    archived = np.array([0.1, 0.2, 0.3, 0.4])
+    independently_reconstructed = archived.copy()
+    independently_reconstructed[0] += 1e-8
+    independently_reconstructed[1] -= 1e-8
+    expected = 1.0 / np.sum(archived ** 2)
+    assert _quadrature_ess(archived) == expected
+    # The independent reconstruction is allowed a separate numerical
+    # tolerance; the stored diagnostic must be reproduced from archived weights.
+    assert _quadrature_ess(archived) != _quadrature_ess(independently_reconstructed)
+    with pytest.raises(ValueError, match="normalized"):
+        _quadrature_ess(np.array([0.1, 0.2]))

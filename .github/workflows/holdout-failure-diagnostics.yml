@@ -1,0 +1,48 @@
+name: Diagnose frozen prospective holdout failures
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/holdout-failure-diagnostics.yml"
+      - "scripts/summarize_holdout_failure_diagnostics.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  diagnose-frozen-holdout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out research branch
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install diagnostic dependencies
+        run: python -m pip install pandas
+      - name: Download the frozen seed-2026111950 holdout artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: prospective-heldout-weight-diagnostic-prediction
+          path: artifacts/source
+          repository: vedantkushwah033-blip/dark-siren-cosmology-robustness
+          run-id: 44687301107
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Diagnose failed lifecycle cells without changing the frozen result
+        run: |
+          test -f artifacts/source/holdout_1950/replicate_ledger.csv
+          python scripts/summarize_holdout_failure_diagnostics.py \
+            artifacts/source/holdout_1950 \
+            --output-dir artifacts/holdout_failure_diagnostics
+      - name: Upload failure diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frozen-holdout-seed-2026111950-failure-diagnostics
+          path: artifacts/holdout_failure_diagnostics/
+          if-no-files-found: warn
+          retention-days: 90
