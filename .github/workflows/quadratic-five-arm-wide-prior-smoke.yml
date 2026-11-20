@@ -1,0 +1,94 @@
+name: quadratic-five-arm-wide-prior-smoke
+
+on:
+  push:
+    branches:
+      - research/quadratic-five-arm-30event-multirep-readout-20261119
+    paths:
+      - .github/workflows/quadratic-five-arm-wide-prior-smoke.yml
+      - scripts/run_quadratic_five_arm_smoke.py
+      - scripts/audit_quadratic_five_arm_smoke.py
+      - scripts/run_quadratic_five_arm_replicates.py
+      - scripts/audit_quadratic_five_arm_replicates.py
+      - tests/test_quadratic_five_arm_smoke.py
+      - tests/test_quadratic_five_arm_replicates.py
+      - src/dark_siren_robustness/**
+  workflow_dispatch:
+
+concurrency:
+  group: quadratic-five-arm-wide-prior-smoke-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  wide-prior:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Compile and run prior-support regression tests
+        run: |
+          python -m py_compile \
+            scripts/run_quadratic_five_arm_smoke.py \
+            scripts/audit_quadratic_five_arm_smoke.py \
+            scripts/run_quadratic_five_arm_replicates.py \
+            scripts/audit_quadratic_five_arm_replicates.py
+          pytest tests/test_quadratic_five_arm_smoke.py \
+            tests/test_quadratic_five_arm_replicates.py -q
+      - name: Run five-replicate matched wide-prior smoke
+        run: |
+          python scripts/run_quadratic_five_arm_replicates.py \
+            --master-seed 2026111940 \
+            --replicates 5 \
+            --gammas=-1,0,1 \
+            --n-parent 1200 \
+            --n-detected 30 \
+            --validation-frame 500 \
+            --validation-sizes 100,300,500 \
+            --curvature-beta -3.9 \
+            --h0-true 70 \
+            --h0-prior-min 30 \
+            --h0-prior-max 110 \
+            --h0-points 561 \
+            --scott-multiplier 0.7 \
+            --quadrature-order 5 \
+            --sigma-mpc 140 \
+            --detection-threshold-mpc 250 \
+            --output-dir artifacts/quadratic_five_arm_30event_wide_prior_5rep
+      - name: Independently audit wide-prior artifact
+        run: |
+          python scripts/audit_quadratic_five_arm_replicates.py \
+            artifacts/quadratic_five_arm_30event_wide_prior_5rep \
+            --output artifacts/quadratic_five_arm_30event_wide_prior_5rep/independent_orchestration_audit.json
+      - name: Assert complete wide-prior lifecycle and metadata
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          root=Path("artifacts/quadratic_five_arm_30event_wide_prior_5rep")
+          cfg=json.loads((root/"config.json").read_text())
+          report=json.loads((root/"independent_orchestration_audit.json").read_text())
+          ledger=pd.read_csv(root/"replicate_ledger.csv")
+          assert cfg["h0_prior_support"] == [30.0,110.0], cfg["h0_prior_support"]
+          assert len(ledger) == 225, len(ledger)
+          assert (ledger.status == "SUCCESS").all()
+          assert report["status"] == "PASS", report
+          assert report["successful_child_runs"] == 15
+          print(json.dumps(report,indent=2))
+          print(pd.read_csv(root/"aggregate_metrics.csv").to_string(index=False))
+          PY
+      - name: Upload wide-prior smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quadratic-five-arm-30event-wide-prior-5rep
+          path: artifacts/quadratic_five_arm_30event_wide_prior_5rep/
+          if-no-files-found: warn
+          retention-days: 90
