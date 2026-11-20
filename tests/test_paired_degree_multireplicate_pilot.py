@@ -36,7 +36,7 @@ def test_degree_contrasts_are_paired_and_use_d2_minus_d1():
     row = aggregate.iloc[0]
     assert row.paired_replicates == 3
     assert row.degree1_bias == 2.0
-    assert row.degree2_bias == 2.0
+    assert row.degree2_bias == pytest.approx(2.0 / 3.0)
     assert row.median_error_difference_d2_minus_d1_mean == pytest.approx(-4.0 / 3.0)
     assert row.median_error_difference_d2_minus_d1_mcse > 0
 
