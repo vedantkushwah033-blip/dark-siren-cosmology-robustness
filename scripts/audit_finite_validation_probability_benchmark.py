@@ -19,6 +19,16 @@ ROLES = {"validation", "analysis_catalogue", "nonretained_holdout"}
 MAX_MEAN_SCORE_INF_NORM = 2e-9
 
 
+def _mean_score_inf_norm(score: np.ndarray, n_validation: int) -> float:
+    """Return the logistic score infinity norm per validation object."""
+    if isinstance(n_validation, bool) or not isinstance(n_validation, int) or n_validation < 1:
+        raise ValueError("n_validation must be a positive integer")
+    values = np.asarray(score, dtype=float)
+    if values.ndim != 1 or not np.all(np.isfinite(values)):
+        raise ValueError("score must be a finite one-dimensional array")
+    return float(np.linalg.norm(values, ord=np.inf) / n_validation)
+
+
 METRICS = [
     "heldout_brier_score", "heldout_log_loss", "heldout_probability_rmse",
     "heldout_calibration_ece_10", "heldout_calibration_max_gap_10",
@@ -225,7 +235,7 @@ def audit(summary_path: Path, raw_path: Path, tolerance: float = 1e-10) -> dict:
             y_validation = validation["retained"].to_numpy(dtype=float)
             p_validation = expit(design @ beta)
             score = design.T @ (p_validation - y_validation)
-            mean_score_inf_norm = float(np.linalg.norm(score, ord=np.inf) / len(y_validation))
+            mean_score_inf_norm = _mean_score_inf_norm(score, len(y_validation))
             if mean_score_inf_norm > MAX_MEAN_SCORE_INF_NORM:
                 raise ValueError(
                     f"{key}: stored coefficients fail independent normalized score check "
