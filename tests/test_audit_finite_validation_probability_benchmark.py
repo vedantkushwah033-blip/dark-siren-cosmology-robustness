@@ -178,3 +178,26 @@ def test_retention_fraction_scenarios_share_uniforms_and_validation_ids(tmp_path
     high_validation = high.loc[high["split_role"] == "validation", "object_id"].tolist()
     assert low_validation == high_validation
     assert np.all(low["retained"].to_numpy() <= high["retained"].to_numpy())
+
+
+def test_probability_auditor_cli_writes_parseable_json(tmp_path: Path, monkeypatch):
+    import scripts.audit_finite_validation_probability_benchmark as auditor_module
+
+    output = tmp_path / "audit_report.json"
+    monkeypatch.setattr(
+        auditor_module, "audit",
+        lambda *args, **kwargs: {"status": "PASS", "experiments_reconstructed": 1},
+    )
+    monkeypatch.setattr(
+        sys, "argv",
+        ["audit_finite_validation_probability_benchmark.py", str(tmp_path),
+         "--output", str(output)],
+    )
+    auditor_module.main()
+    rendered = output.read_text(encoding="utf-8")
+    assert json.loads(rendered) == {
+        "status": "PASS", "experiments_reconstructed": 1,
+    }
+    assert rendered.endswith("\n")
+    assert not rendered.endswith("\\n")
+
