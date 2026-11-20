@@ -159,11 +159,11 @@ def fit_inclusion_posterior_quadrature(
     # floating-point resolution. Keep the scientific score tolerance strict:
     # refinement is accepted only if it reduces the actual posterior score.
     refinement_steps = 0
-    if score_norm > 1e-8:
+    if score_norm > 1e-10:
         for refinement_steps in range(1, 51):
             score = gradient(mode)
             score_norm = float(np.linalg.norm(score, ord=np.inf))
-            if score_norm <= 1e-8:
+            if score_norm <= 1e-10:
                 break
             information_step = hessian(mode)
             try:
@@ -190,7 +190,7 @@ def fit_inclusion_posterior_quadrature(
             if not accepted:
                 break
     score_norm = float(np.linalg.norm(gradient(mode), ord=np.inf))
-    if score_norm > 1e-6:
+    if score_norm > 1e-9:
         raise ArithmeticError(
             f"posterior mode did not converge after {refinement_steps} Newton refinements: "
             f"{result.message}; score={score_norm}"

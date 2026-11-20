@@ -12,6 +12,8 @@ on:
       - "scripts/audit_quadratic_five_arm_replicates.py"
       - "scripts/run_quadratic_five_arm_smoke.py"
       - "scripts/audit_quadratic_five_arm_smoke.py"
+      - "src/dark_siren_robustness/inclusion_posterior.py"
+      - "tests/test_inclusion_posterior.py"
       - "tests/test_paired_degree_multireplicate_pilot.py"
       - ".github/workflows/paired-degree-multireplicate-pilot.yml"
   pull_request:
@@ -23,6 +25,8 @@ on:
       - "scripts/audit_quadratic_five_arm_replicates.py"
       - "scripts/run_quadratic_five_arm_smoke.py"
       - "scripts/audit_quadratic_five_arm_smoke.py"
+      - "src/dark_siren_robustness/inclusion_posterior.py"
+      - "tests/test_inclusion_posterior.py"
       - "tests/test_paired_degree_multireplicate_pilot.py"
       - ".github/workflows/paired-degree-multireplicate-pilot.yml"
 
