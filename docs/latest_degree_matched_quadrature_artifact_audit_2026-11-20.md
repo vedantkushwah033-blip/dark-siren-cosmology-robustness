@@ -2,9 +2,10 @@
 
 ## Artifact provenance and independent verification
 
-PR #133 workflow `44727139750` completed successfully. Artifact `14624950996` (`degree-matched-quadrature-sensitivity`) was downloaded and independently inspected.
+PR #133 workflows `44727139750` and latest-head rerun `44727858540` completed successfully. The latest artifact `14625221228` (`degree-matched-quadrature-sensitivity`) was downloaded and independently inspected; its configuration, weight diagnostics, and posterior summaries reproduce the prior artifact to floating-point precision.
 
-- ZIP SHA-256: `1fc482483ec68bcbecbcb73f83b8edb455604747fb2d4365e9761aa8ea5bac4c`.
+- Latest ZIP SHA-256: `dea86991999b8b2d403f3d2d9826b88622572d1d89dc83f69fdec47c1f1058ce`.
+- Prior artifact `14624950996` ZIP SHA-256: `1fc482483ec68bcbecbcb73f83b8edb455604747fb2d4365e9761aa8ea5bac4c`.
 - Root manifest: 114/114 files matched declared byte counts and SHA-256 digests.
 - Six child manifests: 13/13 files each verified, zero mismatches.
 - All six independent child audit reports: PASS.
@@ -12,6 +13,8 @@ PR #133 workflow `44727139750` completed successfully. Artifact `14624950996` (`
 - Each child audit reconstructed 10 posterior-summary rows.
 
 This artifact is a one-realization engineering/numerical sensitivity pilot, not calibration or an estimator ranking. The exact config is N_parent=400, four detected events, gamma=+1, validation frame=300, validation sizes 100/300, H0 truth=70, prior [30,110], 41-point H0 grid, and quadrature orders 5/7/9.
+
+Latest-head rerun checks: all 114 outer-manifest entries and all six 13-file child manifests verified with zero mismatches. All six child audit reports PASS; maximum reconstruction discrepancy was `1.42e-14`. Comparing the latest and prior artifacts, maximum numeric changes in posterior-summary CSVs were `4.27e-14`, while weight-diagnostic CSVs were byte-identical. The rerun is the same fixed-seed realization, not an additional independent sample.
 
 ## Posterior summaries at quadrature order 9
 
