@@ -29,7 +29,7 @@ The generator uses
 
 Degree one uses basis `[1,x]` and independent Gaussian priors on `(alpha,beta)`. Degree two now uses the centered basis `[1,x,x^2-c_g]`, the same marginal Gaussian priors on `(alpha,beta)`, and an independent Gaussian prior on `gamma`.
 
-With declared prior SDs `(5, 2.5, 2.5)`, the D1 covariance on `(alpha,beta)` and D2 marginal covariance on `(alpha,beta)` are both `[[25,0],[0,6.25]]`. The audit script `scripts/audit_degree_prior_parameterization.py` and its test check this equality and zero cross-covariance between `(alpha,beta)` and `gamma`. This removes the previously identified raw-versus-centered prior confound. It does not guarantee that D2 estimates inclusion probabilities accurately or produces stable IPW weights.
+The centering constant is the known synthetic parent-measure moment `c_g=E_g[x^2]=0.2845005579191241`; it is fixed by the simulation design, not estimated from the validation or catalogue sample. It is a parameterization choice for this controlled benchmark, not a proposed operational source of oracle information. A real-data application would need a predeclared centering convention or would need to propagate uncertainty in any data-estimated center. With declared prior SDs `(5, 2.5, 2.5)`, the D1 covariance on `(alpha,beta)` and D2 marginal covariance on `(alpha,beta)` are both `[[25,0],[0,6.25]]`. The audit script `scripts/audit_degree_prior_parameterization.py` and its test check this equality and zero cross-covariance between `(alpha,beta)` and `gamma`. This removes the previously identified raw-versus-centered prior confound. It does not guarantee that D2 estimates inclusion probabilities accurately or produces stable IPW weights.
 
 ## Pairing and audit gates
 
