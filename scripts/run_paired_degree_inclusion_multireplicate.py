@@ -201,7 +201,38 @@ def run(args: argparse.Namespace) -> dict:
         frame = pd.read_csv(degree_roots[degree] / "aggregate_metrics.csv")
         frame.insert(0, "inclusion_degree", degree)
         aggregate_rows.append(frame)
-    pd.concat(aggregate_rows, ignore_index=True).to_csv(out / "aggregate_metrics_by_degree.csv", index=False)
+    aggregate_by_degree = pd.concat(aggregate_rows, ignore_index=True)
+    aggregate_by_degree.to_csv(out / "aggregate_metrics_by_degree.csv", index=False)
+
+    if contrasts.empty:
+        paired_summary = pd.DataFrame(columns=[
+            "gamma", "validation_size", "arm", "paired_replicates",
+            "mean_median_error_change_d2_minus_d1",
+            "sd_median_error_change_d2_minus_d1",
+            "mean_absolute_error_change_d2_minus_d1",
+            "mean_coverage68_change_d2_minus_d1",
+        ])
+    else:
+        paired_summary = contrasts.groupby(
+            ["gamma", "validation_size", "arm"], sort=True
+        ).agg(
+            paired_replicates=("replicate", "nunique"),
+            mean_median_error_change_d2_minus_d1=("degree2_minus_degree1_median_error", "mean"),
+            sd_median_error_change_d2_minus_d1=("degree2_minus_degree1_median_error", "std"),
+            mean_absolute_error_change_d2_minus_d1=("absolute_error_change_d2_minus_d1", "mean"),
+            mean_coverage68_change_d2_minus_d1=("coverage68_change_d2_minus_d1", "mean"),
+        ).reset_index()
+    paired_summary.to_csv(out / "paired_degree_summary_by_gamma_size_arm.csv", index=False)
+    compact_aggregate = aggregate_by_degree.loc[
+        aggregate_by_degree.arm.isin([
+            "A_catalogue_only", "C_known_probability_ipw",
+            "D_map_plugin_ipw", "E_uncertainty_integrated_ipw",
+        ]),
+        ["inclusion_degree", "gamma", "validation_size", "arm",
+         "successful_replicates", "failed_or_non_evaluable",
+         "success_only_bias", "success_only_rmse", "success_only_68pct_coverage"],
+    ]
+    compact_aggregate.to_csv(out / "degree_model_metric_summary.csv", index=False)
 
     config = {
         "experiment": "paired_degree1_degree2_multireplicate_quadratic_logit_inclusion_pilot",
@@ -241,6 +272,8 @@ def run(args: argparse.Namespace) -> dict:
         "cross_degree_pairing_blocks": len(pairing_rows),
         "paired_input_files_checked": config["paired_input_files_checked"],
         "paired_posterior_cells": len(contrasts),
+        "paired_degree_summary": paired_summary.to_dict(orient="records"),
+        "degree_model_metric_summary": compact_aggregate.to_dict(orient="records"),
         "degree1_aggregate_audit": "PASS", "degree2_aggregate_audit": "PASS",
         "output_dir": str(out),
     }
