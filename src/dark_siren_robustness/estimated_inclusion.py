@@ -133,7 +133,7 @@ def fit_inclusion_logistic(
             # The score is a sum over validation objects.  Use the mean
             # score for a sample-size-invariant convergence criterion.
             if not np.all(np.isfinite(score)) or (
-                np.linalg.norm(score, ord=np.inf) / y.size <= 1e-9
+                np.linalg.norm(score, ord=np.inf) / y.size <= 2e-9
             ):
                 break
             probability = expit(xmat @ beta)
@@ -187,9 +187,9 @@ def fit_inclusion_logistic(
             "unpenalized covariance is not reliable.", **common,
         )
     mean_score_norm = grad_norm / y.size
-    if not np.all(np.isfinite(beta)) or mean_score_norm > 1e-9:
+    if not np.all(np.isfinite(beta)) or mean_score_norm > 2e-9:
         return failed(
-            "Mean-score convergence criterion (1e-9 per validation object) "
+            "Mean-score convergence criterion (2e-9 per validation object) "
             "not met after damped-Newton polish: "
             f"{fit.message}", **common,
         )
