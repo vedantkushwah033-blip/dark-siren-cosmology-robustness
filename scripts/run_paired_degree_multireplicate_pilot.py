@@ -108,10 +108,22 @@ def _verify_child_pair(d1: Path, d2: Path) -> dict:
         a, b = pd.read_csv(d1 / rel), pd.read_csv(d2 / rel)
         pd.testing.assert_frame_equal(a, b, check_dtype=False, check_exact=True)
         checked += 1
-    for f in sorted((d1 / "observable").glob("validation_n*.csv")):
-        rel = f.relative_to(d1)
+    left_validation = {
+        p.name for p in (d1 / "observable").glob("validation_n*.csv")
+    }
+    right_validation = {
+        p.name for p in (d2 / "observable").glob("validation_n*.csv")
+    }
+    if left_validation != right_validation:
+        raise AssertionError(
+            "validation-file sets differ across inclusion-model degrees: "
+            f"degree1={sorted(left_validation)}, degree2={sorted(right_validation)}"
+        )
+    for name in sorted(left_validation):
+        rel = Path("observable") / name
         pd.testing.assert_frame_equal(
-            pd.read_csv(f), pd.read_csv(d2 / rel), check_dtype=False, check_exact=True
+            pd.read_csv(d1 / rel), pd.read_csv(d2 / rel),
+            check_dtype=False, check_exact=True,
         )
         checked += 1
     with np.load(d1 / "results" / "log_likelihoods.npz") as a, np.load(
