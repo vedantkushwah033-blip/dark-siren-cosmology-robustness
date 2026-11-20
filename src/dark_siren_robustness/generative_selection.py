@@ -39,7 +39,7 @@ def _sample_from_density(n: int, rng: np.random.Generator, *, z_min: float, z_ma
     cdf /= cdf[-1]
     return np.interp(rng.random(n), cdf, grid)
 
-def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000, n_detected: int = 250, h0_true: float = 70.0, sigma_mpc: float = 140.0, detection_threshold_mpc: float = 250.0, z_min: float = 0.01, z_max: float = 0.40, catalogue_floor: float = 0.10, catalogue_midpoint: float = 0.22, catalogue_width: float = 0.05) -> dict[str, object]:
+def generate_synthetic_population(*, seed: int = 20261028, event_seed: int | None = None, n_parent: int = 12000, n_detected: int = 250, h0_true: float = 70.0, sigma_mpc: float = 140.0, detection_threshold_mpc: float = 250.0, z_min: float = 0.01, z_max: float = 0.40, catalogue_floor: float = 0.10, catalogue_midpoint: float = 0.22, catalogue_width: float = 0.05) -> dict[str, object]:
     """Generate parent galaxies, an incomplete catalogue, and detected GW distances.
 
     catalogue_observed and gw_events_observed are observable tables. parent_truth
@@ -58,7 +58,14 @@ def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000
         raise ValueError("detection_threshold_mpc must be finite")
     if not (0 < z_min < z_max):
         raise ValueError("redshift bounds must satisfy 0 < z_min < z_max")
+    if event_seed is not None and (
+        not isinstance(event_seed, (int, np.integer))
+        or isinstance(event_seed, (bool, np.bool_))
+        or event_seed < 0
+    ):
+        raise ValueError("event_seed must be a non-negative integer when supplied")
     rng = np.random.default_rng(int(seed))
+    event_rng = rng if event_seed is None else np.random.default_rng(int(event_seed))
     z_parent = _sample_from_density(n_parent, rng, z_min=z_min, z_max=z_max)
     p_catalogue = catalogue_inclusion_probability(
         z_parent, floor=catalogue_floor,
@@ -87,9 +94,9 @@ def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000
     max_attempts = max(100_000, n_detected * 2_000)
     while n_accepted < n_detected and attempts < max_attempts:
         batch = min(max(1000, 2 * (n_detected - n_accepted)), max_attempts - attempts)
-        host_ids = rng.choice(n_parent, size=batch, replace=True, p=host_probability)
+        host_ids = event_rng.choice(n_parent, size=batch, replace=True, p=host_probability)
         host_z = z_parent[host_ids]
-        measured_distance = rng.normal(C_KM_S * host_z / h0_true, sigma_mpc)
+        measured_distance = event_rng.normal(C_KM_S * host_z / h0_true, sigma_mpc)
         detected = measured_distance >= detection_threshold_mpc
         detected_count = int(np.count_nonzero(detected))
         n_detected_candidates += detected_count
@@ -132,7 +139,7 @@ def generate_synthetic_population(*, seed: int = 20261028, n_parent: int = 12000
     config = {
         "experiment": "synthetic_catalogue_and_gw_selection_separated",
         "status": "synthetic_design_not_real_data_or_cosmological_measurement",
-        "seed": int(seed), "n_parent": int(n_parent),
+        "seed": int(seed), "event_seed": None if event_seed is None else int(event_seed), "n_parent": int(n_parent),
         "n_catalogue_observed": int(len(catalogue_observed)),
         "n_detected_events": int(n_detected),
         "n_generation_attempts": int(attempts),
