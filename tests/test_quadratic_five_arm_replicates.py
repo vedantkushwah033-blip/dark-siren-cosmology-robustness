@@ -7,7 +7,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from run_quadratic_five_arm_replicates import (
-    ARMS, _aggregate, _paired_contrasts, _seed, run as run_replicates,
+    ARMS, _aggregate, _h0_truth, _paired_contrasts, _seed, run as run_replicates,
 )
 from audit_quadratic_five_arm_replicates import audit as audit_replicates
 from audit_quadratic_five_arm_smoke import _independent_inclusion_quadrature
@@ -171,3 +171,59 @@ def test_degree_two_replicate_orchestrator_roundtrip(tmp_path: Path):
     assert report["status"] == "PASS"
     assert report["successful_child_runs"] == 2
     assert report["planned_cells"] == 20
+
+
+
+def test_prior_predictive_h0_replicate_orchestrator_roundtrip(tmp_path: Path):
+    root = tmp_path / "prior_predictive_replicates"
+    args = type("Args", (), {
+        "master_seed": 20261121,
+        "replicates": 2,
+        "gammas": [-1.0, 0.0, 1.0],
+        "n_parent": 300,
+        "n_detected": 4,
+        "validation_frame": 100,
+        "validation_sizes": [60, 90],
+        "curvature_beta": -3.9,
+        "inclusion_degree": 1,
+        "h0_true": 70.0,
+        "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0,
+        "prior_predictive_h0": True,
+        "h0_points": 41,
+        "scott_multiplier": 0.7,
+        "quadrature_order": 3,
+        "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0,
+        "output_dir": root,
+    })()
+    result = run_replicates(args)
+    assert result["status"] == "PASS"
+    assert result["planned_cells"] == 2 * 3 * 2 * len(ARMS)
+    config = __import__("json").loads((root / "config.json").read_text())
+    schedule = config["h0_truth_schedule"]
+    assert config["h0_truth_mode"] == "prior_predictive_uniform"
+    assert len(schedule) == 2
+    assert len({row["h0_true"] for row in schedule}) == 2
+    assert all(30.0 <= row["h0_true"] < 110.0 for row in schedule)
+    ledger = pd.read_csv(root / "replicate_ledger.csv")
+    for rep in (0, 1):
+        values = ledger.loc[ledger.replicate == rep, "h0_true"].unique()
+        assert len(values) == 1
+        assert values[0] == schedule[rep]["h0_true"]
+    report = audit_replicates(root)
+    assert report["status"] == "PASS"
+    assert report["successful_child_runs"] == 6
+    assert report["planned_cells"] == 2 * 3 * 2 * len(ARMS)
+
+
+def test_h0_truth_seed_helper_is_deterministic_and_validates_support():
+    first = [_h0_truth(20261121, rep, 30.0, 110.0) for rep in range(20)]
+    second = [_h0_truth(20261121, rep, 30.0, 110.0) for rep in range(20)]
+    assert first == second
+    assert len({seed for seed, _ in first}) == 20
+    assert len({truth for _, truth in first}) == 20
+    assert all(30.0 <= truth < 110.0 for _, truth in first)
+    import pytest
+    with pytest.raises(ValueError):
+        _h0_truth(1, 0, 30.0, 30.0)
