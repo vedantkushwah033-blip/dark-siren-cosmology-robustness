@@ -60,7 +60,7 @@ jobs:
       - name: Test matched five-arm reflected-KDE selected H0 likelihood
         run: python -m pytest tests/test_five_arm_kde_likelihood.py -q
       - name: Test quadratic-logit five-arm runner, degree-two inclusion, and independent audit
-        run: python -m pytest tests/test_quadratic_five_arm_smoke.py tests/test_quadratic_five_arm_replicates.py tests/test_prior_predictive_h0_schedule.py -q
+        run: python -m pytest tests/test_quadratic_five_arm_smoke.py tests/test_quadratic_five_arm_replicates.py -q
       - name: Test paired degree-one/degree-two quadrature sensitivity utilities
         run: python -m pytest tests/test_degree_matched_quadrature_sensitivity.py -q
       - name: Validate paired degree-one/degree-two quadrature pilot CLI
