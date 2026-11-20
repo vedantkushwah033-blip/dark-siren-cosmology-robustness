@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from run_quadratic_five_arm_replicates import (
     ARMS, _aggregate, _paired_contrasts, _seed, _replicate_truth,
 )
+from run_quadratic_five_arm_smoke import _posterior_summary
 from audit_quadratic_five_arm_smoke import _independent_inclusion_quadrature
 from dark_siren_robustness.generative_selection import generate_quadratic_logit_inclusion_samples
 
@@ -156,3 +157,10 @@ def test_invalid_truth_mode_fails_closed():
     import pytest
     with pytest.raises(ValueError,match="truth mode"):
         _replicate_truth(1,0,"unknown",30.0,110.0,70.0)
+
+
+def test_posterior_rank_is_prior_cdf_for_uniform_likelihood():
+    grid=np.linspace(30.0,110.0,801)
+    truth=73.25
+    result=_posterior_summary(grid,np.zeros_like(grid),30.0,110.0,truth)
+    assert abs(result["posterior_rank"]-(truth-30.0)/80.0)<2e-4
