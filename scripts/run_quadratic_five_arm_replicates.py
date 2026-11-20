@@ -149,6 +149,7 @@ def run(args: argparse.Namespace) -> dict:
                     "--validation-frame",str(args.validation_frame),
                     "--validation-sizes",",".join(map(str,args.validation_sizes)),
                     "--curvature-gamma",str(gamma),"--curvature-beta",str(args.curvature_beta),
+                    "--inclusion-degree",str(int(getattr(args,"inclusion_degree",1))),
                     "--h0-true",str(args.h0_true),"--h0-prior-min",str(prior_min),
                     "--h0-prior-max",str(prior_max),"--h0-points",str(args.h0_points),
                     "--scott-multiplier",str(args.scott_multiplier),
@@ -228,7 +229,7 @@ def run(args: argparse.Namespace) -> dict:
         "master_seed":args.master_seed,"replicates":args.replicates,
         "gammas":args.gammas,"n_parent":args.n_parent,"n_detected":args.n_detected,
         "validation_frame":args.validation_frame,"validation_sizes":args.validation_sizes,
-        "curvature_beta":args.curvature_beta,"h0_true":args.h0_true,"h0_prior_support":[prior_min,prior_max],
+        "curvature_beta":args.curvature_beta,"inclusion_model_degree":int(getattr(args,"inclusion_degree",1)),"h0_true":args.h0_true,"h0_prior_support":[prior_min,prior_max],
         "h0_points":args.h0_points,"scott_multiplier":args.scott_multiplier,
         "quadrature_order":args.quadrature_order,"sigma_mpc":args.sigma_mpc,
         "detection_threshold_mpc":args.detection_threshold_mpc,
@@ -258,6 +259,7 @@ def main():
     p.add_argument("--validation-frame",type=int,default=500)
     p.add_argument("--validation-sizes",type=lambda x:[int(v) for v in x.split(",")],default=[100,300,500])
     p.add_argument("--curvature-beta",type=float,default=-3.9)
+    p.add_argument("--inclusion-degree",type=int,choices=(1,2),default=1)
     p.add_argument("--h0-true",type=float,default=70.0)
     p.add_argument("--h0-prior-min",type=float,default=50.0)
     p.add_argument("--h0-prior-max",type=float,default=90.0)
