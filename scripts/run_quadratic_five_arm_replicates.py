@@ -39,6 +39,8 @@ def _seed(master: int, replicate: int, stream: int) -> int:
 
 
 def _h0_truth(master: int, replicate: int, prior_min: float, prior_max: float) -> tuple[int, float]:
+    if not np.isfinite(prior_min) or not np.isfinite(prior_max) or prior_min >= prior_max:
+        raise ValueError("H0 prior bounds must be finite and increasing")
     """Draw one independent H0 truth from a dedicated per-replicate stream."""
     seed = _seed(master, replicate, 2)
     truth = float(np.random.default_rng(seed).uniform(prior_min, prior_max))
