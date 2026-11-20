@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import pandas as pd
 import pytest
+from scipy.integrate import trapezoid
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from run_degree_matched_five_arm_quadrature_sensitivity import _posterior, _compare_inputs
@@ -14,7 +15,7 @@ def test_independent_grid_posterior_normalizes_and_recovers_gaussian_quantiles()
     grid = np.linspace(-8.0, 8.0, 16001)
     loglike = -0.5 * ((grid - 1.25) / 0.8) ** 2
     density, quantiles = _posterior(grid, loglike)
-    assert np.isclose(np.trapezoid(density, grid), 1.0, atol=1e-10)
+    assert np.isclose(trapezoid(density, grid), 1.0, atol=1e-10)
     assert quantiles["q500"] == pytest.approx(1.25, abs=1e-3)
     assert quantiles["q160"] == pytest.approx(1.25 - 0.9944579 * 0.8, abs=2e-3)
     assert quantiles["q840"] == pytest.approx(1.25 + 0.9944579 * 0.8, abs=2e-3)
