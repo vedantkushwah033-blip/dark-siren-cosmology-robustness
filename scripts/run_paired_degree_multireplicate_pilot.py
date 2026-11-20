@@ -174,13 +174,21 @@ def run(args: argparse.Namespace) -> dict:
         )
         (out / f"degree{degree}.audit.stdout.txt").write_text(audit.stdout)
         (out / f"degree{degree}.audit.stderr.txt").write_text(audit.stderr)
+        runner_result = None
+        if proc.stdout.strip():
+            try:
+                runner_result = json.loads(proc.stdout)
+            except json.JSONDecodeError:
+                runner_result = None
         audit_report = None
         if (child / "audit_report.json").is_file():
             audit_report = json.loads((child / "audit_report.json").read_text())
         config_path = child / "config.json"
         child_config = json.loads(config_path.read_text()) if config_path.exists() else {}
         child_status = "PASS" if (
-            proc.returncode == 0 and audit.returncode == 0
+            proc.returncode == 0 and runner_result
+            and runner_result.get("status") == "PASS"
+            and audit.returncode == 0
             and audit_report and audit_report.get("status") == "PASS"
         ) else "INCOMPLETE"
         runs.append({
