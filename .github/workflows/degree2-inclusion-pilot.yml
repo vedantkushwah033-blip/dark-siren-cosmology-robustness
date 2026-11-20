@@ -1,0 +1,77 @@
+name: degree-two-inclusion-pilot
+
+on:
+  push:
+    branches:
+      - research/degree2-inclusion-model-pilot-20261120
+    paths:
+      - "src/dark_siren_robustness/inclusion_posterior.py"
+      - "scripts/run_quadratic_five_arm_smoke.py"
+      - "scripts/audit_quadratic_five_arm_smoke.py"
+      - "scripts/run_quadratic_five_arm_replicates.py"
+      - "scripts/audit_quadratic_five_arm_replicates.py"
+      - "scripts/run_degree_matched_five_arm_quadrature_sensitivity.py"
+      - "scripts/run_paired_degree_inclusion_multireplicate.py"
+      - "tests/test_quadratic_five_arm_smoke.py"
+      - "tests/test_quadratic_five_arm_replicates.py"
+      - "tests/test_degree_matched_quadrature_sensitivity.py"
+      - "tests/test_paired_degree_inclusion_multireplicate.py"
+      - ".github/workflows/degree2-inclusion-pilot.yml"
+  pull_request:
+    paths:
+      - "src/dark_siren_robustness/inclusion_posterior.py"
+      - "scripts/run_quadratic_five_arm_smoke.py"
+      - "scripts/audit_quadratic_five_arm_smoke.py"
+      - "scripts/run_quadratic_five_arm_replicates.py"
+      - "scripts/audit_quadratic_five_arm_replicates.py"
+      - "scripts/run_degree_matched_five_arm_quadrature_sensitivity.py"
+      - "scripts/run_paired_degree_inclusion_multireplicate.py"
+      - "tests/test_quadratic_five_arm_smoke.py"
+      - "tests/test_quadratic_five_arm_replicates.py"
+      - "tests/test_degree_matched_quadrature_sensitivity.py"
+      - "tests/test_paired_degree_inclusion_multireplicate.py"
+      - ".github/workflows/degree2-inclusion-pilot.yml"
+
+concurrency:
+  group: degree2-inclusion-pilot-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  degree-two-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Test degree-one/degree-two smoke, orchestration, and quadrature utilities
+        run: python -m pytest tests/test_quadratic_five_arm_smoke.py tests/test_quadratic_five_arm_replicates.py tests/test_degree_matched_quadrature_sensitivity.py -q
+      - name: Run paired degree-one/degree-two quadrature sensitivity pilot
+        run: |
+          python scripts/run_degree_matched_five_arm_quadrature_sensitivity.py \
+            --seed 20261120 --validation-seed 20261121 --n-parent 400 \
+            --n-detected 4 --validation-frame 300 --validation-sizes 100,300 \
+            --gamma 1.0 --h0-prior-min 30 --h0-prior-max 110 \
+            --h0-points 41 --orders 5,7,9 \
+            --output-dir artifacts/degree_matched_quadrature_sensitivity
+      - name: Test paired degree-model multi-replicate utilities
+        run: python -m pytest tests/test_paired_degree_inclusion_multireplicate.py -q
+      - name: Run paired degree-one/degree-two multi-replicate pilot
+        run: |
+          python scripts/run_paired_degree_inclusion_multireplicate.py \
+            --master-seed 202611202 --replicates 10 --gammas=-1,0,1 \
+            --n-parent 1200 --n-detected 30 --validation-frame 500 \
+            --validation-sizes 100,300,500 --h0-points 81 --quadrature-order 5 \
+            --output-dir artifacts/paired_degree_multireplicate
+      - name: Upload paired quadrature sensitivity artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: degree-matched-quadrature-sensitivity
+          path: |
+            artifacts/degree_matched_quadrature_sensitivity/
+            artifacts/paired_degree_multireplicate/
+          if-no-files-found: warn

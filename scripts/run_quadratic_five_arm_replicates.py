@@ -105,6 +105,9 @@ def run(args: argparse.Namespace) -> dict:
         raise ValueError("output directory must be empty")
     if args.replicates < 2 or args.master_seed < 0:
         raise ValueError("need at least two replicates and a nonnegative master seed")
+    inclusion_degree = int(getattr(args, "inclusion_degree", 1))
+    if inclusion_degree not in (1, 2):
+        raise ValueError("inclusion degree must be 1 or 2")
     if not args.gammas or len(set(args.gammas)) != len(args.gammas):
         raise ValueError("gamma values must be nonempty and unique")
     if sorted(args.gammas) != args.gammas:
@@ -149,6 +152,7 @@ def run(args: argparse.Namespace) -> dict:
                     "--validation-frame",str(args.validation_frame),
                     "--validation-sizes",",".join(map(str,args.validation_sizes)),
                     "--curvature-gamma",str(gamma),"--curvature-beta",str(args.curvature_beta),
+                    "--inclusion-degree",str(inclusion_degree),
                     "--h0-true",str(args.h0_true),"--h0-prior-min",str(prior_min),
                     "--h0-prior-max",str(prior_max),"--h0-points",str(args.h0_points),
                     "--scott-multiplier",str(args.scott_multiplier),
@@ -176,7 +180,8 @@ def run(args: argparse.Namespace) -> dict:
                 cfg=json.loads((child/"config.json").read_text())
                 if (int(cfg["seed"])!=analysis_seed or int(cfg["validation_seed"])!=validation_seed
                     or float(cfg["curvature_gamma"])!=float(gamma)
-                    or int(cfg["n_detected"])!=args.n_detected):
+                    or int(cfg["n_detected"])!=args.n_detected
+                    or int(cfg.get("inclusion_model_degree",1))!=inclusion_degree):
                     raise RuntimeError("child configuration differs from frozen replicate design")
                 audit_status="PASS"
                 sm=pd.read_csv(child/"results"/"posterior_summaries.csv")
@@ -228,7 +233,7 @@ def run(args: argparse.Namespace) -> dict:
         "master_seed":args.master_seed,"replicates":args.replicates,
         "gammas":args.gammas,"n_parent":args.n_parent,"n_detected":args.n_detected,
         "validation_frame":args.validation_frame,"validation_sizes":args.validation_sizes,
-        "curvature_beta":args.curvature_beta,"h0_true":args.h0_true,"h0_prior_support":[prior_min,prior_max],
+        "curvature_beta":args.curvature_beta,"inclusion_model_degree":inclusion_degree,"h0_true":args.h0_true,"h0_prior_support":[prior_min,prior_max],
         "h0_points":args.h0_points,"scott_multiplier":args.scott_multiplier,
         "quadrature_order":args.quadrature_order,"sigma_mpc":args.sigma_mpc,
         "detection_threshold_mpc":args.detection_threshold_mpc,
@@ -258,6 +263,7 @@ def main():
     p.add_argument("--validation-frame",type=int,default=500)
     p.add_argument("--validation-sizes",type=lambda x:[int(v) for v in x.split(",")],default=[100,300,500])
     p.add_argument("--curvature-beta",type=float,default=-3.9)
+    p.add_argument("--inclusion-degree",type=int,choices=(1,2),default=1)
     p.add_argument("--h0-true",type=float,default=70.0)
     p.add_argument("--h0-prior-min",type=float,default=50.0)
     p.add_argument("--h0-prior-max",type=float,default=90.0)
