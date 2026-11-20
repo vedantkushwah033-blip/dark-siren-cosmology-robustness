@@ -1,0 +1,90 @@
+name: quadratic-five-arm-wide-prior-paired-seed-100rep
+
+on:
+  push:
+    branches:
+      - research/quadratic-five-arm-30event-multirep-readout-20261119
+    paths:
+      - .github/workflows/quadratic-five-arm-wide-prior-paired-seed-100rep.yml
+  workflow_dispatch:
+
+concurrency:
+  group: quadratic-five-arm-wide-prior-paired-seed-100rep-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  paired-wide-prior:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Compile and run prior-support regression tests
+        run: |
+          python -m py_compile \
+            scripts/run_quadratic_five_arm_smoke.py \
+            scripts/audit_quadratic_five_arm_smoke.py \
+            scripts/run_quadratic_five_arm_replicates.py \
+            scripts/audit_quadratic_five_arm_replicates.py
+          pytest tests/test_quadratic_five_arm_smoke.py \
+            tests/test_quadratic_five_arm_replicates.py -q
+      - name: Run 100 replicates on expanded prior with seed paired to original narrow-prior stream
+        run: |
+          python scripts/run_quadratic_five_arm_replicates.py \
+            --master-seed 2026111929 \
+            --replicates 100 \
+            --gammas=-1,0,1 \
+            --n-parent 1200 \
+            --n-detected 30 \
+            --validation-frame 500 \
+            --validation-sizes 100,300,500 \
+            --curvature-beta -3.9 \
+            --h0-true 70 \
+            --h0-prior-min 30 \
+            --h0-prior-max 110 \
+            --h0-points 561 \
+            --scott-multiplier 0.7 \
+            --quadrature-order 5 \
+            --sigma-mpc 140 \
+            --detection-threshold-mpc 250 \
+            --output-dir artifacts/quadratic_five_arm_30event_wide_prior_paired_seed_100rep
+      - name: Independently audit all 4500 planned cells
+        if: always()
+        run: |
+          if [ -f artifacts/quadratic_five_arm_30event_wide_prior_paired_seed_100rep/replicate_ledger.csv ]; then
+            python scripts/audit_quadratic_five_arm_replicates.py \
+              artifacts/quadratic_five_arm_30event_wide_prior_paired_seed_100rep \
+              --output artifacts/quadratic_five_arm_30event_wide_prior_paired_seed_100rep/independent_orchestration_audit.json
+          fi
+      - name: Assert lifecycle and paired seed metadata
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          root=Path("artifacts/quadratic_five_arm_30event_wide_prior_paired_seed_100rep")
+          cfg=json.loads((root/"config.json").read_text())
+          audit=json.loads((root/"independent_orchestration_audit.json").read_text())
+          ledger=pd.read_csv(root/"replicate_ledger.csv")
+          assert cfg["master_seed"] == 2026111929
+          assert cfg["h0_prior_support"] == [30.0,110.0]
+          assert len(ledger) == 4500
+          assert audit["status"] == "PASS" and audit["successful_child_runs"] == 300
+          assert (ledger.status == "SUCCESS").all()
+          print(json.dumps(audit,indent=2))
+          PY
+      - name: Upload complete or partial paired wide-prior evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quadratic-five-arm-30event-wide-prior-paired-seed-100rep
+          path: artifacts/quadratic_five_arm_30event_wide_prior_paired_seed_100rep/
+          if-no-files-found: warn
+          retention-days: 90
