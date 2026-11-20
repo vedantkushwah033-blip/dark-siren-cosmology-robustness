@@ -18,8 +18,13 @@ def test_child_seed_schedule_is_deterministic_and_distinct():
     first=[(_seed(2026111929,r,0),_seed(2026111929,r,1)) for r in range(20)]
     second=[(_seed(2026111929,r,0),_seed(2026111929,r,1)) for r in range(20)]
     assert first==second
-    flattened=[x for pair in first for x in pair]
-    assert len(set(flattened))==40
+    from run_quadratic_five_arm_replicates import _h0_truth
+    truth_seeds=[_seed(2026111929,r,2) for r in range(20)]
+    truths=[_h0_truth(2026111929,r,30.0,110.0) for r in range(20)]
+    flattened=[x for pair in first for x in pair]+truth_seeds
+    assert len(set(flattened))==60
+    assert truths==[_h0_truth(2026111929,r,30.0,110.0) for r in range(20)]
+    assert all(30.0 <= value < 110.0 for value in truths)
 
 
 def test_quadratic_five_arm_aggregate_and_paired_contrasts():
@@ -153,6 +158,7 @@ def test_degree_two_replicate_orchestrator_roundtrip(tmp_path: Path):
         "curvature_beta": -3.9,
         "inclusion_degree": 2,
         "h0_true": 70.0,
+        "h0_truth_mode": "prior_predictive",
         "h0_prior_min": 30.0,
         "h0_prior_max": 110.0,
         "h0_points": 41,
@@ -167,6 +173,12 @@ def test_degree_two_replicate_orchestrator_roundtrip(tmp_path: Path):
     assert result["planned_cells"] == 20
     config = __import__("json").loads((root / "config.json").read_text())
     assert config["inclusion_model_degree"] == 2
+    assert config["h0_truth_mode"] == "prior_predictive"
+    schedule=config["seed_schedule"]
+    assert len(schedule)==2
+    assert all(30.0 <= row["h0_true"] < 110.0 for row in schedule)
+    assert schedule[0]["h0_true"] != schedule[1]["h0_true"]
+    assert all(row["h0_truth_seed"] == _seed(20261120,row["replicate"],2) for row in schedule)
     report = audit_replicates(root)
     assert report["status"] == "PASS"
     assert report["successful_child_runs"] == 2
