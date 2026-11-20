@@ -184,11 +184,12 @@ def test_retention_fraction_scenarios_share_uniforms_and_validation_ids(tmp_path
 def test_independent_score_guard_is_normalized_by_validation_size():
     from scripts.audit_finite_validation_probability_benchmark import (
         MAX_MEAN_SCORE_INF_NORM,
+        _mean_score_inf_norm,
     )
 
     # The same per-object score must be judged identically at different n.
     for n_validation in (100, 300, 1000):
         accepted_sum_score = 1.5e-9 * n_validation
         rejected_sum_score = 2.5e-9 * n_validation
-        assert accepted_sum_score / n_validation <= MAX_MEAN_SCORE_INF_NORM
-        assert rejected_sum_score / n_validation > MAX_MEAN_SCORE_INF_NORM
+        assert _mean_score_inf_norm(np.asarray([accepted_sum_score]), n_validation) <= MAX_MEAN_SCORE_INF_NORM
+        assert _mean_score_inf_norm(np.asarray([rejected_sum_score]), n_validation) > MAX_MEAN_SCORE_INF_NORM
