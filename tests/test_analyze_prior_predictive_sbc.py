@@ -64,3 +64,71 @@ def test_detailed_readout_requires_complete_audited_paired_cells(tmp_path):
         & (paired.metric == "squared_median_error")
     ].iloc[0]
     assert e_vs_c.replicates == 3
+
+
+def test_mean_ci_rejects_nonfinite_values_instead_of_silently_dropping(tmp_path):
+    import pytest
+    with pytest.raises(AssertionError, match="finite vector"):
+        _mean_ci(np.array([1.0, np.nan, 2.0]))
+
+
+def test_detailed_readout_rejects_truth_mismatch_within_replicate(tmp_path):
+    root = tmp_path / "input"
+    root.mkdir()
+    ledger, summaries, diagnostics = [], [], []
+    for rep, truth in [(0, 65.0), (1, 75.0)]:
+        for arm in ARMS:
+            ledger.append({
+                "replicate": rep, "gamma": 0.0, "validation_size": 100,
+                "arm": arm, "status": "SUCCESS", "audit_status": "PASS",
+            })
+            # Deliberately corrupt one arm's truth while retaining otherwise
+            # complete and successful lifecycle records.
+            arm_truth = truth + (1.0 if rep == 0 and arm == ARMS[-1] else 0.0)
+            summaries.append({
+                "replicate": rep, "gamma": 0.0, "validation_size": 100,
+                "arm": arm, "status": "SUCCESS", "h0_true": arm_truth,
+                "median_error": 0.1, "posterior_rank": 0.5,
+                "q16": arm_truth - 2.0, "q84": arm_truth + 2.0,
+            })
+            diagnostics.append({
+                "replicate": rep, "gamma": 0.0, "validation_size": 100,
+                "arm": arm, "kish_ess": 25.0,
+                "minimum_node_kish_ess": 15.0,
+            })
+    pd.DataFrame(ledger).to_csv(root / "replicate_ledger.csv", index=False)
+    pd.DataFrame(summaries).to_csv(root / "replicate_posterior_summaries.csv", index=False)
+    pd.DataFrame(diagnostics).to_csv(root / "replicate_weight_diagnostics.csv", index=False)
+    import pytest
+    with pytest.raises(AssertionError, match="H0 truth must be identical"):
+        analyze(root, tmp_path / "out")
+
+
+def test_detailed_readout_rejects_nonfinite_posterior_error(tmp_path):
+    import pytest
+    root = tmp_path / "input"
+    root.mkdir()
+    ledger, summaries, diagnostics = [], [], []
+    for rep, truth in [(0, 65.0), (1, 75.0)]:
+        for arm in ARMS:
+            ledger.append({
+                "replicate": rep, "gamma": 0.0, "validation_size": 100,
+                "arm": arm, "status": "SUCCESS", "audit_status": "PASS",
+            })
+            summaries.append({
+                "replicate": rep, "gamma": 0.0, "validation_size": 100,
+                "arm": arm, "status": "SUCCESS", "h0_true": truth,
+                "median_error": np.nan if rep == 0 and arm == ARMS[0] else 0.1,
+                "posterior_rank": 0.5, "q16": truth - 2.0, "q84": truth + 2.0,
+            })
+            diagnostics.append({
+                "replicate": rep, "gamma": 0.0, "validation_size": 100,
+                "arm": arm, "kish_ess": 25.0,
+                "minimum_node_kish_ess": 15.0,
+            })
+    pd.DataFrame(ledger).to_csv(root / "replicate_ledger.csv", index=False)
+    pd.DataFrame(summaries).to_csv(root / "replicate_posterior_summaries.csv", index=False)
+    pd.DataFrame(diagnostics).to_csv(root / "replicate_weight_diagnostics.csv", index=False)
+    import pytest
+    with pytest.raises(AssertionError, match="non-finite posterior summary"):
+        analyze(root, tmp_path / "out")
