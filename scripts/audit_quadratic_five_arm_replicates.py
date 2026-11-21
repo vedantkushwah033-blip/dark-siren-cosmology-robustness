@@ -77,6 +77,9 @@ def _expected_aggregate(summaries: pd.DataFrame, ledger: pd.DataFrame,
     rows=[]
     for (gamma,nval),_ in ledger.groupby(["gamma","validation_size"],sort=True):
         for arm in ARMS:
+            arm_ledger=ledger[(ledger.gamma==gamma)&(ledger.validation_size==nval)
+                &(ledger.arm==arm)]
+            lifecycle_counts=arm_ledger.status.value_counts().to_dict()
             g=summaries[(summaries.gamma==gamma)&(summaries.validation_size==nval)
                 &(summaries.arm==arm)&(summaries.status=="SUCCESS")]
             errors=g.median_error.to_numpy(float)
@@ -86,6 +89,9 @@ def _expected_aggregate(summaries: pd.DataFrame, ledger: pd.DataFrame,
             failures=replicates-len(g)
             rows.append({"gamma":float(gamma),"validation_size":int(nval),"arm":arm,
                 "planned_replicates":replicates,"successful_replicates":len(g),
+                "non_evaluable_replicates":int(lifecycle_counts.get("NON_EVALUABLE",0)),
+                "failed_replicates":int(lifecycle_counts.get("FAILED",0)),
+                "not_run_replicates":int(lifecycle_counts.get("NOT_RUN",0)),
                 "failed_or_non_evaluable":failures,
                 "success_only_bias":float(errors.mean()) if len(errors) else np.nan,
                 "success_only_rmse":float(np.sqrt(np.mean(errors**2))) if len(errors) else np.nan,
