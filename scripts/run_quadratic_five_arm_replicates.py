@@ -62,10 +62,16 @@ def _paired_contrasts(summaries: pd.DataFrame) -> pd.DataFrame:
         ["replicate", "gamma", "validation_size"], sort=True
     ):
         by_arm = {str(row.arm): row for row in group.itertuples(index=False)}
-        if not all(a in by_arm and by_arm[a].status == "SUCCESS" for a in ARMS):
-            continue
         for arm in ARMS[1:]:
+            if arm not in by_arm or by_arm[arm].status != "SUCCESS":
+                continue
             for reference in ("A_catalogue_only", "C_known_probability_ipw"):
+                # Never emit a self-comparison, and require success only for
+                # the two arms in this particular paired contrast.
+                if arm == reference or reference not in by_arm:
+                    continue
+                if by_arm[reference].status != "SUCCESS":
+                    continue
                 x, y = by_arm[arm], by_arm[reference]
                 rows.append({
                     "replicate": int(rep), "gamma": float(gamma),
