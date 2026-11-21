@@ -296,6 +296,10 @@ def audit(root: Path) -> dict:
                 "n_parent", "curvature_gamma", "curvature_beta", "inclusion_model_degree"):
         if shared_provenance.get(key) != config.get(key):
             raise AssertionError(f"shared-input provenance mismatch: {key}")
+    expected_x2_center = float(config.get("quadratic_calibration", {}).get("x2_center", 0.0))
+    if not np.isclose(float(shared_provenance.get("quadratic_basis_center", np.nan)),
+                      expected_x2_center, rtol=0.0, atol=1e-14):
+        raise AssertionError("shared-input quadratic-basis provenance mismatch")
     if config["status"] != "engineering_smoke_not_confirmatory_not_observational":
         raise AssertionError("artifact claim-status label is missing or unexpected")
     inclusion_degree = int(config.get("inclusion_model_degree", 1))
