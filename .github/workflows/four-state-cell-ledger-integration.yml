@@ -6,7 +6,7 @@ on:
       - research/four-state-cell-ledger-runner-integration-20261121
   pull_request:
     branches:
-      - research/four-state-cell-ledger-runner-integration-20261121
+      - research/prior-predictive-h0-runner-stage0-20261121
   workflow_dispatch:
 
 concurrency:
