@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import tempfile
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -58,19 +59,27 @@ def write_shared_input_manifest(
     destination = root / "shared_input_manifest.json"
     if destination.exists():
         raise FileExistsError("shared-input manifest already exists; frozen bundles are immutable")
-    temporary = destination.with_suffix(".json.tmp")
-    with temporary.open("x", encoding="utf-8") as stream:
-        json.dump(manifest, stream, indent=2, sort_keys=True)
-        stream.write("\n")
-        stream.flush()
-        os.fsync(stream.fileno())
-    # Atomic no-replacement publication: a concurrent writer cannot silently
-    # replace a bundle manifest after another worker has frozen it.
-    os.link(temporary, destination)
-    temporary.unlink()
-    directory_fd = os.open(root, os.O_RDONLY)
+    fd, temporary_name = tempfile.mkstemp(
+        prefix=".shared_input_manifest.", suffix=".tmp", dir=root
+    )
+    temporary = Path(temporary_name)
     try:
-        os.fsync(directory_fd)
+        with os.fdopen(fd, "w", encoding="utf-8", newline="") as stream:
+            json.dump(manifest, stream, indent=2, sort_keys=True)
+            stream.write("\\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        # Atomic no-replacement publication: a concurrent writer cannot silently
+        # replace a bundle manifest after another worker has frozen it.
+        os.link(temporary, destination)
+        directory_fd = os.open(root, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
     finally:
-        os.close(directory_fd)
+        try:
+            temporary.unlink()
+        except FileNotFoundError:
+            pass
     return manifest
