@@ -99,7 +99,7 @@ def test_failed_and_not_run_cannot_claim_audit_pass():
 def test_plan_and_ledger_reject_missing_duplicate_and_extra_keys():
     plan = _plan()
     rows = initial_ledger(plan)
-    with pytest.raises(ValueError, match="duplicate cell"):
+    with pytest.raises(ValueError, match="duplicate planned cell"):
         initial_ledger(plan + [plan[0]])
     with pytest.raises(ValueError, match="duplicate cell keys"):
         validate_ledger(plan, rows + [rows[0]])
