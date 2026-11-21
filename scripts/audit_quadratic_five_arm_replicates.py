@@ -25,6 +25,19 @@ def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _same_series(left: pd.Series, right: pd.Series) -> bool:
+    """Compare CSV/JSON values without false failures from float text round-trips."""
+    if pd.api.types.is_bool_dtype(left.dtype) or pd.api.types.is_bool_dtype(right.dtype):
+        return left.fillna(False).astype(bool).equals(right.fillna(False).astype(bool))
+    if pd.api.types.is_numeric_dtype(left.dtype) and pd.api.types.is_numeric_dtype(right.dtype):
+        return bool(np.allclose(
+            pd.to_numeric(left, errors="coerce").to_numpy(float),
+            pd.to_numeric(right, errors="coerce").to_numpy(float),
+            rtol=0.0, atol=1e-12, equal_nan=True,
+        ))
+    return left.fillna("").astype(str).equals(right.fillna("").astype(str))
+
+
 def _seed(master: int, replicate: int, stream: int) -> int:
     return int(np.random.SeedSequence([master,replicate,stream]).generate_state(1,dtype=np.uint32)[0])
 
@@ -130,25 +143,25 @@ def audit(root: Path) -> dict:
     for column in checkpoint_plan.columns:
         if column=="cell_id":
             continue  # Cell IDs are compared as keys above, not as value columns.
-        left=checkpoint_plan.set_index("cell_id")[column].fillna("").astype(str).sort_index()
-        right=planned.set_index("cell_id")[column].fillna("").astype(str).sort_index()
-        if not left.equals(right):
+        left=checkpoint_plan.set_index("cell_id")[column].sort_index()
+        right=planned.set_index("cell_id")[column].sort_index()
+        if not _same_series(left,right):
             raise AssertionError(f"checkpoint/exported planned-cell mismatch: {column}")
     for column in checkpoint_ledger.columns:
         if column=="cell_id":
             continue  # Cell IDs are compared as keys above, not as value columns.
-        left=checkpoint_ledger.set_index("cell_id")[column].fillna("").astype(str).sort_index()
-        right=ledger.set_index("cell_id")[column].fillna("").astype(str).sort_index()
-        if not left.equals(right):
+        left=checkpoint_ledger.set_index("cell_id")[column].sort_index()
+        right=ledger.set_index("cell_id")[column].sort_index()
+        if not _same_series(left,right):
             raise AssertionError(f"checkpoint/exported lifecycle mismatch: {column}")
     for column in checkpoint_plan.columns:
         if column=="cell_id":
             continue
         if column not in checkpoint_ledger.columns:
             raise AssertionError(f"checkpoint ledger omits planned provenance field: {column}")
-        expected=checkpoint_plan.set_index("cell_id")[column].fillna("").astype(str).sort_index()
-        observed=checkpoint_ledger.set_index("cell_id")[column].fillna("").astype(str).sort_index()
-        if not expected.equals(observed):
+        expected=checkpoint_plan.set_index("cell_id")[column].sort_index()
+        observed=checkpoint_ledger.set_index("cell_id")[column].sort_index()
+        if not _same_series(expected,observed):
             raise AssertionError(f"checkpoint plan/ledger provenance mismatch: {column}")
     allowed_status={"SUCCESS","NON_EVALUABLE","FAILED","NOT_RUN"}
     allowed_audit={"PASS","NOT_PASS","NOT_RUN"}
