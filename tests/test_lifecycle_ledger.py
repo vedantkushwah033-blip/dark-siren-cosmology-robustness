@@ -677,3 +677,28 @@ def test_checkpoint_start_claim_requires_timestamp(tmp_path):
     with pytest.raises(ValueError, match="UTC offset"):
         mark_cell_started(path, key, "2026-11-21T05:00:00")
     assert read_checkpoint(path)["cell_ledger"][0]["started_at"] is None
+
+
+def test_checkpoint_rejects_terminal_outcome_without_active_start_claim(tmp_path):
+    path = tmp_path / "checkpoint.json"
+    key = (0, 0.0, 100, "A")
+    initialize_checkpoint(path, _checkpoint_plan())
+
+    # Supplying timestamps to the terminal call must not bypass mark_cell_started.
+    with pytest.raises(ValueError, match="active cell with a persisted start"):
+        record_cell_outcome(
+            path, key, status="SUCCESS", audit_status="PASS",
+            started_at="2026-11-21T05:00:00Z",
+            completed_at="2026-11-21T05:01:00Z",
+            audit_report_path="audit/A.json",
+        )
+
+    # A cell finalized as not scheduled cannot later be committed as evaluated.
+    finalize_interrupted_cells(path, "No worker was scheduled.")
+    with pytest.raises(ValueError, match="active cell with a persisted start"):
+        record_cell_outcome(
+            path, key, status="SUCCESS", audit_status="PASS",
+            started_at="2026-11-21T05:00:00Z",
+            completed_at="2026-11-21T05:01:00Z",
+            audit_report_path="audit/A.json",
+        )
