@@ -155,27 +155,49 @@ def mark_cell_started(path: str | Path, key: tuple, started_at: str) -> dict:
         return _write_updated(path, checkpoint)
 
 
-def record_cell_outcome(path: str | Path, key: tuple, **outcome) -> dict:
-    """Persist one audited terminal cell outcome without changing plan provenance."""
+def record_cell_outcomes(path: str | Path, outcomes: Iterable[Mapping]) -> dict:
+    """Atomically persist a batch of audited outcomes as one checkpoint transaction.
+
+    A child run produces a complete validation-size × arm block. Writing the
+    block in one atomic replacement prevents a crash from leaving only some
+    cells terminal and making the child impossible to resume consistently.
+    """
+    batch = [dict(item) for item in outcomes]
+    if not batch:
+        raise ValueError("outcome batch cannot be empty")
+    keys = [tuple(item["key"]) for item in batch]
+    if len(set(keys)) != len(keys):
+        raise ValueError("outcome batch contains duplicate cell keys")
     with _checkpoint_lock(path):
         checkpoint = read_checkpoint(path)
-        matches = [i for i, row in enumerate(checkpoint["cell_ledger"])
-                   if _cell_key(row) == tuple(key)]
-        if len(matches) != 1:
-            raise KeyError(f"planned cell key must match exactly once: {key}")
-        index = matches[0]
-        current = checkpoint["cell_ledger"][index]
-        if current["status"] != "NOT_RUN":
-            raise ValueError("terminal cell outcome cannot be overwritten")
-        if outcome.get("status") in {"SUCCESS", "NON_EVALUABLE", "FAILED"} and not current.get("started_at"):
-            raise ValueError("terminal outcomes require a persisted start transition")
-        persisted_start = current.get("started_at")
-        supplied_start = outcome.get("started_at")
-        if persisted_start and supplied_start not in (None, persisted_start):
-            raise ValueError("persisted cell start timestamp cannot be changed")
-        outcome["started_at"] = persisted_start or supplied_start
-        checkpoint["cell_ledger"][index] = set_cell_outcome(current, **outcome)
+        positions = {_cell_key(row): i for i, row in enumerate(checkpoint["cell_ledger"])}
+        prepared = []
+        for item in batch:
+            key = tuple(item["key"])
+            if key not in positions:
+                raise KeyError(f"planned cell key must match exactly once: {key}")
+            index = positions[key]
+            current = checkpoint["cell_ledger"][index]
+            if current["status"] != "NOT_RUN":
+                raise ValueError("terminal cell outcome cannot be overwritten")
+            outcome = dict(item["outcome"])
+            if outcome.get("status") in {"SUCCESS", "NON_EVALUABLE", "FAILED"} and not current.get("started_at"):
+                raise ValueError("terminal outcomes require a persisted start transition")
+            persisted_start = current.get("started_at")
+            supplied_start = outcome.get("started_at")
+            if persisted_start and supplied_start not in (None, persisted_start):
+                raise ValueError("persisted cell start timestamp cannot be changed")
+            outcome["started_at"] = persisted_start or supplied_start
+            prepared.append((index, set_cell_outcome(current, **outcome)))
+        # No checkpoint mutation occurs until every row in the batch validates.
+        for index, row in prepared:
+            checkpoint["cell_ledger"][index] = row
         return _write_updated(path, checkpoint)
+
+
+def record_cell_outcome(path: str | Path, key: tuple, **outcome) -> dict:
+    """Persist one audited terminal cell outcome without changing plan provenance."""
+    return record_cell_outcomes(path, [{"key": key, "outcome": outcome}])
 
 
 def finalize_interrupted_cells(path: str | Path, reason_detail: str = "") -> dict:
