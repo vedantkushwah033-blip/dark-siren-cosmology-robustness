@@ -48,8 +48,10 @@ def test_quadratic_five_arm_aggregate_and_paired_contrasts():
     summary=pd.DataFrame(summaries)
     lifecycle=pd.DataFrame(ledger)
     contrasts=_paired_contrasts(summary)
-    assert len(contrasts)==8
+    assert len(contrasts)==7
     assert set(contrasts.reference_arm)=={"A_catalogue_only","C_known_probability_ipw"}
+    assert not ((contrasts.arm == "C_known_probability_ipw")
+                & (contrasts.reference_arm == "C_known_probability_ipw")).any()
     aggregate=_aggregate(summary,lifecycle,replicates=2,max_abs_error=20.0)
     row=aggregate.loc[aggregate.arm=="A_catalogue_only"].iloc[0]
     assert row.successful_replicates==1
@@ -252,7 +254,7 @@ def test_degree_two_replicate_orchestrator_roundtrip(tmp_path: Path):
     assert report["status"] == "PASS"
     assert report["successful_child_runs"] == 2
     assert report["planned_cells"] == 20
-    assert report["paired_contrast_accounting_rows_reconstructed"] == 16
+    assert report["paired_contrast_accounting_rows_reconstructed"] == 14
     accounting = pd.read_csv(root / "paired_contrast_accounting.csv")
     assert (accounting.eligible_pairs == accounting.planned_pairs).all()
 
