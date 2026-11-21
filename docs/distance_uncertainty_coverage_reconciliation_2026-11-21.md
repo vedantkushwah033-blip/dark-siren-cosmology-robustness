@@ -55,3 +55,16 @@ Thus the reported coverage pattern is not explained by the tested 1,601-to-3,201
 4. A proper prior-predictive coverage study should draw continuous H0 truths from the stated prior using a dedicated stream and report the truth distribution, all attempted replicates, and boundary/support diagnostics. The main five-arm Stage 0 runner already adopts a per-replicate continuous Uniform prior draw, but its lifecycle ledger gate remains blocked.
 
 No change to the dark-siren benchmark's scientific claims follows from this auxiliary known-host diagnostic.
+
+
+## Stratified uncertainty for the interior-grid averages
+
+Because the estimand above gives equal weight to each of the 28 truth × fractional-error strata, a stratified bootstrap was also computed locally from the raw artifact: 10,000 bootstrap draws, resampling 300 replicate records within each stratum and then averaging the 28 stratum rates equally. Seed: `20261121`.
+
+| Arm | 68% coverage | Stratified bootstrap 95% interval | 95% coverage | Stratified bootstrap 95% interval |
+|---|---:|---:|---:|---:|
+| A | 73.29% | [72.35%, 74.23%] | 97.12% | [96.75%, 97.46%] |
+| B | 73.62% | [72.67%, 74.56%] | 97.27% | [96.92%, 97.62%] |
+| C | 73.37% | [72.43%, 74.30%] | 97.00% | [96.64%, 97.36%] |
+
+The bootstrap intervals quantify Monte Carlo uncertainty for this *fixed seven-truth/four-error equal-weight estimand*. They do not convert it into a continuous-prior predictive estimand or remove model/prior-boundary effects.
