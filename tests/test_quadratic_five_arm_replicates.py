@@ -243,7 +243,7 @@ def _refresh_manifest_hash(manifest_path: Path, relative_path: str) -> None:
     target = manifest_path.parent / relative_path
     manifest["files"][relative_path]["bytes"] = target.stat().st_size
     manifest["files"][relative_path]["sha256"] = hashlib.sha256(target.read_bytes()).hexdigest()
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n")
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
 
 def test_replicate_auditor_rejects_child_event_seed_tampering(tmp_path: Path):
@@ -263,7 +263,7 @@ def test_replicate_auditor_rejects_child_event_seed_tampering(tmp_path: Path):
     config_path = child / "config.json"
     config = json.loads(config_path.read_text())
     config["event_seed"] = int(config["event_seed"]) + 1
-    config_path.write_text(json.dumps(config, indent=2, sort_keys=True) + "\\n")
+    config_path.write_text(json.dumps(config, indent=2, sort_keys=True) + "\n")
     _refresh_manifest_hash(child / "manifest.json", "config.json")
     _refresh_manifest_hash(root / "manifest.json", "replicates/rep000_gp0/config.json")
     import pytest
