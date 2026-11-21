@@ -76,6 +76,8 @@ jobs:
             --output-dir artifacts/degree_matched_quadrature_sensitivity
       - name: Test paired multi-replicate degree comparison and prior mapping
         run: python -m pytest tests/test_paired_degree_multireplicate_pilot.py -q
+      - name: Test strict four-state confirmatory lifecycle ledger primitives
+        run: python -m pytest tests/test_lifecycle_ledger.py -q
       - name: Validate paired degree pilot and independent auditor CLIs
         run: |
           python scripts/run_paired_degree_multireplicate_pilot.py --help
