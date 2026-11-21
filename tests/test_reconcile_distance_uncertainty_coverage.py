@@ -58,7 +58,7 @@ def test_reconciliation_separates_boundary_and_interior_denominators(tmp_path):
         assert item["all_nine_truth_grid"]["68"]["coverage"] == pytest.approx(7 / 9)
         assert item["interior_truth_grid"]["68"]["n"] == 7 * 4 * 3
         assert item["interior_truth_grid"]["68"]["coverage"] == pytest.approx(1.0)
-        assert item["stratified_bootstrap"]["68"]["percentile_95_interval"] == [1.0, 1.0]
+        assert item["stratified_bootstrap"]["68"]["percentile_95_interval"] == pytest.approx([1.0, 1.0], abs=1e-12)
 
 
 def test_reconciliation_is_deterministic_and_rejects_duplicate_keys(tmp_path):
