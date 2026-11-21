@@ -314,3 +314,33 @@ def test_ledger_validator_rejects_removed_audit_report_path():
     rows[0]["audit_report_path"] = None
     with pytest.raises(ValueError, match="no audit report path"):
         validate_ledger(plan, rows)
+
+
+def test_failed_outcomes_require_start_and_completion_timestamps():
+    row = initial_ledger(_plan())[0]
+    with pytest.raises(ValueError, match="requires started_at"):
+        set_cell_outcome(
+            row, status="FAILED", audit_status="NOT_PASS",
+            reason_code="CHILD_PROCESS_ERROR",
+            completed_at="2026-11-21T00:01:00Z",
+        )
+    with pytest.raises(ValueError, match="requires completed_at"):
+        set_cell_outcome(
+            row, status="FAILED", audit_status="NOT_PASS",
+            reason_code="CHILD_PROCESS_ERROR",
+            started_at="2026-11-21T00:00:00Z",
+        )
+
+
+def test_ledger_validator_rejects_failed_cell_without_terminal_timestamps():
+    plan = _plan()
+    rows = initial_ledger(plan)
+    rows[0] = set_cell_outcome(
+        rows[0], status="FAILED", audit_status="NOT_PASS",
+        reason_code="CHILD_PROCESS_ERROR",
+        started_at="2026-11-21T00:00:00Z",
+        completed_at="2026-11-21T00:01:00Z",
+    )
+    rows[0]["completed_at"] = None
+    with pytest.raises(ValueError, match="no completion timestamp"):
+        validate_ledger(plan, rows)
