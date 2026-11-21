@@ -169,8 +169,10 @@ def record_cell_outcome(path: str | Path, key: tuple, **outcome) -> dict:
         current = checkpoint["cell_ledger"][index]
         if current["status"] != "NOT_RUN":
             raise ValueError("terminal cell outcome cannot be overwritten")
-        if outcome.get("status") in {"SUCCESS", "NON_EVALUABLE", "FAILED"} and not current.get("started_at"):
-            raise ValueError("terminal outcomes require a persisted start transition")
+        if current.get("reason_code") != "RUN_NOT_STARTED" or not current.get("started_at"):
+            raise ValueError(
+                "terminal outcomes require an active cell with a persisted start transition"
+            )
         persisted_start = current.get("started_at")
         supplied_start = outcome.get("started_at")
         if persisted_start and supplied_start not in (None, persisted_start):
