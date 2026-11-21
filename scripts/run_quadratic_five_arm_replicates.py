@@ -241,6 +241,7 @@ def run(args: argparse.Namespace) -> dict:
                         "gamma":gamma,"validation_size":nval,"arm":arm,
                         "analysis_seed":analysis_seed,"event_seed":event_seed,
                         "validation_seed":validation_seed,
+                        "validation_sample_seed":validation_sample_seed,
                         "h0_truth_seed":h0_truth_seed,"h0_true":h0_true,
                         "status":status,"audit_status":audit_status,"error":error})
     planned_df=pd.DataFrame(planned)
