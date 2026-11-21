@@ -310,10 +310,11 @@ def run(args: argparse.Namespace) -> dict:
             except Exception as exc:
                 status="FAILED"
                 error=f"{type(exc).__name__}: {exc}"[:4000]
-                reason="CHILD_AUDIT_FAILED" if audit_status=="NOT_PASS" else "CHILD_PROCESS_ERROR"
+                failure_audit_status="NOT_PASS" if audit_status=="PASS" else audit_status
+                reason="CHILD_AUDIT_FAILED" if failure_audit_status=="NOT_PASS" else "CHILD_PROCESS_ERROR"
                 completed=datetime.now(timezone.utc).isoformat(timespec="microseconds")
                 record_cell_outcomes(checkpoint_path,[{"key":key,"outcome":{
-                    "status":"FAILED","audit_status":audit_status,
+                    "status":"FAILED","audit_status":failure_audit_status,
                     "reason_code":reason,"reason_detail":error,
                     "completed_at":completed,
                 }} for key in keys])
