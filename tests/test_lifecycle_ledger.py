@@ -268,3 +268,16 @@ def test_checkpoint_refuses_to_overwrite_a_terminal_cell(tmp_path):
             path, key, status="FAILED", audit_status="NOT_PASS",
             reason_code="CHILD_PROCESS_ERROR",
         )
+
+def test_checkpoint_cannot_rewrite_persisted_start_timestamp(tmp_path):
+    path = tmp_path / "checkpoint.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    key = (0, 0.0, 100, "A")
+    mark_cell_started(path, key, "2026-11-21T05:00:00Z")
+    with pytest.raises(ValueError, match="start timestamp cannot be changed"):
+        record_cell_outcome(
+            path, key, status="SUCCESS", audit_status="PASS",
+            started_at="2026-11-21T05:00:30Z",
+            completed_at="2026-11-21T05:01:00Z",
+        )
+    assert read_checkpoint(path)["cell_ledger"][0]["started_at"] == "2026-11-21T05:00:00Z"
