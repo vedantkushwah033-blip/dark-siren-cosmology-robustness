@@ -8,6 +8,7 @@ This is an engineering pilot, not confirmatory calibration.
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import hashlib
 import json
 import subprocess
@@ -16,6 +17,14 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+from dark_siren_robustness.cell_ledger_store import (
+    finalize_interrupted_cells,
+    initialize_checkpoint,
+    mark_cell_started,
+    read_checkpoint,
+    record_cell_outcomes,
+)
 
 ARMS = [
     "A_catalogue_only",
@@ -110,8 +119,12 @@ def _aggregate(summaries: pd.DataFrame, ledger: pd.DataFrame, replicates: int,
 def run(args: argparse.Namespace) -> dict:
     out = args.output_dir.resolve()
     out.mkdir(parents=True, exist_ok=True)
-    if any(out.iterdir()):
-        raise ValueError("output directory must be empty")
+    checkpoint_path = out / "cell_lifecycle_checkpoint.json"
+    resume = bool(getattr(args, "resume", False))
+    if any(out.iterdir()) and not resume:
+        raise ValueError("output directory must be empty unless --resume is specified")
+    if resume and not checkpoint_path.is_file():
+        raise ValueError("--resume requires an existing cell_lifecycle_checkpoint.json")
     if args.replicates < 2 or args.master_seed < 0:
         raise ValueError("need at least two replicates and a nonnegative master seed")
     inclusion_degree = int(getattr(args, "inclusion_degree", 1))
@@ -147,7 +160,39 @@ def run(args: argparse.Namespace) -> dict:
     runner=Path(__file__).with_name("run_quadratic_five_arm_smoke.py")
     auditor=Path(__file__).with_name("audit_quadratic_five_arm_smoke.py")
     planned=[]
-    ledger=[]
+    for rep in range(args.replicates):
+        analysis_seed=_seed(args.master_seed,rep,0)
+        validation_seed=_seed(args.master_seed,rep,1)
+        event_seed=_seed(args.master_seed,rep,3)
+        validation_sample_seed=_seed(args.master_seed,rep,4)
+        h0_truth_seed=int(h0_schedule[rep]["h0_truth_seed"])
+        h0_true=float(h0_schedule[rep]["h0_true"])
+        for gamma in args.gammas:
+            cell=f"rep{rep:03d}_g{gamma:+g}".replace("+","p").replace("-","m")
+            for nval in args.validation_sizes:
+                for arm in ARMS:
+                    planned.append({"cell_id":f"{cell}_n{nval}_{arm}","replicate":rep,
+                        "gamma":gamma,"validation_size":nval,"arm":arm,
+                        "analysis_seed":analysis_seed,"event_seed":event_seed,
+                        "validation_seed":validation_seed,
+                        "validation_sample_seed":validation_sample_seed,
+                        "h0_truth_seed":h0_truth_seed,"h0_true":h0_true,
+                        "n_parent":args.n_parent,"n_detected":args.n_detected,
+                        "validation_frame":args.validation_frame,
+                        "inclusion_model_degree":inclusion_degree,
+                        "h0_prior_min":prior_min,"h0_prior_max":prior_max,
+                        "h0_points":args.h0_points,"scott_multiplier":args.scott_multiplier,
+                        "quadrature_order":args.quadrature_order,
+                        "sigma_mpc":args.sigma_mpc,
+                        "detection_threshold_mpc":args.detection_threshold_mpc})
+    if resume:
+        checkpoint=read_checkpoint(checkpoint_path)
+        if checkpoint["planned_cells"] != planned:
+            raise ValueError("resume design differs from immutable checkpoint plan")
+        finalize_interrupted_cells(checkpoint_path, "Recovered at runner startup before retry.")
+    else:
+        initialize_checkpoint(checkpoint_path, planned)
+
     summary_parts=[]
     diagnostic_parts=[]
     audit_rows=[]
@@ -161,14 +206,40 @@ def run(args: argparse.Namespace) -> dict:
         for gamma in args.gammas:
             cell=f"rep{rep:03d}_g{gamma:+g}".replace("+","p").replace("-","m")
             child=out/"replicates"/cell
-            for nval in args.validation_sizes:
-                for arm in ARMS:
-                    planned.append({"cell_id":f"{cell}_n{nval}_{arm}","replicate":rep,
-                        "gamma":gamma,"validation_size":nval,"arm":arm,
-                        "analysis_seed":analysis_seed,"event_seed":event_seed,
-                        "validation_seed":validation_seed,
-                        "validation_sample_seed":validation_sample_seed,
-                        "h0_truth_seed":h0_truth_seed,"h0_true":h0_true})
+            keys=[(rep,float(gamma),int(nval),str(arm))
+                for nval in args.validation_sizes for arm in ARMS]
+            current_rows=read_checkpoint(checkpoint_path)["cell_ledger"]
+            group_rows=[row for row in current_rows
+                if int(row["replicate"])==rep and float(row["gamma"])==float(gamma)]
+            terminal={"SUCCESS","NON_EVALUABLE","FAILED"}
+            if group_rows and all(row["status"] in terminal for row in group_rows):
+                if any(row["status"] in {"SUCCESS","NON_EVALUABLE"} for row in group_rows):
+                    if not all(row["status"] in {"SUCCESS","NON_EVALUABLE"}
+                        and row["audit_status"]=="PASS" for row in group_rows):
+                        raise ValueError("completed child has mixed success and failed cell outcomes")
+                    report=json.loads((child/"audit_report.json").read_text())
+                    sm=pd.read_csv(child/"results"/"posterior_summaries.csv")
+                    sm.insert(0,"replicate",rep); sm.insert(1,"gamma",gamma)
+                    sm.insert(2,"analysis_seed",analysis_seed); sm.insert(3,"validation_seed",validation_seed)
+                    sm["audit_status"]="PASS"
+                    summary_parts.append(sm)
+                    wd=pd.read_csv(child/"results"/"weight_diagnostics.csv")
+                    wd.insert(0,"replicate",rep); wd.insert(1,"gamma",gamma)
+                    diagnostic_parts.append(wd)
+                    audit_rows.append({"replicate":rep,"gamma":gamma,"status":"PASS",
+                        "manifest_files_verified":report["manifest_files_verified"],
+                        "posterior_summary_rows_reconstructed":report["posterior_summary_rows_reconstructed"],
+                        "maximum_log_likelihood_absolute_difference":report["maximum_log_likelihood_absolute_difference"]})
+                else:
+                    audit_rows.append({"replicate":rep,"gamma":gamma,"status":"NOT_PASS",
+                        "manifest_files_verified":0,"posterior_summary_rows_reconstructed":0,
+                        "maximum_log_likelihood_absolute_difference":np.nan})
+                continue
+            if any(row["status"] in terminal for row in group_rows):
+                raise ValueError("child checkpoint contains a partially terminal cell block")
+            now=datetime.now(timezone.utc).isoformat(timespec="microseconds")
+            for key in keys:
+                mark_cell_started(checkpoint_path,key,now)
             status="SUCCESS"
             audit_status="NOT_RUN"
             error=""
@@ -216,6 +287,13 @@ def run(args: argparse.Namespace) -> dict:
                 sm=pd.read_csv(child/"results"/"posterior_summaries.csv")
                 if len(sm)!=len(args.validation_sizes)*len(ARMS):
                     raise RuntimeError("child posterior-summary row count is incomplete")
+                if set(sm["status"].astype(str)) != {"SUCCESS"}:
+                    raise RuntimeError("child posterior rows are not all SUCCESS; arm-level NON_EVALUABLE rules are not yet implemented")
+                completed=datetime.now(timezone.utc).isoformat(timespec="microseconds")
+                record_cell_outcomes(checkpoint_path,[{"key":key,"outcome":{
+                    "status":"SUCCESS","audit_status":"PASS","completed_at":completed,
+                    "audit_report_path":str(audit_path.relative_to(out)),
+                }} for key in keys])
                 sm.insert(0,"replicate",rep)
                 sm.insert(1,"gamma",gamma)
                 sm.insert(2,"analysis_seed",analysis_seed)
@@ -232,20 +310,22 @@ def run(args: argparse.Namespace) -> dict:
             except Exception as exc:
                 status="FAILED"
                 error=f"{type(exc).__name__}: {exc}"[:4000]
+                reason="CHILD_AUDIT_FAILED" if audit_status=="NOT_PASS" else "CHILD_PROCESS_ERROR"
+                completed=datetime.now(timezone.utc).isoformat(timespec="microseconds")
+                record_cell_outcomes(checkpoint_path,[{"key":key,"outcome":{
+                    "status":"FAILED","audit_status":audit_status,
+                    "reason_code":reason,"reason_detail":error,
+                    "completed_at":completed,
+                }} for key in keys])
                 audit_rows.append({"replicate":rep,"gamma":gamma,"status":"NOT_PASS",
                     "manifest_files_verified":0,"posterior_summary_rows_reconstructed":0,
                     "maximum_log_likelihood_absolute_difference":np.nan})
-            for nval in args.validation_sizes:
-                for arm in ARMS:
-                    ledger.append({"cell_id":f"{cell}_n{nval}_{arm}","replicate":rep,
-                        "gamma":gamma,"validation_size":nval,"arm":arm,
-                        "analysis_seed":analysis_seed,"event_seed":event_seed,
-                        "validation_seed":validation_seed,
-                        "validation_sample_seed":validation_sample_seed,
-                        "h0_truth_seed":h0_truth_seed,"h0_true":h0_true,
-                        "status":status,"audit_status":audit_status,"error":error})
-    planned_df=pd.DataFrame(planned)
-    ledger_df=pd.DataFrame(ledger)
+    checkpoint=read_checkpoint(checkpoint_path)
+    planned_df=pd.DataFrame(checkpoint["planned_cells"])
+    ledger_rows=checkpoint["cell_ledger"]
+    for row in ledger_rows:
+        row["error"]=row.get("reason_detail","")
+    ledger_df=pd.DataFrame(ledger_rows)
     summary_columns=["replicate","gamma","analysis_seed","validation_seed","validation_size","arm",
         "status","h0_true","median_error","posterior_median","q025","q05","q16","q84","q95","q975","audit_status"]
     diagnostic_columns=["replicate","gamma","validation_size","arm"]
@@ -314,6 +394,7 @@ def main():
     p.add_argument("--sigma-mpc",type=float,default=140.0)
     p.add_argument("--detection-threshold-mpc",type=float,default=250.0)
     p.add_argument("--output-dir",type=Path,required=True)
+    p.add_argument("--resume",action="store_true",help="resume unfinished child blocks from the persisted cell checkpoint")
     a=p.parse_args()
     print(json.dumps(run(a),indent=2,sort_keys=True))
 
