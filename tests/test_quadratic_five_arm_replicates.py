@@ -356,7 +356,7 @@ def test_replicate_auditor_rejects_checkpoint_ledger_tampering(tmp_path: Path):
     checkpoint_path = root / "cell_lifecycle_checkpoint.json"
     checkpoint = json.loads(checkpoint_path.read_text())
     checkpoint["cell_ledger"][0]["analysis_seed"] += 1
-    checkpoint_path.write_text(json.dumps(checkpoint, indent=2, sort_keys=True) + "\\n")
+    checkpoint_path.write_text(json.dumps(checkpoint, indent=2, sort_keys=True) + "\n")
     _refresh_manifest_hash(root / "manifest.json", "cell_lifecycle_checkpoint.json")
     import pytest
     with pytest.raises(AssertionError, match="immutable cell lifecycle plan hash mismatch|checkpoint/exported lifecycle mismatch"):
