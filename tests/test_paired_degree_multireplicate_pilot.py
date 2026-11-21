@@ -237,6 +237,6 @@ def test_incomplete_paired_run_manifest_is_not_mislabeled_pass(tmp_path, monkeyp
     assert audit_result["paired_child_blocks_verified"] == 0
 
     manifest["status"] = "PASS"
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n")
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     with pytest.raises(AssertionError, match="manifest status mismatch"):
         audit(root)
