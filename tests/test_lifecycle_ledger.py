@@ -556,3 +556,38 @@ def test_checkpoint_rejects_unsupported_schema_version(tmp_path):
     path.write_text(json.dumps(checkpoint))
     with pytest.raises(ValueError, match="unsupported.*schema"):
         read_checkpoint(path)
+
+
+def _initialize_checkpoint_in_process(args):
+    path, plan = args
+    from dark_siren_robustness.cell_ledger_store import initialize_checkpoint
+
+    try:
+        initialize_checkpoint(path, plan)
+        return "CREATED"
+    except FileExistsError:
+        return "ALREADY_EXISTS"
+
+
+def test_concurrent_checkpoint_initialization_has_exactly_one_winner(tmp_path):
+    """Two processes racing to create one run ID must not replace each other's plan."""
+    import multiprocessing
+    from concurrent.futures import ProcessPoolExecutor
+
+    if "fork" not in multiprocessing.get_all_start_methods():
+        pytest.skip("fcntl/flock process test requires a POSIX fork context")
+
+    path = tmp_path / "initialize-race" / "checkpoint.json"
+    plan_a = _checkpoint_plan()
+    plan_b = [dict(row, analysis_seed=999) for row in _checkpoint_plan()]
+    context = multiprocessing.get_context("fork")
+    with ProcessPoolExecutor(max_workers=2, mp_context=context) as pool:
+        outcomes = list(pool.map(
+            _initialize_checkpoint_in_process,
+            [(str(path), plan_a), (str(path), plan_b)],
+        ))
+
+    assert sorted(outcomes) == ["ALREADY_EXISTS", "CREATED"]
+    checkpoint = read_checkpoint(path)
+    persisted_plan = checkpoint["planned_cells"]
+    assert persisted_plan in (plan_a, plan_b)
