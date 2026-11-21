@@ -11,7 +11,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from run_quadratic_five_arm_replicates import (
     ARMS, _aggregate, _h0_truth, _paired_contrasts, _seed, run as run_replicates,
 )
-from audit_quadratic_five_arm_replicates import audit as audit_replicates
+from audit_quadratic_five_arm_replicates import (
+    _expected_contrasts as audit_expected_contrasts,
+    audit as audit_replicates,
+)
 from audit_quadratic_five_arm_smoke import _independent_inclusion_quadrature
 from dark_siren_robustness.generative_selection import generate_quadratic_logit_inclusion_samples
 
@@ -87,7 +90,15 @@ def test_paired_contrasts_require_only_the_two_arms_in_each_pair():
          "arm": "E_uncertainty_integrated_ipw", "status": "NOT_RUN",
          "h0_true": 70.0, "median_error": np.nan, "q16": np.nan, "q84": np.nan},
     ]
-    contrasts = _paired_contrasts(pd.DataFrame(rows))
+    summary = pd.DataFrame(rows)
+    contrasts = _paired_contrasts(summary)
+    independently_expected = audit_expected_contrasts(summary)
+    pd.testing.assert_frame_equal(
+        contrasts.reset_index(drop=True),
+        independently_expected.reset_index(drop=True),
+        check_dtype=False,
+        check_exact=True,
+    )
     pairs = set(zip(contrasts.arm, contrasts.reference_arm))
     assert pairs == {
         ("C_known_probability_ipw", "A_catalogue_only"),
