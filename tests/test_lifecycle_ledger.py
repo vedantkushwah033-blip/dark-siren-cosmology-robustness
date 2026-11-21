@@ -621,3 +621,59 @@ def test_ledger_validator_rejects_not_run_completion_metadata():
     rows[0]["audit_report_path"] = "audit/unfinished.json"
     with pytest.raises(ValueError, match="NOT_RUN cell has an audit report path"):
         validate_ledger(plan, rows)
+
+
+
+def test_not_run_reason_codes_have_consistent_start_timestamp_semantics(tmp_path):
+    plan = _plan()
+    rows = initial_ledger(plan)
+
+    # An unstarted cell and an active cell may both be RUN_NOT_STARTED.
+    rows[0] = set_cell_outcome(
+        rows[0], status="NOT_RUN", audit_status="NOT_RUN",
+        reason_code="RUN_NOT_STARTED",
+    )
+    rows[1] = set_cell_outcome(
+        rows[1], status="NOT_RUN", audit_status="NOT_RUN",
+        reason_code="RUN_NOT_STARTED",
+        started_at="2026-11-21T00:00:00Z",
+    )
+    rows[2] = set_cell_outcome(
+        rows[2], status="NOT_RUN", audit_status="NOT_RUN",
+        reason_code="RUN_INTERRUPTED",
+        started_at="2026-11-21T00:00:00Z",
+    )
+    rows[3] = set_cell_outcome(
+        rows[3], status="NOT_RUN", audit_status="NOT_RUN",
+        reason_code="NOT_SCHEDULED",
+    )
+    assert validate_ledger(plan, rows)["status"] == "PASS"
+
+    with pytest.raises(ValueError, match="RUN_INTERRUPTED requires"):
+        set_cell_outcome(
+            initial_ledger(plan)[0], status="NOT_RUN", audit_status="NOT_RUN",
+            reason_code="RUN_INTERRUPTED",
+        )
+    with pytest.raises(ValueError, match="NOT_SCHEDULED cannot have"):
+        set_cell_outcome(
+            initial_ledger(plan)[0], status="NOT_RUN", audit_status="NOT_RUN",
+            reason_code="NOT_SCHEDULED",
+            started_at="2026-11-21T00:00:00Z",
+        )
+    with pytest.raises(ValueError, match="UPSTREAM_FAILURE cannot have"):
+        set_cell_outcome(
+            initial_ledger(plan)[0], status="NOT_RUN", audit_status="NOT_RUN",
+            reason_code="UPSTREAM_FAILURE",
+            started_at="2026-11-21T00:00:00Z",
+        )
+
+
+def test_checkpoint_start_claim_requires_timestamp(tmp_path):
+    path = tmp_path / "checkpoint.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    key = (0, 0.0, 100, "A")
+    with pytest.raises(ValueError, match="requires a non-empty"):
+        mark_cell_started(path, key, None)
+    with pytest.raises(ValueError, match="UTC offset"):
+        mark_cell_started(path, key, "2026-11-21T05:00:00")
+    assert read_checkpoint(path)["cell_ledger"][0]["started_at"] is None
