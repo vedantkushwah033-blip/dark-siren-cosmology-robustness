@@ -212,7 +212,7 @@ def test_checkpoint_persists_start_and_success_transitions(tmp_path):
     mark_cell_started(path, key, "2026-11-21T05:00:00Z")
     started = read_checkpoint(path)["cell_ledger"][0]
     assert started["status"] == "NOT_RUN"
-    assert started["reason_code"] == "RUN_INTERRUPTED"
+    assert started["reason_code"] == "RUN_NOT_STARTED"
     assert started["started_at"] == "2026-11-21T05:00:00Z"
     record_cell_outcome(
         path, key, status="SUCCESS", audit_status="PASS",
@@ -240,7 +240,7 @@ def test_checkpoint_recovery_keeps_finished_and_marks_unfinished(tmp_path):
     finalize_interrupted_cells(path, "Test interruption after first cell.")
     rows = read_checkpoint(path)["cell_ledger"]
     assert [row["status"] for row in rows] == ["SUCCESS", "NOT_RUN"]
-    assert rows[1]["reason_code"] == "RUN_INTERRUPTED"
+    assert rows[1]["reason_code"] == "NOT_SCHEDULED"
     assert rows[1]["reason_detail"] == "Test interruption after first cell."
 
 
@@ -389,3 +389,65 @@ def test_concurrent_checkpoint_updates_do_not_lose_completed_cells(tmp_path):
     assert len(checkpoint["cell_ledger"]) == len(plan)
     assert all(row["status"] == "SUCCESS" for row in checkpoint["cell_ledger"])
     assert all(row["audit_status"] == "PASS" for row in checkpoint["cell_ledger"])
+
+
+def test_lifecycle_timestamps_require_iso8601_explicit_offsets():
+    row = initial_ledger(_plan())[0]
+    with pytest.raises(ValueError, match="valid ISO-8601"):
+        set_cell_outcome(
+            row, status="SUCCESS", audit_status="PASS",
+            started_at="yesterday", completed_at="today",
+            audit_report_path="audit/a.json",
+        )
+    with pytest.raises(ValueError, match="UTC offset"):
+        set_cell_outcome(
+            row, status="SUCCESS", audit_status="PASS",
+            started_at="2026-11-21T00:00:00",
+            completed_at="2026-11-21T00:01:00Z",
+            audit_report_path="audit/a.json",
+        )
+
+
+def test_timestamp_order_uses_instants_across_utc_offsets():
+    row = initial_ledger(_plan())[0]
+    result = set_cell_outcome(
+        row, status="SUCCESS", audit_status="PASS",
+        started_at="2026-11-21T00:30:00Z",
+        completed_at="2026-11-21T00:00:00-01:00",
+        audit_report_path="audit/a.json",
+    )
+    assert result["status"] == "SUCCESS"
+    with pytest.raises(ValueError, match="cannot precede"):
+        set_cell_outcome(
+            row, status="SUCCESS", audit_status="PASS",
+            started_at="2026-11-21T00:30:00Z",
+            completed_at="2026-11-20T23:45:00-01:00",
+            audit_report_path="audit/a.json",
+        )
+
+
+def test_checkpoint_rejects_terminal_failure_without_persisted_start(tmp_path):
+    path = tmp_path / "checkpoint.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    key = (0, 0.0, 100, "A")
+    with pytest.raises(ValueError, match="persisted start transition"):
+        record_cell_outcome(
+            path, key, status="FAILED", audit_status="NOT_PASS",
+            reason_code="CHILD_PROCESS_ERROR",
+            started_at="2026-11-21T05:00:00Z",
+            completed_at="2026-11-21T05:01:00Z",
+        )
+
+
+def test_checkpoint_recovery_marks_active_and_unstarted_cells_distinctly(tmp_path):
+    path = tmp_path / "checkpoint.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    key = (0, 0.0, 100, "A")
+    mark_cell_started(path, key, "2026-11-21T05:00:00Z")
+    live = read_checkpoint(path)["cell_ledger"]
+    assert live[0]["reason_code"] == "RUN_NOT_STARTED"
+    assert live[0]["started_at"] == "2026-11-21T05:00:00Z"
+    finalize_interrupted_cells(path, "Process stopped.")
+    rows = read_checkpoint(path)["cell_ledger"]
+    assert rows[0]["reason_code"] == "RUN_INTERRUPTED"
+    assert rows[1]["reason_code"] == "NOT_SCHEDULED"
