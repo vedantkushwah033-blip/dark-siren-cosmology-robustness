@@ -792,3 +792,49 @@ def test_batch_outcome_validation_failure_leaves_checkpoint_unchanged(tmp_path):
         ])
     assert read_checkpoint(path) == before
 
+def test_spawn_process_checkpoint_updates_preserve_every_terminal_cell(tmp_path):
+    """Exercise OS-level checkpoint locking with spawn, including on Windows."""
+    import multiprocessing
+    from concurrent.futures import ProcessPoolExecutor
+
+    plan = [
+        {
+            "replicate": index,
+            "gamma": 0.0,
+            "validation_size": 100,
+            "arm": f"spawn_arm_{index}",
+            "analysis_seed": 3000 + index,
+            "h0_true": 70.0,
+        }
+        for index in range(8)
+    ]
+    path = tmp_path / "spawn-multiprocess" / "checkpoint.json"
+    initialize_checkpoint(path, plan)
+
+    context = multiprocessing.get_context("spawn")
+    with ProcessPoolExecutor(max_workers=4, mp_context=context) as pool:
+        list(pool.map(_complete_checkpoint_cell_in_process, [(str(path), row) for row in plan]))
+
+    checkpoint = read_checkpoint(path)
+    assert len(checkpoint["cell_ledger"]) == len(plan)
+    assert all(row["status"] == "SUCCESS" for row in checkpoint["cell_ledger"])
+
+
+def test_spawn_processes_cannot_claim_the_same_cell_twice(tmp_path):
+    """A single cell claim must have one winner across independently spawned processes."""
+    import multiprocessing
+    from concurrent.futures import ProcessPoolExecutor
+
+    path = tmp_path / "spawn-same-cell-claim" / "checkpoint.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    key = (0, 0.0, 100, "A")
+    context = multiprocessing.get_context("spawn")
+    args = (str(path), key, "2026-11-21T07:00:00Z")
+    with ProcessPoolExecutor(max_workers=2, mp_context=context) as pool:
+        outcomes = list(pool.map(_claim_same_checkpoint_cell_in_process, [args, args]))
+
+    assert sorted(outcomes) == ["CLAIMED", "REJECTED"]
+    checkpoint = read_checkpoint(path)
+    claimed = next(row for row in checkpoint["cell_ledger"] if row["arm"] == "A")
+    assert claimed["started_at"] == "2026-11-21T07:00:00Z"
+
