@@ -591,3 +591,33 @@ def test_concurrent_checkpoint_initialization_has_exactly_one_winner(tmp_path):
     checkpoint = read_checkpoint(path)
     persisted_plan = checkpoint["planned_cells"]
     assert persisted_plan in (plan_a, plan_b)
+
+
+def test_not_run_cannot_claim_completion_or_an_audit_report():
+    row = initial_ledger(_plan())[0]
+    with pytest.raises(ValueError, match="NOT_RUN cannot have completed_at"):
+        set_cell_outcome(
+            row, status="NOT_RUN", audit_status="NOT_RUN",
+            reason_code="RUN_INTERRUPTED",
+            started_at="2026-11-21T00:00:00Z",
+            completed_at="2026-11-21T00:01:00Z",
+        )
+    with pytest.raises(ValueError, match="NOT_RUN cannot have audit_report_path"):
+        set_cell_outcome(
+            row, status="NOT_RUN", audit_status="NOT_RUN",
+            reason_code="RUN_INTERRUPTED",
+            started_at="2026-11-21T00:00:00Z",
+            audit_report_path="audit/unfinished.json",
+        )
+
+
+def test_ledger_validator_rejects_not_run_completion_metadata():
+    plan = _plan()
+    rows = initial_ledger(plan)
+    rows[0]["completed_at"] = "2026-11-21T00:01:00Z"
+    with pytest.raises(ValueError, match="NOT_RUN cell has a completion timestamp"):
+        validate_ledger(plan, rows)
+    rows = initial_ledger(plan)
+    rows[0]["audit_report_path"] = "audit/unfinished.json"
+    with pytest.raises(ValueError, match="NOT_RUN cell has an audit report path"):
+        validate_ledger(plan, rows)
