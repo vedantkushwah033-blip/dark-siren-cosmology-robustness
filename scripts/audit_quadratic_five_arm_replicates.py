@@ -176,6 +176,7 @@ def audit(root: Path) -> dict:
                 raise AssertionError(f"child audit report is not PASS: {rel}")
             child_cfg=json.loads((d/"config.json").read_text())
             if (int(child_cfg["seed"])!=_seed(int(cfg["master_seed"]),int(rep),0)
+            or int(child_cfg.get("event_seed",-1))!=_seed(int(cfg["master_seed"]),int(rep),3)
                 or int(child_cfg["validation_seed"])!=_seed(int(cfg["master_seed"]),int(rep),1)
                 or int(child_cfg.get("validation_sample_seed",-1))!=_seed(int(cfg["master_seed"]),int(rep),4)
                 or int(child_cfg.get("quadratic_calibration",{}).get("validation_sample_seed",-1))
