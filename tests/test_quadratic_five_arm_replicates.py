@@ -385,7 +385,7 @@ def test_replicate_auditor_rejects_plan_ledger_provenance_tampering(tmp_path: Pa
     checkpoint_path = root / "cell_lifecycle_checkpoint.json"
     checkpoint = json.loads(checkpoint_path.read_text())
     checkpoint["cell_ledger"][0]["analysis_seed"] += 1
-    checkpoint_path.write_text(json.dumps(checkpoint, indent=2, sort_keys=True) + "\\n")
+    checkpoint_path.write_text(json.dumps(checkpoint, indent=2, sort_keys=True) + "\n")
 
     ledger_path = root / "replicate_ledger.csv"
     ledger = pd.read_csv(ledger_path)
