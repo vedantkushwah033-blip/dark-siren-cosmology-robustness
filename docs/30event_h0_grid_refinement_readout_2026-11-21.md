@@ -1,7 +1,7 @@
 # 30-event H0-grid refinement: independent readout
 
 **Date:** 2026-11-21  
-**Status:** independent numerical reconstruction completed locally; GitHub Actions validation of the PR implementation is still a separate pending check.  
+**Status:** independent numerical reconstruction completed locally; GitHub Actions focused tests and exact-grid artifact audit completed successfully (run `44840736772`, artifact `14681305560`).  
 **Scope:** exact H0 integration conditional on the archived order-9 KDE density arrays and coefficient-posterior nodes. This is not an end-to-end re-generation, calibration study, SBC, estimator ranking, or observational inference.
 
 ## Frozen source and independent checks
@@ -13,6 +13,7 @@
 - I independently rechecked all 342 manifest-listed payload files (114 per curvature bundle) against declared byte counts and SHA-256 hashes.
 - I independently confirmed the seven raw observable/truth inputs are byte-identical between degree-one and degree-two order-9 children in each curvature bundle (21/21 comparisons), and the paired invariant configuration fields agree.
 - I independently reconstructed the archived 281-point selected log likelihoods for all 60 posterior curves (3 curvature × 2 degrees × 2 validation sizes × 5 arms). Maximum absolute discrepancy was **1.14 × 10⁻¹³**, far below the predeclared 10⁻⁸ reconstruction tolerance.
+- The PR #142 GitHub Actions audit independently reproduced the same 60 curves and all grid-refinement maxima; uploaded artifact SHA-256: `4848ce3a11fc45d89c05987ac2dd77081a401a4b59e0c534d74c572d39a09aaa`.
 
 ## H0-grid refinement method
 
@@ -56,4 +57,5 @@ The legacy 281→561 comparison also passes the same limits: maxima were 0.00005
 2. Preserve the severe node-wise IPW concentration warnings from PR #141; grid convergence cannot repair unstable weights.
 3. Proceed to independently seeded prior-predictive truths only after the PR #142 workflow and its independent artifact audit complete.
 4. Retain the full five-arm comparison and the SUCCESS / NON_EVALUABLE / FAILED / NOT_RUN lifecycle ledger.
-5. Do not promote degree two or claim calibration from this fixed-truth numerical audit.
+5. The H0-grid numerical gate is now complete for this frozen artifact; proceed to independently seeded prior-predictive truths, with KDE/bandwidth uncertainty handled as a separate gate.
+6. Do not promote degree two or claim calibration from this fixed-truth numerical audit.
