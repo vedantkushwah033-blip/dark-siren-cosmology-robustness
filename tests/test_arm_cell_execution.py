@@ -110,7 +110,7 @@ def test_arm_cell_rejects_unknown_arm_and_invalid_validation_labels():
         parent_base_weights=fixture[6], catalogue_base_weights=fixture[7],
     )
     with pytest.raises(ValueError, match="validation_retained"):
-        execution.evaluate_arm_cell("A_catalogue_only", **args)
+        execution.evaluate_arm_cell("D_map_plugin_ipw", **args)
 
 @pytest.mark.parametrize("arm", ["A_catalogue_only", "B_parent_oracle"])
 def test_ab_do_not_require_validation_or_true_inclusion_truth(arm):
