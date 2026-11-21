@@ -59,13 +59,15 @@ def _stratified_bootstrap(
         raise ValueError("all bootstrap strata must have the same positive size")
     n = next(iter(sizes))
     rng = np.random.default_rng(seed)
-    means = np.zeros(resamples, dtype=float)
-    for values in cells:
+    # Average stratum-level bootstrap rates in one reduction. Incrementally
+    # adding each rate divided by the stratum count can turn an exactly-one
+    # degenerate distribution into 0.9999999999999997 through repeated rounding.
+    stratum_means = np.empty((len(cells), resamples), dtype=float)
+    for index, values in enumerate(cells):
         indices = rng.integers(0, n, size=(resamples, n))
-        means += values[indices].mean(axis=1) / len(cells)
-    # Coverage rates are probabilities. Floating-point summation can put a
-    # degenerate bootstrap endpoint a few ulps outside [0, 1] (for example,
-    # 0.9999999999999997 when every resample has coverage exactly one).
+        stratum_means[index] = values[indices].mean(axis=1)
+    means = np.mean(stratum_means, axis=0)
+    # Coverage rates are probabilities; guard the quantiles against roundoff.
     return [
         float(np.clip(np.quantile(means, 0.025), 0.0, 1.0)),
         float(np.clip(np.quantile(means, 0.975), 0.0, 1.0)),
