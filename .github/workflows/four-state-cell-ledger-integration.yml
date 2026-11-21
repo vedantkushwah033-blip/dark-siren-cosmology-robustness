@@ -1,0 +1,52 @@
+name: four-state-cell-ledger-integration
+
+on:
+  push:
+    branches:
+      - research/four-state-cell-ledger-runner-integration-20261121
+  pull_request:
+    branches:
+      - research/prior-predictive-h0-runner-stage0-20261121
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  cell-ledger-integration:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Test strict lifecycle transitions, checkpoint integrity and concurrency
+        run: python -m pytest tests/test_lifecycle_ledger.py -q
+      - name: Test runner integration, independent audit, interruption recovery and replay
+        run: python -m pytest tests/test_quadratic_five_arm_replicates.py -q
+      - name: Validate integrated runner and independent auditor command-line interfaces
+        run: |
+          python scripts/run_quadratic_five_arm_replicates.py --help
+          python scripts/audit_quadratic_five_arm_replicates.py --help
+
+  windows-checkpoint:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip install -e ".[dev]"
+      - name: Test Windows checkpoint locking, atomic persistence and runner recovery
+        run: python -m pytest tests/test_lifecycle_ledger.py tests/test_quadratic_five_arm_replicates.py -q

@@ -53,6 +53,9 @@ def test_quadratic_five_arm_aggregate_and_paired_contrasts():
     aggregate=_aggregate(summary,lifecycle,replicates=2,max_abs_error=20.0)
     row=aggregate.loc[aggregate.arm=="A_catalogue_only"].iloc[0]
     assert row.successful_replicates==1
+    assert row.non_evaluable_replicates==0
+    assert row.failed_replicates==1
+    assert row.not_run_replicates==0
     assert row.failed_or_non_evaluable==1
     assert row.success_only_bias==-4.0
     assert row.success_only_rmse==4.0
@@ -62,6 +65,36 @@ def test_quadratic_five_arm_aggregate_and_paired_contrasts():
     assert row.failure_inclusive_coverage_upper==1.0
     assert row.failure_inclusive_width_lower==5.0
     assert row.failure_inclusive_width_upper==25.0
+
+
+def test_aggregate_reports_non_evaluable_and_failed_separately():
+    ledger=pd.DataFrame([
+        {"replicate":0,"gamma":0.0,"validation_size":100,"arm":arm,"status":"SUCCESS"}
+        for arm in ARMS
+    ] + [
+        {"replicate":1,"gamma":0.0,"validation_size":100,"arm":arm,
+         "status":"NON_EVALUABLE" if arm=="B_parent_oracle" else "FAILED"}
+        for arm in ARMS
+    ] + [
+        {"replicate":2,"gamma":0.0,"validation_size":100,"arm":arm,"status":"NOT_RUN"}
+        for arm in ARMS
+    ])
+    summaries=pd.DataFrame([
+        {"replicate":0,"gamma":0.0,"validation_size":100,"arm":arm,
+         "status":"SUCCESS","h0_true":70.0,"median_error":0.0,"q16":65.0,"q84":75.0}
+        for arm in ARMS
+    ])
+    aggregate=_aggregate(summaries,ledger,replicates=3,max_abs_error=20.0)
+    row=aggregate.loc[aggregate.arm=="B_parent_oracle"].iloc[0]
+    assert row.successful_replicates==1
+    assert row.non_evaluable_replicates==1
+    assert row.failed_replicates==0
+    assert row.not_run_replicates==1
+    assert row.failed_or_non_evaluable==2
+    failed=aggregate.loc[aggregate.arm=="A_catalogue_only"].iloc[0]
+    assert failed.non_evaluable_replicates==0
+    assert failed.failed_replicates==1
+    assert failed.not_run_replicates==1
 
 
 def test_all_failed_cells_remain_in_aggregate_denominator():
@@ -241,8 +274,13 @@ def test_h0_truth_seed_helper_is_deterministic_and_validates_support():
 def _refresh_manifest_hash(manifest_path: Path, relative_path: str) -> None:
     manifest = json.loads(manifest_path.read_text())
     target = manifest_path.parent / relative_path
-    manifest["files"][relative_path]["bytes"] = target.stat().st_size
-    manifest["files"][relative_path]["sha256"] = hashlib.sha256(target.read_bytes()).hexdigest()
+    normalized = relative_path.replace("\\", "/")
+    matches = [key for key in manifest["files"] if key.replace("\\", "/") == normalized]
+    if len(matches) != 1:
+        raise AssertionError(f"manifest path must match exactly once: {relative_path}")
+    manifest_key = matches[0]
+    manifest["files"][manifest_key]["bytes"] = target.stat().st_size
+    manifest["files"][manifest_key]["sha256"] = hashlib.sha256(target.read_bytes()).hexdigest()
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
 
@@ -268,4 +306,170 @@ def test_replicate_auditor_rejects_child_event_seed_tampering(tmp_path: Path):
     _refresh_manifest_hash(root / "manifest.json", "replicates/rep000_gp0/config.json")
     import pytest
     with pytest.raises(AssertionError, match="child configuration/seed mismatch"):
+        audit_replicates(root)
+
+
+def test_replicate_runner_recovers_interrupted_child_block(tmp_path, monkeypatch):
+    import run_quadratic_five_arm_replicates as replicate_module
+
+    root = tmp_path / "restartable_replicates"
+    args = type("Args", (), {
+        "master_seed": 20261121, "replicates": 2, "gammas": [0.0],
+        "n_parent": 300, "n_detected": 4, "validation_frame": 100,
+        "validation_sizes": [60, 90], "curvature_beta": -3.9,
+        "inclusion_degree": 1, "h0_true": 70.0, "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0, "h0_points": 41, "scott_multiplier": 0.7,
+        "quadrature_order": 3, "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0, "output_dir": root,
+        "resume": False,
+    })()
+    original_run = replicate_module.subprocess.run
+    calls = {"count": 0}
+
+    def interrupt_before_child(*call_args, **call_kwargs):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise KeyboardInterrupt("simulated hard interruption before child completion")
+        return original_run(*call_args, **call_kwargs)
+
+    monkeypatch.setattr(replicate_module.subprocess, "run", interrupt_before_child)
+    import pytest
+    with pytest.raises(KeyboardInterrupt, match="simulated hard interruption"):
+        run_replicates(args)
+
+    checkpoint_path = root / "cell_lifecycle_checkpoint.json"
+    interrupted = json.loads(checkpoint_path.read_text())
+    active = [row for row in interrupted["cell_ledger"] if row["started_at"]]
+    assert len(active) == len(args.validation_sizes) * len(ARMS)
+    first_start = active[0]["started_at"]
+    assert all(row["status"] == "NOT_RUN" for row in active)
+    assert all(row["reason_code"] == "RUN_NOT_STARTED" for row in active)
+
+    monkeypatch.setattr(replicate_module.subprocess, "run", original_run)
+    args.resume = True
+    result = run_replicates(args)
+    assert result["status"] == "PASS"
+    recovered = json.loads(checkpoint_path.read_text())
+    first_group = [row for row in recovered["cell_ledger"] if row["replicate"] == 0]
+    assert all(row["status"] == "SUCCESS" for row in first_group)
+    assert all(row["started_at"] == first_start for row in first_group)
+    assert all(row["audit_status"] == "PASS" for row in recovered["cell_ledger"])
+    assert audit_replicates(root)["status"] == "PASS"
+
+
+def test_completed_replicate_run_can_be_resumed_without_recomputing(tmp_path):
+    root = tmp_path / "completed_resume"
+    args = type("Args", (), {
+        "master_seed": 20261122, "replicates": 2, "gammas": [0.0],
+        "n_parent": 300, "n_detected": 4, "validation_frame": 100,
+        "validation_sizes": [60, 90], "curvature_beta": -3.9,
+        "inclusion_degree": 1, "h0_true": 70.0, "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0, "h0_points": 41, "scott_multiplier": 0.7,
+        "quadrature_order": 3, "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0, "output_dir": root,
+        "resume": False,
+    })()
+    first = run_replicates(args)
+    assert first["status"] == "PASS"
+    args.resume = True
+    import pytest
+    args.curvature_beta = -3.8
+    with pytest.raises(ValueError, match="resume design differs"):
+        run_replicates(args)
+    args.curvature_beta = -3.9
+    second = run_replicates(args)
+    assert second["status"] == "PASS"
+    assert second["planned_cells"] == first["planned_cells"]
+    assert audit_replicates(root)["status"] == "PASS"
+
+
+def test_replicate_auditor_rejects_checkpoint_ledger_tampering(tmp_path: Path):
+    root = tmp_path / "checkpoint_tamper"
+    args = type("Args", (), {
+        "master_seed": 20261123, "replicates": 2, "gammas": [0.0],
+        "n_parent": 300, "n_detected": 4, "validation_frame": 100,
+        "validation_sizes": [60, 90], "curvature_beta": -3.9,
+        "inclusion_degree": 1, "h0_true": 70.0, "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0, "h0_points": 41, "scott_multiplier": 0.7,
+        "quadrature_order": 3, "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0, "output_dir": root,
+    })()
+    result = run_replicates(args)
+    assert result["status"] == "PASS"
+    checkpoint_path = root / "cell_lifecycle_checkpoint.json"
+    checkpoint = json.loads(checkpoint_path.read_text())
+    checkpoint["cell_ledger"][0]["analysis_seed"] += 1
+    checkpoint_path.write_text(json.dumps(checkpoint, indent=2, sort_keys=True) + "\n")
+    _refresh_manifest_hash(root / "manifest.json", "cell_lifecycle_checkpoint.json")
+    import pytest
+    with pytest.raises(AssertionError, match="immutable cell lifecycle plan hash mismatch|checkpoint/exported lifecycle mismatch|checkpoint plan/ledger provenance mismatch"):
+        audit_replicates(root)
+
+
+def test_replicate_auditor_rejects_plan_ledger_provenance_tampering(tmp_path: Path):
+    root = tmp_path / "plan_ledger_tamper"
+    args = type("Args", (), {
+        "master_seed": 20261124, "replicates": 2, "gammas": [0.0],
+        "n_parent": 300, "n_detected": 4, "validation_frame": 100,
+        "validation_sizes": [60, 90], "curvature_beta": -3.9,
+        "inclusion_degree": 1, "h0_true": 70.0, "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0, "h0_points": 41, "scott_multiplier": 0.7,
+        "quadrature_order": 3, "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0, "output_dir": root,
+    })()
+    result = run_replicates(args)
+    assert result["status"] == "PASS"
+
+    checkpoint_path = root / "cell_lifecycle_checkpoint.json"
+    checkpoint = json.loads(checkpoint_path.read_text())
+    checkpoint["cell_ledger"][0]["analysis_seed"] += 1
+    checkpoint_path.write_text(json.dumps(checkpoint, indent=2, sort_keys=True) + "\n")
+
+    ledger_path = root / "replicate_ledger.csv"
+    ledger = pd.read_csv(ledger_path)
+    ledger.loc[0, "analysis_seed"] += 1
+    ledger.to_csv(ledger_path, index=False)
+    _refresh_manifest_hash(root / "manifest.json", "cell_lifecycle_checkpoint.json")
+    _refresh_manifest_hash(root / "manifest.json", "replicate_ledger.csv")
+
+    import pytest
+    with pytest.raises(AssertionError, match="checkpoint plan/ledger provenance mismatch"):
+        audit_replicates(root)
+
+
+def test_incomplete_run_status_is_preserved_and_independently_audited(tmp_path, monkeypatch):
+    import subprocess
+    import run_quadratic_five_arm_replicates as replicate_module
+
+    root = tmp_path / "incomplete_manifest_status"
+    args = type("Args", (), {
+        "master_seed": 20261125, "replicates": 2, "gammas": [0.0],
+        "n_parent": 300, "n_detected": 4, "validation_frame": 100,
+        "validation_sizes": [60, 90], "curvature_beta": -3.9,
+        "inclusion_degree": 1, "h0_true": 70.0, "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0, "h0_points": 41, "scott_multiplier": 0.7,
+        "quadrature_order": 3, "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0, "output_dir": root,
+    })()
+
+    def fail_child(*call_args, **call_kwargs):
+        return subprocess.CompletedProcess(
+            call_args[0] if call_args else [], 1, stdout="", stderr="injected child failure"
+        )
+
+    monkeypatch.setattr(replicate_module.subprocess, "run", fail_child)
+    result = run_replicates(args)
+    assert result["status"] == "INCOMPLETE"
+    manifest_path = root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    assert manifest["status"] == "INCOMPLETE"
+
+    audit = audit_replicates(root)
+    assert audit["status"] == "PASS"
+    assert audit["run_status"] == "INCOMPLETE"
+
+    manifest["status"] = "PASS"
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    import pytest
+    with pytest.raises(AssertionError, match="aggregate manifest lifecycle status mismatch"):
         audit_replicates(root)

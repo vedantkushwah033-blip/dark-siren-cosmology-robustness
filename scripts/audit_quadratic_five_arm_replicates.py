@@ -25,6 +25,21 @@ def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _same_series(left: pd.Series, right: pd.Series) -> bool:
+    """Compare CSV/JSON values without false failures from float text round-trips."""
+    if pd.api.types.is_bool_dtype(left.dtype) or pd.api.types.is_bool_dtype(right.dtype):
+        return left.fillna(False).astype(bool).equals(right.fillna(False).astype(bool))
+    if pd.api.types.is_numeric_dtype(left.dtype) and pd.api.types.is_numeric_dtype(right.dtype):
+        return bool(np.allclose(
+            pd.to_numeric(left, errors="coerce").to_numpy(float),
+            pd.to_numeric(right, errors="coerce").to_numpy(float),
+            rtol=0.0, atol=1e-12, equal_nan=True,
+        ))
+    left_text=left.astype("object").where(left.notna(),"").astype(str)
+    right_text=right.astype("object").where(right.notna(),"").astype(str)
+    return left_text.equals(right_text)
+
+
 def _seed(master: int, replicate: int, stream: int) -> int:
     return int(np.random.SeedSequence([master,replicate,stream]).generate_state(1,dtype=np.uint32)[0])
 
@@ -62,6 +77,9 @@ def _expected_aggregate(summaries: pd.DataFrame, ledger: pd.DataFrame,
     rows=[]
     for (gamma,nval),_ in ledger.groupby(["gamma","validation_size"],sort=True):
         for arm in ARMS:
+            arm_ledger=ledger[(ledger.gamma==gamma)&(ledger.validation_size==nval)
+                &(ledger.arm==arm)]
+            lifecycle_counts=arm_ledger.status.value_counts().to_dict()
             g=summaries[(summaries.gamma==gamma)&(summaries.validation_size==nval)
                 &(summaries.arm==arm)&(summaries.status=="SUCCESS")]
             errors=g.median_error.to_numpy(float)
@@ -71,6 +89,9 @@ def _expected_aggregate(summaries: pd.DataFrame, ledger: pd.DataFrame,
             failures=replicates-len(g)
             rows.append({"gamma":float(gamma),"validation_size":int(nval),"arm":arm,
                 "planned_replicates":replicates,"successful_replicates":len(g),
+                "non_evaluable_replicates":int(lifecycle_counts.get("NON_EVALUABLE",0)),
+                "failed_replicates":int(lifecycle_counts.get("FAILED",0)),
+                "not_run_replicates":int(lifecycle_counts.get("NOT_RUN",0)),
                 "failed_or_non_evaluable":failures,
                 "success_only_bias":float(errors.mean()) if len(errors) else np.nan,
                 "success_only_rmse":float(np.sqrt(np.mean(errors**2))) if len(errors) else np.nan,
@@ -108,6 +129,89 @@ def audit(root: Path) -> dict:
 
     planned=pd.read_csv(root/"planned_cells.csv")
     ledger=pd.read_csv(root/"replicate_ledger.csv")
+    checkpoint_path=root/"cell_lifecycle_checkpoint.json"
+    if not checkpoint_path.is_file():
+        raise AssertionError("four-state cell lifecycle checkpoint is missing")
+    checkpoint=json.loads(checkpoint_path.read_text())
+    if checkpoint.get("schema_version")!=1:
+        raise AssertionError("unsupported cell lifecycle checkpoint schema")
+    canonical=json.dumps(checkpoint.get("planned_cells"),sort_keys=True,
+        separators=(",",":"),allow_nan=False).encode("utf-8")
+    if hashlib.sha256(canonical).hexdigest()!=checkpoint.get("plan_sha256"):
+        raise AssertionError("immutable cell lifecycle plan hash mismatch")
+    checkpoint_plan=pd.DataFrame(checkpoint["planned_cells"])
+    checkpoint_ledger=pd.DataFrame(checkpoint["cell_ledger"])
+    expected_run_status = (
+        "PASS"
+        if (checkpoint_ledger.status.astype(str) == "SUCCESS").all()
+        and (checkpoint_ledger.audit_status.astype(str) == "PASS").all()
+        else "INCOMPLETE"
+    )
+    if manifest.get("status") != expected_run_status:
+        raise AssertionError(
+            "aggregate manifest lifecycle status mismatch: "
+            f"expected {expected_run_status}, observed {manifest.get('status')}"
+        )
+    if set(checkpoint_plan.cell_id.astype(str))!=set(planned.cell_id.astype(str)):
+        raise AssertionError("checkpoint plan and exported planned-cell keys differ")
+    if set(checkpoint_ledger.cell_id.astype(str))!=set(ledger.cell_id.astype(str)):
+        raise AssertionError("checkpoint ledger and exported lifecycle keys differ")
+    for frame_name,frame in (("plan",checkpoint_plan),("ledger",checkpoint_ledger)):
+        if frame.cell_id.duplicated().any():
+            raise AssertionError(f"duplicate cell ID in checkpoint {frame_name}")
+    for column in checkpoint_plan.columns:
+        if column=="cell_id":
+            continue  # Cell IDs are compared as keys above, not as value columns.
+        left=checkpoint_plan.set_index("cell_id")[column].sort_index()
+        right=planned.set_index("cell_id")[column].sort_index()
+        if not _same_series(left,right):
+            raise AssertionError(f"checkpoint/exported planned-cell mismatch: {column}")
+    for column in checkpoint_ledger.columns:
+        if column=="cell_id":
+            continue  # Cell IDs are compared as keys above, not as value columns.
+        left=checkpoint_ledger.set_index("cell_id")[column].sort_index()
+        right=ledger.set_index("cell_id")[column].sort_index()
+        if not _same_series(left,right):
+            raise AssertionError(f"checkpoint/exported lifecycle mismatch: {column}")
+    for column in checkpoint_plan.columns:
+        if column=="cell_id":
+            continue
+        if column not in checkpoint_ledger.columns:
+            raise AssertionError(f"checkpoint ledger omits planned provenance field: {column}")
+        expected=checkpoint_plan.set_index("cell_id")[column].sort_index()
+        observed=checkpoint_ledger.set_index("cell_id")[column].sort_index()
+        if not _same_series(expected,observed):
+            raise AssertionError(f"checkpoint plan/ledger provenance mismatch: {column}")
+    allowed_status={"SUCCESS","NON_EVALUABLE","FAILED","NOT_RUN"}
+    allowed_audit={"PASS","NOT_PASS","NOT_RUN"}
+    reasons={
+        "SUCCESS":{""},
+        "NON_EVALUABLE":{"NONFINITE_LIKELIHOOD","INVALID_POSTERIOR_NORMALIZATION","SUPPORT_BOUNDARY_MODE","PREDECLARED_WEIGHT_INSTABILITY"},
+        "FAILED":{"CHILD_PROCESS_ERROR","CHILD_AUDIT_FAILED","DATA_INTEGRITY_FAILURE"},
+        "NOT_RUN":{"RUN_NOT_STARTED","RUN_INTERRUPTED","UPSTREAM_FAILURE","NOT_SCHEDULED"},
+    }
+    for row in checkpoint_ledger.to_dict("records"):
+        status=str(row.get("status")); audit_status=str(row.get("audit_status"))
+        reason=str(row.get("reason_code") or "")
+        if status not in allowed_status or audit_status not in allowed_audit or reason not in reasons[status]:
+            raise AssertionError("checkpoint contains an invalid lifecycle status/audit/reason tuple")
+        if status in {"SUCCESS","NON_EVALUABLE"}:
+            if audit_status!="PASS" or not row.get("audit_report_path"):
+                raise AssertionError("successful/evaluable cell lacks audit PASS or report path")
+        elif audit_status=="PASS":
+            raise AssertionError("failed/unrun cell cannot claim audit PASS")
+        if status=="NOT_RUN" and audit_status!="NOT_RUN":
+            raise AssertionError("NOT_RUN cell has a terminal audit status")
+        if status in {"SUCCESS","NON_EVALUABLE","FAILED"}:
+            if not row.get("started_at") or not row.get("completed_at"):
+                raise AssertionError("terminal lifecycle cell lacks start/completion timestamp")
+            from datetime import datetime
+            start=datetime.fromisoformat(str(row["started_at"]).replace("Z","+00:00"))
+            end=datetime.fromisoformat(str(row["completed_at"]).replace("Z","+00:00"))
+            if start.tzinfo is None or end.tzinfo is None or end<start:
+                raise AssertionError("invalid lifecycle timestamp ordering/offset")
+    if (checkpoint_ledger.status=="NOT_RUN").any():
+        raise AssertionError("finalized artifact contains planned cells that were never terminally accounted")
     summaries=pd.read_csv(root/"replicate_posterior_summaries.csv")
     diagnostics=pd.read_csv(root/"replicate_weight_diagnostics.csv")
     aggregates=pd.read_csv(root/"aggregate_metrics.csv")
@@ -154,7 +258,7 @@ def audit(root: Path) -> dict:
     for name in identity:
         if not np.array_equal(joined[f"{name}_planned"].to_numpy(),joined[f"{name}_ledger"].to_numpy()):
             raise AssertionError(f"planned/ledger mismatch: {name}")
-    allowed={"SUCCESS","FAILED"}
+    allowed={"SUCCESS","NON_EVALUABLE","FAILED","NOT_RUN"}
     if not set(ledger.status).issubset(allowed):
         raise AssertionError("unknown lifecycle status")
     if not set(ledger.audit_status).issubset({"PASS","NOT_RUN","NOT_PASS"}):
@@ -163,12 +267,17 @@ def audit(root: Path) -> dict:
     child_dirs={}
     child_audits=0
     for (rep,gamma),group in ledger.groupby(["replicate","gamma"],sort=True):
-        if group.status.nunique()!=1 or group.audit_status.nunique()!=1:
-            raise AssertionError("all arms/sizes in a child run must share one lifecycle status")
-        status=str(group.status.iloc[0]); audit_status=str(group.audit_status.iloc[0])
+        statuses=set(group.status.astype(str))
+        audit_statuses=set(group.audit_status.astype(str))
+        if statuses.issubset({"SUCCESS","NON_EVALUABLE"}) and audit_statuses=={"PASS"}:
+            status="SUCCESS"
+            audit_status="PASS"
+        elif statuses=={"FAILED"} and audit_statuses.issubset({"NOT_PASS","NOT_RUN"}):
+            status="FAILED"
+            audit_status=next(iter(audit_statuses))
+        else:
+            raise AssertionError("child block has an invalid mix of lifecycle/audit outcomes")
         if status=="SUCCESS":
-            if audit_status!="PASS":
-                raise AssertionError("successful child lacks independent audit PASS")
             rel=f"replicates/rep{int(rep):03d}_g{float(gamma):+g}".replace("+","p").replace("-","m")
             d=root/rel
             report=json.loads((d/"audit_report.json").read_text())
@@ -191,8 +300,17 @@ def audit(root: Path) -> dict:
                 raise AssertionError(f"child configuration/seed mismatch: {rel}")
             if list(map(int,child_cfg["validation_sizes"]))!=sizes:
                 raise AssertionError(f"child validation sizes mismatch: {rel}")
+            expected_audit_path=str((d/"audit_report.json").relative_to(root))
+            for cell_row in group.itertuples(index=False):
+                if str(cell_row.audit_report_path)!=expected_audit_path:
+                    raise AssertionError("cell lifecycle audit_report_path does not match its child report")
             child_summary=pd.read_csv(d/"results"/"posterior_summaries.csv")
             expected=summaries[(summaries.replicate==rep)&(summaries.gamma==gamma)]
+            ledger_status=group[["validation_size","arm","status"]].sort_values(
+                ["validation_size","arm"]).reset_index(drop=True)
+            summary_status=child_summary[["validation_size","arm","status"]].sort_values(
+                ["validation_size","arm"]).reset_index(drop=True)
+            pd.testing.assert_frame_equal(ledger_status,summary_status,check_dtype=False,check_exact=True)
             cols=["validation_size","arm","status","h0_true","median_error","posterior_median",
                 "q025","q05","q16","q84","q95","q975"]
             left=child_summary[cols].sort_values(["validation_size","arm"]).reset_index(drop=True)
@@ -259,7 +377,7 @@ def audit(root: Path) -> dict:
         expected_aggregates.sort_values(list(expected_aggregates.columns)).reset_index(drop=True),
         check_dtype=False,check_exact=False,rtol=1e-10,atol=1e-12)
 
-    return {"status":"PASS","planned_cells":len(planned),
+    return {"status":"PASS","run_status":expected_run_status,"planned_cells":len(planned),
         "status_counts":ledger.status.value_counts().to_dict(),
         "successful_child_runs":child_audits,
         "aggregate_manifest_entries_verified":checked,
