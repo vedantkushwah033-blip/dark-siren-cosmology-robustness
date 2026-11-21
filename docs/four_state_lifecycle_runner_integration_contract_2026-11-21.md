@@ -83,7 +83,7 @@ Do not collapse `NON_EVALUABLE`, `FAILED`, and `NOT_RUN` into one generic failur
 9. Two workers racing for one key cannot both claim it.
 10. Independent aggregate reconstruction catches tampered plan hashes, input hashes, ledger states, cell outputs, and paired contrasts.
 11. Full experiment output can be regenerated from the immutable plan and attempt records.
-12. POSIX and Windows support policy is explicit. The current checkpoint module imports `fcntl` unconditionally and uses hard-link/directory-fsync semantics; this is not portable evidence for Windows support.
+12. POSIX and Windows support policy is explicit. **Current checkpoint implementation is POSIX-only**: it imports `fcntl` unconditionally, uses `flock`, and relies on hard-link/directory-fsync semantics. The fork-based process tests also require POSIX. Windows must be treated as unsupported until a separately tested locking and durable-create implementation is added; a skipped fork test does not establish Windows compatibility.
 
 ## Confirmatory gate
 
