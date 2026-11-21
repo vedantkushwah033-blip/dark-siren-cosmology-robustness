@@ -335,6 +335,30 @@ def _refresh_manifest_hash(manifest_path: Path, relative_path: str) -> None:
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
 
+def test_replicate_auditor_rejects_tampered_pair_accounting(tmp_path: Path):
+    root = tmp_path / "pair_accounting_tamper"
+    args = type("Args", (), {
+        "master_seed": 20261125, "replicates": 2, "gammas": [0.0],
+        "n_parent": 300, "n_detected": 4, "validation_frame": 100,
+        "validation_sizes": [60, 90], "curvature_beta": -3.9,
+        "inclusion_degree": 1, "h0_true": 70.0, "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0, "h0_points": 41, "scott_multiplier": 0.7,
+        "quadrature_order": 3, "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0, "output_dir": root,
+    })()
+    result = run_replicates(args)
+    assert result["status"] == "PASS"
+    accounting_path = root / "paired_contrast_accounting.csv"
+    accounting = pd.read_csv(accounting_path)
+    accounting.loc[0, "eligible_pairs"] += 1
+    accounting.to_csv(accounting_path, index=False)
+    _refresh_manifest_hash(root / "manifest.json", "paired_contrast_accounting.csv")
+
+    import pytest
+    with pytest.raises(AssertionError):
+        audit_replicates(root)
+
+
 def test_replicate_auditor_rejects_child_event_seed_tampering(tmp_path: Path):
     root = tmp_path / "event_seed_tamper"
     args = type("Args", (), {
