@@ -269,3 +269,72 @@ def test_replicate_auditor_rejects_child_event_seed_tampering(tmp_path: Path):
     import pytest
     with pytest.raises(AssertionError, match="child configuration/seed mismatch"):
         audit_replicates(root)
+
+
+def test_replicate_runner_recovers_interrupted_child_block(tmp_path, monkeypatch):
+    import run_quadratic_five_arm_replicates as replicate_module
+
+    root = tmp_path / "restartable_replicates"
+    args = type("Args", (), {
+        "master_seed": 20261121, "replicates": 2, "gammas": [0.0],
+        "n_parent": 300, "n_detected": 4, "validation_frame": 100,
+        "validation_sizes": [60, 90], "curvature_beta": -3.9,
+        "inclusion_degree": 1, "h0_true": 70.0, "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0, "h0_points": 41, "scott_multiplier": 0.7,
+        "quadrature_order": 3, "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0, "output_dir": root,
+        "resume": False,
+    })()
+    original_run = replicate_module.subprocess.run
+    calls = {"count": 0}
+
+    def interrupt_before_child(*call_args, **call_kwargs):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise KeyboardInterrupt("simulated hard interruption before child completion")
+        return original_run(*call_args, **call_kwargs)
+
+    monkeypatch.setattr(replicate_module.subprocess, "run", interrupt_before_child)
+    import pytest
+    with pytest.raises(KeyboardInterrupt, match="simulated hard interruption"):
+        run_replicates(args)
+
+    checkpoint_path = root / "cell_lifecycle_checkpoint.json"
+    interrupted = json.loads(checkpoint_path.read_text())
+    active = [row for row in interrupted["cell_ledger"] if row["started_at"]]
+    assert len(active) == len(args.validation_sizes) * len(ARMS)
+    first_start = active[0]["started_at"]
+    assert all(row["status"] == "NOT_RUN" for row in active)
+    assert all(row["reason_code"] == "RUN_NOT_STARTED" for row in active)
+
+    monkeypatch.setattr(replicate_module.subprocess, "run", original_run)
+    args.resume = True
+    result = run_replicates(args)
+    assert result["status"] == "PASS"
+    recovered = json.loads(checkpoint_path.read_text())
+    first_group = [row for row in recovered["cell_ledger"] if row["replicate"] == 0]
+    assert all(row["status"] == "SUCCESS" for row in first_group)
+    assert all(row["started_at"] == first_start for row in first_group)
+    assert all(row["audit_status"] == "PASS" for row in recovered["cell_ledger"])
+    assert audit_replicates(root)["status"] == "PASS"
+
+
+def test_completed_replicate_run_can_be_resumed_without_recomputing(tmp_path):
+    root = tmp_path / "completed_resume"
+    args = type("Args", (), {
+        "master_seed": 20261122, "replicates": 2, "gammas": [0.0],
+        "n_parent": 300, "n_detected": 4, "validation_frame": 100,
+        "validation_sizes": [60, 90], "curvature_beta": -3.9,
+        "inclusion_degree": 1, "h0_true": 70.0, "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0, "h0_points": 41, "scott_multiplier": 0.7,
+        "quadrature_order": 3, "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0, "output_dir": root,
+        "resume": False,
+    })()
+    first = run_replicates(args)
+    assert first["status"] == "PASS"
+    args.resume = True
+    second = run_replicates(args)
+    assert second["status"] == "PASS"
+    assert second["planned_cells"] == first["planned_cells"]
+    assert audit_replicates(root)["status"] == "PASS"
