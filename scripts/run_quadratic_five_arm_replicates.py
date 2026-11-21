@@ -64,6 +64,8 @@ def _paired_contrasts(summaries: pd.DataFrame) -> pd.DataFrame:
         by_arm = {str(row.arm): row for row in group.itertuples(index=False)}
         for arm in ARMS[1:]:
             for reference in ("A_catalogue_only", "C_known_probability_ipw"):
+                if arm == reference:
+                    continue
                 # A contrast requires only its two named arms. A failure in an
                 # unrelated third arm must not erase an otherwise valid pair.
                 if (arm not in by_arm or reference not in by_arm
@@ -94,6 +96,8 @@ def _paired_contrast_accounting(ledger: pd.DataFrame) -> pd.DataFrame:
     for (gamma, nval), design in ledger.groupby(["gamma", "validation_size"], sort=True):
         for arm in ARMS[1:]:
             for reference in ("A_catalogue_only", "C_known_probability_ipw"):
+                if arm == reference:
+                    continue
                 pair = design.loc[design.arm.isin([arm, reference])]
                 wide = pair.pivot(index="replicate", columns="arm", values="status")
                 if arm not in wide or reference not in wide or wide[[arm, reference]].isna().any().any():
