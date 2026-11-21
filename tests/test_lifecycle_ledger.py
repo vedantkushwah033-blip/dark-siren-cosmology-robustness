@@ -451,3 +451,34 @@ def test_checkpoint_recovery_marks_active_and_unstarted_cells_distinctly(tmp_pat
     rows = read_checkpoint(path)["cell_ledger"]
     assert rows[0]["reason_code"] == "RUN_INTERRUPTED"
     assert rows[1]["reason_code"] == "NOT_SCHEDULED"
+
+
+def test_interrupted_started_cell_can_resume_without_rewriting_first_start(tmp_path):
+    path = tmp_path / "resume" / "checkpoint.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    key = (0, 0.0, 100, "A")
+    first_start = "2026-11-21T05:00:00Z"
+    mark_cell_started(path, key, first_start)
+    finalize_interrupted_cells(path, "Simulated process interruption.")
+
+    interrupted = read_checkpoint(path)["cell_ledger"][0]
+    assert interrupted["status"] == "NOT_RUN"
+    assert interrupted["reason_code"] == "RUN_INTERRUPTED"
+    assert interrupted["started_at"] == first_start
+
+    # A retry is allowed only after the interrupted state has been persisted.
+    mark_cell_started(path, key, "2026-11-21T05:05:00Z")
+    resumed = read_checkpoint(path)["cell_ledger"][0]
+    assert resumed["status"] == "NOT_RUN"
+    assert resumed["reason_code"] == "RUN_NOT_STARTED"
+    assert resumed["started_at"] == first_start
+
+    record_cell_outcome(
+        path, key, status="SUCCESS", audit_status="PASS",
+        started_at=first_start,
+        completed_at="2026-11-21T05:06:00Z",
+        audit_report_path="audit/A.json",
+    )
+    completed = read_checkpoint(path)["cell_ledger"][0]
+    assert completed["status"] == "SUCCESS"
+    assert completed["started_at"] == first_start
