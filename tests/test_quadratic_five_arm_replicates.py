@@ -48,7 +48,8 @@ def test_quadratic_five_arm_aggregate_and_paired_contrasts():
     summary=pd.DataFrame(summaries)
     lifecycle=pd.DataFrame(ledger)
     contrasts=_paired_contrasts(summary)
-    assert len(contrasts)==8
+    assert len(contrasts)==7
+    assert not (contrasts.arm == contrasts.reference_arm).any()
     assert set(contrasts.reference_arm)=={"A_catalogue_only","C_known_probability_ipw"}
     aggregate=_aggregate(summary,lifecycle,replicates=2,max_abs_error=20.0)
     row=aggregate.loc[aggregate.arm=="A_catalogue_only"].iloc[0]
@@ -66,6 +67,34 @@ def test_quadratic_five_arm_aggregate_and_paired_contrasts():
     assert row.failure_inclusive_width_lower==5.0
     assert row.failure_inclusive_width_upper==25.0
 
+
+
+def test_paired_contrasts_require_only_the_two_arms_in_each_pair():
+    rows = [
+        {"replicate": 0, "gamma": 0.0, "validation_size": 100,
+         "arm": "A_catalogue_only", "status": "SUCCESS",
+         "h0_true": 70.0, "median_error": -4.0, "q16": 65.0, "q84": 75.0},
+        {"replicate": 0, "gamma": 0.0, "validation_size": 100,
+         "arm": "B_parent_oracle", "status": "FAILED",
+         "h0_true": 70.0, "median_error": np.nan, "q16": np.nan, "q84": np.nan},
+        {"replicate": 0, "gamma": 0.0, "validation_size": 100,
+         "arm": "C_known_probability_ipw", "status": "SUCCESS",
+         "h0_true": 70.0, "median_error": -1.0, "q16": 65.0, "q84": 75.0},
+        {"replicate": 0, "gamma": 0.0, "validation_size": 100,
+         "arm": "D_map_plugin_ipw", "status": "SUCCESS",
+         "h0_true": 70.0, "median_error": 2.0, "q16": 65.0, "q84": 75.0},
+        {"replicate": 0, "gamma": 0.0, "validation_size": 100,
+         "arm": "E_uncertainty_integrated_ipw", "status": "NOT_RUN",
+         "h0_true": 70.0, "median_error": np.nan, "q16": np.nan, "q84": np.nan},
+    ]
+    contrasts = _paired_contrasts(pd.DataFrame(rows))
+    pairs = set(zip(contrasts.arm, contrasts.reference_arm))
+    assert pairs == {
+        ("C_known_probability_ipw", "A_catalogue_only"),
+        ("D_map_plugin_ipw", "A_catalogue_only"),
+        ("D_map_plugin_ipw", "C_known_probability_ipw"),
+    }
+    assert not (contrasts.arm == contrasts.reference_arm).any()
 
 def test_aggregate_reports_non_evaluable_and_failed_separately():
     ledger=pd.DataFrame([
