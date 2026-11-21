@@ -128,11 +128,15 @@ def audit(root: Path) -> dict:
         if frame.cell_id.duplicated().any():
             raise AssertionError(f"duplicate cell ID in checkpoint {frame_name}")
     for column in checkpoint_plan.columns:
+        if column=="cell_id":
+            continue  # Cell IDs are compared as keys above, not as value columns.
         left=checkpoint_plan.set_index("cell_id")[column].fillna("").astype(str).sort_index()
         right=planned.set_index("cell_id")[column].fillna("").astype(str).sort_index()
         if not left.equals(right):
             raise AssertionError(f"checkpoint/exported planned-cell mismatch: {column}")
     for column in checkpoint_ledger.columns:
+        if column=="cell_id":
+            continue  # Cell IDs are compared as keys above, not as value columns.
         left=checkpoint_ledger.set_index("cell_id")[column].fillna("").astype(str).sort_index()
         right=ledger.set_index("cell_id")[column].fillna("").astype(str).sort_index()
         if not left.equals(right):
