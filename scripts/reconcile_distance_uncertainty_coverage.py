@@ -214,7 +214,7 @@ def reconcile(
                 "strata": cells_per_arm,
                 "replicates_per_stratum": len(replicates),
                 "resamples": bootstrap_resamples,
-                "seed": bootstrap_seed,
+                "seed": bootstrap_seed + level,
                 "percentile_95_interval": _stratified_bootstrap(
                     cells, seed=bootstrap_seed + level, resamples=bootstrap_resamples
                 ),
