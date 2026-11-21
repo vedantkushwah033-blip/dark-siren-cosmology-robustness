@@ -192,3 +192,45 @@ def test_a_and_b_require_only_their_own_host_population():
     assert a.status == "SUCCESS"
     assert b.status == "SUCCESS"
 
+def test_degree_two_d_and_e_arm_cells_match_matched_reference():
+    parent = np.linspace(0.0101, 0.3999, 600)
+    catalogue = parent[::2]
+    validation = np.linspace(0.0101, 0.3999, 180)
+    retained = (np.arange(validation.size) % 3 != 0).astype(int)
+    parent_base = 1.0 + 1.5 * (parent - 0.01) / 0.39
+    catalogue_base = 1.0 + 1.5 * (catalogue - 0.01) / 0.39
+    c_g = 0.2845005579191241
+    arms = build_five_arm_weights(
+        parent, catalogue, validation, retained,
+        catalogue_floor=0.1, degree=2, coordinate_center=0.205,
+        coordinate_scale=0.195, quadratic_center=c_g, quadrature_order=3,
+        parent_base_weights=parent_base, catalogue_base_weights=catalogue_base,
+    )
+    events = [
+        {"gw_distance": 275.0, "gw_sigma": 140.0},
+        {"gw_distance": 340.0, "gw_sigma": 140.0},
+    ]
+    h0 = np.linspace(55.0, 85.0, 41)
+    z = np.linspace(0.01, 0.40, 501)
+    joint = matched_five_arm_kde_selected_log_likelihood(
+        h0, arms, events, detection_threshold_mpc=250.0,
+        redshift_grid=z, merger_weight=np.ones_like(z), scott_multiplier=0.7,
+    )
+    for arm, target in (
+        ("D_map_plugin_ipw", joint.arm_d_log_likelihood),
+        ("E_uncertainty_integrated_ipw", joint.arm_e_marginal_log_likelihood),
+    ):
+        result = execution.evaluate_arm_cell(
+            arm, parent_redshift=parent, catalogue_redshift=catalogue,
+            validation_redshift=validation, validation_retained=retained,
+            events=events, H0_grid=h0, redshift_grid=z,
+            merger_weight=np.ones_like(z), h0_true=70.0,
+            h0_prior_min=55.0, h0_prior_max=85.0,
+            detection_threshold_mpc=250.0, scott_multiplier=0.7,
+            quadrature_order=3, inclusion_degree=2,
+            coordinate_center=0.205, coordinate_scale=0.195,
+            quadratic_center=c_g, parent_base_weights=parent_base,
+            catalogue_base_weights=catalogue_base,
+        )
+        np.testing.assert_allclose(result.marginal_log_likelihood, target, rtol=1e-11, atol=1e-11)
+
