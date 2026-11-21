@@ -35,7 +35,7 @@ def _atomic_create_json(path: str | Path, value) -> None:
     """Atomically create a JSON file without replacing an existing run checkpoint."""
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps(value, indent=2, sort_keys=True) + "\\n"
+    payload = json.dumps(value, indent=2, sort_keys=True) + "\n"
     fd, temporary = tempfile.mkstemp(
         prefix=f".{target.name}.", suffix=".tmp", dir=target.parent
     )
