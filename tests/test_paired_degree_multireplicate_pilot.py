@@ -200,3 +200,43 @@ def test_independent_pair_auditor_uses_recorded_check_schema(tmp_path: Path):
         "maximum_common_arm_log_likelihood_difference": 0.0,
     }
 
+
+def test_incomplete_paired_run_manifest_is_not_mislabeled_pass(tmp_path, monkeypatch):
+    import json
+    import subprocess
+    from types import SimpleNamespace
+    import run_paired_degree_multireplicate_pilot as runner_module
+    from audit_paired_degree_multireplicate_pilot import audit
+
+    root = tmp_path / "incomplete_paired_run"
+    args = SimpleNamespace(
+        output_dir=root, master_seed=20261120, replicates=2,
+        gammas=[-1.0, 0.0, 1.0], n_parent=300, n_detected=4,
+        validation_frame=100, validation_sizes=[60, 90],
+        curvature_beta=-3.9, h0_true=70.0, h0_prior_min=30.0,
+        h0_prior_max=110.0, h0_points=41, scott_multiplier=0.7,
+        quadrature_order=3, sigma_mpc=140.0, detection_threshold_mpc=250.0,
+    )
+
+    def fail_child(command, **kwargs):
+        return subprocess.CompletedProcess(command, 1, stdout="", stderr="injected child failure")
+
+    monkeypatch.setattr(runner_module.subprocess, "run", fail_child)
+    result = runner_module.run(args)
+    assert result["status"] == "INCOMPLETE"
+
+    config = json.loads((root / "config.json").read_text())
+    manifest_path = root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    assert config["status"] == "INCOMPLETE"
+    assert manifest["status"] == "INCOMPLETE"
+
+    audit_result = audit(root)
+    assert audit_result["status"] == "PASS"
+    assert audit_result["run_status"] == "INCOMPLETE"
+    assert audit_result["paired_child_blocks_verified"] == 0
+
+    manifest["status"] = "PASS"
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n")
+    with pytest.raises(AssertionError, match="manifest status mismatch"):
+        audit(root)
