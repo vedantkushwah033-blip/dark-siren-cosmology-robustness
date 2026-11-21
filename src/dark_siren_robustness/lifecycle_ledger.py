@@ -98,6 +98,8 @@ def set_cell_outcome(
         raise ValueError("SUCCESS must have an empty reason code")
     if status != "SUCCESS" and not reason_code:
         raise ValueError(f"{status} requires a reason code")
+    if status in {"SUCCESS", "NON_EVALUABLE"} and not started_at:
+        raise ValueError(f"{status} requires started_at")
     if status in {"SUCCESS", "NON_EVALUABLE"} and not completed_at:
         raise ValueError(f"{status} requires completed_at")
     if started_at and completed_at and completed_at < started_at:
@@ -150,8 +152,14 @@ def validate_ledger(planned_rows: Iterable[Mapping], ledger_rows: Iterable[Mappi
             raise ValueError(f"{status} cell has no reason code")
         if status == "SUCCESS" and reason:
             raise ValueError("SUCCESS cell has a failure reason")
+        if status in {"SUCCESS", "NON_EVALUABLE"} and not row.get("started_at"):
+            raise ValueError(f"{status} cell has no start timestamp")
         if status in {"SUCCESS", "NON_EVALUABLE"} and not row.get("completed_at"):
             raise ValueError(f"{status} cell has no completion timestamp")
+        started_at = row.get("started_at")
+        completed_at = row.get("completed_at")
+        if started_at and completed_at and completed_at < started_at:
+            raise ValueError("completed_at cannot precede started_at")
         counts[status] += 1
     return {"status": "PASS", "planned_cells": len(planned), "ledger_cells": len(ledger),
             "status_counts": counts}
