@@ -133,6 +133,41 @@ def test_success_requires_audit_and_completion_timestamp():
         )
 
 
+
+def test_success_and_non_evaluable_require_start_timestamp():
+    row = initial_ledger(_plan())[0]
+    with pytest.raises(ValueError, match="requires started_at"):
+        set_cell_outcome(
+            row, status="SUCCESS", audit_status="PASS",
+            completed_at="2026-11-21T00:01:00Z",
+        )
+    with pytest.raises(ValueError, match="requires started_at"):
+        set_cell_outcome(
+            row, status="NON_EVALUABLE", audit_status="PASS",
+            reason_code="PREDECLARED_WEIGHT_INSTABILITY",
+            completed_at="2026-11-21T00:01:00Z",
+        )
+
+
+def test_ledger_validator_rejects_missing_or_reversed_timestamps():
+    plan = _plan()
+    rows = initial_ledger(plan)
+    rows[0] = set_cell_outcome(
+        rows[0], status="SUCCESS", audit_status="PASS",
+        started_at="2026-11-21T00:00:00Z",
+        completed_at="2026-11-21T00:01:00Z",
+    )
+    missing_start = [dict(row) for row in rows]
+    missing_start[0]["started_at"] = None
+    with pytest.raises(ValueError, match="no start timestamp"):
+        validate_ledger(plan, missing_start)
+
+    reversed_times = [dict(row) for row in rows]
+    reversed_times[0]["started_at"] = "2026-11-21T00:02:00Z"
+    with pytest.raises(ValueError, match="cannot precede"):
+        validate_ledger(plan, reversed_times)
+
+
 def test_atomic_json_write_leaves_parseable_complete_file(tmp_path):
     target = tmp_path / "nested" / "ledger.json"
     atomic_write_json(target, {"rows": [{"status": "NOT_RUN"}]})
