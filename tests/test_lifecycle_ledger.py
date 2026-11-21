@@ -344,3 +344,48 @@ def test_ledger_validator_rejects_failed_cell_without_terminal_timestamps():
     rows[0]["completed_at"] = None
     with pytest.raises(ValueError, match="no completion timestamp"):
         validate_ledger(plan, rows)
+
+
+def test_concurrent_checkpoint_updates_do_not_lose_completed_cells(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+
+    from dark_siren_robustness.cell_ledger_store import (
+        mark_cell_started,
+        record_cell_outcome,
+    )
+
+    plan = [
+        {
+            "replicate": index,
+            "gamma": 0.0,
+            "validation_size": 100,
+            "arm": f"arm_{index}",
+            "analysis_seed": 1000 + index,
+            "h0_true": 70.0,
+        }
+        for index in range(16)
+    ]
+    path = tmp_path / "concurrent" / "checkpoint.json"
+    initialize_checkpoint(path, plan)
+
+    def complete(row):
+        key = (row["replicate"], row["gamma"], row["validation_size"], row["arm"])
+        started_at = "2026-11-21T05:00:00Z"
+        mark_cell_started(path, key, started_at)
+        record_cell_outcome(
+            path,
+            key,
+            status="SUCCESS",
+            audit_status="PASS",
+            started_at=started_at,
+            completed_at="2026-11-21T05:01:00Z",
+            audit_report_path=f"audit/{row['arm']}.json",
+        )
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        list(pool.map(complete, plan))
+
+    checkpoint = read_checkpoint(path)
+    assert len(checkpoint["cell_ledger"]) == len(plan)
+    assert all(row["status"] == "SUCCESS" for row in checkpoint["cell_ledger"])
+    assert all(row["audit_status"] == "PASS" for row in checkpoint["cell_ledger"])
