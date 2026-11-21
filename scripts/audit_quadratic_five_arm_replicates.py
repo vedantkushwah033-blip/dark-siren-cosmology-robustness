@@ -141,6 +141,17 @@ def audit(root: Path) -> dict:
         raise AssertionError("immutable cell lifecycle plan hash mismatch")
     checkpoint_plan=pd.DataFrame(checkpoint["planned_cells"])
     checkpoint_ledger=pd.DataFrame(checkpoint["cell_ledger"])
+    expected_run_status = (
+        "PASS"
+        if (checkpoint_ledger.status.astype(str) == "SUCCESS").all()
+        and (checkpoint_ledger.audit_status.astype(str) == "PASS").all()
+        else "INCOMPLETE"
+    )
+    if manifest.get("status") != expected_run_status:
+        raise AssertionError(
+            "aggregate manifest lifecycle status mismatch: "
+            f"expected {expected_run_status}, observed {manifest.get('status')}"
+        )
     if set(checkpoint_plan.cell_id.astype(str))!=set(planned.cell_id.astype(str)):
         raise AssertionError("checkpoint plan and exported planned-cell keys differ")
     if set(checkpoint_ledger.cell_id.astype(str))!=set(ledger.cell_id.astype(str)):
