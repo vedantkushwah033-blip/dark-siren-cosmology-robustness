@@ -6,6 +6,7 @@ without silently changing legacy artifact semantics.
 """
 from __future__ import annotations
 
+from datetime import datetime
 import json
 import os
 import tempfile
@@ -36,6 +37,21 @@ REASONS_BY_STATUS = {
         "NOT_SCHEDULED",
     }),
 }
+
+
+def _parse_timestamp(value: str | None, field: str):
+    """Parse an ISO-8601 timestamp and require an explicit UTC offset."""
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{field} must be a non-empty ISO-8601 timestamp")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError(f"{field} must be a valid ISO-8601 timestamp") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError(f"{field} must include a UTC offset")
+    return parsed
 
 
 def _key(row: Mapping) -> tuple:
@@ -94,15 +110,29 @@ def set_cell_outcome(
         raise ValueError("FAILED cannot claim audit PASS")
     if status == "NOT_RUN" and audit_status != "NOT_RUN":
         raise ValueError("NOT_RUN requires audit status NOT_RUN")
+    if status == "NOT_RUN" and completed_at is not None:
+        raise ValueError("NOT_RUN cannot have completed_at")
+    if status == "NOT_RUN" and audit_report_path is not None:
+        raise ValueError("NOT_RUN cannot have audit_report_path")
+    if status == "NOT_RUN" and reason_code == "RUN_INTERRUPTED" and not started_at:
+        raise ValueError("RUN_INTERRUPTED requires a persisted start timestamp")
+    if status == "NOT_RUN" and reason_code in {"UPSTREAM_FAILURE", "NOT_SCHEDULED"} and started_at is not None:
+        raise ValueError(f"{reason_code} cannot have a cell start timestamp")
     if status == "SUCCESS" and reason_code:
         raise ValueError("SUCCESS must have an empty reason code")
     if status != "SUCCESS" and not reason_code:
         raise ValueError(f"{status} requires a reason code")
-    if status in {"SUCCESS", "NON_EVALUABLE"} and not completed_at:
+    if status in {"SUCCESS", "NON_EVALUABLE", "FAILED"} and not completed_at:
         raise ValueError(f"{status} requires completed_at")
-    if status in {"SUCCESS", "NON_EVALUABLE"} and not started_at:
+    if status in {"SUCCESS", "NON_EVALUABLE", "FAILED"} and not started_at:
         raise ValueError(f"{status} requires started_at")
-    if started_at and completed_at and completed_at < started_at:
+    if status in {"SUCCESS", "NON_EVALUABLE"} and (
+        not isinstance(audit_report_path, str) or not audit_report_path.strip()
+    ):
+        raise ValueError(f"{status} requires audit_report_path")
+    started_dt = _parse_timestamp(started_at, "started_at")
+    completed_dt = _parse_timestamp(completed_at, "completed_at")
+    if started_dt is not None and completed_dt is not None and completed_dt < started_dt:
         raise ValueError("completed_at cannot precede started_at")
     result = dict(row)
     result.update({
@@ -148,17 +178,32 @@ def validate_ledger(planned_rows: Iterable[Mapping], ledger_rows: Iterable[Mappi
             raise ValueError("FAILED cell cannot claim audit PASS")
         if status == "NOT_RUN" and audit != "NOT_RUN":
             raise ValueError("NOT_RUN cell has an audit status other than NOT_RUN")
+        if status == "NOT_RUN" and row.get("completed_at") is not None:
+            raise ValueError("NOT_RUN cell has a completion timestamp")
+        if status == "NOT_RUN" and row.get("audit_report_path") is not None:
+            raise ValueError("NOT_RUN cell has an audit report path")
+        if status == "NOT_RUN" and reason == "RUN_INTERRUPTED" and not row.get("started_at"):
+            raise ValueError("RUN_INTERRUPTED cell has no persisted start timestamp")
+        if status == "NOT_RUN" and reason in {"UPSTREAM_FAILURE", "NOT_SCHEDULED"} and row.get("started_at") is not None:
+            raise ValueError(f"{reason} cell cannot have a start timestamp")
         if status != "SUCCESS" and not reason:
             raise ValueError(f"{status} cell has no reason code")
         if status == "SUCCESS" and reason:
             raise ValueError("SUCCESS cell has a failure reason")
-        if status in {"SUCCESS", "NON_EVALUABLE"} and not row.get("started_at"):
+        if status in {"SUCCESS", "NON_EVALUABLE", "FAILED"} and not row.get("started_at"):
             raise ValueError(f"{status} cell has no start timestamp")
-        if status in {"SUCCESS", "NON_EVALUABLE"} and not row.get("completed_at"):
+        if status in {"SUCCESS", "NON_EVALUABLE", "FAILED"} and not row.get("completed_at"):
             raise ValueError(f"{status} cell has no completion timestamp")
+        audit_path = row.get("audit_report_path")
+        if status in {"SUCCESS", "NON_EVALUABLE"} and (
+            not isinstance(audit_path, str) or not audit_path.strip()
+        ):
+            raise ValueError(f"{status} cell has no audit report path")
         started_at = row.get("started_at")
         completed_at = row.get("completed_at")
-        if started_at and completed_at and completed_at < started_at:
+        started_dt = _parse_timestamp(started_at, "started_at")
+        completed_dt = _parse_timestamp(completed_at, "completed_at")
+        if started_dt is not None and completed_dt is not None and completed_dt < started_dt:
             raise ValueError("completed_at cannot precede started_at")
         counts[status] += 1
     return {"status": "PASS", "planned_cells": len(planned), "ledger_cells": len(ledger),
