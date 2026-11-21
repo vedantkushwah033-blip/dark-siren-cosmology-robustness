@@ -299,5 +299,5 @@ def test_cell_ledger_auditor_rejects_status_tampering_even_after_manifest_refres
     path.write_text(frame.to_csv(index=False))
     _refresh_manifest_hash(root / "manifest.json", "cell_ledger.csv")
     import pytest
-    with pytest.raises(AssertionError, match="cell lifecycle ledger"):
+    with pytest.raises(AssertionError, match="posterior summaries are attached"):
         audit_replicates(root)
