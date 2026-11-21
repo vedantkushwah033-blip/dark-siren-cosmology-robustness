@@ -110,6 +110,10 @@ def set_cell_outcome(
         raise ValueError("FAILED cannot claim audit PASS")
     if status == "NOT_RUN" and audit_status != "NOT_RUN":
         raise ValueError("NOT_RUN requires audit status NOT_RUN")
+    if status == "NOT_RUN" and completed_at is not None:
+        raise ValueError("NOT_RUN cannot have completed_at")
+    if status == "NOT_RUN" and audit_report_path is not None:
+        raise ValueError("NOT_RUN cannot have audit_report_path")
     if status == "SUCCESS" and reason_code:
         raise ValueError("SUCCESS must have an empty reason code")
     if status != "SUCCESS" and not reason_code:
@@ -170,6 +174,10 @@ def validate_ledger(planned_rows: Iterable[Mapping], ledger_rows: Iterable[Mappi
             raise ValueError("FAILED cell cannot claim audit PASS")
         if status == "NOT_RUN" and audit != "NOT_RUN":
             raise ValueError("NOT_RUN cell has an audit status other than NOT_RUN")
+        if status == "NOT_RUN" and row.get("completed_at") is not None:
+            raise ValueError("NOT_RUN cell has a completion timestamp")
+        if status == "NOT_RUN" and row.get("audit_report_path") is not None:
+            raise ValueError("NOT_RUN cell has an audit report path")
         if status != "SUCCESS" and not reason:
             raise ValueError(f"{status} cell has no reason code")
         if status == "SUCCESS" and reason:
