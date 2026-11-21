@@ -15,7 +15,7 @@ This is a fixed-truth, low-redshift, synthetic engineering pilot. It is not a pr
 
 ## Artifact and lifecycle audit
 
-Batch 2 workflow #44841133375 completed successfully. Its artifact is ID 14683823051, SHA-256 `10ad7f7a0c6528b82f8d4816a841c18ac164490e3731a8a5da6479ac612bb3d1`. The independent artifact auditor reports PASS for both degree arms: 600/600 planned cells SUCCESS per degree, 60 successful child runs per degree, 1,088 aggregate manifest entries verified, 960 paired-contrast rows reconstructed, and 30 aggregate metric rows reconstructed.
+Batch 2 workflow #44841133375 completed successfully. Its artifact is ID 14683823051, SHA-256 `10ad7f7a0c6528b82f8d4816a841c18ac164490e3731a8a5da6479ac612bb3d1`. The independent outer artifact audit reports PASS: 2,190 outer-manifest entries and 3,736 nested-manifest entries verified; 60 paired child blocks checked; 600 between-degree paired posterior-summary rows reconstructed; and 30 between-degree aggregate metric rows reconstructed. Separately, each degree-specific five-arm audit reports 600/600 planned cells SUCCESS, 60 successful child runs, 1,088 aggregate-manifest entries, 960 within-degree arm/reference contrast rows, and 30 within-degree aggregate metric rows. The 960 count is not the D2-minus-D1 contrast count.
 
 The earlier batch-1 artifact SHA-256 is `e92cdbf589548a2113c6db8f9a764d577bdcbc410554722a36e1cffec43b76f1`. Across both batches, each degree has 1,200/1,200 SUCCESS summary cells with PASS audit status. Replicate seeds match across degrees within each batch; analysis and validation seeds have zero overlap between batches.
 
