@@ -148,6 +148,8 @@ def _write_updated(path: str | Path, checkpoint: dict) -> dict:
 
 def mark_cell_started(path: str | Path, key: tuple, started_at: str) -> dict:
     """Record an attempted cell while retaining NOT_RUN until audited completion."""
+    if not isinstance(started_at, str) or not started_at.strip():
+        raise ValueError("mark_cell_started requires a non-empty ISO-8601 timestamp")
     with _checkpoint_lock(path):
         checkpoint = read_checkpoint(path)
         matches = [i for i, row in enumerate(checkpoint["cell_ledger"])
@@ -158,9 +160,14 @@ def mark_cell_started(path: str | Path, key: tuple, started_at: str) -> dict:
         row = checkpoint["cell_ledger"][index]
         if row["status"] != "NOT_RUN":
             raise ValueError("cell has already reached a terminal outcome")
+        reason = row.get("reason_code")
         if row.get("started_at"):
-            if row.get("reason_code") != "RUN_INTERRUPTED":
+            if reason != "RUN_INTERRUPTED":
                 raise ValueError("cell is already active or is not marked recoverable")
+            # Validate every attempt timestamp, even though the immutable first-start
+            # timestamp remains the lifecycle-level started_at value.
+            from .lifecycle_ledger import _parse_timestamp
+            _parse_timestamp(started_at, "started_at")
             # Retry an interrupted cell without rewriting its immutable first-start time.
             checkpoint["cell_ledger"][index] = set_cell_outcome(
                 row, status="NOT_RUN", audit_status="NOT_RUN",
@@ -169,6 +176,8 @@ def mark_cell_started(path: str | Path, key: tuple, started_at: str) -> dict:
                 started_at=row["started_at"],
             )
         else:
+            if reason != "RUN_NOT_STARTED":
+                raise ValueError(f"cell state {reason!r} is not eligible to start")
             checkpoint["cell_ledger"][index] = set_cell_outcome(
                 row, status="NOT_RUN", audit_status="NOT_RUN",
                 reason_code="RUN_NOT_STARTED",
