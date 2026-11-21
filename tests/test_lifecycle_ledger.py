@@ -509,7 +509,7 @@ def test_multiprocess_checkpoint_updates_preserve_every_terminal_cell(tmp_path):
     from concurrent.futures import ProcessPoolExecutor
 
     if "fork" not in multiprocessing.get_all_start_methods():
-        pytest.skip("fcntl/flock process test requires a POSIX fork context")
+        pytest.skip("process-lock test requires a POSIX fork context")
 
     plan = [
         {
@@ -575,7 +575,7 @@ def test_concurrent_checkpoint_initialization_has_exactly_one_winner(tmp_path):
     from concurrent.futures import ProcessPoolExecutor
 
     if "fork" not in multiprocessing.get_all_start_methods():
-        pytest.skip("fcntl/flock process test requires a POSIX fork context")
+        pytest.skip("process-lock test requires a POSIX fork context")
 
     path = tmp_path / "initialize-race" / "checkpoint.json"
     plan_a = _checkpoint_plan()
