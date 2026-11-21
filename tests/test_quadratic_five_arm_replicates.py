@@ -9,9 +9,14 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from run_quadratic_five_arm_replicates import (
-    ARMS, _aggregate, _h0_truth, _paired_contrasts, _seed, run as run_replicates,
+    ARMS, _aggregate, _h0_truth, _paired_contrasts, _paired_contrast_lifecycle,
+    _seed, run as run_replicates,
 )
-from audit_quadratic_five_arm_replicates import audit as audit_replicates
+from audit_quadratic_five_arm_replicates import (
+    _expected_contrasts as audit_expected_contrasts,
+    _expected_pair_lifecycle as audit_expected_pair_lifecycle,
+    audit as audit_replicates,
+)
 from audit_quadratic_five_arm_smoke import _independent_inclusion_quadrature
 from dark_siren_robustness.generative_selection import generate_quadratic_logit_inclusion_samples
 
@@ -48,7 +53,8 @@ def test_quadratic_five_arm_aggregate_and_paired_contrasts():
     summary=pd.DataFrame(summaries)
     lifecycle=pd.DataFrame(ledger)
     contrasts=_paired_contrasts(summary)
-    assert len(contrasts)==8
+    assert len(contrasts)==7
+    assert not (contrasts.arm == contrasts.reference_arm).any()
     assert set(contrasts.reference_arm)=={"A_catalogue_only","C_known_probability_ipw"}
     aggregate=_aggregate(summary,lifecycle,replicates=2,max_abs_error=20.0)
     row=aggregate.loc[aggregate.arm=="A_catalogue_only"].iloc[0]
@@ -66,6 +72,71 @@ def test_quadratic_five_arm_aggregate_and_paired_contrasts():
     assert row.failure_inclusive_width_lower==5.0
     assert row.failure_inclusive_width_upper==25.0
 
+
+
+def test_paired_contrasts_require_only_the_two_arms_in_each_pair():
+    rows = [
+        {"replicate": 0, "gamma": 0.0, "validation_size": 100,
+         "arm": "A_catalogue_only", "status": "SUCCESS",
+         "h0_true": 70.0, "median_error": -4.0, "q16": 65.0, "q84": 75.0},
+        {"replicate": 0, "gamma": 0.0, "validation_size": 100,
+         "arm": "B_parent_oracle", "status": "FAILED",
+         "h0_true": 70.0, "median_error": np.nan, "q16": np.nan, "q84": np.nan},
+        {"replicate": 0, "gamma": 0.0, "validation_size": 100,
+         "arm": "C_known_probability_ipw", "status": "SUCCESS",
+         "h0_true": 70.0, "median_error": -1.0, "q16": 65.0, "q84": 75.0},
+        {"replicate": 0, "gamma": 0.0, "validation_size": 100,
+         "arm": "D_map_plugin_ipw", "status": "SUCCESS",
+         "h0_true": 70.0, "median_error": 2.0, "q16": 65.0, "q84": 75.0},
+        {"replicate": 0, "gamma": 0.0, "validation_size": 100,
+         "arm": "E_uncertainty_integrated_ipw", "status": "NOT_RUN",
+         "h0_true": 70.0, "median_error": np.nan, "q16": np.nan, "q84": np.nan},
+    ]
+    summary = pd.DataFrame(rows)
+    contrasts = _paired_contrasts(summary)
+    independently_expected = audit_expected_contrasts(summary)
+    pd.testing.assert_frame_equal(
+        contrasts.reset_index(drop=True),
+        independently_expected.reset_index(drop=True),
+        check_dtype=False,
+        check_exact=True,
+    )
+    pairs = set(zip(contrasts.arm, contrasts.reference_arm))
+    assert pairs == {
+        ("C_known_probability_ipw", "A_catalogue_only"),
+        ("D_map_plugin_ipw", "A_catalogue_only"),
+        ("D_map_plugin_ipw", "C_known_probability_ipw"),
+    }
+    assert not (contrasts.arm == contrasts.reference_arm).any()
+
+
+def test_pair_lifecycle_accounts_for_every_planned_pair_and_exclusion():
+    statuses = {
+        "A_catalogue_only": "SUCCESS",
+        "B_parent_oracle": "FAILED",
+        "C_known_probability_ipw": "SUCCESS",
+        "D_map_plugin_ipw": "SUCCESS",
+        "E_uncertainty_integrated_ipw": "NOT_RUN",
+    }
+    ledger = pd.DataFrame([
+        {"replicate": 0, "gamma": 0.0, "validation_size": 100,
+         "arm": arm, "status": status}
+        for arm, status in statuses.items()
+    ])
+    observed = _paired_contrast_lifecycle(ledger)
+    expected = audit_expected_pair_lifecycle(ledger)
+    pd.testing.assert_frame_equal(
+        observed.reset_index(drop=True), expected.reset_index(drop=True),
+        check_dtype=False, check_exact=True,
+    )
+    assert len(observed) == 7
+    assert int(observed.eligible.sum()) == 3
+    assert int((~observed.eligible).sum()) == 4
+    assert set(observed.loc[observed.eligible, "exclusion_reason"]) == {"ELIGIBLE"}
+    assert set(observed.loc[~observed.eligible, "exclusion_reason"]) == {
+        "ARM_FAILED", "ARM_NOT_RUN",
+    }
+    assert not (observed.arm == observed.reference_arm).any()
 
 def test_aggregate_reports_non_evaluable_and_failed_separately():
     ledger=pd.DataFrame([

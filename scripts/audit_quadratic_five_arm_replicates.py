@@ -56,10 +56,14 @@ def _expected_contrasts(summaries: pd.DataFrame) -> pd.DataFrame:
     rows=[]
     for (rep,gamma,nval),group in summaries.groupby(["replicate","gamma","validation_size"],sort=True):
         by_arm={str(r.arm):r for r in group.itertuples(index=False)}
-        if not all(a in by_arm and by_arm[a].status=="SUCCESS" for a in ARMS):
-            continue
         for arm in ARMS[1:]:
+            if arm not in by_arm or by_arm[arm].status!="SUCCESS":
+                continue
             for ref in ("A_catalogue_only","C_known_probability_ipw"):
+                # Reconstruct each valid pair independently; do not require
+                # unrelated arms to succeed and never compare an arm to itself.
+                if arm==ref or ref not in by_arm or by_arm[ref].status!="SUCCESS":
+                    continue
                 x,y=by_arm[arm],by_arm[ref]
                 rows.append({"replicate":int(rep),"gamma":float(gamma),"validation_size":int(nval),
                     "arm":arm,"reference_arm":ref,
@@ -69,6 +73,41 @@ def _expected_contrasts(summaries: pd.DataFrame) -> pd.DataFrame:
                     "coverage_68_difference":int(x.q16<=x.h0_true<=x.q84)-int(y.q16<=y.h0_true<=y.q84)})
     return pd.DataFrame(rows,columns=["replicate","gamma","validation_size","arm","reference_arm",
         "median_error_difference","absolute_error_difference","squared_error_difference","coverage_68_difference"])
+
+
+
+def _expected_pair_lifecycle(ledger: pd.DataFrame) -> pd.DataFrame:
+    """Independently reconstruct all planned pair denominators and exclusions."""
+    rows=[]
+    references=("A_catalogue_only","C_known_probability_ipw")
+    for (rep,gamma,nval),group in ledger.groupby(
+        ["replicate","gamma","validation_size"],sort=True
+    ):
+        by_arm={str(r.arm):str(r.status) for r in group.itertuples(index=False)}
+        for arm in ARMS[1:]:
+            for ref in references:
+                if arm==ref:
+                    continue
+                if arm not in by_arm or ref not in by_arm:
+                    raise AssertionError("lifecycle ledger omits a planned paired arm")
+                arm_status=by_arm[arm]
+                ref_status=by_arm[ref]
+                eligible=arm_status=="SUCCESS" and ref_status=="SUCCESS"
+                if eligible:
+                    reason="ELIGIBLE"
+                elif arm_status!="SUCCESS" and ref_status!="SUCCESS":
+                    reason="BOTH_NON_SUCCESS"
+                elif arm_status!="SUCCESS":
+                    reason=f"ARM_{arm_status}"
+                else:
+                    reason=f"REFERENCE_{ref_status}"
+                rows.append({"replicate":int(rep),"gamma":float(gamma),
+                    "validation_size":int(nval),"arm":arm,"reference_arm":ref,
+                    "arm_status":arm_status,"reference_status":ref_status,
+                    "eligible":bool(eligible),"exclusion_reason":reason})
+    return pd.DataFrame(rows,columns=["replicate","gamma","validation_size",
+        "arm","reference_arm","arm_status","reference_status","eligible",
+        "exclusion_reason"])
 
 
 def _expected_aggregate(summaries: pd.DataFrame, ledger: pd.DataFrame,
@@ -205,6 +244,7 @@ def audit(root: Path) -> dict:
     diagnostics=pd.read_csv(root/"replicate_weight_diagnostics.csv")
     aggregates=pd.read_csv(root/"aggregate_metrics.csv")
     contrasts=pd.read_csv(root/"paired_contrasts.csv")
+    contrast_lifecycle=pd.read_csv(root/"paired_contrast_lifecycle.csv")
     inclusion_degree=int(cfg.get("inclusion_model_degree",1))
     if inclusion_degree not in (1,2):
         raise AssertionError("aggregate inclusion model degree must be 1 or 2")
@@ -358,6 +398,11 @@ def audit(root: Path) -> dict:
         contrasts.sort_values(list(contrasts.columns)).reset_index(drop=True),
         expected_contrasts.sort_values(list(expected_contrasts.columns)).reset_index(drop=True),
         check_dtype=False,check_exact=False,rtol=1e-10,atol=1e-12)
+    expected_pair_lifecycle=_expected_pair_lifecycle(ledger)
+    pd.testing.assert_frame_equal(
+        contrast_lifecycle.sort_values(list(contrast_lifecycle.columns)).reset_index(drop=True),
+        expected_pair_lifecycle.sort_values(list(expected_pair_lifecycle.columns)).reset_index(drop=True),
+        check_dtype=False,check_exact=True)
     max_error=float(cfg["failure_bounds"]["max_abs_median_error"])
     max_width=float(cfg["failure_bounds"].get("max_interval_width",40.0))
     expected_aggregates=_expected_aggregate(summaries,ledger,reps,max_error,max_width)
@@ -372,6 +417,9 @@ def audit(root: Path) -> dict:
         "aggregate_manifest_entries_verified":checked,
         "cross_curvature_paired_validation_blocks":pairing_blocks,
         "paired_contrast_rows_reconstructed":len(expected_contrasts),
+        "planned_paired_contrasts":len(expected_pair_lifecycle),
+        "eligible_paired_contrasts":int(expected_pair_lifecycle.eligible.sum()),
+        "excluded_paired_contrasts":int((~expected_pair_lifecycle.eligible).sum()),
         "aggregate_metric_rows_reconstructed":len(expected_aggregates),
         "interpretation":"Lifecycle, pairing, child-audit attestations and aggregate arithmetic only; not calibration evidence."}
 

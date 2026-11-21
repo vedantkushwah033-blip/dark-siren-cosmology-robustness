@@ -62,10 +62,16 @@ def _paired_contrasts(summaries: pd.DataFrame) -> pd.DataFrame:
         ["replicate", "gamma", "validation_size"], sort=True
     ):
         by_arm = {str(row.arm): row for row in group.itertuples(index=False)}
-        if not all(a in by_arm and by_arm[a].status == "SUCCESS" for a in ARMS):
-            continue
         for arm in ARMS[1:]:
+            if arm not in by_arm or by_arm[arm].status != "SUCCESS":
+                continue
             for reference in ("A_catalogue_only", "C_known_probability_ipw"):
+                # Never emit a self-comparison, and require success only for
+                # the two arms in this particular paired contrast.
+                if arm == reference or reference not in by_arm:
+                    continue
+                if by_arm[reference].status != "SUCCESS":
+                    continue
                 x, y = by_arm[arm], by_arm[reference]
                 rows.append({
                     "replicate": int(rep), "gamma": float(gamma),
@@ -81,6 +87,45 @@ def _paired_contrasts(summaries: pd.DataFrame) -> pd.DataFrame:
         "replicate","gamma","validation_size","arm","reference_arm",
         "median_error_difference","absolute_error_difference",
         "squared_error_difference","coverage_68_difference",
+    ])
+
+
+
+def _paired_contrast_lifecycle(ledger: pd.DataFrame) -> pd.DataFrame:
+    """Account for every planned pair, including pairs excluded by lifecycle status."""
+    rows = []
+    references = ("A_catalogue_only", "C_known_probability_ipw")
+    for (rep, gamma, nval), group in ledger.groupby(
+        ["replicate", "gamma", "validation_size"], sort=True
+    ):
+        by_arm = {str(row.arm): str(row.status) for row in group.itertuples(index=False)}
+        for arm in ARMS[1:]:
+            for reference in references:
+                if arm == reference:
+                    continue
+                if arm not in by_arm or reference not in by_arm:
+                    raise ValueError("lifecycle ledger is missing a planned paired arm")
+                arm_status = by_arm[arm]
+                reference_status = by_arm[reference]
+                eligible = arm_status == "SUCCESS" and reference_status == "SUCCESS"
+                if eligible:
+                    reason = "ELIGIBLE"
+                elif arm_status != "SUCCESS" and reference_status != "SUCCESS":
+                    reason = "BOTH_NON_SUCCESS"
+                elif arm_status != "SUCCESS":
+                    reason = f"ARM_{arm_status}"
+                else:
+                    reason = f"REFERENCE_{reference_status}"
+                rows.append({
+                    "replicate": int(rep), "gamma": float(gamma),
+                    "validation_size": int(nval), "arm": arm,
+                    "reference_arm": reference, "arm_status": arm_status,
+                    "reference_status": reference_status,
+                    "eligible": bool(eligible), "exclusion_reason": reason,
+                })
+    return pd.DataFrame(rows, columns=[
+        "replicate", "gamma", "validation_size", "arm", "reference_arm",
+        "arm_status", "reference_status", "eligible", "exclusion_reason",
     ])
 
 
@@ -341,12 +386,14 @@ def run(args: argparse.Namespace) -> dict:
     summaries=pd.concat(summary_parts,ignore_index=True) if summary_parts else pd.DataFrame(columns=summary_columns)
     diagnostics=pd.concat(diagnostic_parts,ignore_index=True) if diagnostic_parts else pd.DataFrame(columns=diagnostic_columns)
     contrasts=_paired_contrasts(summaries)
+    contrast_lifecycle=_paired_contrast_lifecycle(ledger_df)
     aggregates=_aggregate(summaries,ledger_df,args.replicates,max_abs_error,max_interval_width)
     planned_df.to_csv(out/"planned_cells.csv",index=False)
     ledger_df.to_csv(out/"replicate_ledger.csv",index=False)
     summaries.to_csv(out/"replicate_posterior_summaries.csv",index=False)
     diagnostics.to_csv(out/"replicate_weight_diagnostics.csv",index=False)
     contrasts.to_csv(out/"paired_contrasts.csv",index=False)
+    contrast_lifecycle.to_csv(out/"paired_contrast_lifecycle.csv",index=False)
     aggregates.to_csv(out/"aggregate_metrics.csv",index=False)
     pd.DataFrame(audit_rows).to_csv(out/"replicate_audits.csv",index=False)
     config={"experiment":"quadratic_logit_matched_five_arm_30event_prior_predictive_stage0" if prior_predictive else "quadratic_logit_matched_five_arm_30event_multireplicate_engineering_pilot",
