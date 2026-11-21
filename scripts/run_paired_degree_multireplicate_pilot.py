@@ -258,7 +258,7 @@ def run(args: argparse.Namespace) -> dict:
     }
     (out / "config.json").write_text(json.dumps(config, indent=2, sort_keys=True) + "\n")
     files = sorted(p for p in out.rglob("*") if p.is_file() and p.name != "manifest.json")
-    manifest = {"status": "PASS", "file_count": len(files), "files": {
+    manifest = {"status": config["status"], "file_count": len(files), "files": {
         str(p.relative_to(out)): {"bytes": p.stat().st_size, "sha256": _sha(p)} for p in files
     }}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
