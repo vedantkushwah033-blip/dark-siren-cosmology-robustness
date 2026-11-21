@@ -64,5 +64,13 @@ def write_shared_input_manifest(
         stream.write("\n")
         stream.flush()
         os.fsync(stream.fileno())
-    os.replace(temporary, destination)
+    # Atomic no-replacement publication: a concurrent writer cannot silently
+    # replace a bundle manifest after another worker has frozen it.
+    os.link(temporary, destination)
+    temporary.unlink()
+    directory_fd = os.open(root, os.O_RDONLY)
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
     return manifest
