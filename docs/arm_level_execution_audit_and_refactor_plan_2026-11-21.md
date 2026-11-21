@@ -3,13 +3,14 @@
 ## Status and evidence boundary
 
 This is a source-level review of PR #157 at inspected head
-`c2ab97cc43ceaa7e1b4dee859941c11f4fdf913b`. It is a design/audit note, not
-a claim that arm-level isolation has been implemented. At this head, the
-repository-wide test workflow, four-state integration workflow, degree-two
-pilot workflow, and H0 smoke workflow report success. The paired 20-replicate
-degree pilot is still running; its independent artifact audit has not yet
-started. These checks establish engineering behavior, not confirmatory
-calibration.
+`15363c446b187020dc2591a0a2c65c2fa59b76a4`. It is a design/audit note, not
+a claim that arm-level isolation has been implemented. At parent head
+`c2ab97cc43ceaa7e1b4dee859941c11f4fdf913b`, the repository-wide test
+workflow, four-state integration workflow, degree-two pilot workflow, and
+H0 smoke workflow completed successfully; the paired 20-replicate degree
+pilot remained in progress. The latest head changes this audit document only.
+A fresh paired-degree workflow for the latest head is pending. These checks
+establish engineering behavior, not confirmatory calibration.
 
 ## Confirmed architectural findings
 
