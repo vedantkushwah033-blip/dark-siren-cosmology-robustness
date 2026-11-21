@@ -221,11 +221,14 @@ def atomic_write_text(path: str | Path, content: str) -> None:
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temporary, target)
-        directory_fd = os.open(target.parent, os.O_RDONLY)
-        try:
-            os.fsync(directory_fd)
-        finally:
-            os.close(directory_fd)
+        # Directory descriptors can be opened/fsynced on POSIX, but not
+        # portably on Windows. The file itself has already been flushed.
+        if os.name != "nt":
+            directory_fd = os.open(target.parent, os.O_RDONLY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
     except BaseException:
         try:
             os.unlink(temporary)

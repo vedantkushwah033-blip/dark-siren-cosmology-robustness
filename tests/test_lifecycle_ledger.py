@@ -744,3 +744,97 @@ def test_interrupted_retry_validates_each_attempt_timestamp(tmp_path):
     finalize_interrupted_cells(path, "Simulated interruption.")
     with pytest.raises(ValueError, match="UTC offset"):
         mark_cell_started(path, key, "2026-11-21T05:05:00")
+
+
+def test_batch_outcomes_commit_all_cells_atomically(tmp_path):
+    from dark_siren_robustness.cell_ledger_store import (
+        initialize_checkpoint, mark_cell_started, read_checkpoint, record_cell_outcomes,
+    )
+
+    plan = _checkpoint_plan()
+    path = tmp_path / "batch" / "checkpoint.json"
+    initialize_checkpoint(path, plan)
+    started = "2026-11-21T06:00:00Z"
+    for row in plan:
+        mark_cell_started(path, (row["replicate"], row["gamma"], row["validation_size"], row["arm"]), started)
+    outcomes = []
+    for row in plan:
+        key = (row["replicate"], row["gamma"], row["validation_size"], row["arm"])
+        outcomes.append({"key": key, "outcome": {
+            "status": "SUCCESS", "audit_status": "PASS",
+            "completed_at": "2026-11-21T06:01:00Z",
+            "audit_report_path": f"audit/{row['arm']}.json",
+        }})
+    checkpoint = record_cell_outcomes(path, outcomes)
+    assert all(row["status"] == "SUCCESS" for row in checkpoint["cell_ledger"])
+
+
+def test_batch_outcome_validation_failure_leaves_checkpoint_unchanged(tmp_path):
+    from dark_siren_robustness.cell_ledger_store import (
+        initialize_checkpoint, mark_cell_started, read_checkpoint, record_cell_outcomes,
+    )
+
+    plan = _checkpoint_plan()
+    path = tmp_path / "batch-invalid" / "checkpoint.json"
+    initialize_checkpoint(path, plan)
+    started = "2026-11-21T06:00:00Z"
+    for row in plan:
+        mark_cell_started(path, (row["replicate"], row["gamma"], row["validation_size"], row["arm"]), started)
+    before = read_checkpoint(path)
+    valid = {"status": "SUCCESS", "audit_status": "PASS",
+        "completed_at": "2026-11-21T06:01:00Z", "audit_report_path": "audit/a.json"}
+    invalid = {"status": "FAILED", "audit_status": "PASS",
+        "reason_code": "CHILD_PROCESS_ERROR", "completed_at": "2026-11-21T06:01:00Z"}
+    with pytest.raises(ValueError, match="cannot claim audit PASS"):
+        record_cell_outcomes(path, [
+            {"key": (0, 0.0, 100, "A"), "outcome": valid},
+            {"key": (0, 0.0, 100, "E"), "outcome": invalid},
+        ])
+    assert read_checkpoint(path) == before
+
+def test_spawn_process_checkpoint_updates_preserve_every_terminal_cell(tmp_path):
+    """Exercise OS-level checkpoint locking with spawn, including on Windows."""
+    import multiprocessing
+    from concurrent.futures import ProcessPoolExecutor
+
+    plan = [
+        {
+            "replicate": index,
+            "gamma": 0.0,
+            "validation_size": 100,
+            "arm": f"spawn_arm_{index}",
+            "analysis_seed": 3000 + index,
+            "h0_true": 70.0,
+        }
+        for index in range(8)
+    ]
+    path = tmp_path / "spawn-multiprocess" / "checkpoint.json"
+    initialize_checkpoint(path, plan)
+
+    context = multiprocessing.get_context("spawn")
+    with ProcessPoolExecutor(max_workers=4, mp_context=context) as pool:
+        list(pool.map(_complete_checkpoint_cell_in_process, [(str(path), row) for row in plan]))
+
+    checkpoint = read_checkpoint(path)
+    assert len(checkpoint["cell_ledger"]) == len(plan)
+    assert all(row["status"] == "SUCCESS" for row in checkpoint["cell_ledger"])
+
+
+def test_spawn_processes_cannot_claim_the_same_cell_twice(tmp_path):
+    """A single cell claim must have one winner across independently spawned processes."""
+    import multiprocessing
+    from concurrent.futures import ProcessPoolExecutor
+
+    path = tmp_path / "spawn-same-cell-claim" / "checkpoint.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    key = (0, 0.0, 100, "A")
+    context = multiprocessing.get_context("spawn")
+    args = (str(path), key, "2026-11-21T07:00:00Z")
+    with ProcessPoolExecutor(max_workers=2, mp_context=context) as pool:
+        outcomes = list(pool.map(_claim_same_checkpoint_cell_in_process, [args, args]))
+
+    assert sorted(outcomes) == ["CLAIMED", "REJECTED"]
+    checkpoint = read_checkpoint(path)
+    claimed = next(row for row in checkpoint["cell_ledger"] if row["arm"] == "A")
+    assert claimed["started_at"] == "2026-11-21T07:00:00Z"
+
