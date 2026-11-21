@@ -160,3 +160,36 @@ def test_ledger_validator_rejects_mutated_planned_provenance():
     rows[0]["cell_id"] = "mutated-cell-id"
     with pytest.raises(ValueError, match="planned provenance mismatch"):
         validate_ledger(plan, rows)
+
+
+
+def test_timestamp_validation_requires_iso8601_with_explicit_offset():
+    row = initial_ledger(_plan())[0]
+    with pytest.raises(ValueError, match="valid ISO-8601"):
+        set_cell_outcome(
+            row, status="SUCCESS", audit_status="PASS",
+            started_at="yesterday", completed_at="today",
+            audit_report_path="audit/a.json",
+        )
+    with pytest.raises(ValueError, match="UTC offset"):
+        set_cell_outcome(
+            row, status="SUCCESS", audit_status="PASS",
+            started_at="2026-11-21T00:00:00",
+            completed_at="2026-11-21T00:01:00Z",
+            audit_report_path="audit/a.json",
+        )
+
+
+def test_timestamp_order_uses_instants_not_lexicographic_strings():
+    row = initial_ledger(_plan())[0]
+    result = set_cell_outcome(
+        row, status="SUCCESS", audit_status="PASS",
+        started_at="2026-11-21T00:30:00Z",
+        completed_at="2026-11-21T00:00:00-01:00",
+        audit_report_path="audit/a.json",
+    )
+    assert result["status"] == "SUCCESS"
+    plan = _plan()
+    ledger = initial_ledger(plan)
+    ledger[0] = result
+    validate_ledger(plan, ledger)
