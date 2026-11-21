@@ -2,11 +2,14 @@
 
 ## Status and evidence boundary
 
-This is a source-level review of PR #157 at the inspected head
-`7c778bd40c2a399e60e14d53f67323b6f8203de2`. It is a design/audit note, not
-a claim that a refactor has been implemented or tested. The exact-head CI
-reported in the PR is green, but the current scientific runner remains an
-engineering pilot and is not ready for confirmatory calibration.
+This is a source-level review of PR #157 at inspected head
+`c2ab97cc43ceaa7e1b4dee859941c11f4fdf913b`. It is a design/audit note, not
+a claim that arm-level isolation has been implemented. At this head, the
+repository-wide test workflow, four-state integration workflow, degree-two
+pilot workflow, and H0 smoke workflow report success. The paired 20-replicate
+degree pilot is still running; its independent artifact audit has not yet
+started. These checks establish engineering behavior, not confirmatory
+calibration.
 
 ## Confirmed architectural findings
 
@@ -36,7 +39,7 @@ every arm after a shared five-arm likelihood calculation.
 
 The lifecycle schema permits NON_EVALUABLE, but there is no end-to-end
 scientific classification path, evidence contract, or per-cell retry path.
-This is a real integration gap, not a failed CI test.
+This is an integration gap, not a failed CI test.
 
 ### 3. The five arms share a computational failure domain
 
@@ -47,40 +50,46 @@ There is no per-arm exception boundary around weight construction, likelihood
 evaluation, posterior normalization, or summary creation. An exception in
 one shared stage aborts the child.
 
-A safe refactor must preserve the shared simulation inputs and paired design
-while separating arm-specific calculations and outputs.
+A safe refactor must preserve shared simulation inputs and paired design
+while separating arm-specific calculations and outputs. Merely launching
+one child per ledger row is not sufficient if each child still calculates
+all five arms through the same shared failure path.
 
-### 4. Aggregate status reporting loses lifecycle distinctions
+### 4. Aggregate lifecycle counts were improved, but execution is still block-level
 
-The runner's aggregate table reports
-`failed_or_non_evaluable` as
-`replicates - successful_replicates`. This combines FAILED,
-NON_EVALUABLE, and any absent summary into one number. The four-state ledger
-retains the distinctions, but the main aggregate table does not expose
-separate counts. The auditor reconstructs the aggregate arithmetic, so it
-currently validates this coarse reporting rather than requiring state-specific
-counts.
+Commit `c2ab97cc` adds separate
+`non_evaluable_replicates`, `failed_replicates`, and
+`not_run_replicates` fields to each gamma × validation-size × arm aggregate.
+The independent aggregate auditor reconstructs these three counts from the
+lifecycle ledger. A regression test covers SUCCESS, NON_EVALUABLE, FAILED,
+and NOT_RUN.
 
-The success-only metrics are explicitly conditional on SUCCESS; they must not
-be described as unconditional calibration. Failure-inclusive bounds are
-useful only when their finite error and interval-width bounds are justified
-by the frozen prior support and estimand definition.
+The legacy `failed_or_non_evaluable` field remains for compatibility and
+counts all non-success outcomes, including NOT_RUN. This accounting
+improvement does not change the block-level execution boundary described
+above.
 
-### 5. The auditor currently assumes child-block outcome patterns
+Success-only metrics are conditional on SUCCESS; they must not be described
+as unconditional calibration. Failure-inclusive bounds are useful only when
+their finite error and interval-width bounds are justified by the frozen prior
+support and estimand definition.
+
+### 5. The aggregate auditor still assumes child-block outcome patterns
 
 The aggregate auditor accepts a child block if all cells are SUCCESS or
 NON_EVALUABLE with audit PASS, or if all cells are FAILED with no audit PASS.
-It does not yet establish a fully general mixed-outcome model with independently
-audited cell artifacts. This matches the current all-or-nothing child layout.
+It does not yet establish a fully general mixed-outcome model with
+independently audited cell artifacts. This matches the current all-or-nothing
+child layout.
 
 ## Recommended target architecture
 
 Keep simulation and estimation separate:
 
-1. **Replicate input stage** — generate and persist immutable parent population,
-   GW events, validation frame, validation samples, H0 truth, and named RNG
-   streams once per replicate × curvature. Record hashes and a versioned
-   input manifest.
+1. **Replicate input stage** — generate and persist immutable parent
+   population, GW events, validation frame, validation samples, H0 truth, and
+   named RNG streams once per replicate × curvature. Record hashes and a
+   versioned input manifest.
 2. **Cell execution stage** — execute one
    `(replicate, gamma, validation_size, arm, degree)` estimation cell.
    Each cell reads immutable shared inputs and writes to a unique cell
@@ -148,10 +157,11 @@ superiority.
 
 ## Gate recommendation
 
-- Existing checkpoint and runner integration: useful engineering foundation;
-  exact-head CI success does not remove the execution-granularity limitation.
-- Arm-level execution, mixed lifecycle handling, and status-specific aggregate
-  accounting: required before confirmatory work.
+- Checkpoint persistence, restart integration, and status-specific aggregate
+  counts: useful engineering foundation; exact-head CI success does not remove
+  the execution-granularity limitation.
+- Arm-level execution, mixed lifecycle handling, and independently audited
+  per-cell artifacts: required before confirmatory work.
 - Confirmatory calibration: **NO-GO** until the architecture, frozen
   NON_EVALUABLE rules, independent per-cell auditor, and preregistered
   statistical protocol pass their tests.
