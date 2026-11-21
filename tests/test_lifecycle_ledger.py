@@ -49,7 +49,7 @@ def test_all_four_lifecycle_states_validate_with_distinct_rules():
     rows[2] = set_cell_outcome(
         rows[2], status="FAILED", audit_status="NOT_PASS",
         reason_code="CHILD_AUDIT_FAILED", reason_detail="Independent reconstruction failed.",
-        started_at="2026-11-21T00:00:00Z",
+        started_at="2026-11-21T00:00:00Z", completed_at="2026-11-21T00:01:00Z",
     )
     report = validate_ledger(plan, rows)
     assert report["status_counts"] == {
