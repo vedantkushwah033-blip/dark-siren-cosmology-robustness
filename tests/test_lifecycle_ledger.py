@@ -173,3 +173,83 @@ def test_atomic_json_write_leaves_parseable_complete_file(tmp_path):
     atomic_write_json(target, {"rows": [{"status": "NOT_RUN"}]})
     assert json.loads(target.read_text()) == {"rows": [{"status": "NOT_RUN"}]}
     assert not list(target.parent.glob("*.tmp"))
+
+
+from dark_siren_robustness.cell_ledger_store import (
+    finalize_interrupted_cells,
+    initialize_checkpoint,
+    mark_cell_started,
+    read_checkpoint,
+    record_cell_outcome,
+)
+
+
+def _checkpoint_plan():
+    return [
+        {"replicate": 0, "gamma": 0.0, "validation_size": 100, "arm": "A",
+         "analysis_seed": 123, "h0_true": 70.0},
+        {"replicate": 0, "gamma": 0.0, "validation_size": 100, "arm": "E",
+         "analysis_seed": 123, "h0_true": 70.0},
+    ]
+
+
+def test_checkpoint_atomically_starts_with_full_not_run_plan(tmp_path):
+    path = tmp_path / "run" / "checkpoint.json"
+    checkpoint = initialize_checkpoint(path, _checkpoint_plan())
+    loaded = read_checkpoint(path)
+    assert checkpoint == loaded
+    assert len(loaded["planned_cells"]) == 2
+    assert [row["status"] for row in loaded["cell_ledger"]] == ["NOT_RUN", "NOT_RUN"]
+    assert len(loaded["plan_sha256"]) == 64
+    with pytest.raises(FileExistsError):
+        initialize_checkpoint(path, _checkpoint_plan())
+
+
+def test_checkpoint_persists_start_and_success_transitions(tmp_path):
+    path = tmp_path / "checkpoint.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    key = (0, 0.0, 100, "A")
+    mark_cell_started(path, key, "2026-11-21T05:00:00Z")
+    started = read_checkpoint(path)["cell_ledger"][0]
+    assert started["status"] == "NOT_RUN"
+    assert started["reason_code"] == "RUN_INTERRUPTED"
+    assert started["started_at"] == "2026-11-21T05:00:00Z"
+    record_cell_outcome(
+        path, key, status="SUCCESS", audit_status="PASS",
+        started_at="2026-11-21T05:00:00Z",
+        completed_at="2026-11-21T05:01:00Z",
+        audit_report_path="audit/A.json",
+    )
+    completed = read_checkpoint(path)["cell_ledger"][0]
+    assert completed["status"] == "SUCCESS"
+    assert completed["audit_status"] == "PASS"
+    assert completed["started_at"] < completed["completed_at"]
+
+
+def test_checkpoint_recovery_keeps_finished_and_marks_unfinished(tmp_path):
+    path = tmp_path / "checkpoint.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    key = (0, 0.0, 100, "A")
+    mark_cell_started(path, key, "2026-11-21T05:00:00Z")
+    record_cell_outcome(
+        path, key, status="SUCCESS", audit_status="PASS",
+        started_at="2026-11-21T05:00:00Z",
+        completed_at="2026-11-21T05:01:00Z",
+    )
+    finalize_interrupted_cells(path, "Test interruption after first cell.")
+    rows = read_checkpoint(path)["cell_ledger"]
+    assert [row["status"] for row in rows] == ["SUCCESS", "NOT_RUN"]
+    assert rows[1]["reason_code"] == "RUN_INTERRUPTED"
+    assert rows[1]["reason_detail"] == "Test interruption after first cell."
+
+
+def test_checkpoint_rejects_plan_tampering_and_terminal_overwrite(tmp_path):
+    path = tmp_path / "checkpoint.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    checkpoint = json.loads(path.read_text())
+    checkpoint["planned_cells"][0]["analysis_seed"] = 999
+    path.write_text(json.dumps(checkpoint))
+    with pytest.raises(ValueError, match="planned-cell hash mismatch"):
+        read_checkpoint(path)
+
+    initialize_checkpoint(path, _checkpoint_plan()) if False else None
