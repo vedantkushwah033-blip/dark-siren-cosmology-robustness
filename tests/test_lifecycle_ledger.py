@@ -430,7 +430,7 @@ def test_checkpoint_rejects_terminal_failure_without_persisted_start(tmp_path):
     path = tmp_path / "checkpoint.json"
     initialize_checkpoint(path, _checkpoint_plan())
     key = (0, 0.0, 100, "A")
-    with pytest.raises(ValueError, match="persisted start transition"):
+    with pytest.raises(ValueError, match="active persisted start claim"):
         record_cell_outcome(
             path, key, status="FAILED", audit_status="NOT_PASS",
             reason_code="CHILD_PROCESS_ERROR",
