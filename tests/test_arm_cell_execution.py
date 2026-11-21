@@ -111,3 +111,45 @@ def test_arm_cell_rejects_unknown_arm_and_invalid_validation_labels():
     )
     with pytest.raises(ValueError, match="validation_retained"):
         execution.evaluate_arm_cell("A_catalogue_only", **args)
+
+@pytest.mark.parametrize("arm", ["A_catalogue_only", "B_parent_oracle"])
+def test_ab_do_not_require_validation_or_true_inclusion_truth(arm):
+    fixture = _fixture()
+    result = execution.evaluate_arm_cell(
+        arm, parent_redshift=fixture[0], catalogue_redshift=fixture[1],
+        events=fixture[5], H0_grid=np.linspace(55.0, 85.0, 41),
+        redshift_grid=np.linspace(0.01, 0.40, 501),
+        merger_weight=np.ones(501), h0_true=70.0,
+        h0_prior_min=55.0, h0_prior_max=85.0,
+        detection_threshold_mpc=250.0, scott_multiplier=0.7,
+        validation_redshift=None, validation_retained=None,
+        true_catalogue_inclusion_probability=None,
+        parent_base_weights=fixture[6], catalogue_base_weights=fixture[7],
+    )
+    assert result.status == "SUCCESS"
+
+
+def test_c_does_not_require_validation_but_d_and_e_do():
+    fixture = _fixture()
+    common = dict(
+        parent_redshift=fixture[0], catalogue_redshift=fixture[1],
+        events=fixture[5], H0_grid=np.linspace(55.0, 85.0, 41),
+        redshift_grid=np.linspace(0.01, 0.40, 501),
+        merger_weight=np.ones(501), h0_true=70.0,
+        h0_prior_min=55.0, h0_prior_max=85.0,
+        detection_threshold_mpc=250.0, scott_multiplier=0.7,
+        validation_redshift=None, validation_retained=None,
+        parent_base_weights=fixture[6], catalogue_base_weights=fixture[7],
+    )
+    c = execution.evaluate_arm_cell(
+        "C_known_probability_ipw",
+        true_catalogue_inclusion_probability=fixture[4].arm_c_true_inclusion_probability,
+        **common,
+    )
+    assert c.status == "SUCCESS"
+    for arm in ("D_map_plugin_ipw", "E_uncertainty_integrated_ipw"):
+        with pytest.raises(ValueError, match="D/E require validation"):
+            execution.evaluate_arm_cell(
+                arm, true_catalogue_inclusion_probability=None, **common,
+            )
+
