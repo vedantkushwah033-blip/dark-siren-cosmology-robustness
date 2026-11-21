@@ -141,6 +141,15 @@ def audit(root: Path) -> dict:
         right=ledger.set_index("cell_id")[column].fillna("").astype(str).sort_index()
         if not left.equals(right):
             raise AssertionError(f"checkpoint/exported lifecycle mismatch: {column}")
+    for column in checkpoint_plan.columns:
+        if column=="cell_id":
+            continue
+        if column not in checkpoint_ledger.columns:
+            raise AssertionError(f"checkpoint ledger omits planned provenance field: {column}")
+        expected=checkpoint_plan.set_index("cell_id")[column].fillna("").astype(str).sort_index()
+        observed=checkpoint_ledger.set_index("cell_id")[column].fillna("").astype(str).sort_index()
+        if not expected.equals(observed):
+            raise AssertionError(f"checkpoint plan/ledger provenance mismatch: {column}")
     allowed_status={"SUCCESS","NON_EVALUABLE","FAILED","NOT_RUN"}
     allowed_audit={"PASS","NOT_PASS","NOT_RUN"}
     reasons={
