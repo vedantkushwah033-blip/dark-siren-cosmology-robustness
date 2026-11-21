@@ -63,9 +63,12 @@ def _stratified_bootstrap(
     for values in cells:
         indices = rng.integers(0, n, size=(resamples, n))
         means += values[indices].mean(axis=1) / len(cells)
+    # Coverage rates are probabilities. Floating-point summation can put a
+    # degenerate bootstrap endpoint a few ulps outside [0, 1] (for example,
+    # 0.9999999999999997 when every resample has coverage exactly one).
     return [
-        float(np.quantile(means, 0.025)),
-        float(np.quantile(means, 0.975)),
+        float(np.clip(np.quantile(means, 0.025), 0.0, 1.0)),
+        float(np.clip(np.quantile(means, 0.975), 0.0, 1.0)),
     ]
 
 
