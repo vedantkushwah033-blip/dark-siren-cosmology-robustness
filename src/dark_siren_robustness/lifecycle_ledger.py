@@ -98,10 +98,10 @@ def set_cell_outcome(
         raise ValueError("SUCCESS must have an empty reason code")
     if status != "SUCCESS" and not reason_code:
         raise ValueError(f"{status} requires a reason code")
-    if status in {"SUCCESS", "NON_EVALUABLE"} and not started_at:
-        raise ValueError(f"{status} requires started_at")
     if status in {"SUCCESS", "NON_EVALUABLE"} and not completed_at:
         raise ValueError(f"{status} requires completed_at")
+    if status in {"SUCCESS", "NON_EVALUABLE"} and not started_at:
+        raise ValueError(f"{status} requires started_at")
     if started_at and completed_at and completed_at < started_at:
         raise ValueError("completed_at cannot precede started_at")
     result = dict(row)
