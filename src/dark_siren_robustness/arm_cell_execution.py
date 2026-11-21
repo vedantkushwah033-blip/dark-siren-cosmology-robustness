@@ -125,17 +125,17 @@ def evaluate_arm_cell(
     if not np.isfinite(h0_prior_min) or not np.isfinite(h0_prior_max) or h0_prior_min >= h0_prior_max:
         raise ValueError("H0 prior support must be finite and increasing")
 
-    parent_base = (np.ones(parent.size) if parent_base_weights is None
-                   else _positive_vector(parent_base_weights, "parent_base_weights", parent.size))
-    catalogue_base = (np.ones(catalogue.size) if catalogue_base_weights is None
-                      else _positive_vector(catalogue_base_weights, "catalogue_base_weights", catalogue.size))
-
     mode = nodes = quadrature = None
+    if arm == "B_parent_oracle":
+        parent_base = (np.ones(parent.size) if parent_base_weights is None
+                       else _positive_vector(parent_base_weights, "parent_base_weights", parent.size))
+        sample, components = parent, parent_base[None, :]
+        mixture = np.ones(1)
+    else:
+        catalogue_base = (np.ones(catalogue.size) if catalogue_base_weights is None
+                          else _positive_vector(catalogue_base_weights, "catalogue_base_weights", catalogue.size))
     if arm == "A_catalogue_only":
         sample, components = catalogue, catalogue_base[None, :]
-        mixture = np.ones(1)
-    elif arm == "B_parent_oracle":
-        sample, components = parent, parent_base[None, :]
         mixture = np.ones(1)
     elif arm == "C_known_probability_ipw":
         if true_catalogue_inclusion_probability is None:
