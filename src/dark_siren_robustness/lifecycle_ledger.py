@@ -114,6 +114,10 @@ def set_cell_outcome(
         raise ValueError("NOT_RUN cannot have completed_at")
     if status == "NOT_RUN" and audit_report_path is not None:
         raise ValueError("NOT_RUN cannot have audit_report_path")
+    if status == "NOT_RUN" and reason_code == "RUN_INTERRUPTED" and not started_at:
+        raise ValueError("RUN_INTERRUPTED requires a persisted start timestamp")
+    if status == "NOT_RUN" and reason_code in {"UPSTREAM_FAILURE", "NOT_SCHEDULED"} and started_at is not None:
+        raise ValueError(f"{reason_code} cannot have a cell start timestamp")
     if status == "SUCCESS" and reason_code:
         raise ValueError("SUCCESS must have an empty reason code")
     if status != "SUCCESS" and not reason_code:
@@ -178,6 +182,10 @@ def validate_ledger(planned_rows: Iterable[Mapping], ledger_rows: Iterable[Mappi
             raise ValueError("NOT_RUN cell has a completion timestamp")
         if status == "NOT_RUN" and row.get("audit_report_path") is not None:
             raise ValueError("NOT_RUN cell has an audit report path")
+        if status == "NOT_RUN" and reason == "RUN_INTERRUPTED" and not row.get("started_at"):
+            raise ValueError("RUN_INTERRUPTED cell has no persisted start timestamp")
+        if status == "NOT_RUN" and reason in {"UPSTREAM_FAILURE", "NOT_SCHEDULED"} and row.get("started_at") is not None:
+            raise ValueError(f"{reason} cell cannot have a start timestamp")
         if status != "SUCCESS" and not reason:
             raise ValueError(f"{status} cell has no reason code")
         if status == "SUCCESS" and reason:
