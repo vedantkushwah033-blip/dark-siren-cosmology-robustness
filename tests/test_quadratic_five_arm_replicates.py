@@ -294,6 +294,9 @@ def test_cell_ledger_auditor_rejects_status_tampering_even_after_manifest_refres
     assert result["status"] == "PASS"
     path = root / "cell_ledger.csv"
     frame = pd.read_csv(path)
+    # Empty SUCCESS reason codes are parsed as float NaN by pandas; promote
+    # the column before writing a string reason so this test is version-stable.
+    frame["reason_code"] = frame["reason_code"].astype(object)
     frame.loc[0, "status"] = "NOT_RUN"
     frame.loc[0, "reason_code"] = "RUN_INTERRUPTED"
     frame.loc[0, "audit_status"] = "NOT_RUN"
