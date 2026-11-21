@@ -39,7 +39,7 @@ jobs:
       - name: Run eight-replicate paired degree-one/degree-two five-arm follow-up
         run: |
           python scripts/run_paired_degree_multireplicate_pilot.py \
-            --master-seed 2026112121 --replicates 8 --gammas=-1,0,1 \
+            --master-seed 2026112122 --replicates 8 --gammas=-1,0,1 \
             --n-parent 1200 --n-detected 30 --validation-frame 500 \
             --validation-sizes 100,300,500 --curvature-beta -3.9 \
             --h0-true 70 --h0-prior-min 50 --h0-prior-max 90 \
