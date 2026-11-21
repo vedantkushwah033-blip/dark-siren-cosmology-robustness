@@ -35,7 +35,9 @@ def _same_series(left: pd.Series, right: pd.Series) -> bool:
             pd.to_numeric(right, errors="coerce").to_numpy(float),
             rtol=0.0, atol=1e-12, equal_nan=True,
         ))
-    return left.fillna("").astype(str).equals(right.fillna("").astype(str))
+    left_text=left.astype("object").where(left.notna(),"").astype(str)
+    right_text=right.astype("object").where(right.notna(),"").astype(str)
+    return left_text.equals(right_text)
 
 
 def _seed(master: int, replicate: int, stream: int) -> int:
