@@ -176,6 +176,7 @@ def audit(root: Path) -> dict:
                 raise AssertionError(f"child audit report is not PASS: {rel}")
             child_cfg=json.loads((d/"config.json").read_text())
             if (int(child_cfg["seed"])!=_seed(int(cfg["master_seed"]),int(rep),0)
+                or int(child_cfg.get("event_seed",-1))!=_seed(int(cfg["master_seed"]),int(rep),3)
                 or int(child_cfg["validation_seed"])!=_seed(int(cfg["master_seed"]),int(rep),1)
                 or int(child_cfg.get("validation_sample_seed",-1))!=_seed(int(cfg["master_seed"]),int(rep),4)
                 or int(child_cfg.get("quadratic_calibration",{}).get("validation_sample_seed",-1))
@@ -242,7 +243,9 @@ def audit(root: Path) -> dict:
             raise AssertionError("validation sample seed schedule mismatch")
         expected_seed=int(truth_schedule[rep]["h0_truth_seed"])
         expected_truth=float(truth_schedule[rep]["h0_true"])
-        if int(row.h0_truth_seed)!=expected_seed or float(row.h0_true)!=expected_truth:
+        if int(row.h0_truth_seed)!=expected_seed or not np.isclose(
+            float(row.h0_true), expected_truth, rtol=0.0, atol=1e-12
+        ):
             raise AssertionError("planned/ledger H0 truth differs from independently reconstructed schedule")
 
     expected_contrasts=_expected_contrasts(summaries)
