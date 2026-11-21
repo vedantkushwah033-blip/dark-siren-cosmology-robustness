@@ -137,7 +137,11 @@ def record_cell_outcome(path: str | Path, key: tuple, **outcome) -> dict:
         raise ValueError("terminal cell outcome cannot be overwritten")
     if not current.get("started_at") and outcome.get("status") in {"SUCCESS", "NON_EVALUABLE"}:
         raise ValueError("successful outcomes require a persisted start transition")
-    outcome.setdefault("started_at", current.get("started_at"))
+    persisted_start = current.get("started_at")
+    supplied_start = outcome.get("started_at")
+    if persisted_start and supplied_start not in (None, persisted_start):
+        raise ValueError("persisted cell start timestamp cannot be changed")
+    outcome["started_at"] = persisted_start or supplied_start
     checkpoint["cell_ledger"][index] = set_cell_outcome(current, **outcome)
     return _write_updated(path, checkpoint)
 
