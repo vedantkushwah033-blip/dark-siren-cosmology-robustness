@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+import run_quadratic_five_arm_replicates as runner_module
 from run_quadratic_five_arm_replicates import (
     ARMS, _aggregate, _h0_truth, _paired_contrasts, _seed, run as run_replicates,
 )
@@ -301,3 +302,37 @@ def test_cell_ledger_auditor_rejects_status_tampering_even_after_manifest_refres
     import pytest
     with pytest.raises(AssertionError, match="posterior summaries are attached"):
         audit_replicates(root)
+
+
+def test_interruption_leaves_atomic_plan_and_explicit_not_run_cells(tmp_path: Path, monkeypatch):
+    root = tmp_path / "interrupted_run"
+    args = type("Args", (), {
+        "master_seed": 20261121, "replicates": 2, "gammas": [-1.0, 0.0],
+        "n_parent": 300, "n_detected": 4, "validation_frame": 100,
+        "validation_sizes": [60], "curvature_beta": -3.9,
+        "inclusion_degree": 1, "h0_true": 70.0, "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0, "h0_points": 41, "scott_multiplier": 0.7,
+        "quadrature_order": 3, "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0, "output_dir": root,
+    })()
+
+    def interrupt_before_child(*args, **kwargs):
+        raise KeyboardInterrupt("simulated process interruption")
+
+    monkeypatch.setattr(runner_module.subprocess, "run", interrupt_before_child)
+    import pytest
+    with pytest.raises(KeyboardInterrupt, match="simulated process interruption"):
+        run_replicates(args)
+
+    planned = pd.read_csv(root / "planned_cells.csv")
+    ledger = pd.read_csv(root / "cell_ledger.csv")
+    assert len(planned) == len(ledger) == 2 * 2 * len(ARMS)
+    first = ledger[(ledger.replicate == 0) & (ledger.gamma == -1.0)]
+    untouched = ledger[~((ledger.replicate == 0) & (ledger.gamma == -1.0))]
+    assert set(first.status) == {"NOT_RUN"}
+    assert set(first.reason_code) == {"RUN_INTERRUPTED"}
+    assert first.started_at.notna().all()
+    assert first.completed_at.isna().all()
+    assert set(untouched.status) == {"NOT_RUN"}
+    assert set(untouched.reason_code) == {"RUN_NOT_STARTED"}
+    assert untouched.started_at.isna().all()
