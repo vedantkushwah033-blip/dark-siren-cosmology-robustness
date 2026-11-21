@@ -6,6 +6,7 @@ without silently changing legacy artifact semantics.
 """
 from __future__ import annotations
 
+from datetime import datetime
 import json
 import os
 import tempfile
@@ -36,6 +37,21 @@ REASONS_BY_STATUS = {
         "NOT_SCHEDULED",
     }),
 }
+
+
+def _parse_timestamp(value: str | None, field: str):
+    """Parse an ISO-8601 timestamp and require an explicit UTC offset."""
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{field} must be a non-empty ISO-8601 timestamp")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError(f"{field} must be a valid ISO-8601 timestamp") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError(f"{field} must include a UTC offset")
+    return parsed
 
 
 def _key(row: Mapping) -> tuple:
@@ -106,7 +122,9 @@ def set_cell_outcome(
         not isinstance(audit_report_path, str) or not audit_report_path.strip()
     ):
         raise ValueError(f"{status} requires audit_report_path")
-    if started_at and completed_at and completed_at < started_at:
+    started_dt = _parse_timestamp(started_at, "started_at")
+    completed_dt = _parse_timestamp(completed_at, "completed_at")
+    if started_dt is not None and completed_dt is not None and completed_dt < started_dt:
         raise ValueError("completed_at cannot precede started_at")
     result = dict(row)
     result.update({
@@ -167,7 +185,9 @@ def validate_ledger(planned_rows: Iterable[Mapping], ledger_rows: Iterable[Mappi
             raise ValueError(f"{status} cell has no audit report path")
         started_at = row.get("started_at")
         completed_at = row.get("completed_at")
-        if started_at and completed_at and completed_at < started_at:
+        started_dt = _parse_timestamp(started_at, "started_at")
+        completed_dt = _parse_timestamp(completed_at, "completed_at")
+        if started_dt is not None and completed_dt is not None and completed_dt < started_dt:
             raise ValueError("completed_at cannot precede started_at")
         counts[status] += 1
     return {"status": "PASS", "planned_cells": len(planned), "ledger_cells": len(ledger),
