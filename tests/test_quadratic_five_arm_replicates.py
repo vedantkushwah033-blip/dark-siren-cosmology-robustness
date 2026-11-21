@@ -338,3 +338,26 @@ def test_completed_replicate_run_can_be_resumed_without_recomputing(tmp_path):
     assert second["status"] == "PASS"
     assert second["planned_cells"] == first["planned_cells"]
     assert audit_replicates(root)["status"] == "PASS"
+
+
+def test_replicate_auditor_rejects_checkpoint_ledger_tampering(tmp_path: Path):
+    root = tmp_path / "checkpoint_tamper"
+    args = type("Args", (), {
+        "master_seed": 20261123, "replicates": 2, "gammas": [0.0],
+        "n_parent": 300, "n_detected": 4, "validation_frame": 100,
+        "validation_sizes": [60, 90], "curvature_beta": -3.9,
+        "inclusion_degree": 1, "h0_true": 70.0, "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0, "h0_points": 41, "scott_multiplier": 0.7,
+        "quadrature_order": 3, "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0, "output_dir": root,
+    })()
+    result = run_replicates(args)
+    assert result["status"] == "PASS"
+    checkpoint_path = root / "cell_lifecycle_checkpoint.json"
+    checkpoint = json.loads(checkpoint_path.read_text())
+    checkpoint["cell_ledger"][0]["analysis_seed"] += 1
+    checkpoint_path.write_text(json.dumps(checkpoint, indent=2, sort_keys=True) + "\\n")
+    _refresh_manifest_hash(root / "manifest.json", "cell_lifecycle_checkpoint.json")
+    import pytest
+    with pytest.raises(AssertionError, match="immutable cell lifecycle plan hash mismatch|checkpoint/exported lifecycle mismatch"):
+        audit_replicates(root)
