@@ -53,7 +53,7 @@ def _checkpoint_lock(path: str | Path):
             with lock_path.open("a+b") as lock_stream:
                 lock_stream.seek(0, os.SEEK_END)
                 if lock_stream.tell() == 0:
-                    lock_stream.write(b"\\0")
+                    lock_stream.write(b"0")
                     lock_stream.flush()
                 lock_stream.seek(0)
                 msvcrt.locking(lock_stream.fileno(), msvcrt.LK_LOCK, 1)
