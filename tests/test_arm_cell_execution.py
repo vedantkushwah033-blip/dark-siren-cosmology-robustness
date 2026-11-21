@@ -153,3 +153,24 @@ def test_c_does_not_require_validation_but_d_and_e_do():
                 arm, true_catalogue_inclusion_probability=None, **common,
             )
 
+def test_reference_arms_ignore_other_arms_base_weight_inputs():
+    fixture = _fixture()
+    common = dict(
+        parent_redshift=fixture[0], catalogue_redshift=fixture[1],
+        events=fixture[5], H0_grid=np.linspace(55.0, 85.0, 41),
+        redshift_grid=np.linspace(0.01, 0.40, 501),
+        merger_weight=np.ones(501), h0_true=70.0,
+        h0_prior_min=55.0, h0_prior_max=85.0,
+        detection_threshold_mpc=250.0, scott_multiplier=0.7,
+    )
+    a = execution.evaluate_arm_cell(
+        "A_catalogue_only", parent_base_weights=np.full(fixture[0].size, np.nan),
+        **common,
+    )
+    b = execution.evaluate_arm_cell(
+        "B_parent_oracle", catalogue_base_weights=np.full(fixture[1].size, np.nan),
+        **common,
+    )
+    assert a.status == "SUCCESS"
+    assert b.status == "SUCCESS"
+
