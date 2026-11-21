@@ -156,7 +156,7 @@ def evaluate_arm_cell(
         if not np.all(np.isfinite(weights)):
             raise ArithmeticError("known-probability IPW weights overflow")
         sample, components, mixture = catalogue, weights[None, :], np.ones(1)
-    else:
+    elif arm in {"D_map_plugin_ipw", "E_uncertainty_integrated_ipw"}:
         if not np.isfinite(coordinate_center) or not np.isfinite(coordinate_scale) or coordinate_scale <= 0:
             raise ValueError("inclusion coordinate center/scale are invalid")
         posterior = fit_inclusion_posterior_quadrature(
