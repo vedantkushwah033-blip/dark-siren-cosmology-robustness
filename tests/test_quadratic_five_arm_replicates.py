@@ -366,3 +366,34 @@ def test_replicate_auditor_rejects_checkpoint_ledger_tampering(tmp_path: Path):
     import pytest
     with pytest.raises(AssertionError, match="immutable cell lifecycle plan hash mismatch|checkpoint/exported lifecycle mismatch|checkpoint plan/ledger provenance mismatch"):
         audit_replicates(root)
+
+
+def test_replicate_auditor_rejects_plan_ledger_provenance_tampering(tmp_path: Path):
+    root = tmp_path / "plan_ledger_tamper"
+    args = type("Args", (), {
+        "master_seed": 20261124, "replicates": 2, "gammas": [0.0],
+        "n_parent": 300, "n_detected": 4, "validation_frame": 100,
+        "validation_sizes": [60, 90], "curvature_beta": -3.9,
+        "inclusion_degree": 1, "h0_true": 70.0, "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0, "h0_points": 41, "scott_multiplier": 0.7,
+        "quadrature_order": 3, "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0, "output_dir": root,
+    })()
+    result = run_replicates(args)
+    assert result["status"] == "PASS"
+
+    checkpoint_path = root / "cell_lifecycle_checkpoint.json"
+    checkpoint = json.loads(checkpoint_path.read_text())
+    checkpoint["cell_ledger"][0]["analysis_seed"] += 1
+    checkpoint_path.write_text(json.dumps(checkpoint, indent=2, sort_keys=True) + "\\n")
+
+    ledger_path = root / "replicate_ledger.csv"
+    ledger = pd.read_csv(ledger_path)
+    ledger.loc[0, "analysis_seed"] += 1
+    ledger.to_csv(ledger_path, index=False)
+    _refresh_manifest_hash(root / "manifest.json", "cell_lifecycle_checkpoint.json")
+    _refresh_manifest_hash(root / "manifest.json", "replicate_ledger.csv")
+
+    import pytest
+    with pytest.raises(AssertionError, match="checkpoint plan/ledger provenance mismatch"):
+        audit_replicates(root)
