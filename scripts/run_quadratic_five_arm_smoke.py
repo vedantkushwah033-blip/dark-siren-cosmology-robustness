@@ -89,7 +89,8 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     # disposable floor-logistic catalogue draw is replaced by the quadratic DGP
     # generated from the identical parent seed.
     population = generate_synthetic_population(
-        seed=args.seed, n_parent=args.n_parent, n_detected=args.n_detected,
+        seed=args.seed, event_seed=getattr(args, "event_seed", None),
+        n_parent=args.n_parent, n_detected=args.n_detected,
         h0_true=args.h0_true, sigma_mpc=args.sigma_mpc,
         detection_threshold_mpc=args.detection_threshold_mpc,
         z_min=0.01, z_max=0.40, catalogue_floor=0.10,
@@ -97,6 +98,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     )
     quadratic = generate_quadratic_logit_inclusion_samples(
         population_seed=args.seed, validation_seed=args.validation_seed,
+        validation_sample_seed=getattr(args, "validation_sample_seed", None),
         n_parent=args.n_parent, n_validation_frame=args.validation_frame,
         n_validation=sizes[-1], gamma=args.curvature_gamma,
         beta=args.curvature_beta, z_min=0.01, z_max=0.40,
@@ -267,7 +269,9 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "experiment": "matched_five_arm_single_replicate_smoke",
         "status": "engineering_smoke_not_confirmatory_not_observational",
         "seed": args.seed,
+        "event_seed": getattr(args, "event_seed", None),
         "validation_seed": args.validation_seed,
+        "validation_sample_seed": getattr(args, "validation_sample_seed", None),
         "n_parent": args.n_parent,
         "n_catalogue_observed": int(len(catalogue)),
         "n_detected": args.n_detected,
@@ -327,7 +331,9 @@ def run(args: argparse.Namespace) -> dict[str, object]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seed", type=int, default=20261113)
+    parser.add_argument("--event-seed", type=int, default=None)
     parser.add_argument("--validation-seed", type=int, default=20261114)
+    parser.add_argument("--validation-sample-seed", type=int, default=None)
     parser.add_argument("--n-parent", type=int, default=1200)
     parser.add_argument("--n-detected", type=int, default=4)
     parser.add_argument("--validation-frame", type=int, default=1500)

@@ -1,0 +1,64 @@
+name: prior-predictive-stage0-smoke
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "scripts/run_quadratic_five_arm_replicates.py"
+      - "scripts/run_quadratic_five_arm_smoke.py"
+      - "scripts/audit_quadratic_five_arm_replicates.py"
+      - "scripts/audit_prior_predictive_degree_pairing.py"
+      - "src/dark_siren_robustness/generative_selection.py"
+      - ".github/workflows/prior-predictive-stage0-smoke.yml"
+
+jobs:
+  stage0-smoke:
+    if: github.event.pull_request.head.ref == 'research/prior-predictive-h0-runner-stage0-20261121'
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run ten-replicate prior-predictive smoke — degree one
+        run: |
+          python scripts/run_quadratic_five_arm_replicates.py \
+            --master-seed 20261121 --replicates 10 --prior-predictive-h0 \
+            --gammas=-1,0,1 --inclusion-degree 1 --n-parent 1200 \
+            --n-detected 30 --validation-frame 500 --validation-sizes 100,300,500 \
+            --h0-prior-min 30 --h0-prior-max 110 --h0-points 281 \
+            --quadrature-order 5 --output-dir artifacts/prior_predictive_stage0_degree1
+      - name: Independently audit degree-one Stage 0 smoke
+        run: |
+          python scripts/audit_quadratic_five_arm_replicates.py \
+            artifacts/prior_predictive_stage0_degree1 \
+            --output artifacts/prior_predictive_stage0_degree1/independent_audit.json
+      - name: Run ten-replicate prior-predictive smoke — degree two
+        run: |
+          python scripts/run_quadratic_five_arm_replicates.py \
+            --master-seed 20261121 --replicates 10 --prior-predictive-h0 \
+            --gammas=-1,0,1 --inclusion-degree 2 --n-parent 1200 \
+            --n-detected 30 --validation-frame 500 --validation-sizes 100,300,500 \
+            --h0-prior-min 30 --h0-prior-max 110 --h0-points 281 \
+            --quadrature-order 5 --output-dir artifacts/prior_predictive_stage0_degree2
+      - name: Independently audit degree-two Stage 0 smoke
+        run: |
+          python scripts/audit_quadratic_five_arm_replicates.py \
+            artifacts/prior_predictive_stage0_degree2 \
+            --output artifacts/prior_predictive_stage0_degree2/independent_audit.json
+      - name: Independently verify cross-degree shared inputs and prior truths
+        run: |
+          python scripts/audit_prior_predictive_degree_pairing.py \
+            artifacts/prior_predictive_stage0_degree1 \
+            artifacts/prior_predictive_stage0_degree2
+      - name: Upload immutable Stage 0 smoke artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: prior-predictive-stage0-ten-replicate-smoke
+          path: |
+            artifacts/prior_predictive_stage0_degree1/
+            artifacts/prior_predictive_stage0_degree2/
+          if-no-files-found: error

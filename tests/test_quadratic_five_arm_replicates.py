@@ -1,5 +1,7 @@
 """Focused tests for quadratic five-arm replicate aggregation."""
 from pathlib import Path
+import hashlib
+import json
 import sys
 
 import numpy as np
@@ -7,7 +9,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from run_quadratic_five_arm_replicates import (
-    ARMS, _aggregate, _paired_contrasts, _seed, run as run_replicates,
+    ARMS, _aggregate, _h0_truth, _paired_contrasts, _seed, run as run_replicates,
 )
 from audit_quadratic_five_arm_replicates import audit as audit_replicates
 from audit_quadratic_five_arm_smoke import _independent_inclusion_quadrature
@@ -171,3 +173,99 @@ def test_degree_two_replicate_orchestrator_roundtrip(tmp_path: Path):
     assert report["status"] == "PASS"
     assert report["successful_child_runs"] == 2
     assert report["planned_cells"] == 20
+
+
+
+def test_prior_predictive_h0_replicate_orchestrator_roundtrip(tmp_path: Path):
+    root = tmp_path / "prior_predictive_replicates"
+    args = type("Args", (), {
+        "master_seed": 20261121,
+        "replicates": 2,
+        "gammas": [-1.0, 0.0, 1.0],
+        "n_parent": 300,
+        "n_detected": 4,
+        "validation_frame": 100,
+        "validation_sizes": [60, 90],
+        "curvature_beta": -3.9,
+        "inclusion_degree": 1,
+        "h0_true": 70.0,
+        "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0,
+        "prior_predictive_h0": True,
+        "h0_points": 41,
+        "scott_multiplier": 0.7,
+        "quadrature_order": 3,
+        "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0,
+        "output_dir": root,
+    })()
+    result = run_replicates(args)
+    assert result["status"] == "PASS"
+    assert result["planned_cells"] == 2 * 3 * 2 * len(ARMS)
+    config = __import__("json").loads((root / "config.json").read_text())
+    schedule = config["h0_truth_schedule"]
+    assert config["h0_truth_mode"] == "prior_predictive_uniform"
+    assert len(schedule) == 2
+    assert len({row["h0_true"] for row in schedule}) == 2
+    assert all(30.0 <= row["h0_true"] < 110.0 for row in schedule)
+    seeds = config["seed_schedule"]
+    assert len(seeds) == 2
+    assert len({row["population_seed"] for row in seeds}) == 2
+    assert len({row["event_seed"] for row in seeds}) == 2
+    assert len({row["validation_frame_seed"] for row in seeds}) == 2
+    assert len({row["validation_sample_seed"] for row in seeds}) == 2
+    assert len({row["h0_truth_seed"] for row in seeds}) == 2
+    ledger = pd.read_csv(root / "replicate_ledger.csv")
+    for rep in (0, 1):
+        values = ledger.loc[ledger.replicate == rep, "h0_true"].unique()
+        assert len(values) == 1
+        assert np.isclose(values[0], schedule[rep]["h0_true"], rtol=0.0, atol=1e-12)
+    report = audit_replicates(root)
+    assert report["status"] == "PASS"
+    assert report["successful_child_runs"] == 6
+    assert report["planned_cells"] == 2 * 3 * 2 * len(ARMS)
+
+
+def test_h0_truth_seed_helper_is_deterministic_and_validates_support():
+    first = [_h0_truth(20261121, rep, 30.0, 110.0) for rep in range(20)]
+    second = [_h0_truth(20261121, rep, 30.0, 110.0) for rep in range(20)]
+    assert first == second
+    assert len({seed for seed, _ in first}) == 20
+    assert len({truth for _, truth in first}) == 20
+    assert all(30.0 <= truth < 110.0 for _, truth in first)
+    import pytest
+    with pytest.raises(ValueError):
+        _h0_truth(1, 0, 30.0, 30.0)
+
+
+def _refresh_manifest_hash(manifest_path: Path, relative_path: str) -> None:
+    manifest = json.loads(manifest_path.read_text())
+    target = manifest_path.parent / relative_path
+    manifest["files"][relative_path]["bytes"] = target.stat().st_size
+    manifest["files"][relative_path]["sha256"] = hashlib.sha256(target.read_bytes()).hexdigest()
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+
+
+def test_replicate_auditor_rejects_child_event_seed_tampering(tmp_path: Path):
+    root = tmp_path / "event_seed_tamper"
+    args = type("Args", (), {
+        "master_seed": 20261121, "replicates": 2, "gammas": [0.0],
+        "n_parent": 300, "n_detected": 4, "validation_frame": 100,
+        "validation_sizes": [60, 90], "curvature_beta": -3.9,
+        "inclusion_degree": 1, "h0_true": 70.0, "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0, "h0_points": 41, "scott_multiplier": 0.7,
+        "quadrature_order": 3, "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0, "output_dir": root,
+    })()
+    result = run_replicates(args)
+    assert result["status"] == "PASS"
+    child = root / "replicates" / "rep000_gp0"
+    config_path = child / "config.json"
+    config = json.loads(config_path.read_text())
+    config["event_seed"] = int(config["event_seed"]) + 1
+    config_path.write_text(json.dumps(config, indent=2, sort_keys=True) + "\n")
+    _refresh_manifest_hash(child / "manifest.json", "config.json")
+    _refresh_manifest_hash(root / "manifest.json", "replicates/rep000_gp0/config.json")
+    import pytest
+    with pytest.raises(AssertionError, match="child configuration/seed mismatch"):
+        audit_replicates(root)
