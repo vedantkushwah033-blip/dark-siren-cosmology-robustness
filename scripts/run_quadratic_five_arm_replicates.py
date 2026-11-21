@@ -262,6 +262,8 @@ def run(args: argparse.Namespace) -> dict:
                     "maximum_log_likelihood_absolute_difference":report["maximum_log_likelihood_absolute_difference"]})
             except Exception as exc:
                 status="FAILED"
+                if audit_status=="PASS":
+                    audit_status="NOT_PASS"
                 error=f"{type(exc).__name__}: {exc}"[:4000]
                 audit_rows.append({"replicate":rep,"gamma":gamma,"status":"NOT_PASS",
                     "manifest_files_verified":0,"posterior_summary_rows_reconstructed":0,
