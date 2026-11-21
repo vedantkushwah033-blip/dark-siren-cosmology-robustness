@@ -77,12 +77,12 @@ jobs:
           assert cfg["replicates"] == 4
           assert cfg["gammas"] == [-1.0, 0.0, 1.0]
           assert cfg["n_parent"] == 1200 and cfg["n_detected"] == 30
-          assert audit["planned_cells"] == 4 * 3 * 3 * 5
-          assert audit["successful_child_runs"] == 4 * 3 * 2
-          assert audit["paired_contrast_rows_reconstructed"] == 4 * 3 * 3 * 4
-          print(json.dumps({"status":"PASS","planned_cells":audit["planned_cells"],
-                            "successful_child_runs":audit["successful_child_runs"],
-                            "paired_contrast_rows":audit["paired_contrast_rows_reconstructed"]},
+          assert audit["paired_child_blocks_verified"] == 4 * 3
+          assert audit["paired_summary_rows_reconstructed"] == 4 * 3 * 3 * 5
+          assert audit["paired_aggregate_rows_reconstructed"] == 3 * 3 * 5
+          print(json.dumps({"status":"PASS","paired_child_blocks":audit["paired_child_blocks_verified"],
+                            "paired_summary_rows":audit["paired_summary_rows_reconstructed"],
+                            "paired_aggregate_rows":audit["paired_aggregate_rows_reconstructed"]},
                            indent=2))
           PY
       - name: Upload paired degree pilot evidence
