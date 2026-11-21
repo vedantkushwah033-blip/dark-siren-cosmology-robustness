@@ -1,0 +1,46 @@
+name: portable-cell-ledger
+
+on:
+  push:
+    branches:
+      - research/portable-batched-checkpoint-store-v2-20261121
+  pull_request:
+    branches:
+      - research/cell-ledger-persistence-primitives-synced-20261121
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  lifecycle-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Test four-state lifecycle and checkpoint persistence
+        run: python -m pytest tests/test_lifecycle_ledger.py -q
+
+  lifecycle-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip install -e ".[dev]"
+      - name: Test Windows checkpoint locking, recovery and batch outcomes
+        run: python -m pytest tests/test_lifecycle_ledger.py -q
