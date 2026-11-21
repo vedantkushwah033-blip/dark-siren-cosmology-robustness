@@ -79,3 +79,12 @@ The existing one-child-per-(replicate, gamma) architecture may remain for genera
 ## Gate decision
 
 **Current status: BLOCKED.** The existing runner/auditor supports coarse `SUCCESS`/`FAILED` child-level accounting and success-only versus failure-inclusive summaries, but it does not yet implement this four-state, cell-level, interruption-safe contract. The ten-truth Stage 0 smoke remains engineering evidence only. No 100- or 300-truth confirmatory run should be launched until implementation, independent reconstruction, and preregistration are complete.
+
+
+## Partial implementation update (2026-11-21)
+
+The quadratic five-arm multi-replicate orchestrator now writes `planned_cells.csv` and an atomic `cell_ledger.csv` before launching the first child. Before each child begins, its planned arm × validation-size rows are durably marked `NOT_RUN/RUN_INTERRUPTED` with a start timestamp. After child completion and independent audit, the corresponding rows transition together to `SUCCESS` or `FAILED`; each update uses the atomic-write helper. Cells not yet reached remain `NOT_RUN/RUN_NOT_STARTED`. The legacy `replicate_ledger.csv` is retained for backward compatibility.
+
+The independent quadratic orchestrator auditor now checks exact plan/ledger key coverage, allowed four-state values and reason codes, audit/status invariants, timestamps, no posterior summaries attached to non-success cells, and consistency with the legacy child-level ledger. Regression coverage includes a simulated interruption before the first child, successful four-state round-trip, and status tampering even after refreshing the outer manifest.
+
+**This is an intermediate engineering step, not completion of the lifecycle gate.** The current child runner still executes all five arms and validation sizes as one indivisible child, so a completed child outcome is propagated to all its cells. It does not yet create arm-specific `NON_EVALUABLE` states; frozen scientific evaluability rules are not yet wired into this orchestrator. Restart/recovery is also not implemented: the runner still rejects a non-empty output directory. The durable plan/ledger survives interruption for inspection, but a new process cannot safely resume completed cells. Therefore the confirmatory gate remains **BLOCKED**.
