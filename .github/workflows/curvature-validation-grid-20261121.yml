@@ -1,0 +1,57 @@
+name: curvature-validation-grid-20261121
+
+on:
+  push:
+    branches:
+      - research/curvature-validation-grid-20261121
+    paths:
+      - .github/workflows/curvature-validation-grid-20261121.yml
+  workflow_dispatch:
+
+concurrency:
+  group: curvature-validation-grid-20261121
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  curvature-validation-grid:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/curvature-validation-grid-20261121
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Audit matched degree-one/degree-two centered-basis priors
+        run: python scripts/audit_degree_prior_parameterization.py
+      - name: Test paired-degree orchestration and invariance gates
+        run: python -m pytest tests/test_paired_degree_multireplicate_pilot.py tests/test_quadratic_five_arm_replicates.py -q
+      - name: Run broader-curvature, four-validation-size paired experiment
+        run: |
+          python scripts/run_paired_degree_multireplicate_pilot.py \
+            --master-seed 2026112122 --replicates 8 --gammas=-2,-1,0,1,2 \
+            --n-parent 1200 --n-detected 30 --validation-frame 1000 \
+            --validation-sizes 100,300,500,1000 --h0-true 70 \
+            --h0-prior-min 30 --h0-prior-max 110 --h0-points 281 \
+            --quadrature-order 5 \
+            --output-dir artifacts/curvature_validation_grid
+      - name: Independently audit curvature-validation artifact
+        if: success()
+        run: |
+          python scripts/audit_paired_degree_multireplicate_pilot.py \
+            artifacts/curvature_validation_grid \
+            --output artifacts/curvature_validation_grid/independent_audit_report.json
+      - name: Upload curvature-validation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: curvature-validation-grid-20261121
+          path: artifacts/curvature_validation_grid/
+          if-no-files-found: warn
