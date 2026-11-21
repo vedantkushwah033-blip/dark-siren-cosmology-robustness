@@ -53,6 +53,9 @@ def test_quadratic_five_arm_aggregate_and_paired_contrasts():
     aggregate=_aggregate(summary,lifecycle,replicates=2,max_abs_error=20.0)
     row=aggregate.loc[aggregate.arm=="A_catalogue_only"].iloc[0]
     assert row.successful_replicates==1
+    assert row.non_evaluable_replicates==0
+    assert row.failed_replicates==1
+    assert row.not_run_replicates==0
     assert row.failed_or_non_evaluable==1
     assert row.success_only_bias==-4.0
     assert row.success_only_rmse==4.0
@@ -62,6 +65,36 @@ def test_quadratic_five_arm_aggregate_and_paired_contrasts():
     assert row.failure_inclusive_coverage_upper==1.0
     assert row.failure_inclusive_width_lower==5.0
     assert row.failure_inclusive_width_upper==25.0
+
+
+def test_aggregate_reports_non_evaluable_and_failed_separately():
+    ledger=pd.DataFrame([
+        {"replicate":0,"gamma":0.0,"validation_size":100,"arm":arm,"status":"SUCCESS"}
+        for arm in ARMS
+    ] + [
+        {"replicate":1,"gamma":0.0,"validation_size":100,"arm":arm,
+         "status":"NON_EVALUABLE" if arm=="B_parent_oracle" else "FAILED"}
+        for arm in ARMS
+    ] + [
+        {"replicate":2,"gamma":0.0,"validation_size":100,"arm":arm,"status":"NOT_RUN"}
+        for arm in ARMS
+    ])
+    summaries=pd.DataFrame([
+        {"replicate":0,"gamma":0.0,"validation_size":100,"arm":arm,
+         "status":"SUCCESS","h0_true":70.0,"median_error":0.0,"q16":65.0,"q84":75.0}
+        for arm in ARMS
+    ])
+    aggregate=_aggregate(summaries,ledger,replicates=3,max_abs_error=20.0)
+    row=aggregate.loc[aggregate.arm=="B_parent_oracle"].iloc[0]
+    assert row.successful_replicates==1
+    assert row.non_evaluable_replicates==1
+    assert row.failed_replicates==0
+    assert row.not_run_replicates==1
+    assert row.failed_or_non_evaluable==2
+    failed=aggregate.loc[aggregate.arm=="A_catalogue_only"].iloc[0]
+    assert failed.non_evaluable_replicates==0
+    assert failed.failed_replicates==1
+    assert failed.not_run_replicates==1
 
 
 def test_all_failed_cells_remain_in_aggregate_denominator():
