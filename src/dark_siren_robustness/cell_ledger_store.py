@@ -125,6 +125,8 @@ def _write_updated(path: str | Path, checkpoint: dict) -> dict:
 
 def mark_cell_started(path: str | Path, key: tuple, started_at: str) -> dict:
     """Record an attempted cell while retaining NOT_RUN until audited completion."""
+    if not isinstance(started_at, str) or not started_at.strip():
+        raise ValueError("mark_cell_started requires a non-empty ISO-8601 timestamp")
     with _checkpoint_lock(path):
         checkpoint = read_checkpoint(path)
         matches = [i for i, row in enumerate(checkpoint["cell_ledger"])
