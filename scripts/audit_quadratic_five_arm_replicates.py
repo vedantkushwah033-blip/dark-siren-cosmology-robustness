@@ -108,6 +108,65 @@ def audit(root: Path) -> dict:
 
     planned=pd.read_csv(root/"planned_cells.csv")
     ledger=pd.read_csv(root/"replicate_ledger.csv")
+    checkpoint_path=root/"cell_lifecycle_checkpoint.json"
+    if not checkpoint_path.is_file():
+        raise AssertionError("four-state cell lifecycle checkpoint is missing")
+    checkpoint=json.loads(checkpoint_path.read_text())
+    if checkpoint.get("schema_version")!=1:
+        raise AssertionError("unsupported cell lifecycle checkpoint schema")
+    canonical=json.dumps(checkpoint.get("planned_cells"),sort_keys=True,
+        separators=(",",":"),allow_nan=False).encode("utf-8")
+    if hashlib.sha256(canonical).hexdigest()!=checkpoint.get("plan_sha256"):
+        raise AssertionError("immutable cell lifecycle plan hash mismatch")
+    checkpoint_plan=pd.DataFrame(checkpoint["planned_cells"])
+    checkpoint_ledger=pd.DataFrame(checkpoint["cell_ledger"])
+    if set(checkpoint_plan.cell_id.astype(str))!=set(planned.cell_id.astype(str)):
+        raise AssertionError("checkpoint plan and exported planned-cell keys differ")
+    if set(checkpoint_ledger.cell_id.astype(str))!=set(ledger.cell_id.astype(str)):
+        raise AssertionError("checkpoint ledger and exported lifecycle keys differ")
+    for frame_name,frame in (("plan",checkpoint_plan),("ledger",checkpoint_ledger)):
+        if frame.cell_id.duplicated().any():
+            raise AssertionError(f"duplicate cell ID in checkpoint {frame_name}")
+    for column in checkpoint_plan.columns:
+        left=checkpoint_plan.set_index("cell_id")[column].fillna("").astype(str).sort_index()
+        right=planned.set_index("cell_id")[column].fillna("").astype(str).sort_index()
+        if not left.equals(right):
+            raise AssertionError(f"checkpoint/exported planned-cell mismatch: {column}")
+    for column in checkpoint_ledger.columns:
+        left=checkpoint_ledger.set_index("cell_id")[column].fillna("").astype(str).sort_index()
+        right=ledger.set_index("cell_id")[column].fillna("").astype(str).sort_index()
+        if not left.equals(right):
+            raise AssertionError(f"checkpoint/exported lifecycle mismatch: {column}")
+    allowed_status={"SUCCESS","NON_EVALUABLE","FAILED","NOT_RUN"}
+    allowed_audit={"PASS","NOT_PASS","NOT_RUN"}
+    reasons={
+        "SUCCESS":{""},
+        "NON_EVALUABLE":{"NONFINITE_LIKELIHOOD","INVALID_POSTERIOR_NORMALIZATION","SUPPORT_BOUNDARY_MODE","PREDECLARED_WEIGHT_INSTABILITY"},
+        "FAILED":{"CHILD_PROCESS_ERROR","CHILD_AUDIT_FAILED","DATA_INTEGRITY_FAILURE"},
+        "NOT_RUN":{"RUN_NOT_STARTED","RUN_INTERRUPTED","UPSTREAM_FAILURE","NOT_SCHEDULED"},
+    }
+    for row in checkpoint_ledger.to_dict("records"):
+        status=str(row.get("status")); audit_status=str(row.get("audit_status"))
+        reason=str(row.get("reason_code") or "")
+        if status not in allowed_status or audit_status not in allowed_audit or reason not in reasons[status]:
+            raise AssertionError("checkpoint contains an invalid lifecycle status/audit/reason tuple")
+        if status in {"SUCCESS","NON_EVALUABLE"}:
+            if audit_status!="PASS" or not row.get("audit_report_path"):
+                raise AssertionError("successful/evaluable cell lacks audit PASS or report path")
+        elif audit_status=="PASS":
+            raise AssertionError("failed/unrun cell cannot claim audit PASS")
+        if status=="NOT_RUN" and audit_status!="NOT_RUN":
+            raise AssertionError("NOT_RUN cell has a terminal audit status")
+        if status in {"SUCCESS","NON_EVALUABLE","FAILED"}:
+            if not row.get("started_at") or not row.get("completed_at"):
+                raise AssertionError("terminal lifecycle cell lacks start/completion timestamp")
+            from datetime import datetime
+            start=datetime.fromisoformat(str(row["started_at"]).replace("Z","+00:00"))
+            end=datetime.fromisoformat(str(row["completed_at"]).replace("Z","+00:00"))
+            if start.tzinfo is None or end.tzinfo is None or end<start:
+                raise AssertionError("invalid lifecycle timestamp ordering/offset")
+    if (checkpoint_ledger.status=="NOT_RUN").any():
+        raise AssertionError("finalized artifact contains planned cells that were never terminally accounted")
     summaries=pd.read_csv(root/"replicate_posterior_summaries.csv")
     diagnostics=pd.read_csv(root/"replicate_weight_diagnostics.csv")
     aggregates=pd.read_csv(root/"aggregate_metrics.csv")
@@ -154,7 +213,7 @@ def audit(root: Path) -> dict:
     for name in identity:
         if not np.array_equal(joined[f"{name}_planned"].to_numpy(),joined[f"{name}_ledger"].to_numpy()):
             raise AssertionError(f"planned/ledger mismatch: {name}")
-    allowed={"SUCCESS","FAILED"}
+    allowed={"SUCCESS","NON_EVALUABLE","FAILED","NOT_RUN"}
     if not set(ledger.status).issubset(allowed):
         raise AssertionError("unknown lifecycle status")
     if not set(ledger.audit_status).issubset({"PASS","NOT_RUN","NOT_PASS"}):
@@ -163,12 +222,17 @@ def audit(root: Path) -> dict:
     child_dirs={}
     child_audits=0
     for (rep,gamma),group in ledger.groupby(["replicate","gamma"],sort=True):
-        if group.status.nunique()!=1 or group.audit_status.nunique()!=1:
-            raise AssertionError("all arms/sizes in a child run must share one lifecycle status")
-        status=str(group.status.iloc[0]); audit_status=str(group.audit_status.iloc[0])
+        statuses=set(group.status.astype(str))
+        audit_statuses=set(group.audit_status.astype(str))
+        if statuses.issubset({"SUCCESS","NON_EVALUABLE"}) and audit_statuses=={"PASS"}:
+            status="SUCCESS"
+            audit_status="PASS"
+        elif statuses=={"FAILED"} and audit_statuses.issubset({"NOT_PASS","NOT_RUN"}):
+            status="FAILED"
+            audit_status=next(iter(audit_statuses))
+        else:
+            raise AssertionError("child block has an invalid mix of lifecycle/audit outcomes")
         if status=="SUCCESS":
-            if audit_status!="PASS":
-                raise AssertionError("successful child lacks independent audit PASS")
             rel=f"replicates/rep{int(rep):03d}_g{float(gamma):+g}".replace("+","p").replace("-","m")
             d=root/rel
             report=json.loads((d/"audit_report.json").read_text())
