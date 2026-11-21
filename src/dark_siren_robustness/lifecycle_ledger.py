@@ -102,6 +102,10 @@ def set_cell_outcome(
         raise ValueError(f"{status} requires completed_at")
     if status in {"SUCCESS", "NON_EVALUABLE"} and not started_at:
         raise ValueError(f"{status} requires started_at")
+    if status in {"SUCCESS", "NON_EVALUABLE"} and (
+        not isinstance(audit_report_path, str) or not audit_report_path.strip()
+    ):
+        raise ValueError(f"{status} requires audit_report_path")
     if started_at and completed_at and completed_at < started_at:
         raise ValueError("completed_at cannot precede started_at")
     result = dict(row)
@@ -156,6 +160,11 @@ def validate_ledger(planned_rows: Iterable[Mapping], ledger_rows: Iterable[Mappi
             raise ValueError(f"{status} cell has no start timestamp")
         if status in {"SUCCESS", "NON_EVALUABLE"} and not row.get("completed_at"):
             raise ValueError(f"{status} cell has no completion timestamp")
+        audit_path = row.get("audit_report_path")
+        if status in {"SUCCESS", "NON_EVALUABLE"} and (
+            not isinstance(audit_path, str) or not audit_path.strip()
+        ):
+            raise ValueError(f"{status} cell has no audit report path")
         started_at = row.get("started_at")
         completed_at = row.get("completed_at")
         if started_at and completed_at and completed_at < started_at:
