@@ -66,7 +66,7 @@ def write_shared_input_manifest(
     try:
         with os.fdopen(fd, "w", encoding="utf-8", newline="") as stream:
             json.dump(manifest, stream, indent=2, sort_keys=True)
-            stream.write("\\n")
+            stream.write("\n")
             stream.flush()
             os.fsync(stream.fileno())
         # Atomic no-replacement publication: a concurrent writer cannot silently
