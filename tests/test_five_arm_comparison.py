@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from dark_siren_robustness.five_arm_comparison import (
+    build_base_arm_weights,
     build_five_arm_weights,
     weight_concentration_diagnostics,
 )
