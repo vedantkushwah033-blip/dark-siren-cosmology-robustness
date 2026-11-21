@@ -482,3 +482,55 @@ def test_interrupted_started_cell_can_resume_without_rewriting_first_start(tmp_p
     completed = read_checkpoint(path)["cell_ledger"][0]
     assert completed["status"] == "SUCCESS"
     assert completed["started_at"] == first_start
+
+
+def _complete_checkpoint_cell_in_process(args):
+    """Top-level worker so the process-lock test exercises independent processes."""
+    path, row = args
+    from dark_siren_robustness.cell_ledger_store import mark_cell_started, record_cell_outcome
+
+    key = (row["replicate"], row["gamma"], row["validation_size"], row["arm"])
+    started_at = "2026-11-21T05:00:00Z"
+    mark_cell_started(path, key, started_at)
+    record_cell_outcome(
+        path,
+        key,
+        status="SUCCESS",
+        audit_status="PASS",
+        started_at=started_at,
+        completed_at="2026-11-21T05:01:00Z",
+        audit_report_path=f"audit/{row['arm']}.json",
+    )
+
+
+def test_multiprocess_checkpoint_updates_preserve_every_terminal_cell(tmp_path):
+    """Exercise sidecar flock across processes, not merely threads."""
+    import multiprocessing
+    from concurrent.futures import ProcessPoolExecutor
+
+    if "fork" not in multiprocessing.get_all_start_methods():
+        pytest.skip("fcntl/flock process test requires a POSIX fork context")
+
+    plan = [
+        {
+            "replicate": index,
+            "gamma": 0.0,
+            "validation_size": 100,
+            "arm": f"process_arm_{index}",
+            "analysis_seed": 2000 + index,
+            "h0_true": 70.0,
+        }
+        for index in range(20)
+    ]
+    path = tmp_path / "multiprocess" / "checkpoint.json"
+    initialize_checkpoint(path, plan)
+
+    context = multiprocessing.get_context("fork")
+    with ProcessPoolExecutor(max_workers=8, mp_context=context) as pool:
+        list(pool.map(_complete_checkpoint_cell_in_process, [(str(path), row) for row in plan]))
+
+    checkpoint = read_checkpoint(path)
+    assert len(checkpoint["cell_ledger"]) == len(plan)
+    assert all(row["status"] == "SUCCESS" for row in checkpoint["cell_ledger"])
+    assert all(row["audit_status"] == "PASS" for row in checkpoint["cell_ledger"])
+    assert len({row["audit_report_path"] for row in checkpoint["cell_ledger"]}) == len(plan)
