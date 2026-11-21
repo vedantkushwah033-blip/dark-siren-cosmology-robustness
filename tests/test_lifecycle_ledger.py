@@ -677,3 +677,37 @@ def test_checkpoint_start_claim_requires_timestamp(tmp_path):
     with pytest.raises(ValueError, match="UTC offset"):
         mark_cell_started(path, key, "2026-11-21T05:00:00")
     assert read_checkpoint(path)["cell_ledger"][0]["started_at"] is None
+
+def _claim_same_checkpoint_cell_in_process(args):
+    path, key, started_at = args
+    from dark_siren_robustness.cell_ledger_store import mark_cell_started
+
+    try:
+        mark_cell_started(path, tuple(key), started_at)
+        return "CLAIMED"
+    except ValueError:
+        return "REJECTED"
+
+
+def test_concurrent_processes_cannot_claim_the_same_cell_twice(tmp_path):
+    """The checkpoint lock must provide a single-writer claim for one cell."""
+    import multiprocessing
+    from concurrent.futures import ProcessPoolExecutor
+
+    if "fork" not in multiprocessing.get_all_start_methods():
+        pytest.skip("fcntl/flock process test requires a POSIX fork context")
+
+    path = tmp_path / "same-cell-claim" / "checkpoint.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    key = (0, 0.0, 100, "A")
+    context = multiprocessing.get_context("fork")
+    args = (str(path), key, "2026-11-21T05:00:00Z")
+    with ProcessPoolExecutor(max_workers=2, mp_context=context) as pool:
+        outcomes = list(pool.map(_claim_same_checkpoint_cell_in_process, [args, args]))
+
+    assert sorted(outcomes) == ["CLAIMED", "REJECTED"]
+    checkpoint = read_checkpoint(path)
+    claimed = next(row for row in checkpoint["cell_ledger"] if row["arm"] == "A")
+    assert claimed["status"] == "NOT_RUN"
+    assert claimed["reason_code"] == "RUN_NOT_STARTED"
+    assert claimed["started_at"] == "2026-11-21T05:00:00Z"
