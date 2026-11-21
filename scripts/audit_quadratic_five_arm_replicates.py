@@ -56,10 +56,14 @@ def _expected_contrasts(summaries: pd.DataFrame) -> pd.DataFrame:
     rows=[]
     for (rep,gamma,nval),group in summaries.groupby(["replicate","gamma","validation_size"],sort=True):
         by_arm={str(r.arm):r for r in group.itertuples(index=False)}
-        if not all(a in by_arm and by_arm[a].status=="SUCCESS" for a in ARMS):
-            continue
         for arm in ARMS[1:]:
+            if arm not in by_arm or by_arm[arm].status!="SUCCESS":
+                continue
             for ref in ("A_catalogue_only","C_known_probability_ipw"):
+                # Reconstruct each valid pair independently; do not require
+                # unrelated arms to succeed and never compare an arm to itself.
+                if arm==ref or ref not in by_arm or by_arm[ref].status!="SUCCESS":
+                    continue
                 x,y=by_arm[arm],by_arm[ref]
                 rows.append({"replicate":int(rep),"gamma":float(gamma),"validation_size":int(nval),
                     "arm":arm,"reference_arm":ref,
