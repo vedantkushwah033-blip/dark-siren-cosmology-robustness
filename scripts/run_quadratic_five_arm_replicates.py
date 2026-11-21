@@ -289,19 +289,19 @@ def run(args: argparse.Namespace) -> dict:
                     raise RuntimeError("child posterior-summary row count is incomplete")
                 if set(sm["status"].astype(str)) != {"SUCCESS"}:
                     raise RuntimeError("child posterior rows are not all SUCCESS; arm-level NON_EVALUABLE rules are not yet implemented")
-                completed=datetime.now(timezone.utc).isoformat(timespec="microseconds")
-                record_cell_outcomes(checkpoint_path,[{"key":key,"outcome":{
-                    "status":"SUCCESS","audit_status":"PASS","completed_at":completed,
-                    "audit_report_path":str(audit_path.relative_to(out)),
-                }} for key in keys])
                 sm.insert(0,"replicate",rep)
                 sm.insert(1,"gamma",gamma)
                 sm.insert(2,"analysis_seed",analysis_seed)
                 sm.insert(3,"validation_seed",validation_seed)
                 sm["audit_status"]="PASS"
-                summary_parts.append(sm)
                 wd=pd.read_csv(child/"results"/"weight_diagnostics.csv")
                 wd.insert(0,"replicate",rep); wd.insert(1,"gamma",gamma)
+                completed=datetime.now(timezone.utc).isoformat(timespec="microseconds")
+                record_cell_outcomes(checkpoint_path,[{"key":key,"outcome":{
+                    "status":"SUCCESS","audit_status":"PASS","completed_at":completed,
+                    "audit_report_path":str(audit_path.relative_to(out)),
+                }} for key in keys])
+                summary_parts.append(sm)
                 diagnostic_parts.append(wd)
                 audit_rows.append({"replicate":rep,"gamma":gamma,"status":"PASS",
                     "manifest_files_verified":report["manifest_files_verified"],
