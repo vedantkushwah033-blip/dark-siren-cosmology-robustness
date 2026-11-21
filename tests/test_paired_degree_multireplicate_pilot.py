@@ -244,8 +244,8 @@ def test_incomplete_paired_run_manifest_is_not_mislabeled_pass(tmp_path, monkeyp
     # Even if both config and manifest are tampered, the auditor reconstructs
     # completion from the two independently recorded degree-run outcomes.
     manifest["status"] = "INCOMPLETE"
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n")
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     config["status"] = "PASS"
-    (root / "config.json").write_text(json.dumps(config, indent=2, sort_keys=True) + "\\n")
+    (root / "config.json").write_text(json.dumps(config, indent=2, sort_keys=True) + "\n")
     with pytest.raises(AssertionError, match="declared run status mismatch"):
         audit(root)
