@@ -298,6 +298,11 @@ def audit(root: Path) -> dict:
                 "inclusion_model_degree"):
         if shared_provenance.get(key) != config.get(key):
             raise AssertionError(f"shared-input provenance mismatch: {key}")
+    if shared_provenance.get("n_validation_frame") != config.get("validation_frame"):
+        raise AssertionError("shared-input provenance mismatch: n_validation_frame")
+    expected_basis_center = config.get("quadratic_calibration", {}).get("x2_center")
+    if shared_provenance.get("quadratic_basis_center") != expected_basis_center:
+        raise AssertionError("shared-input provenance mismatch: quadratic_basis_center")
     expected_x2_center = float(config.get("quadratic_calibration", {}).get("x2_center", 0.0))
     if not np.isclose(float(shared_provenance.get("quadratic_basis_center", np.nan)),
                       expected_x2_center, rtol=0.0, atol=1e-14):
