@@ -131,8 +131,15 @@ def validate_ledger(planned_rows: Iterable[Mapping], ledger_rows: Iterable[Mappi
         missing = set(planned_keys) - set(ledger_keys)
         extra = set(ledger_keys) - set(planned_keys)
         raise ValueError(f"ledger/plan key mismatch: missing={len(missing)}, extra={len(extra)}")
+    planned_by_key = {_key(row): row for row in planned}
     counts = {status: 0 for status in sorted(STATUSES)}
     for row in ledger:
+        expected = planned_by_key[_key(row)]
+        for field, expected_value in expected.items():
+            if row.get(field) != expected_value:
+                raise ValueError(
+                    f"planned provenance mismatch for {field!r} in cell {_key(row)}"
+                )
         status = row.get("status")
         if status not in STATUSES:
             raise ValueError(f"unknown lifecycle status: {status}")
