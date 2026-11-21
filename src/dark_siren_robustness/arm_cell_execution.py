@@ -77,8 +77,8 @@ def _posterior_quantiles(grid: np.ndarray, log_likelihood: np.ndarray,
 def evaluate_arm_cell(
     arm: str,
     *,
-    parent_redshift: ArrayLike,
-    catalogue_redshift: ArrayLike,
+    parent_redshift: ArrayLike | None = None,
+    catalogue_redshift: ArrayLike | None = None,
     validation_redshift: ArrayLike | None = None,
     validation_retained: ArrayLike | None = None,
     true_catalogue_inclusion_probability: ArrayLike | None = None,
@@ -107,8 +107,15 @@ def evaluate_arm_cell(
     """
     if arm not in ARM_NAMES:
         raise ValueError(f"unknown arm: {arm}")
-    parent = _positive_vector(parent_redshift, "parent_redshift")
-    catalogue = _positive_vector(catalogue_redshift, "catalogue_redshift")
+    parent = catalogue = None
+    if arm == "B_parent_oracle":
+        if parent_redshift is None:
+            raise ValueError("B requires parent_redshift")
+        parent = _positive_vector(parent_redshift, "parent_redshift")
+    else:
+        if catalogue_redshift is None:
+            raise ValueError(f"{arm} requires catalogue_redshift")
+        catalogue = _positive_vector(catalogue_redshift, "catalogue_redshift")
     validation = retained = None
     if arm in {"D_map_plugin_ipw", "E_uncertainty_integrated_ipw"}:
         if validation_redshift is None or validation_retained is None:
