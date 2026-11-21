@@ -264,6 +264,11 @@ def run(args: argparse.Namespace) -> dict:
                 status="FAILED"
                 if audit_status=="PASS":
                     audit_status="NOT_PASS"
+                    failure_reason="DATA_INTEGRITY_FAILURE"
+                elif audit_status=="NOT_PASS":
+                    failure_reason="CHILD_AUDIT_FAILED"
+                else:
+                    failure_reason="CHILD_PROCESS_ERROR"
                 error=f"{type(exc).__name__}: {exc}"[:4000]
                 audit_rows.append({"replicate":rep,"gamma":gamma,"status":"NOT_PASS",
                     "manifest_files_verified":0,"posterior_summary_rows_reconstructed":0,
@@ -276,9 +281,8 @@ def run(args: argparse.Namespace) -> dict:
                             started_at=started_at,completed_at=completed_at,
                             audit_report_path=str((child/"audit_report.json").relative_to(out)))
                     else:
-                        reason="CHILD_AUDIT_FAILED" if audit_status=="NOT_PASS" else "CHILD_PROCESS_ERROR"
                         updated=set_cell_outcome(row,status="FAILED",audit_status=audit_status,
-                            reason_code=reason,reason_detail=error,started_at=started_at,
+                            reason_code=failure_reason,reason_detail=error,started_at=started_at,
                             completed_at=completed_at)
                     row.clear(); row.update(updated)
                     ledger.append({"cell_id":row["cell_id"],"replicate":rep,"gamma":gamma,
