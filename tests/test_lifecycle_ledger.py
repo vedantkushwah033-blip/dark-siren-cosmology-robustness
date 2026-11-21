@@ -744,3 +744,44 @@ def test_interrupted_retry_validates_each_attempt_timestamp(tmp_path):
     finalize_interrupted_cells(path, "Simulated interruption.")
     with pytest.raises(ValueError, match="UTC offset"):
         mark_cell_started(path, key, "2026-11-21T05:05:00")
+
+
+
+def test_checkpoint_terminal_outcome_requires_active_claim_after_interruption(tmp_path):
+    path = tmp_path / "interrupted-terminal-bypass.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    key = (0, 0.0, 100, "A")
+    first_start = "2026-11-21T05:00:00Z"
+    mark_cell_started(path, key, first_start)
+    finalize_interrupted_cells(path, "Worker exited before audited completion.")
+
+    with pytest.raises(ValueError, match="active persisted start claim"):
+        record_cell_outcome(
+            path, key, status="SUCCESS", audit_status="PASS",
+            started_at=first_start,
+            completed_at="2026-11-21T05:06:00Z",
+            audit_report_path="audit/A.json",
+        )
+
+    # A new attempt must explicitly reclaim the interrupted cell first.
+    mark_cell_started(path, key, "2026-11-21T05:07:00Z")
+    record_cell_outcome(
+        path, key, status="SUCCESS", audit_status="PASS",
+        started_at=first_start,
+        completed_at="2026-11-21T05:08:00Z",
+        audit_report_path="audit/A.json",
+    )
+    assert read_checkpoint(path)["cell_ledger"][0]["status"] == "SUCCESS"
+
+
+def test_checkpoint_outcome_api_rejects_nonterminal_status(tmp_path):
+    path = tmp_path / "nonterminal-outcome.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    key = (0, 0.0, 100, "A")
+    mark_cell_started(path, key, "2026-11-21T05:00:00Z")
+    with pytest.raises(ValueError, match="terminal statuses only"):
+        record_cell_outcome(
+            path, key, status="NOT_RUN", audit_status="NOT_RUN",
+            reason_code="RUN_INTERRUPTED",
+            started_at="2026-11-21T05:00:00Z",
+        )
