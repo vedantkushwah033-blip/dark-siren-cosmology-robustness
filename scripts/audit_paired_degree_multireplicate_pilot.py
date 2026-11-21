@@ -167,6 +167,24 @@ def audit(root: Path) -> dict:
     run_status = cfg.get("status")
     if run_status not in {"PASS", "INCOMPLETE"}:
         raise AssertionError(f"unknown paired experiment run status: {run_status}")
+    declared_runs = cfg.get("degree_runs")
+    if not isinstance(declared_runs, list) or len(declared_runs) != 2:
+        raise AssertionError("paired config must record exactly two degree runs")
+    if [int(run.get("degree", -1)) for run in declared_runs] != [1, 2]:
+        raise AssertionError("paired config must record degree-one and degree-two runs")
+    all_degree_runs_passed = all(
+        run.get("status") == "PASS"
+        and int(run.get("runner_exit_code", -1)) == 0
+        and int(run.get("auditor_exit_code", -1)) == 0
+        and isinstance(run.get("audit_report"), dict)
+        and run["audit_report"].get("status") == "PASS"
+        for run in declared_runs
+    )
+    expected_run_status = "PASS" if all_degree_runs_passed else "INCOMPLETE"
+    if run_status != expected_run_status:
+        raise AssertionError(
+            f"declared run status mismatch; expected {expected_run_status}, observed {run_status}"
+        )
     outer_count = _verify_manifest(root, expected_status=run_status)
     if run_status == "INCOMPLETE":
         # Verify the partial artifact, but do not claim paired scientific outputs were audited.
