@@ -5,11 +5,11 @@ leave a newly-created plan without its matching initial NOT_RUN ledger.
 """
 from __future__ import annotations
 
-import fcntl
 import hashlib
 import json
 import os
 import tempfile
+import threading
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterable, Mapping
@@ -22,6 +22,7 @@ from .lifecycle_ledger import (
 )
 
 SCHEMA_VERSION = 1
+_LOCAL_CHECKPOINT_LOCK = threading.RLock()
 
 
 def _canonical_hash(value) -> str:
@@ -43,12 +44,33 @@ def _checkpoint_lock(path: str | Path):
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     lock_path = target.with_name(target.name + ".lock")
-    with lock_path.open("a", encoding="utf-8") as lock_stream:
-        fcntl.flock(lock_stream.fileno(), fcntl.LOCK_EX)
-        try:
-            yield
-        finally:
-            fcntl.flock(lock_stream.fileno(), fcntl.LOCK_UN)
+    # A process-local lock also serializes threads on Windows, where
+    # byte-range locks are process-scoped. The OS lock handles other processes.
+    with _LOCAL_CHECKPOINT_LOCK:
+        if os.name == "nt":
+            import msvcrt
+
+            with lock_path.open("a+b") as lock_stream:
+                lock_stream.seek(0, os.SEEK_END)
+                if lock_stream.tell() == 0:
+                    lock_stream.write(b"\\0")
+                    lock_stream.flush()
+                lock_stream.seek(0)
+                msvcrt.locking(lock_stream.fileno(), msvcrt.LK_LOCK, 1)
+                try:
+                    yield
+                finally:
+                    lock_stream.seek(0)
+                    msvcrt.locking(lock_stream.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+
+            with lock_path.open("a", encoding="utf-8") as lock_stream:
+                fcntl.flock(lock_stream.fileno(), fcntl.LOCK_EX)
+                try:
+                    yield
+                finally:
+                    fcntl.flock(lock_stream.fileno(), fcntl.LOCK_UN)
 
 
 def _atomic_create_json(path: str | Path, value) -> None:
@@ -67,11 +89,12 @@ def _atomic_create_json(path: str | Path, value) -> None:
         # A hard link is an atomic no-replace operation on the same filesystem.
         os.link(temporary, target)
         os.unlink(temporary)
-        directory_fd = os.open(target.parent, os.O_RDONLY)
-        try:
-            os.fsync(directory_fd)
-        finally:
-            os.close(directory_fd)
+        if os.name != "nt":
+            directory_fd = os.open(target.parent, os.O_RDONLY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
     except BaseException:
         try:
             os.unlink(temporary)
