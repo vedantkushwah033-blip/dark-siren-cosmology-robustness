@@ -137,8 +137,8 @@ def mark_cell_started(path: str | Path, key: tuple, started_at: str) -> dict:
             raise ValueError("cell has already been started or completed")
         checkpoint["cell_ledger"][index] = set_cell_outcome(
             row, status="NOT_RUN", audit_status="NOT_RUN",
-            reason_code="RUN_INTERRUPTED",
-            reason_detail="Execution started; no audited terminal outcome has been persisted.",
+            reason_code="RUN_NOT_STARTED",
+            reason_detail="Execution is active; no audited terminal outcome has been persisted.",
             started_at=started_at,
         )
         return _write_updated(path, checkpoint)
@@ -156,8 +156,8 @@ def record_cell_outcome(path: str | Path, key: tuple, **outcome) -> dict:
         current = checkpoint["cell_ledger"][index]
         if current["status"] != "NOT_RUN":
             raise ValueError("terminal cell outcome cannot be overwritten")
-        if not current.get("started_at") and outcome.get("status") in {"SUCCESS", "NON_EVALUABLE"}:
-            raise ValueError("successful outcomes require a persisted start transition")
+        if outcome.get("status") in {"SUCCESS", "NON_EVALUABLE", "FAILED"} and not current.get("started_at"):
+            raise ValueError("terminal outcomes require a persisted start transition")
         persisted_start = current.get("started_at")
         supplied_start = outcome.get("started_at")
         if persisted_start and supplied_start not in (None, persisted_start):
@@ -173,9 +173,14 @@ def finalize_interrupted_cells(path: str | Path, reason_detail: str = "") -> dic
         checkpoint = read_checkpoint(path)
         for index, row in enumerate(checkpoint["cell_ledger"]):
             if row["status"] == "NOT_RUN" and row.get("reason_code") == "RUN_NOT_STARTED":
+                was_started = bool(row.get("started_at"))
                 checkpoint["cell_ledger"][index] = set_cell_outcome(
                     row, status="NOT_RUN", audit_status="NOT_RUN",
-                    reason_code="RUN_INTERRUPTED",
-                    reason_detail=reason_detail or "Run ended before this planned cell completed.",
+                    reason_code="RUN_INTERRUPTED" if was_started else "NOT_SCHEDULED",
+                    reason_detail=reason_detail or (
+                        "Run ended while this cell was active."
+                        if was_started else "Run ended before this planned cell was scheduled."
+                    ),
+                    started_at=row.get("started_at"),
                 )
         return _write_updated(path, checkpoint)
