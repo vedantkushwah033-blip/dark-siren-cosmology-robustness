@@ -435,3 +435,41 @@ def test_replicate_auditor_rejects_plan_ledger_provenance_tampering(tmp_path: Pa
     import pytest
     with pytest.raises(AssertionError, match="checkpoint plan/ledger provenance mismatch"):
         audit_replicates(root)
+
+
+def test_incomplete_run_status_is_preserved_and_independently_audited(tmp_path, monkeypatch):
+    import subprocess
+    import run_quadratic_five_arm_replicates as replicate_module
+
+    root = tmp_path / "incomplete_manifest_status"
+    args = type("Args", (), {
+        "master_seed": 20261125, "replicates": 2, "gammas": [0.0],
+        "n_parent": 300, "n_detected": 4, "validation_frame": 100,
+        "validation_sizes": [60, 90], "curvature_beta": -3.9,
+        "inclusion_degree": 1, "h0_true": 70.0, "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0, "h0_points": 41, "scott_multiplier": 0.7,
+        "quadrature_order": 3, "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0, "output_dir": root,
+    })()
+
+    def fail_child(*call_args, **call_kwargs):
+        return subprocess.CompletedProcess(
+            call_args[0] if call_args else [], 1, stdout="", stderr="injected child failure"
+        )
+
+    monkeypatch.setattr(replicate_module.subprocess, "run", fail_child)
+    result = run_replicates(args)
+    assert result["status"] == "INCOMPLETE"
+    manifest_path = root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    assert manifest["status"] == "INCOMPLETE"
+
+    audit = audit_replicates(root)
+    assert audit["status"] == "PASS"
+    assert audit["run_status"] == "INCOMPLETE"
+
+    manifest["status"] = "PASS"
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    import pytest
+    with pytest.raises(AssertionError, match="aggregate manifest lifecycle status mismatch"):
+        audit_replicates(root)
