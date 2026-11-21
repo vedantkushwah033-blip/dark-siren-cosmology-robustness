@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from dark_siren_robustness.five_arm_comparison import (
+    build_base_arm_weights,
     build_five_arm_weights,
     weight_concentration_diagnostics,
 )
@@ -254,3 +255,37 @@ def test_degree_two_five_arm_builder_uses_explicit_centered_quadratic_basis():
     assert result.inclusion_posterior.quadratic_center == pytest.approx(c_g)
     assert np.allclose(result.arm_d_map_inclusion_probability, expected)
     assert np.allclose(result.arm_d_map_plugin, 1.0 / expected)
+
+
+def test_base_arm_builder_is_independent_of_validation_inclusion_fit(monkeypatch):
+    import dark_siren_robustness.five_arm_comparison as comparison
+
+    parent, catalogue, validation, retained = _fixture()
+    parent_base = 1.0 + 1.5 * (parent - 0.01) / 0.39
+    catalogue_base = 1.0 + 1.5 * (catalogue - 0.01) / 0.39
+    true_probability = catalogue_inclusion_probability(catalogue, floor=0.10)
+
+    def forbidden_fit(*args, **kwargs):
+        raise AssertionError("A/B/C base-arm construction must not fit inclusion coefficients")
+
+    monkeypatch.setattr(comparison, "fit_inclusion_posterior_quadrature", forbidden_fit)
+    result = build_base_arm_weights(
+        parent, catalogue, true_probability,
+        parent_base_weights=parent_base,
+        catalogue_base_weights=catalogue_base,
+    )
+    np.testing.assert_array_equal(result.arm_a_catalogue_only, catalogue_base)
+    np.testing.assert_array_equal(result.arm_b_parent_oracle, parent_base)
+    np.testing.assert_allclose(result.arm_c_known_probability, catalogue_base / true_probability)
+    np.testing.assert_array_equal(result.arm_c_true_inclusion_probability, true_probability)
+
+
+def test_base_arm_builder_rejects_invalid_truth_probability_and_overflow():
+    parent, catalogue, _, _ = _fixture()
+    with pytest.raises(ValueError, match="true_catalogue_inclusion_probability"):
+        build_base_arm_weights(parent, catalogue, np.full(catalogue.size, np.nan))
+    with pytest.raises(ArithmeticError, match="overflow"):
+        build_base_arm_weights(
+            parent, catalogue, np.full(catalogue.size, 1e-300),
+            catalogue_base_weights=np.full(catalogue.size, 1e300),
+        )

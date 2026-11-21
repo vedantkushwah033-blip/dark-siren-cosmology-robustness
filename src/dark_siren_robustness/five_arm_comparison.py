@@ -16,6 +16,63 @@ from .inclusion_posterior import InclusionPosteriorQuadrature, fit_inclusion_pos
 
 
 @dataclass(frozen=True)
+class BaseArmWeights:
+    """A/B/C weights that do not depend on fitting the inclusion model."""
+
+    parent_redshift: np.ndarray
+    catalogue_redshift: np.ndarray
+    arm_a_catalogue_only: np.ndarray
+    arm_b_parent_oracle: np.ndarray
+    arm_c_known_probability: np.ndarray
+    arm_c_true_inclusion_probability: np.ndarray
+
+
+def build_base_arm_weights(
+    parent_redshift: ArrayLike,
+    catalogue_redshift: ArrayLike,
+    true_catalogue_inclusion_probability: ArrayLike,
+    *,
+    parent_base_weights: ArrayLike | None = None,
+    catalogue_base_weights: ArrayLike | None = None,
+) -> BaseArmWeights:
+    """Build A/B/C without fitting or depending on the validation inclusion model.
+
+    This is intentionally separate from build_five_arm_weights: A and B are
+    uncorrected catalogue/full-parent reference arms, while C uses the known
+    simulation inclusion probabilities. D and E alone require fitting the
+    validation inclusion model. If that fit is non-evaluable, these three
+    base arms can still be evaluated and audited independently.
+    """
+    parent = _validate_redshifts(parent_redshift, "parent_redshift")
+    catalogue = _validate_redshifts(catalogue_redshift, "catalogue_redshift")
+    parent_base = _validate_base_weights(
+        parent_base_weights, parent.size, "parent_base_weights"
+    )
+    catalogue_base = _validate_base_weights(
+        catalogue_base_weights, catalogue.size, "catalogue_base_weights"
+    )
+    probability = np.asarray(true_catalogue_inclusion_probability, dtype=float)
+    if (probability.shape != catalogue.shape or not np.all(np.isfinite(probability))
+            or np.any(probability <= 0.0) or np.any(probability > 1.0)):
+        raise ValueError(
+            "true_catalogue_inclusion_probability must be finite, in (0, 1], "
+            "and match catalogue_redshift"
+        )
+    with np.errstate(over="ignore", divide="ignore"):
+        known_weights = catalogue_base / probability
+    if not np.all(np.isfinite(known_weights)):
+        raise ArithmeticError("known-probability inverse weights overflow")
+    return BaseArmWeights(
+        parent_redshift=parent,
+        catalogue_redshift=catalogue,
+        arm_a_catalogue_only=catalogue_base,
+        arm_b_parent_oracle=parent_base,
+        arm_c_known_probability=known_weights,
+        arm_c_true_inclusion_probability=probability.copy(),
+    )
+
+
+@dataclass(frozen=True)
 class FiveArmWeights:
     """Raw arm-specific host weights and the fitted validation posterior."""
 
