@@ -711,3 +711,36 @@ def test_concurrent_processes_cannot_claim_the_same_cell_twice(tmp_path):
     assert claimed["status"] == "NOT_RUN"
     assert claimed["reason_code"] == "RUN_NOT_STARTED"
     assert claimed["started_at"] == "2026-11-21T05:00:00Z"
+
+
+def test_checkpoint_cannot_start_not_scheduled_or_upstream_failed_cells(tmp_path):
+    from dark_siren_robustness.cell_ledger_store import mark_cell_started
+
+    for reason in ("NOT_SCHEDULED", "UPSTREAM_FAILURE"):
+        path = tmp_path / f"{reason.lower()}.json"
+        initialize_checkpoint(path, _checkpoint_plan())
+        finalize_interrupted_cells(path, "No worker was scheduled.")
+        # Change one row to the other non-retryable reason through a valid ledger
+        # transition, then persist it through the checkpoint's public outcome API.
+        if reason == "UPSTREAM_FAILURE":
+            from dark_siren_robustness.cell_ledger_store import record_cell_outcome
+            # The first cell is intentionally left NOT_SCHEDULED by finalization;
+            # rewrite its reason in a fixture checkpoint to model upstream failure.
+            checkpoint = json.loads(path.read_text())
+            checkpoint["cell_ledger"][0]["reason_code"] = "UPSTREAM_FAILURE"
+            checkpoint["cell_ledger"][0]["reason_detail"] = "Shared input generation failed."
+            path.write_text(json.dumps(checkpoint))
+        with pytest.raises(ValueError, match="not eligible to start"):
+            mark_cell_started(path, (0, 0.0, 100, "A"), "2026-11-21T05:05:00Z")
+
+
+def test_interrupted_retry_validates_each_attempt_timestamp(tmp_path):
+    from dark_siren_robustness.cell_ledger_store import mark_cell_started
+
+    path = tmp_path / "retry-timestamp.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    key = (0, 0.0, 100, "A")
+    mark_cell_started(path, key, "2026-11-21T05:00:00Z")
+    finalize_interrupted_cells(path, "Simulated interruption.")
+    with pytest.raises(ValueError, match="UTC offset"):
+        mark_cell_started(path, key, "2026-11-21T05:05:00")
