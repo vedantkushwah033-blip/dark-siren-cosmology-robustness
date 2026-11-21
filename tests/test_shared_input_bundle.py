@@ -48,3 +48,17 @@ def test_shared_input_manifest_rejects_missing_validation_slice(tmp_path: Path):
         write_shared_input_manifest(
             tmp_path, validation_sizes=[10, 20], provenance={"seed": 1}
         )
+
+
+def test_stale_legacy_temp_file_does_not_block_manifest_creation(tmp_path: Path):
+    _populate(tmp_path)
+    stale = tmp_path / "shared_input_manifest.json.tmp"
+    stale.write_text("incomplete prior attempt", encoding="utf-8")
+    result = write_shared_input_manifest(
+        tmp_path,
+        validation_sizes=[10, 20],
+        provenance={"seed": 7},
+    )
+    assert result["status"] == "FROZEN"
+    assert (tmp_path / "shared_input_manifest.json").is_file()
+    assert stale.read_text(encoding="utf-8") == "incomplete prior attempt"
