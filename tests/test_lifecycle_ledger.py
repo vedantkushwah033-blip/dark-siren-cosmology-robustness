@@ -155,7 +155,7 @@ def test_ledger_validator_rejects_missing_or_reversed_timestamps():
     rows[0] = set_cell_outcome(
         rows[0], status="SUCCESS", audit_status="PASS",
         started_at="2026-11-21T00:00:00Z",
-        completed_at="2026-11-21T00:01:00Z",
+        completed_at="2026-11-21T00:01:00Z", audit_report_path="audit/a.json",
     )
     missing_start = [dict(row) for row in rows]
     missing_start[0]["started_at"] = None
@@ -235,6 +235,7 @@ def test_checkpoint_recovery_keeps_finished_and_marks_unfinished(tmp_path):
         path, key, status="SUCCESS", audit_status="PASS",
         started_at="2026-11-21T05:00:00Z",
         completed_at="2026-11-21T05:01:00Z",
+        audit_report_path="audit/A.json",
     )
     finalize_interrupted_cells(path, "Test interruption after first cell.")
     rows = read_checkpoint(path)["cell_ledger"]
@@ -262,6 +263,7 @@ def test_checkpoint_refuses_to_overwrite_a_terminal_cell(tmp_path):
     record_cell_outcome(
         path, key, status="SUCCESS", audit_status="PASS",
         completed_at="2026-11-21T05:01:00Z",
+        audit_report_path="audit/A.json",
     )
     with pytest.raises(ValueError, match="cannot be overwritten"):
         record_cell_outcome(
@@ -281,3 +283,34 @@ def test_checkpoint_cannot_rewrite_persisted_start_timestamp(tmp_path):
             completed_at="2026-11-21T05:01:00Z",
         )
     assert read_checkpoint(path)["cell_ledger"][0]["started_at"] == "2026-11-21T05:00:00Z"
+
+
+def test_success_and_non_evaluable_require_audit_report_path():
+    row = initial_ledger(_plan())[0]
+    with pytest.raises(ValueError, match="requires audit_report_path"):
+        set_cell_outcome(
+            row, status="SUCCESS", audit_status="PASS",
+            started_at="2026-11-21T00:00:00Z",
+            completed_at="2026-11-21T00:01:00Z",
+        )
+    with pytest.raises(ValueError, match="requires audit_report_path"):
+        set_cell_outcome(
+            row, status="NON_EVALUABLE", audit_status="PASS",
+            reason_code="PREDECLARED_WEIGHT_INSTABILITY",
+            started_at="2026-11-21T00:00:00Z",
+            completed_at="2026-11-21T00:01:00Z",
+        )
+
+
+def test_ledger_validator_rejects_removed_audit_report_path():
+    plan = _plan()
+    rows = initial_ledger(plan)
+    rows[0] = set_cell_outcome(
+        rows[0], status="SUCCESS", audit_status="PASS",
+        started_at="2026-11-21T00:00:00Z",
+        completed_at="2026-11-21T00:01:00Z",
+        audit_report_path="audit/a.json",
+    )
+    rows[0]["audit_report_path"] = None
+    with pytest.raises(ValueError, match="no audit report path"):
+        validate_ledger(plan, rows)
