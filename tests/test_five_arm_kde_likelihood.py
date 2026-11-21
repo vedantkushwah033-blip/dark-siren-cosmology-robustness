@@ -5,7 +5,10 @@ from scipy.special import logsumexp
 
 from dark_siren_robustness.catalogue_density import estimate_host_density
 from dark_siren_robustness.five_arm_comparison import build_five_arm_weights
-from dark_siren_robustness.five_arm_kde_likelihood import (\n    arm_kde_selected_log_likelihood,\n    matched_five_arm_kde_selected_log_likelihood,\n)
+from dark_siren_robustness.five_arm_kde_likelihood import (
+    arm_kde_selected_log_likelihood,
+    matched_five_arm_kde_selected_log_likelihood,
+)
 
 
 def _fixture():
