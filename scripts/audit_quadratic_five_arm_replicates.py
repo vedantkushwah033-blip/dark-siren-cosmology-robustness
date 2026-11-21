@@ -377,7 +377,7 @@ def audit(root: Path) -> dict:
         expected_aggregates.sort_values(list(expected_aggregates.columns)).reset_index(drop=True),
         check_dtype=False,check_exact=False,rtol=1e-10,atol=1e-12)
 
-    return {"status":"PASS","planned_cells":len(planned),
+    return {"status":"PASS","run_status":expected_run_status,"planned_cells":len(planned),
         "status_counts":ledger.status.value_counts().to_dict(),
         "successful_child_runs":child_audits,
         "aggregate_manifest_entries_verified":checked,
