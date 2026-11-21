@@ -13,7 +13,7 @@ on:
 
 jobs:
   stage0-smoke:
-    if: github.event.pull_request.head.ref == 'research/prior-predictive-h0-runner-stage0-20261121'
+    if: github.event.pull_request.head.ref == 'research/prior-predictive-h0-runner-stage0-20261121' || github.event.pull_request.head.ref == 'research/audit-child-event-seed-20261121'
     runs-on: ubuntu-latest
     timeout-minutes: 240
     steps:
