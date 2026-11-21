@@ -252,7 +252,7 @@ def test_degree_two_replicate_orchestrator_roundtrip(tmp_path: Path):
     assert report["status"] == "PASS"
     assert report["successful_child_runs"] == 2
     assert report["planned_cells"] == 20
-    assert report["paired_contrast_accounting_rows_reconstructed"] == 8
+    assert report["paired_contrast_accounting_rows_reconstructed"] == 16
     accounting = pd.read_csv(root / "paired_contrast_accounting.csv")
     assert (accounting.eligible_pairs == accounting.planned_pairs).all()
 
