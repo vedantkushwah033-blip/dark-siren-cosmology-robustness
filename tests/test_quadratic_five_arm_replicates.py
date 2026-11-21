@@ -1,5 +1,7 @@
 """Focused tests for quadratic five-arm replicate aggregation."""
 from pathlib import Path
+import hashlib
+import json
 import sys
 
 import numpy as np
@@ -234,3 +236,51 @@ def test_h0_truth_seed_helper_is_deterministic_and_validates_support():
     import pytest
     with pytest.raises(ValueError):
         _h0_truth(1, 0, 30.0, 30.0)
+
+
+
+def _refresh_manifest_hash(manifest_path: Path, relative_path: str) -> None:
+    manifest = json.loads(manifest_path.read_text())
+    target = manifest_path.parent / relative_path
+    manifest["files"][relative_path]["bytes"] = target.stat().st_size
+    manifest["files"][relative_path]["sha256"] = hashlib.sha256(target.read_bytes()).hexdigest()
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n")
+
+
+def test_replicate_auditor_rejects_child_event_seed_tampering(tmp_path: Path):
+    root = tmp_path / "event_seed_tamper"
+    args = type("Args", (), {
+        "master_seed": 20261121,
+        "replicates": 1,
+        "gammas": [0.0],
+        "n_parent": 300,
+        "n_detected": 4,
+        "validation_frame": 100,
+        "validation_sizes": [60, 90],
+        "curvature_beta": -3.9,
+        "inclusion_degree": 1,
+        "h0_true": 70.0,
+        "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0,
+        "h0_points": 41,
+        "scott_multiplier": 0.7,
+        "quadrature_order": 3,
+        "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0,
+        "output_dir": root,
+    })()
+    result = run_replicates(args)
+    assert result["status"] == "PASS"
+
+    child = root / "replicates" / "rep000_gp0"
+    config_path = child / "config.json"
+    config = json.loads(config_path.read_text())
+    config["event_seed"] = int(config["event_seed"]) + 1
+    config_path.write_text(json.dumps(config, indent=2, sort_keys=True) + "\\n")
+
+    _refresh_manifest_hash(child / "manifest.json", "config.json")
+    _refresh_manifest_hash(root / "manifest.json", "replicates/rep000_gp0/config.json")
+
+    import pytest
+    with pytest.raises(AssertionError, match="child configuration/seed mismatch"):
+        audit_replicates(root)
