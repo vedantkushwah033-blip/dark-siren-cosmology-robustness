@@ -193,3 +193,30 @@ def test_timestamp_order_uses_instants_not_lexicographic_strings():
     ledger = initial_ledger(plan)
     ledger[0] = result
     validate_ledger(plan, ledger)
+
+
+
+def test_success_and_non_evaluable_require_audit_report_path():
+    plan = _plan()
+    for status, reason in [
+        ("SUCCESS", ""),
+        ("NON_EVALUABLE", "PREDECLARED_WEIGHT_INSTABILITY"),
+    ]:
+        row = initial_ledger(plan)[0]
+        with pytest.raises(ValueError, match="requires audit_report_path"):
+            set_cell_outcome(
+                row, status=status, audit_status="PASS", reason_code=reason,
+                started_at="2026-11-21T00:00:00Z",
+                completed_at="2026-11-21T00:01:00Z",
+            )
+
+    row = initial_ledger(plan)[0]
+    completed = set_cell_outcome(
+        row, status="SUCCESS", audit_status="PASS",
+        started_at="2026-11-21T00:00:00Z",
+        completed_at="2026-11-21T00:01:00Z",
+        audit_report_path="audit/report.json",
+    )
+    completed["audit_report_path"] = "   "
+    with pytest.raises(ValueError, match="no audit report path"):
+        validate_ledger(plan, [completed])
