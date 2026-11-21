@@ -12,7 +12,6 @@ on:
       - scripts/audit_quadratic_five_arm_replicates.py
       - scripts/run_quadratic_five_arm_smoke.py
       - scripts/audit_quadratic_five_arm_smoke.py
-      - scripts/run_quadratic_five_arm_smoke.py
       - tests/test_paired_degree_multireplicate_pilot.py
   workflow_dispatch:
 
@@ -40,18 +39,18 @@ jobs:
         run: python -m pytest tests/test_paired_degree_multireplicate_pilot.py -q
       - name: Run four-replicate paired degree-one/degree-two five-arm pilot
         run: |
-          python scripts/run_paired_degree_multireplicate_pilot.py \\
-            --master-seed 2026112111 --replicates 4 --gammas=-1,0,1 \\
-            --n-parent 1200 --n-detected 30 --validation-frame 500 \\
-            --validation-sizes 100,300,500 --curvature-beta -3.9 \\
-            --h0-true 70 --h0-prior-min 50 --h0-prior-max 90 \\
-            --h0-points 281 --scott-multiplier 0.7 --quadrature-order 5 \\
-            --sigma-mpc 140 --detection-threshold-mpc 250 \\
+          python scripts/run_paired_degree_multireplicate_pilot.py \
+            --master-seed 2026112111 --replicates 4 --gammas=-1,0,1 \
+            --n-parent 1200 --n-detected 30 --validation-frame 500 \
+            --validation-sizes 100,300,500 --curvature-beta -3.9 \
+            --h0-true 70 --h0-prior-min 50 --h0-prior-max 90 \
+            --h0-points 281 --scott-multiplier 0.7 --quadrature-order 5 \
+            --sigma-mpc 140 --detection-threshold-mpc 250 \
             --output-dir artifacts/paired_degree_replicates
       - name: Independently audit paired pilot artifacts
         run: |
-          python scripts/audit_paired_degree_multireplicate_pilot.py \\
-            artifacts/paired_degree_replicates \\
+          python scripts/audit_paired_degree_multireplicate_pilot.py \
+            artifacts/paired_degree_replicates \
             --output artifacts/paired_degree_replicates/independent_audit.json
       - name: Assert complete lifecycle and paired design
         run: |
