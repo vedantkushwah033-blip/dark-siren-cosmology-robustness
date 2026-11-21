@@ -251,7 +251,7 @@ def test_replicate_auditor_rejects_child_event_seed_tampering(tmp_path: Path):
     root = tmp_path / "event_seed_tamper"
     args = type("Args", (), {
         "master_seed": 20261121,
-        "replicates": 1,
+        "replicates": 2,
         "gammas": [0.0],
         "n_parent": 300,
         "n_detected": 4,
