@@ -59,13 +59,13 @@ No change to the dark-siren benchmark's scientific claims follows from this auxi
 
 ## Stratified uncertainty for the interior-grid averages
 
-Because the estimand above gives equal weight to each of the 28 truth × fractional-error strata, a stratified bootstrap was also computed locally from the raw artifact: 10,000 bootstrap draws, resampling 300 replicate records within each stratum and then averaging the 28 stratum rates equally. Seed: `20261121`.
+Because the estimand above gives equal weight to each of the 28 truth × fractional-error strata, a stratified bootstrap was also computed locally from the raw artifact: 10,000 bootstrap draws, resampling 300 replicate records within each stratum and then averaging the 28 stratum rates equally. Base seed: `20261121`; the utility derives independent deterministic seeds `base+68` and `base+95` for the two coverage levels.
 
 | Arm | 68% coverage | Stratified bootstrap 95% interval | 95% coverage | Stratified bootstrap 95% interval |
 |---|---:|---:|---:|---:|
-| A | 73.29% | [72.35%, 74.23%] | 97.12% | [96.75%, 97.46%] |
-| B | 73.62% | [72.67%, 74.56%] | 97.27% | [96.92%, 97.62%] |
-| C | 73.37% | [72.43%, 74.30%] | 97.00% | [96.64%, 97.36%] |
+| A | 73.29% | [72.35%, 74.21%] | 97.12% | [96.76%, 97.48%] |
+| B | 73.62% | [72.70%, 74.54%] | 97.27% | [96.93%, 97.62%] |
+| C | 73.37% | [72.44%, 74.30%] | 97.00% | [96.64%, 97.37%] |
 
 The bootstrap intervals quantify Monte Carlo uncertainty for this *fixed seven-truth/four-error equal-weight estimand*. They do not convert it into a continuous-prior predictive estimand or remove model/prior-boundary effects.
 
@@ -81,4 +81,4 @@ python scripts/reconcile_distance_uncertainty_coverage.py \
   --bootstrap-seed 20261121 --bootstrap-resamples 10000
 ```
 
-It verifies the complete frozen truth × fractional-error × replicate × arm key grid, rejects duplicates and missing cells, reports all-grid and interior-grid denominators separately, and computes the fixed-stratum bootstrap intervals. Regression tests cover the endpoint-denominator distinction, determinism, duplicate keys, and missing design cells.
+It verifies the complete frozen truth × fractional-error × replicate × arm key grid, rejects duplicates and missing cells, reports all-grid and interior-grid denominators separately, and computes the fixed-stratum bootstrap intervals, recording the actual derived seed for each level. Regression tests cover the endpoint-denominator distinction, determinism, duplicate keys, and missing design cells.
