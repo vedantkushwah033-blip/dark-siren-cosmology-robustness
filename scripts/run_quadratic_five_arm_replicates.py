@@ -10,12 +10,19 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+from datetime import datetime, timezone
 import subprocess
 import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+from dark_siren_robustness.lifecycle_ledger import (
+    atomic_write_text,
+    initial_ledger,
+    set_cell_outcome,
+)
 
 ARMS = [
     "A_catalogue_only",
@@ -147,6 +154,30 @@ def run(args: argparse.Namespace) -> dict:
     runner=Path(__file__).with_name("run_quadratic_five_arm_smoke.py")
     auditor=Path(__file__).with_name("audit_quadratic_five_arm_smoke.py")
     planned=[]
+    for rep in range(args.replicates):
+        analysis_seed=_seed(args.master_seed,rep,0)
+        validation_seed=_seed(args.master_seed,rep,1)
+        event_seed=_seed(args.master_seed,rep,3)
+        validation_sample_seed=_seed(args.master_seed,rep,4)
+        h0_truth_seed=int(h0_schedule[rep]["h0_truth_seed"])
+        h0_true=float(h0_schedule[rep]["h0_true"])
+        for gamma in args.gammas:
+            cell=f"rep{rep:03d}_g{gamma:+g}".replace("+","p").replace("-","m")
+            for nval in args.validation_sizes:
+                for arm in ARMS:
+                    planned.append({"cell_id":f"{cell}_n{nval}_{arm}","replicate":rep,
+                        "gamma":gamma,"validation_size":nval,"arm":arm,
+                        "analysis_seed":analysis_seed,"event_seed":event_seed,
+                        "validation_seed":validation_seed,
+                        "validation_sample_seed":validation_sample_seed,
+                        "h0_truth_seed":h0_truth_seed,"h0_true":h0_true})
+    cell_ledger_rows=initial_ledger(planned)
+    def persist_cell_ledger():
+        rendered=pd.DataFrame(cell_ledger_rows).to_csv(index=False)
+        atomic_write_text(out/"cell_ledger.csv",rendered)
+    # Persist the complete immutable plan and NOT_RUN ledger before starting children.
+    atomic_write_text(out/"planned_cells.csv",pd.DataFrame(planned).to_csv(index=False))
+    persist_cell_ledger()
     ledger=[]
     summary_parts=[]
     diagnostic_parts=[]
@@ -161,17 +192,17 @@ def run(args: argparse.Namespace) -> dict:
         for gamma in args.gammas:
             cell=f"rep{rep:03d}_g{gamma:+g}".replace("+","p").replace("-","m")
             child=out/"replicates"/cell
-            for nval in args.validation_sizes:
-                for arm in ARMS:
-                    planned.append({"cell_id":f"{cell}_n{nval}_{arm}","replicate":rep,
-                        "gamma":gamma,"validation_size":nval,"arm":arm,
-                        "analysis_seed":analysis_seed,"event_seed":event_seed,
-                        "validation_seed":validation_seed,
-                        "validation_sample_seed":validation_sample_seed,
-                        "h0_truth_seed":h0_truth_seed,"h0_true":h0_true})
             status="SUCCESS"
             audit_status="NOT_RUN"
             error=""
+            started_at=datetime.now(timezone.utc).isoformat()
+            # Mark this child group as in progress using the frozen NOT_RUN state;
+            # if the process is interrupted, the durable ledger records RUN_INTERRUPTED.
+            for row in cell_ledger_rows:
+                if int(row["replicate"])==rep and float(row["gamma"])==float(gamma):
+                    row.update({"reason_code":"RUN_INTERRUPTED","reason_detail":"Child execution started; completion not yet independently audited.",
+                        "started_at":started_at,"audit_status":"NOT_RUN"})
+            persist_cell_ledger()
             try:
                 cmd=[sys.executable,str(runner),
                     "--seed",str(analysis_seed),"--event-seed",str(event_seed),
@@ -231,21 +262,39 @@ def run(args: argparse.Namespace) -> dict:
                     "maximum_log_likelihood_absolute_difference":report["maximum_log_likelihood_absolute_difference"]})
             except Exception as exc:
                 status="FAILED"
+                if audit_status=="PASS":
+                    audit_status="NOT_PASS"
+                    failure_reason="DATA_INTEGRITY_FAILURE"
+                elif audit_status=="NOT_PASS":
+                    failure_reason="CHILD_AUDIT_FAILED"
+                else:
+                    failure_reason="CHILD_PROCESS_ERROR"
                 error=f"{type(exc).__name__}: {exc}"[:4000]
                 audit_rows.append({"replicate":rep,"gamma":gamma,"status":"NOT_PASS",
                     "manifest_files_verified":0,"posterior_summary_rows_reconstructed":0,
                     "maximum_log_likelihood_absolute_difference":np.nan})
-            for nval in args.validation_sizes:
-                for arm in ARMS:
-                    ledger.append({"cell_id":f"{cell}_n{nval}_{arm}","replicate":rep,
-                        "gamma":gamma,"validation_size":nval,"arm":arm,
+            completed_at=datetime.now(timezone.utc).isoformat()
+            for row in cell_ledger_rows:
+                if int(row["replicate"])==rep and float(row["gamma"])==float(gamma):
+                    if status=="SUCCESS":
+                        updated=set_cell_outcome(row,status="SUCCESS",audit_status="PASS",
+                            started_at=started_at,completed_at=completed_at,
+                            audit_report_path=str((child/"audit_report.json").relative_to(out)))
+                    else:
+                        updated=set_cell_outcome(row,status="FAILED",audit_status=audit_status,
+                            reason_code=failure_reason,reason_detail=error,started_at=started_at,
+                            completed_at=completed_at)
+                    row.clear(); row.update(updated)
+                    ledger.append({"cell_id":row["cell_id"],"replicate":rep,"gamma":gamma,
+                        "validation_size":row["validation_size"],"arm":row["arm"],
                         "analysis_seed":analysis_seed,"event_seed":event_seed,
-                        "validation_seed":validation_seed,
-                        "validation_sample_seed":validation_sample_seed,
+                        "validation_seed":validation_seed,"validation_sample_seed":validation_sample_seed,
                         "h0_truth_seed":h0_truth_seed,"h0_true":h0_true,
                         "status":status,"audit_status":audit_status,"error":error})
+            persist_cell_ledger()
     planned_df=pd.DataFrame(planned)
     ledger_df=pd.DataFrame(ledger)
+    cell_ledger_df=pd.DataFrame(cell_ledger_rows)
     summary_columns=["replicate","gamma","analysis_seed","validation_seed","validation_size","arm",
         "status","h0_true","median_error","posterior_median","q025","q05","q16","q84","q95","q975","audit_status"]
     diagnostic_columns=["replicate","gamma","validation_size","arm"]
@@ -255,6 +304,7 @@ def run(args: argparse.Namespace) -> dict:
     aggregates=_aggregate(summaries,ledger_df,args.replicates,max_abs_error,max_interval_width)
     planned_df.to_csv(out/"planned_cells.csv",index=False)
     ledger_df.to_csv(out/"replicate_ledger.csv",index=False)
+    atomic_write_text(out/"cell_ledger.csv",cell_ledger_df.to_csv(index=False))
     summaries.to_csv(out/"replicate_posterior_summaries.csv",index=False)
     diagnostics.to_csv(out/"replicate_weight_diagnostics.csv",index=False)
     contrasts.to_csv(out/"paired_contrasts.csv",index=False)
