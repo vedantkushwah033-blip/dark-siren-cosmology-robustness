@@ -218,5 +218,7 @@ def test_success_and_non_evaluable_require_audit_report_path():
         audit_report_path="audit/report.json",
     )
     completed["audit_report_path"] = "   "
+    ledger = initial_ledger(plan)
+    ledger[0] = completed
     with pytest.raises(ValueError, match="no audit report path"):
-        validate_ledger(plan, [completed])
+        validate_ledger(plan, ledger)
