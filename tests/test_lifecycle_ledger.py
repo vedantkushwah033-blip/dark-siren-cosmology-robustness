@@ -138,3 +138,19 @@ def test_atomic_json_write_leaves_parseable_complete_file(tmp_path):
     atomic_write_json(target, {"rows": [{"status": "NOT_RUN"}]})
     assert json.loads(target.read_text()) == {"rows": [{"status": "NOT_RUN"}]}
     assert not list(target.parent.glob("*.tmp"))
+
+
+def test_ledger_validator_rejects_mutated_planned_provenance():
+    plan = [
+        {"replicate": 0, "gamma": 0.0, "validation_size": 100,
+         "arm": "A", "analysis_seed": 123, "h0_true": 70.0},
+    ]
+    rows = initial_ledger(plan)
+    rows[0]["analysis_seed"] = 124
+    with pytest.raises(ValueError, match="planned provenance mismatch"):
+        validate_ledger(plan, rows)
+
+    rows = initial_ledger(plan)
+    rows[0]["h0_true"] = 71.0
+    with pytest.raises(ValueError, match="planned provenance mismatch"):
+        validate_ledger(plan, rows)
