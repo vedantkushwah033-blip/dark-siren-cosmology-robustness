@@ -216,6 +216,13 @@ def test_prior_predictive_h0_replicate_orchestrator_roundtrip(tmp_path: Path):
     assert len({row["validation_sample_seed"] for row in seeds}) == 2
     assert len({row["h0_truth_seed"] for row in seeds}) == 2
     ledger = pd.read_csv(root / "replicate_ledger.csv")
+    cell_ledger = pd.read_csv(root / "cell_ledger.csv")
+    assert len(cell_ledger) == 2 * 3 * 2 * len(ARMS)
+    assert set(cell_ledger.status) == {"SUCCESS"}
+    assert set(cell_ledger.audit_status) == {"PASS"}
+    assert cell_ledger.started_at.notna().all()
+    assert cell_ledger.completed_at.notna().all()
+    assert cell_ledger.audit_report_path.notna().all()
     for rep in (0, 1):
         values = ledger.loc[ledger.replicate == rep, "h0_true"].unique()
         assert len(values) == 1
@@ -268,4 +275,29 @@ def test_replicate_auditor_rejects_child_event_seed_tampering(tmp_path: Path):
     _refresh_manifest_hash(root / "manifest.json", "replicates/rep000_gp0/config.json")
     import pytest
     with pytest.raises(AssertionError, match="child configuration/seed mismatch"):
+        audit_replicates(root)
+
+
+def test_cell_ledger_auditor_rejects_status_tampering_even_after_manifest_refresh(tmp_path: Path):
+    root = tmp_path / "cell_status_tamper"
+    args = type("Args", (), {
+        "master_seed": 20261121, "replicates": 2, "gammas": [0.0],
+        "n_parent": 300, "n_detected": 4, "validation_frame": 100,
+        "validation_sizes": [60], "curvature_beta": -3.9,
+        "inclusion_degree": 1, "h0_true": 70.0, "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0, "h0_points": 41, "scott_multiplier": 0.7,
+        "quadrature_order": 3, "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0, "output_dir": root,
+    })()
+    result = run_replicates(args)
+    assert result["status"] == "PASS"
+    path = root / "cell_ledger.csv"
+    frame = pd.read_csv(path)
+    frame.loc[0, "status"] = "NOT_RUN"
+    frame.loc[0, "reason_code"] = "RUN_INTERRUPTED"
+    frame.loc[0, "audit_status"] = "NOT_RUN"
+    path.write_text(frame.to_csv(index=False))
+    _refresh_manifest_hash(root / "manifest.json", "cell_ledger.csv")
+    import pytest
+    with pytest.raises(AssertionError, match="cell lifecycle ledger"):
         audit_replicates(root)
