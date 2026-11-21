@@ -108,7 +108,60 @@ def audit(root: Path) -> dict:
 
     planned=pd.read_csv(root/"planned_cells.csv")
     ledger=pd.read_csv(root/"replicate_ledger.csv")
+    cell_ledger=pd.read_csv(root/"cell_ledger.csv")
     summaries=pd.read_csv(root/"replicate_posterior_summaries.csv")
+
+    # Independently validate the durable four-state cell ledger. This audit is
+    # intentionally implemented here rather than importing the runner helper.
+    cell_keys=["replicate","gamma","validation_size","arm"]
+    if planned.duplicated(cell_keys).any() or cell_ledger.duplicated(cell_keys).any():
+        raise AssertionError("duplicate planned or cell-ledger key")
+    planned_key_set=set(map(tuple,planned[cell_keys].itertuples(index=False,name=None)))
+    ledger_key_set=set(map(tuple,cell_ledger[cell_keys].itertuples(index=False,name=None)))
+    if planned_key_set!=ledger_key_set:
+        raise AssertionError("cell lifecycle ledger does not exactly cover planned keys")
+    allowed_cell_status={"SUCCESS","NON_EVALUABLE","FAILED","NOT_RUN"}
+    allowed_audit={"PASS","NOT_PASS","NOT_RUN"}
+    allowed_reasons={
+        "SUCCESS":{""},
+        "NON_EVALUABLE":{"NONFINITE_LIKELIHOOD","INVALID_POSTERIOR_NORMALIZATION",
+            "SUPPORT_BOUNDARY_MODE","PREDECLARED_WEIGHT_INSTABILITY"},
+        "FAILED":{"CHILD_PROCESS_ERROR","CHILD_AUDIT_FAILED","DATA_INTEGRITY_FAILURE"},
+        "NOT_RUN":{"RUN_NOT_STARTED","RUN_INTERRUPTED","UPSTREAM_FAILURE","NOT_SCHEDULED"},
+    }
+    for row in cell_ledger.to_dict("records"):
+        status=str(row["status"]); audit_status=str(row["audit_status"])
+        reason="" if pd.isna(row["reason_code"]) else str(row["reason_code"])
+        if status not in allowed_cell_status or audit_status not in allowed_audit:
+            raise AssertionError("unknown cell lifecycle or audit status")
+        if reason not in allowed_reasons[status]:
+            raise AssertionError(f"invalid lifecycle reason {reason!r} for {status}")
+        if status in {"SUCCESS","NON_EVALUABLE"} and audit_status!="PASS":
+            raise AssertionError(f"{status} cell lacks independent audit PASS")
+        if status=="FAILED" and audit_status=="PASS":
+            raise AssertionError("FAILED cell cannot claim audit PASS")
+        if status=="NOT_RUN" and audit_status!="NOT_RUN":
+            raise AssertionError("NOT_RUN cell must have audit status NOT_RUN")
+        if status in {"SUCCESS","NON_EVALUABLE"}:
+            if pd.isna(row["started_at"]) or pd.isna(row["completed_at"]):
+                raise AssertionError(f"{status} cell lacks timestamps")
+            if str(row["completed_at"])<str(row["started_at"]):
+                raise AssertionError("cell completion timestamp precedes start")
+            if status=="SUCCESS" and (not pd.isna(row["reason_code"]) and str(row["reason_code"])):
+                raise AssertionError("SUCCESS cell must have empty reason")
+        if status!="SUCCESS" and not reason:
+            raise AssertionError(f"{status} cell lacks a reason code")
+    if len(summaries):
+        success_keys=set(map(tuple,cell_ledger.loc[cell_ledger.status=="SUCCESS",cell_keys].itertuples(index=False,name=None)))
+        summary_keys=set(map(tuple,summaries[cell_keys].itertuples(index=False,name=None)))
+        if not summary_keys.issubset(success_keys):
+            raise AssertionError("posterior summaries are attached to non-success lifecycle cells")
+    for (rep,gamma),group in cell_ledger.groupby(["replicate","gamma"],sort=True):
+        if group.status.nunique()!=1:
+            raise AssertionError("current child runner must map one audited child outcome to its planned cells")
+        coarse=ledger[(ledger.replicate==rep)&(ledger.gamma==gamma)]
+        if len(coarse)!=len(group) or set(coarse.status.astype(str))!={str(group.status.iloc[0])}:
+            raise AssertionError("legacy child ledger disagrees with durable cell ledger")
     diagnostics=pd.read_csv(root/"replicate_weight_diagnostics.csv")
     aggregates=pd.read_csv(root/"aggregate_metrics.csv")
     contrasts=pd.read_csv(root/"paired_contrasts.csv")
