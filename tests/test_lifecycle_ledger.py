@@ -252,4 +252,19 @@ def test_checkpoint_rejects_plan_tampering_and_terminal_overwrite(tmp_path):
     with pytest.raises(ValueError, match="planned-cell hash mismatch"):
         read_checkpoint(path)
 
-    initialize_checkpoint(path, _checkpoint_plan()) if False else None
+
+
+def test_checkpoint_refuses_to_overwrite_a_terminal_cell(tmp_path):
+    path = tmp_path / "checkpoint.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    key = (0, 0.0, 100, "A")
+    mark_cell_started(path, key, "2026-11-21T05:00:00Z")
+    record_cell_outcome(
+        path, key, status="SUCCESS", audit_status="PASS",
+        completed_at="2026-11-21T05:01:00Z",
+    )
+    with pytest.raises(ValueError, match="cannot be overwritten"):
+        record_cell_outcome(
+            path, key, status="FAILED", audit_status="NOT_PASS",
+            reason_code="CHILD_PROCESS_ERROR",
+        )
