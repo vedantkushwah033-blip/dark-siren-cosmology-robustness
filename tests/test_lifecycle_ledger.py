@@ -534,3 +534,25 @@ def test_multiprocess_checkpoint_updates_preserve_every_terminal_cell(tmp_path):
     assert all(row["status"] == "SUCCESS" for row in checkpoint["cell_ledger"])
     assert all(row["audit_status"] == "PASS" for row in checkpoint["cell_ledger"])
     assert len({row["audit_report_path"] for row in checkpoint["cell_ledger"]}) == len(plan)
+
+
+
+def test_checkpoint_rejects_ledger_provenance_tampering(tmp_path):
+    """The immutable plan hash alone is insufficient; ledger rows must match it."""
+    path = tmp_path / "checkpoint.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    checkpoint = json.loads(path.read_text())
+    checkpoint["cell_ledger"][0]["analysis_seed"] = 999
+    path.write_text(json.dumps(checkpoint))
+    with pytest.raises(ValueError, match="planned provenance mismatch"):
+        read_checkpoint(path)
+
+
+def test_checkpoint_rejects_unsupported_schema_version(tmp_path):
+    path = tmp_path / "checkpoint.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    checkpoint = json.loads(path.read_text())
+    checkpoint["schema_version"] = 999
+    path.write_text(json.dumps(checkpoint))
+    with pytest.raises(ValueError, match="unsupported.*schema"):
+        read_checkpoint(path)
