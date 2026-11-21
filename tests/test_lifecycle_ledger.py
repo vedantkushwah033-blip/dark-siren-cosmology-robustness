@@ -508,8 +508,8 @@ def test_multiprocess_checkpoint_updates_preserve_every_terminal_cell(tmp_path):
     import multiprocessing
     from concurrent.futures import ProcessPoolExecutor
 
-    if "fork" not in multiprocessing.get_all_start_methods():
-        pytest.skip("process-lock test requires a POSIX fork context")
+    methods = multiprocessing.get_all_start_methods()
+    context_name = "fork" if "fork" in methods else "spawn"
 
     plan = [
         {
@@ -525,7 +525,7 @@ def test_multiprocess_checkpoint_updates_preserve_every_terminal_cell(tmp_path):
     path = tmp_path / "multiprocess" / "checkpoint.json"
     initialize_checkpoint(path, plan)
 
-    context = multiprocessing.get_context("fork")
+    context = multiprocessing.get_context(context_name)
     with ProcessPoolExecutor(max_workers=8, mp_context=context) as pool:
         list(pool.map(_complete_checkpoint_cell_in_process, [(str(path), row) for row in plan]))
 
