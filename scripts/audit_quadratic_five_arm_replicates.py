@@ -58,6 +58,8 @@ def _expected_contrasts(summaries: pd.DataFrame) -> pd.DataFrame:
         by_arm={str(r.arm):r for r in group.itertuples(index=False)}
         for arm in ARMS[1:]:
             for ref in ("A_catalogue_only","C_known_probability_ipw"):
+                if arm == ref:
+                    continue
                 if (arm not in by_arm or ref not in by_arm
                     or by_arm[arm].status!="SUCCESS"
                     or by_arm[ref].status!="SUCCESS"):
@@ -78,6 +80,8 @@ def _expected_paired_contrast_accounting(ledger: pd.DataFrame) -> pd.DataFrame:
     for (gamma,nval),design in ledger.groupby(["gamma","validation_size"],sort=True):
         for arm in ARMS[1:]:
             for ref in ("A_catalogue_only","C_known_probability_ipw"):
+                if arm == ref:
+                    continue
                 pair=design.loc[design.arm.isin([arm,ref])]
                 wide=pair.pivot(index="replicate",columns="arm",values="status")
                 if arm not in wide or ref not in wide or wide[[arm,ref]].isna().any().any():
