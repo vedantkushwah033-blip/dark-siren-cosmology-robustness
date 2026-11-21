@@ -13,6 +13,18 @@ on:
       - scripts/run_quadratic_five_arm_smoke.py
       - scripts/audit_quadratic_five_arm_smoke.py
       - tests/test_paired_degree_multireplicate_pilot.py
+  pull_request:
+    branches:
+      - research/30event-h0-grid-refinement-20261121
+    paths:
+      - .github/workflows/paired-degree-replicate-pilot.yml
+      - scripts/run_paired_degree_multireplicate_pilot.py
+      - scripts/audit_paired_degree_multireplicate_pilot.py
+      - scripts/run_quadratic_five_arm_replicates.py
+      - scripts/audit_quadratic_five_arm_replicates.py
+      - scripts/run_quadratic_five_arm_smoke.py
+      - scripts/audit_quadratic_five_arm_smoke.py
+      - tests/test_paired_degree_multireplicate_pilot.py
   workflow_dispatch:
 
 permissions:
