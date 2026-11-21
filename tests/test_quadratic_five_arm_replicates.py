@@ -9,7 +9,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from run_quadratic_five_arm_replicates import (
-    ARMS, _aggregate, _h0_truth, _paired_contrasts, _seed, run as run_replicates,
+    ARMS, _aggregate, _h0_truth, _paired_contrast_accounting, _paired_contrasts, _seed, run as run_replicates,
 )
 from audit_quadratic_five_arm_replicates import audit as audit_replicates
 from audit_quadratic_five_arm_smoke import _independent_inclusion_quadrature
@@ -48,8 +48,10 @@ def test_quadratic_five_arm_aggregate_and_paired_contrasts():
     summary=pd.DataFrame(summaries)
     lifecycle=pd.DataFrame(ledger)
     contrasts=_paired_contrasts(summary)
-    assert len(contrasts)==8
+    assert len(contrasts)==7
     assert set(contrasts.reference_arm)=={"A_catalogue_only","C_known_probability_ipw"}
+    assert not ((contrasts.arm == "C_known_probability_ipw")
+                & (contrasts.reference_arm == "C_known_probability_ipw")).any()
     aggregate=_aggregate(summary,lifecycle,replicates=2,max_abs_error=20.0)
     row=aggregate.loc[aggregate.arm=="A_catalogue_only"].iloc[0]
     assert row.successful_replicates==1
@@ -65,6 +67,52 @@ def test_quadratic_five_arm_aggregate_and_paired_contrasts():
     assert row.failure_inclusive_coverage_upper==1.0
     assert row.failure_inclusive_width_lower==5.0
     assert row.failure_inclusive_width_upper==25.0
+
+
+def test_paired_contrasts_require_only_the_two_compared_arms():
+    # B/C/E are absent, but the D-vs-A comparison is still a valid paired row.
+    summaries = pd.DataFrame([
+        {"replicate":0,"gamma":0.0,"validation_size":100,"arm":"A_catalogue_only",
+         "status":"SUCCESS","h0_true":70.0,"median_error":2.0,"q16":65.0,"q84":75.0},
+        {"replicate":0,"gamma":0.0,"validation_size":100,"arm":"D_map_plugin_ipw",
+         "status":"SUCCESS","h0_true":70.0,"median_error":1.0,"q16":66.0,"q84":74.0},
+    ])
+    contrasts = _paired_contrasts(summaries)
+    assert len(contrasts) == 1
+    row = contrasts.iloc[0]
+    assert row.arm == "D_map_plugin_ipw"
+    assert row.reference_arm == "A_catalogue_only"
+    assert row.median_error_difference == -1.0
+
+
+def test_paired_contrast_accounting_preserves_lifecycle_exclusions():
+    ledger = pd.DataFrame([
+        {"replicate":0,"gamma":0.0,"validation_size":100,"arm":arm,"status":"SUCCESS"}
+        for arm in ARMS
+    ] + [
+        {"replicate":1,"gamma":0.0,"validation_size":100,"arm":arm,
+         "status":("NON_EVALUABLE" if arm=="B_parent_oracle" else "FAILED")}
+        for arm in ARMS
+    ] + [
+        {"replicate":2,"gamma":0.0,"validation_size":100,"arm":arm,"status":"NOT_RUN"}
+        for arm in ARMS
+    ])
+    accounting = _paired_contrast_accounting(ledger)
+    row = accounting[(accounting.arm=="D_map_plugin_ipw")
+                     & (accounting.reference_arm=="A_catalogue_only")].iloc[0]
+    assert row.planned_pairs == 3
+    assert row.eligible_pairs == 1
+    assert row.excluded_pairs == 2
+    counts = json.loads(row.status_pair_counts_json)
+    assert counts == {"FAILED|FAILED":1,"NOT_RUN|NOT_RUN":1,"SUCCESS|SUCCESS":1}
+    # The unrelated B-arm non-evaluability does not remove D-vs-A.
+    d_a = _paired_contrasts(pd.DataFrame([
+        {"replicate":0,"gamma":0.0,"validation_size":100,"arm":"A_catalogue_only",
+         "status":"SUCCESS","h0_true":70.0,"median_error":0.0,"q16":65.0,"q84":75.0},
+        {"replicate":0,"gamma":0.0,"validation_size":100,"arm":"D_map_plugin_ipw",
+         "status":"SUCCESS","h0_true":70.0,"median_error":1.0,"q16":65.0,"q84":75.0},
+    ]))
+    assert len(d_a) == 1
 
 
 def test_aggregate_reports_non_evaluable_and_failed_separately():
@@ -206,6 +254,9 @@ def test_degree_two_replicate_orchestrator_roundtrip(tmp_path: Path):
     assert report["status"] == "PASS"
     assert report["successful_child_runs"] == 2
     assert report["planned_cells"] == 20
+    assert report["paired_contrast_accounting_rows_reconstructed"] == 14
+    accounting = pd.read_csv(root / "paired_contrast_accounting.csv")
+    assert (accounting.eligible_pairs == accounting.planned_pairs).all()
 
 
 
@@ -282,6 +333,30 @@ def _refresh_manifest_hash(manifest_path: Path, relative_path: str) -> None:
     manifest["files"][manifest_key]["bytes"] = target.stat().st_size
     manifest["files"][manifest_key]["sha256"] = hashlib.sha256(target.read_bytes()).hexdigest()
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+
+
+def test_replicate_auditor_rejects_tampered_pair_accounting(tmp_path: Path):
+    root = tmp_path / "pair_accounting_tamper"
+    args = type("Args", (), {
+        "master_seed": 20261125, "replicates": 2, "gammas": [0.0],
+        "n_parent": 300, "n_detected": 4, "validation_frame": 100,
+        "validation_sizes": [60, 90], "curvature_beta": -3.9,
+        "inclusion_degree": 1, "h0_true": 70.0, "h0_prior_min": 30.0,
+        "h0_prior_max": 110.0, "h0_points": 41, "scott_multiplier": 0.7,
+        "quadrature_order": 3, "sigma_mpc": 140.0,
+        "detection_threshold_mpc": 250.0, "output_dir": root,
+    })()
+    result = run_replicates(args)
+    assert result["status"] == "PASS"
+    accounting_path = root / "paired_contrast_accounting.csv"
+    accounting = pd.read_csv(accounting_path)
+    accounting.loc[0, "eligible_pairs"] += 1
+    accounting.to_csv(accounting_path, index=False)
+    _refresh_manifest_hash(root / "manifest.json", "paired_contrast_accounting.csv")
+
+    import pytest
+    with pytest.raises(AssertionError):
+        audit_replicates(root)
 
 
 def test_replicate_auditor_rejects_child_event_seed_tampering(tmp_path: Path):

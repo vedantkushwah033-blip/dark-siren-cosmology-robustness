@@ -56,10 +56,14 @@ def _expected_contrasts(summaries: pd.DataFrame) -> pd.DataFrame:
     rows=[]
     for (rep,gamma,nval),group in summaries.groupby(["replicate","gamma","validation_size"],sort=True):
         by_arm={str(r.arm):r for r in group.itertuples(index=False)}
-        if not all(a in by_arm and by_arm[a].status=="SUCCESS" for a in ARMS):
-            continue
         for arm in ARMS[1:]:
             for ref in ("A_catalogue_only","C_known_probability_ipw"):
+                if arm == ref:
+                    continue
+                if (arm not in by_arm or ref not in by_arm
+                    or by_arm[arm].status!="SUCCESS"
+                    or by_arm[ref].status!="SUCCESS"):
+                    continue
                 x,y=by_arm[arm],by_arm[ref]
                 rows.append({"replicate":int(rep),"gamma":float(gamma),"validation_size":int(nval),
                     "arm":arm,"reference_arm":ref,
@@ -69,6 +73,33 @@ def _expected_contrasts(summaries: pd.DataFrame) -> pd.DataFrame:
                     "coverage_68_difference":int(x.q16<=x.h0_true<=x.q84)-int(y.q16<=y.h0_true<=y.q84)})
     return pd.DataFrame(rows,columns=["replicate","gamma","validation_size","arm","reference_arm",
         "median_error_difference","absolute_error_difference","squared_error_difference","coverage_68_difference"])
+
+
+def _expected_paired_contrast_accounting(ledger: pd.DataFrame) -> pd.DataFrame:
+    rows=[]
+    for (gamma,nval),design in ledger.groupby(["gamma","validation_size"],sort=True):
+        for arm in ARMS[1:]:
+            for ref in ("A_catalogue_only","C_known_probability_ipw"):
+                if arm == ref:
+                    continue
+                pair=design.loc[design.arm.isin([arm,ref])]
+                wide=pair.pivot(index="replicate",columns="arm",values="status")
+                if arm not in wide or ref not in wide or wide[[arm,ref]].isna().any().any():
+                    raise AssertionError("paired lifecycle table omits a planned comparison arm")
+                counts={}
+                for arm_status in ("SUCCESS","NON_EVALUABLE","FAILED","NOT_RUN"):
+                    for ref_status in ("SUCCESS","NON_EVALUABLE","FAILED","NOT_RUN"):
+                        count=int(((wide[arm]==arm_status)&(wide[ref]==ref_status)).sum())
+                        if count:
+                            counts[f"{arm_status}|{ref_status}"]=count
+                planned=int(len(wide))
+                eligible=int(((wide[arm]=="SUCCESS")&(wide[ref]=="SUCCESS")).sum())
+                rows.append({"gamma":float(gamma),"validation_size":int(nval),
+                    "arm":arm,"reference_arm":ref,"planned_pairs":planned,
+                    "eligible_pairs":eligible,"excluded_pairs":planned-eligible,
+                    "status_pair_counts_json":json.dumps(counts,sort_keys=True)})
+    return pd.DataFrame(rows,columns=["gamma","validation_size","arm","reference_arm",
+        "planned_pairs","eligible_pairs","excluded_pairs","status_pair_counts_json"])
 
 
 def _expected_aggregate(summaries: pd.DataFrame, ledger: pd.DataFrame,
@@ -205,6 +236,7 @@ def audit(root: Path) -> dict:
     diagnostics=pd.read_csv(root/"replicate_weight_diagnostics.csv")
     aggregates=pd.read_csv(root/"aggregate_metrics.csv")
     contrasts=pd.read_csv(root/"paired_contrasts.csv")
+    contrast_accounting=pd.read_csv(root/"paired_contrast_accounting.csv")
     inclusion_degree=int(cfg.get("inclusion_model_degree",1))
     if inclusion_degree not in (1,2):
         raise AssertionError("aggregate inclusion model degree must be 1 or 2")
@@ -358,6 +390,11 @@ def audit(root: Path) -> dict:
         contrasts.sort_values(list(contrasts.columns)).reset_index(drop=True),
         expected_contrasts.sort_values(list(expected_contrasts.columns)).reset_index(drop=True),
         check_dtype=False,check_exact=False,rtol=1e-10,atol=1e-12)
+    expected_accounting=_expected_paired_contrast_accounting(ledger)
+    pd.testing.assert_frame_equal(
+        contrast_accounting.sort_values(list(contrast_accounting.columns)).reset_index(drop=True),
+        expected_accounting.sort_values(list(expected_accounting.columns)).reset_index(drop=True),
+        check_dtype=False,check_exact=True)
     max_error=float(cfg["failure_bounds"]["max_abs_median_error"])
     max_width=float(cfg["failure_bounds"].get("max_interval_width",40.0))
     expected_aggregates=_expected_aggregate(summaries,ledger,reps,max_error,max_width)
@@ -372,6 +409,7 @@ def audit(root: Path) -> dict:
         "aggregate_manifest_entries_verified":checked,
         "cross_curvature_paired_validation_blocks":pairing_blocks,
         "paired_contrast_rows_reconstructed":len(expected_contrasts),
+        "paired_contrast_accounting_rows_reconstructed":len(expected_accounting),
         "aggregate_metric_rows_reconstructed":len(expected_aggregates),
         "interpretation":"Lifecycle, pairing, child-audit attestations and aggregate arithmetic only; not calibration evidence."}
 
