@@ -89,6 +89,8 @@ def _aggregate(summaries: pd.DataFrame, ledger: pd.DataFrame, replicates: int,
     rows = []
     for (gamma, nval), planned in ledger.groupby(["gamma","validation_size"], sort=True):
         for arm in ARMS:
+            arm_ledger = planned.loc[planned.arm == arm]
+            lifecycle_counts = arm_ledger.status.value_counts().to_dict()
             group = summaries.loc[
                 (summaries.gamma == gamma) & (summaries.validation_size == nval)
                 & (summaries.arm == arm) & (summaries.status == "SUCCESS")
@@ -101,6 +103,9 @@ def _aggregate(summaries: pd.DataFrame, ledger: pd.DataFrame, replicates: int,
             rows.append({
                 "gamma":float(gamma),"validation_size":int(nval),"arm":arm,
                 "planned_replicates":replicates,"successful_replicates":len(group),
+                "non_evaluable_replicates":int(lifecycle_counts.get("NON_EVALUABLE",0)),
+                "failed_replicates":int(lifecycle_counts.get("FAILED",0)),
+                "not_run_replicates":int(lifecycle_counts.get("NOT_RUN",0)),
                 "failed_or_non_evaluable":failures,
                 "success_only_bias":float(errors.mean()) if len(errors) else np.nan,
                 "success_only_rmse":float(np.sqrt(np.mean(errors**2))) if len(errors) else np.nan,
