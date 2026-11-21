@@ -334,6 +334,11 @@ def test_completed_replicate_run_can_be_resumed_without_recomputing(tmp_path):
     first = run_replicates(args)
     assert first["status"] == "PASS"
     args.resume = True
+    import pytest
+    args.curvature_beta = -3.8
+    with pytest.raises(ValueError, match="resume design differs"):
+        run_replicates(args)
+    args.curvature_beta = -3.9
     second = run_replicates(args)
     assert second["status"] == "PASS"
     assert second["planned_cells"] == first["planned_cells"]
