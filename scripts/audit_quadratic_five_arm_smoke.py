@@ -293,7 +293,9 @@ def audit(root: Path) -> dict:
         raise AssertionError("shared-input validation-size plan differs from config")
     shared_provenance = shared.get("provenance", {})
     for key in ("seed", "event_seed", "validation_seed", "validation_sample_seed",
-                "n_parent", "curvature_gamma", "curvature_beta", "inclusion_model_degree"):
+                "n_parent", "n_detected", "h0_true", "sigma_mpc",
+                "detection_threshold_mpc", "curvature_gamma", "curvature_beta",
+                "inclusion_model_degree"):
         if shared_provenance.get(key) != config.get(key):
             raise AssertionError(f"shared-input provenance mismatch: {key}")
     expected_x2_center = float(config.get("quadratic_calibration", {}).get("x2_center", 0.0))
