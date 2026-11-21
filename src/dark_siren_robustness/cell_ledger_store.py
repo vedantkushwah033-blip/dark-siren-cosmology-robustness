@@ -133,14 +133,25 @@ def mark_cell_started(path: str | Path, key: tuple, started_at: str) -> dict:
             raise KeyError(f"planned cell key must match exactly once: {key}")
         index = matches[0]
         row = checkpoint["cell_ledger"][index]
-        if row["status"] != "NOT_RUN" or row.get("started_at"):
-            raise ValueError("cell has already been started or completed")
-        checkpoint["cell_ledger"][index] = set_cell_outcome(
-            row, status="NOT_RUN", audit_status="NOT_RUN",
-            reason_code="RUN_NOT_STARTED",
-            reason_detail="Execution is active; no audited terminal outcome has been persisted.",
-            started_at=started_at,
-        )
+        if row["status"] != "NOT_RUN":
+            raise ValueError("cell has already reached a terminal outcome")
+        if row.get("started_at"):
+            if row.get("reason_code") != "RUN_INTERRUPTED":
+                raise ValueError("cell is already active or is not marked recoverable")
+            # Retry an interrupted cell without rewriting its immutable first-start time.
+            checkpoint["cell_ledger"][index] = set_cell_outcome(
+                row, status="NOT_RUN", audit_status="NOT_RUN",
+                reason_code="RUN_NOT_STARTED",
+                reason_detail="Cell resumed after an interrupted attempt; first-start timestamp retained.",
+                started_at=row["started_at"],
+            )
+        else:
+            checkpoint["cell_ledger"][index] = set_cell_outcome(
+                row, status="NOT_RUN", audit_status="NOT_RUN",
+                reason_code="RUN_NOT_STARTED",
+                reason_detail="Execution is active; no audited terminal outcome has been persisted.",
+                started_at=started_at,
+            )
         return _write_updated(path, checkpoint)
 
 
