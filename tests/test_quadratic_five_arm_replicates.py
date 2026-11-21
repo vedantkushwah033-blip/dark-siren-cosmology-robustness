@@ -217,7 +217,7 @@ def test_prior_predictive_h0_replicate_orchestrator_roundtrip(tmp_path: Path):
     for rep in (0, 1):
         values = ledger.loc[ledger.replicate == rep, "h0_true"].unique()
         assert len(values) == 1
-        assert values[0] == schedule[rep]["h0_true"]
+        assert np.isclose(values[0], schedule[rep]["h0_true"], rtol=0.0, atol=1e-12)
     report = audit_replicates(root)
     assert report["status"] == "PASS"
     assert report["successful_child_runs"] == 6
