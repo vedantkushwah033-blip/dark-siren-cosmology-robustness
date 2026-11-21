@@ -748,6 +748,10 @@ def test_interrupted_retry_validates_each_attempt_timestamp(tmp_path):
 
 
 def test_checkpoint_terminal_outcome_requires_active_claim_after_interruption(tmp_path):
+    from dark_siren_robustness.cell_ledger_store import (
+        finalize_interrupted_cells, mark_cell_started, record_cell_outcome,
+    )
+
     path = tmp_path / "interrupted-terminal-bypass.json"
     initialize_checkpoint(path, _checkpoint_plan())
     key = (0, 0.0, 100, "A")
@@ -775,6 +779,8 @@ def test_checkpoint_terminal_outcome_requires_active_claim_after_interruption(tm
 
 
 def test_checkpoint_outcome_api_rejects_nonterminal_status(tmp_path):
+    from dark_siren_robustness.cell_ledger_store import mark_cell_started, record_cell_outcome
+
     path = tmp_path / "nonterminal-outcome.json"
     initialize_checkpoint(path, _checkpoint_plan())
     key = (0, 0.0, 100, "A")
