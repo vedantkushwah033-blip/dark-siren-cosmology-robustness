@@ -241,8 +241,13 @@ def test_h0_truth_seed_helper_is_deterministic_and_validates_support():
 def _refresh_manifest_hash(manifest_path: Path, relative_path: str) -> None:
     manifest = json.loads(manifest_path.read_text())
     target = manifest_path.parent / relative_path
-    manifest["files"][relative_path]["bytes"] = target.stat().st_size
-    manifest["files"][relative_path]["sha256"] = hashlib.sha256(target.read_bytes()).hexdigest()
+    normalized = relative_path.replace("\\", "/")
+    matches = [key for key in manifest["files"] if key.replace("\\", "/") == normalized]
+    if len(matches) != 1:
+        raise AssertionError(f"manifest path must match exactly once: {relative_path}")
+    manifest_key = matches[0]
+    manifest["files"][manifest_key]["bytes"] = target.stat().st_size
+    manifest["files"][manifest_key]["sha256"] = hashlib.sha256(target.read_bytes()).hexdigest()
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
 
