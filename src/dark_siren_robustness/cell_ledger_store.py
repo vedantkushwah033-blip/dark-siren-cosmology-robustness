@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import tempfile
 from pathlib import Path
 from typing import Iterable, Mapping
 
@@ -29,6 +31,35 @@ def _cell_key(row: Mapping) -> tuple:
     return (row["replicate"], row["gamma"], row["validation_size"], row["arm"])
 
 
+def _atomic_create_json(path: str | Path, value) -> None:
+    """Atomically create a JSON file without replacing an existing run checkpoint."""
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(value, indent=2, sort_keys=True) + "\\n"
+    fd, temporary = tempfile.mkstemp(
+        prefix=f".{target.name}.", suffix=".tmp", dir=target.parent
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        # A hard link is an atomic no-replace operation on the same filesystem.
+        os.link(temporary, target)
+        os.unlink(temporary)
+        directory_fd = os.open(target.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    except BaseException:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+        raise
+
+
 def initialize_checkpoint(path: str | Path, planned_rows: Iterable[Mapping]) -> dict:
     """Atomically persist immutable plan + complete NOT_RUN ledger; never overwrite."""
     target = Path(path)
@@ -42,7 +73,7 @@ def initialize_checkpoint(path: str | Path, planned_rows: Iterable[Mapping]) -> 
         "planned_cells": plan,
         "cell_ledger": ledger,
     }
-    atomic_write_json(target, checkpoint)
+    _atomic_create_json(target, checkpoint)
     return checkpoint
 
 
