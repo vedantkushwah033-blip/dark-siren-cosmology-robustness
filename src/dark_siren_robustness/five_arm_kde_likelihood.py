@@ -201,3 +201,105 @@ def matched_five_arm_kde_selected_log_likelihood(
         arm_e_node_log_detection_efficiency=node_eff,
         arm_density=densities, arm_e_node_density=p_e,
     )
+
+
+@dataclass(frozen=True)
+class ArmKDELikelihoodResult:
+    """One arm's independently evaluated density components and selected likelihood."""
+
+    component_density: np.ndarray
+    component_log_likelihood: np.ndarray
+    component_log_detection_efficiency: np.ndarray
+    marginal_log_likelihood: np.ndarray
+
+
+def arm_kde_selected_log_likelihood(
+    H0_grid: ArrayLike,
+    sample_redshift: ArrayLike,
+    raw_weights: ArrayLike,
+    events: Sequence[Mapping[str, float]],
+    *,
+    detection_threshold_mpc: float,
+    redshift_grid: ArrayLike,
+    merger_weight: ArrayLike,
+    scott_multiplier: float | None = None,
+    absolute_bandwidth_sd: float | None = None,
+    mixture_weights: ArrayLike | None = None,
+) -> ArmKDELikelihoodResult:
+    """Evaluate one arm in isolation, optionally marginalizing its components.
+
+    raw_weights may be one vector (A-D) or a matrix whose rows are
+    coefficient-posterior nodes (E). When multiple rows are supplied,
+    mixture_weights is required and the complete selected multi-event
+    likelihood is marginalized over those components.
+    """
+    h0 = np.asarray(H0_grid, dtype=float)
+    if (h0.ndim != 1 or h0.size < 2 or not np.all(np.isfinite(h0))
+            or np.any(h0 <= 0) or np.any(np.diff(h0) <= 0)):
+        raise ValueError("H0_grid must be finite, positive, and strictly increasing")
+    z_grid = _validate_grid(redshift_grid, "redshift_grid")
+    sample = np.asarray(sample_redshift, dtype=float)
+    if (sample.ndim != 1 or sample.size < 5 or not np.all(np.isfinite(sample))
+            or np.any(sample <= 0)):
+        raise ValueError("sample_redshift must be finite, positive, and one-dimensional")
+    weights = np.asarray(raw_weights, dtype=float)
+    if weights.ndim == 1:
+        weights = weights[None, :]
+    if (weights.ndim != 2 or weights.shape[1] != sample.size
+            or weights.shape[0] < 1 or not np.all(np.isfinite(weights))
+            or np.any(weights <= 0)):
+        raise ValueError("raw_weights must be a finite, strictly positive vector or component matrix")
+    rate = np.asarray(merger_weight, dtype=float)
+    if rate.shape != z_grid.shape or not np.all(np.isfinite(rate)) or np.any(rate <= 0):
+        raise ValueError("merger_weight must be finite, positive, and match redshift_grid")
+    if (scott_multiplier is None) == (absolute_bandwidth_sd is None):
+        raise ValueError("supply exactly one of scott_multiplier or absolute_bandwidth_sd")
+    if scott_multiplier is not None and (
+        not np.isfinite(scott_multiplier) or scott_multiplier <= 0
+    ):
+        raise ValueError("scott_multiplier must be finite and positive")
+    if absolute_bandwidth_sd is not None and (
+        not np.isfinite(absolute_bandwidth_sd) or absolute_bandwidth_sd <= 0
+    ):
+        raise ValueError("absolute_bandwidth_sd must be finite and positive")
+    threshold = float(detection_threshold_mpc)
+    if not np.isfinite(threshold) or threshold <= 0:
+        raise ValueError("detection_threshold_mpc must be finite and positive")
+    if not events:
+        raise ValueError("at least one detected event is required")
+    distances = np.asarray([float(event["gw_distance"]) for event in events])
+    sigmas = np.asarray([float(event["gw_sigma"]) for event in events])
+    if (not np.all(np.isfinite(distances)) or np.any(distances < threshold)
+            or not np.all(np.isfinite(sigmas)) or np.any(sigmas <= 0)):
+        raise ValueError("events must have finite detected distances and positive finite uncertainties")
+
+    densities = np.stack([
+        estimate_host_density(
+            z_grid, sample, sample_weights=row, merger_weight=rate,
+            scott_multiplier=scott_multiplier,
+            absolute_bandwidth_sd=absolute_bandwidth_sd,
+        )
+        for row in weights
+    ])
+    component_ll, component_eff = _batched_density_likelihood(
+        h0, z_grid, densities, distances, sigmas, threshold,
+    )
+    if mixture_weights is None:
+        if weights.shape[0] != 1:
+            raise ValueError("mixture_weights are required for multiple arm components")
+        marginal = component_ll[0].copy()
+    else:
+        q = np.asarray(mixture_weights, dtype=float)
+        if (q.shape != (weights.shape[0],) or not np.all(np.isfinite(q))
+                or np.any(q < 0) or not np.isclose(np.sum(q), 1.0)
+                or not np.any(q > 0)):
+            raise ValueError("mixture_weights must be finite, nonnegative, normalized, and match components")
+        positive = q > 0
+        marginal = logsumexp(component_ll[positive] + np.log(q[positive, None]), axis=0)
+
+    return ArmKDELikelihoodResult(
+        component_density=densities,
+        component_log_likelihood=component_ll,
+        component_log_detection_efficiency=component_eff,
+        marginal_log_likelihood=marginal,
+    )
