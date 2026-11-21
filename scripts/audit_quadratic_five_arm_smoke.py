@@ -259,7 +259,54 @@ def audit(root: Path) -> dict:
     if checked_files != int(manifest["file_count"]):
         raise AssertionError("manifest file_count does not match entries")
 
+    # Independent verification of the pre-analysis shared-input bundle index.
+    # Deliberately duplicated here rather than importing the producer helper.
+    shared_path = root / "shared_input_manifest.json"
+    if not shared_path.is_file():
+        raise AssertionError("pre-analysis shared-input manifest is missing")
+    shared = json.loads(shared_path.read_text(encoding="utf-8"))
+    if shared.get("schema_version") != 1 or shared.get("status") != "FROZEN":
+        raise AssertionError("shared-input manifest schema/status is invalid")
+    shared_sizes = shared.get("validation_sizes")
+    if not isinstance(shared_sizes, list) or not shared_sizes:
+        raise AssertionError("shared-input validation-size plan is missing")
+    shared_files = shared.get("files", {})
+    expected_shared = {
+        "observable/catalogue_observed.csv",
+        "observable/gw_events_observed.csv",
+        "truth/parent_truth.csv",
+        "truth/gw_event_truth.csv",
+        "truth/gw_generation_trace_truth.csv",
+        "truth/validation_frame_truth.csv",
+    } | {f"observable/validation_n{int(n)}.csv" for n in shared_sizes}
+    if set(shared_files) != expected_shared:
+        raise AssertionError("shared-input manifest file set differs from the frozen design")
+    for relative, metadata in shared_files.items():
+        path = root / relative
+        if not path.is_file():
+            raise AssertionError(f"shared input is missing: {relative}")
+        if path.stat().st_size != int(metadata["bytes"]) or _sha256(path) != metadata["sha256"]:
+            raise AssertionError(f"shared-input integrity mismatch: {relative}")
+
     config = json.loads((root / "config.json").read_text(encoding="utf-8"))
+    if shared_sizes != config["validation_sizes"]:
+        raise AssertionError("shared-input validation-size plan differs from config")
+    shared_provenance = shared.get("provenance", {})
+    for key in ("seed", "event_seed", "validation_seed", "validation_sample_seed",
+                "n_parent", "n_detected", "h0_true", "sigma_mpc",
+                "detection_threshold_mpc", "curvature_gamma", "curvature_beta",
+                "inclusion_model_degree"):
+        if shared_provenance.get(key) != config.get(key):
+            raise AssertionError(f"shared-input provenance mismatch: {key}")
+    if shared_provenance.get("n_validation_frame") != config.get("validation_frame"):
+        raise AssertionError("shared-input provenance mismatch: n_validation_frame")
+    expected_basis_center = config.get("quadratic_calibration", {}).get("x2_center")
+    if shared_provenance.get("quadratic_basis_center") != expected_basis_center:
+        raise AssertionError("shared-input provenance mismatch: quadratic_basis_center")
+    expected_x2_center = float(config.get("quadratic_calibration", {}).get("x2_center", 0.0))
+    if not np.isclose(float(shared_provenance.get("quadratic_basis_center", np.nan)),
+                      expected_x2_center, rtol=0.0, atol=1e-14):
+        raise AssertionError("shared-input quadratic-basis provenance mismatch")
     if config["status"] != "engineering_smoke_not_confirmatory_not_observational":
         raise AssertionError("artifact claim-status label is missing or unexpected")
     inclusion_degree = int(config.get("inclusion_model_degree", 1))

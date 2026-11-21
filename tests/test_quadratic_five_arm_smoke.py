@@ -113,6 +113,34 @@ def test_degree_two_inclusion_model_smoke_roundtrip(tmp_path: Path):
     assert report["posterior_summary_rows_reconstructed"] == 10
 
 
+def test_auditor_rejects_shared_input_tampering_even_if_outer_manifest_is_refreshed(tmp_path: Path):
+    root = tmp_path / "shared_input_tamper"
+    args = SimpleNamespace(
+        seed=8129, validation_seed=8130, n_parent=300, n_detected=4,
+        validation_frame=120, validation_sizes=[50, 100], catalogue_floor=0.10,
+        curvature_gamma=0.5, curvature_beta=-3.9, h0_true=70.0,
+        h0_prior_min=30.0, h0_prior_max=110.0, h0_points=41,
+        scott_multiplier=0.7, quadrature_order=3, sigma_mpc=140.0,
+        detection_threshold_mpc=250.0, output_dir=root,
+    )
+    run(args)
+    target = root / "observable" / "validation_n50.csv"
+    target.write_text(target.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+
+    # Refresh the outer artifact manifest to isolate the independent
+    # pre-analysis shared-input manifest check.
+    manifest_path = root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["files"]["observable/validation_n50.csv"]["bytes"] = target.stat().st_size
+    manifest["files"]["observable/validation_n50.csv"]["sha256"] = hashlib.sha256(
+        target.read_bytes()
+    ).hexdigest()
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+
+    with pytest.raises(AssertionError, match="shared-input integrity mismatch"):
+        audit(root)
+
+
 def test_degree_two_auditor_rejects_tampered_inclusion_quadrature_weights(tmp_path: Path):
     root = tmp_path / "quadratic_five_arm_degree_two_tampered"
     args = SimpleNamespace(
