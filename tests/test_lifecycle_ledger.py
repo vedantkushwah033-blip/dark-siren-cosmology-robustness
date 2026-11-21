@@ -744,3 +744,51 @@ def test_interrupted_retry_validates_each_attempt_timestamp(tmp_path):
     finalize_interrupted_cells(path, "Simulated interruption.")
     with pytest.raises(ValueError, match="UTC offset"):
         mark_cell_started(path, key, "2026-11-21T05:05:00")
+
+
+def test_batch_outcomes_commit_all_cells_atomically(tmp_path):
+    from dark_siren_robustness.cell_ledger_store import (
+        initialize_checkpoint, mark_cell_started, read_checkpoint, record_cell_outcomes,
+    )
+
+    plan = _checkpoint_plan()
+    path = tmp_path / "batch" / "checkpoint.json"
+    initialize_checkpoint(path, plan)
+    started = "2026-11-21T06:00:00Z"
+    for row in plan:
+        mark_cell_started(path, (row["replicate"], row["gamma"], row["validation_size"], row["arm"]), started)
+    outcomes = []
+    for row in plan:
+        key = (row["replicate"], row["gamma"], row["validation_size"], row["arm"])
+        outcomes.append({"key": key, "outcome": {
+            "status": "SUCCESS", "audit_status": "PASS",
+            "completed_at": "2026-11-21T06:01:00Z",
+            "audit_report_path": f"audit/{row['arm']}.json",
+        }})
+    checkpoint = record_cell_outcomes(path, outcomes)
+    assert all(row["status"] == "SUCCESS" for row in checkpoint["cell_ledger"])
+
+
+def test_batch_outcome_validation_failure_leaves_checkpoint_unchanged(tmp_path):
+    from dark_siren_robustness.cell_ledger_store import (
+        initialize_checkpoint, mark_cell_started, read_checkpoint, record_cell_outcomes,
+    )
+
+    plan = _checkpoint_plan()
+    path = tmp_path / "batch-invalid" / "checkpoint.json"
+    initialize_checkpoint(path, plan)
+    started = "2026-11-21T06:00:00Z"
+    for row in plan:
+        mark_cell_started(path, (row["replicate"], row["gamma"], row["validation_size"], row["arm"]), started)
+    before = read_checkpoint(path)
+    valid = {"status": "SUCCESS", "audit_status": "PASS",
+        "completed_at": "2026-11-21T06:01:00Z", "audit_report_path": "audit/a.json"}
+    invalid = {"status": "FAILED", "audit_status": "PASS",
+        "reason_code": "CHILD_PROCESS_ERROR", "completed_at": "2026-11-21T06:01:00Z"}
+    with pytest.raises(ValueError, match="cannot claim audit PASS"):
+        record_cell_outcomes(path, [
+            {"key": (0, 0.0, 100, "A"), "outcome": valid},
+            {"key": (0, 0.0, 100, "E"), "outcome": invalid},
+        ])
+    assert read_checkpoint(path) == before
+
