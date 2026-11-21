@@ -174,3 +174,21 @@ def test_reference_arms_ignore_other_arms_base_weight_inputs():
     assert a.status == "SUCCESS"
     assert b.status == "SUCCESS"
 
+def test_a_and_b_require_only_their_own_host_population():
+    fixture = _fixture()
+    common = dict(
+        events=fixture[5], H0_grid=np.linspace(55.0, 85.0, 41),
+        redshift_grid=np.linspace(0.01, 0.40, 501),
+        merger_weight=np.ones(501), h0_true=70.0,
+        h0_prior_min=55.0, h0_prior_max=85.0,
+        detection_threshold_mpc=250.0, scott_multiplier=0.7,
+    )
+    a = execution.evaluate_arm_cell(
+        "A_catalogue_only", catalogue_redshift=fixture[1], **common,
+    )
+    b = execution.evaluate_arm_cell(
+        "B_parent_oracle", parent_redshift=fixture[0], **common,
+    )
+    assert a.status == "SUCCESS"
+    assert b.status == "SUCCESS"
+
