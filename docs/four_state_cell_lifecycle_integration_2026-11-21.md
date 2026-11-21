@@ -21,7 +21,7 @@ The runner writes `cell_lifecycle_checkpoint.json` before starting any child. It
 - the full planned-cell records;
 - one lifecycle record per planned cell.
 
-The checkpoint store serializes read/modify/write transactions with a stable sidecar process lock and uses atomic file replacement. A complete replicate × gamma child produces all validation-size × arm outcomes. Those outcomes are validated and committed in one batch transaction, so an interruption cannot leave only some cells in that child block terminal.
+The checkpoint store serializes read/modify/write transactions with a stable sidecar lock (POSIX `flock` or Windows byte-range locking, plus an in-process thread lock) and uses atomic file replacement. A complete replicate × gamma child produces all validation-size × arm outcomes. Those outcomes are validated and committed in one batch transaction, so an interruption cannot leave only some cells in that child block terminal.
 
 ## Resume behavior
 
