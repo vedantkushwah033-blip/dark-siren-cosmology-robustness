@@ -2,18 +2,14 @@
 
 The plan and ledger share one checkpoint file so a process interruption cannot
 leave a newly-created plan without its matching initial NOT_RUN ledger.
-Read-modify-write transitions are protected by an OS advisory lock: atomic
-replacement alone prevents torn JSON but does not prevent lost concurrent
-updates from independent workers.
 """
 from __future__ import annotations
 
-import errno
+import fcntl
 import hashlib
 import json
 import os
 import tempfile
-import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterable, Mapping
@@ -39,45 +35,20 @@ def _cell_key(row: Mapping) -> tuple:
 
 @contextmanager
 def _checkpoint_lock(path: str | Path):
-    """Serialize checkpoint mutations across threads and independent processes.
+    """Serialize checkpoint read/modify/write transactions across processes.
 
-    The lock file is intentionally persistent. The operating system releases
-    the advisory lock automatically if a process exits or crashes, so a stale
-    lock *file* cannot strand future workers.
+    The advisory lock is held on a stable sidecar inode (not the atomically
+    replaced checkpoint inode), and is automatically released if a process exits.
     """
     target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
     lock_path = target.with_name(target.name + ".lock")
-    lock_path.parent.mkdir(parents=True, exist_ok=True)
-    with lock_path.open("a+b") as stream:
-        if os.name == "nt":
-            import msvcrt
-
-            stream.seek(0, os.SEEK_END)
-            if stream.tell() == 0:
-                stream.write(b"\\0")
-                stream.flush()
-            while True:
-                try:
-                    stream.seek(0)
-                    msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
-                    break
-                except OSError as exc:
-                    if exc.errno not in (errno.EACCES, errno.EDEADLK, errno.EAGAIN):
-                        raise
-                    time.sleep(0.05)
-            try:
-                yield
-            finally:
-                stream.seek(0)
-                msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
-        else:
-            import fcntl
-
-            fcntl.flock(stream.fileno(), fcntl.LOCK_EX)
-            try:
-                yield
-            finally:
-                fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+    with lock_path.open("a", encoding="utf-8") as lock_stream:
+        fcntl.flock(lock_stream.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock_stream.fileno(), fcntl.LOCK_UN)
 
 
 def _atomic_create_json(path: str | Path, value) -> None:
@@ -112,8 +83,6 @@ def _atomic_create_json(path: str | Path, value) -> None:
 def initialize_checkpoint(path: str | Path, planned_rows: Iterable[Mapping]) -> dict:
     """Atomically persist immutable plan + complete NOT_RUN ledger; never overwrite."""
     target = Path(path)
-    if target.exists():
-        raise FileExistsError(f"refusing to overwrite existing run checkpoint: {target}")
     plan = [dict(row) for row in planned_rows]
     ledger = initial_ledger(plan)
     checkpoint = {
@@ -122,7 +91,8 @@ def initialize_checkpoint(path: str | Path, planned_rows: Iterable[Mapping]) -> 
         "planned_cells": plan,
         "cell_ledger": ledger,
     }
-    _atomic_create_json(target, checkpoint)
+    with _checkpoint_lock(target):
+        _atomic_create_json(target, checkpoint)
     return checkpoint
 
 
@@ -153,17 +123,10 @@ def _write_updated(path: str | Path, checkpoint: dict) -> dict:
     return checkpoint
 
 
-def _mutate_checkpoint(path: str | Path, mutation) -> dict:
-    """Apply one read-modify-write transition under the checkpoint lock."""
-    with _checkpoint_lock(path):
-        checkpoint = read_checkpoint(path)
-        mutation(checkpoint)
-        return _write_updated(path, checkpoint)
-
-
 def mark_cell_started(path: str | Path, key: tuple, started_at: str) -> dict:
     """Record an attempted cell while retaining NOT_RUN until audited completion."""
-    def mutation(checkpoint: dict) -> None:
+    with _checkpoint_lock(path):
+        checkpoint = read_checkpoint(path)
         matches = [i for i, row in enumerate(checkpoint["cell_ledger"])
                    if _cell_key(row) == tuple(key)]
         if len(matches) != 1:
@@ -178,13 +141,13 @@ def mark_cell_started(path: str | Path, key: tuple, started_at: str) -> dict:
             reason_detail="Execution started; no audited terminal outcome has been persisted.",
             started_at=started_at,
         )
-
-    return _mutate_checkpoint(path, mutation)
+        return _write_updated(path, checkpoint)
 
 
 def record_cell_outcome(path: str | Path, key: tuple, **outcome) -> dict:
     """Persist one audited terminal cell outcome without changing plan provenance."""
-    def mutation(checkpoint: dict) -> None:
+    with _checkpoint_lock(path):
+        checkpoint = read_checkpoint(path)
         matches = [i for i, row in enumerate(checkpoint["cell_ledger"])
                    if _cell_key(row) == tuple(key)]
         if len(matches) != 1:
@@ -199,16 +162,15 @@ def record_cell_outcome(path: str | Path, key: tuple, **outcome) -> dict:
         supplied_start = outcome.get("started_at")
         if persisted_start and supplied_start not in (None, persisted_start):
             raise ValueError("persisted cell start timestamp cannot be changed")
-        cell_outcome = dict(outcome)
-        cell_outcome["started_at"] = persisted_start or supplied_start
-        checkpoint["cell_ledger"][index] = set_cell_outcome(current, **cell_outcome)
-
-    return _mutate_checkpoint(path, mutation)
+        outcome["started_at"] = persisted_start or supplied_start
+        checkpoint["cell_ledger"][index] = set_cell_outcome(current, **outcome)
+        return _write_updated(path, checkpoint)
 
 
 def finalize_interrupted_cells(path: str | Path, reason_detail: str = "") -> dict:
     """Mark every still-unfinished planned cell as interrupted, preserving started_at."""
-    def mutation(checkpoint: dict) -> None:
+    with _checkpoint_lock(path):
+        checkpoint = read_checkpoint(path)
         for index, row in enumerate(checkpoint["cell_ledger"]):
             if row["status"] == "NOT_RUN" and row.get("reason_code") == "RUN_NOT_STARTED":
                 checkpoint["cell_ledger"][index] = set_cell_outcome(
@@ -216,5 +178,4 @@ def finalize_interrupted_cells(path: str | Path, reason_detail: str = "") -> dic
                     reason_code="RUN_INTERRUPTED",
                     reason_detail=reason_detail or "Run ended before this planned cell completed.",
                 )
-
-    return _mutate_checkpoint(path, mutation)
+        return _write_updated(path, checkpoint)
