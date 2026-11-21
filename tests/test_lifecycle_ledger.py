@@ -421,7 +421,7 @@ def test_timestamp_order_uses_instants_across_utc_offsets():
         set_cell_outcome(
             row, status="SUCCESS", audit_status="PASS",
             started_at="2026-11-21T00:30:00Z",
-            completed_at="2026-11-20T23:45:00-01:00",
+            completed_at="2026-11-20T23:15:00-01:00",
             audit_report_path="audit/a.json",
         )
 
