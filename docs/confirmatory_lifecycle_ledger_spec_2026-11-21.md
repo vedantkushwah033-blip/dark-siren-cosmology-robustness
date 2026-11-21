@@ -1,6 +1,8 @@
 # Confirmatory-run lifecycle ledger specification
 
-**Status:** design gate; not yet implemented.  
+**Status:** design gate; primitive validation layer added, runner/auditor integration not yet implemented.  
+
+**Implementation note (2026-11-21):** `src/dark_siren_robustness/lifecycle_ledger.py` now provides four-state plan/outcome validation and atomic JSON writing, with focused tests. It is not yet wired into the replicate runner, interruption/restart path, output ledger, or independent artifact auditor. The confirmatory gate therefore remains **BLOCKED**. The primitive validator also requires start/completion timestamps for successful and non-evaluable cells and rejects reversed timestamp order.  
 **Applies to:** the synthetic five-arm prior-predictive H0 experiment only.  
 **Purpose:** prevent a confirmatory run from silently converting execution, numerical, or inferential failures into successful posterior summaries.
 
