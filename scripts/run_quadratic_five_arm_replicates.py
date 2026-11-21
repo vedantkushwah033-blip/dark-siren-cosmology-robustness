@@ -371,11 +371,12 @@ def run(args: argparse.Namespace) -> dict:
         "claim_limit":"Paired engineering pilot only; no estimator ranking, calibration, or observational inference."}
     (out/"config.json").write_text(json.dumps(config,indent=2,sort_keys=True)+"\n")
     files=sorted(p for p in out.rglob("*") if p.is_file() and p.name!="manifest.json")
-    manifest={"status":"PASS","file_count":len(files),"files":{
+    run_status="PASS" if (ledger_df.status=="SUCCESS").all() and (ledger_df.audit_status=="PASS").all() else "INCOMPLETE"
+    manifest={"status":run_status,"file_count":len(files),"files":{
         str(p.relative_to(out)):{"bytes":p.stat().st_size,"sha256":_sha256(p)} for p in files}}
     (out/"manifest.json").write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
     counts=ledger_df.status.value_counts().to_dict()
-    return {"status":"PASS" if (ledger_df.status=="SUCCESS").all() and (ledger_df.audit_status=="PASS").all() else "INCOMPLETE",
+    return {"status":run_status,
         "planned_cells":len(ledger_df),"status_counts":counts,
         "successful_replicate_gamma_runs":int((pd.DataFrame(audit_rows).status=="PASS").sum()),
         "posterior_summary_rows":len(summaries),"output_dir":str(out)}
