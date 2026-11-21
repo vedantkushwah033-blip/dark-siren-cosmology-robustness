@@ -79,9 +79,9 @@ def evaluate_arm_cell(
     *,
     parent_redshift: ArrayLike,
     catalogue_redshift: ArrayLike,
-    validation_redshift: ArrayLike,
-    validation_retained: ArrayLike,
-    true_catalogue_inclusion_probability: ArrayLike,
+    validation_redshift: ArrayLike | None = None,
+    validation_retained: ArrayLike | None = None,
+    true_catalogue_inclusion_probability: ArrayLike | None = None,
     events: Sequence[Mapping[str, float]],
     H0_grid: ArrayLike,
     redshift_grid: ArrayLike,
@@ -109,13 +109,17 @@ def evaluate_arm_cell(
         raise ValueError(f"unknown arm: {arm}")
     parent = _positive_vector(parent_redshift, "parent_redshift")
     catalogue = _positive_vector(catalogue_redshift, "catalogue_redshift")
-    validation = _positive_vector(validation_redshift, "validation_redshift")
-    retained = np.asarray(validation_retained)
-    if (retained.shape != validation.shape or not np.all(np.isfinite(retained))
-            or np.any((retained != 0) & (retained != 1))):
-        raise ValueError("validation_retained must be binary and match validation_redshift")
-    if inclusion_degree not in (1, 2):
-        raise ValueError("inclusion_degree must be 1 or 2")
+    validation = retained = None
+    if arm in {"D_map_plugin_ipw", "E_uncertainty_integrated_ipw"}:
+        if validation_redshift is None or validation_retained is None:
+            raise ValueError("D/E require validation_redshift and validation_retained")
+        validation = _positive_vector(validation_redshift, "validation_redshift")
+        retained = np.asarray(validation_retained)
+        if (retained.shape != validation.shape or not np.all(np.isfinite(retained))
+                or np.any((retained != 0) & (retained != 1))):
+            raise ValueError("validation_retained must be binary and match validation_redshift")
+        if inclusion_degree not in (1, 2):
+            raise ValueError("inclusion_degree must be 1 or 2")
     if not np.isfinite(h0_true) or not h0_prior_min <= h0_true <= h0_prior_max:
         raise ValueError("h0_true must lie within finite prior support")
     if not np.isfinite(h0_prior_min) or not np.isfinite(h0_prior_max) or h0_prior_min >= h0_prior_max:
@@ -134,6 +138,8 @@ def evaluate_arm_cell(
         sample, components = parent, parent_base[None, :]
         mixture = np.ones(1)
     elif arm == "C_known_probability_ipw":
+        if true_catalogue_inclusion_probability is None:
+            raise ValueError("C requires known synthetic true inclusion probabilities")
         probability = np.asarray(true_catalogue_inclusion_probability, dtype=float)
         if (probability.shape != catalogue.shape or not np.all(np.isfinite(probability))
                 or np.any(probability <= 0) or np.any(probability > 1)):
