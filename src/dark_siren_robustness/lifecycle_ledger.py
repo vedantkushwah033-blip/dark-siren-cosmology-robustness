@@ -98,6 +98,8 @@ def set_cell_outcome(
         raise ValueError("SUCCESS must have an empty reason code")
     if status != "SUCCESS" and not reason_code:
         raise ValueError(f"{status} requires a reason code")
+    if status in {"SUCCESS", "NON_EVALUABLE"} and not started_at:
+        raise ValueError(f"{status} requires started_at")
     if status in {"SUCCESS", "NON_EVALUABLE"} and not completed_at:
         raise ValueError(f"{status} requires completed_at")
     if started_at and completed_at and completed_at < started_at:
@@ -129,8 +131,15 @@ def validate_ledger(planned_rows: Iterable[Mapping], ledger_rows: Iterable[Mappi
         missing = set(planned_keys) - set(ledger_keys)
         extra = set(ledger_keys) - set(planned_keys)
         raise ValueError(f"ledger/plan key mismatch: missing={len(missing)}, extra={len(extra)}")
+    planned_by_key = {_key(row): row for row in planned}
     counts = {status: 0 for status in sorted(STATUSES)}
     for row in ledger:
+        expected = planned_by_key[_key(row)]
+        for field, expected_value in expected.items():
+            if row.get(field) != expected_value:
+                raise ValueError(
+                    f"planned provenance mismatch for {field!r} in cell {_key(row)}"
+                )
         status = row.get("status")
         if status not in STATUSES:
             raise ValueError(f"unknown lifecycle status: {status}")
@@ -150,8 +159,14 @@ def validate_ledger(planned_rows: Iterable[Mapping], ledger_rows: Iterable[Mappi
             raise ValueError(f"{status} cell has no reason code")
         if status == "SUCCESS" and reason:
             raise ValueError("SUCCESS cell has a failure reason")
+        if status in {"SUCCESS", "NON_EVALUABLE"} and not row.get("started_at"):
+            raise ValueError(f"{status} cell has no start timestamp")
         if status in {"SUCCESS", "NON_EVALUABLE"} and not row.get("completed_at"):
             raise ValueError(f"{status} cell has no completion timestamp")
+        started_at = row.get("started_at")
+        completed_at = row.get("completed_at")
+        if started_at and completed_at and completed_at < started_at:
+            raise ValueError("completed_at cannot precede started_at")
         counts[status] += 1
     return {"status": "PASS", "planned_cells": len(planned), "ledger_cells": len(ledger),
             "status_counts": counts}
