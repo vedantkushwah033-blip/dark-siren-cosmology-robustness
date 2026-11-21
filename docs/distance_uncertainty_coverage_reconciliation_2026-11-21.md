@@ -68,3 +68,17 @@ Because the estimand above gives equal weight to each of the 28 truth × fractio
 | C | 73.37% | [72.43%, 74.30%] | 97.00% | [96.64%, 97.36%] |
 
 The bootstrap intervals quantify Monte Carlo uncertainty for this *fixed seven-truth/four-error equal-weight estimand*. They do not convert it into a continuous-prior predictive estimand or remove model/prior-boundary effects.
+
+
+## Reproduction command
+
+The boundary-aware aggregation and stratified-bootstrap calculation is now implemented as an independent utility:
+
+```bash
+python scripts/reconcile_distance_uncertainty_coverage.py \
+  artifacts/distance_uncertainty_sensitivity_full/replicates.csv \
+  --output artifacts/distance_uncertainty_sensitivity_full/coverage_reconciliation.json \
+  --bootstrap-seed 20261121 --bootstrap-resamples 10000
+```
+
+It verifies the complete frozen truth × fractional-error × replicate × arm key grid, rejects duplicates and missing cells, reports all-grid and interior-grid denominators separately, and computes the fixed-stratum bootstrap intervals. Regression tests cover the endpoint-denominator distinction, determinism, duplicate keys, and missing design cells.
