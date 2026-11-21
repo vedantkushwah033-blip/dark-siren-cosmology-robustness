@@ -5,7 +5,10 @@ from scipy.special import logsumexp
 
 from dark_siren_robustness.catalogue_density import estimate_host_density
 from dark_siren_robustness.five_arm_comparison import build_five_arm_weights
-from dark_siren_robustness.five_arm_kde_likelihood import matched_five_arm_kde_selected_log_likelihood
+from dark_siren_robustness.five_arm_kde_likelihood import (
+    arm_kde_selected_log_likelihood,
+    matched_five_arm_kde_selected_log_likelihood,
+)
 
 
 def _fixture():
@@ -156,3 +159,82 @@ def test_kde_likelihood_applies_external_host_rate_to_inclusion_only_arm_weights
     ])
     np.testing.assert_allclose(result.arm_e_node_density, expected_e)
     assert np.all(np.isfinite(result.arm_e_marginal_log_likelihood))
+
+
+def test_isolated_arm_likelihoods_reconstruct_all_matched_arm_outputs():
+    arms, events = _fixture()
+    z = np.linspace(0.01, 0.40, 501)
+    h0 = np.linspace(55.0, 85.0, 41)
+    rate = np.ones_like(z)
+    common = dict(
+        H0_grid=h0, events=events, detection_threshold_mpc=250.0,
+        redshift_grid=z, merger_weight=rate, scott_multiplier=0.7,
+    )
+    matched = matched_five_arm_kde_selected_log_likelihood(
+        h0, arms, events, detection_threshold_mpc=250.0,
+        redshift_grid=z, merger_weight=rate, scott_multiplier=0.7,
+    )
+    one_dimensional = [
+        (arms.catalogue_redshift, arms.arm_a_catalogue_only, matched.arm_a_log_likelihood),
+        (arms.parent_redshift, arms.arm_b_parent_oracle, matched.arm_b_log_likelihood),
+        (arms.catalogue_redshift, arms.arm_c_known_probability, matched.arm_c_log_likelihood),
+        (arms.catalogue_redshift, arms.arm_d_map_plugin, matched.arm_d_log_likelihood),
+    ]
+    for sample, weights, expected in one_dimensional:
+        result = arm_kde_selected_log_likelihood(
+            sample_redshift=sample, raw_weights=weights, **common,
+        )
+        assert result.component_density.shape == (1, z.size)
+        np.testing.assert_allclose(result.component_log_likelihood[0], expected, rtol=1e-11, atol=1e-11)
+        np.testing.assert_allclose(result.marginal_log_likelihood, expected, rtol=1e-11, atol=1e-11)
+
+    integrated = arm_kde_selected_log_likelihood(
+        sample_redshift=arms.catalogue_redshift,
+        raw_weights=arms.arm_e_node_weights,
+        mixture_weights=arms.arm_e_quadrature_weights,
+        **common,
+    )
+    np.testing.assert_allclose(
+        integrated.component_log_likelihood, matched.arm_e_node_log_likelihood,
+        rtol=1e-11, atol=1e-11,
+    )
+    np.testing.assert_allclose(
+        integrated.marginal_log_likelihood, matched.arm_e_marginal_log_likelihood,
+        rtol=1e-11, atol=1e-11,
+    )
+
+
+def test_isolated_arm_failure_does_not_poison_other_arm_calculation():
+    arms, events = _fixture()
+    z = np.linspace(0.01, 0.40, 201)
+    common = dict(
+        H0_grid=np.linspace(55.0, 85.0, 21), events=events,
+        detection_threshold_mpc=250.0, redshift_grid=z,
+        merger_weight=np.ones_like(z), scott_multiplier=0.7,
+    )
+    valid = arm_kde_selected_log_likelihood(
+        sample_redshift=arms.catalogue_redshift,
+        raw_weights=arms.arm_a_catalogue_only, **common,
+    )
+    assert np.all(np.isfinite(valid.marginal_log_likelihood))
+    with pytest.raises(ValueError, match="raw_weights"):
+        arm_kde_selected_log_likelihood(
+            sample_redshift=arms.catalogue_redshift,
+            raw_weights=np.full(arms.catalogue_redshift.size, np.nan), **common,
+        )
+    replay = arm_kde_selected_log_likelihood(
+        sample_redshift=arms.catalogue_redshift,
+        raw_weights=arms.arm_a_catalogue_only, **common,
+    )
+    np.testing.assert_array_equal(valid.marginal_log_likelihood, replay.marginal_log_likelihood)
+
+
+def test_isolated_arm_requires_explicit_mixture_weights_for_node_matrix():
+    arms, events = _fixture()
+    z = np.linspace(0.01, 0.40, 201)
+    with pytest.raises(ValueError, match="mixture_weights"):
+        arm_kde_selected_log_likelihood(
+            np.linspace(55.0, 85.0, 21), arms.catalogue_redshift,
+            arms.arm_e_node_weights, events, detection_threshold_mpc=250.0,
+            redshift_grid=z, merger_weight=np.ones_like(z), scott_multiplier=0.7,
+        )
