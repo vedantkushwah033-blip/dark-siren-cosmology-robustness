@@ -791,3 +791,37 @@ def test_checkpoint_outcome_api_rejects_nonterminal_status(tmp_path):
             reason_code="RUN_INTERRUPTED",
             started_at="2026-11-21T05:00:00Z",
         )
+
+
+
+def test_explicit_restart_requeues_never_started_cells(tmp_path):
+    from dark_siren_robustness.cell_ledger_store import (
+        finalize_interrupted_cells,
+        mark_cell_started,
+        requeue_not_scheduled_cells,
+    )
+
+    path = tmp_path / "restart-unscheduled" / "checkpoint.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    first_key = (0, 0.0, 100, "A")
+    mark_cell_started(path, first_key, "2026-11-21T05:00:00Z")
+
+    # Simulate a crash while the first cell is active and the second is untouched.
+    finalize_interrupted_cells(path, "Coordinator process stopped.")
+    rows = read_checkpoint(path)["cell_ledger"]
+    assert rows[0]["reason_code"] == "RUN_INTERRUPTED"
+    assert rows[1]["reason_code"] == "NOT_SCHEDULED"
+
+    requeue_not_scheduled_cells(path, "Explicit restart after all old workers stopped.")
+    rows = read_checkpoint(path)["cell_ledger"]
+    assert rows[0]["reason_code"] == "RUN_INTERRUPTED"
+    assert rows[1]["reason_code"] == "RUN_NOT_STARTED"
+    assert rows[1]["started_at"] is None
+
+    # Both the interrupted attempt and previously untouched cell are now runnable.
+    mark_cell_started(path, first_key, "2026-11-21T05:05:00Z")
+    second_key = (0, 0.0, 100, "E")
+    mark_cell_started(path, second_key, "2026-11-21T05:05:01Z")
+    rows = read_checkpoint(path)["cell_ledger"]
+    assert all(row["reason_code"] == "RUN_NOT_STARTED" for row in rows)
+    assert all(row["started_at"] is not None for row in rows)
