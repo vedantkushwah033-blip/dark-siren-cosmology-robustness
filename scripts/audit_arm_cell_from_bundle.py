@@ -16,7 +16,15 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from scripts.audit_quadratic_five_arm_smoke import audit as audit_bundle
+import importlib.util
+
+_audit_path = Path(__file__).with_name("audit_quadratic_five_arm_smoke.py")
+_audit_spec = importlib.util.spec_from_file_location("_independent_five_arm_auditor", _audit_path)
+if _audit_spec is None or _audit_spec.loader is None:
+    raise ImportError("could not load the independent five-arm artifact auditor")
+_audit_module = importlib.util.module_from_spec(_audit_spec)
+_audit_spec.loader.exec_module(_audit_module)
+audit_bundle = _audit_module.audit
 
 
 def _sha256(path: Path) -> str:
