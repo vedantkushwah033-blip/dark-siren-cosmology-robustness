@@ -678,6 +678,7 @@ def test_global_multi_bundle_scheduler_regression_suite(tmp_path):
         test_global_scheduler_isolates_one_cell_failure_and_audits_remaining_cells,
         test_global_scheduler_recovers_interrupted_cell_without_losing_first_start,
         test_global_scheduler_rejects_unpaired_exogenous_streams_across_curvature,
+        test_global_scheduler_rejects_reused_independent_event_seed_stream,
         test_global_scheduler_runs_multiple_replicates_and_curvatures_with_one_checkpoint,
     )
 
