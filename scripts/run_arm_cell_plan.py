@@ -25,6 +25,7 @@ from dark_siren_robustness.cell_ledger_store import (
     initialize_checkpoint,
     read_checkpoint,
     finalize_interrupted_cells,
+    requeue_not_scheduled_cells,
 )
 from dark_siren_robustness.lifecycle_ledger import validate_ledger
 from dark_siren_robustness.arm_cell_execution import ARM_NAMES
@@ -111,6 +112,10 @@ def run_plan(plan_path: Path, checkpoint_path: Path, *, recover_interrupted: boo
             finalize_interrupted_cells(
                 checkpoint_path,
                 reason_detail="Coordinator restart after prior process stopped.",
+            )
+            requeue_not_scheduled_cells(
+                checkpoint_path,
+                reason_detail="Never-started cell requeued after coordinator restart.",
             )
     else:
         if recover_interrupted:
