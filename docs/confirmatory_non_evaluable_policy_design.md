@@ -63,6 +63,8 @@ If the declared posterior cannot be normalized after the prescribed refinement s
 
 If non-finite values arise from a software exception, overflow that the specified stable implementation should have prevented, missing values, or corrupted inputs, classify as `FAILED`, not `NON_EVALUABLE`.
 
+The current lifecycle schema also recognizes `NONFINITE_LIKELIHOOD`, but this policy does not yet define an active trigger for it. Keep that reason code reserved until a frozen rule distinguishes a mathematically undefined likelihood for an otherwise valid realization from floating-point instability, an implementation defect, or invalid input. Do not emit this classification merely because one grid point evaluates to a non-finite value.
+
 The exact refinement sequence and numerical tolerances remain **unfrozen**.
 
 ### 3.4 H0 support-boundary behavior
@@ -136,6 +138,7 @@ These items must be resolved and reviewed before confirmatory calibration:
 
 - [ ] Exact H0 grid, expanded support, and refinement sequence.
 - [ ] Numerical normalization and posterior-summary convergence tolerances.
+- [ ] Operational trigger and independent audit rule for `NONFINITE_LIKELIHOOD`, or explicit decision to leave it inactive.
 - [ ] Operational definition of boundary regions and boundary-mass trigger.
 - [ ] Arm-specific weight-instability triggers, if any; no universal ESS cutoff assumed.
 - [ ] Whether any probability floor is part of the estimator itself (not an after-the-fact diagnostic).
