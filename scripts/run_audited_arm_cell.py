@@ -11,6 +11,7 @@ import argparse
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import importlib.util
 
 from dark_siren_robustness.cell_ledger_store import (
     mark_cell_started,
@@ -18,8 +19,20 @@ from dark_siren_robustness.cell_ledger_store import (
     record_cell_outcome,
 )
 from dark_siren_robustness.lifecycle_ledger import atomic_write_json
-from scripts.audit_arm_cell_from_bundle import audit_cell
-from scripts.run_arm_cell_from_bundle import run_cell
+
+
+def _load_sibling(name: str, filename: str):
+    path = Path(__file__).with_name(filename)
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"could not load sibling script: {filename}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+audit_cell = _load_sibling("_arm_cell_auditor", "audit_arm_cell_from_bundle.py").audit_cell
+run_cell = _load_sibling("_arm_cell_executor", "run_arm_cell_from_bundle.py").run_cell
 
 
 def _now() -> str:
