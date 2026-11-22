@@ -121,3 +121,23 @@ def test_coordinator_rejects_changed_immutable_plan(tmp_path, monkeypatch):
     _write_plan(plan_path, output_suffix="_changed")
     with pytest.raises(ValueError, match="immutable plan"):
         coordinator.run_plan(plan_path, checkpoint)
+
+
+def test_plan_rejects_shared_output_destination(tmp_path):
+    plan_path = tmp_path / "plan.json"
+    cells = _write_plan(plan_path)
+    cells[1]["output_dir"] = cells[0]["output_dir"]
+    plan_path.write_text(json.dumps({"schema_version": 1, "cells": cells}))
+    with pytest.raises(ValueError, match="share an output_dir"):
+        coordinator._normalize_plan(plan_path)
+
+
+def test_plan_rejects_unknown_arm_before_checkpoint_creation(tmp_path):
+    plan_path = tmp_path / "plan.json"
+    checkpoint = tmp_path / "checkpoint.json"
+    cells = _write_plan(plan_path)
+    cells[0]["arm"] = "not_an_arm"
+    plan_path.write_text(json.dumps({"schema_version": 1, "cells": cells}))
+    with pytest.raises(ValueError, match="unknown arm"):
+        coordinator.run_plan(plan_path, checkpoint)
+    assert not checkpoint.exists()
