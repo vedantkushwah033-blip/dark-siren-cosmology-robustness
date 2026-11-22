@@ -36,7 +36,8 @@ def _bundle(root: Path) -> None:
         "inclusion_probability": np.full(parent_z.size, 0.5),
     })
     catalogue = parent.iloc[::2].copy()
-    events = pd.DataFrame({"distance_mpc": [275.0, 340.0]})\n    validation = pd.DataFrame({\n        "validation_id": np.arange(20),\n        "redshift": np.linspace(0.015, 0.395, 20),\n        "retained": (np.arange(20) % 3 != 0).astype(int),\n    })
+    events = pd.DataFrame({"distance_mpc": [275.0, 340.0]})
+    validation = pd.DataFrame({\n        "validation_id": np.arange(20),\n        "redshift": np.linspace(0.015, 0.395, 20),\n        "retained": (np.arange(20) % 3 != 0).astype(int),\n    })
     parent.to_csv(root / "truth" / "parent_truth.csv", index=False)
     catalogue.to_csv(root / "observable" / "catalogue_observed.csv", index=False)
     events.to_csv(root / "observable" / "gw_events_observed.csv", index=False)\n    validation.to_csv(root / "observable" / "validation_n20.csv", index=False)
