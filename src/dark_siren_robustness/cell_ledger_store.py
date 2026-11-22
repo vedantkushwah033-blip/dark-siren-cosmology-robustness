@@ -169,6 +169,8 @@ def mark_cell_started(path: str | Path, key: tuple, started_at: str) -> dict:
                 started_at=row["started_at"],
             )
         else:
+            if row.get("reason_code") not in {"RUN_NOT_STARTED", "NOT_SCHEDULED"}:
+                raise ValueError("cell is not eligible for a fresh execution claim")
             checkpoint["cell_ledger"][index] = set_cell_outcome(
                 row, status="NOT_RUN", audit_status="NOT_RUN",
                 reason_code="RUN_NOT_STARTED",

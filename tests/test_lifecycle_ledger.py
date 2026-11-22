@@ -638,3 +638,32 @@ def test_batch_outcome_validation_failure_leaves_checkpoint_unchanged(tmp_path):
             {"key": (0, 0.0, 100, "E"), "outcome": invalid},
         ])
     assert read_checkpoint(path) == before
+
+
+def test_checkpoint_can_schedule_never_started_cells_after_restart(tmp_path):
+    path = tmp_path / "checkpoint-reschedule.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    # Simulate coordinator shutdown before this planned cell was claimed.
+    finalize_interrupted_cells(path, "Coordinator stopped before scheduling.")
+    before = read_checkpoint(path)["cell_ledger"][0]
+    assert before["status"] == "NOT_RUN"
+    assert before["reason_code"] == "NOT_SCHEDULED"
+    assert before["started_at"] is None
+
+    key = (0, 0.0, 100, "A")
+    mark_cell_started(path, key, "2026-11-22T02:00:00Z")
+    after = read_checkpoint(path)["cell_ledger"][0]
+    assert after["status"] == "NOT_RUN"
+    assert after["reason_code"] == "RUN_NOT_STARTED"
+    assert after["started_at"] == "2026-11-22T02:00:00Z"
+
+
+def test_checkpoint_does_not_allow_fresh_claim_of_upstream_failure(tmp_path):
+    path = tmp_path / "checkpoint-upstream.json"
+    initialize_checkpoint(path, _checkpoint_plan())
+    checkpoint = read_checkpoint(path)
+    checkpoint["cell_ledger"][0]["reason_code"] = "UPSTREAM_FAILURE"
+    from dark_siren_robustness.lifecycle_ledger import atomic_write_json
+    atomic_write_json(path, checkpoint)
+    with pytest.raises(ValueError, match="not eligible for a fresh execution claim"):
+        mark_cell_started(path, (0, 0.0, 100, "A"), "2026-11-22T02:00:00Z")
