@@ -58,7 +58,7 @@ def audit(bundle_dir: Path) -> dict:
         raise AssertionError("outer manifest schema/status is invalid")
     if outer.get("preparation_only") is not True or outer.get("inference_executed") is not False:
         raise AssertionError("bundle is not explicitly marked preparation-only")
-    if config.get("status") != "FROZEN_INPUTS_ONLY_NO_INFERENCE_EXECUTED":
+    if config.get("status") != "shared_inputs_only_no_inference":
         raise AssertionError("config does not identify a preparation-only bundle")
     if (root / "results").exists() or list(root.rglob("*.npz")):
         raise AssertionError("preparation-only bundle contains inference outputs")
