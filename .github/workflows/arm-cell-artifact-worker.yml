@@ -37,3 +37,7 @@ jobs:
         run: python -m pytest tests/test_arm_cell_worker.py -q
       - name: Test per-cell coordinator, aggregate auditor and lifecycle restart
         run: python -m pytest tests/test_arm_cell_replicate_coordinator.py tests/test_global_arm_cell_coordinator.py tests/test_lifecycle_ledger.py -q
+      - name: Validate global arm-cell coordinator and auditor CLIs
+        run: |
+          python scripts/run_global_arm_cells.py --help
+          python scripts/audit_global_arm_cells.py --help
