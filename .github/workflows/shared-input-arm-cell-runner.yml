@@ -16,6 +16,7 @@ on:
       - "tests/test_run_arm_cell_plan.py"
       - "tests/test_audit_arm_cell_plan.py"
       - "tests/test_arm_cell_hard_kill_restart.py"
+      - "tests/test_arm_cell_hard_kill_restart.py"
       - "tests/test_shared_input_bundle.py"
       - ".github/workflows/shared-input-arm-cell-runner.yml"
   pull_request:
