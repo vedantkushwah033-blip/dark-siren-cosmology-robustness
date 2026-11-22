@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+from types import SimpleNamespace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -125,3 +126,34 @@ def test_global_scheduler_rejects_unpaired_exogenous_streams_across_curvature(tm
             bundle_plan=bundle_plan, output_dir=tmp_path / "run",
             arms=["A_catalogue_only"], max_workers=1, resume=False,
         ))
+
+
+
+def test_global_scheduler_isolates_one_cell_failure_and_audits_remaining_cells(tmp_path, monkeypatch):
+    bundle_plan = _plan(tmp_path)
+    output = tmp_path / "global_run"
+    scheduler = _load_global("run_global_arm_cells.py")
+    auditor = _load_global("audit_global_arm_cells.py")
+    import run_arm_cell_replicate as cell_coordinator
+
+    real_run = cell_coordinator.subprocess.run
+    calls = {"count": 0}
+
+    def fail_first_worker(command, *args, **kwargs):
+        if str(command[1]).endswith("run_arm_cell.py") and calls["count"] == 0:
+            calls["count"] += 1
+            return SimpleNamespace(returncode=2, stdout="", stderr="intentional test failure")
+        return real_run(command, *args, **kwargs)
+
+    monkeypatch.setattr(cell_coordinator.subprocess, "run", fail_first_worker)
+    result = scheduler.run(SimpleNamespace(
+        bundle_plan=bundle_plan, output_dir=output,
+        arms=["A_catalogue_only"], max_workers=1, resume=False,
+    ))
+    assert result["status"] == "INCOMPLETE"
+    assert result["status_counts"]["FAILED"] == 1
+    assert result["status_counts"]["SUCCESS"] == 3
+    report = auditor.audit(output)
+    assert report["status"] == "PASS"
+    assert report["status_counts"]["FAILED"] == 1
+    assert report["successful_cells_reaudited"] == 3
