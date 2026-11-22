@@ -17,12 +17,12 @@ def _load_global(name: str):
     return module
 
 
-def _make_bundle(root: Path, *, seed: int, gamma: float, h0: float) -> None:
+def _make_bundle(root: Path, *, seed: int, gamma: float, h0: float, event_seed: int | None = None) -> None:
     generator = _load_script("generate_shared_inputs.py")
     generator.run(SimpleNamespace(
         output_dir=root,
         seed=seed,
-        event_seed=seed + 1,
+        event_seed=seed + 1 if event_seed is None else event_seed,
         validation_seed=seed + 2,
         validation_sample_seed=seed + 3,
         n_parent=600,
@@ -203,3 +203,21 @@ def test_global_scheduler_recovers_interrupted_cell_without_losing_first_start(t
     assert attempt2["first_cell_started_at"] == first_started
     assert attempt2["attempt_started_at"] != first_started
     assert auditor.audit(output)["status"] == "PASS"
+
+
+
+def test_global_scheduler_rejects_reused_independent_event_seed_stream(tmp_path):
+    first, second = tmp_path / "bundle_r1", tmp_path / "bundle_r2"
+    _make_bundle(first, seed=27001, gamma=0.0, h0=68.0, event_seed=27999)
+    _make_bundle(second, seed=27011, gamma=0.0, h0=72.0, event_seed=27999)
+    bundle_plan = tmp_path / "reused_stream_plan.json"
+    bundle_plan.write_text(json.dumps({"bundles": [
+        {"replicate": 1, "input_dir": str(first)},
+        {"replicate": 2, "input_dir": str(second)},
+    ]}), encoding="utf-8")
+    scheduler = _load_global("run_global_arm_cells.py")
+    with __import__("pytest").raises(ValueError, match="reuse the event_seed stream"):
+        scheduler.run(SimpleNamespace(
+            bundle_plan=bundle_plan, output_dir=tmp_path / "run",
+            arms=["A_catalogue_only"], max_workers=1, resume=False,
+        ))
