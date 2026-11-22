@@ -80,9 +80,21 @@ def audit(output_dir: Path) -> dict:
         status, audit_status = row["status"], row["audit_status"]
         if status not in counts:
             raise AssertionError(f"unknown lifecycle status {status}")
+        if audit_status not in {"PASS", "NOT_PASS", "NOT_RUN"}:
+            raise AssertionError("unknown audit status")
+        reason = row.get("reason_code")
+        allowed_reasons = {
+            "SUCCESS": {""},
+            "FAILED": {"CHILD_PROCESS_ERROR", "CHILD_AUDIT_FAILED", "DATA_INTEGRITY_FAILURE"},
+            "NOT_RUN": {"RUN_NOT_STARTED", "RUN_INTERRUPTED", "UPSTREAM_FAILURE", "NOT_SCHEDULED"},
+            "NON_EVALUABLE": {"NONFINITE_LIKELIHOOD", "INVALID_POSTERIOR_NORMALIZATION",
+                              "SUPPORT_BOUNDARY_MODE", "PREDECLARED_WEIGHT_INSTABILITY"},
+        }
+        if reason not in allowed_reasons[status]:
+            raise AssertionError(f"invalid lifecycle reason {reason!r} for {status}")
         if status == "NON_EVALUABLE":
             raise AssertionError("NON_EVALUABLE is prohibited until a preregistered policy exists")
-        if status == "SUCCESS" and (audit_status != "PASS" or row.get("reason_code") != ""):
+        if status == "SUCCESS" and (audit_status != "PASS" or reason != ""):
             raise AssertionError("SUCCESS cell lacks audit PASS or has a reason")
         if status == "FAILED" and audit_status == "PASS":
             raise AssertionError("FAILED cell cannot claim audit PASS")
