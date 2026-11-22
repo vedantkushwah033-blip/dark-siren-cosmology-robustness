@@ -247,3 +247,98 @@ def test_global_auditor_rejects_seed_provenance_tampering_even_with_rehashed_pla
     checkpoint_path.write_text(json.dumps(checkpoint, indent=2, sort_keys=True) + "\n")
     with __import__("pytest").raises(AssertionError, match="event_seed provenance differs"):
         auditor.audit(output)
+
+
+def test_global_scheduler_recovers_after_real_coordinator_process_termination(tmp_path):
+    """Kill the scheduler OS process after a cell claim, then resume and audit."""
+    import subprocess
+    import sys
+    import time
+
+    bundle = tmp_path / "bundle"
+    _make_bundle(bundle, seed=31001, gamma=0.5, h0=70.0)
+    bundle_plan = tmp_path / "bundle_plan.json"
+    bundle_plan.write_text(json.dumps({"bundles": [
+        {"replicate": 1, "input_dir": str(bundle)},
+    ]}), encoding="utf-8")
+    output = tmp_path / "global_run"
+    marker = tmp_path / "worker_dispatch_started"
+
+    repo_root = Path(__file__).resolve().parents[1]
+    child_code = r'''
+import sys
+import time
+from pathlib import Path
+from types import SimpleNamespace
+
+repo_root, plan_path, output_path, marker_path = sys.argv[1:]
+sys.path.insert(0, str(Path(repo_root) / "src"))
+sys.path.insert(0, str(Path(repo_root) / "scripts"))
+import run_global_arm_cells as scheduler
+import run_arm_cell_replicate as coordinator
+
+def block_worker_dispatch(*args, **kwargs):
+    Path(marker_path).write_text("dispatch reached", encoding="utf-8")
+    time.sleep(120)
+
+coordinator.subprocess.run = block_worker_dispatch
+scheduler.run(SimpleNamespace(
+    bundle_plan=Path(plan_path),
+    output_dir=Path(output_path),
+    arms=["A_catalogue_only"],
+    max_workers=1,
+    resume=False,
+))
+'''
+    process = subprocess.Popen(
+        [sys.executable, "-c", child_code, str(repo_root), str(bundle_plan),
+         str(output), str(marker)],
+        cwd=repo_root,
+    )
+    try:
+        deadline = time.monotonic() + 20.0
+        while time.monotonic() < deadline and process.poll() is None and not marker.exists():
+            time.sleep(0.05)
+        assert marker.exists(), "child did not reach worker dispatch before timeout"
+        process.terminate()
+        process.wait(timeout=10)
+        assert process.returncode != 0, "terminated coordinator unexpectedly exited successfully"
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait(timeout=10)
+
+    checkpoint_path = output / "cell_lifecycle_checkpoint.json"
+    checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+    assert len(checkpoint["cell_ledger"]) == 1
+    interrupted = checkpoint["cell_ledger"][0]
+    assert interrupted["status"] == "NOT_RUN"
+    assert interrupted["reason_code"] == "RUN_NOT_STARTED"
+    first_started = interrupted["started_at"]
+    assert first_started
+
+    cell_root = output / "cells" / interrupted["cell_id"]
+    attempt1 = json.loads(
+        (cell_root / "attempt_0001" / "attempt_started.json").read_text(encoding="utf-8")
+    )
+    assert attempt1["first_cell_started_at"] == first_started
+
+    scheduler = _load_global("run_global_arm_cells.py")
+    auditor = _load_global("audit_global_arm_cells.py")
+    resumed = scheduler.run(SimpleNamespace(
+        bundle_plan=bundle_plan,
+        output_dir=output,
+        arms=["A_catalogue_only"],
+        max_workers=1,
+        resume=True,
+    ))
+    assert resumed["status"] == "PASS"
+    assert resumed["status_counts"]["SUCCESS"] == 1
+    attempt2 = json.loads(
+        (cell_root / "attempt_0002" / "attempt_started.json").read_text(encoding="utf-8")
+    )
+    assert attempt2["first_cell_started_at"] == first_started
+    assert attempt2["attempt_started_at"] != first_started
+    report = auditor.audit(output)
+    assert report["status"] == "PASS"
+    assert report["successful_cells_reaudited"] == 1
