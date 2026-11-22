@@ -156,3 +156,50 @@ def test_global_scheduler_isolates_one_cell_failure_and_audits_remaining_cells(t
     assert report["status"] == "PASS"
     assert report["status_counts"]["FAILED"] == 1
     assert report["successful_cells_reaudited"] == 3
+
+
+
+def test_global_scheduler_recovers_interrupted_cell_without_losing_first_start(tmp_path, monkeypatch):
+    import pytest
+    import run_arm_cell_replicate as cell_coordinator
+
+    bundle_plan = _plan(tmp_path)
+    output = tmp_path / "global_run"
+    scheduler = _load_global("run_global_arm_cells.py")
+    auditor = _load_global("audit_global_arm_cells.py")
+    real_run = cell_coordinator.subprocess.run
+    calls = {"count": 0}
+
+    def interrupt_first_worker(command, *args, **kwargs):
+        if str(command[1]).endswith("run_arm_cell.py") and calls["count"] == 0:
+            calls["count"] += 1
+            raise KeyboardInterrupt("simulated global scheduler interruption")
+        return real_run(command, *args, **kwargs)
+
+    monkeypatch.setattr(cell_coordinator.subprocess, "run", interrupt_first_worker)
+    args = SimpleNamespace(
+        bundle_plan=bundle_plan, output_dir=output,
+        arms=["A_catalogue_only"], max_workers=1, resume=False,
+    )
+    with pytest.raises(KeyboardInterrupt, match="simulated global scheduler interruption"):
+        scheduler.run(args)
+
+    checkpoint = json.loads((output / "cell_lifecycle_checkpoint.json").read_text())
+    interrupted = next(row for row in checkpoint["cell_ledger"] if row["started_at"])
+    first_started = interrupted["started_at"]
+    cell_root = output / "cells" / interrupted["cell_id"]
+    attempt1 = json.loads(
+        (cell_root / "attempt_0001" / "attempt_started.json").read_text()
+    )
+    assert attempt1["first_cell_started_at"] == first_started
+
+    monkeypatch.setattr(cell_coordinator.subprocess, "run", real_run)
+    args.resume = True
+    resumed = scheduler.run(args)
+    assert resumed["status"] == "PASS"
+    attempt2 = json.loads(
+        (cell_root / "attempt_0002" / "attempt_started.json").read_text()
+    )
+    assert attempt2["first_cell_started_at"] == first_started
+    assert attempt2["attempt_started_at"] != first_started
+    assert auditor.audit(output)["status"] == "PASS"
