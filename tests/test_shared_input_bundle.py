@@ -118,3 +118,19 @@ def test_loader_rejects_manifest_path_escape(tmp_path: Path):
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(ValueError, match="file set"):
         load_shared_input_manifest(tmp_path)
+
+def test_loader_rejects_symlinked_input_escaping_bundle_root(tmp_path: Path):
+    _populate(tmp_path)
+    write_shared_input_manifest(
+        tmp_path, validation_sizes=[10, 20], provenance={"seed": 1},
+    )
+    outside = tmp_path.parent / "outside_shared_input.csv"
+    outside.write_text("id,value\\n1,2\\n", encoding="utf-8")
+    target = tmp_path / "truth/parent_truth.csv"
+    target.unlink()
+    try:
+        target.symlink_to(outside)
+    except OSError as exc:
+        pytest.skip(f"symlink creation is unavailable: {exc}")
+    with pytest.raises(ValueError, match="path escapes bundle root"):
+        load_shared_input_manifest(tmp_path)
