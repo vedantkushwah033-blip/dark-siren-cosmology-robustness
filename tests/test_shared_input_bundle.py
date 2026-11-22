@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from dark_siren_robustness.shared_input_bundle import write_shared_input_manifest
+from dark_siren_robustness.shared_input_bundle import (\n    load_shared_input_manifest,\n    write_shared_input_manifest,\n)
 
 
 def _populate(root: Path) -> None:
@@ -62,3 +62,56 @@ def test_stale_legacy_temp_file_does_not_block_manifest_creation(tmp_path: Path)
     assert result["status"] == "FROZEN"
     assert (tmp_path / "shared_input_manifest.json").is_file()
     assert stale.read_text(encoding="utf-8") == "incomplete prior attempt"
+
+
+def test_loader_verifies_hashes_and_expected_plan(tmp_path: Path):
+    _populate(tmp_path)
+    write_shared_input_manifest(
+        tmp_path, validation_sizes=[10, 20],
+        provenance={"seed": 1, "curvature_gamma": 0.5},
+    )
+    loaded = load_shared_input_manifest(
+        tmp_path,
+        expected_validation_sizes=[10, 20],
+        expected_provenance={"seed": 1, "curvature_gamma": 0.5},
+    )
+    assert loaded["status"] == "FROZEN"
+
+
+def test_loader_rejects_provenance_or_validation_plan_mismatch(tmp_path: Path):
+    _populate(tmp_path)
+    write_shared_input_manifest(
+        tmp_path, validation_sizes=[10, 20], provenance={"seed": 1},
+    )
+    with pytest.raises(ValueError, match="validation-size plan"):
+        load_shared_input_manifest(tmp_path, expected_validation_sizes=[10])
+    with pytest.raises(ValueError, match="provenance mismatch: seed"):
+        load_shared_input_manifest(tmp_path, expected_provenance={"seed": 2})
+
+
+def test_loader_detects_input_tampering(tmp_path: Path):
+    _populate(tmp_path)
+    write_shared_input_manifest(
+        tmp_path, validation_sizes=[10, 20], provenance={"seed": 1},
+    )
+    (tmp_path / "observable/catalogue_observed.csv").write_text(
+        "id,value\\n1,999\\n", encoding="utf-8"
+    )
+    with pytest.raises(ValueError, match="SHA-256 mismatch"):
+        load_shared_input_manifest(tmp_path)
+
+
+def test_loader_rejects_manifest_path_escape(tmp_path: Path):
+    import json
+
+    _populate(tmp_path)
+    write_shared_input_manifest(
+        tmp_path, validation_sizes=[10, 20], provenance={"seed": 1},
+    )
+    manifest_path = tmp_path / "shared_input_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    metadata = manifest["files"].pop("truth/parent_truth.csv")
+    manifest["files"]["../outside.csv"] = metadata
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(ValueError, match="file set"):
+        load_shared_input_manifest(tmp_path)
