@@ -115,3 +115,47 @@ def test_aggregate_auditor_rejects_edited_summary_csv_values_even_if_row_count_i
     summaries.to_csv(summary_path, index=False)
     with pytest.raises(AssertionError, match="CSV cell summaries differ"):
         auditor.audit(output, bundle)
+
+
+
+def test_interrupted_attempt_resume_retains_immutable_first_start_timestamp(tmp_path, monkeypatch):
+    bundle = tmp_path / "shared"
+    output = tmp_path / "run"
+    _bundle(bundle)
+    coordinator = _load_script("run_arm_cell_replicate.py")
+    aggregate_auditor = _load_script("audit_arm_cell_replicate.py")
+    args = SimpleNamespace(
+        input_dir=bundle, output_dir=output, replicate=9,
+        arms=["A_catalogue_only"], max_workers=1, resume=False,
+    )
+
+    real_run = coordinator.subprocess.run
+
+    def interrupt_before_worker(*_args, **_kwargs):
+        raise KeyboardInterrupt("simulated coordinator interruption")
+
+    monkeypatch.setattr(coordinator.subprocess, "run", interrupt_before_worker)
+    with pytest.raises(KeyboardInterrupt, match="simulated coordinator interruption"):
+        coordinator.run(args)
+
+    cell_root = next((output / "cells").iterdir())
+    first_attempt = json.loads(
+        (cell_root / "attempt_0001" / "attempt_started.json").read_text(encoding="utf-8")
+    )
+    checkpoint_before_resume = json.loads(
+        (output / "cell_lifecycle_checkpoint.json").read_text(encoding="utf-8")
+    )
+    original_first_start = checkpoint_before_resume["cell_ledger"][0]["started_at"]
+    assert original_first_start == first_attempt["first_cell_started_at"]
+
+    monkeypatch.setattr(coordinator.subprocess, "run", real_run)
+    args.resume = True
+    resumed = coordinator.run(args)
+    assert resumed["status"] == "PASS"
+
+    second_attempt = json.loads(
+        (cell_root / "attempt_0002" / "attempt_started.json").read_text(encoding="utf-8")
+    )
+    assert second_attempt["attempt_started_at"] != original_first_start
+    assert second_attempt["first_cell_started_at"] == original_first_start
+    assert aggregate_auditor.audit(output, bundle)["status"] == "PASS"
