@@ -88,7 +88,7 @@ def test_coordinator_continues_after_one_cell_failure(tmp_path, monkeypatch):
 def test_resume_finalizes_interrupted_cells_and_skips_terminal_cells(tmp_path, monkeypatch):
     plan_path = tmp_path / "plan.json"
     checkpoint = tmp_path / "checkpoint.json"
-    cells = _write_plan(plan_path)
+    _write_plan(plan_path)
     planned = coordinator._normalize_plan(plan_path)
     initialize_checkpoint(checkpoint, planned)
     first_key = (1, 0.0, 100, "A_catalogue_only")
@@ -115,10 +115,66 @@ def test_resume_finalizes_interrupted_cells_and_skips_terminal_cells(tmp_path, m
     assert final["cell_ledger"][0]["started_at"] == "2026-11-22T00:00:00+00:00"
 
 
+def test_explicit_recovery_requeues_untouched_cells_and_preserves_terminal_cells(tmp_path, monkeypatch):
+    plan_path = tmp_path / "recovery-plan.json"
+    checkpoint = tmp_path / "recovery-checkpoint.json"
+    cells = [
+        {
+            "replicate": 1, "gamma": 0.0, "validation_size": 100,
+            "arm": arm, "bundle_dir": "bundle", "output_dir": f"cells/{arm}",
+        }
+        for arm in ("A_catalogue_only", "B_parent_oracle", "E_estimated_ipw")
+    ]
+    plan_path.write_text(json.dumps({"schema_version": 1, "cells": cells}))
+    planned = coordinator._normalize_plan(plan_path)
+    initialize_checkpoint(checkpoint, planned)
+
+    interrupted_key = (1, 0.0, 100, "A_catalogue_only")
+    terminal_key = (1, 0.0, 100, "B_parent_oracle")
+    untouched_key = (1, 0.0, 100, "E_estimated_ipw")
+    mark_cell_started(checkpoint, interrupted_key, "2026-11-22T00:00:00+00:00")
+    _complete(checkpoint, {
+        "replicate": 1, "gamma": 0.0, "validation_size": 100,
+        "arm": "B_parent_oracle",
+    })
+
+    calls = []
+
+    def fake_runner(checkpoint_path, bundle, output, **kwargs):
+        calls.append(kwargs["arm"])
+        state = read_checkpoint(checkpoint_path)
+        row = next(r for r in state["cell_ledger"] if r["arm"] == kwargs["arm"])
+        if kwargs["arm"] == "A_catalogue_only":
+            assert row["reason_code"] == "RUN_INTERRUPTED"
+            assert row["started_at"] == "2026-11-22T00:00:00+00:00"
+        else:
+            assert kwargs["arm"] == "E_estimated_ipw"
+            assert row["reason_code"] == "RUN_NOT_STARTED"
+            assert row["started_at"] is None
+        return _complete(Path(checkpoint_path), kwargs)
+
+    monkeypatch.setattr(coordinator, "run_audited_cell", fake_runner)
+    result = coordinator.run_plan(plan_path, checkpoint, recover_interrupted=True)
+
+    assert calls == ["A_catalogue_only", "E_estimated_ipw"]
+    assert result["status"] == "PASS"
+    assert result["status_counts"]["SUCCESS"] == 3
+    assert len(result["cell_results"]) == 3
+    assert result["cell_results"][1]["skipped"] is True
+    final = read_checkpoint(checkpoint)
+    rows = {(
+        row["replicate"], row["gamma"], row["validation_size"], row["arm"]
+    ): row for row in final["cell_ledger"]}
+    assert rows[interrupted_key]["status"] == "SUCCESS"
+    assert rows[interrupted_key]["started_at"] == "2026-11-22T00:00:00+00:00"
+    assert rows[terminal_key]["status"] == "SUCCESS"
+    assert rows[untouched_key]["status"] == "SUCCESS"
+
+
 def test_coordinator_rejects_changed_immutable_plan(tmp_path, monkeypatch):
     plan_path = tmp_path / "plan.json"
     checkpoint = tmp_path / "checkpoint.json"
-    planned = _write_plan(plan_path)
+    _write_plan(plan_path)
     initialize_checkpoint(checkpoint, coordinator._normalize_plan(plan_path))
     _write_plan(plan_path, output_suffix="_changed")
     with pytest.raises(ValueError, match="immutable plan"):
