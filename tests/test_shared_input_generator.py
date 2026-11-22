@@ -96,7 +96,7 @@ def test_shared_input_loader_rejects_modified_validation_slice(tmp_path):
     ))
     with (output / "observable" / "validation_n20.csv").open("a") as stream:
         stream.write("\n")
-    with pytest.raises(ValueError, match="SHA-256"):
+    with pytest.raises(ValueError, match="byte count|SHA-256"):
         load_shared_input_manifest(output, expected_validation_sizes=[20])
 
 def test_shared_input_bundle_runs_one_cell_and_passes_independent_audit(tmp_path):
