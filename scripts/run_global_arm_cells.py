@@ -109,6 +109,11 @@ def _validate_paired_bundle_design(bundles: list[dict]) -> None:
         ))
     if len(stream_signatures) != len(set(stream_signatures)):
         raise ValueError("independent replicates must use distinct exogenous seed-stream tuples")
+    for field in ("seed", "event_seed", "validation_seed", "validation_sample_seed"):
+        values = [group[0]["config"].get(field) for _, group in sorted(by_replicate.items())]
+        non_null = [value for value in values if value is not None]
+        if len(non_null) != len(set(non_null)):
+            raise ValueError(f"independent replicates reuse the {field} stream seed")
 
 
 def run(args: argparse.Namespace) -> dict:
