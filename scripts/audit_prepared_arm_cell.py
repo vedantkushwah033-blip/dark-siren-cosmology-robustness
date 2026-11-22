@@ -44,9 +44,10 @@ def _close(actual, expected, label: str, *, rtol: float = 2e-8, atol: float = 2e
     a, e = np.asarray(actual, dtype=float), np.asarray(expected, dtype=float)
     if a.shape != e.shape or not np.all(np.isfinite(a)) or not np.all(np.isfinite(e)):
         raise AssertionError(f"{label}: shape or finite-value mismatch")
+    delta = float(np.max(np.abs(a - e))) if a.size else 0.0
     if not np.allclose(a, e, rtol=rtol, atol=atol):
-        delta = float(np.max(np.abs(a - e)))
         raise AssertionError(f"{label}: independent reconstruction mismatch (max abs={delta})")
+    return delta
 
 
 def _diagnostics(weights: np.ndarray) -> dict[str, float]:
@@ -207,6 +208,7 @@ def audit_cell(bundle_dir: Path, cell_dir: Path) -> dict:
     else:
         diagnostics = _diagnostics(components[0])
 
+    maximum_likelihood_error = 0.0
     with np.load(cell / "cell_arrays.npz", allow_pickle=False) as arrays:
         for name, expected in {
             "H0_grid": h0_grid, "redshift_grid": z_grid,
@@ -220,7 +222,9 @@ def audit_cell(bundle_dir: Path, cell_dir: Path) -> dict:
             "inclusion_nodes": np.asarray([]) if nodes is None else nodes,
             "inclusion_quadrature_weights": np.asarray([]) if qweights is None else qweights,
         }.items():
-            _close(arrays[name], expected, name)
+            difference = _close(arrays[name], expected, name)
+            if name in {"component_log_likelihood", "marginal_log_likelihood"}:
+                maximum_likelihood_error = max(maximum_likelihood_error, difference)
 
     summary = metadata.get("posterior_summary", {})
     expected_summary = {
@@ -247,7 +251,7 @@ def audit_cell(bundle_dir: Path, cell_dir: Path) -> dict:
         "cell_manifest_files_verified": len(cell_manifest["files"]),
         "prepared_bundle_audit": raw_report,
         "components_reconstructed": int(len(components)),
-        "maximum_component_log_likelihood_abs_error": 0.0,
+        "maximum_component_log_likelihood_abs_error": maximum_likelihood_error,
         "scope": "Independent single-arm reconstruction from raw prepared inputs; synthetic integrity only, not calibration.",
     }
 
