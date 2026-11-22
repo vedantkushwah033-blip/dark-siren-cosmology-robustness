@@ -79,6 +79,8 @@ def test_coordinator_continues_after_one_cell_failure(tmp_path, monkeypatch):
     result = coordinator.run_plan(plan_path, checkpoint)
 
     assert calls == ["A_catalogue_only", "B_parent_oracle"]
+    assert result["status"] == "COMPLETED_WITH_NON_SUCCESS"
+    assert result["ledger_validation_status"] == "PASS"
     assert result["status_counts"]["FAILED"] == 1
     assert result["status_counts"]["SUCCESS"] == 1
 
