@@ -35,6 +35,28 @@ def _timestamp(value, label):
     return parsed
 
 
+def _verify_config_provenance(config: dict, provenance: dict) -> None:
+    expected = {
+        "seed": config["seed"],
+        "event_seed": config.get("event_seed"),
+        "validation_seed": config["validation_seed"],
+        "validation_sample_seed": config.get("validation_sample_seed"),
+        "n_parent": config["n_parent"],
+        "n_detected": config["n_detected"],
+        "h0_true": config["h0_true"],
+        "sigma_mpc": config["sigma_mpc"],
+        "detection_threshold_mpc": config["detection_threshold_mpc"],
+        "n_validation_frame": config["validation_frame"],
+        "curvature_gamma": config["curvature_gamma"],
+        "curvature_beta": config["curvature_beta"],
+        "inclusion_model_degree": config["inclusion_model_degree"],
+        "quadratic_basis_center": config["quadratic_calibration"]["x2_center"],
+    }
+    for field, value in expected.items():
+        if provenance.get(field) != value:
+            raise AssertionError(f"bundle config/shared manifest provenance mismatch: {field}")
+
+
 def audit(output_dir: Path) -> dict:
     output = output_dir.resolve()
     checkpoint = json.loads((output / "cell_lifecycle_checkpoint.json").read_text())
@@ -75,6 +97,7 @@ def audit(output_dir: Path) -> dict:
         config_path, manifest_path = root / "config.json", root / "shared_input_manifest.json"
         config = json.loads(config_path.read_text())
         shared = load_shared_input_manifest(root, expected_validation_sizes=config["validation_sizes"])
+        _verify_config_provenance(config, shared["provenance"])
         if _sha(config_path) != row["config_sha256"] or _sha(manifest_path) != row["shared_input_manifest_sha256"]:
             raise AssertionError("cell config/shared-input hash differs from immutable plan")
         if float(config["curvature_gamma"]) != float(row["gamma"]):
