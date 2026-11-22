@@ -8,11 +8,13 @@ on:
       - "scripts/run_arm_cell_from_bundle.py"
       - "scripts/audit_arm_cell_from_bundle.py"
       - "scripts/run_arm_cell_plan.py"
+      - "scripts/audit_arm_cell_plan.py"
       - "scripts/run_audited_arm_cell.py"
       - "tests/test_arm_cell_execution.py"
       - "tests/test_run_arm_cell_from_bundle.py"
       - "tests/test_audit_arm_cell_from_bundle.py"
       - "tests/test_run_arm_cell_plan.py"
+      - "tests/test_audit_arm_cell_plan.py"
       - "tests/test_shared_input_bundle.py"
       - ".github/workflows/shared-input-arm-cell-runner.yml"
   pull_request:
@@ -49,7 +51,7 @@ jobs:
       - name: Install package and test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
       - name: Test frozen shared-input bundle, arm-cell evaluator, and single-cell runner
-        run: python -m pytest tests/test_shared_input_bundle.py tests/test_arm_cell_execution.py tests/test_run_arm_cell_from_bundle.py tests/test_audit_arm_cell_from_bundle.py tests/test_run_audited_arm_cell.py tests/test_run_arm_cell_plan.py -q
+        run: python -m pytest tests/test_shared_input_bundle.py tests/test_arm_cell_execution.py tests/test_run_arm_cell_from_bundle.py tests/test_audit_arm_cell_from_bundle.py tests/test_run_audited_arm_cell.py tests/test_run_arm_cell_plan.py tests/test_audit_arm_cell_plan.py -q
       - name: Validate one-cell runner CLI
         run: python scripts/run_arm_cell_from_bundle.py --help
       - name: Validate independent cell auditor CLI
