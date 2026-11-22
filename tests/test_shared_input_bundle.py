@@ -2,7 +2,10 @@ from pathlib import Path
 
 import pytest
 
-from dark_siren_robustness.shared_input_bundle import (\n    load_shared_input_manifest,\n    write_shared_input_manifest,\n)
+from dark_siren_robustness.shared_input_bundle import (
+    load_shared_input_manifest,
+    write_shared_input_manifest,
+)
 
 
 def _populate(root: Path) -> None:
