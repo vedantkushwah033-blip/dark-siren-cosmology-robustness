@@ -166,3 +166,35 @@ def test_published_artifact_is_reaudited_after_interrupted_checkpoint(tmp_path, 
     row = read_checkpoint(checkpoint)["cell_ledger"][0]
     assert row["started_at"] == first_start
     assert row["status"] == "SUCCESS"
+
+
+def test_existing_partial_output_is_reaudited_and_rejected_without_recompute(tmp_path, monkeypatch):
+    checkpoint = tmp_path / "checkpoint.json"
+    output = tmp_path / "cell"
+    _checkpoint(checkpoint)
+    output.mkdir()
+    (output / "partial-cell-arrays.npz").write_bytes(b"truncated")
+    calls = []
+
+    def must_not_run(*_args, **_kwargs):
+        calls.append("run")
+        raise AssertionError("existing output must be audited before any recomputation")
+
+    def reject_partial(_bundle, cell_dir):
+        assert Path(cell_dir, "partial-cell-arrays.npz").read_bytes() == b"truncated"
+        raise AssertionError("cell artifact manifest is missing")
+
+    monkeypatch.setattr(runner, "run_cell", must_not_run)
+    monkeypatch.setattr(runner, "audit_cell", reject_partial)
+    result = runner.run_audited_cell(
+        checkpoint, tmp_path / "bundle", output,
+        replicate=1, gamma=0.0, validation_size=100,
+        arm="A_catalogue_only",
+    )
+
+    assert calls == []
+    assert result["status"] == "FAILED"
+    assert result["reason_code"] == "CHILD_AUDIT_FAILED"
+    row = read_checkpoint(checkpoint)["cell_ledger"][0]
+    assert row["status"] == "FAILED"
+    assert row["audit_status"] == "NOT_PASS"
