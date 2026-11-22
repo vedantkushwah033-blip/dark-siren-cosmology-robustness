@@ -6,6 +6,7 @@ on:
       - "src/dark_siren_robustness/arm_cell_execution.py"
       - "src/dark_siren_robustness/shared_input_bundle.py"
       - "scripts/run_arm_cell_from_bundle.py"
+      - "scripts/prepare_shared_input_bundle.py"
       - "scripts/audit_arm_cell_from_bundle.py"
       - "scripts/run_arm_cell_plan.py"
       - "scripts/run_audited_arm_cell.py"
@@ -14,6 +15,7 @@ on:
       - "tests/test_audit_arm_cell_from_bundle.py"
       - "tests/test_run_arm_cell_plan.py"
       - "tests/test_shared_input_bundle.py"
+      - "tests/test_prepare_shared_input_bundle.py"
       - ".github/workflows/shared-input-arm-cell-runner.yml"
   pull_request:
     paths:
