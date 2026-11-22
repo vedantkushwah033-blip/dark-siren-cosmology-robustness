@@ -44,15 +44,16 @@ def _make_bundle(root: Path, *, seed: int, gamma: float, h0: float) -> None:
 
 
 def _plan(tmp_path: Path) -> Path:
-    first, second = tmp_path / "bundle_r1_gm1", tmp_path / "bundle_r2_gp1"
-    _make_bundle(first, seed=25001, gamma=-1.0, h0=68.0)
-    _make_bundle(second, seed=25011, gamma=1.0, h0=72.0)
+    bundles = []
+    for replicate, seed, h0 in ((1, 25001, 68.0), (2, 25011, 72.0)):
+        for gamma, label in ((-1.0, "gm1"), (1.0, "gp1")):
+            root = tmp_path / f"bundle_r{replicate}_{label}"
+            _make_bundle(root, seed=seed, gamma=gamma, h0=h0)
+            bundles.append({"replicate": replicate, "input_dir": str(root)})
     path = tmp_path / "bundle_plan.json"
-    path.write_text(json.dumps({"bundles": [
-        {"replicate": 1, "input_dir": str(first)},
-        {"replicate": 2, "input_dir": str(second)},
-    ]}, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps({"bundles": bundles}, indent=2) + "\n", encoding="utf-8")
     return path
+
 
 
 def test_global_scheduler_runs_multiple_replicates_and_curvatures_with_one_checkpoint(tmp_path):
@@ -67,21 +68,21 @@ def test_global_scheduler_runs_multiple_replicates_and_curvatures_with_one_check
     )
     first = scheduler.run(args)
     assert first["status"] == "PASS"
-    assert first["bundle_count"] == 2
+    assert first["bundle_count"] == 4
     assert first["replicate_count"] == 2
     assert first["curvature_count"] == 2
-    assert first["planned_cells"] == 4
+    assert first["planned_cells"] == 8
     assert first["status_counts"] == {
-        "FAILED": 0, "NON_EVALUABLE": 0, "NOT_RUN": 0, "SUCCESS": 4,
+        "FAILED": 0, "NON_EVALUABLE": 0, "NOT_RUN": 0, "SUCCESS": 8,
     }
     report = auditor.audit(output)
     assert report["status"] == "PASS"
-    assert report["successful_cells_reaudited"] == 4
+    assert report["successful_cells_reaudited"] == 8
 
     checkpoint = json.loads((output / "cell_lifecycle_checkpoint.json").read_text())
-    assert len(checkpoint["cell_ledger"]) == 4
+    assert len(checkpoint["cell_ledger"]) == 8
     assert {(row["replicate"], row["gamma"]) for row in checkpoint["planned_cells"]} == {
-        (1, -1.0), (2, 1.0),
+        (1, -1.0), (1, 1.0), (2, -1.0), (2, 1.0),
     }
 
     args.resume = True
