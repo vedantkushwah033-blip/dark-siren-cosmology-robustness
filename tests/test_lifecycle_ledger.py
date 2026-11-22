@@ -669,7 +669,7 @@ def test_checkpoint_does_not_allow_fresh_claim_of_upstream_failure(tmp_path):
         mark_cell_started(path, (0, 0.0, 100, "A"), "2026-11-22T02:00:00Z")
 
 
-def test_global_multi_bundle_scheduler_regression_suite(tmp_path, monkeypatch):
+def test_global_multi_bundle_scheduler_regression_suite(tmp_path):
     # The full repository test workflow already runs this lifecycle module.
     # Invoke the global orchestration suite here so it is covered without
     # changing the broad workflow's long-running scientific experiment list.
@@ -692,6 +692,7 @@ def test_global_multi_bundle_scheduler_regression_suite(tmp_path, monkeypatch):
         case_root = tmp_path / f"global_case_{index}"
         case_root.mkdir()
         if "monkeypatch" in case.__code__.co_varnames:
-            case(case_root, monkeypatch)
+            with pytest.MonkeyPatch.context() as patch:
+                case(case_root, patch)
         else:
             case(case_root)
