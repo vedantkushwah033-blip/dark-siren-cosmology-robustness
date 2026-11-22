@@ -63,3 +63,18 @@ The coordinator must preserve completed cells on restart and record each attempt
 The latest PR #162 exact-head CI is green on Python 3.10, 3.11, and 3.12, and its matched quadratic-logit H0 smoke plus independent child audit pass. Those checks validate the current repository and checkpoint primitives; they do **not** validate the proposed cell-level architecture. No confirmatory calibration should run until steps 1–7 are implemented, exact-head CI is green, and the frozen protocol and failure rules are reviewed.
 
 The research remains a synthetic low-redshift methodology benchmark. It is not an observational H0 measurement, an LVK/GWTC analysis, or evidence that one estimator is universally superior.
+
+## Validation update — 2026-11-22
+
+**Reviewed revision:** `446249c45b91588dec8a7144ae8a30f73404c052`  
+**Scope:** repository source inspection plus GitHub Actions evidence; no local test execution is claimed.
+
+At this revision, the production boundary described above remains unchanged: the multi-replicate coordinator still launches one five-arm child per replicate × gamma, and one child outcome is copied to every arm × validation-size ledger row. The shared-input bundle and checkpoint primitives therefore remain preparatory infrastructure, not cell-level production execution.
+
+Exact-head workflow evidence observed on this revision:
+
+- The degree-matched quadrature sensitivity pilot completed successfully. Its workflow ran the targeted orchestration/quadrature test subset (**20 passed**), then evaluated 6 paired child runs (3 curvature values × 2 validation sizes) with 6/6 child audits passing. It recorded 35 input-pairing checks, 50 likelihood-invariance checks, 12 quadrature-convergence rows, and a maximum order-9 versus order-7 density L1 difference of approximately (1.25\times10^{-5}). This is a small engineering/numerical sensitivity pilot (400 parent objects, 4 detected events, 41 H0 grid points), not a calibration experiment and not evidence of estimator ranking.
+- The matched quadratic-logit H0 smoke and its independent artifact audit completed successfully. The audit reports arithmetic/artifact integrity only; its own claim limit explicitly excludes calibration, SBC, coverage, and real-data validation.
+- The full repository test-matrix workflow and paired-degree multi-replicate workflow were still pending when this note was written. The prior-predictive Stage0 workflow was skipped.
+
+The numerical pilot is useful evidence that the paired-degree likelihood calculation and selected quadrature orders are behaving consistently at this small scale. It does not resolve the production lifecycle gap. The next implementation gate remains a true one-cell evaluator, independent one-cell auditor, checkpoint-owning coordinator, and aggregate auditor that reconciles all four states at exact cell-key granularity. Do not launch confirmatory calibration before that gate and exact-head CI pass.
