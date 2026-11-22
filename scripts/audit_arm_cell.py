@@ -257,6 +257,33 @@ def audit_cell(input_dir: Path, output_dir: Path) -> dict:
         raise AssertionError("source config hash mismatch")
     if provenance["source_manifest_sha256"] != _sha256(source_manifest_path):
         raise AssertionError("source manifest hash mismatch")
+    shared_manifest_hash = provenance.get("shared_input_manifest_sha256")
+    if shared_manifest_hash is not None:
+        shared_path = root / "shared_input_manifest.json"
+        if not shared_path.is_file() or _sha256(shared_path) != shared_manifest_hash:
+            raise AssertionError("shared-input manifest hash mismatch")
+        shared = json.loads(shared_path.read_text(encoding="utf-8"))
+        expected_sizes = [int(value) for value in config["validation_sizes"]]
+        if shared.get("schema_version") != 1 or shared.get("status") != "FROZEN":
+            raise AssertionError("shared-input manifest is not a supported frozen bundle")
+        if shared.get("validation_sizes") != expected_sizes:
+            raise AssertionError("shared-input validation-size plan differs from config")
+        expected_shared = {
+            "observable/catalogue_observed.csv",
+            "observable/gw_events_observed.csv",
+            "truth/parent_truth.csv",
+            "truth/gw_event_truth.csv",
+            "truth/gw_generation_trace_truth.csv",
+            "truth/validation_frame_truth.csv",
+            *{f"observable/validation_n{value}.csv" for value in expected_sizes},
+        }
+        if set(shared.get("files", {})) != expected_shared:
+            raise AssertionError("shared-input manifest file set differs from frozen design")
+        for relative, metadata in shared["files"].items():
+            path = root / relative
+            if (not path.is_file() or path.stat().st_size != int(metadata["bytes"])
+                    or _sha256(path) != metadata["sha256"]):
+                raise AssertionError(f"independent shared-input hash check failed: {relative}")
     for name, entry in output_manifest["files"].items():
         path = cell / name
         if not path.is_file() or path.stat().st_size != int(entry["bytes"]) or _sha256(path) != entry["sha256"]:
