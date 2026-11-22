@@ -97,3 +97,47 @@ def test_shared_input_loader_rejects_modified_validation_slice(tmp_path):
         stream.write("\n")
     with pytest.raises(ValueError, match="SHA-256"):
         load_shared_input_manifest(output, expected_validation_sizes=[20])
+
+def test_shared_input_bundle_runs_one_cell_and_passes_independent_audit(tmp_path):
+    output = tmp_path / "shared"
+    GENERATOR.run(SimpleNamespace(
+        output_dir=output,
+        seed=14001,
+        event_seed=14002,
+        validation_seed=14003,
+        validation_sample_seed=14004,
+        n_parent=600,
+        n_detected=2,
+        validation_frame=30,
+        validation_sizes=[20],
+        inclusion_degree=1,
+        curvature_gamma=0.0,
+        curvature_beta=-3.9,
+        h0_true=70.0,
+        h0_prior_min=50.0,
+        h0_prior_max=90.0,
+        h0_points=41,
+        scott_multiplier=0.7,
+        quadrature_order=3,
+        sigma_mpc=140.0,
+        detection_threshold_mpc=250.0,
+    ))
+    worker_path = Path(__file__).resolve().parents[1] / "scripts" / "run_arm_cell.py"
+    worker_spec = importlib.util.spec_from_file_location("run_arm_cell_e2e", worker_path)
+    worker = importlib.util.module_from_spec(worker_spec)
+    assert worker_spec.loader is not None
+    worker_spec.loader.exec_module(worker)
+    auditor_path = Path(__file__).resolve().parents[1] / "scripts" / "audit_arm_cell.py"
+    auditor_spec = importlib.util.spec_from_file_location("audit_arm_cell_e2e", auditor_path)
+    auditor = importlib.util.module_from_spec(auditor_spec)
+    assert auditor_spec.loader is not None
+    auditor_spec.loader.exec_module(auditor)
+    cell = tmp_path / "cell"
+    result = worker.run(SimpleNamespace(
+        input_dir=output, output_dir=cell, replicate=0,
+        validation_size=20, arm="A_catalogue_only",
+    ))
+    assert result["status"] == "PASS"
+    report = auditor.audit_cell(output, cell)
+    assert report["status"] == "PASS"
+    assert report["source_inputs_verified"] >= 3
