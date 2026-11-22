@@ -93,3 +93,18 @@ def test_preparation_auditor_rejects_tampered_raw_input(tmp_path):
     )
     assert audited.returncode != 0
     assert "hash/size mismatch" in audited.stderr or "hash/size mismatch" in audited.stdout
+
+
+def test_preparation_rejects_reused_rng_stream_seeds(tmp_path):
+    output = tmp_path / "duplicate_seed_bundle"
+    command = [
+        sys.executable, str(REPO_ROOT / "scripts/prepare_shared_input_bundle.py"),
+        "--seed", "17", "--event-seed", "17", "--validation-seed", "18",
+        "--validation-sample-seed", "19", "--n-parent", "120",
+        "--n-detected", "1", "--validation-frame", "20",
+        "--validation-sizes", "10", "--output-dir", str(output),
+    ]
+    completed = subprocess.run(command, cwd=REPO_ROOT, capture_output=True, text=True)
+    assert completed.returncode != 0
+    assert "seed streams must be distinct" in completed.stderr
+    assert not output.exists()
