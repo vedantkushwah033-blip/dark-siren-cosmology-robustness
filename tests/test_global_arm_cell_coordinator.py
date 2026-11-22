@@ -107,3 +107,21 @@ def test_global_auditor_rejects_a_cell_bound_to_the_wrong_bundle(tmp_path):
     checkpoint_path.write_text(json.dumps(checkpoint, indent=2, sort_keys=True) + "\n")
     with __import__("pytest").raises(AssertionError, match="immutable global plan hash"):
         auditor.audit(output)
+
+
+
+def test_global_scheduler_rejects_unpaired_exogenous_streams_across_curvature(tmp_path):
+    first, second = tmp_path / "bundle_gm1", tmp_path / "bundle_gp1"
+    _make_bundle(first, seed=26001, gamma=-1.0, h0=70.0)
+    _make_bundle(second, seed=26009, gamma=1.0, h0=70.0)
+    bundle_plan = tmp_path / "unpaired_plan.json"
+    bundle_plan.write_text(json.dumps({"bundles": [
+        {"replicate": 3, "input_dir": str(first)},
+        {"replicate": 3, "input_dir": str(second)},
+    ]}), encoding="utf-8")
+    scheduler = _load_global("run_global_arm_cells.py")
+    with __import__("pytest").raises(ValueError, match="not paired across curvature"):
+        scheduler.run(SimpleNamespace(
+            bundle_plan=bundle_plan, output_dir=tmp_path / "run",
+            arms=["A_catalogue_only"], max_workers=1, resume=False,
+        ))
