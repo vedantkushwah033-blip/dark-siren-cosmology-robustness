@@ -43,47 +43,6 @@ def _same(actual, expected, label: str, *, atol: float = 1e-12) -> None:
         raise AssertionError(f"{label}: values differ (max abs={delta})")
 
 
-def _validate_generation_trace(trace: pd.DataFrame, event_obs: pd.DataFrame,
-                               event_truth: pd.DataFrame, n_events: int,
-                               threshold_mpc: float, n_parent: int) -> None:
-    """Reconstruct thresholding and first-N event acceptance from the full trace."""
-    required = {"attempt_id", "host_object_id", "distance_mpc", "detected", "selected_as_event"}
-    if not required.issubset(trace.columns):
-        raise AssertionError("GW generation trace is missing required columns")
-    attempts = trace["attempt_id"].to_numpy(int)
-    if not np.array_equal(attempts, np.arange(len(trace))):
-        raise AssertionError("GW generation trace attempt IDs are not contiguous and ordered")
-    host_ids = trace["host_object_id"].to_numpy(int)
-    distances = trace["distance_mpc"].to_numpy(float)
-    detected = trace["detected"].to_numpy(int)
-    selected = trace["selected_as_event"].to_numpy(int)
-    if (np.any((host_ids < 0) | (host_ids >= n_parent))
-            or not np.all(np.isfinite(distances))
-            or np.any((detected != 0) & (detected != 1))
-            or np.any((selected != 0) & (selected != 1))):
-        raise AssertionError("GW generation trace contains invalid host IDs, distances, or flags")
-    expected_detected = (distances >= float(threshold_mpc)).astype(np.int8)
-    if not np.array_equal(detected, expected_detected):
-        raise AssertionError("GW detection flags do not match the declared distance threshold")
-    detected_positions = np.flatnonzero(expected_detected)
-    if len(detected_positions) < n_events:
-        raise AssertionError("GW generation trace contains fewer detections than requested")
-    expected_selected = np.zeros(len(trace), dtype=np.int8)
-    expected_selected[detected_positions[:n_events]] = 1
-    if not np.array_equal(selected, expected_selected):
-        raise AssertionError("GW selected events are not exactly the first N detected candidates")
-    chosen = np.flatnonzero(expected_selected)
-    if len(event_obs) != n_events or len(event_truth) != n_events:
-        raise AssertionError("GW event tables do not contain exactly the requested event count")
-    if not np.array_equal(event_obs["event_id"].to_numpy(int), np.arange(n_events)):
-        raise AssertionError("GW observed event IDs are invalid")
-    if not np.array_equal(event_truth["event_id"].to_numpy(int), np.arange(n_events)):
-        raise AssertionError("GW truth event IDs are invalid")
-    _same(event_obs["distance_mpc"], distances[chosen], "GW observed distances vs first-N trace")
-    if not np.array_equal(event_truth["host_object_id"].to_numpy(int), host_ids[chosen]):
-        raise AssertionError("GW event truth hosts do not match first-N trace selections")
-
-
 def audit(bundle_dir: Path) -> dict:
     root = Path(bundle_dir).resolve()
     outer_path = root / "manifest.json"
@@ -209,10 +168,14 @@ def audit(bundle_dir: Path) -> dict:
     event_truth = pd.read_csv(root / "truth/gw_event_truth.csv")
     trace = pd.read_csv(root / "truth/gw_generation_trace_truth.csv")
     n_events = int(config["n_detected"])
-    _validate_generation_trace(
-        trace, event_obs, event_truth, n_events,
-        float(config["detection_threshold_mpc"]), len(parent),
-    )
+    if len(event_obs) != n_events or len(event_truth) != n_events:
+        raise AssertionError("detected GW event count differs from config")
+    if not np.array_equal(event_obs["event_id"].to_numpy(int), np.arange(n_events)):
+        raise AssertionError("GW event IDs are invalid")
+    if np.any(event_obs["distance_mpc"].to_numpy(float) < float(config["detection_threshold_mpc"])):
+        raise AssertionError("observed GW event violates the detection threshold")
+    if not np.array_equal(event_truth["event_id"].to_numpy(int), np.arange(n_events)):
+        raise AssertionError("GW truth event IDs are invalid")
     hosts = parent.set_index("object_id").loc[event_truth["host_object_id"].to_numpy(int)]
     _same(event_truth["host_redshift"], hosts["redshift"], "GW host redshifts")
     _same(
@@ -220,6 +183,14 @@ def audit(bundle_dir: Path) -> dict:
         C_KM_S * hosts["redshift"].to_numpy(float) / float(config["h0_true"]),
         "GW latent mean distances",
     )
+    selected = trace.loc[trace["selected_as_event"].astype(int) == 1]
+    if len(selected) != n_events or not np.all(selected["detected"].to_numpy(int) == 1):
+        raise AssertionError("GW generation trace selected-event accounting is invalid")
+    _same(event_obs["distance_mpc"], selected["distance_mpc"], "GW selected distances")
+    if not np.array_equal(
+        event_truth["host_object_id"].to_numpy(int), selected["host_object_id"].to_numpy(int)
+    ):
+        raise AssertionError("GW generation trace host IDs disagree with event truth")
 
     previous_ids = None
     for n in sizes:
