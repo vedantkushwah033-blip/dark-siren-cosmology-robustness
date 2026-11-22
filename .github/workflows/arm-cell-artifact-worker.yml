@@ -29,5 +29,9 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
       - name: Test independent arm-cell numerical primitive
         run: python -m pytest tests/test_arm_cell_execution.py -q
-      - name: Test one-cell artifact worker, arm isolation and provenance
+      - name: Test inference-free shared-input generator
+        run: python -m pytest tests/test_shared_input_generator.py -q
+      - name: Test one-cell worker and independent auditor for all five arms
         run: python -m pytest tests/test_arm_cell_worker.py -q
+      - name: Test per-cell coordinator, aggregate auditor and lifecycle restart
+        run: python -m pytest tests/test_arm_cell_replicate_coordinator.py tests/test_lifecycle_ledger.py -q
