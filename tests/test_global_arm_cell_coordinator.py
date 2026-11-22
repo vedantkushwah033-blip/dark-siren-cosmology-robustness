@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -221,3 +222,28 @@ def test_global_scheduler_rejects_reused_independent_event_seed_stream(tmp_path)
             bundle_plan=bundle_plan, output_dir=tmp_path / "run",
             arms=["A_catalogue_only"], max_workers=1, resume=False,
         ))
+
+
+
+def test_global_auditor_rejects_seed_provenance_tampering_even_with_rehashed_plan(tmp_path):
+    bundle_plan = _plan(tmp_path)
+    output = tmp_path / "global_run"
+    scheduler = _load_global("run_global_arm_cells.py")
+    auditor = _load_global("audit_global_arm_cells.py")
+    scheduler.run(SimpleNamespace(
+        bundle_plan=bundle_plan, output_dir=output,
+        arms=["A_catalogue_only"], max_workers=1, resume=False,
+    ))
+    checkpoint_path = output / "cell_lifecycle_checkpoint.json"
+    checkpoint = json.loads(checkpoint_path.read_text())
+    planned = checkpoint["planned_cells"][0]
+    key = (planned["replicate"], planned["gamma"], planned["validation_size"], planned["arm"])
+    planned["event_seed"] = int(planned["event_seed"]) + 123
+    for row in checkpoint["cell_ledger"]:
+        if (row["replicate"], row["gamma"], row["validation_size"], row["arm"]) == key:
+            row["event_seed"] = planned["event_seed"]
+    payload = json.dumps(checkpoint["planned_cells"], sort_keys=True, separators=(",", ":"), allow_nan=False)
+    checkpoint["plan_sha256"] = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    checkpoint_path.write_text(json.dumps(checkpoint, indent=2, sort_keys=True) + "\n")
+    with __import__("pytest").raises(AssertionError, match="event_seed provenance differs"):
+        auditor.audit(output)
