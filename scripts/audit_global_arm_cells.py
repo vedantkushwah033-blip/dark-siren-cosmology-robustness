@@ -149,6 +149,11 @@ def audit(output_dir: Path) -> dict:
         ))
     if len(stream_signatures) != len(set(stream_signatures)):
         raise AssertionError("independent replicates reuse an exogenous seed-stream tuple")
+    for field in ("seed", "event_seed", "validation_seed", "validation_sample_seed"):
+        values = [group[0].get(field) for _, group in sorted(configs_by_replicate.items())]
+        non_null = [value for value in values if value is not None]
+        if len(non_null) != len(set(non_null)):
+            raise AssertionError(f"independent replicates reuse the {field} stream seed")
 
     if (output / "cell_ledger.csv").read_text() != pd.DataFrame(ledger).to_csv(index=False):
         raise AssertionError("ledger CSV differs from checkpoint values")
