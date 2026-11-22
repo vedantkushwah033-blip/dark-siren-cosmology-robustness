@@ -80,8 +80,40 @@ def _read_bundle_plan(path: Path) -> list[dict]:
     return normalized
 
 
+def _validate_paired_bundle_design(bundles: list[dict]) -> None:
+    """Require shared exogenous streams across gamma within replicate, and distinct streams across replicates."""
+    paired_fields = (
+        "seed", "event_seed", "validation_seed", "validation_sample_seed",
+        "h0_true", "n_parent", "n_detected", "validation_frame",
+        "validation_sizes", "h0_prior_support", "h0_grid_points",
+        "sigma_mpc", "detection_threshold_mpc", "curvature_beta",
+        "inclusion_model_degree",
+    )
+    by_replicate: dict[int, list[dict]] = {}
+    for bundle in bundles:
+        by_replicate.setdefault(bundle["replicate"], []).append(bundle)
+    stream_signatures = []
+    for replicate, group in sorted(by_replicate.items()):
+        reference = group[0]["config"]
+        for bundle in group[1:]:
+            config = bundle["config"]
+            for field in paired_fields:
+                if config.get(field) != reference.get(field):
+                    raise ValueError(
+                        f"replicate {replicate} is not paired across curvature: {field} differs"
+                    )
+        config = reference
+        stream_signatures.append((
+            config.get("seed"), config.get("event_seed"),
+            config.get("validation_seed"), config.get("validation_sample_seed"),
+        ))
+    if len(stream_signatures) != len(set(stream_signatures)):
+        raise ValueError("independent replicates must use distinct exogenous seed-stream tuples")
+
+
 def run(args: argparse.Namespace) -> dict:
     bundles = _read_bundle_plan(args.bundle_plan.resolve())
+    _validate_paired_bundle_design(bundles)
     if args.max_workers < 1:
         raise ValueError("max_workers must be positive")
     arms = list(args.arms)
