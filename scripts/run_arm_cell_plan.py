@@ -44,6 +44,13 @@ def _load_runner():
 run_audited_cell = _load_runner()
 
 
+def _paths_overlap(left: str, right: str) -> bool:
+    """Return whether two filesystem paths are equal or one contains the other."""
+    a = Path(left).resolve()
+    b = Path(right).resolve()
+    return a == b or a in b.parents or b in a.parents
+
+
 def _key(row: dict) -> tuple:
     return (int(row["replicate"]), float(row["gamma"]),
             int(row["validation_size"]), str(row["arm"]))
@@ -96,6 +103,32 @@ def _normalize_plan(path: Path) -> list[dict]:
         rows.append(row)
     if not rows:
         raise ValueError("plan must contain at least one cell")
+
+    output_paths = [row["output_dir"] for row in rows]
+    audit_paths = [
+        row.get("audit_report_path") or row["output_dir"] + ".independent_audit.json"
+        for row in rows
+    ]
+    bundle_paths = [row["bundle_dir"] for row in rows]
+    for i, left in enumerate(output_paths):
+        for right in output_paths[i + 1:]:
+            if _paths_overlap(left, right):
+                raise ValueError(f"cell output directories overlap: {left} and {right}")
+    for i, left in enumerate(audit_paths):
+        for right in audit_paths[i + 1:]:
+            if _paths_overlap(left, right):
+                raise ValueError(f"cell audit-report paths overlap: {left} and {right}")
+    for output in output_paths:
+        for audit_path in audit_paths:
+            if _paths_overlap(output, audit_path):
+                raise ValueError(f"cell output and audit-report paths overlap: {output} and {audit_path}")
+        for bundle in bundle_paths:
+            if _paths_overlap(output, bundle):
+                raise ValueError(f"cell output and shared-bundle paths overlap: {output} and {bundle}")
+    for audit_path in audit_paths:
+        for bundle in bundle_paths:
+            if _paths_overlap(audit_path, bundle):
+                raise ValueError(f"cell audit-report and shared-bundle paths overlap: {audit_path} and {bundle}")
     return rows
 
 
