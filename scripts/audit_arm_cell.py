@@ -289,7 +289,8 @@ def audit_cell(input_dir: Path, output_dir: Path) -> dict:
         if not path.is_file() or path.stat().st_size != int(entry["bytes"]) or _sha256(path) != entry["sha256"]:
             raise AssertionError(f"cell output manifest mismatch: {name}")
     arm, nval = provenance["arm"], int(provenance["validation_size"])
-    if arm not in ARM_KEYS or arm != summary["arm"] or nval != int(summary["validation_size"]):
+    if (arm not in ARM_KEYS or arm != summary["arm"] or nval != int(summary["validation_size"])
+            or float(provenance["gamma"]) != float(summary["gamma"])):
         raise AssertionError("cell identity differs between provenance and summary")
     if int(provenance["replicate"]) != int(summary["replicate"]):
         raise AssertionError("replicate identity mismatch")
@@ -421,6 +422,7 @@ def audit_cell(input_dir: Path, output_dir: Path) -> dict:
         "status": "PASS",
         "arm": arm,
         "validation_size": nval,
+        "gamma": float(provenance["gamma"]),
         "replicate": int(provenance["replicate"]),
         "component_count": int(raw_components.shape[0]),
         "maximum_log_likelihood_absolute_difference": float(np.max(np.abs(archive["marginal_log_likelihood"] - marginal))),
