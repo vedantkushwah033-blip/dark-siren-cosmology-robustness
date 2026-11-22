@@ -8,8 +8,11 @@ four-state lifecycle checkpoint.
 
 Use `scripts/generate_shared_inputs.py` once for each independent
 replicate/curvature pair. Each bundle must remain inference-free and immutable.
-Use independently predeclared seed streams and H0 truths; do not reuse one seed
-or one truth across nominally independent replicates.
+Within a replicate, the parent, event, validation-frame, validation-sample
+streams and H0 truth must match across curvature bundles to preserve paired
+comparisons. Across independent replicates, the four seed-stream tuple must
+differ. For prior-predictive studies, draw H0 truths independently by replicate;
+repeated truths are appropriate only for an explicitly fixed-truth design.
 
 Example bundle-plan JSON:
 
