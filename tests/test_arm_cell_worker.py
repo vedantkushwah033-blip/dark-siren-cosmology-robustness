@@ -132,3 +132,52 @@ def test_worker_rejects_validation_size_not_in_frozen_bundle(tmp_path):
             input_dir=bundle, output_dir=tmp_path / "cell", replicate=0,
             validation_size=100, arm="A_catalogue_only",
         ))
+
+AUDIT_SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "audit_arm_cell.py"
+AUDIT_SPEC = importlib.util.spec_from_file_location("audit_arm_cell", AUDIT_SCRIPT)
+AUDITOR = importlib.util.module_from_spec(AUDIT_SPEC)
+assert AUDIT_SPEC.loader is not None
+AUDIT_SPEC.loader.exec_module(AUDITOR)
+
+
+@pytest.mark.parametrize("arm", ["A_catalogue_only", "B_parent_oracle"])
+def test_independent_auditor_reconstructs_worker_outputs(tmp_path, arm):
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    _bundle(bundle)
+    if arm == "A_catalogue_only":
+        (bundle / "truth" / "parent_truth.csv").unlink()
+        manifest = json.loads((bundle / "manifest.json").read_text())
+        manifest["files"].pop("truth/parent_truth.csv")
+        (bundle / "manifest.json").write_text(json.dumps(manifest))
+    if arm == "B_parent_oracle":
+        (bundle / "observable" / "catalogue_observed.csv").unlink()
+        manifest = json.loads((bundle / "manifest.json").read_text())
+        manifest["files"].pop("observable/catalogue_observed.csv")
+        (bundle / "manifest.json").write_text(json.dumps(manifest))
+    output = tmp_path / "cell"
+    WORKER.run(SimpleNamespace(
+        input_dir=bundle, output_dir=output, replicate=3,
+        validation_size=20, arm=arm,
+    ))
+    report = AUDITOR.audit_cell(bundle, output)
+    assert report["status"] == "PASS"
+    assert report["arm"] == arm
+    assert report["maximum_log_likelihood_absolute_difference"] <= 2e-10
+
+
+def test_independent_auditor_rejects_tampered_cell_array(tmp_path):
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    _bundle(bundle)
+    output = tmp_path / "cell"
+    WORKER.run(SimpleNamespace(
+        input_dir=bundle, output_dir=output, replicate=0,
+        validation_size=20, arm="A_catalogue_only",
+    ))
+    with np.load(output / "arm_cell_arrays.npz") as archive:
+        arrays = {key: archive[key] for key in archive.files}
+    arrays["marginal_log_likelihood"] = arrays["marginal_log_likelihood"] + 0.1
+    np.savez_compressed(output / "arm_cell_arrays.npz", **arrays)
+    with pytest.raises(AssertionError, match="output manifest mismatch"):
+        AUDITOR.audit_cell(bundle, output)
