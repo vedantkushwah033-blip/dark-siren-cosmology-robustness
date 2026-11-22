@@ -63,7 +63,7 @@ def test_global_scheduler_runs_multiple_replicates_and_curvatures_with_one_check
     args = SimpleNamespace(
         bundle_plan=bundle_plan, output_dir=output,
         arms=["A_catalogue_only", "B_parent_oracle"],
-        max_workers=1, resume=False,
+        max_workers=2, resume=False,
     )
     first = scheduler.run(args)
     assert first["status"] == "PASS"
