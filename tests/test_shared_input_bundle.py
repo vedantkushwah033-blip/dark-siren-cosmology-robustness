@@ -98,7 +98,7 @@ def test_loader_detects_input_tampering(tmp_path: Path):
         tmp_path, validation_sizes=[10, 20], provenance={"seed": 1},
     )
     (tmp_path / "observable/catalogue_observed.csv").write_text(
-        "id,value\\n1,9\\n", encoding="utf-8"
+        "id,value\n1,9\n", encoding="utf-8"
     )
     with pytest.raises(ValueError, match="SHA-256 mismatch"):
         load_shared_input_manifest(tmp_path)
