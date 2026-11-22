@@ -10,6 +10,7 @@ on:
     branches:
       - research/arm-cell-execution-foundation-20261121
       - research/arm-cell-artifact-worker-20261122
+      - research/global-arm-cell-coordinator-20261122
   workflow_dispatch:
 
 concurrency:
