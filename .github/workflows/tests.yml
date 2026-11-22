@@ -78,6 +78,10 @@ jobs:
         run: python -m pytest tests/test_paired_degree_multireplicate_pilot.py -q
       - name: Test strict four-state confirmatory lifecycle ledger primitives
         run: python -m pytest tests/test_lifecycle_ledger.py -q
+      - name: Test isolated arm-cell execution and frozen-bundle cell runner
+        run: python -m pytest tests/test_arm_cell_execution.py tests/test_run_arm_cell_from_bundle.py tests/test_shared_input_bundle.py -q
+      - name: Validate one-arm shared-bundle runner CLI
+        run: python scripts/run_arm_cell_from_bundle.py --help
       - name: Validate paired degree pilot and independent auditor CLIs
         run: |
           python scripts/run_paired_degree_multireplicate_pilot.py --help
