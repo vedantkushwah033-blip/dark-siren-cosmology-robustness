@@ -101,7 +101,7 @@ def prepare(args: argparse.Namespace) -> dict[str, object]:
         basis_center = float(quadratic["config"]["x2_center"])
         config = {
             "experiment": "preparation_only_shared_input_bundle",
-            "status": "FROZEN_INPUTS_ONLY_NO_INFERENCE_EXECUTED",
+            "status": "shared_inputs_only_no_inference",
             "seed": int(args.seed),
             "event_seed": args.event_seed,
             "validation_seed": int(args.validation_seed),
