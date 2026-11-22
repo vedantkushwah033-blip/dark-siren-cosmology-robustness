@@ -159,31 +159,3 @@ def test_interrupted_attempt_resume_retains_immutable_first_start_timestamp(tmp_
     assert second_attempt["attempt_started_at"] != original_first_start
     assert second_attempt["first_cell_started_at"] == original_first_start
     assert aggregate_auditor.audit(output, bundle)["status"] == "PASS"
-
-
-
-def test_global_multi_bundle_scheduler_regression_suite(tmp_path, monkeypatch):
-    # Keep this integration suite in the focused worker workflow's existing
-    # test target so the stacked PR receives the complete Python matrix.
-    from test_global_arm_cell_coordinator import (
-        test_global_auditor_rejects_a_cell_bound_to_the_wrong_bundle,
-        test_global_scheduler_isolates_one_cell_failure_and_audits_remaining_cells,
-        test_global_scheduler_recovers_interrupted_cell_without_losing_first_start,
-        test_global_scheduler_rejects_unpaired_exogenous_streams_across_curvature,
-        test_global_scheduler_runs_multiple_replicates_and_curvatures_with_one_checkpoint,
-    )
-
-    cases = [
-        test_global_scheduler_runs_multiple_replicates_and_curvatures_with_one_checkpoint,
-        test_global_auditor_rejects_a_cell_bound_to_the_wrong_bundle,
-        test_global_scheduler_rejects_unpaired_exogenous_streams_across_curvature,
-        test_global_scheduler_isolates_one_cell_failure_and_audits_remaining_cells,
-        test_global_scheduler_recovers_interrupted_cell_without_losing_first_start,
-    ]
-    for index, case in enumerate(cases):
-        case_root = tmp_path / f"global_case_{index}"
-        case_root.mkdir()
-        if "monkeypatch" in case.__code__.co_varnames:
-            case(case_root, monkeypatch)
-        else:
-            case(case_root)
