@@ -199,3 +199,31 @@ def test_plan_rejects_unknown_arm_before_checkpoint_creation(tmp_path):
     with pytest.raises(ValueError, match="unknown arm"):
         coordinator.run_plan(plan_path, checkpoint)
     assert not checkpoint.exists()
+
+
+
+def test_plan_rejects_nested_output_directories(tmp_path):
+    plan_path = tmp_path / "nested-output-plan.json"
+    cells = _write_plan(plan_path)
+    cells[1]["output_dir"] = cells[0]["output_dir"] + "/nested"
+    plan_path.write_text(json.dumps({"schema_version": 1, "cells": cells}))
+    with pytest.raises(ValueError, match="output directories overlap"):
+        coordinator._normalize_plan(plan_path)
+
+
+def test_plan_rejects_output_audit_path_collision(tmp_path):
+    plan_path = tmp_path / "output-audit-plan.json"
+    cells = _write_plan(plan_path)
+    cells[1]["audit_report_path"] = cells[0]["output_dir"] + "/audit.json"
+    plan_path.write_text(json.dumps({"schema_version": 1, "cells": cells}))
+    with pytest.raises(ValueError, match="output and audit-report paths overlap"):
+        coordinator._normalize_plan(plan_path)
+
+
+def test_plan_rejects_output_nested_inside_shared_bundle(tmp_path):
+    plan_path = tmp_path / "bundle-output-plan.json"
+    cells = _write_plan(plan_path)
+    cells[0]["output_dir"] = cells[0]["bundle_dir"] + "/cell-output"
+    plan_path.write_text(json.dumps({"schema_version": 1, "cells": cells}))
+    with pytest.raises(ValueError, match="output and shared-bundle paths overlap"):
+        coordinator._normalize_plan(plan_path)
