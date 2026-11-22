@@ -26,6 +26,28 @@ from dark_siren_robustness.shared_input_bundle import load_shared_input_manifest
 from run_arm_cell_replicate import _cell_id, _execute_one, _sha256
 
 
+def _verify_config_provenance(config: dict, provenance: dict) -> None:
+    expected = {
+        "seed": config["seed"],
+        "event_seed": config.get("event_seed"),
+        "validation_seed": config["validation_seed"],
+        "validation_sample_seed": config.get("validation_sample_seed"),
+        "n_parent": config["n_parent"],
+        "n_detected": config["n_detected"],
+        "h0_true": config["h0_true"],
+        "sigma_mpc": config["sigma_mpc"],
+        "detection_threshold_mpc": config["detection_threshold_mpc"],
+        "n_validation_frame": config["validation_frame"],
+        "curvature_gamma": config["curvature_gamma"],
+        "curvature_beta": config["curvature_beta"],
+        "inclusion_model_degree": config["inclusion_model_degree"],
+        "quadratic_basis_center": config["quadratic_calibration"]["x2_center"],
+    }
+    for field, value in expected.items():
+        if provenance.get(field) != value:
+            raise ValueError(f"bundle config/shared manifest provenance mismatch: {field}")
+
+
 def _read_bundle_plan(path: Path) -> list[dict]:
     raw = json.loads(path.read_text(encoding="utf-8"))
     bundles = raw.get("bundles") if isinstance(raw, dict) else None
@@ -49,6 +71,7 @@ def _read_bundle_plan(path: Path) -> list[dict]:
             raise ValueError(f"duplicate replicate/curvature bundle: {key}")
         seen.add(key)
         shared = load_shared_input_manifest(root, expected_validation_sizes=config["validation_sizes"])
+        _verify_config_provenance(config, shared["provenance"])
         normalized.append({
             "replicate": replicate, "gamma": gamma, "input_dir": root,
             "config": config, "shared": shared,
