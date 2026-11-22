@@ -18,7 +18,7 @@ def _load_script(name: str):
 
 
 def _bundle(root: Path) -> None:
-    GENERATOR.run(SimpleNamespace(
+    generator = _load_script("generate_shared_inputs.py")\n    generator.run(SimpleNamespace(
         output_dir=root,
         seed=15001,
         event_seed=15002,
