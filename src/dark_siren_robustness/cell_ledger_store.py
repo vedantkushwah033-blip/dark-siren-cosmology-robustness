@@ -164,6 +164,26 @@ def mark_cell_started(path: str | Path, key: tuple, started_at: str) -> dict:
         return _write_updated(path, checkpoint)
 
 
+def requeue_not_scheduled_cells(path: str | Path, reason_detail: str = "") -> dict:
+    """Explicitly requeue never-started cells after all prior workers have stopped.
+
+    NOT_SCHEDULED is a terminal scheduling decision for the previous attempt,
+    not a terminal scientific outcome. A coordinator restart may explicitly
+    place those cells back into the executable RUN_NOT_STARTED state.
+    """
+    with _checkpoint_lock(path):
+        checkpoint = read_checkpoint(path)
+        for index, row in enumerate(checkpoint["cell_ledger"]):
+            if row["status"] == "NOT_RUN" and row.get("reason_code") == "NOT_SCHEDULED":
+                checkpoint["cell_ledger"][index] = set_cell_outcome(
+                    row, status="NOT_RUN", audit_status="NOT_RUN",
+                    reason_code="RUN_NOT_STARTED",
+                    reason_detail=reason_detail or "Cell requeued by an explicit coordinator restart.",
+                    started_at=None,
+                )
+        return _write_updated(path, checkpoint)
+
+
 def record_cell_outcome(path: str | Path, key: tuple, **outcome) -> dict:
     """Persist one audited terminal cell outcome without changing plan provenance."""
     with _checkpoint_lock(path):
