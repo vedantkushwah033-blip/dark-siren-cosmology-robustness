@@ -51,7 +51,7 @@ Resume an interrupted run with the identical bundle plan and options:
 python scripts/run_global_arm_cells.py \
   --bundle-plan runs/global_bundle_plan.json \
   --output-dir runs/global_arm_cells \
-  --arms A_catalogue_only,B_parent_oracle,C_known_probability_ipw,D1_estimated_ipw,E1_integrated_ipw \
+  --arms A_catalogue_only,B_parent_oracle,C_known_probability_ipw,D_map_plugin_ipw,E_uncertainty_integrated_ipw \
   --max-workers 4 --resume
 ```
 
