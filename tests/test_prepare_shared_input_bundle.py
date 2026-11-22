@@ -1,8 +1,12 @@
 import ast
+import importlib.util
 import json
 from pathlib import Path
 import subprocess
 import sys
+
+import pandas as pd
+import pytest
 
 from dark_siren_robustness.shared_input_bundle import load_shared_input_manifest
 
@@ -108,3 +112,32 @@ def test_preparation_rejects_reused_rng_stream_seeds(tmp_path):
     assert completed.returncode != 0
     assert "seed streams must be distinct" in completed.stderr
     assert not output.exists()
+
+
+
+def test_generation_trace_audit_reconstructs_threshold_and_first_n_selection():
+    auditor_path = REPO_ROOT / "scripts/audit_prepared_shared_input_bundle.py"
+    spec = importlib.util.spec_from_file_location("prepared_bundle_auditor_test", auditor_path)
+    auditor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(auditor)
+    trace = pd.DataFrame({
+        "attempt_id": [0, 1, 2, 3],
+        "host_object_id": [0, 1, 2, 3],
+        "distance_mpc": [100.0, 300.0, 400.0, 200.0],
+        "detected": [0, 1, 1, 0],
+        "selected_as_event": [0, 1, 1, 0],
+    })
+    observed = pd.DataFrame({"event_id": [0, 1], "distance_mpc": [300.0, 400.0]})
+    truth = pd.DataFrame({"event_id": [0, 1], "host_object_id": [1, 2]})
+    auditor._validate_generation_trace(trace, observed, truth, 2, 250.0, 4)
+
+    wrong_threshold_flags = trace.copy()
+    wrong_threshold_flags.loc[0, "detected"] = 1
+    with pytest.raises(AssertionError, match="detection flags"):
+        auditor._validate_generation_trace(wrong_threshold_flags, observed, truth, 2, 250.0, 4)
+
+    wrong_acceptance = trace.copy()
+    wrong_acceptance.loc[1, "selected_as_event"] = 0
+    wrong_acceptance.loc[3, "selected_as_event"] = 1
+    with pytest.raises(AssertionError, match="first N detected"):
+        auditor._validate_generation_trace(wrong_acceptance, observed, truth, 2, 250.0, 4)
