@@ -7,6 +7,7 @@ callbacks and remain separate from lifecycle persistence.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from types import MappingProxyType
 from typing import Callable, Mapping
 
 from .cell_ledger_store import mark_cell_started, read_checkpoint, record_cell_outcome
@@ -60,7 +61,8 @@ def execute_planned_cell(
     ]
     if len(plan_matches) != 1:
         raise KeyError(f"planned cell key must match exactly once: {key}")
-    plan_row = plan_matches[0]
+    # Do not let either callback mutate the frozen plan row seen by the other.
+    plan_row = MappingProxyType(dict(plan_matches[0]))
 
     mark_cell_started(checkpoint_path, tuple(key), _utc_now())
     try:
