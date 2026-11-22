@@ -21,7 +21,7 @@ def _prepare(tmp_path, degree):
     bundle = tmp_path / f"bundle_degree_{degree}"
     _run([
         sys.executable, str(ROOT / "scripts/prepare_shared_input_bundle.py"),
-        "--seed", str(20261130 + degree), "--validation-seed", str(20261140 + degree),
+        "--seed", str(20261130 + degree), "--event-seed", str(20261150 + degree), "--validation-seed", str(20261140 + degree), "--validation-sample-seed", str(20261160 + degree),
         "--n-parent", "120", "--n-detected", "2", "--validation-frame", "40",
         "--validation-sizes", "20", "--h0-points", "41",
         "--quadrature-order", "3", "--inclusion-degree", str(degree),
