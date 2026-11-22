@@ -41,3 +41,23 @@ jobs:
         run: python -m pytest tests/test_shared_input_bundle.py tests/test_arm_cell_execution.py tests/test_run_arm_cell_from_bundle.py -q
       - name: Validate one-cell runner CLI
         run: python scripts/run_arm_cell_from_bundle.py --help
+      - name: Generate a small frozen five-arm input bundle (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          python scripts/run_quadratic_five_arm_smoke.py \
+            --seed 20261122 --validation-seed 20261123 --n-parent 400 \
+            --n-detected 4 --validation-frame 300 --validation-sizes 100,200 \
+            --h0-points 41 --quadrature-order 3 \
+            --output-dir artifacts/shared_input_bundle_smoke
+      - name: Execute A through E as independent cells (Python 3.12 only)
+        if: matrix.python-version == '3.12'
+        run: |
+          for arm in A_catalogue_only B_parent_oracle C_known_probability_ipw D_map_plugin_ipw E_uncertainty_integrated_ipw; do
+            python scripts/run_arm_cell_from_bundle.py \
+              --bundle-dir artifacts/shared_input_bundle_smoke \
+              --output-dir "artifacts/arm_cells/$arm" \
+              --replicate 1 --gamma 0.0 --validation-size 100 --arm "$arm"
+            test -s "artifacts/arm_cells/$arm/cell_result.json"
+            test -s "artifacts/arm_cells/$arm/cell_arrays.npz"
+            test -s "artifacts/arm_cells/$arm/manifest.json"
+          done
