@@ -122,7 +122,7 @@ def test_worker_rejects_tampered_shared_input(tmp_path):
     _bundle(bundle)
     with (bundle / "observable" / "catalogue_observed.csv").open("a") as stream:
         stream.write("\n")
-    with pytest.raises(ValueError, match="SHA-256"):
+    with pytest.raises(ValueError, match="byte count|SHA-256"):
         WORKER.run(SimpleNamespace(
             input_dir=bundle, output_dir=tmp_path / "cell", replicate=0,
             validation_size=20, arm="A_catalogue_only",
