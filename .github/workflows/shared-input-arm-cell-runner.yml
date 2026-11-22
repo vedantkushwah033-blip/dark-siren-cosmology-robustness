@@ -115,6 +115,20 @@ jobs:
           assert all(Path(row["audit_report_path"]).is_file() for row in rows), rows
           print("five-arm serial coordinator checkpoint: PASS")
           PY
+          python scripts/audit_arm_cell_plan.py \
+            --checkpoint artifacts/arm_cell_checkpoint.json \
+            --output artifacts/arm_cell_checkpoint_independent_audit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("artifacts/arm_cell_checkpoint_independent_audit.json").read_text())
+          assert report["status"] == "PASS"
+          assert report["run_status"] == "PASS"
+          assert report["planned_cells"] == 5
+          assert report["status_counts"]["SUCCESS"] == 5
+          assert len(report["verified_audit_reports"]) == 5
+          print("independent aggregate checkpoint audit: PASS")
+          PY
       - name: Upload serial arm-cell smoke artifacts (Python 3.12 only)
         if: matrix.python-version == '3.12'
         uses: actions/upload-artifact@v4
@@ -123,6 +137,7 @@ jobs:
           path: |
             artifacts/arm_cell_plan.json
             artifacts/arm_cell_checkpoint.json
+            artifacts/arm_cell_checkpoint_independent_audit.json
             artifacts/coordinated_cells/
             artifacts/coordinated_cells/*.independent_audit.json
           if-no-files-found: error
