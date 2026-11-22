@@ -186,9 +186,9 @@ def prepare(args: argparse.Namespace) -> dict[str, object]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--seed", type=int, default=20261122)
+    parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--event-seed", type=int, required=True)
-    parser.add_argument("--validation-seed", type=int, default=20261123)
+    parser.add_argument("--validation-seed", type=int, required=True)
     parser.add_argument("--validation-sample-seed", type=int, required=True)
     parser.add_argument("--n-parent", type=int, default=1200)
     parser.add_argument("--n-detected", type=int, default=4)
