@@ -1,0 +1,33 @@
+name: arm-cell-artifact-worker
+
+on:
+  push:
+    branches:
+      - research/arm-cell-artifact-worker-20261122
+  pull_request:
+    branches:
+      - research/arm-cell-execution-foundation-20261121
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  arm-cell-worker:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Test independent arm-cell numerical primitive
+        run: python -m pytest tests/test_arm_cell_execution.py -q
+      - name: Test one-cell artifact worker, arm isolation and provenance
+        run: python -m pytest tests/test_arm_cell_worker.py -q
