@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime
 import hashlib
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -104,28 +105,47 @@ def audit(output_dir: Path, input_dir: Path) -> dict:
     # The current project has no approved arm-specific NON_EVALUABLE thresholds.
     if counts["NON_EVALUABLE"]:
         raise AssertionError("NON_EVALUABLE rows are prohibited until their policy is preregistered")
-    if pd.read_csv(output / "cell_ledger.csv").shape[0] != len(ledger):
-        raise AssertionError("CSV ledger export row count differs from checkpoint")
-    summaries = pd.read_csv(output / "cell_summaries.csv")
-    if len(summaries) != counts["SUCCESS"]:
-        raise AssertionError("cell summary row count differs from audited SUCCESS count")
-    if set(summaries["status"].astype(str)) != ({"SUCCESS"} if counts["SUCCESS"] else set()):
-        raise AssertionError("cell summary contains a non-success status")
+    # Reconstruct both CSV exports from their authoritative sources. Row-count
+    # checks alone allow edited values to survive if the outer manifest is
+    # refreshed, so compare the complete serialized tables byte-for-byte.
+    expected_ledger_csv = pd.DataFrame(ledger).to_csv(index=False)
+    actual_ledger_csv = (output / "cell_ledger.csv").read_text(encoding="utf-8")
+    if actual_ledger_csv != expected_ledger_csv:
+        raise AssertionError("CSV ledger export differs from checkpoint ledger values")
+
+    summary_columns = [
+        "replicate", "gamma", "validation_size", "arm", "status", "h0_true",
+        "median_error", "posterior_median", "q025", "q05", "q16", "q84", "q95", "q975",
+        "weight_diagnostics", "realized_bandwidths", "input_sha256",
+    ]
+    summary_rows = []
     for row in ledger:
-        if row["status"] == "SUCCESS":
-            match = summaries.loc[
-                (summaries["replicate"] == row["replicate"])
-                & (summaries["gamma"] == row["gamma"])
-                & (summaries["validation_size"] == row["validation_size"])
-                & (summaries["arm"] == row["arm"])
-            ]
-            if len(match) != 1:
-                raise AssertionError("SUCCESS ledger row does not have exactly one summary")
+        if row["status"] != "SUCCESS":
+            continue
+        report_path = output / row["audit_report_path"]
+        summary_path = report_path.parent / "result" / "summary.json"
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        key = ("replicate", "gamma", "validation_size", "arm")
+        if tuple(summary.get(field) for field in key) != tuple(row[field] for field in key):
+            raise AssertionError("cell summary identity differs from SUCCESS ledger row")
+        if summary.get("status") != "SUCCESS":
+            raise AssertionError("SUCCESS ledger row points to a non-success cell summary")
+        summary_rows.append(summary)
+    expected_summary_csv = pd.DataFrame(summary_rows, columns=summary_columns).to_csv(index=False)
+    actual_summary_csv = (output / "cell_summaries.csv").read_text(encoding="utf-8")
+    if actual_summary_csv != expected_summary_csv:
+        raise AssertionError("CSV cell summaries differ from independently audited cell summary values")
 
     run_summary = json.loads((output / "run_summary.json").read_text(encoding="utf-8"))
     expected_status = "PASS" if counts["SUCCESS"] == len(plan) else "INCOMPLETE"
-    if run_summary.get("status") != expected_status or run_summary.get("status_counts") != counts:
-        raise AssertionError("run summary does not reconcile to the checkpoint lifecycle counts")
+    if (
+        run_summary.get("status") != expected_status
+        or run_summary.get("status_counts") != counts
+        or run_summary.get("planned_cells") != len(plan)
+        or run_summary.get("replicate") != plan[0]["replicate"]
+        or run_summary.get("gamma") != plan[0]["gamma"]
+    ):
+        raise AssertionError("run summary does not reconcile to the immutable plan and lifecycle counts")
 
     manifest = json.loads((output / "run_manifest.json").read_text(encoding="utf-8"))
     if manifest.get("status") != expected_status:

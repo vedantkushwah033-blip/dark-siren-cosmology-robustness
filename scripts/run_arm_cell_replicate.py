@@ -54,7 +54,13 @@ def _execute_one(task: dict) -> dict:
     row = task["plan_row"]
     key = (row["replicate"], row["gamma"], row["validation_size"], row["arm"])
     started = _now()
-    mark_cell_started(checkpoint, key, started)
+    claimed_checkpoint = mark_cell_started(checkpoint, key, started)
+    first_started = next(
+        ledger_row["started_at"]
+        for ledger_row in claimed_checkpoint["cell_ledger"]
+        if (ledger_row["replicate"], ledger_row["gamma"],
+            ledger_row["validation_size"], ledger_row["arm"]) == key
+    )
 
     cell_root = output / "cells" / row["cell_id"]
     cell_root.mkdir(parents=True, exist_ok=True)
@@ -64,7 +70,7 @@ def _execute_one(task: dict) -> dict:
     attempt_dir.mkdir()
     attempt_record = {
         "cell_id": row["cell_id"], "attempt": attempt_number,
-        "attempt_started_at": started, "first_cell_started_at": started,
+        "attempt_started_at": started, "first_cell_started_at": first_started,
         "worker_status": "NOT_RUN", "audit_status": "NOT_RUN",
     }
     (attempt_dir / "attempt_started.json").write_text(
