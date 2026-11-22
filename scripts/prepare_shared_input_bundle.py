@@ -46,8 +46,13 @@ def prepare(args: argparse.Namespace) -> dict[str, object]:
     if destination.exists():
         raise FileExistsError(f"refusing to overwrite existing bundle: {destination}")
     sizes = args.validation_sizes
-    if args.n_parent < 20 or args.n_detected < 1 or args.validation_frame < max(sizes):
+    if args.n_parent < 100 or args.n_detected < 1 or args.validation_frame < max(sizes):
         raise ValueError("population/event/frame sizes are inconsistent with the requested design")
+    streams = [args.seed, args.event_seed, args.validation_seed, args.validation_sample_seed]
+    if any(value is None or value < 0 for value in streams):
+        raise ValueError("population, event, validation-frame, and validation-sample seeds are all required and nonnegative")
+    if len(set(streams)) != len(streams):
+        raise ValueError("the four exogenous seed streams must be distinct")
     if args.inclusion_degree not in (1, 2):
         raise ValueError("inclusion degree must be 1 or 2")
 
@@ -182,9 +187,9 @@ def prepare(args: argparse.Namespace) -> dict[str, object]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seed", type=int, default=20261122)
-    parser.add_argument("--event-seed", type=int, default=None)
+    parser.add_argument("--event-seed", type=int, required=True)
     parser.add_argument("--validation-seed", type=int, default=20261123)
-    parser.add_argument("--validation-sample-seed", type=int, default=None)
+    parser.add_argument("--validation-sample-seed", type=int, required=True)
     parser.add_argument("--n-parent", type=int, default=1200)
     parser.add_argument("--n-detected", type=int, default=4)
     parser.add_argument("--validation-frame", type=int, default=1500)
