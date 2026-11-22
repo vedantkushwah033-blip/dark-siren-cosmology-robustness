@@ -118,8 +118,17 @@ def audit(output_dir: Path) -> dict:
             raise AssertionError("bundle curvature differs from planned cell")
         if int(row["validation_size"]) not in shared["validation_sizes"]:
             raise AssertionError("cell validation size is absent from frozen bundle")
-        if int(config["seed"]) != int(row["analysis_seed"]) or float(config["h0_true"]) != float(row["h0_true"]):
-            raise AssertionError("bundle seed/H0 provenance differs from plan")
+        expected_row_provenance = {
+            "analysis_seed": config["seed"],
+            "event_seed": config.get("event_seed"),
+            "validation_seed": config["validation_seed"],
+            "validation_sample_seed": config.get("validation_sample_seed"),
+            "h0_true": config["h0_true"],
+            "inclusion_model_degree": config["inclusion_model_degree"],
+        }
+        for field, value in expected_row_provenance.items():
+            if row.get(field) != value:
+                raise AssertionError(f"bundle {field} provenance differs from planned cell")
         if status == "SUCCESS":
             report_path = output / row["audit_report_path"]
             report = json.loads(report_path.read_text())
