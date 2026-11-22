@@ -1,0 +1,151 @@
+"""Run a fully planned arm-cell design sequentially with audit-gated checkpoints.
+
+Plan JSON schema:
+{"schema_version": 1, "cells": [
+  {"replicate": 1, "gamma": 0.0, "validation_size": 100,
+   "arm": "A_catalogue_only", "bundle_dir": "bundles/r1_g0",
+   "output_dir": "cells/r1_g0_n100_A"}
+]}
+
+All cells are checkpointed as NOT_RUN before the first cell executes. This
+coordinator is deliberately serial. Use --recover-interrupted only after the
+previous coordinator process has stopped; it finalizes every started but
+unfinished cell in the checkpoint before resuming.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+
+from dark_siren_robustness.cell_ledger_store import (
+    initialize_checkpoint,
+    read_checkpoint,
+    finalize_interrupted_cells,
+)
+from dark_siren_robustness.lifecycle_ledger import validate_ledger
+
+
+def _load_runner():
+    path = Path(__file__).with_name("run_audited_arm_cell.py")
+    spec = importlib.util.spec_from_file_location("_audit_gated_arm_cell_runner", path)
+    if spec is None or spec.loader is None:
+        raise ImportError("could not load audit-gated arm-cell runner")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.run_audited_cell
+
+
+run_audited_cell = _load_runner()
+
+
+def _key(row: dict) -> tuple:
+    return (int(row["replicate"]), float(row["gamma"]),
+            int(row["validation_size"]), str(row["arm"]))
+
+
+def _normalize_plan(path: Path) -> list[dict]:
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if raw.get("schema_version") != 1 or not isinstance(raw.get("cells"), list):
+        raise ValueError("plan must have schema_version=1 and a cells list")
+    rows = []
+    seen = set()
+    for source in raw["cells"]:
+        row = dict(source)
+        required = {"replicate", "gamma", "validation_size", "arm", "bundle_dir", "output_dir"}
+        missing = required - set(row)
+        if missing:
+            raise ValueError(f"planned cell is missing fields: {sorted(missing)}")
+        row["replicate"] = int(row["replicate"])
+        row["gamma"] = float(row["gamma"])
+        row["validation_size"] = int(row["validation_size"])
+        row["arm"] = str(row["arm"])
+        key = _key(row)
+        if key in seen:
+            raise ValueError(f"duplicate cell in plan: {key}")
+        seen.add(key)
+        for field in ("bundle_dir", "output_dir", "audit_report_path"):
+            if row.get(field) is not None:
+                candidate = Path(row[field])
+                if not candidate.is_absolute():
+                    candidate = path.parent / candidate
+                row[field] = str(candidate.resolve())
+        rows.append(row)
+    if not rows:
+        raise ValueError("plan must contain at least one cell")
+    return rows
+
+
+def run_plan(plan_path: Path, checkpoint_path: Path, *, recover_interrupted: bool = False) -> dict:
+    plan_path = Path(plan_path).resolve()
+    checkpoint_path = Path(checkpoint_path).resolve()
+    planned = _normalize_plan(plan_path)
+
+    if checkpoint_path.exists():
+        checkpoint = read_checkpoint(checkpoint_path)
+        if checkpoint["planned_cells"] != planned:
+            raise ValueError("checkpoint plan differs from supplied plan; immutable plan cannot change")
+        if recover_interrupted:
+            finalize_interrupted_cells(
+                checkpoint_path,
+                reason_detail="Coordinator restart after prior process stopped.",
+            )
+    else:
+        if recover_interrupted:
+            raise ValueError("--recover-interrupted requires an existing checkpoint")
+        initialize_checkpoint(checkpoint_path, planned)
+
+    results = []
+    for cell in planned:
+        checkpoint = read_checkpoint(checkpoint_path)
+        key = _key(cell)
+        row = next(row for row in checkpoint["cell_ledger"] if _key(row) == key)
+        if row["status"] in {"SUCCESS", "NON_EVALUABLE", "FAILED"}:
+            results.append({"cell_key": list(key), "status": row["status"], "skipped": True})
+            continue
+        result = run_audited_cell(
+            checkpoint_path,
+            cell["bundle_dir"],
+            cell["output_dir"],
+            replicate=cell["replicate"],
+            gamma=cell["gamma"],
+            validation_size=cell["validation_size"],
+            arm=cell["arm"],
+            audit_report_path=cell.get("audit_report_path"),
+        )
+        results.append(result)
+
+    final = read_checkpoint(checkpoint_path)
+    audit = validate_ledger(final["planned_cells"], final["cell_ledger"])
+    return {
+        "status": "PASS" if audit["status"] == "PASS" else "NOT_PASS",
+        "checkpoint": str(checkpoint_path),
+        "plan_sha256": final["plan_sha256"],
+        "planned_cells": audit["planned_cells"],
+        "status_counts": audit["status_counts"],
+        "cell_results": results,
+        "execution_mode": "SERIAL",
+        "scope_limit": (
+            "Sequential synthetic arm-cell execution only. SUCCESS requires independent audit PASS. "
+            "No confirmatory calibration or multi-worker concurrency claim is implied."
+        ),
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--plan", type=Path, required=True)
+    parser.add_argument("--checkpoint", type=Path, required=True)
+    parser.add_argument(
+        "--recover-interrupted", action="store_true",
+        help="After all previous workers have stopped, mark unfinished started cells interrupted before resuming.",
+    )
+    args = parser.parse_args()
+    report = run_plan(args.plan, args.checkpoint, recover_interrupted=args.recover_interrupted)
+    print(json.dumps(report, indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
