@@ -71,6 +71,7 @@ def audit(output_dir: Path) -> dict:
     if len(plan_map) != len(plan) or len({key(row) for row in ledger}) != len(ledger) or set(plan_map) != {key(row) for row in ledger}:
         raise AssertionError("global ledger keys do not exactly match immutable plan")
     counts = {"FAILED": 0, "NON_EVALUABLE": 0, "NOT_RUN": 0, "SUCCESS": 0}
+    configs_by_replicate: dict[int, list[dict]] = {}
     for row in ledger:
         planned = plan_map[key(row)]
         for field, value in planned.items():
@@ -96,6 +97,7 @@ def audit(output_dir: Path) -> dict:
         root = Path(row["input_dir"]).resolve()
         config_path, manifest_path = root / "config.json", root / "shared_input_manifest.json"
         config = json.loads(config_path.read_text())
+        configs_by_replicate.setdefault(int(row["replicate"]), []).append(config)
         shared = load_shared_input_manifest(root, expected_validation_sizes=config["validation_sizes"])
         _verify_config_provenance(config, shared["provenance"])
         if _sha(config_path) != row["config_sha256"] or _sha(manifest_path) != row["shared_input_manifest_sha256"]:
@@ -112,6 +114,29 @@ def audit(output_dir: Path) -> dict:
             if report.get("status") != "PASS" or tuple(report.get(f) for f in fields) != key(row):
                 raise AssertionError("cell audit report identity/status mismatch")
         counts[status] += 1
+
+    paired_fields = (
+        "seed", "event_seed", "validation_seed", "validation_sample_seed",
+        "h0_true", "n_parent", "n_detected", "validation_frame",
+        "validation_sizes", "h0_prior_support", "h0_grid_points",
+        "sigma_mpc", "detection_threshold_mpc", "curvature_beta",
+        "inclusion_model_degree",
+    )
+    stream_signatures = []
+    for replicate, group in configs_by_replicate.items():
+        reference = group[0]
+        for config in group[1:]:
+            for field in paired_fields:
+                if config.get(field) != reference.get(field):
+                    raise AssertionError(
+                        f"replicate {replicate} is not paired across curvature: {field} differs"
+                    )
+        stream_signatures.append((
+            reference.get("seed"), reference.get("event_seed"),
+            reference.get("validation_seed"), reference.get("validation_sample_seed"),
+        ))
+    if len(stream_signatures) != len(set(stream_signatures)):
+        raise AssertionError("independent replicates reuse an exogenous seed-stream tuple")
 
     if (output / "cell_ledger.csv").read_text() != pd.DataFrame(ledger).to_csv(index=False):
         raise AssertionError("ledger CSV differs from checkpoint values")
