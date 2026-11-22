@@ -74,7 +74,7 @@ def run(args: argparse.Namespace) -> dict:
     if args.validation_size not in config["validation_sizes"]:
         raise ValueError("requested validation size is not present in the frozen input bundle")
 
-    required = [INPUTS["config"], INPUTS["manifest"], INPUTS["events"]]
+    required = [INPUTS["config"], INPUTS["events"]]
     if args.arm != "B_parent_oracle":
         required.append(INPUTS["catalogue"])
     if args.arm in {"B_parent_oracle", "C_known_probability_ipw"}:
