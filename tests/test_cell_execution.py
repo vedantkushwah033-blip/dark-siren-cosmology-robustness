@@ -113,3 +113,25 @@ def test_cell_execution_does_not_rerun_terminal_cell(tmp_path):
 
     assert calls == ["evaluate"]
     assert read_checkpoint(path)["cell_ledger"][0]["status"] == "SUCCESS"
+
+
+def test_cell_execution_callbacks_receive_immutable_plan_row(tmp_path):
+    path = _checkpoint(tmp_path)
+    observed = {}
+
+    def evaluate(plan):
+        with pytest.raises(TypeError):
+            plan["gamma"] = 99.0
+        return {"artifact_manifest": "cells/a/manifest.json"}
+
+    def audit(plan, _artifacts):
+        observed["gamma"] = plan["gamma"]
+        with pytest.raises(TypeError):
+            plan["plan_token"] = "mutated"
+        return {"status": "PASS", "audit_report_path": "cells/a/audit.json"}
+
+    row = execute_planned_cell(path, KEY, evaluator=evaluate, auditor=audit)
+
+    assert observed["gamma"] == KEY[1]
+    assert row["gamma"] == KEY[1]
+    assert read_checkpoint(path)["planned_cells"][0]["plan_token"] == "frozen-cell-001"
