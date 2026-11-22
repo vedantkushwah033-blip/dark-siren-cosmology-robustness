@@ -26,6 +26,7 @@ from dark_siren_robustness.generative_selection import (
 )
 from dark_siren_robustness.h0_posterior import normalize_h0_posterior
 from dark_siren_robustness.catalogue_density import reflected_weighted_kde_bandwidth
+from dark_siren_robustness.shared_input_bundle import write_shared_input_manifest
 
 
 def _parse_sizes(raw: str) -> list[int]:
@@ -132,6 +133,30 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         validation_full.iloc[:validation_size].copy().to_csv(
             observable_dir / f"validation_n{validation_size}.csv", index=False
         )
+
+    # Freeze and hash the common simulation inputs before any arm fitting or
+    # selected-likelihood computation begins. This is the future restartable
+    # shared-input boundary for independent arm × validation-size cells.
+    write_shared_input_manifest(
+        output,
+        validation_sizes=sizes,
+        provenance={
+            "seed": int(args.seed),
+            "event_seed": getattr(args, "event_seed", None),
+            "validation_seed": int(args.validation_seed),
+            "validation_sample_seed": getattr(args, "validation_sample_seed", None),
+            "n_parent": int(args.n_parent),
+            "n_detected": int(args.n_detected),
+            "h0_true": float(args.h0_true),
+            "sigma_mpc": float(args.sigma_mpc),
+            "detection_threshold_mpc": float(args.detection_threshold_mpc),
+            "n_validation_frame": int(args.validation_frame),
+            "curvature_gamma": float(args.curvature_gamma),
+            "curvature_beta": float(args.curvature_beta),
+            "inclusion_model_degree": inclusion_degree,
+            "quadratic_basis_center": float(quadratic["config"]["x2_center"]),
+        },
+    )
 
     parent_z = parent_truth["redshift"].to_numpy(float)
     catalogue_z = catalogue["redshift"].to_numpy(float)

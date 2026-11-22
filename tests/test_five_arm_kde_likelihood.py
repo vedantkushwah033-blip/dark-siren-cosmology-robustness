@@ -5,7 +5,7 @@ from scipy.special import logsumexp
 
 from dark_siren_robustness.catalogue_density import estimate_host_density
 from dark_siren_robustness.five_arm_comparison import build_five_arm_weights
-from dark_siren_robustness.five_arm_kde_likelihood import matched_five_arm_kde_selected_log_likelihood
+from dark_siren_robustness.five_arm_kde_likelihood import matched_five_arm_kde_selected_log_likelihood, selected_log_likelihood_for_density
 
 
 def _fixture():
@@ -156,3 +156,34 @@ def test_kde_likelihood_applies_external_host_rate_to_inclusion_only_arm_weights
     ])
     np.testing.assert_allclose(result.arm_e_node_density, expected_e)
     assert np.all(np.isfinite(result.arm_e_marginal_log_likelihood))
+
+
+def test_single_density_cell_likelihood_matches_joint_arm_a_exactly():
+    arms, events = _fixture()
+    z = np.linspace(0.01, 0.40, 501)
+    h0 = np.linspace(55, 85, 41)
+    joint = matched_five_arm_kde_selected_log_likelihood(
+        h0, arms, events, detection_threshold_mpc=250,
+        redshift_grid=z, merger_weight=np.ones_like(z), scott_multiplier=0.7,
+    )
+    cell_ll, cell_efficiency = selected_log_likelihood_for_density(
+        h0, z, joint.arm_density["A_catalogue_only"], events,
+        detection_threshold_mpc=250,
+    )
+    np.testing.assert_allclose(cell_ll, joint.arm_a_log_likelihood, rtol=1e-12, atol=1e-12)
+    assert cell_efficiency.shape == (len(events), h0.size)
+    assert np.all(np.isfinite(cell_efficiency))
+
+
+def test_single_density_cell_likelihood_rejects_invalid_density_and_events():
+    arms, events = _fixture()
+    z = np.linspace(0.01, 0.40, 501)
+    h0 = np.linspace(55, 85, 41)
+    with pytest.raises(ValueError, match="host_density"):
+        selected_log_likelihood_for_density(
+            h0, z, np.ones_like(z), events, detection_threshold_mpc=250,
+        )
+    with pytest.raises(ValueError, match="detected event"):
+        selected_log_likelihood_for_density(
+            h0, z, np.ones_like(z) / 0.39, [], detection_threshold_mpc=250,
+        )
