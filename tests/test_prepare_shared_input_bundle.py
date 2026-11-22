@@ -31,7 +31,7 @@ def test_preparation_only_bundle_is_frozen_and_contains_no_inference_outputs(tmp
     output = tmp_path / "prepared_bundle"
     command = [
         sys.executable, str(REPO_ROOT / "scripts/prepare_shared_input_bundle.py"),
-        "--seed", "20261122", "--validation-seed", "20261123",
+        "--seed", "20261122", "--event-seed", "20261124", "--validation-seed", "20261123", "--validation-sample-seed", "20261125",
         "--n-parent", "120", "--n-detected", "2",
         "--validation-frame", "60", "--validation-sizes", "20,40",
         "--curvature-gamma", "0.5", "--h0-points", "41",
@@ -69,7 +69,7 @@ def test_preparation_refuses_to_overwrite_existing_bundle(tmp_path):
     output.mkdir()
     command = [
         sys.executable, str(REPO_ROOT / "scripts/prepare_shared_input_bundle.py"),
-        "--n-parent", "120", "--n-detected", "1", "--validation-frame", "20",
+        "--event-seed", "201", "--validation-seed", "202", "--validation-sample-seed", "203", "--n-parent", "120", "--n-detected", "1", "--validation-frame", "20",
         "--validation-sizes", "10", "--output-dir", str(output),
     ]
     completed = subprocess.run(command, cwd=REPO_ROOT, capture_output=True, text=True)
@@ -81,7 +81,7 @@ def test_preparation_auditor_rejects_tampered_raw_input(tmp_path):
     output = tmp_path / "tampered_bundle"
     prepare = [
         sys.executable, str(REPO_ROOT / "scripts/prepare_shared_input_bundle.py"),
-        "--n-parent", "120", "--n-detected", "2", "--validation-frame", "30",
+        "--event-seed", "301", "--validation-seed", "302", "--validation-sample-seed", "303", "--n-parent", "120", "--n-detected", "2", "--validation-frame", "30",
         "--validation-sizes", "20", "--h0-points", "41", "--output-dir", str(output),
     ]
     subprocess.run(prepare, cwd=REPO_ROOT, capture_output=True, text=True, check=True)
