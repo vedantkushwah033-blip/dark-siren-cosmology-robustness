@@ -201,3 +201,45 @@ def matched_five_arm_kde_selected_log_likelihood(
         arm_e_node_log_detection_efficiency=node_eff,
         arm_density=densities, arm_e_node_density=p_e,
     )
+
+
+def selected_log_likelihood_for_density(
+    H0_grid: ArrayLike,
+    redshift_grid: ArrayLike,
+    host_density: ArrayLike,
+    events: Sequence[Mapping[str, float]],
+    *,
+    detection_threshold_mpc: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Evaluate one cell's host density without constructing sibling arms.
+
+    The returned pair is (selected log likelihood over H0, per-event log
+    detection efficiency over H0). This is the cell-level numerical primitive:
+    callers supply one independently constructed, normalized host density.
+    It uses the same event/H0/redshift kernels and trapezoidal quadrature as
+    the matched five-arm implementation, allowing direct regression checks.
+    """
+    h0 = np.asarray(H0_grid, dtype=float)
+    if (h0.ndim != 1 or h0.size < 2 or not np.all(np.isfinite(h0))
+            or np.any(h0 <= 0) or np.any(np.diff(h0) <= 0)):
+        raise ValueError("H0_grid must be finite, positive, and strictly increasing")
+    z_grid = _validate_grid(redshift_grid, "redshift_grid")
+    density = np.asarray(host_density, dtype=float)
+    if (density.shape != z_grid.shape or not np.all(np.isfinite(density))
+            or np.any(density < 0)
+            or not np.isclose(trapezoid(density, z_grid), 1.0, rtol=1e-9, atol=1e-9)):
+        raise ValueError("host_density must be finite, nonnegative, normalized, and match redshift_grid")
+    threshold = float(detection_threshold_mpc)
+    if not np.isfinite(threshold) or threshold <= 0:
+        raise ValueError("detection_threshold_mpc must be finite and positive")
+    if not events:
+        raise ValueError("at least one detected event is required")
+    distances = np.asarray([float(event["gw_distance"]) for event in events])
+    sigmas = np.asarray([float(event["gw_sigma"]) for event in events])
+    if (not np.all(np.isfinite(distances)) or np.any(distances < threshold)
+            or not np.all(np.isfinite(sigmas)) or np.any(sigmas <= 0)):
+        raise ValueError("events must have finite detected distances and positive finite uncertainties")
+    log_likelihood, log_efficiency = _batched_density_likelihood(
+        h0, z_grid, density[None, :], distances, sigmas, threshold,
+    )
+    return log_likelihood[0], log_efficiency[0]
