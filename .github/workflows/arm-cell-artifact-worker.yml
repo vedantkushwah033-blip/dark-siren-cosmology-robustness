@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - research/arm-cell-artifact-worker-20261122
+      - research/global-arm-cell-coordinator-20261122
       - research/aggregate-export-audit-hardening-20261122
   pull_request:
     branches:
