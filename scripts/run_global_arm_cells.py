@@ -15,6 +15,8 @@ import sys
 
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 from dark_siren_robustness.arm_cell_execution import ARM_NAMES
 from dark_siren_robustness.cell_ledger_store import (
     finalize_interrupted_cells, initialize_checkpoint, read_checkpoint,
