@@ -237,10 +237,10 @@ def run(args: argparse.Namespace) -> dict:
         if not summary_path.is_file():
             raise RuntimeError(f"audited cell summary missing: {summary_path}")
         summaries.append(json.loads(summary_path.read_text(encoding="utf-8")))
-    summary_frame = pd.DataFrame(summaries)
+    summary_frame = pd.DataFrame(summaries, columns=[\n        "replicate", "gamma", "validation_size", "arm", "status", "h0_true",\n        "median_error", "posterior_median", "q025", "q05", "q16", "q84", "q95", "q975",\n        "weight_diagnostics", "realized_bandwidths", "input_sha256",\n    ])
     ledger_frame.to_csv(output / "cell_ledger.csv", index=False)
     summary_frame.to_csv(output / "cell_summaries.csv", index=False)
-    status_counts = ledger_frame["status"].value_counts().to_dict()
+    status_counts = {\n        status: int((ledger_frame["status"] == status).sum())\n        for status in ("FAILED", "NON_EVALUABLE", "NOT_RUN", "SUCCESS")\n    }
     run_status = "PASS" if len(ledger) and (ledger_frame["status"] == "SUCCESS").all() and (ledger_frame["audit_status"] == "PASS").all() else "INCOMPLETE"
     run_summary = {
         "status": run_status, "replicate": int(args.replicate),
