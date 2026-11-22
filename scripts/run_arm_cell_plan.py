@@ -18,6 +18,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import math
 from pathlib import Path
 
 from dark_siren_robustness.cell_ledger_store import (
@@ -26,6 +27,7 @@ from dark_siren_robustness.cell_ledger_store import (
     finalize_interrupted_cells,
 )
 from dark_siren_robustness.lifecycle_ledger import validate_ledger
+from dark_siren_robustness.arm_cell_execution import ARM_NAMES
 
 
 def _load_runner():
@@ -52,6 +54,8 @@ def _normalize_plan(path: Path) -> list[dict]:
         raise ValueError("plan must have schema_version=1 and a cells list")
     rows = []
     seen = set()
+    output_paths = set()
+    audit_paths = set()
     for source in raw["cells"]:
         row = dict(source)
         required = {"replicate", "gamma", "validation_size", "arm", "bundle_dir", "output_dir"}
@@ -66,12 +70,28 @@ def _normalize_plan(path: Path) -> list[dict]:
         if key in seen:
             raise ValueError(f"duplicate cell in plan: {key}")
         seen.add(key)
+        if row["replicate"] < 1 or row["validation_size"] < 5:
+            raise ValueError(f"replicate and validation_size must be positive/plausible: {key}")
+        if not math.isfinite(row["gamma"]):
+            raise ValueError(f"gamma must be finite: {key}")
+        if row["arm"] not in ARM_NAMES:
+            raise ValueError(f"unknown arm in plan: {row['arm']}")
         for field in ("bundle_dir", "output_dir", "audit_report_path"):
             if row.get(field) is not None:
                 candidate = Path(row[field])
                 if not candidate.is_absolute():
                     candidate = path.parent / candidate
                 row[field] = str(candidate.resolve())
+        output_path = row["output_dir"]
+        if output_path in output_paths:
+            raise ValueError(f"multiple cells cannot share an output_dir: {output_path}")
+        output_paths.add(output_path)
+        audit_path = row.get("audit_report_path") or output_path + ".independent_audit.json"
+        if audit_path in audit_paths:
+            raise ValueError(f"multiple cells cannot share an audit_report_path: {audit_path}")
+        audit_paths.add(audit_path)
+        if row["bundle_dir"] == output_path:
+            raise ValueError("bundle_dir and output_dir cannot be the same path")
         rows.append(row)
     if not rows:
         raise ValueError("plan must contain at least one cell")
