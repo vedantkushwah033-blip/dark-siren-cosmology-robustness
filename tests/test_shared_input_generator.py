@@ -6,7 +6,8 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-import numpy as np\nimport pytest
+import numpy as np
+import pytest
 
 from dark_siren_robustness.shared_input_bundle import load_shared_input_manifest
 
