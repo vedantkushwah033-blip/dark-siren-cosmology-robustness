@@ -139,12 +139,20 @@ def run_plan(plan_path: Path, checkpoint_path: Path, *, recover_interrupted: boo
 
     final = read_checkpoint(checkpoint_path)
     audit = validate_ledger(final["planned_cells"], final["cell_ledger"])
+    counts = audit["status_counts"]
+    if counts["NOT_RUN"]:
+        run_status = "INCOMPLETE"
+    elif counts["FAILED"] or counts["NON_EVALUABLE"]:
+        run_status = "COMPLETED_WITH_NON_SUCCESS"
+    else:
+        run_status = "PASS"
     return {
-        "status": "PASS" if audit["status"] == "PASS" else "NOT_PASS",
+        "status": run_status,
+        "ledger_validation_status": audit["status"],
         "checkpoint": str(checkpoint_path),
         "plan_sha256": final["plan_sha256"],
         "planned_cells": audit["planned_cells"],
-        "status_counts": audit["status_counts"],
+        "status_counts": counts,
         "cell_results": results,
         "execution_mode": "SERIAL",
         "scope_limit": (
