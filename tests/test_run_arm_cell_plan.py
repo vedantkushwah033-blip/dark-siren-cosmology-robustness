@@ -123,7 +123,7 @@ def test_explicit_recovery_requeues_untouched_cells_and_preserves_terminal_cells
             "replicate": 1, "gamma": 0.0, "validation_size": 100,
             "arm": arm, "bundle_dir": "bundle", "output_dir": f"cells/{arm}",
         }
-        for arm in ("A_catalogue_only", "B_parent_oracle", "E_estimated_ipw")
+        for arm in ("A_catalogue_only", "B_parent_oracle", "E_uncertainty_integrated_ipw")
     ]
     plan_path.write_text(json.dumps({"schema_version": 1, "cells": cells}))
     planned = coordinator._normalize_plan(plan_path)
@@ -131,7 +131,7 @@ def test_explicit_recovery_requeues_untouched_cells_and_preserves_terminal_cells
 
     interrupted_key = (1, 0.0, 100, "A_catalogue_only")
     terminal_key = (1, 0.0, 100, "B_parent_oracle")
-    untouched_key = (1, 0.0, 100, "E_estimated_ipw")
+    untouched_key = (1, 0.0, 100, "E_uncertainty_integrated_ipw")
     mark_cell_started(checkpoint, interrupted_key, "2026-11-22T00:00:00+00:00")
     _complete(checkpoint, {
         "replicate": 1, "gamma": 0.0, "validation_size": 100,
@@ -148,7 +148,7 @@ def test_explicit_recovery_requeues_untouched_cells_and_preserves_terminal_cells
             assert row["reason_code"] == "RUN_INTERRUPTED"
             assert row["started_at"] == "2026-11-22T00:00:00+00:00"
         else:
-            assert kwargs["arm"] == "E_estimated_ipw"
+            assert kwargs["arm"] == "E_uncertainty_integrated_ipw"
             assert row["reason_code"] == "RUN_NOT_STARTED"
             assert row["started_at"] is None
         return _complete(Path(checkpoint_path), kwargs)
@@ -156,7 +156,7 @@ def test_explicit_recovery_requeues_untouched_cells_and_preserves_terminal_cells
     monkeypatch.setattr(coordinator, "run_audited_cell", fake_runner)
     result = coordinator.run_plan(plan_path, checkpoint, recover_interrupted=True)
 
-    assert calls == ["A_catalogue_only", "E_estimated_ipw"]
+    assert calls == ["A_catalogue_only", "E_uncertainty_integrated_ipw"]
     assert result["status"] == "PASS"
     assert result["status_counts"]["SUCCESS"] == 3
     assert len(result["cell_results"]) == 3
