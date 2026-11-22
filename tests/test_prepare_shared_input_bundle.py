@@ -52,7 +52,7 @@ def test_preparation_only_bundle_is_frozen_and_contains_no_inference_outputs(tmp
     assert not (output / "results").exists()
     assert not list(output.rglob("*.npz"))
     config = json.loads((output / "config.json").read_text())
-    assert config["status"] == "FROZEN_INPUTS_ONLY_NO_INFERENCE_EXECUTED"
+    assert config["status"] == "shared_inputs_only_no_inference"
     assert config["validation_sizes"] == [20, 40]
     audited = subprocess.run(
         [sys.executable, str(REPO_ROOT / "scripts/audit_prepared_shared_input_bundle.py"), str(output)],
