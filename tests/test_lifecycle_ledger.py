@@ -667,3 +667,36 @@ def test_checkpoint_does_not_allow_fresh_claim_of_upstream_failure(tmp_path):
     atomic_write_json(path, checkpoint)
     with pytest.raises(ValueError, match="not eligible for a fresh execution claim"):
         mark_cell_started(path, (0, 0.0, 100, "A"), "2026-11-22T02:00:00Z")
+
+
+def test_global_multi_bundle_scheduler_regression_suite(tmp_path):
+    # The full repository test workflow already runs this lifecycle module.
+    # Invoke the global orchestration suite here so it is covered without
+    # changing the broad workflow's long-running scientific experiment list.
+    from test_global_arm_cell_coordinator import (
+        test_global_auditor_rejects_a_cell_bound_to_the_wrong_bundle,
+        test_global_auditor_rejects_seed_provenance_tampering_even_with_rehashed_plan,
+        test_global_scheduler_isolates_one_cell_failure_and_audits_remaining_cells,
+        test_global_scheduler_recovers_interrupted_cell_without_losing_first_start,
+        test_global_scheduler_rejects_unpaired_exogenous_streams_across_curvature,
+        test_global_scheduler_rejects_reused_independent_event_seed_stream,
+        test_global_scheduler_runs_multiple_replicates_and_curvatures_with_one_checkpoint,
+    )
+
+    cases = [
+        test_global_scheduler_runs_multiple_replicates_and_curvatures_with_one_checkpoint,
+        test_global_auditor_rejects_a_cell_bound_to_the_wrong_bundle,
+        test_global_auditor_rejects_seed_provenance_tampering_even_with_rehashed_plan,
+        test_global_scheduler_rejects_unpaired_exogenous_streams_across_curvature,
+        test_global_scheduler_rejects_reused_independent_event_seed_stream,
+        test_global_scheduler_isolates_one_cell_failure_and_audits_remaining_cells,
+        test_global_scheduler_recovers_interrupted_cell_without_losing_first_start,
+    ]
+    for index, case in enumerate(cases):
+        case_root = tmp_path / f"global_case_{index}"
+        case_root.mkdir()
+        if "monkeypatch" in case.__code__.co_varnames:
+            with pytest.MonkeyPatch.context() as patch:
+                case(case_root, patch)
+        else:
+            case(case_root)

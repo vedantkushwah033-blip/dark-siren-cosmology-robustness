@@ -4,10 +4,13 @@ on:
   push:
     branches:
       - research/arm-cell-artifact-worker-20261122
+      - research/global-arm-cell-coordinator-20261122
+      - research/aggregate-export-audit-hardening-20261122
   pull_request:
     branches:
       - research/arm-cell-execution-foundation-20261121
       - research/arm-cell-artifact-worker-20261122
+      - research/global-arm-cell-coordinator-20261122
   workflow_dispatch:
 
 concurrency:
@@ -35,4 +38,8 @@ jobs:
       - name: Test one-cell worker and independent auditor for all five arms
         run: python -m pytest tests/test_arm_cell_worker.py -q
       - name: Test per-cell coordinator, aggregate auditor and lifecycle restart
-        run: python -m pytest tests/test_arm_cell_replicate_coordinator.py tests/test_lifecycle_ledger.py -q
+        run: python -m pytest tests/test_arm_cell_replicate_coordinator.py tests/test_global_arm_cell_coordinator.py tests/test_lifecycle_ledger.py -q
+      - name: Validate global arm-cell coordinator and auditor CLIs
+        run: |
+          python scripts/run_global_arm_cells.py --help
+          python scripts/audit_global_arm_cells.py --help
