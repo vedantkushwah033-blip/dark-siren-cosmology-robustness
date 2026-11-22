@@ -302,6 +302,7 @@ scheduler.run(SimpleNamespace(
         assert marker.exists(), "child did not reach worker dispatch before timeout"
         process.terminate()
         process.wait(timeout=10)
+        assert process.returncode != 0, "terminated coordinator unexpectedly exited successfully"
     finally:
         if process.poll() is None:
             process.kill()
