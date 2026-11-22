@@ -54,6 +54,14 @@ def test_preparation_only_bundle_is_frozen_and_contains_no_inference_outputs(tmp
     config = json.loads((output / "config.json").read_text())
     assert config["status"] == "FROZEN_INPUTS_ONLY_NO_INFERENCE_EXECUTED"
     assert config["validation_sizes"] == [20, 40]
+    audited = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "scripts/audit_prepared_shared_input_bundle.py"), str(output)],
+        cwd=REPO_ROOT, capture_output=True, text=True, check=True,
+    )
+    report = json.loads(audited.stdout)
+    assert report["status"] == "PASS"
+    assert report["inference_executed"] is False
+    assert report["validation_sizes_verified"] == [20, 40]
 
 
 def test_preparation_refuses_to_overwrite_existing_bundle(tmp_path):
@@ -67,3 +75,21 @@ def test_preparation_refuses_to_overwrite_existing_bundle(tmp_path):
     completed = subprocess.run(command, cwd=REPO_ROOT, capture_output=True, text=True)
     assert completed.returncode != 0
     assert "refusing to overwrite existing bundle" in completed.stderr
+
+
+def test_preparation_auditor_rejects_tampered_raw_input(tmp_path):
+    output = tmp_path / "tampered_bundle"
+    prepare = [
+        sys.executable, str(REPO_ROOT / "scripts/prepare_shared_input_bundle.py"),
+        "--n-parent", "120", "--n-detected", "2", "--validation-frame", "30",
+        "--validation-sizes", "20", "--h0-points", "41", "--output-dir", str(output),
+    ]
+    subprocess.run(prepare, cwd=REPO_ROOT, capture_output=True, text=True, check=True)
+    with (output / "truth/parent_truth.csv").open("a") as stream:
+        stream.write("tampered\\n")
+    audited = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "scripts/audit_prepared_shared_input_bundle.py"), str(output)],
+        cwd=REPO_ROOT, capture_output=True, text=True,
+    )
+    assert audited.returncode != 0
+    assert "hash/size mismatch" in audited.stderr or "hash/size mismatch" in audited.stdout
