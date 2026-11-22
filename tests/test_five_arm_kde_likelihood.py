@@ -183,7 +183,7 @@ def test_single_density_cell_likelihood_rejects_invalid_density_and_events():
         selected_log_likelihood_for_density(
             h0, z, np.ones_like(z), events, detection_threshold_mpc=250,
         )
-    with pytest.raises(ValueError, match="events"):
+    with pytest.raises(ValueError, match="detected event"):
         selected_log_likelihood_for_density(
             h0, z, np.ones_like(z) / 0.39, [], detection_threshold_mpc=250,
         )
