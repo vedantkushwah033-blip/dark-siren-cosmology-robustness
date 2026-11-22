@@ -35,4 +35,4 @@ jobs:
       - name: Test one-cell worker and independent auditor for all five arms
         run: python -m pytest tests/test_arm_cell_worker.py -q
       - name: Test per-cell coordinator, aggregate auditor and lifecycle restart
-        run: python -m pytest tests/test_arm_cell_replicate_coordinator.py tests/test_lifecycle_ledger.py -q
+        run: python -m pytest tests/test_arm_cell_replicate_coordinator.py tests/test_global_arm_cell_coordinator.py tests/test_lifecycle_ledger.py -q
