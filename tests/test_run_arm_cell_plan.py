@@ -123,7 +123,7 @@ def test_explicit_recovery_requeues_untouched_cells_and_preserves_terminal_cells
             "replicate": 1, "gamma": 0.0, "validation_size": 100,
             "arm": arm, "bundle_dir": "bundle", "output_dir": f"cells/{arm}",
         }
-        for arm in ("A_catalogue_only", "B_parent_oracle", "E_estimated_ipw")
+        for arm in ("A_catalogue_only", "B_parent_oracle", "E_uncertainty_integrated_ipw")
     ]
     plan_path.write_text(json.dumps({"schema_version": 1, "cells": cells}))
     planned = coordinator._normalize_plan(plan_path)
