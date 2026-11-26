@@ -67,6 +67,18 @@ def _verify_cell_manifest(cell_dir: Path) -> dict:
 
 def audit_cell(bundle_dir: Path, cell_dir: Path) -> dict:
     bundle = Path(bundle_dir).resolve()
+    # Preparation-only bundles intentionally have no legacy results/ archive.
+    # Route them to a raw-input, independent one-arm reconstruction.
+    if not (bundle / "results" / "log_likelihoods.npz").is_file():
+        prepared_path = Path(__file__).with_name("audit_prepared_arm_cell.py")
+        prepared_spec = importlib.util.spec_from_file_location(
+            "_independent_prepared_arm_auditor", prepared_path
+        )
+        if prepared_spec is None or prepared_spec.loader is None:
+            raise ImportError("could not load the prepared-bundle arm auditor")
+        prepared_module = importlib.util.module_from_spec(prepared_spec)
+        prepared_spec.loader.exec_module(prepared_module)
+        return prepared_module.audit_cell(bundle, Path(cell_dir).resolve())
     cell = Path(cell_dir).resolve()
     cell_manifest = _verify_cell_manifest(cell)
     metadata = json.loads((cell / "cell_result.json").read_text(encoding="utf-8"))
