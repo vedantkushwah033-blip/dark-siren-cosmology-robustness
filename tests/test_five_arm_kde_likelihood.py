@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from scipy.integrate import trapezoid
-from scipy.special import logsumexp
+from scipy.special import logsumexp, ndtr
 
 from dark_siren_robustness.catalogue_density import estimate_host_density
 from dark_siren_robustness.five_arm_comparison import build_five_arm_weights
@@ -187,3 +187,37 @@ def test_single_density_cell_likelihood_rejects_invalid_density_and_events():
         selected_log_likelihood_for_density(
             h0, z, np.ones_like(z) / 0.39, [], detection_threshold_mpc=250,
         )
+
+
+def test_detection_efficiency_matches_generator_upper_tail_contract():
+    # The generator accepts D_obs >= threshold for
+    # D_obs ~ Normal(c*z/H0, sigma^2). The likelihood denominator must
+    # therefore use Phi((c*z/H0 - threshold)/sigma), not the lower tail.
+    from dark_siren_robustness.five_arm_kde_likelihood import (
+        selected_log_likelihood_for_density,
+    )
+
+    z = np.linspace(0.01, 0.40, 2001)
+    density = np.ones_like(z) / (z[-1] - z[0])
+    h0 = np.array([55.0, 70.0, 85.0])
+    sigma = 37.0
+    threshold = 250.0
+    event = [{"gw_distance": 300.0, "gw_sigma": sigma}]
+
+    _, log_efficiency = selected_log_likelihood_for_density(
+        h0, z, density, event, detection_threshold_mpc=threshold
+    )
+    means = 299_792.458 * z[None, :] / h0[:, None]
+    expected = np.array([
+        trapezoid(density * ndtr((row - threshold) / sigma), z)
+        for row in means
+    ])
+    np.testing.assert_allclose(
+        np.exp(log_efficiency[0]), expected, rtol=2e-10, atol=2e-12
+    )
+
+    lower_tail_wrong = np.array([
+        trapezoid(density * ndtr((threshold - row) / sigma), z)
+        for row in means
+    ])
+    assert np.max(np.abs(expected - lower_tail_wrong)) > 0.1

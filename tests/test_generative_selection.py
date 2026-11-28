@@ -167,3 +167,23 @@ def test_independent_validation_samples_are_nested_for_fixed_seed_and_frame():
         medium["validation_observed"]["validation_id"].to_numpy(),
         large["validation_observed"]["validation_id"].to_numpy()[:300],
     )
+
+
+def test_quadratic_center_is_parent_intensity_moment_not_uniform_one_third():
+    from dark_siren_robustness.generative_selection import (
+        calibrate_quadratic_logit_intercept,
+        quadratic_logit_parent_measure,
+    )
+
+    measure = quadratic_logit_parent_measure(grid_size=200001)
+    center = measure["x2_center"]
+    assert center == pytest.approx(0.284500557016, abs=2e-9)
+    assert not np.isclose(center, 1.0 / 3.0, rtol=0.0, atol=1e-3)
+
+    calibration = calibrate_quadratic_logit_intercept(
+        gamma=1.2, beta=-3.9, grid_size=200001
+    )
+    assert calibration["x2_center"] == pytest.approx(center, abs=1e-12)
+    assert calibration["achieved_rate"] == pytest.approx(
+        calibration["target_rate"], abs=2e-12
+    )
