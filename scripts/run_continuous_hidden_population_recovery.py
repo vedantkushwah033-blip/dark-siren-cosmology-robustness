@@ -181,6 +181,51 @@ def summarize(raw):
     return summaries
 
 
+def paired_contrasts(raw, bootstrap_resamples=2000, seed=20261130):
+    """Paired method-minus-oracle contrasts using common replicate indices."""
+    if bootstrap_resamples < 100:
+        raise ValueError("Use at least 100 paired bootstrap resamples")
+    grouped = {}
+    for row in raw:
+        grouped.setdefault((row["n_events"], row["replicate"]), {})[row["method"]] = row
+    by_n = {}
+    for (n_events, rep), methods in grouped.items():
+        if "oracle" not in methods:
+            raise ValueError(f"Missing oracle result for n={n_events}, replicate={rep}")
+        by_n.setdefault(n_events, []).append((rep, methods))
+    rng = np.random.default_rng(seed)
+    metrics = {
+        "median_error": lambda r: r["error"],
+        "squared_error": lambda r: r["error"]**2,
+        "coverage_68": lambda r: r["covered_68"],
+        "coverage_95": lambda r: r["covered_95"],
+        "width_68": lambda r: r["width_68"],
+        "width_95": lambda r: r["width_95"],
+    }
+    output = []
+    for n_events, pairs in sorted(by_n.items()):
+        pairs.sort(key=lambda x: x[0])
+        methods = sorted(set.intersection(*[set(m) for _, m in pairs]) - {"oracle"})
+        count = len(pairs)
+        indices = rng.integers(0, count, size=(bootstrap_resamples, count))
+        for method in methods:
+            for metric, getter in metrics.items():
+                differences = np.asarray([
+                    getter(m[method])-getter(m["oracle"]) for _, m in pairs
+                ], dtype=float)
+                boot = np.mean(differences[indices], axis=1)
+                output.append({
+                    "n_events": n_events, "method_vs_oracle": method,
+                    "metric": metric, "estimate": float(np.mean(differences)),
+                    "mcse": float(np.std(differences, ddof=1)/np.sqrt(count)) if count>1 else np.nan,
+                    "paired_bootstrap_95_low": float(np.quantile(boot, 0.025)),
+                    "paired_bootstrap_95_high": float(np.quantile(boot, 0.975)),
+                    "replicates": count, "bootstrap_resamples": bootstrap_resamples,
+                    "bootstrap_seed": seed,
+                })
+    return output
+
+
 def write_csv(path, rows):
     if not rows:
         raise ValueError(f"Refusing to write empty output: {path}")
@@ -203,6 +248,7 @@ def main():
     parser.add_argument("--estimate-sigma-h", action="store_true",
                         help="Jointly estimate hidden redshift scale instead of conditioning it at truth.")
     parser.add_argument("--sigma-h-points", type=int, default=5)
+    parser.add_argument("--bootstrap-resamples", type=int, default=2000)
     parser.add_argument("--output-dir", default="results/continuous-hidden-population-recovery")
     args = parser.parse_args()
     sizes = tuple(int(x) for x in args.sample_sizes.split(","))
@@ -210,10 +256,12 @@ def main():
               args.fraction_points, args.mu_points, args.quadrature_order,
               args.estimate_sigma_h, args.sigma_h_points)
     summary = summarize(raw)
+    contrasts = paired_contrasts(raw, args.bootstrap_resamples, args.seed+1)
     root = Path(args.output_dir)
     root.mkdir(parents=True, exist_ok=True)
     write_csv(root/"per_run.csv", raw)
     write_csv(root/"summary.csv", summary)
+    write_csv(root/"paired_contrasts.csv", contrasts)
     print(f"Wrote {len(raw)} paired posterior rows and {len(summary)} summaries to {root}")
 
 
