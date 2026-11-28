@@ -61,3 +61,64 @@ def test_srswor_logistic_covariance_rejects_invalid_inputs(
         srswor_logistic_linearization_covariance(
             design, retained, beta, population_size=population_size
         )
+
+
+def test_srswor_linearization_tracks_repeated_fixed_frame_sampling():
+    from scipy.optimize import minimize
+
+    rng = np.random.default_rng(20261128)
+    population_size = 1200
+    sample_size = 300
+    replicates = 500
+    coordinate = np.linspace(-1.0, 1.0, population_size)
+    full_design = np.column_stack([np.ones(population_size), coordinate])
+    generating_beta = np.array([-0.2, 0.8])
+    retention_probability = expit(full_design @ generating_beta)
+    finite_retention = (
+        rng.random(population_size) < retention_probability
+    ).astype(int)
+
+    def fit_logistic(indices):
+        design = full_design[indices]
+        outcome = finite_retention[indices]
+
+        def objective(beta):
+            eta = design @ beta
+            return float(np.sum(np.logaddexp(0.0, eta) - outcome * eta))
+
+        def gradient(beta):
+            return design.T @ (expit(design @ beta) - outcome)
+
+        fit = minimize(
+            objective, np.zeros(2), jac=gradient, method="BFGS",
+            options={"gtol": 1e-9, "maxiter": 500},
+        )
+        assert np.all(np.isfinite(fit.x))
+        assert np.linalg.norm(gradient(fit.x), ord=np.inf) < 1e-6
+        return np.asarray(fit.x)
+
+    # The estimand is the logistic score root for this one realized finite
+    # frame, not the coefficient used to generate the Bernoulli labels.
+    finite_frame_beta = fit_logistic(np.arange(population_size))
+    estimates = []
+    estimated_design_variances = []
+    for _ in range(replicates):
+        selected = rng.choice(population_size, size=sample_size, replace=False)
+        estimate = fit_logistic(selected)
+        estimates.append(estimate)
+        estimated_design_variances.append(
+            srswor_logistic_linearization_covariance(
+                full_design[selected], finite_retention[selected], estimate,
+                population_size=population_size,
+            ).covariance
+        )
+
+    empirical = np.cov(np.asarray(estimates).T, ddof=1)
+    mean_linearized = np.mean(estimated_design_variances, axis=0)
+    # A moderate tolerance is appropriate for a first-order approximation
+    # at n=300; this is a fixed-frame repeated-sampling check, not a theorem.
+    for index in range(2):
+        assert mean_linearized[index, index] == pytest.approx(
+            empirical[index, index], rel=0.20
+        )
+    assert np.all(np.isfinite(finite_frame_beta))
