@@ -11,9 +11,9 @@ This note separates findings that can be reconciled from findings that still req
 
 | PR #20 finding | Current disposition | Closure evidence still required |
 |---|---|---|
-| Parent-law quadratic centering | The current generator computes the parent-intensity moment using `quadratic_logit_parent_measure`; the later centered-basis implementation stores and propagates `quadratic_center`. | Exact-head test proving generator, fit, prediction, and independent auditor all use the same declared measure and value. |
+| Parent-law quadratic centering | The current generator computes the parent-intensity moment using `quadratic_logit_parent_measure`; a new regression test checks the high-resolution value and rate calibration. | Exact-head test proving generator, fit, prediction, and independent auditor all use the same declared measure and value. |
 | Non-retention likelihood | The five-arm workflow uses a validation-only modular inclusion posterior. It must be described as a cut/modular analysis, not as the full observed-data likelihood. | Freeze the modular estimand and document its conditioning; if a full joint observed-data analysis is desired, derive and implement the latent non-retention terms separately. |
-| SRSWOR finite-population uncertainty | Not closed by the ordinary inverse-Hessian covariance or by a scalar FPC multiplier. | Implement and independently validate a design-linearized covariance estimator, or explicitly limit the analysis to model-based/modular posterior uncertainty and report design variation by repeated SRSWOR simulation. |
+| SRSWOR finite-population uncertainty | A standalone first-order SRSWOR logistic sandwich-covariance primitive and algebraic unit tests have been added. It is not yet wired into the production posterior or independently calibrated against repeated SRSWOR draws. | Integrate fixed-coordinate handling, compare against exact fixed-frame SRSWOR Monte Carlo, and audit coverage/variance before claiming design-based propagation. |
 | GW detection direction | The current generator and KDE likelihood are consistent with acceptance when measured distance is greater than or equal to the threshold. The old PR #20 prose/formula is stale for this code path. | Exact analytic regression test for the survival probability and retain generator trace checks. |
 | Complete attempt ledger | The prepared-bundle lifecycle has made progress, but the earlier scenario-level reference-failure gap must be checked in the active end-to-end coordinator. | Independent audit of every planned key, including scenario failures and not-run states. |
 
@@ -93,7 +93,7 @@ Cautions:
 - This conditional design variance excludes parent-frame generation and Bernoulli-retention variation. Those require outer repeated-scenario experiments.
 - The modular Bayesian coefficient posterior and this design-based covariance are different uncertainty constructions. Do not multiply one by the other without a coherent derivation.
 
-**Current disposition:** no design-based FPC correction is claimed. Until an independently tested design-variance implementation exists, report the modular posterior as model-based coefficient uncertainty and evaluate SRSWOR variability through repeated finite-frame simulations. Keep design-based uncertainty propagation as an open gate.
+**Current disposition:** a standalone plug-in linearization primitive now exists in `design_based_logistic.py`, with tests for the algebraic formula, census limit, and invalid inputs. It is not yet integrated into the five-arm inference path, and its first-order approximation has not been calibrated against repeated SRSWOR draws on fixed frames. No design-based uncertainty-propagation claim is authorized. Continue to report the modular posterior as model-based coefficient uncertainty until the integration and Monte Carlo gates pass.
 
 ## 4. GW detection-direction contract
 
@@ -119,8 +119,8 @@ The opposite lower-tail indicator appearing in the older audit prose is not the 
 Task 1 may be marked complete only when all of the following are true:
 
 1. A frozen document states that the primary inclusion update is a validation-only modular cut, or a separately approved full observed-data likelihood has been derived.
-2. Parent-measure centering is independently recomputed and compared across generator, inference, and auditor.
-3. Design-based variance is implemented and validated against exact SRSWOR Monte Carlo on fixed finite frames, or the project explicitly narrows its uncertainty claim and removes any design-based FPC claim.
+2. Parent-measure centering is independently recomputed and compared across generator, inference, and auditor; the new high-resolution generator-level regression passes.
+3. The new design-based variance primitive is integrated and validated against exact SRSWOR Monte Carlo on fixed finite frames, or the project explicitly narrows its uncertainty claim and removes any design-based FPC claim.
 4. An analytic detection-efficiency regression test passes for multiple (z,H_0,sigma,d_{m th}) combinations.
 5. The full planned-attempt ledger is independently reconstructed, including reference failures and not-run attempts.
 6. Exact-head Python 3.10–3.12 CI passes on the remediation branch.
