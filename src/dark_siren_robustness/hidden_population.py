@@ -142,6 +142,8 @@ def log_likelihood(
 
 def _trapezoid_weights(grid):
     x = np.asarray(grid, dtype=float)
+    if x.size == 1:
+        return np.ones(1, dtype=float)
     w = np.empty_like(x)
     w[0] = (x[1] - x[0]) / 2
     w[-1] = (x[-1] - x[-2]) / 2
@@ -150,9 +152,10 @@ def _trapezoid_weights(grid):
     return w
 
 
-def _validate_grid(grid, name, positive=False, lower=None, upper=None):
+def _validate_grid(grid, name, positive=False, lower=None, upper=None, allow_singleton=False):
     x = np.asarray(grid, dtype=float)
-    if x.ndim != 1 or x.size < 2 or not np.all(np.isfinite(x)) or np.any(np.diff(x) <= 0):
+    minimum = 1 if allow_singleton else 2
+    if x.ndim != 1 or x.size < minimum or not np.all(np.isfinite(x)) or np.any(np.diff(x) <= 0):
         raise ValueError(f"{name} must be a finite, strictly increasing 1D grid")
     if positive and np.any(x <= 0):
         raise ValueError(f"{name} must be strictly positive")
@@ -177,7 +180,7 @@ def posterior_grid(
     hz = _validate_grid(H0_grid, "H0_grid", positive=True)
     fg = _validate_grid(fraction_grid, "fraction_grid", lower=0.0, upper=1.0)
     mg = _validate_grid(mu_grid, "mu_grid")
-    sg = _validate_grid(sigma_h_grid, "sigma_h_grid", positive=True)
+    sg = _validate_grid(sigma_h_grid, "sigma_h_grid", positive=True, allow_singleton=True)
     z, weights, bounds, order = _validate_components(
         listed_redshifts, listed_weights, z_bounds, quadrature_order
     )
@@ -234,11 +237,16 @@ def _marginal_density(density, axes, axis):
     integrated = density
     # Integrate from highest axis down so axis indices remain valid.
     for current in sorted(other, reverse=True):
-        integrated = trapezoid(integrated, x=axes[current], axis=current)
+        if axes[current].size == 1:
+            integrated = np.take(integrated, 0, axis=current)
+        else:
+            integrated = trapezoid(integrated, x=axes[current], axis=current)
     return integrated
 
 
 def _quantile_from_density(grid, density, probability):
+    if len(grid) == 1:
+        return float(grid[0])
     area = float(trapezoid(density, grid))
     if not np.isfinite(area) or area <= 0:
         raise ValueError("Marginal posterior has non-positive area")
