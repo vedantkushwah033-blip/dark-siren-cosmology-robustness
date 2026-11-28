@@ -335,6 +335,13 @@ jobs:
         run: python -m pytest tests/test_hidden_host_assumption_sensitivity.py -q
       - name: Test continuous hidden-population likelihood, quadrature, posterior grid and recovery
         run: python -m pytest tests/test_hidden_population.py tests/test_continuous_hidden_population_recovery.py -q
+      - name: Test hidden-population local information and grid convergence diagnostics
+        run: python -m pytest tests/test_hidden_population_identifiability.py tests/test_hidden_population_grid_convergence.py -q
+      - name: Validate continuous hidden-population experiment command-line interfaces
+        run: |
+          python scripts/run_continuous_hidden_population_recovery.py --help
+          python scripts/diagnose_hidden_population_identifiability.py --help
+          python scripts/audit_hidden_population_grid_convergence.py --help
       - name: Test marginal hidden-host assumption summaries
         run: python -m pytest tests/test_summarize_hidden_host_assumption_sensitivity.py -q
       - name: Test checksum-verified CHIMERA benchmark-data preparation
