@@ -156,3 +156,40 @@ For 68% coverage, 1,000 replicates give an approximate simple 95% binomial half-
 - No PR was opened or merged.
 - No new confirmatory workflow was launched.
 - This document records a first-stage audit, not completion of the full ASA paper.
+
+
+## 9. Expanded 2026 literature check (28 November 2026)
+
+A broader search materially tightens the novelty assessment. The following 2026 works must be included in the manuscript's related-work matrix:
+
+| Work | Method and scope | Direct overlap with this project |
+|---|---|---|
+| Tagliazucchi et al. (2026), *Enhancing dark siren cosmology via Gaussian process reconstruction of incomplete galaxy catalogs*, Phys. Rev. D 114, 083523, DOI [10.1103/vmzf-1wxq](https://doi.org/10.1103/vmzf-1wxq) | Hierarchical nonparametric Gaussian-process reconstruction of the line-of-sight galaxy redshift distribution, with explicit survey selection; mock catalogues and dark-siren H0 inference. | Strong overlap with the broad idea of inferring/reconstructing a missing host redshift population. Our one-dimensional truncated-normal hidden component is much simpler and cannot claim novelty for latent redshift-distribution reconstruction. |
+| Gray, Williams & Papadopoulos (2026), *Expanding the scope of dark siren cosmology: Inferring the population properties of gravitational wave-hosting galaxies*, arXiv:2609.04991 | Sampled redshift prior and joint inference of host-galaxy weighting/population properties alongside GW population and cosmological parameters; reports application in gwcosmo and a GWTC-5.0 analysis. | Directly overlaps with the broader proposal to jointly infer host-population parameters. A small synthetic (H_0,f,\mu_h,s_h) mixture exercise is not, by itself, a novel general method for learning host populations. |
+| Dalang, Fiorini & Baker (2026), *Large scale structure prior knowledge in the dark siren method*, JCAP 01 (2026) 034, DOI [10.1088/1475-7516/2026/01/034](https://doi.org/10.1088/1475-7516/2026/01/034) | Variance completion uses large-scale-structure information to predict missing galaxies; demonstrated with GLADE+ and gwcosmo, including GW190814 and O3 data. | Shows that physically informed completion methods already go beyond a uniform missing-host component. Our toy mixture is a controlled misspecification diagnostic, not a competitive completion algorithm. |
+| McCall et al. (2026), *Implementing a robust test of galaxy catalogue completeness for dark siren measurements of the Hubble constant*, MNRAS 549(1), stag828, DOI [10.1093/mnras/stag828](https://doi.org/10.1093/mnras/stag828) | Implements a magnitude-completeness test in gwcosmo, including directional pixel treatment and real-data applications. | Reinforces that practical catalogue-completeness diagnosis is already an active, implementation-level research area. Our synthetic model does not estimate survey magnitude limits or direction-dependent completeness. |
+| Dalang & Baker (2024), *The clustering of dark sirens' invisible host galaxies*, JCAP 02 (2024) 024, DOI [10.1088/1475-7516/2024/02/024](https://doi.org/10.1088/1475-7516/2024/02/024) | Uses galaxy clustering information to improve completion of invisible host populations. | Further rules out a broad claim that hidden-host populations or clustering-aware completion are unstudied. |
+
+### Revised novelty and scope decision
+
+The new continuous hidden-population model is useful as a **statistical teaching/diagnostic extension**, but its existence does not establish a novel astrophysical method. The Gray et al. (2026) work is especially important: joint inference of host-population properties is already being pursued in a more realistic hierarchical framework, including real GW-cosmology software and data.
+
+The ASA paper should therefore avoid claiming:
+- a first method for inferring hidden-host population parameters;
+- a new general solution to galaxy-catalogue incompleteness;
+- a new dark-siren H0 estimator;
+- an improvement over CHIMERA, gwcosmo, GP reconstruction, or variance completion.
+
+A potentially defensible ASA-level contribution is a **finite-sample statistical reliability benchmark** for a deliberately transparent toy model. The contribution would need to demonstrate, with paired and reproducible simulations, how posterior bias, interval coverage, and uncertainty respond to (i) omission, (ii) fixed misspecification of hidden-mixture assumptions, and (iii) finite-sample estimation of mixture parameters, while clearly distinguishing prior-predictive SBC from fixed-truth coverage.
+
+This remains a candidate contribution, not a proven novelty claim. Before submission, the full paper-level comparison should examine methods, assumptions, estimands, simulation designs, and metrics in the complete papers—not just abstracts.
+
+### References for the related-work section
+
+- Borghi et al. (2026), A&A 706, A199, [10.1051/0004-6361/202557354](https://doi.org/10.1051/0004-6361/202557354).
+- Leyde, Baker & Enzi (2026), JCAP 01 (2026) 013, [10.1088/1475-7516/2026/01/013](https://doi.org/10.1088/1475-7516/2026/01/013).
+- Dalang, Fiorini & Baker (2026), JCAP 01 (2026) 034, [10.1088/1475-7516/2026/01/034](https://doi.org/10.1088/1475-7516/2026/01/034).
+- Tagliazucchi et al. (2026), Phys. Rev. D 114, 083523, [10.1103/vmzf-1wxq](https://doi.org/10.1103/vmzf-1wxq).
+- Gray, Williams & Papadopoulos (2026), arXiv:2609.04991.
+- McCall et al. (2026), MNRAS 549(1), stag828, [10.1093/mnras/stag828](https://doi.org/10.1093/mnras/stag828).
+- Dalang & Baker (2024), JCAP 02 (2024) 024, [10.1088/1475-7516/2024/02/024](https://doi.org/10.1088/1475-7516/2024/02/024).
