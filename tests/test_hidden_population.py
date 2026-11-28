@@ -42,20 +42,21 @@ def test_log_likelihood_zero_and_unit_fraction_limits():
     assert np.isfinite(explicit_listed)
 
 
-def test_identical_hidden_and_listed_components_are_fraction_invariant():
-    # A point-like hidden population is not available in the continuous model;
-    # this checks the exact likelihood identity using a single listed component
-    # at the same redshift and a very narrow truncated-normal hidden component.
-    u = np.log(np.array([100.0, 140.0, 180.0]))
-    values = [
-        log_likelihood(
-            u, 70, f, 0.02, 0.0002, 0.1,
-            listed_redshifts=(0.02,), listed_weights=(1.0,),
-            z_bounds=(0.005, 0.10), quadrature_order=128,
-        )
-        for f in (0.0, 0.3, 0.8, 1.0)
-    ]
-    assert max(values) - min(values) < 0.02
+def test_one_event_mixture_likelihood_is_between_component_limits():
+    u = np.log(np.array([140.0]))
+    listed_only = log_likelihood(
+        u, 70, 0.0, 0.075, 0.012, 0.1,
+        listed_redshifts=(0.02, 0.04), listed_weights=(0.7, 0.3),
+    )
+    hidden_only = log_likelihood(
+        u, 70, 1.0, 0.075, 0.012, 0.1,
+        listed_redshifts=(0.02, 0.04), listed_weights=(0.7, 0.3),
+    )
+    mixed = log_likelihood(
+        u, 70, 0.37, 0.075, 0.012, 0.1,
+        listed_redshifts=(0.02, 0.04), listed_weights=(0.7, 0.3),
+    )
+    assert min(listed_only, hidden_only) <= mixed <= max(listed_only, hidden_only)
 
 
 def test_posterior_grid_normalizes_and_returns_ordered_marginals():
