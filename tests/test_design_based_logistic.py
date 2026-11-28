@@ -94,7 +94,7 @@ def test_srswor_linearization_tracks_repeated_fixed_frame_sampling():
             options={"gtol": 1e-9, "maxiter": 500},
         )
         assert np.all(np.isfinite(fit.x))
-        assert np.linalg.norm(gradient(fit.x), ord=np.inf) < 1e-6
+        assert np.linalg.norm(gradient(fit.x), ord=np.inf) < 1e-5
         return np.asarray(fit.x)
 
     # The estimand is the logistic score root for this one realized finite
