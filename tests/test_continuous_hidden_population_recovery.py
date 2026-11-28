@@ -22,3 +22,14 @@ def test_continuous_hidden_population_recovery_smoke_is_paired_and_finite():
     summary = summarize(rows)
     assert len(summary) == 4
     assert all(row["replicates"] == 2 for row in summary)
+
+def test_continuous_hidden_population_can_estimate_hidden_scale():
+    rows = run(
+        replicates=1, sample_sizes=(10,), seed=912,
+        h0_points=7, fraction_points=5, mu_points=5, quadrature_order=16,
+        estimate_sigma_h=True, sigma_h_points=3,
+    )
+    assert len(rows) == 4
+    assert all(row["sigma_h_estimated"] for row in rows)
+    plugin = next(row for row in rows if row["method"] == "plug_in_joint_medians")
+    assert 0.006 <= plugin["plugin_sigma_h"] <= 0.020
