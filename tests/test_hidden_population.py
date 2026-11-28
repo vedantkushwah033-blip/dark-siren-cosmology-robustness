@@ -93,3 +93,19 @@ def test_invalid_scales_rejected():
         log_likelihood(np.log([100, 120]), 70, 0.3, 0.075, 0, 0.1)
     with pytest.raises(ValueError):
         hidden_redshift_log_density([0.02], 0.075, 0.012, (0.10, 0.005))
+
+
+def test_known_hidden_scale_can_be_conditioned_on_as_singleton_axis():
+    rng = np.random.default_rng(17)
+    u = rng.normal(np.log(C_KM_S * np.array([0.02, 0.04, 0.075])[np.array([0, 1, 2, 2, 1, 0])] / 70), 0.1)
+    posterior = posterior_grid(
+        u, 0.1,
+        np.linspace(55, 85, 7), np.linspace(0, 0.7, 6),
+        np.linspace(0.045, 0.095, 6), [0.012],
+        quadrature_order=24,
+    )
+    marginal = posterior_marginals(posterior)
+    assert marginal["sigma_h"]["median"] == pytest.approx(0.012)
+    assert marginal["sigma_h"]["lower_95"] == pytest.approx(0.012)
+    assert marginal["sigma_h"]["upper_95"] == pytest.approx(0.012)
+    assert 55 <= marginal["H0"]["median"] <= 85
