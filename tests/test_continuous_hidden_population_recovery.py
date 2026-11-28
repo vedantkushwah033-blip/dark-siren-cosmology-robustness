@@ -1,6 +1,6 @@
 import numpy as np
 
-from scripts.run_continuous_hidden_population_recovery import run, summarize
+from scripts.run_continuous_hidden_population_recovery import run, summarize, paired_contrasts
 
 
 def test_continuous_hidden_population_recovery_smoke_is_paired_and_finite():
@@ -22,6 +22,9 @@ def test_continuous_hidden_population_recovery_smoke_is_paired_and_finite():
     summary = summarize(rows)
     assert len(summary) == 4
     assert all(row["replicates"] == 2 for row in summary)
+    contrasts = paired_contrasts(rows, bootstrap_resamples=100, seed=92)
+    assert len(contrasts) == 3*6
+    assert all(np.isfinite(row["estimate"]) for row in contrasts)
 
 def test_continuous_hidden_population_can_estimate_hidden_scale():
     rows = run(
