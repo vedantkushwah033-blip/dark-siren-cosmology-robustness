@@ -76,7 +76,8 @@ def _interval_metrics(summary, truth):
 
 
 def run(replicates=2, sample_sizes=(30,), seed=20261128, h0_points=11,
-        fraction_points=7, mu_points=9, quadrature_order=24):
+        fraction_points=7, mu_points=9, quadrature_order=24,
+        estimate_sigma_h=False, sigma_h_points=5):
     if replicates < 1 or any(int(n) < 1 for n in sample_sizes):
         raise ValueError("replicates and sample sizes must be positive")
     if h0_points < 5 or fraction_points < 3 or mu_points < 3:
@@ -85,7 +86,10 @@ def run(replicates=2, sample_sizes=(30,), seed=20261128, h0_points=11,
     h0_grid = np.linspace(50, 90, h0_points)
     f_grid = np.linspace(0, 1, fraction_points)
     mu_grid = np.linspace(0.03, 0.095, mu_points)
-    sigma_grid = [TRUTH["sigma_h"]]
+    sigma_grid = (
+        np.linspace(0.006, 0.020, sigma_h_points)
+        if estimate_sigma_h else [TRUTH["sigma_h"]]
+    )
     raw = []
 
     for n in sample_sizes:
@@ -105,8 +109,9 @@ def run(replicates=2, sample_sizes=(30,), seed=20261128, h0_points=11,
             # joint posterior, followed by an H0 posterior conditional on them.
             plugin_f = marg["fraction"]["median"]
             plugin_mu = marg["mu_h"]["median"]
+            plugin_sh = marg["sigma_h"]["median"]
             plugin = _h0_summary(
-                u, h0_grid, [plugin_f], [plugin_mu], sigma_grid, quadrature_order
+                u, h0_grid, [plugin_f], [plugin_mu], [plugin_sh], quadrature_order
             )
 
             oracle = _h0_summary(
@@ -130,6 +135,8 @@ def run(replicates=2, sample_sizes=(30,), seed=20261128, h0_points=11,
                     "sigma_h_conditioned": TRUTH["sigma_h"], "sigma_u": SIGMA_U,
                     "plugin_fraction": plugin_f if method == "plug_in_joint_medians" else "",
                     "plugin_mu_h": plugin_mu if method == "plug_in_joint_medians" else "",
+                    "plugin_sigma_h": plugin_sh if method == "plug_in_joint_medians" else "",
+                    "sigma_h_estimated": bool(estimate_sigma_h),
                 }
                 row.update(_interval_metrics(summary, TRUTH["H0"]))
                 raw.append(row)
@@ -193,11 +200,15 @@ def main():
     parser.add_argument("--fraction-points", type=int, default=15)
     parser.add_argument("--mu-points", type=int, default=21)
     parser.add_argument("--quadrature-order", type=int, default=48)
+    parser.add_argument("--estimate-sigma-h", action="store_true",
+                        help="Jointly estimate hidden redshift scale instead of conditioning it at truth.")
+    parser.add_argument("--sigma-h-points", type=int, default=5)
     parser.add_argument("--output-dir", default="results/continuous-hidden-population-recovery")
     args = parser.parse_args()
     sizes = tuple(int(x) for x in args.sample_sizes.split(","))
     raw = run(args.replicates, sizes, args.seed, args.h0_points,
-              args.fraction_points, args.mu_points, args.quadrature_order)
+              args.fraction_points, args.mu_points, args.quadrature_order,
+              args.estimate_sigma_h, args.sigma_h_points)
     summary = summarize(raw)
     root = Path(args.output_dir)
     root.mkdir(parents=True, exist_ok=True)
