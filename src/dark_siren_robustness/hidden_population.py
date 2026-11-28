@@ -178,8 +178,8 @@ def posterior_grid(
     """
     observations, su = _validate_observations(u, sigma_u)
     hz = _validate_grid(H0_grid, "H0_grid", positive=True)
-    fg = _validate_grid(fraction_grid, "fraction_grid", lower=0.0, upper=1.0)
-    mg = _validate_grid(mu_grid, "mu_grid")
+    fg = _validate_grid(fraction_grid, "fraction_grid", lower=0.0, upper=1.0, allow_singleton=True)
+    mg = _validate_grid(mu_grid, "mu_grid", allow_singleton=True)
     sg = _validate_grid(sigma_h_grid, "sigma_h_grid", positive=True, allow_singleton=True)
     z, weights, bounds, order = _validate_components(
         listed_redshifts, listed_weights, z_bounds, quadrature_order
