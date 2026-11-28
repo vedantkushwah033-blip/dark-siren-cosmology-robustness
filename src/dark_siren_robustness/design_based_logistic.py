@@ -85,9 +85,9 @@ def srswor_logistic_linearization_covariance(
     centered = score - np.mean(score, axis=0, keepdims=True)
     score_covariance = centered.T @ centered / (n - 1)
     fpc = 1.0 - n / population_size
+    left_solved = np.linalg.solve(sensitivity, score_covariance)
     covariance = (
-        np.linalg.solve(sensitivity, score_covariance)
-        @ np.linalg.inv(sensitivity).T
+        np.linalg.solve(sensitivity, left_solved.T).T
         * (fpc / n)
     )
     covariance = 0.5 * (covariance + covariance.T)
