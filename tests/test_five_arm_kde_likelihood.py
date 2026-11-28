@@ -209,7 +209,7 @@ def test_detection_efficiency_matches_generator_upper_tail_contract():
     )
     means = 299_792.458 * z[None, :] / h0[:, None]
     expected = np.array([
-        np.trapezoid(density * ndtr((row - threshold) / sigma), z)
+        trapezoid(density * ndtr((row - threshold) / sigma), z)
         for row in means
     ])
     np.testing.assert_allclose(
@@ -217,7 +217,7 @@ def test_detection_efficiency_matches_generator_upper_tail_contract():
     )
 
     lower_tail_wrong = np.array([
-        np.trapezoid(density * ndtr((threshold - row) / sigma), z)
+        trapezoid(density * ndtr((threshold - row) / sigma), z)
         for row in means
     ])
     assert np.max(np.abs(expected - lower_tail_wrong)) > 0.1
